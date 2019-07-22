@@ -1,17 +1,17 @@
 {
 	"P1000":{
 		"Typ":1,
-		"BenifitAddress":"0x12c171900f010b17e969702efa044d077e868082",
+		"BenefitAddress":"0x12c171900f010b17e969702efa044d077e868082",
 		"NodeId": "1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
 		"ExternalId":"111111",
 		"NodeName": "platon",
 		"Website": "https://www.test.network",
 		"Details": "supper node",
 		"Amount":1000000000000000000000000,
-		"ProcessVersion":65536
+		"ProgramVersion":1972
 	},
 	"P1001":{
-		"BenifitAddress":"0x12c171900f010b17e969702efa044d077e868082",
+		"BenefitAddress":"0x12c171900f010b17e969702efa044d077e868082",
 		"NodeId": "1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
 		"ExternalId":"111111",
 		"NodeName": "platon",
@@ -72,8 +72,8 @@
 		"Desc":"Desc",
 		"Url":"http://www.test.inet",
 		"ParamName":"ParamName",
-		"CurrentValue":0.85,
-		"NewValue":1.02,
+		"CurrentValue":"0.85",
+		"NewValue":"1.02",
 		"EndVotingBlock":1000
 	},
 	"P2003":{
@@ -109,7 +109,7 @@
 			"Amount":2000000000000000000000000
 		}]
 	},
-	"P4001":{
+	"P4100":{
 		"Account":"0x12c171900f010b17e969702efa044d077e868082"
 	}
 }

@@ -3,6 +3,7 @@ package gov
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -60,7 +61,7 @@ func (self *GovSnapshotDB) getPreActiveProposalID(blockHash common.Hash) (common
 	}
 
 	var proposalID common.Hash
-	if bytes != nil {
+	if len(bytes) > 0 {
 		if err = rlp.DecodeBytes(bytes, &proposalID); err != nil {
 			return common.Hash{}, err
 		}
@@ -79,7 +80,7 @@ func (self *GovSnapshotDB) getProposalIDListByKey(blockHash common.Hash, key []b
 		return nil, err
 	}
 	var idList []common.Hash
-	if bytes != nil {
+	if len(bytes) > 0 {
 		if err = rlp.DecodeBytes(bytes, &idList); err != nil {
 			return nil, err
 		}
@@ -90,14 +91,29 @@ func (self *GovSnapshotDB) getProposalIDListByKey(blockHash common.Hash, key []b
 func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 	var total []common.Hash
 
-	hashes, _ := self.getVotingIDList(blockHash)
-	total = append(total, hashes...)
+	hashes, err := self.getVotingIDList(blockHash)
+	if err != nil {
+		log.Error("list voting proposal IDs failed", "blockHash", blockHash)
+		return nil, err
+	} else if len(hashes) > 0 {
+		total = append(total, hashes...)
+	}
 
-	hash, _ := self.getPreActiveProposalID(blockHash)
-	total = append(total, hash)
+	hash, err := self.getPreActiveProposalID(blockHash)
+	if err != nil {
+		log.Error("list pre-active proposal IDs failed", "blockHash", blockHash)
+		return nil, err
+	} else if len(hash) > 0 {
+		total = append(total, hash)
+	}
+	hashes, err = self.getEndIDList(blockHash)
+	if err != nil {
+		log.Error("list end proposal IDs failed", "blockHash", blockHash)
+		return nil, err
+	} else if len(hashes) > 0 {
+		total = append(total, hashes...)
+	}
 
-	hashes, _ = self.getEndIDList(blockHash)
-	total = append(total, hashes...)
 	return total, nil
 }
 
@@ -118,7 +134,7 @@ func (self *GovSnapshotDB) getActiveNodeList(blockHash common.Hash, proposalId c
 		return nil, err
 	}
 	var nodes []discover.NodeID
-	if value != nil {
+	if len(value) > 0 {
 		if err := rlp.DecodeBytes(value, &nodes); err != nil {
 			return nil, err
 		}
@@ -153,7 +169,7 @@ func (self *GovSnapshotDB) getAccuVerifiersLength(blockHash common.Hash, proposa
 		return 0, err
 	}
 
-	if value != nil {
+	if len(value) > 0 {
 		var verifiers []discover.NodeID
 		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
 			return 0, err

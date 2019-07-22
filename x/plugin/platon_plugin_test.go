@@ -238,19 +238,12 @@ func newPlugins() {
 
 func newChainState() (*state.StateDB, *types.Block, error) {
 
-	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
-
-	node, _ := discover.ParseNode(url)
-
 	xcom.GetEc(xcom.DefaultMainNet)
 
-	gen := &core.Genesis{
-		Config: &params.ChainConfig{
-			Cbft: &params.CbftConfig{
-				InitialNodes: []discover.Node{*node},
-			},
-		},
-	}
+	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
+	node, _ := discover.ParseNode(url)
+	gen := core.DefaultGenesisBlock()
+	gen.Config.Cbft.InitialNodes = []discover.Node{*node}
 
 	var (
 		db      = ethdb.NewMemDatabase()
@@ -349,7 +342,7 @@ func build_staking_data_more(block uint64) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
@@ -480,7 +473,7 @@ func build_staking_data(genesisHash common.Hash) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,

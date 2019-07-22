@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+var SecondsPerYear = uint64(365 * 24 * 3600)
+
 // plugin rule key
 const (
 	DefualtRule = iota
@@ -78,10 +80,6 @@ func GetEc(netId int8) *EconomicModel {
 		ec = getDefaultEMConfig(netId)
 	})
 	return ec
-}
-
-func SetEconomicModel(ecParams *EconomicModel) {
-	ec = ecParams
 }
 
 const (

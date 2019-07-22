@@ -11,8 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-var SecondsPerYear = uint64(365 * 24 * 3600)
-
 func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
 	if pk, err := nodeId.Pubkey(); nil != err {
 		return common.ZeroAddr, err
@@ -72,7 +70,9 @@ func EpochSize() uint64 {
 
 // epochs numbers each year
 func EpochsPerYear() uint64 {
-	return SecondsPerYear / EpochSize()
+	epochBlocks := CalcBlocksEachEpoch()
+	i := xcom.Interval()
+	return xcom.SecondsPerYear / (i * epochBlocks)
 }
 
 // calculates how many new blocks in a settlement period
@@ -82,7 +82,7 @@ func CalcBlocksEachEpoch() uint64 {
 
 // calculate how many new blocks in one year
 func CalcBlocksEachYear() uint64 {
-	return EpochsPerYear() * EpochSize()
+	return EpochsPerYear() * CalcBlocksEachEpoch()
 }
 
 func IsElection(blockNumber uint64) bool {
@@ -161,6 +161,16 @@ func CalculateYear(blockNumber uint64) uint32 {
 		return uint32(div)
 	} else {
 		return uint32(div + 1)
+	}
+}
+
+func CalculateLastYear(blockNumber uint64) uint32 {
+	thisYear := CalculateYear(blockNumber)
+
+	if thisYear == 0 {
+		return 0
+	} else {
+		return thisYear - 1
 	}
 }
 

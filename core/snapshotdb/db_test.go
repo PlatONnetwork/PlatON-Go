@@ -25,7 +25,7 @@ func TestRecover(t *testing.T) {
 		parenthash                                           common.Hash
 		baseDBArr, commitArr, recognizedArr, unrecognizedArr []kv
 		base, high                                           int64
-		commit, recognized, unrecognized                     blockData
+		commit, recognized, unrecognized                     *blockData
 	)
 	{
 		commitHash := recognizedHash
@@ -69,11 +69,12 @@ func TestRecover(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		rg, ok := dbInstance.recognized.Load(generateHash("recognizedHash4"))
+
+		rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
 		if !ok {
 			t.Error("not found recognizedHash4")
 		}
-		recognized = rg.(blockData)
+		recognized = rg
 		parenthash = commitHash
 	}
 	{
@@ -88,7 +89,7 @@ func TestRecover(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		unrecognized = *dbInstance.unRecognized
+		unrecognized = dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()]
 	}
 	base = dbInstance.current.BaseNum.Int64()
 	high = dbInstance.current.HighestNum.Int64()
@@ -143,18 +144,18 @@ func TestRecover(t *testing.T) {
 			return
 		}
 	}
-	oldarr := []blockData{
+	oldarr := []*blockData{
 		unrecognized,
 		recognized,
 		commit,
 	}
-	rg, ok := dbInstance.recognized.Load(generateHash("recognizedHash4"))
+	rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
 	if !ok {
 		t.Error("recognizedHash4 not found")
 	}
-	rg2 := rg.(blockData)
-	newarr := []blockData{
-		*dbInstance.unRecognized,
+	rg2 := rg
+	newarr := []*blockData{
+		dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()],
 		rg2,
 		dbInstance.committed[0],
 	}
@@ -304,20 +305,9 @@ func TestRMOldRecognizedBlockData(t *testing.T) {
 	if err := dbInstance.rmOldRecognizedBlockData(); err != nil {
 		t.Error(err)
 	}
-	var i int
-	dbInstance.recognized.Range(
-		func(key, value interface{}) bool {
-			i++
-			return true
-		})
-	if i != 0 {
+	if len(dbInstance.unCommit.blocks) != 0 {
 		t.Error("not rm old data")
 	}
-}
-
-type kv struct {
-	key   []byte
-	value []byte
 }
 
 func randomString2(s string) []byte {
@@ -329,24 +319,6 @@ func randomString2(s string) []byte {
 		b.WriteByte(' ' + byte(rand.Int()))
 	}
 	return b.Bytes()
-}
-
-type kvs []kv
-
-func (k kvs) Len() int {
-	return len(k)
-}
-
-func (k kvs) Less(i, j int) bool {
-	n := bytes.Compare(k[i].key, k[j].key)
-	if n == -1 {
-		return true
-	}
-	return false
-}
-
-func (k kvs) Swap(i, j int) {
-	k[i], k[j] = k[j], k[i]
 }
 
 func (k kvs) compareWithkvs(s kvs) error {
@@ -482,7 +454,7 @@ func TestCheckHashChain(t *testing.T) {
 			if !ok {
 				t.Error("should be ok")
 			}
-			if location != hashLocationRecognized {
+			if location != hashLocationUnCommitted {
 				t.Error("should be locate Recognized", location)
 			}
 		}
@@ -506,7 +478,7 @@ func TestCheckHashChain(t *testing.T) {
 		if !ok {
 			t.Error("should be ok")
 		}
-		if location != hashLocationUnRecognized {
+		if location != hashLocationUnCommitted {
 			t.Error("should be locate Recognized", location)
 		}
 	})

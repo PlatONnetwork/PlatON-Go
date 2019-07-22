@@ -444,7 +444,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	origin = originh.Number.Uint64()
 	pivot = pivoth.Number.Uint64()
 
-	log.Info("synchronising findOrigin", "origin", origin, "pivot", pivot)
+	log.Info("synchronising findOrigin", "peer", p.id, "eth", "origin", origin, "pivot", pivot)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
 	if d.mode == FastSync && pivot > origin {

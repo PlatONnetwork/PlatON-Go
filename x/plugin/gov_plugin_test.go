@@ -116,8 +116,8 @@ func submitParam(t *testing.T, pid common.Hash) {
 		Proposer:       nodeIdArr[0],
 
 		ParamName:    "param3",
-		CurrentValue: 12.5,
-		NewValue:     0.85,
+		CurrentValue: "12.5",
+		NewValue:     "0.85",
 	}
 
 	state := evm.StateDB.(*state.StateDB)
@@ -345,8 +345,8 @@ func TestGovPlugin_SubmitParam_invalidEndVotingBlock(t *testing.T) {
 		Proposer:       nodeIdArr[0],
 
 		ParamName:    "param3",
-		CurrentValue: 12.5,
-		NewValue:     0.85,
+		CurrentValue: "12.5",
+		NewValue:     "0.85",
 	}
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
@@ -374,8 +374,8 @@ func TestGovPlugin_SubmitParam_unsupportedParameter(t *testing.T) {
 		Proposer:       nodeIdArr[0],
 
 		ParamName:    "param4", //errror
-		CurrentValue: 12.5,
-		NewValue:     0.85,
+		CurrentValue: "12.5",
+		NewValue:     "0.85",
 	}
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
@@ -801,10 +801,10 @@ func TestGovPlugin_versionProposalSuccess(t *testing.T) {
 func TestGovPlugin_Param(t *testing.T) {
 	defer setup(t)()
 
-	paraMap := make(map[string]interface{})
-	paraMap["param1"] = 12
+	paraMap := make(map[string]string)
+	paraMap["param1"] = "12"
 	paraMap["param2"] = "stringValue"
-	paraMap["param3"] = 12.5
+	paraMap["param3"] = "12.5"
 
 	if err := govPlugin.SetParam(paraMap, evm.StateDB); err != nil {
 		t.Errorf("set param failed, %s", err.Error())
@@ -822,7 +822,7 @@ func TestGovPlugin_Param(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get param failed, %s", err)
 	} else {
-		t.Logf("param name: %s, value: %2.2f", "param3", value.(float64))
+		t.Logf("param name: %s, value: %s", "param3", value)
 	}
 
 }
@@ -830,10 +830,10 @@ func TestGovPlugin_Param(t *testing.T) {
 func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 	defer setup(t)()
 
-	paraMap := make(map[string]interface{})
-	paraMap["param1"] = 12
+	paraMap := make(map[string]string)
+	paraMap["param1"] = "12"
 	paraMap["param2"] = "stringValue"
-	paraMap["param3"] = 12.5
+	paraMap["param3"] = "12.5"
 
 	if err := govPlugin.SetParam(paraMap, evm.StateDB); err != nil {
 		t.Fatalf("set param failed, %s", err)
@@ -887,10 +887,17 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 		if err != nil {
 			t.Fatalf("cannot find the param value, %s", err.Error())
 		} else {
-			t.Logf("the param value, %2.2f", value.(float64))
+			t.Logf("the param value, %s", value)
 		}
 
 	} else {
 		t.Logf("the result status error, %d", result.Status)
 	}
+}
+
+func TestGovPlugin_printVersion(t *testing.T) {
+	defer setup(t)()
+
+	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8|0))
+
 }
