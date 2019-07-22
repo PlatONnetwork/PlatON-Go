@@ -27,7 +27,7 @@ const (
 	CbftProtocolVersion = 1
 
 	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
-	CbftProtocolLength = 15
+	CbftProtocolLength = 20
 
 	// Maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
@@ -376,6 +376,22 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.GetLatestStatusMsg:
+		var request protocols.GetLatestStatus
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.LatestStatusMsg:
+		var request protocols.LatestStatus
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMessage(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PingMsg:

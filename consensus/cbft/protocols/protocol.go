@@ -30,8 +30,10 @@ const (
 	PrepareBlockHashMsg  = 0x0a
 	PrepareVotesMsg      = 0x0b
 	QCBlockListMsg       = 0x0c
-	PingMsg              = 0x0d
-	PongMsg              = 0x0e
+	GetLatestStatusMsg   = 0x0d
+	LatestStatusMsg      = 0x0e
+	PingMsg              = 0x0f
+	PongMsg              = 0x10
 )
 
 // A is used to convert specific message types according to the message body.
@@ -64,6 +66,10 @@ func MessageType(msg interface{}) uint64 {
 		return PrepareVotesMsg
 	case *QCBlockList:
 		return QCBlockListMsg
+	case *GetLatestStatus:
+		return GetLatestStatusMsg
+	case *LatestStatus:
+		return LatestStatusMsg
 	case *Ping:
 		return PingMsg
 	case *Pong:
@@ -409,5 +415,41 @@ func (s *QCBlockList) MsgHash() common.Hash {
 
 func (s *QCBlockList) BHash() common.Hash {
 	// No explicit hash value and return empty hash.
+	return common.Hash{}
+}
+
+// State synchronization for nodes.
+type GetLatestStatus struct {
+	BlockNumber uint64 // Block height sent by the requester
+	LogicType   uint64 // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
+}
+
+func (s *GetLatestStatus) String() string {
+	return fmt.Sprintf("[BlockNumber: %d] - [LogicType: %d]", s.BlockNumber, s.LogicType)
+}
+
+func (s *GetLatestStatus) MsgHash() common.Hash {
+	return utils.BuildHash(GetLatestStatusMsg, utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
+}
+
+func (s *GetLatestStatus) BHash() common.Hash {
+	return common.Hash{}
+}
+
+// Response message to GetLatestStatus request.
+type LatestStatus struct {
+	BlockNumber uint64 // Block height sent by responder.
+	LogicType   uint64 // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
+}
+
+func (s *LatestStatus) String() string {
+	return fmt.Sprintf("[BlockNumber: %d] - [LogicType: %d]", s.BlockNumber, s.LogicType)
+}
+
+func (s *LatestStatus) MsgHash() common.Hash {
+	return utils.BuildHash(LatestStatusMsg, utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
+}
+
+func (s *LatestStatus) BHash() common.Hash {
 	return common.Hash{}
 }
