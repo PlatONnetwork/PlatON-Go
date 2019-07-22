@@ -253,9 +253,10 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	// Store genesis governance data
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
 	// Store restricting plans for increase issue for second and third year
-	if err := buildAllowancePlan(statedb); nil != err {
+	if err := genesisAllowancePlan(statedb); nil != err {
 		panic("Failed to Store restricting plan: " + err.Error())
 	}
+	plugin.SetLatestEpoch(statedb, uint64(0))
 
 	// the State root
 	root := statedb.IntermediateRoot(false)
