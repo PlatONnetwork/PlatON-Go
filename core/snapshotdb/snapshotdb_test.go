@@ -41,11 +41,10 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		b, ok := dbInstance.recognized.Load(c)
+		bd, ok := dbInstance.unCommit.blocks[c]
 		if !ok {
 			t.Fatal("must find recognized")
 		}
-		bd := b.(blockData)
 		if bd.ParentHash != p {
 			t.Fatal("parentHash must same:", bd.ParentHash, p)
 		}
@@ -61,7 +60,7 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		bd := dbInstance.unRecognized
+		bd := dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()]
 		if bd.ParentHash != p {
 			t.Fatal("parentHash must same:", bd.ParentHash, p)
 		}
@@ -824,7 +823,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	})
 }
 
-//1.put之前必须newblock，如果没有需要返回错误   -
+//  put  must before newblock
 func TestPutToUnRecognized(t *testing.T) {
 	initDB()
 	db := dbInstance
@@ -861,8 +860,9 @@ func TestPutToUnRecognized(t *testing.T) {
 		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
 		lastkvHashs = append(lastkvHashs, lastkvHash)
 	}
+	block := db.unCommit.blocks[db.getUnRecognizedHash()]
 	for _, value := range data {
-		v, err := db.unRecognized.data.Get([]byte(value[0]))
+		v, err := block.data.Get([]byte(value[0]))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -871,7 +871,7 @@ func TestPutToUnRecognized(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: db.unRecognized.Number.Int64(), BlockHash: db.getUnRecognizedHash()}
+	fd := fileDesc{Type: TypeJournal, Num: block.Number.Int64(), BlockHash: db.getUnRecognizedHash()}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("should open storage", err)
@@ -949,11 +949,10 @@ func TestPutToRecognized(t *testing.T) {
 		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
 		lastkvHashs = append(lastkvHashs, lastkvHash)
 	}
-	rg, ok := db.recognized.Load(currentHash)
+	recognized, ok := db.unCommit.blocks[currentHash]
 	if !ok {
 		t.Fatal("[SnapshotDB] recognized hash should be find")
 	}
-	recognized := rg.(blockData)
 	for _, value := range data {
 		v, err := recognized.data.Get([]byte(value[0]))
 		if err != nil {
@@ -1040,11 +1039,10 @@ func TestFlush(t *testing.T) {
 	if err := db.Flush(currentHash, blockNumber); err != nil {
 		t.Fatal(err)
 	}
-	rg, ok := db.recognized.Load(currentHash)
+	recognized, ok := db.unCommit.blocks[currentHash]
 	if !ok {
 		t.Fatal("[SnapshotDB] recognized hash should be find")
 	}
-	recognized := rg.(blockData)
 	if !recognized.readOnly {
 		t.Fatal("[SnapshotDB] unrecognized flush to recognized , then the block must read only")
 	}
@@ -1099,7 +1097,8 @@ func TestFlush(t *testing.T) {
 			t.Fatal("body value should be same", string(body.Value), value)
 		}
 	}
-	if db.unRecognized != nil {
+
+	if _, ok := db.unCommit.blocks[db.getUnRecognizedHash()]; ok {
 		t.Fatal("unRecognized must be nil")
 	}
 
@@ -1170,7 +1169,7 @@ func TestCommit(t *testing.T) {
 			t.Fatal("[SnapshotDB] should equal")
 		}
 	}
-	if _, ok := db.recognized.Load(currentHash); ok {
+	if _, ok := db.unCommit.blocks[currentHash]; ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
 
