@@ -1,6 +1,7 @@
 package plugin_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -40,6 +41,7 @@ func setup(t *testing.T) func() {
 	govPlugin = plugin.GovPluginInstance()
 
 	lastBlockHash = genesis.Hash()
+	fmt.Println("创世块的Hash", lastBlockHash.String())
 
 	build_staking_data(genesis.Hash())
 
@@ -499,11 +501,13 @@ func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
 	defer setup(t)()
 	submitVersion(t, txHashArr[0])
 
+	fmt.Println("提交第一个块的Hash", lastBlockHash.String())
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
 	buildBlockNoCommit(2)
 
+	fmt.Println("入参的第2个块的Hash", lastBlockHash.String())
 	err := govPlugin.DeclareVersion(sender, nodeIdArr[0], newVersion, lastBlockHash, 2, evm.StateDB)
 	if err != nil {
 		t.Fatalf("Declare Version err ...%s", err)
