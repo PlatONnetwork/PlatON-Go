@@ -467,6 +467,36 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 	})
 }
 
+func TestSnapshotDB_Ranking4(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	generatekvs := generatekvWithPrefix(1000, "aaa")
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, generateHash("baseDBBlockhash"), generatekvs); err != nil {
+		t.Error(err)
+	}
+	f := func(hash common.Hash, prefix string, num int) kvs {
+		itr := dbInstance.Ranking(hash, []byte(prefix), num)
+		err := itr.Error()
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := make(kvs, 0)
+		for itr.Next() {
+			o = append(o, kv{itr.Key(), itr.Value()})
+		}
+		itr.Release()
+		return o
+	}
+	v := f(common.ZeroHash, "aaa", 1000)
+	if err := v.compareWithkvs(generatekvs); err != nil {
+		t.Error(err)
+	}
+	v2 := f(common.ZeroHash, "aaa", 0)
+	if err := v2.compareWithkvs(generatekvs); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestSnapshotDB_Ranking3(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
