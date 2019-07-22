@@ -9,6 +9,9 @@ import (
 
 var (
 
+	// Network delay record
+	propPeerLatencyMeter = metrics.NewRegisteredMeter("cbft/prop/pong/latency", nil)
+
 	// for the message
 	propPrepareBlockInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_blocks/in/packets", nil)
 	propPrepareBlockInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_blocks/in/traffic", nil)

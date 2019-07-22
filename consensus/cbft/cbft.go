@@ -216,6 +216,9 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 	var err error
 
+	// Forward the message before processing the message.
+	go cbft.network.Forwarding(id, msg)
+
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
 		err = cbft.OnPrepareBlock(id, msg)
