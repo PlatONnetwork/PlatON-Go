@@ -738,6 +738,7 @@ type rankingHeap struct {
 	hepMaxNum int
 }
 
+// the heap length must  gt than 0
 func (r *rankingHeap) gtThanMaxHeap(k []byte) bool {
 	if bytes.Compare(k, r.heap[0].key) > 0 {
 		return true
@@ -761,9 +762,12 @@ func (r *rankingHeap) findHandledKey(key []byte) bool {
 }
 
 func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
+	baseDBBreakCondition := baseDB && r.hepMaxNum > 0
 	for itr.Next() {
 		k, v := itr.Key(), itr.Value()
-		if baseDB && r.gtThanMaxHeap(k) {
+		// in baseDB, if the heap length is greater than hepMaxNum , the itr.key is gt than max heap,
+		// the every next itr.key will gt than max heap,so no need itr.next
+		if baseDBBreakCondition && (r.heap.Len() > r.hepMaxNum) && r.gtThanMaxHeap(k) {
 			break
 		}
 		if r.findHandledKey(k) {
