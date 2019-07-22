@@ -2116,8 +2116,8 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			can.Status |= staking.NotEnough
 			needDelete = true
 		}
-	} else if slashType == staking.DoubleSign {
-		can.Status |= staking.DoubleSign
+	} else if slashType == staking.DuplicateSign {
+		can.Status |= staking.DuplicateSign
 		needDelete = true
 	} else {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType,

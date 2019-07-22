@@ -2387,9 +2387,9 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	sla := new(big.Int).Div(slash2.Shares, big.NewInt(10))
 
 	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
-	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DoubleSign, caller)
+	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DuplicateSign, caller)
 	if nil != err {
-		t.Errorf("Failed to SlashCandidates Second can (DoubleSign), err: %v", err)
+		t.Errorf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err)
 		return
 	}
 

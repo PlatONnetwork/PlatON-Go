@@ -15,12 +15,12 @@ const (
 	#	  THE CANDIDATE  STATUS     #
 	######   ######   ######   ######
 	*/
-	Invalided  = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	LowRatio               // 0010: The candidate was low package ratio
-	NotEnough              // 0100: The current candidate's von does not meet the minimum staking threshold
-	DoubleSign             // 1000: The Double package or Double sign
-	Valided    = 0         // 0000: The current candidate is in force
-	NotExist   = 1 << 31   // 1000,xxxx,... : The candidate is not exist
+	Invalided     = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
+	LowRatio                  // 0010: The candidate was low package ratio
+	NotEnough                 // 0100: The current candidate's von does not meet the minimum staking threshold
+	DuplicateSign             // 1000: The Duplicate package or Duplicate sign
+	Valided       = 0         // 0000: The current candidate is in force
+	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
 
 const SWeightItem = 4
@@ -70,11 +70,11 @@ func Is_LowRatio_NotEnough(status uint32) bool {
 }
 
 func Is_DoubleSign(status uint32) bool {
-	return status&DoubleSign == DoubleSign
+	return status&DuplicateSign == DuplicateSign
 }
 
 func Is_DoubleSign_Invalid(status uint32) bool {
-	return status&(DoubleSign|Invalided) == (DoubleSign | Invalided)
+	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
 // The Candidate info
@@ -325,9 +325,9 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // it is slashed and is sorted to the front.
 //
 // The priorities just like that:
-// DoubleSign > ProgramVersion > LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+// DuplicateSign > ProgramVersion > LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
 //
-// DoubleSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// DuplicateSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // ProgramVersion: From small to big
 // validaotorTerm: From big to small
 // LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
