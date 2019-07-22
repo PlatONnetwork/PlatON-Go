@@ -178,6 +178,13 @@ func (p *Peer) SetQcBn(qcBn *big.Int) {
 	}
 }
 
+// Get the highest block height signature collected by the current node.
+func (p *Peer) QCBn() uint64 {
+	p.qcLock.RLock()
+	defer p.qcLock.RUnlock()
+	return p.highestQCBn.Uint64()
+}
+
 // SetLockedBn saves the highest locked block.
 func (p *Peer) SetLockedBn(lockedBn *big.Int) {
 	if lockedBn != nil {
@@ -188,6 +195,13 @@ func (p *Peer) SetLockedBn(lockedBn *big.Int) {
 	}
 }
 
+// Get the highest block height locked by the current node.
+func (p *Peer) LockedBn() uint64 {
+	p.lLock.RLock()
+	defer p.lLock.RUnlock()
+	return p.lockedBn.Uint64()
+}
+
 // SetLockedBn saves the highest commit block.
 func (p *Peer) SetCommitdBn(commitBn *big.Int) {
 	if commitBn != nil {
@@ -196,6 +210,13 @@ func (p *Peer) SetCommitdBn(commitBn *big.Int) {
 		log.Debug("Set commitBn", "peerID", p.id, "oldCommitBn", p.commitBn.Uint64(), "newCommitBn", commitBn.Uint64())
 		p.lockedBn.Set(commitBn)
 	}
+}
+
+// Get the highest block height submitted by the current node.
+func (p *Peer) CommitBn() uint64 {
+	p.cLock.RLock()
+	defer p.cLock.RUnlock()
+	return p.commitBn.Uint64()
 }
 
 // Start the loop that the peer uses to maintain its
@@ -370,6 +391,48 @@ func (ps *PeerSet) Peers() []*Peer {
 	for _, p := range ps.peers {
 		list = append(list, p)
 	}
+	return list
+}
+
+// Returns a list of nodes that are larger than the qcNumber of the highest qc block.
+func (ps *PeerSet) PeersWithHighestQCBn(qcNumber uint64) []*Peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	list := make([]*Peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		if p.QCBn() > qcNumber {
+			list = append(list, p)
+		}
+	}
+	log.Trace("QCBnHighestPeer done", "count", len(list), "peers", formatPeers(list))
+	return list
+}
+
+// Returns a list of nodes that are larger than the lockedNumber of the highest locked block.
+func (ps *PeerSet) PeersWithHighestLockedBn(lockedNumber uint64) []*Peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	list := make([]*Peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		if p.LockedBn() > lockedNumber {
+			list = append(list, p)
+		}
+	}
+	log.Trace("LockedBnHighestPeer done", "count", len(list), "peers", formatPeers(list))
+	return list
+}
+
+// Returns a list of nodes that are larger than the commitNumber of the highest locked block.
+func (ps *PeerSet) PeersWithHighestCommitBn(commitNumber uint64) []*Peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	list := make([]*Peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		if p.CommitBn() > commitNumber {
+			list = append(list, p)
+		}
+	}
+	log.Trace("CommitBnHighestPeer done", "count", len(list), "peers", formatPeers(list))
 	return list
 }
 

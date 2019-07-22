@@ -45,7 +45,7 @@ func NewRouter(bft Cbft, handler Handler) *router {
 
 // A is responsible for forwarding the message. It selects different
 // target nodes based on the message type and forwarding mode.
-func (r *router) gossip(m *types.MsgPackage) {
+func (r *router) Gossip(m *types.MsgPackage) {
 	msgType := protocols.MessageType(m.Message())
 	msgHash := m.Message().MsgHash()
 
@@ -89,7 +89,7 @@ func (r *router) gossip(m *types.MsgPackage) {
 
 // Send message to a known peerId. Determine if the peerId has established
 // a connection before sending.
-func (h *router) sendMessage(m *types.MsgPackage) {
+func (h *router) SendMessage(m *types.MsgPackage) {
 	if peer, err := h.handler.Get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
 			"msgHash", m.Message().MsgHash().TerminalString(), "BHash", m.Message().BHash().TerminalString())

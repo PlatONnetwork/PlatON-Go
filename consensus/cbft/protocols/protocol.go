@@ -28,7 +28,8 @@ const (
 	QCPrepareBlockMsg    = 0x08
 	GetPrepareVoteMsg    = 0x09
 	PrepareBlockHashMsg  = 0x0a
-	PrepareVotesMsg      = 0xb
+	PrepareVotesMsg      = 0x0b
+	QCBlockListMsg       = 0x0c
 	PingMsg              = 0x0d
 	PongMsg              = 0x0e
 )
@@ -39,45 +40,75 @@ const (
 func MessageType(msg interface{}) uint64 {
 	// todo: need to process depending on mmessageType.
 	switch msg.(type) {
-	default:
+	case *CbftStatusData:
+		return CBFTStatusMsg
+	case *PrepareBlock:
+		return PrepareBlockMsg
+	case *PrepareVote:
+		return PrepareVoteMsg
+	case *ViewChange:
+		return ViewChangeMsg
+	case *GetPrepareBlock:
+		return GetPrepareBlockMsg
+	case *GetQuorumCert:
+		return GetQuorumCertMsg
+	case *QuorumCert:
+		return QuorumCertMsg
+	case *GetQCPrepareBlock:
+		return GetQCPrepareBlockMsg
+	case *GetPrepareVote:
+		return GetPrepareVoteMsg
+	case *PrepareBlockHash:
 		return PrepareBlockHashMsg
+	case *PrepareVotes:
+		return PrepareVotesMsg
+	case *QCBlockList:
+		return QCBlockListMsg
+	case *Ping:
+		return PingMsg
+	case *Pong:
+		return PongMsg
+	default:
 	}
 	panic(fmt.Sprintf("unknown message type [%v]", reflect.TypeOf(msg)))
 }
 
+// Proposed block carrier.
 type PrepareBlock struct {
 	Epoch         uint64               `json:"epoch"`
 	ViewNumber    uint64               `json:"view_number"`
 	Block         *types.Block         `json:"block_hash"`
-	BlockIndex    uint32               `json:"block_index"` //The block number of the current ViewNumber proposal, 0....10
-	ProposalIndex uint32               `json:"proposal_index"`
-	ProposalAddr  common.Address       `json:"proposal_address"`
-	PrepareQC     *ctypes.QuorumCert   `json:"prepare_qc"`    //N-f aggregate signature
-	ViewChangeQC  []*ctypes.QuorumCert `json:"viewchange_qc"` //viewchange aggregate signature
+	BlockIndex    uint32               `json:"block_index"`      // The block number of the current ViewNumber proposal, 0....10
+	ProposalIndex uint32               `json:"proposal_index"`   // Proposer index
+	ProposalAddr  common.Address       `json:"proposal_address"` // Proposer address
+	PrepareQC     *ctypes.QuorumCert   `json:"prepare_qc"`       // N-f aggregate signature
+	ViewChangeQC  []*ctypes.QuorumCert `json:"viewchange_qc"`    // viewChange aggregate signature
 	Signature     ctypes.Signature     `json:"signature"`
 }
 
-func (PrepareBlock) String() string {
-	panic("implement me")
+func (s *PrepareBlock) String() string {
+	return fmt.Sprintf("[ViewNumber: %d] - [Hash: %s] - [Number: %d] - [BlockIndex: %d]"+
+		"- [ProposalIndex: %d] - [ProposalAddr: %s]",
+		s.ViewNumber, s.Block.Hash(), s.Block.NumberU64(), s.BlockIndex, s.ProposalIndex, s.ProposalAddr)
 }
 
-func (PrepareBlock) MsgHash() common.Hash {
-	panic("implement me")
+func (s *PrepareBlock) MsgHash() common.Hash {
+	return utils.BuildHash(PrepareBlockMsg,
+		utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), s.Block.Hash().Bytes(), s.Signature.Bytes()))
 }
 
-func (PrepareBlock) BHash() common.Hash {
-	panic("implement me")
+func (s *PrepareBlock) BHash() common.Hash {
+	return s.Block.Hash()
 }
 
-func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
+func (s *PrepareBlock) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
-		pb.Epoch,
-		pb.ViewNumber,
-		pb.BlockIndex,
-		pb.ProposalIndex,
-		pb.ProposalAddr,
+		s.Epoch,
+		s.ViewNumber,
+		s.BlockIndex,
+		s.ProposalIndex,
+		s.ProposalAddr,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -94,31 +125,46 @@ type PrepareVote struct {
 	ViewNumber  uint64             `json:"view_number"`
 	BlockHash   common.Hash        `json:"block_hash"`
 	BlockNumber uint64             `json:"block_number"`
-	BlockIndex  uint32             `json:"block_index"` //The block number of the current ViewNumber proposal, 0....10
+	BlockIndex  uint32             `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
 	ParentQC    *ctypes.QuorumCert `json:"parent_qc"`
 	Signature   ctypes.Signature   `json:"signature"`
 }
 
-func (PrepareVote) String() string {
-	panic("implement me")
+func (s *PrepareVote) String() string {
+	return fmt.Sprintf("[Epoch: %d] - [VN: %d] - [BlockHash: %s] - [BlockNumber: %d] - "+
+		"[BlockIndex: %d]",
+		s.Epoch, s.ViewNumber, s.BlockHash, s.BlockNumber, s.BlockIndex)
 }
 
-func (PrepareVote) MsgHash() common.Hash {
-	panic("implement me")
+func (s *PrepareVote) MsgHash() common.Hash {
+	return utils.BuildHash(PrepareVoteMsg,
+		utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), s.BlockHash.Bytes(), common.Uint32ToBytes(s.BlockIndex), s.Signature.Bytes()))
 }
 
-func (PrepareVote) BHash() common.Hash {
-	panic("implement me")
+func (s *PrepareVote) BHash() common.Hash {
+	return s.BlockHash
 }
 
 func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
-	return nil, nil
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pv.Epoch,
+		pv.ViewNumber,
+		pv.BlockHash,
+		pv.BlockNumber,
+		pv.BlockIndex,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 func (pv *PrepareVote) Sign() []byte {
 	return nil
 }
 
+// Message structure for view switching.
 type ViewChange struct {
 	Epoch       uint64             `json:"epoch"`
 	ViewNumber  uint64             `json:"view_number"`
@@ -128,20 +174,32 @@ type ViewChange struct {
 	Signature   ctypes.Signature   `json:"signature"`
 }
 
-func (ViewChange) String() string {
-	panic("implement me")
+func (s *ViewChange) String() string {
+	return fmt.Sprintf("[Epoch: %d] - [Vn: %d] - [BlockHash: %s] - [BlockNumber: %d]",
+		s.Epoch, s.ViewNumber, s.BlockHash, s.BlockNumber)
 }
 
-func (ViewChange) MsgHash() common.Hash {
-	panic("implement me")
+func (s *ViewChange) MsgHash() common.Hash {
+	return utils.BuildHash(ViewChangeMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber),
+		s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
-func (ViewChange) BHash() common.Hash {
-	panic("implement me")
+func (s *ViewChange) BHash() common.Hash {
+	return s.BlockHash
 }
 
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
-	return nil, nil
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		vc.Epoch,
+		vc.ViewNumber,
+		vc.BlockHash,
+		vc.BlockNumber,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 func (vc *ViewChange) Sign() []byte {
@@ -160,23 +218,16 @@ type CbftStatusData struct {
 }
 
 func (s *CbftStatusData) String() string {
-	if s == nil {
-		return ""
-	}
-	return fmt.Sprintf("[ProtocolVersion:%d, QCBn:%d, LockBn:%d, CmtBn:%d]", s.QCBn.Uint64(), s.LockBn.Uint64(), s.CmtBn.Uint64())
+	return fmt.Sprintf("[ProtocolVersion:%d] - [QCBn:%d] - [LockBn:%d] - [CmtBn:%d]",
+		s.ProtocolVersion, s.QCBn.Uint64(), s.LockBn.Uint64(), s.CmtBn.Uint64())
 }
 
 func (s *CbftStatusData) MsgHash() common.Hash {
-	if s == nil {
-		return common.Hash{}
-	}
-	return utils.BuildHash(CBFTStatusMsg, utils.MergeBytes(s.QCBlock.Bytes(), s.LockBlock.Bytes(), s.CmtBlock.Bytes()))
+	return utils.BuildHash(CBFTStatusMsg, utils.MergeBytes(s.QCBlock.Bytes(),
+		s.LockBlock.Bytes(), s.CmtBlock.Bytes()))
 }
 
 func (s *CbftStatusData) BHash() common.Hash {
-	if s == nil {
-		return common.Hash{}
-	}
 	return s.QCBlock
 }
 
@@ -371,20 +422,29 @@ func (s *Pong) BHash() common.Hash {
 	return common.Hash{}
 }
 
-//CBFT synchronize blocks that have reached qc
+// CBFT synchronize blocks that have reached qc.
 type QCBlockList struct {
 	QC     []*ctypes.QuorumCert
 	Blocks []*types.Block
 }
 
 func (s *QCBlockList) String() string {
-	return ""
+	return fmt.Sprintf("[QC.Len: %d] - [Blocks.Len: %d]", len(s.QC), len(s.Blocks))
 }
 
 func (s *QCBlockList) MsgHash() common.Hash {
+	if len(s.QC) != 0 {
+		return utils.BuildHash(QCBlockListMsg, utils.MergeBytes(s.QC[0].BlockHash.Bytes(),
+			s.QC[0].Signature.Bytes()))
+	}
+	if len(s.Blocks) != 0 {
+		return utils.BuildHash(QCBlockListMsg, utils.MergeBytes(s.Blocks[0].Hash().Bytes(),
+			s.Blocks[0].Number().Bytes()))
+	}
 	return common.Hash{}
 }
 
 func (s *QCBlockList) BHash() common.Hash {
+	// No explicit hash value and return empty hash.
 	return common.Hash{}
 }
