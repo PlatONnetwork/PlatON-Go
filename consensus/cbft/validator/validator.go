@@ -181,6 +181,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 			Index:   int(node.Index),
 			Address: node.Address,
 			PubKey:  pubkey,
+			NodeID:  node.NodeID,
 		}
 	}
 	validators.ValidBlockNumber = vds.ValidBlockNumber
@@ -241,7 +242,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 		return nil
 	}
 
-	isValidatorBefore := vp.IsValidator(blockNumber, vp.nodeID)
+	isValidatorBefore := vp.isValidator(blockNumber, vp.nodeID)
 
 	nds, err := vp.agency.GetValidator(nextRound(blockNumber))
 	if err != nil {
@@ -251,7 +252,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 	vp.currentValidators = nds
 	vp.switchPoint = blockNumber
 
-	isValidatorAfter := vp.IsValidator(blockNumber, vp.nodeID)
+	isValidatorAfter := vp.isValidator(blockNumber, vp.nodeID)
 
 	if isValidatorBefore {
 		// If we are still a consensus node, that adding
@@ -307,7 +308,10 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 func (vp *ValidatorPool) GetValidatorByNodeID(blockNumber uint64, nodeID discover.NodeID) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
+	return vp.getValidatorByNodeID(blockNumber, nodeID)
+}
 
+func (vp *ValidatorPool) getValidatorByNodeID(blockNumber uint64, nodeID discover.NodeID) (*cbfttypes.ValidateNode, error) {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByID(nodeID)
 	}
@@ -319,6 +323,10 @@ func (vp *ValidatorPool) GetValidatorByAddr(blockNumber uint64, addr common.Addr
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
+	return vp.getValidatorByAddr(blockNumber, addr)
+}
+
+func (vp *ValidatorPool) getValidatorByAddr(blockNumber uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByAddress(addr)
 	}
@@ -330,6 +338,10 @@ func (vp *ValidatorPool) GetValidatorByIndex(blockNumber uint64, index uint32) (
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
+	return vp.getValidatorByIndex(blockNumber, index)
+}
+
+func (vp *ValidatorPool) getValidatorByIndex(blockNumber uint64, index uint32) (*cbfttypes.ValidateNode, error) {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByIndex(int(index))
 	}
@@ -341,6 +353,10 @@ func (vp *ValidatorPool) GetNodeIDByIndex(blockNumber uint64, index int) discove
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
+	return vp.getNodeIDByIndex(blockNumber, index)
+}
+
+func (vp *ValidatorPool) getNodeIDByIndex(blockNumber uint64, index int) discover.NodeID {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.NodeID(index)
 	}
@@ -352,6 +368,10 @@ func (vp *ValidatorPool) GetIndexByNodeID(blockNumber uint64, nodeID discover.No
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
+	return vp.getIndexByNodeID(blockNumber, nodeID)
+}
+
+func (vp *ValidatorPool) getIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (int, error) {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.Index(nodeID)
 	}
@@ -363,6 +383,10 @@ func (vp *ValidatorPool) ValidatorList(blockNumber uint64) []discover.NodeID {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
+	return vp.validatorList(blockNumber)
+}
+
+func (vp *ValidatorPool) validatorList(blockNumber uint64) []discover.NodeID {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.NodeList()
 	}
@@ -376,7 +400,14 @@ func (vp *ValidatorPool) VerifyHeader(header *types.Header) error {
 
 // IsValidator check if the node is validator.
 func (vp *ValidatorPool) IsValidator(blockNumber uint64, nodeID discover.NodeID) bool {
-	_, err := vp.GetValidatorByNodeID(blockNumber, nodeID)
+	vp.lock.RLock()
+	defer vp.lock.RUnlock()
+
+	return vp.isValidator(blockNumber, nodeID)
+}
+
+func (vp *ValidatorPool) isValidator(blockNumber uint64, nodeID discover.NodeID) bool {
+	_, err := vp.getValidatorByNodeID(blockNumber, nodeID)
 	return err == nil
 }
 

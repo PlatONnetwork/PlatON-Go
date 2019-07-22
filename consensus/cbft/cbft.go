@@ -296,14 +296,23 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	cbft.log.Info("Seal block", "number", block.Number(), "parentHash", block.ParentHash())
+	header := block.Header()
 	if block.NumberU64() == 0 {
 		return errors.New("unknown block")
 	}
 
-	// TODO signature block
+	sign, err := cbft.signFn(header.SealHash().Bytes())
+	if err != nil {
+		cbft.log.Error("Seal block sign fail", "number", block.Number(), "parentHash", block.ParentHash(), "err", err)
+		return err
+	}
+
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sign[:])
+
+	sealBlock := block.WithSeal(header)
 
 	cbft.asyncCallCh <- func() {
-		cbft.OnSeal(block, results, stop)
+		cbft.OnSeal(sealBlock, results, stop)
 	}
 	return nil
 }
@@ -311,8 +320,11 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
 	// TODO: check is turn to seal block
 
-	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
-		cbft.log.Warn("Futile block cause highest executed block changed", "nubmer", block.Number(), "parentHash", block.ParentHash())
+	if cbft.state.HighestQCBlock().Hash() != block.ParentHash() ||
+		cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
+		cbft.log.Warn("Futile block cause highest executed block changed", "nubmer", block.Number(), "parentHash", block.ParentHash(),
+			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
+			"exectedNumber", cbft.state.HighestExecutedBlock().Number(), "exectedHash", cbft.state.HighestExecutedBlock().Hash())
 		return
 	}
 
@@ -335,7 +347,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	// TODO: add viewchange qc
 
-	// TODO: signature block - fake verify.
+	cbft.signMsg(prepareBlock)
 
 	cbft.state.AddPrepareBlock(prepareBlock)
 	cbft.state.SetHighestExecutedBlock(block)
@@ -345,13 +357,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 
-		// TODO: signature prepare qc
-		var qc ctypes.QuorumCert
-		cbft.commitBlock(block, &qc)
+		qc := &ctypes.QuorumCert{
+			Epoch:       prepareBlock.Epoch,
+			ViewNumber:  prepareBlock.ViewNumber,
+			BlockHash:   prepareBlock.Block.Hash(),
+			BlockNumber: prepareBlock.Block.NumberU64(),
+			BlockIndex:  prepareBlock.BlockIndex,
+		}
+		cbft.commitBlock(block, qc)
 		cbft.state.SetHighestCommitBlock(block)
 	}
 
-	// TODO: broadcast block
+	cbft.network.Broadcast(prepareBlock)
 
 	go func() {
 		select {
@@ -457,8 +474,12 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
+	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
+	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Sys.NodeID) {
+		return false, errors.New("current node not a validator")
+	}
+
 	result := make(chan error, 1)
-	// FIXME: should use independent channel?
 	cbft.asyncCallCh <- func() {
 		cbft.OnShouldSeal(result)
 	}
@@ -466,12 +487,19 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	case err := <-result:
 		return err == nil, err
 	case <-time.After(2 * time.Millisecond):
+		result <- errors.New("timeout")
 		return false, errors.New("CBFT engine busy")
 	}
 }
 
 func (cbft *Cbft) OnShouldSeal(result chan error) {
-	// todo: need add remark.
+	select {
+	case <-result:
+		cbft.log.Trace("Should seal timeout")
+		return
+	default:
+	}
+
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Sys.NodeID) {
 		result <- errors.New("current node not a validator")

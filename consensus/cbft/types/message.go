@@ -47,6 +47,7 @@ func ErrResp(code ErrCode, format string, v ...interface{}) error {
 type ConsensusMsg interface {
 	CannibalizeBytes() ([]byte, error)
 	Sign() []byte
+	SetSign([]byte)
 }
 
 type Message interface {

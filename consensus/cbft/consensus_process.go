@@ -245,3 +245,23 @@ func (cbft *Cbft) clearInvalidBlocks(newBlock *types.Block) {
 	}
 	cbft.txPool.ForkedReset(newHead, rollback)
 }
+
+// signFn use private key to sign byte slice.
+func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
+	// TODO: really signature
+	return []byte{}, nil
+}
+
+// signMsg use private key to sign msg.
+func (cbft *Cbft) signMsg(msg ctypes.ConsensusMsg) error {
+	buf, err := msg.CannibalizeBytes()
+	if err != nil {
+		return err
+	}
+	sign, err := cbft.signFn(buf)
+	if err != nil {
+		return err
+	}
+	msg.SetSign(sign)
+	return nil
+}
