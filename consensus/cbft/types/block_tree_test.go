@@ -1,8 +1,10 @@
 package types
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 	"time"
@@ -41,14 +43,30 @@ func TestNewBlockTree(t *testing.T) {
 	tree := NewBlockTree(root, &QuorumCert{ViewNumber: 1})
 
 	for _, f := range forks {
-		for i, b := range f {
-			t.Log(i)
-
+		for _, b := range f {
 			tree.InsertQCBlock(b, &QuorumCert{ViewNumber: 1})
 		}
 	}
 
-	tree.PruneBlock(fork1[1].Hash(), fork1[1].NumberU64(), nil)
+	tree.PruneBlock(fork1[1].Hash(), fork1[1].NumberU64(), func(block *types.Block) {
+		for _, b := range fork2 {
+			if b.Hash() == block.Hash() {
+				return
+			}
+		}
+		t.Error(fmt.Sprintf("Clear block failed"))
+	})
 
-	t.Log(len(tree.blocks))
+	for _, b := range fork1[1:] {
+		assert.NotNil(t, tree.FindBlockByHash(b.Hash()))
+		b, q := tree.FindBlockAndQC(b.Hash(), b.NumberU64())
+		assert.NotNil(t, b)
+		assert.NotNil(t, q)
+	}
+	for _, b := range fork2[1:] {
+		assert.Nil(t, tree.FindBlockByHash(b.Hash()))
+		b, q := tree.FindBlockAndQC(b.Hash(), b.NumberU64())
+		assert.Nil(t, b)
+		assert.Nil(t, q)
+	}
 }

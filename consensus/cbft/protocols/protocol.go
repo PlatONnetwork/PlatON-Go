@@ -81,21 +81,18 @@ func MessageType(msg interface{}) uint64 {
 
 // Proposed block carrier.
 type PrepareBlock struct {
-	Epoch         uint64               `json:"epoch"`
-	ViewNumber    uint64               `json:"view_number"`
-	Block         *types.Block         `json:"block_hash"`
-	BlockIndex    uint32               `json:"block_index"`      // The block number of the current ViewNumber proposal, 0....10
-	ProposalIndex uint32               `json:"proposal_index"`   // Proposer index
-	ProposalAddr  common.Address       `json:"proposal_address"` // Proposer address
-	PrepareQC     *ctypes.QuorumCert   `json:"prepare_qc"`       // N-f aggregate signature
-	ViewChangeQC  []*ctypes.QuorumCert `json:"viewchange_qc"`    // viewChange aggregate signature
-	Signature     ctypes.Signature     `json:"signature"`
+	Epoch        uint64               `json:"epoch"`
+	ViewNumber   uint64               `json:"view_number"`
+	Block        *types.Block         `json:"block_hash"`
+	BlockIndex   uint32               `json:"block_index"`   // The block number of the current ViewNumber proposal, 0....10
+	PrepareQC    *ctypes.QuorumCert   `json:"prepare_qc"`    // N-f aggregate signature
+	ViewChangeQC *ctypes.ViewChangeQC `json:"viewchange_qc"` // viewChange aggregate signature
+	Signature    ctypes.Signature     `json:"signature"`
 }
 
 func (s *PrepareBlock) String() string {
-	return fmt.Sprintf("[ViewNumber: %d] - [Hash: %s] - [Number: %d] - [BlockIndex: %d]"+
-		"- [ProposalIndex: %d] - [ProposalAddr: %s]",
-		s.ViewNumber, s.Block.Hash(), s.Block.NumberU64(), s.BlockIndex, s.ProposalIndex, s.ProposalAddr)
+	return fmt.Sprintf("[ViewNumber: %d] - [Hash: %s] - [Number: %d] - [BlockIndex: %d]",
+		s.ViewNumber, s.Block.Hash(), s.Block.NumberU64(), s.BlockIndex)
 }
 
 func (s *PrepareBlock) MsgHash() common.Hash {
@@ -112,8 +109,6 @@ func (s *PrepareBlock) CannibalizeBytes() ([]byte, error) {
 		s.Epoch,
 		s.ViewNumber,
 		s.BlockIndex,
-		s.ProposalIndex,
-		s.ProposalAddr,
 	})
 	if err != nil {
 		return nil, err
