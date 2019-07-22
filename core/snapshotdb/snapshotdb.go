@@ -697,7 +697,8 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				break
 			}
 		}
-		for _, block := range s.committed {
+		for i := len(s.committed) - 1; i >= 0; i-- {
+			block := s.committed[i]
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
 	case hashLocationCommitted:
