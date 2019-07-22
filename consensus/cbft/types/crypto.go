@@ -11,6 +11,9 @@ func (s *Signature) Bytes() []byte {
 	return nil
 }
 
+func (s *Signature) SetBytes(buf []byte) {
+}
+
 type QuorumCert struct {
 	Epoch       uint64      `json:"epoch"`
 	ViewNumber  uint64      `json:"view_number"`

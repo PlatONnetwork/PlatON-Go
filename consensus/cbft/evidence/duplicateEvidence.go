@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
@@ -44,6 +45,16 @@ func (d DuplicatePrepareBlockEvidence) Hash() []byte {
 	return crypto.Keccak256(buf)
 }
 
+func (d DuplicatePrepareBlockEvidence) Equal(ev consensus.Evidence) bool {
+	_, ok := ev.(*DuplicatePrepareBlockEvidence)
+	if !ok {
+		return false
+	}
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
+}
+
 func (d DuplicatePrepareBlockEvidence) Error() string {
 	return fmt.Sprintf("DuplicatePrepareBlockEvidence epoch:%d, viewNumber:%d, blockNumber:%d blockHashA:%s, blockHashB:%s",
 		d.PrepareA.Epoch, d.PrepareA.ViewNumber, d.PrepareA.Block.NumberU64(), d.PrepareA.Block.Hash().String(), d.PrepareB.Block.Hash().String())
@@ -82,6 +93,16 @@ func (d DuplicatePrepareVoteEvidence) Hash() []byte {
 	return crypto.Keccak256(buf)
 }
 
+func (d DuplicatePrepareVoteEvidence) Equal(ev consensus.Evidence) bool {
+	_, ok := ev.(*DuplicatePrepareVoteEvidence)
+	if !ok {
+		return false
+	}
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
+}
+
 func (d DuplicatePrepareVoteEvidence) Error() string {
 	return fmt.Sprintf("DuplicatePrepareVoteEvidence epoch:%d, viewNumber:%d, blockNumber:%d blockHashA:%s, blockHashB:%s",
 		d.VoteA.Epoch, d.VoteA.ViewNumber, d.VoteA.BlockNumber, d.VoteA.BlockHash.String(), d.VoteB.BlockHash.String())
@@ -118,6 +139,16 @@ func (d DuplicateViewChangeEvidence) Hash() []byte {
 		}
 	}
 	return crypto.Keccak256(buf)
+}
+
+func (d DuplicateViewChangeEvidence) Equal(ev consensus.Evidence) bool {
+	_, ok := ev.(*DuplicateViewChangeEvidence)
+	if !ok {
+		return false
+	}
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
 }
 
 func (d DuplicateViewChangeEvidence) Error() string {
