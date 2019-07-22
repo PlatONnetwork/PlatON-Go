@@ -392,31 +392,6 @@ func TestSnapshotDB_Has(t *testing.T) {
 	//same as get
 }
 
-//
-//func TestSnapshotDB_itrToMdb(t *testing.T) {
-//	testBlock := new(blockData)
-//	testBlock.data = memdb.New(DefaultComparer, 0)
-//	kvs := generatekvWithPrefix(30, "ab")
-//	for _, kv := range kvs {
-//		logger.Debug("kv", "k", kv.key, "v", kv.value)
-//		if err := testBlock.data.Put(kv.key, kv.value); err != nil {
-//			t.Error(err)
-//		}
-//	}
-//
-//	itr := testBlock.data.NewIterator(util.BytesPrefix([]byte("ab")))
-//	mdb2 := memdb.New(DefaultComparer, 0)
-//	if err := itrToMdb(itr, mdb2); err != nil {
-//		t.Error(err)
-//	}
-//	itr2 := mdb2.NewIterator(util.BytesPrefix([]byte("ab")))
-//	for itr2.Next() {
-//		logger.Debug("itr2", "k", itr2.Key(), "v", itr2.Value())
-//	}
-//	itr.Release()
-//	itr2.Release()
-//}
-
 func TestSnapshotDB_Ranking2(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
@@ -469,9 +444,10 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 			des    string
 		}
 		datas := []testData{
-			testData{10, 10, "num less than total"},
-			testData{40, 30, "num large than total"},
-			testData{30, 30, "num eq total"},
+			{10, 10, "num less than total"},
+			{40, 30, "num large than total"},
+			{30, 30, "num eq total"},
+			{0, 30, "if input num is 0,should return total"},
 		}
 		f := func(prefix string, num int) int {
 			itr := dbInstance.Ranking(commitHash, []byte(prefix), num)
