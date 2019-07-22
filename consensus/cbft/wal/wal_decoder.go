@@ -8,25 +8,25 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-//
+// struct SendPrepareBlock for rlp decode
 type MessageSendPrepareBlock struct {
 	Timestamp uint64
 	Data      *protocols.SendPrepareBlock
 }
 
-//
+// struct SendPrepareVote for rlp decode
 type MessageSendPrepareVote struct {
 	Timestamp uint64
 	Data      *protocols.SendPrepareVote
 }
 
-//
+// struct SendViewChange for rlp decode
 type MessageSendViewChange struct {
 	Timestamp uint64
 	Data      *protocols.SendViewChange
 }
 
-//
+// struct ConfirmedViewChange for rlp decode
 type MessageConfirmedViewChange struct {
 	Timestamp uint64
 	Data      *protocols.ConfirmedViewChange

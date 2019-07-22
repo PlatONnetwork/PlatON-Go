@@ -81,8 +81,6 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
-	stateMu            sync.Mutex
-	viewMu             sync.Mutex
 
 	// processing message
 	handler *EngineManager
@@ -187,11 +185,11 @@ func (cbft *Cbft) LoadWal() error {
 		return err
 	}
 	//cbft.wal = &emptyWal{}
-
+	// load consensus chainState
 	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
 		return err
 	}
-
+	// load consensus message
 	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
 		return err
 	}
