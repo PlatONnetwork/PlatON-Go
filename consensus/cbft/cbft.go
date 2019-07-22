@@ -11,10 +11,10 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/bftnet"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
@@ -47,7 +47,7 @@ type Cbft struct {
 	syncMsgCh        chan *ctypes.MsgInfo
 	evPool           evidence.EvidencePool
 	log              log.Logger
-	network          *bftnet.EngineManager
+	network          *network.EngineManager
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -134,7 +134,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	// init handler and router to process message.
 	// cbft -> handler -> router.
-	cbft.network = bftnet.NewEngineManger(cbft) // init engineManager as handler.
+	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
@@ -335,7 +335,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	// TODO: add viewchange qc
 
-	// TODO: signature block
+	// TODO: signature block - fake verify.
 
 	cbft.state.AddPrepareBlock(prepareBlock)
 	cbft.state.SetHighestExecutedBlock(block)
@@ -471,6 +471,7 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 }
 
 func (cbft *Cbft) OnShouldSeal(result chan error) {
+	// todo: need add remark.
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Sys.NodeID) {
 		result <- errors.New("current node not a validator")

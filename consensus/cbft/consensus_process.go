@@ -55,7 +55,8 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 		}
 	}
 
-	//todo parse pubkey as id
+	// todo parse pubkey as id
+	// todo: Use the certifier's index as the ID
 	cbft.state.AddViewChange("", msg)
 
 	// It is possible to achieve viewchangeQC every time you add viewchange
@@ -203,7 +204,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 // According to the current view QC situation, try to switch view
 func (cbft *Cbft) tryChangeView() {
 	// Had receive all qcs of current view
-	if cbft.state.MaxQCIndex() == cbft.config.Sys.Amount {
+	if cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount {
 		//todo change view
 	}
 

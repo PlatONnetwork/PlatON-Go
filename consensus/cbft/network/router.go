@@ -1,5 +1,5 @@
 // Package cbft implements  a concrete consensus engines.
-package bftnet
+package network
 
 import (
 	"bytes"
@@ -22,6 +22,11 @@ import (
 // the number of nodes selected per broadcast.
 const DEFAULT_FAN_OUT = 5
 
+type unregisterFunc func(id string) error                 // Unregister peer from peerSet.
+type getByIdFunc func(id string) (*peer, error)           // Get peer based on ID.
+type consensusNodesFunc func() ([]discover.NodeID, error) // Get a list of consensus nodes.
+type peersFunc func() ([]*peer, error)                    // Get a list of all neighbor nodes.
+
 // Router implements the message protocol of gossip.
 //
 // 1.Responsible for picking receiving nodes based on message type.
@@ -32,14 +37,14 @@ type router struct {
 	lock   sync.RWMutex
 
 	// Customized functions belonging to the router.
-	unregister     func(id string) error             // Unregister peer from peerSet.
-	get            func(id string) (*peer, error)    // Get peer based on ID.
-	consensusNodes func() ([]discover.NodeID, error) // Get a list of consensus nodes.
-	peers          func() ([]*peer, error)           // Get a list of all neighbor nodes.
+	unregister     unregisterFunc     // Used for deregistration.
+	get            getByIdFunc        // Used to get peer by ID.
+	consensusNodes consensusNodesFunc // Used to get a list of consensus nodes.
+	peers          peersFunc          // Used to get all the nodes.
 }
 
 // NewRouter creates a new router. It is mainly used for message forwarding
-func NewRouter(unregister func(id string) error, get func(id string) (*peer, error), consensusNodes func() ([]discover.NodeID, error), peers func() ([]*peer, error)) *router {
+func NewRouter(unregister unregisterFunc, get getByIdFunc, consensusNodes consensusNodesFunc, peers peersFunc) *router {
 	r := &router{
 		filter: func(p *peer, condition common.Hash) bool {
 			return p.ContainsMessageHash(condition)
@@ -50,8 +55,7 @@ func NewRouter(unregister func(id string) error, get func(id string) (*peer, err
 }
 
 // Init handler function.
-func (r *router) initFunc(unregister func(id string) error, get func(id string) (*peer, error),
-	consensusNodes func() ([]discover.NodeID, error), peers func() ([]*peer, error)) error {
+func (r *router) initFunc(unregister unregisterFunc, get getByIdFunc, consensusNodes consensusNodesFunc, peers peersFunc) error {
 	r.unregister, r.get, r.consensusNodes, r.peers = unregister, get, consensusNodes, peers
 	return nil
 }
