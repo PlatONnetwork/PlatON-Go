@@ -419,11 +419,13 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			info.Debt = info.Debt.Add(info.Debt, release)
 
 		} else {
-			temp := new(big.Int)
+
+			// release amount isn't more than debt
 			if release.Cmp(info.Debt) <= 0 {
 				info.Debt = info.Debt.Sub(info.Debt, release)
 
-			} else if release.Cmp(temp.Add(info.Debt, info.Balance)) <= 0 {
+			} else if release.Cmp(new(big.Int).Add(info.Debt, info.Balance)) <= 0 {
+				// release amount isn't more than the sum of balance and debt
 				release = release.Sub(release, info.Debt)
 				info.Balance = info.Balance.Sub(info.Balance, release)
 				info.Debt = big.NewInt(0)
@@ -434,15 +436,16 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 				state.AddBalance(account, release)
 
 			} else {
-				temp := info.Balance
+				// release amount is more than the sum of balance and debt
+				origBalance := info.Balance
 
 				release = release.Sub(release, info.Balance)
 				info.Balance = big.NewInt(0)
 				info.Debt = info.Debt.Sub(release, info.Debt)
 				info.DebtSymbol = true
 
-				state.SubBalance(vm.RestrictingContractAddr, temp)
-				state.AddBalance(account, temp)
+				state.SubBalance(vm.RestrictingContractAddr, origBalance)
+				state.AddBalance(account, origBalance)
 			}
 		}
 
