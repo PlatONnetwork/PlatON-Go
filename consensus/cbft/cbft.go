@@ -316,16 +316,12 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Sys.NodeID)
-
 	// TODO: seal process
 	prepareBlock := &protocols.PrepareBlock{
-		Epoch:         cbft.state.Epoch(),
-		ViewNumber:    cbft.state.ViewNumber(),
-		Block:         block,
-		BlockIndex:    cbft.state.NumViewBlocks(),
-		ProposalIndex: uint32(me.Index),
-		ProposalAddr:  me.Address,
+		Epoch:      cbft.state.Epoch(),
+		ViewNumber: cbft.state.ViewNumber(),
+		Block:      block,
+		BlockIndex: cbft.state.NumViewBlocks(),
 	}
 
 	if cbft.state.NumViewBlocks() == 0 {
