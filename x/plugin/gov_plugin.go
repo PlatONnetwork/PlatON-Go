@@ -274,7 +274,7 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 }
 
 // vote for a proposal
-func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, nodeProgramVersion uint32, state xcom.StateDB) error {
 	if len(vote.ProposalID) == 0 || len(vote.VoteNodeID) == 0 || vote.VoteOption == 0 {
 		return common.NewBizError("empty parameter detected.")
 	}
@@ -286,6 +286,15 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	} else if proposal == nil {
 		log.Error("incorrect proposal ID.", "proposalID", vote.ProposalID)
 		return common.NewBizError("incorrect proposal ID.")
+	}
+
+	if proposal.GetProposalType() == gov.Version {
+		if vp, ok := proposal.(gov.VersionProposal); ok {
+			if vp.GetNewVersion() != nodeProgramVersion {
+				log.Error("vote failed because node did not upgrade", "version proposal's new version", vp.GetNewVersion(), "nodeProgramVersion", nodeProgramVersion)
+				return common.NewBizError("vote failed because node did not upgrade")
+			}
+		}
 	}
 
 	//check caller and voter
@@ -301,7 +310,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	//check if vote.proposalID is in voting
 	votingIDs, err := govPlugin.listVotingProposalID(blockHash, state)
 	if err != nil {
-		log.Error("to list all voting proposal IDs failed", "blockHash", blockHash)
+		log.Error("list all voting proposal IDs failed", "blockHash", blockHash)
 		return err
 	} else if votingIDs == nil {
 		log.Error("there's no voting proposal ID.", "blockHash", blockHash)
@@ -355,7 +364,6 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}*/
-
 	if err := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}

@@ -1821,7 +1821,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
 		}
-		if staking.Is_DoubleSign(can.Status) {
+		if staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
 			doubleSignNum++
@@ -2024,7 +2024,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 		if remain.Cmp(balance) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, balance)
-			if staking.Is_DoubleSign(uint32(slashType)) {
+			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, balance)
 			} else {
 				state.AddBalance(vm.RewardManagerPoolAddr, balance)
@@ -2044,7 +2044,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 		} else {
 			state.SubBalance(vm.StakingContractAddr, remain)
-			if staking.Is_DoubleSign(uint32(slashType)) {
+			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, balance)
 			} else {
 				state.AddBalance(vm.RewardManagerPoolAddr, balance)
@@ -2116,8 +2116,8 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			can.Status |= staking.NotEnough
 			needDelete = true
 		}
-	} else if slashType == staking.DoubleSign {
-		can.Status |= staking.DoubleSign
+	} else if slashType == staking.DuplicateSign {
+		can.Status |= staking.DuplicateSign
 		needDelete = true
 	} else {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType,

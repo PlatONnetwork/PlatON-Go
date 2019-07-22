@@ -416,6 +416,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	validatorArr := make(staking.ValidatorQueue, 0)
 
+	count := 0
 	// build  more data
 	for i := 0; i < 1000; i++ {
 
@@ -494,8 +495,16 @@ func build_staking_data(genesisHash common.Hash) {
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
-		stakingDB.SetCanPowerStore(blockHash, canAddr, canTmp)
-		stakingDB.SetCandidateStore(blockHash, canAddr, canTmp)
+		err := stakingDB.SetCanPowerStore(blockHash, canAddr, canTmp)
+		if nil != err {
+			fmt.Printf("Failed to SetCanPowerStore: %v", err)
+			return
+		}
+		err = stakingDB.SetCandidateStore(blockHash, canAddr, canTmp)
+		if nil != err {
+			fmt.Printf("Failed to SetCandidateStore: %v", err)
+			return
+		}
 
 		v := &staking.Validator{
 			NodeAddress: canAddr,
@@ -505,8 +514,10 @@ func build_staking_data(genesisHash common.Hash) {
 			ValidatorTerm: 0,
 		}
 		validatorArr = append(validatorArr, v)
+		count++
 	}
 
+	fmt.Printf("build staking  data count: %d \n", count)
 	queue := validatorArr[:25]
 
 	epoch_Arr := &staking.Validator_array{
@@ -536,6 +547,7 @@ func build_staking_data(genesisHash common.Hash) {
 	lastHeader = types.Header{
 		Number: blockNumber,
 	}
+
 }
 
 func buildBlockNoCommit(blockNum int) {

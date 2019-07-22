@@ -14,19 +14,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 )
 
-
-type ResultTest struct {
-	balance *big.Int
-	slash   *big.Int
-	staking *big.Int
-	debt    *big.Int
-	entry   []byte
-}
-
-
 // build input data
 func buildRestrictingPlanData() ([]byte, error) {
-	var plan  restricting.RestrictingPlan
+	var plan restricting.RestrictingPlan
 	var plans = make([]restricting.RestrictingPlan, 5)
 
 	var epoch uint64
@@ -38,9 +28,9 @@ func buildRestrictingPlanData() ([]byte, error) {
 	}
 
 	var params [][]byte
-	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4000))  // function_type
-	param1, _ := rlp.EncodeToBytes(addrArr[0].Bytes())    // restricting account
-	param2, _ := rlp.EncodeToBytes(plans)   // restricting plan
+	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4000)) // function_type
+	param1, _ := rlp.EncodeToBytes(addrArr[0].Bytes())         // restricting account
+	param2, _ := rlp.EncodeToBytes(plans)                      // restricting plan
 
 	params = append(params, param0)
 	params = append(params, param1)
@@ -51,9 +41,9 @@ func buildRestrictingPlanData() ([]byte, error) {
 
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	contract := &vm.RestrictingContract{
-		Plugin:  plugin.RestrictingInstance(),
+		Plugin:   plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0),
-		Evm: newEvm(blockNumber, blockHash, nil),
+		Evm:      newEvm(blockNumber, blockHash, nil),
 	}
 
 	input, err := buildRestrictingPlanData()
@@ -71,16 +61,15 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	}
 }
 
-
 func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 	// build db data for getting info
 	stateDb, _, _ := newChainState()
 	buildDbRestrictingPlan(t, stateDb)
 
 	contract := &vm.RestrictingContract{
-		Plugin:  plugin.RestrictingInstance(),
+		Plugin:   plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0),
-		Evm: newEvm(blockNumber, blockHash, stateDb),
+		Evm:      newEvm(blockNumber, blockHash, stateDb),
 	}
 
 	var params [][]byte

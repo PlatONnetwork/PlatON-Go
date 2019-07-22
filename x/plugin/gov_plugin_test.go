@@ -137,7 +137,7 @@ func allVote(t *testing.T, pid common.Hash) {
 			VoteNodeID: nodeIdArr[i],
 			VoteOption: gov.Yes,
 		}
-		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, evm.StateDB)
+		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, initProgramVersion, evm.StateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}
@@ -152,7 +152,7 @@ func halfVote(t *testing.T, pid common.Hash) {
 			VoteNodeID: nodeIdArr[i],
 			VoteOption: gov.Yes,
 		}
-		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, evm.StateDB)
+		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, initProgramVersion, evm.StateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}
@@ -403,7 +403,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	err := govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	}
@@ -414,7 +414,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	err = govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	}
@@ -449,7 +449,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 		gov.Yes,
 	}
 
-	err := govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	}
@@ -460,7 +460,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 		gov.Yes,
 	}
 
-	err = govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
 	if err != nil && err.Error() == "node has voted this proposal." {
 		t.Log("detected repeated vote", err)
 	} else {
@@ -483,7 +483,7 @@ func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 		gov.Yes,
 	}
 
-	err := govPlugin.Vote(anotherSender, v, lastBlockHash, 2, evm.StateDB)
+	err := govPlugin.Vote(anotherSender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
 	if err != nil && err.Error() == "tx sender is not a verifier, or mismatch the verifier's nodeID" {
 		t.Log("vote err:", err)
 	}
@@ -544,7 +544,7 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 	buildBlockNoCommit(2)
 
 	err := govPlugin.DeclareVersion(anotherSender, nodeIdArr[0], newVersion, lastBlockHash, 2, evm.StateDB)
-	if err != nil && (err.Error() == "tx sender is not verifier." || err.Error() == "tx sender should be node's staking address.") {
+	if err != nil && (err.Error() == "tx sender is not candidate." || err.Error() == "tx sender should be node's staking address.") {
 		t.Log("detected an incorrect version declaration.", err)
 	} else {
 		t.Fatal("didn't detected an incorrect version declaration.", err)
