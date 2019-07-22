@@ -26,7 +26,7 @@ type ViewChangeQuorumCert struct {
 	BlockHash   common.Hash `json:"block_hash"`
 	BlockNumber uint64      `json:"block_number"`
 	Signature   Signature   `json:"signature"`
-	PrepareQC   *QuorumCert `json:"signature"`
+	PrepareQC   *QuorumCert `json:"prepare_qc"`
 }
 
 type ViewChangeQC struct {

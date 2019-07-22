@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	MixMode  = iota // all consensus node
+	NoneMode = iota // none consensus node
 	PartMode        // partial node
 	FullMode        // all node
 )
@@ -61,7 +61,7 @@ type MsgInfo struct {
 }
 
 // Create a new MsgInfo object.
-func NewMessage(message Message, id string) *MsgInfo {
+func NewMsgInfo(message Message, id string) *MsgInfo {
 	return &MsgInfo{
 		Msg:    message,
 		PeerID: id,

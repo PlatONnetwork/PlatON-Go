@@ -1,4 +1,4 @@
-package cbft
+package network
 
 import (
 	"fmt"
@@ -8,11 +8,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/router"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -27,7 +23,7 @@ const (
 	CbftProtocolVersion = 1
 
 	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
-	CbftProtocolLength = 15
+	CbftProtocolLength = 20
 
 	// Maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
@@ -44,24 +40,30 @@ const (
 
 // Responsible for processing the messages in the network.
 type EngineManager struct {
-	engine    *Cbft
-	peers     *router.PeerSet
+	engine    Cbft
+	router    *router
+	peers     *PeerSet
 	sendQueue chan *types.MsgPackage
 	quitSend  chan struct{}
 }
 
 // Create a new handler and do some initialization.
-func NewEngineManger(engine *Cbft) *EngineManager {
-	return &EngineManager{
+func NewEngineManger(engine Cbft) *EngineManager {
+	handler := &EngineManager{
 		engine:    engine,
-		peers:     router.NewPeerSet(),
+		peers:     NewPeerSet(),
 		sendQueue: make(chan *types.MsgPackage, sendQueueSize),
 		quitSend:  make(chan struct{}, 0),
 	}
+	return handler
 }
 
 // Start the loop to send message.
 func (h *EngineManager) Start() {
+
+	// init router
+	h.router = NewRouter(h.Unregister, h.Get, h.ConsensusNodes, h.Peers)
+
 	// Launch goroutine loop release separately.
 	go h.sendLoop()
 	go h.synchronize()
@@ -95,17 +97,17 @@ func (h *EngineManager) sendLoop() {
 
 // Broadcast forwards the message to the router for distribution.
 func (h *EngineManager) broadcast(m *types.MsgPackage) {
-	h.engine.Router().Gossip(m)
+	h.router.Gossip(m)
 }
 
 // Send message to a known peerId. Determine if the peerId has established
 // a connection before sending.
 func (h *EngineManager) sendMessage(m *types.MsgPackage) {
-	h.engine.Router().SendMessage(m)
+	h.router.SendMessage(m)
 }
 
 // Return the peer with the specified peerID.
-func (h *EngineManager) GetPeer(peerID string) (*router.Peer, error) {
+func (h *EngineManager) GetPeer(peerID string) (*peer, error) {
 	if peerID == "" {
 		return nil, fmt.Errorf("invalid peerID parameter - %v", peerID)
 	}
@@ -113,11 +115,13 @@ func (h *EngineManager) GetPeer(peerID string) (*router.Peer, error) {
 }
 
 // Send imports messages into the send queue and send it according to the specified ID.
-func (h *EngineManager) Send(peerID discover.NodeID, msg types.Message) {
-	msgPkg := types.NewMsgPackage(peerID.TerminalString(), msg, types.FullMode)
+func (h *EngineManager) Send(peerID string, msg types.Message) {
+	msgPkg := types.NewMsgPackage(peerID, msg, types.NoneMode)
 	select {
 	case h.sendQueue <- msgPkg:
 		log.Debug("Send message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+	default:
+		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
 	// todo: Whether to consider the problem of blocking
 }
@@ -130,6 +134,8 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	select {
 	case h.sendQueue <- msgPkg:
 		log.Debug("Broadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+	default:
+		log.Error("Broadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
 }
 
@@ -141,6 +147,8 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 	select {
 	case h.sendQueue <- msgPkg:
 		log.Debug("PartBroadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+	default:
+		log.Error("PartBroadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
 }
 
@@ -169,12 +177,12 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 }
 
 // Return all neighbor node lists.
-func (h *EngineManager) Peers() ([]*router.Peer, error) {
+func (h *EngineManager) Peers() ([]*peer, error) {
 	return h.peers.Peers(), nil
 }
 
 // Return a peer by id.
-func (h *EngineManager) Get(id string) (*router.Peer, error) {
+func (h *EngineManager) Get(id string) (*peer, error) {
 	return h.peers.Get(id)
 }
 
@@ -183,9 +191,14 @@ func (h *EngineManager) Unregister(id string) error {
 	return h.peers.Unregister(id)
 }
 
+// Return a list of all consensus nodes
+func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
+	return h.engine.ConsensusNodes()
+}
+
 // Representative node configuration information.
 type NodeInfo struct {
-	Config Config `json:"config"`
+	Config types.Config `json:"config"`
 }
 
 func (h *EngineManager) NodeInfo() *NodeInfo {
@@ -199,7 +212,7 @@ func (h *EngineManager) NodeInfo() *NodeInfo {
 // to the cbft protocol message, the method is called.
 func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// Further confirm if the version number needs to be read from the configuration.
-	peer := router.NewPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
+	peer := NewPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
 
 	// execute handshake
 	// todo:
@@ -255,7 +268,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 
 // Main logic: Distribute according to message type and
 // transfer message to CBFT layer
-func (h *EngineManager) handleMsg(p *router.Peer) error {
+func (h *EngineManager) handleMsg(p *peer) error {
 	msg, err := p.ReadWriter().ReadMsg()
 	if err != nil {
 		p.Log().Error("read peer message error", "err", err)
@@ -283,7 +296,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 		// Message transfer to cbft message queue.
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareVoteMsg:
@@ -292,7 +305,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.ViewChangeMsg:
@@ -301,7 +314,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetPrepareBlockMsg:
@@ -309,40 +322,32 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetQuorumCertMsg:
-		var request protocols.GetQuorumCert
+		var request protocols.GetBlockQuorumCert
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
-	case msg.Code == protocols.QuorumCertMsg:
-		var request protocols.QuorumCert
+	case msg.Code == protocols.BlockQuorumCertMsg:
+		var request protocols.BlockQuorumCert
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetQCPrepareBlockMsg:
-		var request protocols.GetQCPrepareBlock
+		var request protocols.GetQCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
-		return nil
-
-	case msg.Code == protocols.QCPrepareBlockMsg:
-		var request protocols.QCPrepareBlock
-		if err := msg.Decode(&request); err != nil {
-			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
-		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetPrepareVoteMsg:
@@ -350,7 +355,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareBlockHashMsg:
@@ -359,7 +364,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareVotesMsg:
@@ -367,7 +372,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.QCBlockListMsg:
@@ -375,7 +380,23 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.GetLatestStatusMsg:
+		var request protocols.GetLatestStatus
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.LatestStatusMsg:
+		var request protocols.LatestStatus
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PingMsg:
@@ -411,7 +432,8 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 					}
 					log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 					latency := (curTime - tInt64) / 2 / 1000000
-					h.engine.OnPong(p.Peer.ID(), latency)
+					// todo: need confirm
+					log.Trace("latency", "time", latency)
 					break
 				}
 			}
@@ -476,7 +498,7 @@ func (h *EngineManager) synchronize() {
 //
 // bType:
 //  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
-func largerPeer(bType uint64, peers []*router.Peer, number uint64) (*router.Peer, uint64) {
+func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 	if peers != nil && len(peers) != 0 {
 		return nil, 0
 	}

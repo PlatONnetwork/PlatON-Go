@@ -2,6 +2,12 @@ package state
 
 import "time"
 
+const (
+	baseMs       = uint64(10 * time.Second)
+	exponentBase = float64(1.5)
+	maxExponent  = 2
+)
+
 type viewTimer struct {
 	//Timer last timeout
 	deadline time.Time
@@ -12,11 +18,13 @@ type viewTimer struct {
 }
 
 func newViewTimer() *viewTimer {
-	return &viewTimer{}
+	return &viewTimer{timer: time.NewTimer(0), timeInterval: viewTimeInterval{baseMs: baseMs, exponentBase: exponentBase, maxExponent: maxExponent}}
 }
 
-func (t viewTimer) setupTimer() {
-
+func (t *viewTimer) setupTimer(viewInterval uint64) {
+	duration := t.timeInterval.getViewTimeInterval(viewInterval)
+	t.deadline = time.Now().Add(duration)
+	t.timer.Reset(duration)
 }
 
 func (t viewTimer) isDeadline() bool {

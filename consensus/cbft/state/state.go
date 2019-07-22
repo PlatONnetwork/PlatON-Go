@@ -1,9 +1,10 @@
 package state
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -220,8 +221,8 @@ type view struct {
 	//viewchange received by the current view
 	viewChanges *viewChanges
 
-	viewChangeQC *ctypes.ViewChangeQC
-
+	viewChangeQC        *ctypes.ViewChangeQC
+	lastestViewChangeQC *ctypes.ViewChangeQC
 	//This view has been sent to other verifiers for voting
 	hadSendPrepareVote *PrepareVoteQueue
 
@@ -319,8 +320,8 @@ func (q qcBlock) blockIndex() uint32 {
 	return q.qc.BlockIndex
 }
 
-func (p qcBlock) block() *types.Block {
-	return p.b
+func (q qcBlock) block() *types.Block {
+	return q.b
 }
 
 func (q qcBlock) prepareBlock() *protocols.PrepareBlock {
