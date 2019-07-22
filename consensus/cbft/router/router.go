@@ -106,7 +106,7 @@ func (h *router) SendMessage(m *types.MsgPackage) {
 // 1.Some message types return all consensus nodes.
 // 2.Some message types return random consensus nodes.
 // The following types return all consensus nodes:
-//   PrepareVoteMsg/PrepareBlockMsg/ViewChangeMsg/QuorumCertMsg
+//   PrepareVoteMsg/PrepareBlockMsg/ViewChangeMsg/BlockQuorumCertMsg
 // The following types return a consensus node with non-consensus:
 //   PrepareBlockHashMsg
 func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*Peer, error) {
@@ -115,7 +115,7 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*Peer, 
 
 	switch msgType {
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
-		protocols.ViewChangeMsg, protocols.QuorumCertMsg:
+		protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
 		return r.kMixingRandomNodes(condition)
 	case protocols.PrepareBlockHashMsg:
 		return r.kConsensusRandomNodes(false, condition)

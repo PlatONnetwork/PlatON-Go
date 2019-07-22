@@ -320,8 +320,8 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
 		return nil
 
-	case msg.Code == protocols.QuorumCertMsg:
-		var request protocols.QuorumCert
+	case msg.Code == protocols.BlockQuorumCertMsg:
+		var request protocols.BlockQuorumCert
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
