@@ -3,9 +3,7 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
-
+	"encoding/json"
 	"errors"
 	"reflect"
 	"sync"
@@ -15,7 +13,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/router"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -54,6 +54,7 @@ type Cbft struct {
 	syncMsgCh        chan *ctypes.MsgInfo
 	evPool           evidence.EvidencePool
 	log              log.Logger
+	network          *EngineManager
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -82,6 +83,10 @@ type Cbft struct {
 	wal                wal.Wal
 	stateMu            sync.Mutex
 	viewMu             sync.Mutex
+
+	// processing message
+	handler *EngineManager
+	routing Router
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -96,17 +101,27 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 		nodeServiceContext: ctx,
 	}
 
-	if evPool, err := evidence.NewEvidencePool(); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
 	}
 
 	//todo init safety rules, vote rules, state, asyncExecutor
-	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
+	cbft.safetyRules = rules.NewSafetyRules(&cbft.state, &cbft.blockTree)
 	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
+	// init handler and router to process message.
+	// cbft -> handler -> router.
+	cbft.handler = NewEngineManger(cbft)                // init engineManager as handler.
+	cbft.routing = router.NewRouter(cbft, cbft.handler) // init router to distribute message.
+
 	return cbft
+}
+
+// Returns the ID value of the current node
+func (cbft *Cbft) NodeId() discover.NodeID {
+	return discover.NodeID{}
 }
 
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
@@ -126,12 +141,16 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
 
-	// load wal state
+	// load consensus state
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
 
 	go cbft.receiveLoop()
+
+	// Start the handler to process the message.
+	go cbft.handler.Start()
+
 	return nil
 }
 
@@ -147,6 +166,20 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 	}
 }
 
+// ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
+//
+// Possible message types are:
+//  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
+func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
+	select {
+	case cbft.syncMsgCh <- msg:
+		cbft.log.Debug("Receive synchronization related messages from peer", "peer", msg.PeerID, "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	case <-cbft.exitCh:
+		cbft.log.Error("Cbft exit")
+	}
+}
+
+// LoadWal tries to recover consensus state and view msg from the wal.
 func (cbft *Cbft) LoadWal() error {
 	// init wal and load wal state
 	var err error
@@ -169,17 +202,19 @@ func (cbft *Cbft) LoadWal() error {
 func (cbft *Cbft) receiveLoop() {
 	// channel Divided into read-only type, writable type
 	// Read-only is the channel that gets the current CBFT status.
-	// Writable type is the channel that affects the consensus state
-
+	// Writable type is the channel that affects the consensus state.
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
 			cbft.handleConsensusMsg(msg)
+
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
-
+		case msg := <-cbft.asyncExecutor.ExecuteStatus():
+			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
 			fn()
+
 		default:
 		}
 
@@ -474,7 +509,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 }
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
-	// FIXME: condition race
 	produceInterval := time.Duration(cbft.config.sys.Period/uint64(cbft.config.sys.Amount)) * time.Millisecond
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
 		return timePoint.Add(produceInterval)
@@ -483,7 +517,6 @@ func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 }
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
-	// FIXME: condition race
 	produceInterval := time.Duration(cbft.config.sys.Period/uint64(cbft.config.sys.Amount)) * time.Millisecond
 	if time.Now().Sub(blockTime) < produceInterval {
 		// TODO: add network latency
@@ -518,10 +551,6 @@ func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	panic("implement me")
 }
 
-func (Cbft) Evidences() string {
-	panic("implement me")
-}
-
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
@@ -534,6 +563,21 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 func (cbft *Cbft) Config() *Config {
 	panic("need to be improved")
 	return nil
+}
+
+// Return the highest submitted block number of the current node.
+func (cbft *Cbft) HighestCommitBlockBn() uint64 {
+	return cbft.state.HighestQCBlock().NumberU64()
+}
+
+// Return the highest locked block number of the current node.
+func (cbft *Cbft) HighestLockBlockBn() uint64 {
+	return cbft.state.HighestLockBlock().NumberU64()
+}
+
+// Return the highest QC block number of the current node.
+func (cbft *Cbft) HighestQCBlockBn() uint64 {
+	return cbft.state.HighestQCBlock().NumberU64()
 }
 
 func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
@@ -549,4 +593,22 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		ExtraData: extra,
 		SyncState: nil,
 	})
+}
+
+// Return to the implementation of Router.
+func (cbft *Cbft) Router() Router {
+	return cbft.routing
+}
+
+func (cbft *Cbft) Evidences() string {
+	evs := cbft.evPool.Evidences()
+	if len(evs) == 0 {
+		return "{}"
+	}
+	evds := evidence.ClassifyEvidence(evs)
+	js, err := json.MarshalIndent(evds, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(js)
 }
