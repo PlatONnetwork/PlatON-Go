@@ -203,6 +203,8 @@ func (cbft *Cbft) receiveLoop() {
 		case fn := <-cbft.asyncCallCh:
 			fn()
 
+		case <-cbft.state.ViewTimeout():
+			cbft.OnViewTimeout()
 		default:
 		}
 
