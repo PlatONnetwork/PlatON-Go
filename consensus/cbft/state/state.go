@@ -36,6 +36,10 @@ func (p *PrepareVoteQueue) Push(vote *protocols.PrepareVote) {
 	p.votes = append(p.votes, vote)
 }
 
+func (p *PrepareVoteQueue) Peek() []*protocols.PrepareVote {
+	return p.votes
+}
+
 func (p *PrepareVoteQueue) Empty() bool {
 	return len(p.votes) == 0
 }
@@ -215,6 +219,8 @@ type view struct {
 	executing executing
 	//viewchange received by the current view
 	viewChanges *viewChanges
+
+	viewChangeQC *ctypes.ViewChangeQC
 
 	//This view has been sent to other verifiers for voting
 	hadSendPrepareVote *PrepareVoteQueue

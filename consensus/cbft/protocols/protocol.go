@@ -146,7 +146,18 @@ func (s *PrepareVote) BHash() common.Hash {
 }
 
 func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
-	return nil, nil
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pv.Epoch,
+		pv.ViewNumber,
+		pv.BlockHash,
+		pv.BlockNumber,
+		pv.BlockIndex,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 func (pv *PrepareVote) Sign() []byte {
@@ -178,7 +189,17 @@ func (s *ViewChange) BHash() common.Hash {
 }
 
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
-	return nil, nil
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		vc.Epoch,
+		vc.ViewNumber,
+		vc.BlockHash,
+		vc.BlockNumber,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 func (vc *ViewChange) Sign() []byte {
