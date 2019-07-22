@@ -4,8 +4,7 @@ type EvidenceType int32
 
 type Evidence interface {
 	//Verify(ecdsa.PublicKey) error
-	//Equal(Evidence) bool
-	//return lowest number
+	Equal(Evidence) bool
 	BlockNumber() uint64
 	Epoch() uint64
 	ViewNumber() uint64
@@ -19,9 +18,9 @@ type Evidences []Evidence
 
 type EvidencePool interface {
 	//Deserialization of evidence
-	UnmarshalEvidence([]byte) (Evidence, error)
+	UnmarshalEvidence(data []byte) (Evidences, error)
 	//Get current evidences
-	Evidences() []Evidence
+	Evidences() Evidences
 	//Clear all evidences
 	Clear(viewNumber uint64)
 	Close()

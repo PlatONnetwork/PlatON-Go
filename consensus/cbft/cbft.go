@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/json"
+
 	"errors"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cconsensus "github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
@@ -74,8 +76,6 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
-	stateMu            sync.Mutex
-	viewMu             sync.Mutex
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -175,11 +175,11 @@ func (cbft *Cbft) LoadWal() error {
 		return err
 	}
 	//cbft.wal = &emptyWal{}
-
+	// load consensus chainState
 	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
 		return err
 	}
-
+	// load consensus message
 	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
 		return err
 	}
@@ -619,4 +619,8 @@ func (cbft *Cbft) Evidences() string {
 		return ""
 	}
 	return string(js)
+}
+
+func (cbft *Cbft) UnmarshalEvidence(data []byte) (cconsensus.Evidences, error) {
+	return cbft.evPool.UnmarshalEvidence(data)
 }
