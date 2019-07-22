@@ -37,7 +37,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 			}
 		}
 
-		cbft.fetcher.AddTask("", match, executor, nil)
+		cbft.fetcher.AddTask(id, match, executor, nil)
 	}
 }
 
