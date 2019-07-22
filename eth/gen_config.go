@@ -3,11 +3,11 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
@@ -18,8 +18,8 @@ var _ = (*configMarshaling)(nil)
 // MarshalTOML marshals as TOML.
 func (c Config) MarshalTOML() (interface{}, error) {
 	type Config struct {
-		Genesis                 *core.Genesis      `toml:",omitempty"`
-		CbftConfig              cbft.OptionsConfig `toml:",omitempty"`
+		Genesis                 *core.Genesis        `toml:",omitempty"`
+		CbftConfig              ctypes.OptionsConfig `toml:",omitempty"`
 		NetworkId               uint64
 		SyncMode                downloader.SyncMode
 		NoPruning               bool
@@ -82,8 +82,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 // UnmarshalTOML unmarshals from TOML.
 func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	type Config struct {
-		Genesis                 *core.Genesis       `toml:",omitempty"`
-		CbftConfig              *cbft.OptionsConfig `toml:",omitempty"`
+		Genesis                 *core.Genesis         `toml:",omitempty"`
+		CbftConfig              *ctypes.OptionsConfig `toml:",omitempty"`
 		NetworkId               *uint64
 		SyncMode                *downloader.SyncMode
 		NoPruning               *bool
