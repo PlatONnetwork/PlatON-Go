@@ -548,7 +548,7 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 	buildBlockNoCommit(2)
 
 	err := govPlugin.DeclareVersion(anotherSender, nodeIdArr[0], newVersion, lastBlockHash, 2, evm.StateDB)
-	if err != nil && (err.Error() == "tx sender is not verifier." || err.Error() == "tx sender should be node's staking address.") {
+	if err != nil && (err.Error() == "tx sender is not candidate." || err.Error() == "tx sender should be node's staking address.") {
 		t.Log("detected an incorrect version declaration.", err)
 	} else {
 		t.Fatal("didn't detected an incorrect version declaration.", err)
