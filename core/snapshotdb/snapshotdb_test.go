@@ -847,7 +847,7 @@ func TestPutToUnRecognized(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: block.Number.Int64(), BlockHash: db.getUnRecognizedHash()}
+	fd := fileDesc{Type: TypeJournal, Num: block.Number.Uint64(), BlockHash: db.getUnRecognizedHash()}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("should open storage", err)
@@ -939,7 +939,7 @@ func TestPutToRecognized(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Int64(), BlockHash: recognized.BlockHash}
+	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("[SnapshotDB]should open storage", err)
@@ -1032,7 +1032,7 @@ func TestFlush(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Int64(), BlockHash: recognized.BlockHash}
+	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("[SnapshotDB]should open storage", err)

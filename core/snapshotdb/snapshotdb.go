@@ -413,7 +413,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 
 	block := new(blockData)
-	block.Number = big.NewInt(blockNumber.Int64())
+	block.Number = new(big.Int).SetUint64(blockNumber.Uint64())
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
@@ -522,15 +522,15 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	if block.Number == nil {
 		return errors.New("[snapshotdb]the unRecognized Number is nil, can't flush")
 	}
-	if blocknumber.Int64() != block.Number.Int64() {
+	if blocknumber.Uint64() != block.Number.Uint64() {
 		return fmt.Errorf("[snapshotdb]blocknumber not compare the unRecognized blocknumber=%v,unRecognizedNumber=%v", blocknumber.Uint64(), block.Number.Uint64())
 	}
 	if _, ok := s.unCommit.blocks[hash]; ok {
 		return errors.New("the hash is exist in recognized data")
 	}
 	currentHash := s.getUnRecognizedHash()
-	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: currentHash}
-	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: hash}
+	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: currentHash}
+	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: hash}
 	if err := s.closeJournalWriter(currentHash); err != nil {
 		return err
 	}

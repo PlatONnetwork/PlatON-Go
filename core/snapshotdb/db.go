@@ -58,7 +58,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	if fd.BlockHash != s.getUnRecognizedHash() {
 		block.BlockHash = fd.BlockHash
 	}
-	block.Number = big.NewInt(fd.Num)
+	block.Number = new(big.Int).SetUint64(fd.Num)
 	block.data = memdb.New(DefaultComparer, 0)
 
 	switch header.From {
@@ -69,7 +69,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 			block.readOnly = true
 		}
 	case journalHeaderFromRecognized:
-		if fd.Num <= s.current.HighestNum.Int64() {
+		if fd.Num <= s.current.HighestNum.Uint64() {
 			block.readOnly = true
 		}
 	}
@@ -115,8 +115,8 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.storage = stor
 	fds, err := s.storage.List(TypeJournal)
 	sortFds(fds)
-	baseNum := s.current.BaseNum.Int64()
-	highestNum := s.current.HighestNum.Int64()
+	baseNum := s.current.BaseNum.Uint64()
+	highestNum := s.current.HighestNum.Uint64()
 	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]*blockData, 0)
 	s.journalw = make(map[common.Hash]*journalWriter)
@@ -168,7 +168,7 @@ func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 		return err
 	}
 	for _, fd := range fds {
-		if fd.Num <= s.current.BaseNum.Int64() {
+		if fd.Num <= s.current.BaseNum.Uint64() {
 			if _, ok := s.unCommit.blocks[fd.BlockHash]; ok {
 				delete(s.unCommit.blocks, fd.BlockHash)
 			}
