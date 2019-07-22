@@ -548,7 +548,6 @@ func build_staking_data(genesisHash common.Hash) {
 		Number: blockNumber,
 	}
 
-	fmt.Println("第一个块的Hash", lastBlockHash.Hex())
 }
 
 func buildBlockNoCommit(blockNum int) {
@@ -565,7 +564,6 @@ func buildBlockNoCommit(blockNum int) {
 	lastBlockHash = hash
 	lastBlockNumber = uint64(blockNum)
 	lastHeader = header
-	fmt.Println("第二个块的Hash", lastBlockHash.String())
 }
 
 func build_gov_data(state *state.StateDB) {

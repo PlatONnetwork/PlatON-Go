@@ -1615,7 +1615,7 @@ func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, nodeId discover.
 }
 
 func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.CandidateQueue, error) {
-	fmt.Println("第二块Hash:", blockHash.String())
+
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err

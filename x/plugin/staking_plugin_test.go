@@ -855,11 +855,13 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		return
 	}
 
+	count := 1
 	for i := 0; i < 4; i++ {
 		if err := create_staking(state, blockNumber, blockHash, i, 0, t); nil != err {
 			t.Error("Failed to Create num: "+fmt.Sprint(i)+" Staking", err)
 			return
 		}
+		count++
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
@@ -873,8 +875,12 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash); nil != err {
 		t.Error("Failed to GetCandidateList", err)
 	} else {
-		queueByte, _ := json.Marshal(queue)
-		t.Log("GetCandidateList is:", string(queueByte))
+		if count != len(queue) {
+			t.Errorf("Failed to GetCandidateList, the count is wrong, target length: %d, real length: %d", count, len(queue))
+		} else {
+			queueByte, _ := json.Marshal(queue)
+			t.Log("GetCandidateList is:", string(queueByte))
+		}
 	}
 }
 

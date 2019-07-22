@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -365,7 +364,6 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}*/
-	fmt.Println("入参Hash", blockHash.String())
 	if err := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}
