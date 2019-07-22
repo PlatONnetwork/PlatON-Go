@@ -69,11 +69,11 @@ func Is_LowRatio_NotEnough(status uint32) bool {
 	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
 }
 
-func Is_DoubleSign(status uint32) bool {
+func Is_DuplicateSign(status uint32) bool {
 	return status&DuplicateSign == DuplicateSign
 }
 
-func Is_DoubleSign_Invalid(status uint32) bool {
+func Is_DuplicateSign_Invalid(status uint32) bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
@@ -401,13 +401,13 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 	lCan, lOK := slashs[left.NodeAddress]
 	rCan, rOK := slashs[right.NodeAddress]
 
-	// 1. Double Sign
-	if lOK && Is_DoubleSign(lCan.Status) { // left is doubleSign
-		if !rOK || (rOK && !Is_DoubleSign(rCan.Status)) { // right is not doubleSign
+	// 1. Duplicate Sign
+	if lOK && Is_DuplicateSign(lCan.Status) { // left is duplicateSign
+		if !rOK || (rOK && !Is_DuplicateSign(rCan.Status)) { // right is not duplicateSign
 			return 1
 		} else {
 
-			// When both doublesign
+			// When both duplicateSign
 			lversion, _ := left.GetProgramVersion()
 			rversion, _ := right.GetProgramVersion()
 			switch {
@@ -419,11 +419,11 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 				return compareSharesFunc(left, right)
 			}
 		}
-	} else { // left is not doubleSign
+	} else { // left is not duplicateSign
 
-		if rOK && Is_DoubleSign(rCan.Status) { // right is doubleSign
+		if rOK && Is_DuplicateSign(rCan.Status) { // right is duplicateSign
 			return -1
-		} else { // When both no doubleSign
+		} else { // When both no duplicateSign
 
 			// 2. ProgramVersion
 			lversion, _ := left.GetProgramVersion()
