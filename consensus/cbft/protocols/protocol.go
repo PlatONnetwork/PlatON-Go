@@ -145,6 +145,14 @@ func (s *PrepareVote) BHash() common.Hash {
 	return s.BlockHash
 }
 
+func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (pv *PrepareVote) Sign() []byte {
+	return nil
+}
+
 // Message structure for view switching.
 type ViewChange struct {
 	Epoch       uint64             `json:"epoch"`
@@ -167,6 +175,14 @@ func (s *ViewChange) MsgHash() common.Hash {
 
 func (s *ViewChange) BHash() common.Hash {
 	return s.BlockHash
+}
+
+func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (vc *ViewChange) Sign() []byte {
+	return nil
 }
 
 // cbftStatusData implement Message and including status information about peer.
