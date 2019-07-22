@@ -137,7 +137,7 @@ func allVote(t *testing.T, pid common.Hash) {
 			VoteNodeID: nodeIdArr[i],
 			VoteOption: gov.Yes,
 		}
-		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, initProgramVersion, evm.StateDB)
+		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, promoteVersion, evm.StateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}
@@ -152,7 +152,7 @@ func halfVote(t *testing.T, pid common.Hash) {
 			VoteNodeID: nodeIdArr[i],
 			VoteOption: gov.Yes,
 		}
-		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, initProgramVersion, evm.StateDB)
+		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, promoteVersion, evm.StateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}

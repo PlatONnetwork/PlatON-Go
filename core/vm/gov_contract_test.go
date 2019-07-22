@@ -207,8 +207,8 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 
 	test := govContractCombinedTests[idx]
 
-	in := common.Hex2Bytes(test.Input)
-	gc.Contract.Gas = gc.RequiredGas(in) + 10000000000
+	//in := common.Hex2Bytes(test.Input)
+	//gc.Contract.Gas = gc.RequiredGas(in)
 
 	state := gc.Evm.StateDB.(*state.StateDB)
 
