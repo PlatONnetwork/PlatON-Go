@@ -203,7 +203,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 // According to the current view QC situation, try to switch view
 func (cbft *Cbft) tryChangeView() {
 	// Had receive all qcs of current view
-	if cbft.state.MaxQCIndex() == cbft.config.sys.Amount {
+	if cbft.state.MaxQCIndex() == cbft.config.Sys.Amount {
 		//todo change view
 	}
 
