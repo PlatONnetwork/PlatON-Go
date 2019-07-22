@@ -3,6 +3,7 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/router"
 
@@ -54,6 +55,7 @@ type Cbft struct {
 	syncMsgCh        chan *ctypes.MsgInfo
 	evPool           evidence.EvidencePool
 	log              log.Logger
+	network          *EngineManager
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -100,14 +102,14 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 		nodeServiceContext: ctx,
 	}
 
-	if evPool, err := evidence.NewEvidencePool(); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
 	}
 
 	//todo init safety rules, vote rules, state, asyncExecutor
-	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
+	cbft.safetyRules = rules.NewSafetyRules(&cbft.state, &cbft.blockTree)
 	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
 	// init handler and router to process message.
@@ -140,7 +142,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
 
-	// load wal state
+	// load consensus state
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
@@ -178,6 +180,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
 	}
 }
 
+// LoadWal tries to recover consensus state and view msg from the wal.
 func (cbft *Cbft) LoadWal() error {
 	// init wal and load wal state
 	var err error
@@ -208,7 +211,8 @@ func (cbft *Cbft) receiveLoop() {
 
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
-
+		case msg := <-cbft.asyncExecutor.ExecuteStatus():
+			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
 			fn()
 
@@ -550,10 +554,6 @@ func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	panic("implement me")
 }
 
-func (Cbft) Evidences() string {
-	panic("implement me")
-}
-
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
@@ -601,4 +601,17 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 // Return to the implementation of Router.
 func (cbft *Cbft) Router() Router {
 	return cbft.routing
+}
+
+func (cbft *Cbft) Evidences() string {
+	evs := cbft.evPool.Evidences()
+	if len(evs) == 0 {
+		return "{}"
+	}
+	evds := evidence.ClassifyEvidence(evs)
+	js, err := json.MarshalIndent(evds, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(js)
 }

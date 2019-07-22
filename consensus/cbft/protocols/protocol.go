@@ -151,6 +151,25 @@ func (s *PrepareVote) BHash() common.Hash {
 	return s.BlockHash
 }
 
+func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pv.Epoch,
+		pv.ViewNumber,
+		pv.BlockHash,
+		pv.BlockNumber,
+		pv.BlockIndex,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
+}
+
+func (pv *PrepareVote) Sign() []byte {
+	return nil
+}
+
 // Message structure for view switching.
 type ViewChange struct {
 	Epoch       uint64             `json:"epoch"`
@@ -173,6 +192,24 @@ func (s *ViewChange) MsgHash() common.Hash {
 
 func (s *ViewChange) BHash() common.Hash {
 	return s.BlockHash
+}
+
+func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		vc.Epoch,
+		vc.ViewNumber,
+		vc.BlockHash,
+		vc.BlockNumber,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
+}
+
+func (vc *ViewChange) Sign() []byte {
+	return nil
 }
 
 // cbftStatusData implement Message and including status information about peer.

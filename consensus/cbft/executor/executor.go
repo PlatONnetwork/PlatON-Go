@@ -14,18 +14,18 @@ type BlockExecutor interface {
 	Execute(block *types.Block, parent *types.Block) error
 }
 
-//Block execution results, including block hash, block number, error message
+//Block execution results, including block Hash, block Number, error message
 type BlockExecuteStatus struct {
-	hash   common.Hash
-	number uint64
-	err    error
+	Hash   common.Hash
+	Number uint64
+	Err    error
 }
 
 type AsyncBlockExecutor interface {
 	BlockExecutor
 	Stop()
 	//Asynchronous acquisition block execution results
-	ExecuteStatus() chan<- BlockExecuteStatus
+	ExecuteStatus() <-chan *BlockExecuteStatus
 }
 
 type executeTask struct {
@@ -40,8 +40,8 @@ type AsyncExecutor struct {
 	// executeFn is a function use to execute block.
 	executeFn Executor
 
-	executeTasks   chan *executeTask       // A channel for notify execute task.
-	executeResults chan BlockExecuteStatus // A channel for notify execute result.
+	executeTasks   chan *executeTask        // A channel for notify execute task.
+	executeResults chan *BlockExecuteStatus // A channel for notify execute result.
 
 	// A channel for notify stop signal
 	closed chan struct{}
@@ -52,7 +52,7 @@ func NewAsyncExecutor(executeFn Executor) *AsyncExecutor {
 	exe := &AsyncExecutor{
 		executeFn:      executeFn,
 		executeTasks:   make(chan *executeTask, 64),
-		executeResults: make(chan BlockExecuteStatus, 64),
+		executeResults: make(chan *BlockExecuteStatus, 64),
 		closed:         make(chan struct{}),
 	}
 
@@ -72,7 +72,7 @@ func (exe *AsyncExecutor) Execute(block *types.Block, parent *types.Block) error
 }
 
 // executeStatus return a channel for notify block execute result.
-func (exe *AsyncExecutor) ExecuteStatus() chan<- BlockExecuteStatus {
+func (exe *AsyncExecutor) ExecuteStatus() <-chan *BlockExecuteStatus {
 	return exe.executeResults
 }
 
@@ -96,10 +96,10 @@ func (exe *AsyncExecutor) loop() {
 			return
 		case task := <-exe.executeTasks:
 			err := exe.executeFn(task.block, task.parent)
-			exe.executeResults <- BlockExecuteStatus{
-				hash:   task.block.Hash(),
-				number: task.block.Number().Uint64(),
-				err:    err,
+			exe.executeResults <- &BlockExecuteStatus{
+				Hash:   task.block.Hash(),
+				Number: task.block.Number().Uint64(),
+				Err:    err,
 			}
 		}
 	}
