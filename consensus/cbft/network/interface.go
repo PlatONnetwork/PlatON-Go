@@ -1,4 +1,4 @@
-package bftnet
+package network
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -23,9 +23,6 @@ type Cbft interface {
 
 	// ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
 	ReceiveSyncMsg(msg *types.MsgInfo)
-
-	// Callback to the CBFT layer to process the response message.
-	OnPong(nodeID discover.NodeID, netLatency int64) error
 
 	// Return the highest QC block number of the current node.
 	HighestQCBlockBn() uint64
