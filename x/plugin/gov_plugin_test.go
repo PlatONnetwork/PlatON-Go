@@ -20,11 +20,11 @@ import (
 )
 
 var (
-	snapdb         snapshotdb.DB
-	govPlugin      *plugin.GovPlugin
-	evm            *vm.EVM
-	govDB          *gov.GovDB
-	newVersion     = uint32(1<<16 | 1<<8 | 1)
+	snapdb    snapshotdb.DB
+	govPlugin *plugin.GovPlugin
+	evm       *vm.EVM
+	govDB     *gov.GovDB
+	//newVersion     = uint32(2<<16 | 0<<8 | 0)
 	endVotingBlock uint64
 	activeBlock    uint64
 )
@@ -90,7 +90,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
-		NewVersion:     newVersion,
+		NewVersion:     promoteVersion,
 		ActiveBlock:    activeBlock,
 	}
 
@@ -272,7 +272,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
 		Proposer:       nodeIdArr[0],
-		NewVersion:     newVersion,
+		NewVersion:     promoteVersion,
 		ActiveBlock:    activeBlock,
 	}
 	state := evm.StateDB.(*state.StateDB)
@@ -299,7 +299,7 @@ func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
-		NewVersion:     newVersion,
+		NewVersion:     promoteVersion,
 		ActiveBlock:    activeBlock - 10, // error
 	}
 	state := evm.StateDB.(*state.StateDB)
@@ -403,7 +403,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	err := govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, evm.StateDB)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	}
@@ -414,7 +414,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	err = govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, evm.StateDB)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	}
@@ -449,7 +449,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 		gov.Yes,
 	}
 
-	err := govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, evm.StateDB)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	}
@@ -460,7 +460,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 		gov.Yes,
 	}
 
-	err = govPlugin.Vote(sender, v, lastBlockHash, 2, initProgramVersion, evm.StateDB)
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, evm.StateDB)
 	if err != nil && err.Error() == "node has voted this proposal." {
 		t.Log("detected repeated vote", err)
 	} else {
@@ -504,7 +504,7 @@ func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
-	err := govPlugin.DeclareVersion(sender, nodeIdArr[0], newVersion, lastBlockHash, 2, evm.StateDB)
+	err := govPlugin.DeclareVersion(sender, nodeIdArr[0], promoteVersion, lastBlockHash, 2, evm.StateDB)
 	if err != nil {
 		t.Fatalf("Declare Version err ...%s", err)
 	}
@@ -543,7 +543,7 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
-	err := govPlugin.DeclareVersion(anotherSender, nodeIdArr[0], newVersion, lastBlockHash, 2, evm.StateDB)
+	err := govPlugin.DeclareVersion(anotherSender, nodeIdArr[0], promoteVersion, lastBlockHash, 2, evm.StateDB)
 	if err != nil && (err.Error() == "tx sender is not candidate." || err.Error() == "tx sender should be node's staking address.") {
 		t.Log("detected an incorrect version declaration.", err)
 	} else {
@@ -791,7 +791,7 @@ func TestGovPlugin_versionProposalSuccess(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 
 	activeVersion := govPlugin.GetActiveVersion(evm.StateDB)
-	if activeVersion == newVersion {
+	if activeVersion == promoteVersion {
 		t.Logf("active SUCCESS, %d", activeVersion)
 	} else {
 		t.Fatalf("active FALSE, %d", activeVersion)
