@@ -175,7 +175,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, de
 	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
 }
 
-func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8) ([]byte, error) {
+func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, nodeProgramVersion uint32) ([]byte, error) {
 
 	if !gc.Contract.UseGas(params.VoteGas) {
 		return nil, ErrOutOfGas
@@ -190,14 +190,15 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
-		"option", op)
+		"option", op,
+		"nodeProgramVersion", nodeProgramVersion)
 
 	v := gov.Vote{}
 	v.ProposalID = proposalID
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gc.Plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
+	err := gc.Plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), nodeProgramVersion, gc.Evm.StateDB)
 
 	return gc.errHandler("vote", VoteEvent, err, VoteErrorMsg)
 }
