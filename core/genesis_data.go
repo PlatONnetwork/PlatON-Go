@@ -143,9 +143,9 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 	return nil
 }
 
-// buildAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
+// genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
-func buildAllowancePlan(stateDb *state.StateDB) error {
+func genesisAllowancePlan(stateDb *state.StateDB) error {
 
 	account := vm.RewardManagerPoolAddr
 

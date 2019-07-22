@@ -58,7 +58,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	if fd.BlockHash != s.getUnRecognizedHash() {
 		block.BlockHash = fd.BlockHash
 	}
-	block.Number = big.NewInt(fd.Num)
+	block.Number = new(big.Int).SetUint64(fd.Num)
 	block.data = memdb.New(DefaultComparer, 0)
 
 	switch header.From {
@@ -69,7 +69,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 			block.readOnly = true
 		}
 	case journalHeaderFromRecognized:
-		if fd.Num <= s.current.HighestNum.Int64() {
+		if fd.Num <= s.current.HighestNum.Uint64() {
 			block.readOnly = true
 		}
 	}
@@ -115,8 +115,8 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.storage = stor
 	fds, err := s.storage.List(TypeJournal)
 	sortFds(fds)
-	baseNum := s.current.BaseNum.Int64()
-	highestNum := s.current.HighestNum.Int64()
+	baseNum := s.current.BaseNum.Uint64()
+	highestNum := s.current.HighestNum.Uint64()
 	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]*blockData, 0)
 	s.journalw = make(map[common.Hash]*journalWriter)
@@ -168,7 +168,7 @@ func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 		return err
 	}
 	for _, fd := range fds {
-		if fd.Num <= s.current.BaseNum.Int64() {
+		if fd.Num <= s.current.BaseNum.Uint64() {
 			if _, ok := s.unCommit.blocks[fd.BlockHash]; ok {
 				delete(s.unCommit.blocks, fd.BlockHash)
 			}
@@ -232,39 +232,40 @@ const (
 )
 
 func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
-	lastblockNumber := big.NewInt(0)
-	var lastParenthash common.Hash
-	// find from recognized
-	lastParenthash = hash
+	var (
+		lastBlockNumber = big.NewInt(0)
+		lastParentHash  = hash
+	)
+	// find from unCommit
 	for {
-		if block, ok := s.unCommit.blocks[lastParenthash]; ok {
-			if lastParenthash == block.ParentHash {
+		if block, ok := s.unCommit.blocks[lastParentHash]; ok {
+			if lastParentHash == block.ParentHash {
 				logger.Error("loop error")
 				return 0, false
 			}
-			lastParenthash = block.ParentHash
-			lastblockNumber = block.Number
+			lastParentHash = block.ParentHash
+			lastBlockNumber = block.Number
 		} else {
 			break
 		}
 	}
 
-	//check find from recognized is right
-	if lastblockNumber.Int64() > 0 {
-		if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
-			logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastblockNumber.Int64()-1)
+	//check  last block find from unCommit is right
+	if lastBlockNumber.Int64() > 0 {
+		if s.current.HighestNum.Int64() != lastBlockNumber.Int64()-1 {
+			logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastBlockNumber.Int64()-1)
 			return 0, false
 		}
 		if s.current.HighestHash == common.ZeroHash {
 			return hashLocationUnCommitted, true
 		}
-		if s.current.HighestHash != lastParenthash {
-			logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParenthash.String())
+		if s.current.HighestHash != lastParentHash {
+			logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParentHash.String())
 			return 0, false
 		}
 		return hashLocationUnCommitted, true
 	}
-	// find from committed
+	// if not find from unCommit, find from committed
 	for _, value := range s.committed {
 		if value.BlockHash == hash {
 			return hashLocationCommitted, true

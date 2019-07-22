@@ -413,7 +413,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 
 	block := new(blockData)
-	block.Number = big.NewInt(blockNumber.Int64())
+	block.Number = new(big.Int).SetUint64(blockNumber.Uint64())
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
@@ -444,7 +444,6 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	//found from unRecognized
 	s.unCommit.RLock()
 	s.commitLock.RLock()
 	defer func() {
@@ -523,15 +522,15 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	if block.Number == nil {
 		return errors.New("[snapshotdb]the unRecognized Number is nil, can't flush")
 	}
-	if blocknumber.Int64() != block.Number.Int64() {
+	if blocknumber.Uint64() != block.Number.Uint64() {
 		return fmt.Errorf("[snapshotdb]blocknumber not compare the unRecognized blocknumber=%v,unRecognizedNumber=%v", blocknumber.Uint64(), block.Number.Uint64())
 	}
 	if _, ok := s.unCommit.blocks[hash]; ok {
 		return errors.New("the hash is exist in recognized data")
 	}
 	currentHash := s.getUnRecognizedHash()
-	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: currentHash}
-	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: hash}
+	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: currentHash}
+	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: hash}
 	if err := s.closeJournalWriter(currentHash); err != nil {
 		return err
 	}
@@ -649,26 +648,6 @@ func (s *snapshotDB) Clear() error {
 	return nil
 }
 
-func itrToMdb(itr iterator.Iterator, r *rankingItr) {
-	for itr.Next() {
-		k, v := itr.Key(), itr.Value()
-		if r.findHandledKey(k) {
-			continue
-		} else {
-			condtion := v == nil || len(v) == 0
-			if !condtion {
-				heap.Push(&r.heap, kv{k, v})
-			}
-			if r.hepNum > 0 && len(r.heap) > r.hepNum {
-				heap.Pop(&r.heap)
-			}
-			r.addHandledKey(k)
-		}
-	}
-
-	itr.Release()
-}
-
 // Ranking return iterates  of the DB.
 // the key range that satisfy the given prefix
 // the hash means from  unRecognized or recognized
@@ -698,7 +677,8 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				break
 			}
 		}
-		for _, block := range s.committed {
+		for i := len(s.committed) - 1; i >= 0; i-- {
+			block := s.committed[i]
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
 	case hashLocationCommitted:
@@ -715,76 +695,99 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	}
 	s.unCommit.RUnlock()
 	s.commitLock.RUnlock()
-	r := newRaningItr(rangeNumber)
+
+	//put  unCommit and commit itr to heap
+	rankingHeap := newRankingHeap(rangeNumber)
 	for i := 0; i < len(itrs); i++ {
-		itrToMdb(itrs[i], r)
+		rankingHeap.itr2Heap(itrs[i], false, false)
 	}
+
+	//put baseDB itr to heap
 	itr := s.baseDB.NewIterator(prefix, nil)
-	for itr.Next() {
-		if r.hepNum > 0 && len(r.heap) == r.hepNum {
-			break
-		}
-		k, v := itr.Key(), itr.Value()
-		if len(r.heap) > 0 && bytes.Compare(k, r.heap[0].key) > 0 {
-			break
-		}
+	rankingHeap.itr2Heap(itr, true, true)
 
-		if r.findHandledKey(k) {
-			continue
-		} else {
-			condtion := v == nil || len(v) == 0
-			if !condtion {
-				sk, sv := make([]byte, len(k)), make([]byte, len(v))
-				copy(sk, k)
-				copy(sv, v)
-				heap.Push(&r.heap, kv{key: sk, value: sv})
-			}
-			if r.hepNum > 0 && len(r.heap) > r.hepNum {
-				heap.Pop(&r.heap)
-			}
-			r.addHandledKey(k)
-		}
-	}
-
-	itr.Release()
+	//generate memdb Iterator
 	mdb := memdb.New(DefaultComparer, rangeNumber)
-	for r.heap.Len() > 0 {
-		kv := heap.Pop(&r.heap).(kv)
+	var count int
+	for rankingHeap.heap.Len() > 0 {
+		// if rangeNumber>0 ,limit Iterator kv pairs nums
+		if rangeNumber > 0 && count >= rangeNumber {
+			break
+		}
+		kv := heap.Pop(&rankingHeap.heap).(kv)
 		if err := mdb.Put(kv.key, kv.value); err != nil {
 			return iterator.NewEmptyIterator(errors.New("put to mdb fail" + err.Error()))
 		}
+		count++
 	}
 	return mdb.NewIterator(nil)
 }
 
-func newRaningItr(hepNum int) *rankingItr {
-	r := new(rankingItr)
-	r.hepNum = hepNum
+func newRankingHeap(hepNum int) *rankingHeap {
+	r := new(rankingHeap)
+	r.hepMaxNum = hepNum
 	r.handledKey = make([][]byte, 0)
 	r.heap = make(kvsMaxToMin, 0)
 	return r
 }
 
-type rankingItr struct {
+type rankingHeap struct {
 	handledKey [][]byte
 	//max heap
-	heap   kvsMaxToMin
-	hepNum int
+	heap      kvsMaxToMin
+	hepMaxNum int
 }
 
-func (r *rankingItr) addHandledKey(key []byte) {
+func (r *rankingHeap) gtThanMaxHeap(k []byte) bool {
+	if bytes.Compare(k, r.heap[0].key) > 0 {
+		return true
+	}
+	return false
+}
+
+func (r *rankingHeap) addHandledKey(key []byte) {
 	handled := make([]byte, len(key))
 	copy(handled, key)
 	r.handledKey = append(r.handledKey, handled)
 }
 
-func (r *rankingItr) findHandledKey(key []byte) bool {
+func (r *rankingHeap) findHandledKey(key []byte) bool {
 	for _, value := range r.handledKey {
 		if bytes.Compare(key, value) == 0 {
 			return true
 		}
 	}
 	return false
+}
+
+func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
+	for itr.Next() {
+		k, v := itr.Key(), itr.Value()
+		if baseDB && r.gtThanMaxHeap(k) {
+			break
+		}
+		if r.findHandledKey(k) {
+			continue
+		} else {
+			r.push2Heap(k, v, deepCopy)
+			r.addHandledKey(k)
+		}
+	}
+	itr.Release()
+}
+
+func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
+	condtion := v == nil || len(v) == 0
+	if !condtion {
+		if deepCopy {
+			sk, sv := make([]byte, len(k)), make([]byte, len(v))
+			copy(sk, k)
+			copy(sv, v)
+			heap.Push(&r.heap, kv{key: sk, value: sv})
+		} else {
+			heap.Push(&r.heap, kv{k, v})
+		}
+	}
 }
 
 func (s *snapshotDB) Close() error {

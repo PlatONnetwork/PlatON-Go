@@ -364,7 +364,6 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}*/
-
 	if err := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}
