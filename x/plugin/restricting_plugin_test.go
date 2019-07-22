@@ -87,7 +87,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	// case1: blockNumber not arrived settle block height
 	{
 		stateDb := buildStateDB(t)
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 		head := types.Header{Number: big.NewInt(1)}
 
 		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
@@ -124,7 +124,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		stateDb := buildStateDB(t)
 
 		plugin.SetLatestEpoch(stateDb, 0)
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 		head := types.Header{Number: big.NewInt(int64(1 * xutil.CalcBlocksEachEpoch()))}
 
 		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
@@ -277,7 +277,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		stateDb.AddBalance(sender, restrictingAmount)
 
 		// build db info
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		// build plans for case3
 		var plans = make([]restricting.RestrictingPlan, 1)
@@ -341,7 +341,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		stateDb.AddBalance(sender, restrictingAmount)
 
 		// build db info
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		// build plans for case3
 		var plans = make([]restricting.RestrictingPlan, 1)
@@ -425,7 +425,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		stateDb := buildStateDB(t)
 
 		// build data in stateDB for case2
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		lockFunds := big.NewInt(int64(6E18))
 
@@ -448,7 +448,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		stateDb := buildStateDB(t)
 
 		// build data in stateDB for case3
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		lockFunds := big.NewInt(int64(2E18))
 
@@ -594,7 +594,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		slashingFunds := big.NewInt(int64(1E18))
 
 		// build date of restricting account for case2
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		// preset stating condition
 		pledgeFunds := big.NewInt(int64(2E18))
@@ -666,7 +666,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 	{
 		stateDb := buildStateDB(t)
 
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		result, err := plugin.RestrictingInstance().GetRestrictingInfo(addrArr[0], stateDb)
 
