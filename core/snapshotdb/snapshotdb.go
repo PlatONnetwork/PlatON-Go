@@ -699,12 +699,12 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	//put  unCommit and commit itr to heap
 	rankingHeap := newRankingHeap(rangeNumber)
 	for i := 0; i < len(itrs); i++ {
-		rankingHeap.itr2Heap(itrs[i], false)
+		rankingHeap.itr2Heap(itrs[i], false, false)
 	}
 
 	//put baseDB itr to heap
 	itr := s.baseDB.NewIterator(prefix, nil)
-	rankingHeap.itr2Heap(itr, true)
+	rankingHeap.itr2Heap(itr, true, true)
 
 	//generate memdb Iterator
 	mdb := memdb.New(DefaultComparer, rangeNumber)
@@ -760,12 +760,7 @@ func (r *rankingHeap) findHandledKey(key []byte) bool {
 	return false
 }
 
-func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB bool) {
-	var deepCopy bool
-	if baseDB {
-		//levelDB slice is
-		deepCopy = true
-	}
+func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
 	for itr.Next() {
 		k, v := itr.Key(), itr.Value()
 		if baseDB && r.gtThanMaxHeap(k) {
