@@ -53,16 +53,14 @@ func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Heade
 
 // EndBlock invoke releaseRestricting
 func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-	epoch := getLatestEpoch(state)
 
-	expect := epoch + 1
-	expectBlock := getBlockNumberByEpoch(expect)
-
+	expect := GetLatestEpoch(state) + 1
+	expectBlock := GetBlockNumberByEpoch(expect)
 	if expectBlock != head.Number.Uint64() {
 		return nil
 	}
 
-	log.Info("begin to release restricting", "curr", head.Number, "epoch", expectBlock)
+	log.Info("begin to release restricting plan", "curr", head.Number, "epoch", expectBlock)
 	return rp.releaseRestricting(expect, state)
 }
 
@@ -80,15 +78,20 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	state xcom.StateDB) error {
 
 	// pre-check
-	latest := getLatestEpoch(state)
+	if len(plans) > 30 {
+		log.Debug("restricting plan must less than 30")
+		return errParamPeriodInvalid
+	}
+
+	latest := GetLatestEpoch(state)
 
 	totalAmount := new(big.Int) // total restricting amount
 	for i := 0; i < len(plans); i++ {
 		epoch := plans[i].Epoch
 		amount := plans[i].Amount
 
-		if epoch < latest {
-			log.Error("param epoch invalid", "epoch", epoch, "latest", latest)
+		if epoch <= latest || amount.Cmp(big.NewInt(1E18)) == -1 {
+			log.Error("param epoch or amount invalid", "epoch", epoch, "latest", latest, "amount", amount)
 			return errParamPeriodInvalid
 		}
 		totalAmount = totalAmount.Add(totalAmount, amount)
@@ -110,12 +113,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
-
-	var newInfo1 restricting.RestrictingInfo
-
-	_ = rlp.Decode(bytes.NewBuffer(bAccInfo), &newInfo1)
-	// fmt.Println(bAccInfo)
-	// fmt.Println(newInfo1)
 
 	if len(bAccInfo) == 0 {
 		log.Debug("restricting record not exist", "account", account.Bytes())
@@ -156,7 +153,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		info.ReleaseList = epochList
 
 	} else {
-		log.Debug("restricting record exist", "account", account.Bytes())
+		log.Debug("restricting record exist", "account", account.String())
 
 		if err = rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
 			log.Error("failed to rlp decode the restricting account", "err", err.Error())
@@ -216,6 +213,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 
 	state.SetState(account, restrictingKey, bAccInfo)
+	state.AddBalance(sender, totalAmount)
+	state.SubBalance(vm.RestrictingContractAddr, totalAmount)
 
 	return nil
 }
@@ -463,7 +462,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			}
 		}
 
-		// restore restricting info
+		// just restore restricting info, don't delete
 		if bNewInfo, err := rlp.EncodeToBytes(info); err != nil {
 			log.Error("failed to rlp encode new info while release", "account", account, "info", info)
 			return common.NewSysError(err.Error())
@@ -508,7 +507,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		releaseAmountKey = restricting.GetReleaseAmountKey(epoch, account)
 		bAmount = state.GetState(account, releaseAmountKey)
 
-		plan.Height = getBlockNumberByEpoch(epoch)
+		plan.Height = GetBlockNumberByEpoch(epoch)
 		plan.Amount = amount.SetBytes(bAmount)
 		plans = append(plans, plan)
 	}
@@ -536,7 +535,7 @@ func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
 	stateDb.SetState(vm.RestrictingContractAddr, key, common.Uint64ToBytes(epoch))
 }
 
-func getLatestEpoch(stateDb xcom.StateDB) uint64 {
+func GetLatestEpoch(stateDb xcom.StateDB) uint64 {
 	key := restricting.GetLatestEpochKey()
 	bEpoch := stateDb.GetState(vm.RestrictingContractAddr, key)
 
@@ -547,6 +546,6 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 	}
 }
 
-func getBlockNumberByEpoch(epoch uint64) uint64 {
+func GetBlockNumberByEpoch(epoch uint64) uint64 {
 	return epoch * xutil.CalcBlocksEachEpoch()
 }

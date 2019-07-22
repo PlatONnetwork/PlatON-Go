@@ -57,6 +57,8 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		if err := rmp.rewardStaking(head, stakingReward, state); err != nil {
 			return err
 		}
+		// set current to latest epoch
+		SetLatestEpoch(state, xutil.CalculateEpoch(blockNumber))
 	}
 
 	if err := rmp.rewardNewBlock(head, newBlockReward, state); err != nil {
