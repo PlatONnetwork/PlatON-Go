@@ -180,6 +180,10 @@ func MaxVotingDuration() uint64 {
 	return uint64(14*24*60*60) / uint64(size) * uint64(size)
 }
 
+func MaxVotingConsensusRounds() uint64 {
+	return uint64(4840)
+}
+
 // TODO: calculate reward configure data for main net only
 // SecondYearAllowance is 1.5% of GenesisIssuance
 func SecondYearAllowance() *big.Int {
