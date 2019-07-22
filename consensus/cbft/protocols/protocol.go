@@ -75,7 +75,7 @@ func MessageType(msg interface{}) uint64 {
 		return PongMsg
 	default:
 	}
-	panic(fmt.Sprintf("unknown message type [%v]", reflect.TypeOf(msg)))
+	panic(fmt.Sprintf("unknown message type [%v}", reflect.TypeOf(msg)))
 }
 
 // Proposed block carrier.
@@ -90,7 +90,7 @@ type PrepareBlock struct {
 }
 
 func (s *PrepareBlock) String() string {
-	return fmt.Sprintf("[ViewNumber: %d] - [Hash: %s] - [Number: %d] - [BlockIndex: %d]",
+	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
 		s.ViewNumber, s.Block.Hash(), s.Block.NumberU64(), s.BlockIndex)
 }
 
@@ -131,8 +131,7 @@ type PrepareVote struct {
 }
 
 func (s *PrepareVote) String() string {
-	return fmt.Sprintf("[Epoch: %d] - [VN: %d] - [BlockHash: %s] - [BlockNumber: %d] - "+
-		"[BlockIndex: %d]",
+	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d}",
 		s.Epoch, s.ViewNumber, s.BlockHash, s.BlockNumber, s.BlockIndex)
 }
 
@@ -175,7 +174,7 @@ type ViewChange struct {
 }
 
 func (s *ViewChange) String() string {
-	return fmt.Sprintf("[Epoch: %d] - [Vn: %d] - [BlockHash: %s] - [BlockNumber: %d]",
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%s,BlockNumber:%d}",
 		s.Epoch, s.ViewNumber, s.BlockHash, s.BlockNumber)
 }
 
@@ -218,7 +217,7 @@ type CbftStatusData struct {
 }
 
 func (s *CbftStatusData) String() string {
-	return fmt.Sprintf("[ProtocolVersion:%d] - [QCBn:%d] - [LockBn:%d] - [CmtBn:%d]",
+	return fmt.Sprintf("{ProtocolVersion:%d,QCBn:%d,LockBn:%d,CmtBn:%d}",
 		s.ProtocolVersion, s.QCBn.Uint64(), s.LockBn.Uint64(), s.CmtBn.Uint64())
 }
 
@@ -240,7 +239,7 @@ type GetPrepareBlock struct {
 }
 
 func (s *GetPrepareBlock) String() string {
-	return fmt.Sprintf("[Epoch: %d] - [ViewNumber: %d] - [BlockIndex: %d]", s.Epoch, s.ViewNumber, s.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d}", s.Epoch, s.ViewNumber, s.BlockIndex)
 }
 
 func (s *GetPrepareBlock) MsgHash() common.Hash {
@@ -259,7 +258,7 @@ type GetBlockQuorumCert struct {
 }
 
 func (s *GetBlockQuorumCert) String() string {
-	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
+	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash, s.BlockNumber)
 }
 
 func (s *GetBlockQuorumCert) MsgHash() common.Hash {
@@ -277,7 +276,7 @@ type BlockQuorumCert struct {
 }
 
 func (s *BlockQuorumCert) String() string {
-	return fmt.Sprintf("[ViewNumber: %d] - [Hash: %s] - [Number: %d]",
+	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d}",
 		s.BlockQC.ViewNumber, s.BlockQC.BlockHash, s.BlockQC.BlockNumber)
 }
 
@@ -298,7 +297,7 @@ type GetQCBlockList struct {
 }
 
 func (s *GetQCBlockList) String() string {
-	return fmt.Sprintf("[Number: %d]", s.BlockNumber)
+	return fmt.Sprintf("{Number:%d}", s.BlockNumber)
 }
 
 func (s *GetQCBlockList) MsgHash() common.Hash {
@@ -319,7 +318,7 @@ type GetPrepareVote struct {
 }
 
 func (s *GetPrepareVote) String() string {
-	return fmt.Sprintf("[Hash: %s] - [Number: %d] - [VoteBits: %s]", s.BlockHash, s.BlockNumber, s.VoteBits.String())
+	return fmt.Sprintf("{Hash:%s,Number:%d,ViewNumber:%d}", s.BlockHash, s.BlockNumber, s.ViewNumber)
 }
 
 func (s *GetPrepareVote) MsgHash() common.Hash {
@@ -340,7 +339,7 @@ type PrepareVotes struct {
 }
 
 func (s *PrepareVotes) String() string {
-	return fmt.Sprintf("[Hash:%s] - [Number:%d] - [Votes:%d]", s.BlockHash.String(), s.BlockNumber, len(s.Votes))
+	return fmt.Sprintf("{Hash:%s,Number:%d,Votes:%d}", s.BlockHash.String(), s.BlockNumber, len(s.Votes))
 }
 
 func (s *PrepareVotes) MsgHash() common.Hash {
@@ -358,7 +357,7 @@ type PrepareBlockHash struct {
 }
 
 func (s *PrepareBlockHash) String() string {
-	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
+	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash, s.BlockNumber)
 }
 
 func (s *PrepareBlockHash) MsgHash() common.Hash {
@@ -373,7 +372,7 @@ func (s *PrepareBlockHash) BHash() common.Hash {
 type Ping [1]string
 
 func (s *Ping) String() string {
-	return fmt.Sprintf("[pingTime: %s]", s[0])
+	return fmt.Sprintf("{pingTime:%s}", s[0])
 }
 
 func (s *Ping) MsgHash() common.Hash {
@@ -388,7 +387,7 @@ func (s *Ping) BHash() common.Hash {
 type Pong [1]string
 
 func (s *Pong) String() string {
-	return fmt.Sprintf("[pongTime: %s]", s[0])
+	return fmt.Sprintf("{pongTime:%s}", s[0])
 }
 
 func (s *Pong) MsgHash() common.Hash {
@@ -406,7 +405,7 @@ type QCBlockList struct {
 }
 
 func (s *QCBlockList) String() string {
-	return fmt.Sprintf("[QC.Len: %d] - [Blocks.Len: %d]", len(s.QC), len(s.Blocks))
+	return fmt.Sprintf("{QC.Len:%d,Blocks.Len:%d}", len(s.QC), len(s.Blocks))
 }
 
 func (s *QCBlockList) MsgHash() common.Hash {
@@ -433,11 +432,12 @@ type GetLatestStatus struct {
 }
 
 func (s *GetLatestStatus) String() string {
-	return fmt.Sprintf("[BlockNumber: %d] - [LogicType: %d]", s.BlockNumber, s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,LogicType:%d}", s.BlockNumber, s.LogicType)
 }
 
 func (s *GetLatestStatus) MsgHash() common.Hash {
-	return utils.BuildHash(GetLatestStatusMsg, utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
+	return utils.BuildHash(GetLatestStatusMsg,
+		utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
 }
 
 func (s *GetLatestStatus) BHash() common.Hash {
@@ -451,11 +451,12 @@ type LatestStatus struct {
 }
 
 func (s *LatestStatus) String() string {
-	return fmt.Sprintf("[BlockNumber: %d] - [LogicType: %d]", s.BlockNumber, s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,LogicType:%d}", s.BlockNumber, s.LogicType)
 }
 
 func (s *LatestStatus) MsgHash() common.Hash {
-	return utils.BuildHash(LatestStatusMsg, utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
+	return utils.BuildHash(LatestStatusMsg,
+		utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
 }
 
 func (s *LatestStatus) BHash() common.Hash {
