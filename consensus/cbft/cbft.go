@@ -51,6 +51,8 @@ type Cbft struct {
 	log              log.Logger
 	network          *network.EngineManager
 
+	syncing  bool
+	fetching bool
 	// Async call channel
 	asyncCallCh chan func()
 
@@ -86,6 +88,8 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		log:                log.New(),
+		syncing:            false,
+		fetching:           false,
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		nodeServiceContext: ctx,
 	}
@@ -213,8 +217,11 @@ func (cbft *Cbft) receiveLoop() {
 	}
 }
 
-//Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewchagne
+//Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
+	if cbft.running() {
+		return
+	}
 	msg, id := info.Msg, info.PeerID
 	var err error
 
@@ -239,14 +246,10 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	if cbft.fetcher.MatchTask(id, msg) {
 		return
 	}
+}
 
-	var err error
-	switch msg.(type) {
-	}
-
-	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
-	}
+func (cbft *Cbft) running() bool {
+	return !cbft.syncing && !cbft.fetching
 }
 
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {

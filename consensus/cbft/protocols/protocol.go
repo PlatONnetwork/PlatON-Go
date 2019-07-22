@@ -248,7 +248,7 @@ func (s *CbftStatusData) BHash() common.Hash {
 type GetPrepareBlock struct {
 	Epoch      uint64
 	ViewNumber uint64
-	BlockIndex uint64
+	BlockIndex uint32
 }
 
 func (s *GetPrepareBlock) String() string {
@@ -256,7 +256,7 @@ func (s *GetPrepareBlock) String() string {
 }
 
 func (s *GetPrepareBlock) MsgHash() common.Hash {
-	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), common.Uint64ToBytes(s.BlockIndex)))
+	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
 }
 
 func (s *GetPrepareBlock) BHash() common.Hash {

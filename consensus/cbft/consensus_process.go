@@ -190,7 +190,7 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
-		return size > 17 && cbft.state.HadSendPrepareVote().Had(next)
+		return size > cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
 	if prepareQC() {
