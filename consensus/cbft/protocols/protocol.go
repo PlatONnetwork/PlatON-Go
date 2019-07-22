@@ -82,7 +82,7 @@ type PrepareBlock struct {
 	ProposalIndex uint32               `json:"proposal_index"`   // Proposer index
 	ProposalAddr  common.Address       `json:"proposal_address"` // Proposer address
 	PrepareQC     *ctypes.QuorumCert   `json:"prepare_qc"`       // N-f aggregate signature
-	ViewChangeQC  []*ctypes.QuorumCert `json:"viewchange_qc"`    // viewChange aggregate signature
+	ViewChangeQC  *ctypes.ViewChangeQC `json:"viewchange_qc"`    // viewChange aggregate signature
 	Signature     ctypes.Signature     `json:"signature"`
 }
 
