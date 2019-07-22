@@ -4,11 +4,6 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/json"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/router"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
-
 	"errors"
 	"reflect"
 	"sync"
@@ -18,7 +13,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/router"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -510,7 +507,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 }
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
-	// FIXME: condition race
 	produceInterval := time.Duration(cbft.config.sys.Period/uint64(cbft.config.sys.Amount)) * time.Millisecond
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
 		return timePoint.Add(produceInterval)
@@ -519,7 +515,6 @@ func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 }
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
-	// FIXME: condition race
 	produceInterval := time.Duration(cbft.config.sys.Period/uint64(cbft.config.sys.Amount)) * time.Millisecond
 	if time.Now().Sub(blockTime) < produceInterval {
 		// TODO: add network latency
