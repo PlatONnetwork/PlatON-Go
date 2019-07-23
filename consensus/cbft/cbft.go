@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
+	errors2 "github.com/pkg/errors"
 
 	"errors"
 	"reflect"
@@ -74,7 +76,7 @@ type Cbft struct {
 	validatorPool *validator.ValidatorPool
 
 	// Store blocks that are not committed
-	blockTree ctypes.BlockTree
+	blockTree *ctypes.BlockTree
 
 	// wal
 	nodeServiceContext *node.ServiceContext
@@ -123,7 +125,21 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
-	cbft.blockTree.InsertQCBlock(block, nil)
+	isGenesis := func() bool {
+		return block.NumberU64() == 0
+	}
+
+	var qc *ctypes.QuorumCert
+	if !isGenesis() {
+		var err error
+		_, qc, err = ctypes.DecodeExtra(block.ExtraData())
+
+		if err != nil {
+			return errors2.Wrap(err, fmt.Sprintf("start cbft failed"))
+		}
+	}
+
+	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 
 	//Initialize view state
 	cbft.state.SetHighestExecutedBlock(block)
