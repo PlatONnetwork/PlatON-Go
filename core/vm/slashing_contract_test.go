@@ -59,6 +59,24 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
                 "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
                 "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
               }
+            },
+			{
+              "VoteA": {
+                "timestamp": 0,
+                "block_hash": "0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130407",
+                "block_number": 2,
+                "validator_index": 1,
+                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
+                "signature": "0xa65e16b3bc4862fdd893eaaaaecf1e415cdc2c8a08e4bbb1f6b2a1f4bf4e2d0c0ec27857da86a5f3150b32bee75322073cec320e51fe0a123cc4238ee4155bf001"
+              },
+              "VoteB": {
+                "timestamp": 0,
+                "block_hash": "0x18030d1e01071b1d071a12151e100a091f060801031917161e0a0d0f02161d0e",
+                "block_number": 2,
+                "validator_index": 1,
+                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
+                "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
+              }
             }
           ],
           "duplicate_viewchange": [],
