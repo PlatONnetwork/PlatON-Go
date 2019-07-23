@@ -74,3 +74,19 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		}
 	}
 }
+
+func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) {
+	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
+		if prepareBlock != nil {
+			cbft.network.Send(id, prepareBlock)
+		}
+	}
+}
+
+func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumCert) {
+	_, qc := cbft.blockTree.FindBlockAndQC(msg.BlockHash, msg.BlockNumber)
+	if qc != nil {
+		cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
+	}
+}

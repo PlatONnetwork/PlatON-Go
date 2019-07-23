@@ -390,6 +390,10 @@ func (vs *ViewState) ViewBlockByIndex(index uint32) *types.Block {
 	return vs.view.viewBlocks.index(index).block()
 }
 
+func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
+	return vs.view.viewBlocks.index(index).prepareBlock()
+}
+
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
 	return vs.view.hadSendPrepareVote
 }
