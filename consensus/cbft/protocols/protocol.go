@@ -17,22 +17,22 @@ import (
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
 
 const (
-	CBFTStatusMsg        = 0x00 // Protocol messages belonging to cbft
-	PrepareBlockMsg      = 0x01
-	PrepareVoteMsg       = 0x02
-	ViewChangeMsg        = 0x03
-	GetPrepareBlockMsg   = 0x04
-	GetQuorumCertMsg     = 0x05
-	BlockQuorumCertMsg   = 0x06
-	GetQCPrepareBlockMsg = 0x07
-	GetPrepareVoteMsg    = 0x09
-	PrepareBlockHashMsg  = 0x0a
-	PrepareVotesMsg      = 0x0b
-	QCBlockListMsg       = 0x0c
-	GetLatestStatusMsg   = 0x0d
-	LatestStatusMsg      = 0x0e
-	PingMsg              = 0x0f
-	PongMsg              = 0x10
+	CBFTStatusMsg       = 0x00 // Protocol messages belonging to cbft
+	PrepareBlockMsg     = 0x01
+	PrepareVoteMsg      = 0x02
+	ViewChangeMsg       = 0x03
+	GetPrepareBlockMsg  = 0x04
+	GetQuorumCertMsg    = 0x05
+	BlockQuorumCertMsg  = 0x06
+	GetPrepareVoteMsg   = 0x07
+	PrepareVotesMsg     = 0x08
+	GetQCBlockListMsg   = 0x09
+	QCBlockListMsg      = 0x0a
+	GetLatestStatusMsg  = 0x0b
+	LatestStatusMsg     = 0x0c
+	PrepareBlockHashMsg = 0x0d
+	PingMsg             = 0x0e
+	PongMsg             = 0x0f
 )
 
 // A is used to convert specific message types according to the message body.
@@ -56,7 +56,7 @@ func MessageType(msg interface{}) uint64 {
 	case *BlockQuorumCert:
 		return BlockQuorumCertMsg
 	case *GetQCBlockList:
-		return GetQCPrepareBlockMsg
+		return GetQCBlockListMsg
 	case *GetPrepareVote:
 		return GetPrepareVoteMsg
 	case *PrepareBlockHash:
@@ -301,7 +301,7 @@ func (s *GetQCBlockList) String() string {
 }
 
 func (s *GetQCBlockList) MsgHash() common.Hash {
-	return utils.BuildHash(GetQCPrepareBlockMsg, utils.MergeBytes(
+	return utils.BuildHash(GetQCBlockListMsg, utils.MergeBytes(
 		common.Uint64ToBytes(s.BlockNumber)))
 }
 

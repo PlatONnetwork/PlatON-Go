@@ -76,6 +76,9 @@ type Cbft struct {
 	wal                wal.Wal
 	stateMu            sync.Mutex
 	viewMu             sync.Mutex
+
+	// Record the number of peer requests for obtaining cbft information.
+	queues map[string]int // Per peer message counts to prevent memory exhaustion.
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -88,6 +91,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		log:                log.New(),
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		nodeServiceContext: ctx,
+		queues:             make(map[string]int),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
@@ -194,7 +198,24 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
+
+			// Prevent Dos attacks and limit the number of messages sent by each node.
+			count := cbft.queues[msg.PeerID] + 1
+			if int64(count) > cbft.config.Option.MaxQueuesLimit {
+				log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
+				// Need further confirmation.
+				// todo: Is the program exiting or dropping the message here?
+				break
+			}
+			cbft.queues[msg.PeerID] = count
 			cbft.handleConsensusMsg(msg)
+			// After the message is processed, the counter is decremented by one.
+			// If it is reduced to 0, the mapping relationship of the corresponding
+			// node will be deleted.
+			cbft.queues[msg.PeerID]--
+			if cbft.queues[msg.PeerID] == 0 {
+				delete(cbft.queues, msg.PeerID)
+			}
 
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)

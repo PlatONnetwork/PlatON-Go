@@ -385,7 +385,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
-	case msg.Code == protocols.GetQCPrepareBlockMsg:
+	case msg.Code == protocols.GetQCBlockListMsg:
 		var request protocols.GetQCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)

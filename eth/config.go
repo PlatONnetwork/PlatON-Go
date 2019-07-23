@@ -46,6 +46,7 @@ var DefaultConfig = Config{
 		EvidenceDir:      "evidencedata",
 		MaxPingLatency:   5000,
 		MaxAvgLatency:    2000,
+		MaxQueuesLimit:   4096,
 	},
 	NetworkId:     1,
 	LightPeers:    100,
