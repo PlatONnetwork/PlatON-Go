@@ -3,6 +3,7 @@ package validator
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -95,19 +97,19 @@ func TestValidators(t *testing.T) {
 	assert.True(t, len(nodes) == vds.Len())
 	assert.Equal(t, vds.NodeID(0), nodes[0].ID)
 
-	validator, err := vds.NodeIndex(nodes[2].ID)
+	validator, err := vds.FindNodeByID(nodes[2].ID)
 	assert.True(t, err == nil, "get node idex fail")
 	assert.True(t, validator.Index == 2)
 
 	pubkey, err := nodes[1].ID.Pubkey()
 	addrN1 := crypto.PubkeyToAddress(*pubkey)
 
-	validator, err = vds.NodeIndexAddress(nodes[1].ID)
+	validator, err = vds.FindNodeByID(nodes[1].ID)
 	assert.True(t, err == nil, "get node index and address fail")
 	assert.Equal(t, validator.Address, addrN1)
 	assert.Equal(t, validator.Index, 1)
 
-	idxN1, err := vds.AddressIndex(addrN1)
+	idxN1, err := vds.FindNodeByAddress(addrN1)
 	assert.True(t, err == nil, "get index by address fail")
 	assert.Equal(t, validator.Index, idxN1.Index)
 
@@ -115,7 +117,7 @@ func TestValidators(t *testing.T) {
 	assert.True(t, len(nl) == vds.Len())
 
 	emptyNodeID := discover.NodeID{}
-	validator, err = vds.NodeIndexAddress(emptyNodeID)
+	validator, err = vds.FindNodeByID(emptyNodeID)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
@@ -123,11 +125,11 @@ func TestValidators(t *testing.T) {
 	assert.Equal(t, notFound, emptyNodeID)
 
 	emptyAddr := common.Address{}
-	validator, err = vds.AddressIndex(emptyAddr)
+	validator, err = vds.FindNodeByAddress(emptyAddr)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
-	validator, err = vds.NodeIndex(emptyNodeID)
+	validator, err = vds.FindNodeByID(emptyNodeID)
 	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
@@ -156,7 +158,7 @@ func TestStaticAgency(t *testing.T) {
 }
 
 func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) (*types.Block, *params.ChainConfig) {
-	buf, err := ioutil.ReadFile("../../eth/downloader/testdata/platon.json")
+	buf, err := ioutil.ReadFile("../../../eth/downloader/testdata/platon.json")
 	if err != nil {
 		return nil, nil
 	}
@@ -282,4 +284,142 @@ func TestInnerAgency(t *testing.T) {
 
 	defaultVds, _ := agency.GetValidator(120)
 	assert.True(t, defaultVds.Equal(validators))
+}
+
+func newTestInnerAgency(nodes []discover.Node) consensus.Agency {
+	testdb := ethdb.NewMemDatabase()
+	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
+	balance := big.NewInt(0)
+	genesis, chainConfig := genesisBlockForTesting(testdb, testAddress, balance.SetBytes(balanceBytes))
+
+	var vmVds vm.Validators
+	err := json.Unmarshal([]byte(testValidators), &vmVds)
+	if err != nil {
+		panic(err)
+	}
+	vmVdsBuf, err := json.Marshal(vmVds)
+	if err != nil {
+		panic(err)
+	}
+
+	Uint64ToBytes := func(val uint64) []byte {
+		buf := make([]byte, 8)
+		binary.BigEndian.PutUint64(buf, val)
+		return buf[:]
+	}
+
+	blockchain := core.GenerateBlockChain(chainConfig, genesis, new(consensus.BftMock), testdb, 80, func(i int, block *core.BlockGen) {
+		block.SetCoinbase(common.Address{1})
+
+		if i == 50 {
+			param := [][]byte{
+				common.Int64ToBytes(2000),
+				[]byte("UpdateValidators"),
+				vmVdsBuf,
+			}
+			data, err := rlp.EncodeToBytes(param)
+			if err != nil {
+				panic(err)
+			}
+			signer := types.NewEIP155Signer(chainConfig.ChainID)
+			tx, err := types.SignTx(
+				types.NewTransaction(
+					block.TxNonce(testAddress),
+					vm2.ValidatorInnerContractAddr,
+					big.NewInt(1000),
+					3000*3000,
+					big.NewInt(3000),
+					data),
+				signer,
+				testKey)
+			block.AddTx(tx)
+		}
+
+		if i == 59 {
+			param := [][]byte{
+				common.Int64ToBytes(2003),
+				[]byte("SwitchValidators"),
+				Uint64ToBytes(uint64(81)),
+			}
+			data, err := rlp.EncodeToBytes(param)
+			if err != nil {
+				panic(err)
+			}
+			signer := types.NewEIP155Signer(chainConfig.ChainID)
+			tx, err := types.SignTx(
+				types.NewTransaction(
+					block.TxNonce(testAddress),
+					vm2.ValidatorInnerContractAddr,
+					big.NewInt(1000),
+					3000*3000,
+					big.NewInt(3000),
+					data),
+				signer,
+				testKey)
+			block.AddTx(tx)
+		}
+	})
+
+	agency := NewInnerAgency(nodes, blockchain, 10, 20)
+	return agency
+}
+
+func TestValidatorPool(t *testing.T) {
+	nodes := newTestNode()
+	agency := newTestInnerAgency(nodes)
+
+	validatorPool := NewValidatorPool(agency, 0, nodes[0].ID)
+	assert.False(t, validatorPool.ShouldSwitch(0))
+	assert.True(t, validatorPool.ShouldSwitch(80))
+
+	node, err := validatorPool.GetValidatorByNodeID(0, nodes[0].ID)
+	assert.Nil(t, err)
+	assert.Equal(t, node.NodeID, nodes[0].ID)
+
+	_, err = validatorPool.GetValidatorByNodeID(0, discover.NodeID{})
+	assert.Equal(t, err, errors.New("not found the node"))
+
+	node, err = validatorPool.GetValidatorByIndex(0, 1)
+	assert.Nil(t, err)
+	assert.Equal(t, node.NodeID, nodes[1].ID)
+
+	_, err = validatorPool.GetValidatorByIndex(0, 5)
+	assert.Equal(t, err, errors.New("not found the specified validator"))
+
+	vds := newValidators(nodes, 0)
+	node0, _ := vds.FindNodeByIndex(2)
+	node, err = validatorPool.GetValidatorByAddr(0, node0.Address)
+	assert.Nil(t, err)
+	assert.Equal(t, node.Address, node0.Address)
+
+	_, err = validatorPool.GetValidatorByAddr(0, common.Address{})
+	assert.Equal(t, err, errors.New("invalid address"))
+
+	nodeID := validatorPool.GetNodeIDByIndex(0, 4)
+	assert.Equal(t, nodeID, discover.NodeID{})
+
+	nodeID = validatorPool.GetNodeIDByIndex(0, 0)
+	assert.Equal(t, nodeID, nodes[0].ID)
+
+	index, err := validatorPool.GetIndexByNodeID(0, nodeID)
+	assert.Nil(t, err)
+	assert.Equal(t, index, 0)
+
+	index, err = validatorPool.GetIndexByNodeID(0, discover.NodeID{})
+	assert.Equal(t, err, errors.New("not found the specified validator"))
+	assert.Equal(t, index, -1)
+
+	nl := validatorPool.ValidatorList(0)
+	assert.True(t, len(nl) == len(nodes))
+
+	assert.True(t, validatorPool.VerifyHeader(&types.Header{}) == nil)
+	assert.True(t, validatorPool.IsValidator(0, nodes[0].ID))
+	assert.True(t, validatorPool.Len(0) == len(nodes))
+	assert.True(t, validatorPool.IsCandidateNode(discover.NodeID{}))
+
+	eventMux := &event.TypeMux{}
+
+	validatorPool.Update(80, eventMux)
+	assert.True(t, validatorPool.IsValidator(80, nodes[0].ID))
+	assert.False(t, validatorPool.IsValidator(81, nodes[0].ID))
 }

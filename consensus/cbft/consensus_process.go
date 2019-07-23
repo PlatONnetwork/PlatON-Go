@@ -17,7 +17,8 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 		} else if err.NewView() {
-			cbft.changeView(msg.Epoch, msg.ViewNumber)
+			_, hash, _ := msg.ViewChangeQC.MaxBlock()
+			cbft.changeView(msg.Epoch, msg.ViewNumber, cbft.blockTree.FindBlockByHash(hash), msg.ViewChangeQC)
 		} else {
 			return nil
 		}
@@ -36,12 +37,16 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+		} else {
+			return err
 		}
 	}
 
 	cbft.prepareVoteFetchRules(id, msg)
-	//todo parse pubkey as id
-	cbft.state.AddPrepareVote(id, msg)
+
+	node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Sys.NodeID)
+
+	cbft.state.AddPrepareVote(uint32(node.Index), msg)
 
 	cbft.findQCBlock()
 	return nil
@@ -55,12 +60,24 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 		}
 	}
 
-	//todo parse pubkey as id
-	cbft.state.AddViewChange("", msg)
+	node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Sys.NodeID)
+
+	cbft.state.AddViewChange(uint32(node.Index), msg)
 
 	// It is possible to achieve viewchangeQC every time you add viewchange
 	cbft.tryChangeView()
 	return nil
+}
+
+func (cbft *Cbft) OnViewTimeout() {
+	viewChange := &protocols.ViewChange{
+		Epoch:       cbft.state.Epoch(),
+		ViewNumber:  cbft.state.ViewNumber(),
+		BlockHash:   cbft.state.HighestQCBlock().Hash(),
+		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
+	}
+
+	cbft.network.Broadcast(viewChange)
 }
 
 //Perform security rule verification, view switching
@@ -120,9 +137,10 @@ func (cbft *Cbft) trySendPrepareVote() {
 		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil {
 			p.ParentQC = qc
 			hadSend.Push(p)
-			cbft.state.AddPrepareVote("", p)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Sys.NodeID)
+			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
-			//todo send prepareVote
+			cbft.network.Broadcast(p)
 		} else {
 			break
 		}
@@ -172,18 +190,28 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
-		return size > 17 && cbft.state.HadSendPrepareVote().Had(next)
+		return size > cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
-		//todo generation qc
-		var qc *ctypes.QuorumCert
+		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
+		cbft.state.AddQC(qc)
 		lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 		cbft.state.SetHighestQCBlock(block)
 		cbft.tryCommitNewBlock(lock, commit)
 	}
 	cbft.tryChangeView()
+}
+
+func (cbft *Cbft) generatePrepareQC(map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
+	qc := &ctypes.QuorumCert{}
+	return qc
+}
+
+func (cbft *Cbft) generateViewChangeQC(map[uint32]*protocols.ViewChange) *ctypes.ViewChangeQC {
+	qc := &ctypes.ViewChangeQC{}
+	return qc
 }
 
 // Try commit a new block
@@ -203,29 +231,31 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 // According to the current view QC situation, try to switch view
 func (cbft *Cbft) tryChangeView() {
 	// Had receive all qcs of current view
-	if cbft.state.MaxQCIndex() == cbft.config.Sys.Amount {
-		//todo change view
+	if cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount {
+		cbft.changeView(cbft.state.Epoch(), cbft.state.ViewNumber()+1, cbft.state.HighestQCBlock(), nil)
 	}
 
 	viewChangeQC := func() bool {
-		if cbft.state.ViewChangeLen() > 17 {
+		if cbft.state.ViewChangeLen() > cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) {
 			return true
 		}
 		return false
 	}
 	if viewChangeQC() {
-		//todo change view
+		qc := cbft.generateViewChangeQC(cbft.state.AllViewChange())
+		cbft.changeView(cbft.state.Epoch(), cbft.state.ViewNumber()+1, cbft.state.HighestQCBlock(), qc)
 	}
 }
 
 // change view
-func (cbft *Cbft) changeView(epoch, viewNumber uint64) {
+func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.ViewChangeQC) {
 	cbft.state.ResetView(epoch, viewNumber)
+	cbft.state.SetViewChangeQC(qc)
+	cbft.clearInvalidBlocks(block)
 }
 
 // Clean up invalid blocks in the previous view
 func (cbft *Cbft) clearInvalidBlocks(newBlock *types.Block) {
-	//todo reset txpool
 	var rollback []*types.Block
 	newHead := newBlock.Header()
 	for _, p := range cbft.state.HadSendPrepareVote().Peek() {
@@ -242,5 +272,27 @@ func (cbft *Cbft) clearInvalidBlocks(newBlock *types.Block) {
 			cbft.blockCacheWriter.ClearCache(block)
 		}
 	}
+
+	//todo proposer is myself
 	cbft.txPool.ForkedReset(newHead, rollback)
+}
+
+// signFn use private key to sign byte slice.
+func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
+	// TODO: really signature
+	return []byte{}, nil
+}
+
+// signMsg use private key to sign msg.
+func (cbft *Cbft) signMsg(msg ctypes.ConsensusMsg) error {
+	buf, err := msg.CannibalizeBytes()
+	if err != nil {
+		return err
+	}
+	sign, err := cbft.signFn(buf)
+	if err != nil {
+		return err
+	}
+	msg.SetSign(sign)
+	return nil
 }

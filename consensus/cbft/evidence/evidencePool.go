@@ -3,6 +3,7 @@ package evidence
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -42,11 +43,11 @@ func (pool emptyEvidencePool) AddViewChange(vc *protocols.ViewChange) error {
 	return nil
 }
 
-func (pool emptyEvidencePool) Evidences() []consensus.Evidence {
+func (pool emptyEvidencePool) Evidences() consensus.Evidences {
 	return nil
 }
 
-func (pool emptyEvidencePool) UnmarshalEvidence([]byte) (consensus.Evidence, error) {
+func (pool emptyEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 	return nil, nil
 }
 
@@ -136,8 +137,8 @@ func (pool baseEvidencePool) AddViewChange(vc *protocols.ViewChange) (err error)
 	return nil
 }
 
-func (pool baseEvidencePool) Evidences() []consensus.Evidence {
-	var evds []consensus.Evidence
+func (pool baseEvidencePool) Evidences() consensus.Evidences {
+	var evds consensus.Evidences
 	it := pool.db.NewIterator(nil, nil)
 	for it.Next() {
 		flag := it.Key()[0]
@@ -164,9 +165,22 @@ func (pool baseEvidencePool) Evidences() []consensus.Evidence {
 	return evds
 }
 
-func (pool baseEvidencePool) UnmarshalEvidence([]byte) (consensus.Evidence, error) {
-	// TODO
-	return nil, nil
+func (pool baseEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+	var ed EvidenceData
+	if err := json.Unmarshal(data, &ed); err == nil {
+		return nil, err
+	}
+	evds := make(consensus.Evidences, 0)
+	for _, e := range ed.DP {
+		evds = append(evds, e)
+	}
+	for _, e := range ed.DV {
+		evds = append(evds, e)
+	}
+	for _, e := range ed.DC {
+		evds = append(evds, e)
+	}
+	return evds, nil
 }
 
 func (pool baseEvidencePool) Clear(viewNumber uint64) {

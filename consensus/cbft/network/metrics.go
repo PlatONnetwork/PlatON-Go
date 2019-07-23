@@ -1,4 +1,4 @@
-package bftnet
+package network
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"

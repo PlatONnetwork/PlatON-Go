@@ -1,4 +1,4 @@
-package bftnet
+package network
 
 import (
 	"bytes"

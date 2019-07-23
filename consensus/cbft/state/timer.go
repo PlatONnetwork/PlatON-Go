@@ -27,6 +27,10 @@ func (t *viewTimer) setupTimer(viewInterval uint64) {
 	t.timer.Reset(duration)
 }
 
+func (t *viewTimer) timerChan() <-chan time.Time {
+	return t.timer.C
+}
+
 func (t viewTimer) isDeadline() bool {
 	return time.Now().Sub(t.deadline) <= 0
 }

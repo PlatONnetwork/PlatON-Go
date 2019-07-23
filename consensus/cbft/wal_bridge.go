@@ -19,9 +19,6 @@ var (
 // newChainState tries to update consensus state to wal
 // Need to do continuous block check before writing.
 func (cbft *Cbft) newChainState(commit *protocols.State, lock *protocols.State, qc []*protocols.State) error {
-	cbft.stateMu.Lock()
-	defer cbft.stateMu.Unlock()
-
 	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || len(qc) <= 0 {
 		return errNonContiguous
 	}
@@ -44,9 +41,6 @@ func (cbft *Cbft) newChainState(commit *protocols.State, lock *protocols.State, 
 // addQCState tries to add consensus qc state to wal
 // Need to do continuous block check before writing.
 func (cbft *Cbft) addQCState(qc *protocols.State) error {
-	cbft.stateMu.Lock()
-	defer cbft.stateMu.Unlock()
-
 	var chainState *protocols.ChainState
 	cbft.wal.LoadChainState(func(cs *protocols.ChainState) {
 		chainState = cs
@@ -60,9 +54,6 @@ func (cbft *Cbft) addQCState(qc *protocols.State) error {
 }
 
 func (cbft *Cbft) confirmViewChange(epoch uint64, viewNumber uint64) error {
-	cbft.viewMu.Lock()
-	defer cbft.viewMu.Unlock()
-
 	meta := &wal.ViewChangeMessage{
 		Epoch:      epoch,
 		ViewNumber: viewNumber,

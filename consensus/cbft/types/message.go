@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	MixMode  = iota // all consensus node
+	NoneMode = iota // none consensus node
 	PartMode        // partial node
 	FullMode        // all node
 )
@@ -47,6 +47,7 @@ func ErrResp(code ErrCode, format string, v ...interface{}) error {
 type ConsensusMsg interface {
 	CannibalizeBytes() ([]byte, error)
 	Sign() []byte
+	SetSign([]byte)
 }
 
 type Message interface {
@@ -61,7 +62,7 @@ type MsgInfo struct {
 }
 
 // Create a new MsgInfo object.
-func NewMessage(message Message, id string) *MsgInfo {
+func NewMsgInfo(message Message, id string) *MsgInfo {
 	return &MsgInfo{
 		Msg:    message,
 		PeerID: id,
