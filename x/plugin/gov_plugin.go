@@ -50,7 +50,7 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 //implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	log.Debug("call BeginBlock()", "blockNumber", header.Number.Uint64())
+	/*log.Debug("call BeginBlock()", "blockNumber", header.Number.Uint64())
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		log.Debug("current block is the end of settlement period", "blockNumber", header.Number.Uint64())
 		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
@@ -67,7 +67,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 		}
-	}
+	}*/
 	return nil
 }
 
@@ -84,6 +84,25 @@ func inNodeList(proposer discover.NodeID, vList []discover.NodeID) bool {
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	log.Debug("call EndBlock()", "blockNumber", header.Number.Uint64(), "blockHash", blockHash)
 
+	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
+		log.Debug("end of settlement settlement period", "blockNumber", header.Number.Uint64())
+		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+		if err != nil {
+			return err
+		}
+
+		votingProposalIDs, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
+		if err != nil {
+			return err
+		}
+		for _, votingProposalID := range votingProposalIDs {
+			if err := govPlugin.govDB.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	votingProposalIDs, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
 	if err != nil {
 		return err
@@ -96,18 +115,16 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			return err
 		}
 		if votingProposal.GetEndVotingBlock() == header.Number.Uint64() {
-			log.Debug("current block is end-voting-block", "blockNumber", header.Number.Uint64())
-			if xutil.IsSettlementPeriod(header.Number.Uint64()) {
-				log.Debug("current block is the end of settlement period", "blockNumber", header.Number.Uint64())
-				verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
-				if err != nil {
-					return err
-				}
-
-				if err := govPlugin.govDB.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
-					return err
-				}
+			log.Debug("end of voting", "proposalID", votingProposal.GetProposalID(), "blockNumber", header.Number.Uint64())
+			verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+			if err != nil {
+				return err
 			}
+
+			if err := govPlugin.govDB.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
+				return err
+			}
+
 			if votingProposal.GetProposalType() == gov.Text {
 				_, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, state)
 				if err != nil {
@@ -146,13 +163,13 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	}
 
 	//handle a PreActiveProposal
-	proposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
+	preActiveProposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
 	if err != nil {
 		return err
 	}
-	versionProposal, ok := proposal.(gov.VersionProposal)
+	versionProposal, isVersionProposal := preActiveProposal.(gov.VersionProposal)
 
-	if ok {
+	if isVersionProposal {
 		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockNumber", header.Number.Uint64(), "activeBlockNumber", versionProposal.GetActiveBlock())
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
 		if sub >= 0 && sub%xutil.ConsensusSize() == 0 {
