@@ -137,7 +137,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
-	cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+	if isGenesis() {
+		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
+	} else {
+		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+	}
 
 	//Initialize view state
 	cbft.state.SetHighestExecutedBlock(block)
