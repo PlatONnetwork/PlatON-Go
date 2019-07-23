@@ -171,10 +171,6 @@ var (
 		Usage: "inner time",
 		Value: 1546300800000,
 	}
-	WalEnabledFlag = cli.BoolFlag{
-		Name:  "wal",
-		Usage: "Enable the Wal server",
-	}
 	SyncModeFlag = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
@@ -607,16 +603,27 @@ var (
 	//	Value: "",
 	//}
 
-	CbftBlockIntervalFlag = cli.Uint64Flag{
-		Name:  "cbft.block_interval",
-		Usage: "This interval time use to broadcast block before mining next block",
-		Value: 100, // milliseconds
+	CbftPeerMsgQueueSize = cli.Uint64Flag{
+		Name:  "cbft.msg_queue_size",
+		Usage: "Message queue size",
+		Value: 1024,
 	}
 
-	CbftBreakpointFlag = cli.StringFlag{
-		Name:  "cbft.breakpoint",
-		Usage: "breakpoint type:tracing",
+	CbftWalEnabledFlag = cli.BoolFlag{
+		Name:  "cbft.wal",
+		Usage: "Enable the Wal server",
+	}
+
+	CbftEvidenceDir = cli.StringFlag{
+		Name:  "cbft.evidence_dir",
+		Usage: "Evidence path",
 		Value: "",
+	}
+
+	CbftMaxPingLatency = cli.Int64Flag{
+		Name:  "cbft.max_ping_latency",
+		Usage: "Maximum latency of ping",
+		Value: 2000,
 	}
 )
 
@@ -1144,9 +1151,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// for mpc compute
 	//setMpcPool(ctx, &cfg.MPCPool)
 	//setVcPool(ctx, &cfg.VCPool)
-	SetCbft(ctx, &cfg.CbftConfig)
 
-	if ctx.GlobalIsSet(WalEnabledFlag.Name) {
+	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
 		cfg.CbftConfig.WalMode = true
 	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
@@ -1275,7 +1281,24 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 }
 
-func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig) {
+func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
+	cfg.NodePriKey = nodeCfg.P2P.PrivateKey
+	cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
+
+	//todo set bls private key
+
+	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
+		cfg.WalMode = ctx.GlobalBool(CbftWalEnabledFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(CbftPeerMsgQueueSize.Name) {
+		cfg.PeerMsgQueueSize = ctx.GlobalUint64(CbftPeerMsgQueueSize.Name)
+	}
+
+	if ctx.GlobalIsSet(CbftMaxPingLatency.Name) {
+		cfg.MaxPingLatency = ctx.GlobalInt64(CbftMaxPingLatency.Name)
+	}
+
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
