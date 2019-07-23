@@ -246,17 +246,12 @@ func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint32, error)
 	return result, nil
 }
 
-func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
-	log.Debug("slashingPlugin Slash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "data", data, "caller", hex.EncodeToString(caller.Bytes()))
-	evidences, err := sp.decodeEvidence(data)
-	if nil != err {
-		log.Error("slashing failed", "data", data, "err", err)
-		return err
-	}
-	if len(evidences) == 0 {
-		log.Error("slashing failed decodeEvidence len 0", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "data", data)
-		return common.NewBizError(errDuplicateSignVerify.Error())
-	}
+func (sp *SlashingPlugin) DecodeEvidence(data string) (consensus.Evidences, error) {
+	return sp.decodeEvidence(data)
+}
+
+func (sp *SlashingPlugin) Slash(evidences consensus.Evidences, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
+	log.Debug("slashingPlugin Slash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "evidencesSize", len(evidences), "caller", hex.EncodeToString(caller.Bytes()))
 	for _, evidence := range evidences {
 		err := sp.executeSlash(evidence, blockHash, blockNumber, stateDB, caller)
 		if nil != err {
