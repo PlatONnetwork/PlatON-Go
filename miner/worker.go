@@ -405,7 +405,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
 			timestamp = time.Now()
-			if w.isRunning() {
+			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
+			if w.isRunning() && status == commitStatusIdle {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
 						if shouldSeal {

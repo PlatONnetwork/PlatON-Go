@@ -98,7 +98,7 @@ func (opb NumberOrderPrepareBlock) Len() int {
 }
 
 func (opb NumberOrderPrepareBlock) Less(i, j int) bool {
-	return opb[i].ViewNumber > opb[j].ViewNumber
+	return opb[i].ViewNumber < opb[j].ViewNumber
 }
 
 func (opb NumberOrderPrepareBlock) Swap(i, j int) {
@@ -178,7 +178,7 @@ func (opv NumberOrderPrepareVote) Len() int {
 }
 
 func (opv NumberOrderPrepareVote) Less(i, j int) bool {
-	return opv[i].ViewNumber > opv[j].ViewNumber
+	return opv[i].ViewNumber < opv[j].ViewNumber
 }
 
 func (opv NumberOrderPrepareVote) Swap(i, j int) {
@@ -258,7 +258,7 @@ func (ovc NumberOrderViewChange) Len() int {
 }
 
 func (ovc NumberOrderViewChange) Less(i, j int) bool {
-	return ovc[i].ViewNumber > ovc[j].ViewNumber
+	return ovc[i].ViewNumber < ovc[j].ViewNumber
 }
 
 func (ovc NumberOrderViewChange) Swap(i, j int) {
