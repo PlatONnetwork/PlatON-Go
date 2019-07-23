@@ -602,11 +602,11 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	})
 
 	t.Run("walk base db when compaction,should lock", func(t *testing.T) {
-		dbInstance.snapshotLockC = true
+		dbInstance.snapshotLockC = snapshotLock
 		go func() {
 			time.Sleep(time.Millisecond * 500)
 			dbInstance.snapshotLock.Send(struct{}{})
-			dbInstance.snapshotLockC = false
+			dbInstance.snapshotLockC = snapshotUnLock
 		}()
 		f2 := func(num *big.Int, iter iterator.Iterator) error {
 			return nil

@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -103,7 +104,7 @@ var (
 type snapshotDB struct {
 	path string
 
-	snapshotLockC bool
+	snapshotLockC int32
 	snapshotLock  event.Feed
 
 	current *current
@@ -344,9 +345,7 @@ func (s *snapshotDB) Compaction() error {
 		return nil
 	}
 	s.commitLock.Lock()
-	s.snapshotLockC = true
 	defer func() {
-		s.snapshotLockC = false
 		s.snapshotLock.Send(struct{}{})
 		s.commitLock.Unlock()
 	}()
@@ -616,7 +615,7 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 // slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
 	logger.Info("begin walkbase db")
-	if s.snapshotLockC {
+	if atomic.LoadInt32(&s.snapshotLockC) == snapshotLock {
 		logger.Info("wait for snapshot unlock")
 		c := make(chan struct{})
 		defer close(c)
