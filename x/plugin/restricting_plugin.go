@@ -20,6 +20,7 @@ var (
 	errParamPeriodInvalid = common.NewBizError("param epoch invalid")
 	errBalanceNotEnough   = common.NewBizError("balance not enough to restrict")
 	errAccountNotFound    = common.NewBizError("account is not found")
+	monthOfThreeYear      = 12 * 3
 )
 
 type RestrictingPlugin struct {
@@ -77,19 +78,28 @@ func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []restricting.RestrictingPlan,
 	state xcom.StateDB) error {
 
+	// merge the amount of the same release epoch
+	mPlans := make(map[uint64]*big.Int, monthOfThreeYear)
+	for _, plan := range plans {
+		k, v := plan.Epoch, plan.Amount
+
+		if mPlans[k] == nil {
+			mPlans[k] = v
+		} else {
+			mPlans[k] = v.Add(v, mPlans[k])
+		}
+	}
+
 	// pre-check
-	if len(plans) > 30 {
-		log.Debug("restricting plan must less than 30")
+	if len(mPlans) > monthOfThreeYear {
+		log.Debug("restricting plan must less than 36")
 		return errParamPeriodInvalid
 	}
 
 	latest := GetLatestEpoch(state)
 
 	totalAmount := new(big.Int) // total restricting amount
-	for i := 0; i < len(plans); i++ {
-		epoch := plans[i].Epoch
-		amount := plans[i].Amount
-
+	for epoch, amount := range mPlans {
 		if epoch <= latest || amount.Cmp(big.NewInt(1E18)) == -1 {
 			log.Error("param epoch or amount invalid", "epoch", epoch, "latest", latest, "amount", amount)
 			return errParamPeriodInvalid
@@ -117,10 +127,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	if len(bAccInfo) == 0 {
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
-		for i := 0; i < len(plans); i++ {
-			epoch := plans[i].Epoch
-			amount := plans[i].Amount
-
+		for epoch, amount := range mPlans {
 			// step1: get account numbers at target epoch
 			releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
 			bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
@@ -132,7 +139,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			}
 			index = accNumbers
 
-			// step2: save account numbers at target epoch
+			// step2: save the numbers of restricting record at target epoch
 			state.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(accNumbers))
 
 			// step3: save account at target index
@@ -160,10 +167,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			return common.NewSysError(err.Error())
 		}
 
-		for i := 0; i < len(plans); i++ {
-			epoch := plans[i].Epoch
-			amount := plans[i].Amount
-
+		for epoch, amount := range mPlans {
 			// step1: get restricting amount at target epoch
 			releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
 			bAmount := state.GetState(account, releaseAmountKey)
@@ -205,7 +209,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		info.Balance = info.Balance.Add(info.Balance, totalAmount)
 	}
 
-	// step5: save restricting account info at target epoch
+	// step5: save restricting account info
 	bAccInfo, err = rlp.EncodeToBytes(info)
 	if err != nil {
 		log.Error("failed to rlp encode restricting info", "account", account, "error", err)
