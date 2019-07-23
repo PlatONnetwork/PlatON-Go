@@ -34,7 +34,7 @@ func newDB(stor storage) (*snapshotDB, error) {
 		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
 		current:       newCurrent(dbpath),
-		snapshotLockC: false,
+		snapshotLockC: snapshotUnLock,
 	}, nil
 }
 
@@ -123,7 +123,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	s.unCommit = unCommitBlock
-	s.snapshotLockC = false
+	s.snapshotLockC = snapshotUnLock
 
 	//read Journal
 	for _, fd := range fds {
