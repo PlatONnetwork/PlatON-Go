@@ -90,16 +90,32 @@ func (b *BlockTree) PruneBlock(hash common.Hash, number uint64, clearFn func(*ty
 	}
 }
 
+func (b *BlockTree) NewRoot(block *types.Block) {
+	hash, number := block.Hash(), block.NumberU64()
+	for i := number; i < block.NumberU64(); i++ {
+		delete(b.blocks, i)
+	}
+	b.root = b.findBlockExt(hash, number)
+}
+
 // FindBlockAndQC find the specified block and its QC.
 func (b *BlockTree) FindBlockAndQC(hash common.Hash, number uint64) (*types.Block, *QuorumCert) {
+	ext := b.findBlockExt(hash, number)
+	if ext != nil {
+		return ext.block, ext.qc
+	}
+	return nil, nil
+}
+
+func (b *BlockTree) findBlockExt(hash common.Hash, number uint64) *BlockExt {
 	if extMap, ok := b.blocks[number]; ok {
 		for h, ext := range extMap {
 			if hash == h {
-				return ext.block, ext.qc
+				return ext
 			}
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // FindBlockByHash find the specified block by hash.

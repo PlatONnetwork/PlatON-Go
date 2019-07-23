@@ -511,3 +511,7 @@ func (vs *ViewState) IsDeadline() bool {
 func (vs *ViewState) ViewTimeout() <-chan time.Time {
 	return vs.viewTimer.timerChan()
 }
+
+func (vs *ViewState) SetViewTimer(viewInterval uint64) {
+	vs.viewTimer.setupTimer(viewInterval)
+}
