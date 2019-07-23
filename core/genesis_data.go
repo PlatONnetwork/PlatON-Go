@@ -38,7 +38,7 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 
 		can := &staking.Candidate{
 			NodeId:             node.ID,
-			StakingAddress:     vm.RewardManagerPoolAddr,
+			StakingAddress:     vm.PlatONFoundationAddress,
 			BenefitAddress:     vm.RewardManagerPoolAddr,
 			StakingTxIndex:     uint32(index + 1),
 			ProgramVersion:     version,

@@ -348,7 +348,7 @@ func DefaultGenesisBlock() *Genesis {
 	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
 
 	// initial reserved account balance
-	reservedAccountIssue := big.NewInt(0)
+	//reservedAccountIssue := big.NewInt(0)
 
 	return &Genesis{
 		Config:    params.MainnetChainConfig,
@@ -361,7 +361,7 @@ func DefaultGenesisBlock() *Genesis {
 			vm.RewardManagerPoolAddr:        {Balance: rewardMgrPoolIssue},
 			vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
 			vm.StakingContractAddr:          {Balance: stakingContractIssue},
-			vm.ReservedAccount:              {Balance: reservedAccountIssue},
+			//vm.ReservedAccount:              {Balance: reservedAccountIssue},
 		},
 	}
 }

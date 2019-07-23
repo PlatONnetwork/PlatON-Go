@@ -271,7 +271,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 					StakingBlockNum: uint64(1 + i),
 					StakingTxIndex:  uint32(index),
 					Shares:          balance,
-
+					ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 					// Prevent null pointer initialization
 					Released:           common.Big0,
 					ReleasedHes:        common.Big0,
@@ -363,7 +363,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 				StakingBlockNum: uint64(i + 1),
 				StakingTxIndex:  uint32(index),
 				Shares:          balance,
-
+				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 				// Prevent null pointer initialization
 				Released:           common.Big0,
 				ReleasedHes:        common.Big0,
@@ -522,7 +522,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 					StakingBlockNum: uint64(1 + i),
 					StakingTxIndex:  uint32(index),
 					Shares:          balance,
-
+					ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 					// Prevent null pointer initialization
 					Released:           common.Big0,
 					ReleasedHes:        common.Big0,
@@ -611,7 +611,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 				StakingBlockNum: uint64(i + 1),
 				StakingTxIndex:  uint32(index),
 				Shares:          balance,
-
+				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 				// Prevent null pointer initialization
 				Released:           common.Big0,
 				ReleasedHes:        common.Big0,
@@ -1784,7 +1784,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		return
 	}
 
-	err = plugin.StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64())
+	err = plugin.StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), state)
 	if nil != err {
 		t.Errorf("Failed to ElectNextVerifierList, err: %v", err)
 	}

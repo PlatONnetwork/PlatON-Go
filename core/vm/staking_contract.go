@@ -24,6 +24,7 @@ const (
 	CanNotExistErrStr        = "This candidate is not exist"
 	CreateCanErrStr          = "Create candidate failed"
 	CanStatusInvalidErrStr   = "This candidate status was invalided"
+	CanNoAllowDelegateErrStr = "This candidate is not allow to delegate"
 	DelegateNotExistErrStr   = "This is delegate is not exist"
 	DelegateErrStr           = "Delegate failed"
 	DelegateVonTooLowStr     = "Delegate deposit too low"
@@ -251,7 +252,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		return event, nil
 	}
 
-	if !staking.Is_Valid(canOld.Status) {
+	if staking.Is_Invalid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editCandidate")
@@ -339,7 +340,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return event, nil
 	}
 
-	if !staking.Is_Valid(canOld.Status) {
+	if staking.Is_Invalid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
@@ -413,7 +414,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 		return event, nil
 	}
 
-	if !staking.Is_Valid(canOld.Status) {
+	if staking.Is_Invalid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, string(event), "withdrewStaking")
@@ -495,8 +496,16 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return event, nil
 	}
 
-	if !staking.Is_Valid(canOld.Status) {
+	if staking.Is_Invalid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
+		return event, nil
+	}
+
+	// If the candidate’s benefitaAddress is the RewardManagerPoolAddr, no delegation is allowed
+	if canOld.BenefitAddress == vm.RewardManagerPoolAddr {
+		res := xcom.Result{false, "", CanNoAllowDelegateErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil

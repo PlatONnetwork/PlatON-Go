@@ -408,7 +408,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		} else {
 
 			// When both duplicateSign
-			lversion, _ := left.GetProgramVersion()
+			/*lversion, _ := left.GetProgramVersion()
 			rversion, _ := right.GetProgramVersion()
 			switch {
 			case lversion > rversion:
@@ -417,7 +417,8 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 				return 1
 			default:
 				return compareSharesFunc(left, right)
-			}
+			}*/
+			return compareSharesFunc(left, right)
 		}
 	} else { // left is not duplicateSign
 
