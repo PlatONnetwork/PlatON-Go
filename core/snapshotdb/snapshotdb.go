@@ -440,16 +440,32 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 	return nil
 }
 
+func (s *snapshotDB) lock() {
+	s.unCommit.Lock()
+	s.commitLock.Lock()
+}
+
+func (s *snapshotDB) unLock() {
+	s.unCommit.Unlock()
+	s.commitLock.Unlock()
+}
+
+func (s *snapshotDB) rLock() {
+	s.unCommit.RLock()
+	s.commitLock.RLock()
+}
+
+func (s *snapshotDB) rUnLock() {
+	s.unCommit.RUnlock()
+	s.commitLock.RUnlock()
+}
+
 // Get get key,val from  snapshotDB
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	s.unCommit.RLock()
-	s.commitLock.RLock()
-	defer func() {
-		s.unCommit.RUnlock()
-		s.commitLock.RUnlock()
-	}()
+	s.rLock()
+	defer s.rUnLock()
 	blocks := make([]*blockData, 0)
 	for {
 		if block, ok := s.unCommit.blocks[hash]; ok {
@@ -546,12 +562,8 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 
 // Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) error {
-	s.commitLock.Lock()
-	s.unCommit.Lock()
-	defer func() {
-		s.unCommit.Unlock()
-		s.commitLock.Unlock()
-	}()
+	s.lock()
+	defer s.unLock()
 
 	block, ok := s.unCommit.blocks[hash]
 	if !ok {
@@ -655,12 +667,10 @@ func (s *snapshotDB) Clear() error {
 // The iterator must be released after use, by calling Release method.
 // Also read Iterator documentation of the leveldb/iterator package.
 func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iterator.Iterator {
-	s.unCommit.RLock()
-	s.commitLock.RLock()
+	s.rLock()
 	location, ok := s.checkHashChain(hash)
 	if !ok {
-		s.unCommit.RUnlock()
-		s.commitLock.RUnlock()
+		s.rUnLock()
 		return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + hash.String()))
 	}
 	prefix := util.BytesPrefix(key)
@@ -693,8 +703,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 			}
 		}
 	}
-	s.unCommit.RUnlock()
-	s.commitLock.RUnlock()
+	s.rUnLock()
 
 	//put  unCommit and commit itr to heap
 	rankingHeap := newRankingHeap(rangeNumber)
