@@ -2,10 +2,11 @@ package snapshotdb
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/syndtr/goleveldb/leveldb/journal"
 	"io"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/syndtr/goleveldb/leveldb/journal"
 )
 
 // fileType represent a file type.
@@ -57,7 +58,7 @@ func (j *journalWriter) Close() error {
 }
 
 func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash common.Hash, comeFrom string) error {
-	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: hash}
+	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: hash}
 	file, err := s.storage.Create(fd)
 	if err != nil {
 		return err
@@ -114,6 +115,6 @@ func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
 }
 
 func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error {
-	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: hash}
+	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: hash}
 	return s.storage.Remove(fd)
 }

@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -103,7 +104,7 @@ var (
 type snapshotDB struct {
 	path string
 
-	snapshotLockC bool
+	snapshotLockC int32
 	snapshotLock  event.Feed
 
 	current *current
@@ -344,9 +345,7 @@ func (s *snapshotDB) Compaction() error {
 		return nil
 	}
 	s.commitLock.Lock()
-	s.snapshotLockC = true
 	defer func() {
-		s.snapshotLockC = false
 		s.snapshotLock.Send(struct{}{})
 		s.commitLock.Unlock()
 	}()
@@ -413,7 +412,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 
 	block := new(blockData)
-	block.Number = big.NewInt(blockNumber.Int64())
+	block.Number = new(big.Int).SetUint64(blockNumber.Uint64())
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
@@ -440,16 +439,32 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 	return nil
 }
 
+func (s *snapshotDB) lock() {
+	s.unCommit.Lock()
+	s.commitLock.Lock()
+}
+
+func (s *snapshotDB) unLock() {
+	s.unCommit.Unlock()
+	s.commitLock.Unlock()
+}
+
+func (s *snapshotDB) rLock() {
+	s.unCommit.RLock()
+	s.commitLock.RLock()
+}
+
+func (s *snapshotDB) rUnLock() {
+	s.unCommit.RUnlock()
+	s.commitLock.RUnlock()
+}
+
 // Get get key,val from  snapshotDB
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	s.unCommit.RLock()
-	s.commitLock.RLock()
-	defer func() {
-		s.unCommit.RUnlock()
-		s.commitLock.RUnlock()
-	}()
+	s.rLock()
+	defer s.rUnLock()
 	blocks := make([]*blockData, 0)
 	for {
 		if block, ok := s.unCommit.blocks[hash]; ok {
@@ -522,15 +537,15 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	if block.Number == nil {
 		return errors.New("[snapshotdb]the unRecognized Number is nil, can't flush")
 	}
-	if blocknumber.Int64() != block.Number.Int64() {
+	if blocknumber.Uint64() != block.Number.Uint64() {
 		return fmt.Errorf("[snapshotdb]blocknumber not compare the unRecognized blocknumber=%v,unRecognizedNumber=%v", blocknumber.Uint64(), block.Number.Uint64())
 	}
 	if _, ok := s.unCommit.blocks[hash]; ok {
 		return errors.New("the hash is exist in recognized data")
 	}
 	currentHash := s.getUnRecognizedHash()
-	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: currentHash}
-	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: hash}
+	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: currentHash}
+	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: hash}
 	if err := s.closeJournalWriter(currentHash); err != nil {
 		return err
 	}
@@ -546,12 +561,8 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 
 // Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) error {
-	s.commitLock.Lock()
-	s.unCommit.Lock()
-	defer func() {
-		s.unCommit.Unlock()
-		s.commitLock.Unlock()
-	}()
+	s.lock()
+	defer s.unLock()
 
 	block, ok := s.unCommit.blocks[hash]
 	if !ok {
@@ -604,7 +615,7 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 // slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
 	logger.Info("begin walkbase db")
-	if s.snapshotLockC {
+	if atomic.LoadInt32(&s.snapshotLockC) == snapshotLock {
 		logger.Info("wait for snapshot unlock")
 		c := make(chan struct{})
 		defer close(c)
@@ -648,26 +659,6 @@ func (s *snapshotDB) Clear() error {
 	return nil
 }
 
-func itrToMdb(itr iterator.Iterator, r *rankingItr) {
-	for itr.Next() {
-		k, v := itr.Key(), itr.Value()
-		if r.findHandledKey(k) {
-			continue
-		} else {
-			condtion := v == nil || len(v) == 0
-			if !condtion {
-				heap.Push(&r.heap, kv{k, v})
-			}
-			if r.hepMaxNum > 0 && len(r.heap) > r.hepMaxNum {
-				heap.Pop(&r.heap)
-			}
-			r.addHandledKey(k)
-		}
-	}
-
-	itr.Release()
-}
-
 // Ranking return iterates  of the DB.
 // the key range that satisfy the given prefix
 // the hash means from  unRecognized or recognized
@@ -675,12 +666,10 @@ func itrToMdb(itr iterator.Iterator, r *rankingItr) {
 // The iterator must be released after use, by calling Release method.
 // Also read Iterator documentation of the leveldb/iterator package.
 func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iterator.Iterator {
-	s.unCommit.RLock()
-	s.commitLock.RLock()
+	s.rLock()
 	location, ok := s.checkHashChain(hash)
 	if !ok {
-		s.unCommit.RUnlock()
-		s.commitLock.RUnlock()
+		s.rUnLock()
 		return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + hash.String()))
 	}
 	prefix := util.BytesPrefix(key)
@@ -697,7 +686,8 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				break
 			}
 		}
-		for _, block := range s.committed {
+		for i := len(s.committed) - 1; i >= 0; i-- {
+			block := s.committed[i]
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
 	case hashLocationCommitted:
@@ -712,65 +702,65 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 			}
 		}
 	}
-	s.unCommit.RUnlock()
-	s.commitLock.RUnlock()
-	r := newRaningItr(rangeNumber)
+	s.rUnLock()
+
+	//put  unCommit and commit itr to heap
+	rankingHeap := newRankingHeap(rangeNumber)
 	for i := 0; i < len(itrs); i++ {
-		itrToMdb(itrs[i], r)
+		rankingHeap.itr2Heap(itrs[i], false, false)
 	}
+
+	//put baseDB itr to heap
 	itr := s.baseDB.NewIterator(prefix, nil)
-	for itr.Next() {
-		var pop bool
-		k, v := itr.Key(), itr.Value()
-		if r.hepMaxNum <= 0 || r.heap.Len() < r.hepMaxNum {
-		} else {
-			if bytes.Compare(k, r.heap[0].key) > 0 {
-				break
-			}
-			pop = true
-		}
-		if r.findHandledKey(k) {
-			continue
-		}
-		r.push2Heap(k, v)
-		if pop {
-			heap.Pop(&r.heap)
-		}
-		r.addHandledKey(k)
-	}
-	itr.Release()
+	rankingHeap.itr2Heap(itr, true, true)
+
+	//generate memdb Iterator
 	mdb := memdb.New(DefaultComparer, rangeNumber)
-	for r.heap.Len() > 0 {
-		kv := heap.Pop(&r.heap).(kv)
+	var count int
+	for rankingHeap.heap.Len() > 0 {
+		// if rangeNumber>0 ,limit Iterator kv pairs nums
+		if rangeNumber > 0 && count >= rangeNumber {
+			break
+		}
+		kv := heap.Pop(&rankingHeap.heap).(kv)
 		if err := mdb.Put(kv.key, kv.value); err != nil {
 			return iterator.NewEmptyIterator(errors.New("put to mdb fail" + err.Error()))
 		}
+		count++
 	}
 	return mdb.NewIterator(nil)
 }
 
-func newRaningItr(hepNum int) *rankingItr {
-	r := new(rankingItr)
+func newRankingHeap(hepNum int) *rankingHeap {
+	r := new(rankingHeap)
 	r.hepMaxNum = hepNum
 	r.handledKey = make([][]byte, 0)
 	r.heap = make(kvsMaxToMin, 0)
 	return r
 }
 
-type rankingItr struct {
+type rankingHeap struct {
 	handledKey [][]byte
 	//max heap
 	heap      kvsMaxToMin
 	hepMaxNum int
 }
 
-func (r *rankingItr) addHandledKey(key []byte) {
+// the heap length must  gt than 0
+func (r *rankingHeap) gtThanMaxHeap(k []byte) bool {
+	if bytes.Compare(k, r.heap[0].key) > 0 {
+		return true
+	}
+	return false
+}
+
+func (r *rankingHeap) addHandledKey(key []byte) {
 	handled := make([]byte, len(key))
 	copy(handled, key)
 	r.handledKey = append(r.handledKey, handled)
 }
 
-func (r *rankingItr) findHandledKey(key []byte) bool {
+func (r *rankingHeap) findHandledKey(key []byte) bool {
 	for _, value := range r.handledKey {
 		if bytes.Compare(key, value) == 0 {
 			return true
@@ -779,13 +769,36 @@ func (r *rankingItr) findHandledKey(key []byte) bool {
 	return false
 }
 
-func (r *rankingItr) push2Heap(k, v []byte) {
+func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
+	baseDBBreakCondition := baseDB && r.hepMaxNum > 0
+	for itr.Next() {
+		k, v := itr.Key(), itr.Value()
+		// in baseDB, if the heap length is greater than hepMaxNum , the itr.key is gt than max heap,
+		// the every next itr.key will gt than max heap,so no need itr.next
+		if baseDBBreakCondition && (r.heap.Len() > r.hepMaxNum) && r.gtThanMaxHeap(k) {
+			break
+		}
+		if r.findHandledKey(k) {
+			continue
+		} else {
+			r.push2Heap(k, v, deepCopy)
+			r.addHandledKey(k)
+		}
+	}
+	itr.Release()
+}
+
+func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
 	condtion := v == nil || len(v) == 0
 	if !condtion {
-		sk, sv := make([]byte, len(k)), make([]byte, len(v))
-		copy(sk, k)
-		copy(sv, v)
-		heap.Push(&r.heap, kv{key: sk, value: sv})
+		if deepCopy {
+			sk, sv := make([]byte, len(k)), make([]byte, len(v))
+			copy(sk, k)
+			copy(sv, v)
+			heap.Push(&r.heap, kv{key: sk, value: sv})
+		} else {
+			heap.Push(&r.heap, kv{k, v})
+		}
 	}
 }
 

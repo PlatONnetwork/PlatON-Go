@@ -480,7 +480,7 @@ func build_staking_data(genesisHash common.Hash) {
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
-			Released:           common.Big0,
+			Released:           common.Big256,
 			ReleasedHes:        common.Big0,
 			RestrictingPlan:    common.Big0,
 			RestrictingPlanHes: common.Big0,
@@ -584,8 +584,7 @@ func buildStateDB(t *testing.T) xcom.StateDB {
 	return stateDb
 }
 
-func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
-	account := addrArr[0]
+func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.StateDB) {
 
 	const Epochs = 5
 	var list = make([]uint64, 0)

@@ -1,14 +1,15 @@
 package snapshotdb
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/journal"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/syndtr/goleveldb/leveldb/journal"
 )
 
 func TestJournal(t *testing.T) {
@@ -39,7 +40,7 @@ func TestJournal(t *testing.T) {
 	if err := db.closeJournalWriter(blockHash); err != nil {
 		t.Error(err)
 	}
-	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: blockHash}
+	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: blockHash}
 	file, err := db.storage.Open(fd)
 	if err != nil {
 		t.Error(err)

@@ -29,8 +29,8 @@ var (
 	// Identifies the prefix of the previous round
 	preAbnormalPrefix = []byte("SlashPb")
 
-	errMutiSignVerify = errors.New("multi-sign verification failed")
-	errSlashExist     = errors.New("punishment has been implemented")
+	errDuplicateSignVerify = errors.New("duplicate signature verification failed")
+	errSlashExist          = errors.New("punishment has been implemented")
 
 	once = sync.Once{}
 )
@@ -246,40 +246,51 @@ func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint32, error)
 	return result, nil
 }
 
-func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
-	log.Debug("slashingPlugin Slash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "data", data, "caller", hex.EncodeToString(caller.Bytes()))
-	evidences, err := sp.decodeEvidence(data)
-	if nil != err {
-		log.Error("slashing failed", "data", data, "err", err)
-		return err
+func (sp *SlashingPlugin) DecodeEvidence(data string) (consensus.Evidences, error) {
+	if sp.decodeEvidence == nil {
+		return nil, common.NewBizError("decodeEvidence function is nil")
 	}
-	if len(evidences) == 0 {
-		log.Error("slashing failed decodeEvidence len 0", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "data", data)
-		return common.NewBizError(errMutiSignVerify.Error())
-	}
+	return sp.decodeEvidence(data)
+}
+
+func (sp *SlashingPlugin) Slash(evidences consensus.Evidences, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
+	log.Debug("slashingPlugin Slash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "evidencesSize", len(evidences), "caller", hex.EncodeToString(caller.Bytes()))
 	for _, evidence := range evidences {
-		if err := evidence.Validate(); nil != err {
-			return err
-		}
-		if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB); len(value) > 0 {
-			log.Error("slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
-			return common.NewBizError(errSlashExist.Error())
-		}
-		if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
-			log.Error("slashing failed", "blockNumber", evidence.BlockNumber(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "err", err)
-			return common.NewBizError(err.Error())
-		} else {
-			if nil == candidate {
-				log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
-				return common.NewBizError(errMutiSignVerify.Error())
-			}
-			if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.DuplicateSignLowSlash()), true, staking.DuplicateSign, caller); nil != err {
-				log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
+		err := sp.executeSlash(evidence, blockHash, blockNumber, stateDB, caller)
+		if nil != err {
+			if _, ok := err.(*common.BizError); ok {
+				continue
+			} else {
 				return err
 			}
-			sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB)
-			log.Info("slash Multi-sign success", "currentBlockNumber", blockNumber, "mutiSignBlockNumber", evidence.BlockNumber(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "etype", evidence.Type(), "txHash", hex.EncodeToString(stateDB.TxHash().Bytes()))
 		}
+	}
+	return nil
+}
+
+func (sp *SlashingPlugin) executeSlash(evidence consensus.Evidence, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
+	if err := evidence.Validate(); nil != err {
+		log.Warn("slashing evidence validate failed", "err", err)
+		return common.NewBizError(err.Error())
+	}
+	if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB); len(value) > 0 {
+		log.Error("slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type(), "err", errSlashExist.Error())
+		return common.NewBizError(errSlashExist.Error())
+	}
+	if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
+		log.Error("slashing failed", "blockNumber", evidence.BlockNumber(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "err", err)
+		return common.NewBizError(err.Error())
+	} else {
+		if nil == candidate {
+			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
+			return common.NewBizError(errDuplicateSignVerify.Error())
+		}
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.DuplicateSignLowSlash()), true, staking.DuplicateSign, caller); nil != err {
+			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
+			return err
+		}
+		sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB)
+		log.Info("slashing duplicate signature success", "currentBlockNumber", blockNumber, "signBlockNumber", evidence.BlockNumber(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "etype", evidence.Type(), "txHash", hex.EncodeToString(stateDB.TxHash().Bytes()))
 	}
 	return nil
 }
@@ -293,15 +304,15 @@ func (sp *SlashingPlugin) CheckDuplicateSign(addr common.Address, blockNumber ui
 }
 
 func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) {
-	stateDB.SetState(vm.SlashingContractAddr, mutiSignKey(addr, blockNumber, etype), stateDB.TxHash().Bytes())
+	stateDB.SetState(vm.SlashingContractAddr, duplicateSignKey(addr, blockNumber, etype), stateDB.TxHash().Bytes())
 }
 
 func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) []byte {
-	return stateDB.GetState(vm.SlashingContractAddr, mutiSignKey(addr, blockNumber, etype))
+	return stateDB.GetState(vm.SlashingContractAddr, duplicateSignKey(addr, blockNumber, etype))
 }
 
-// Multi-signed result key format addr+blockNumber+_+etype
-func mutiSignKey(addr common.Address, blockNumber uint64, etype uint32) []byte {
+// duplicate signature result key format addr+blockNumber+_+etype
+func duplicateSignKey(addr common.Address, blockNumber uint64, etype uint32) []byte {
 	value := append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...)
 	value = append(value, []byte("_")...)
 	value = append(value, utils.Uint64ToBytes(uint64(etype))...)

@@ -1,7 +1,10 @@
 package vm
 
 import (
+	"encoding/hex"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -40,7 +43,20 @@ func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
 	}
 
 	sender := sc.Contract.CallerAddress
-	if err := sc.Plugin.Slash(data, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
+
+	evidences, err := sc.Plugin.DecodeEvidence(data)
+	if nil != err {
+		log.Error("slashingContract DecodeEvidence fail", "data", data, "err", err)
+		return xcom.FailResult("", "failed"), err
+	}
+	if len(evidences) == 0 {
+		log.Error("slashing failed decodeEvidence len 0", "blockNumber", sc.Evm.BlockNumber.Uint64(), "blockHash", hex.EncodeToString(sc.Evm.BlockHash.Bytes()), "data", data)
+		return xcom.FailResult("", "failed"), common.NewBizError("evidences is nil")
+	}
+	if !sc.Contract.UseGas(params.DuplicateEvidencesGas * uint64(len(evidences))) {
+		return nil, ErrOutOfGas
+	}
+	if err := sc.Plugin.Slash(evidences, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
 		return xcom.FailResult("", "failed"), err
 	}
 	return xcom.SuccessResult("", ""), nil

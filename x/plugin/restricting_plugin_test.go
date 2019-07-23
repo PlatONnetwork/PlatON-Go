@@ -86,8 +86,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	{
 		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
-
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 		head := types.Header{Number: big.NewInt(1)}
 
 		err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
@@ -208,6 +207,9 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		stateDb := buildStateDB(t)
 		restrictingAcc := addrArr[0]
 		blockNumber := uint64(1) * xutil.CalcBlocksEachEpoch()
+
+		plugin.SetLatestEpoch(stateDb, 0)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		var info restricting.RestrictingInfo
 		info.Balance = big.NewInt(2E18)
@@ -597,7 +599,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		stateDb.AddBalance(sender, restrictingAmount)
 
 		// build db info
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		// build plans for case3
 		var plans = make([]restricting.RestrictingPlan, 1)
@@ -661,7 +663,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		stateDb.AddBalance(sender, restrictingAmount)
 
 		// build db info
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		// build plans for case3
 		var plans = make([]restricting.RestrictingPlan, 1)
@@ -747,7 +749,8 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		stateDb := buildStateDB(t)
 
 		// build data in stateDB for case2
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
+
 		lockFunds := big.NewInt(int64(6E18))
 
 		err = plugin.RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
@@ -802,7 +805,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		stateDb := buildStateDB(t)
 
 		// build data in stateDB for case4
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		lockFunds := big.NewInt(int64(2E18))
 
@@ -1221,6 +1224,9 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
 		stateDb.SetState(restrictingAcc, restrictingKey, []byte(testData))
 
+		// build date of restricting account for case2
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
+
 		err := plugin.RestrictingInstance().SlashingNotify(addrArr[0], lockFunds, stateDb)
 
 		// show expected result
@@ -1485,7 +1491,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 	{
 		stateDb := buildStateDB(t)
 
-		buildDbRestrictingPlan(t, stateDb)
+		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 
 		result, err := plugin.RestrictingInstance().GetRestrictingInfo(addrArr[0], stateDb)
 
