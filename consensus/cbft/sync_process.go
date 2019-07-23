@@ -9,7 +9,6 @@ import (
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	if cbft.state.HighestQCBlock().NumberU64() < number {
-		//todo close receive consensus msg
 
 		parent := cbft.state.HighestQCBlock()
 
@@ -34,10 +33,17 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Insert block failed", "error", err)
 					}
 				}
+				cbft.fetching = false
 			}
 		}
 
-		cbft.fetcher.AddTask(id, match, executor, nil)
+		expire := func() {
+			cbft.fetching = false
+		}
+		cbft.fetching = true
+
+		cbft.fetcher.AddTask(id, match, executor, expire)
+		cbft.network.Send(id, &protocols.GetQCBlockList{BlockNumber: cbft.state.HighestQCBlock().NumberU64()})
 	}
 }
 
@@ -47,7 +53,7 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 		for i := uint32(0); i < pb.BlockIndex; i++ {
 			b, _ := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				//todo fetch block
+				cbft.network.Send(id, &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i})
 			}
 		}
 	}
@@ -60,11 +66,27 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		for i := uint32(0); i < vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				//todo fetch block
+				cbft.network.Send(id, &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i})
 			}
 			if q != nil {
-				//todo fetch qc
+				cbft.network.Send(id, &protocols.GetBlockQuorumCert{BlockHash: b.Hash(), BlockNumber: b.NumberU64()})
 			}
 		}
+	}
+}
+
+func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) {
+	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
+		if prepareBlock != nil {
+			cbft.network.Send(id, prepareBlock)
+		}
+	}
+}
+
+func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumCert) {
+	_, qc := cbft.blockTree.FindBlockAndQC(msg.BlockHash, msg.BlockNumber)
+	if qc != nil {
+		cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
 	}
 }

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -36,15 +37,21 @@ type BlockTree struct {
 func NewBlockTree(root *types.Block, qc *QuorumCert) *BlockTree {
 	blockTree := &BlockTree{
 		root: &BlockExt{
-			viewNumber: qc.ViewNumber,
-			block:      root,
-			rcvTime:    time.Now().Unix(),
-			qc:         qc,
-			parent:     nil,
-			children:   make(map[common.Hash]*BlockExt),
+			block:    root,
+			rcvTime:  time.Now().Unix(),
+			qc:       qc,
+			parent:   nil,
+			children: make(map[common.Hash]*BlockExt),
 		},
 		blocks: make(map[uint64]map[common.Hash]*BlockExt),
 	}
+
+	if root.NumberU64() == 0 {
+		blockTree.root.viewNumber = math.MaxUint64
+	} else {
+		blockTree.root.viewNumber = qc.ViewNumber
+	}
+
 	blocks := make(map[common.Hash]*BlockExt)
 	blocks[root.Hash()] = blockTree.root
 	blockTree.blocks[root.NumberU64()] = blocks
@@ -54,12 +61,16 @@ func NewBlockTree(root *types.Block, qc *QuorumCert) *BlockTree {
 // Insert a block that has reached the QC state, returns the LockQC, Commit block based on the height of the inserted block
 func (b *BlockTree) InsertQCBlock(block *types.Block, qc *QuorumCert) (*types.Block, *types.Block) {
 	ext := &BlockExt{
-		viewNumber: qc.ViewNumber,
-		block:      block,
-		rcvTime:    time.Now().Unix(),
-		qc:         qc,
-		parent:     nil,
-		children:   make(map[common.Hash]*BlockExt),
+		block:    block,
+		rcvTime:  time.Now().Unix(),
+		qc:       qc,
+		parent:   nil,
+		children: make(map[common.Hash]*BlockExt),
+	}
+	if block.NumberU64() == 0 {
+		ext.viewNumber = math.MaxUint64
+	} else {
+		ext.viewNumber = qc.ViewNumber
 	}
 
 	return b.insertBlock(ext)
@@ -153,7 +164,8 @@ func (b *BlockTree) maxBlock(ext *BlockExt) *BlockExt {
 	max := ext
 	if extMap, ok := b.blocks[ext.block.NumberU64()]; ok {
 		for _, e := range extMap {
-			if max.viewNumber < e.viewNumber {
+			//genesis block is max.Uint64
+			if max.viewNumber+1 < e.viewNumber+1 {
 				max = e
 			}
 		}
