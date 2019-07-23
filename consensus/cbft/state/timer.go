@@ -1,6 +1,9 @@
 package state
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	baseMs       = uint64(10 * time.Second)
@@ -18,7 +21,9 @@ type viewTimer struct {
 }
 
 func newViewTimer() *viewTimer {
-	return &viewTimer{timer: time.NewTimer(0), timeInterval: viewTimeInterval{baseMs: baseMs, exponentBase: exponentBase, maxExponent: maxExponent}}
+	timer := time.NewTimer(0)
+	timer.Stop()
+	return &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: baseMs, exponentBase: exponentBase, maxExponent: maxExponent}}
 }
 
 func (t *viewTimer) setupTimer(viewInterval uint64) {
@@ -43,5 +48,10 @@ type viewTimeInterval struct {
 }
 
 func (vt viewTimeInterval) getViewTimeInterval(viewInterval uint64) time.Duration {
-	return 0
+	pow := viewInterval
+	if pow > vt.maxExponent {
+		pow = maxExponent
+	}
+	mul := math.Pow(exponentBase, float64(pow))
+	return time.Duration(baseMs * math.Float64bits(mul))
 }

@@ -2,7 +2,6 @@ package cbft
 
 import (
 	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
@@ -17,8 +16,9 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 		} else if err.NewView() {
-			_, hash, _ := msg.ViewChangeQC.MaxBlock()
-			cbft.changeView(msg.Epoch, msg.ViewNumber, cbft.blockTree.FindBlockByHash(hash), msg.ViewChangeQC)
+			_, hash, number := msg.ViewChangeQC.MaxBlock()
+			block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		} else {
 			return nil
 		}
@@ -44,6 +44,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 
 	cbft.prepareVoteFetchRules(id, msg)
 
+	//todo find validator index based on message
 	node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
@@ -60,6 +61,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 		}
 	}
 
+	//todo find validator index based on message
 	node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)
@@ -98,6 +100,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 			}
 		}
 	}
+	cbft.findQCBlock()
 	cbft.findExecutableBlock()
 }
 
@@ -190,7 +193,7 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
-		return size > cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) && cbft.state.HadSendPrepareVote().Had(next)
+		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
 	if prepareQC() {
@@ -222,35 +225,54 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	if oldCommit.NumberU64()+1 == commit.NumberU64() {
 		_, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
 		cbft.commitBlock(commit, qc)
+		cbft.state.SetHighestLockBlock(lock)
+		cbft.state.SetHighestCommitBlock(commit)
+		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
+		cbft.blockTree.NewRoot(commit)
 	}
-	cbft.state.SetHighestLockBlock(lock)
-	cbft.state.SetHighestCommitBlock(commit)
-
 }
 
 // According to the current view QC situation, try to switch view
 func (cbft *Cbft) tryChangeView() {
 	// Had receive all qcs of current view
-	if cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount {
-		cbft.changeView(cbft.state.Epoch(), cbft.state.ViewNumber()+1, cbft.state.HighestQCBlock(), nil)
+	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+
+	increasing := func() uint64 {
+		return cbft.state.ViewNumber() + 1
+	}
+
+	enough := func() bool {
+		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount
+	}
+
+	if enough() {
+		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, nil)
 	}
 
 	viewChangeQC := func() bool {
-		if cbft.state.ViewChangeLen() > cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) {
+		if cbft.state.ViewChangeLen() > cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
 			return true
 		}
 		return false
 	}
 	if viewChangeQC() {
-		qc := cbft.generateViewChangeQC(cbft.state.AllViewChange())
-		cbft.changeView(cbft.state.Epoch(), cbft.state.ViewNumber()+1, cbft.state.HighestQCBlock(), qc)
+		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
+		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 	}
 }
 
 // change view
-func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.ViewChangeQC) {
+func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+	interval := func() uint64 {
+		if block.NumberU64() == 0 || qc.ViewNumber+1 != viewNumber {
+			return 1
+		} else {
+			return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
+		}
+	}
 	cbft.state.ResetView(epoch, viewNumber)
-	cbft.state.SetViewChangeQC(qc)
+	cbft.state.SetViewTimer(interval())
+	cbft.state.SetViewChangeQC(viewChangeQC)
 	cbft.clearInvalidBlocks(block)
 }
 
