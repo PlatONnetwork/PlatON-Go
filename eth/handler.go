@@ -474,7 +474,18 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				p.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 				return err
 			}
+			var bytes int
 			for iter.Next() {
+				bytes = bytes + len(iter.Key()) + len(iter.Value())
+				if count >= downloader.PPOSStorageKVSizeFetch || bytes > softResponseLimit {
+					if err := p.SendPPOSStorage(ps); err != nil {
+						p.Log().Error("[GetPPOSStorageMsg]send ppos message fail", "error", err, "kvnum", ps.KVNum)
+						return err
+					}
+					count = 0
+					ps.KVs = make([]downloader.PPOSStorageKV, 0)
+					bytes = 0
+				}
 				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
 				copy(k, iter.Key())
 				copy(v, iter.Value())
@@ -483,18 +494,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				})
 				ps.KVNum++
 				count++
-				if count >= downloader.PPOSStorageKVSizeFetch {
-					if err := p.SendPPOSStorage(ps); err != nil {
-						p.Log().Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", ps.KVNum)
-						return err
-					}
-					count = 0
-					ps.KVs = make([]downloader.PPOSStorageKV, 0)
-				}
+
 			}
 			ps.Last = true
 			if err := p.SendPPOSStorage(ps); err != nil {
-				p.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+				p.Log().Error("[GetPPOSStorageMsg]send last ppos message fail", "error", err)
 				return err
 			}
 			return nil
