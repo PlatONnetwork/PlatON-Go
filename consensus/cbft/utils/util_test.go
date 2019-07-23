@@ -1,1 +1,95 @@
 package utils
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func Test_RandomOffset(t *testing.T) {
+	testCase := []struct {
+		min int
+		max int
+	}{
+		{min: 1, max: 10},
+		{min: 0, max: 5},
+		{min: 100, max: 300},
+	}
+	for _, data := range testCase {
+		offset := RandomOffset(data.min)
+		if data.min == 0 && offset != 0 {
+			t.Fatalf("bad offset")
+		}
+		if offset < data.min && offset > data.max {
+			t.Errorf("RandomOffset has incorrect value. offset:{%v}", offset)
+		}
+	}
+}
+
+func Test_BuildHash(t *testing.T) {
+	var testCase = []struct {
+		mType byte
+		bytes []byte
+		want  string
+	}{
+		{
+			mType: 0x0,
+			bytes: []byte("This is test data in 1"),
+			want:  "0xcabbb3ea7b964fb678accab3051cd0893f0e94bca1d34304e9129c7c339bbcb4",
+		},
+		{
+			mType: 0x1,
+			bytes: []byte("This is test data in 2"),
+			want:  "0xb4d9ca8710397e752c344724ea4d733473bb3f88afb94a7095c4dd2e4b61487a",
+		},
+		{
+			mType: 0x2,
+			bytes: []byte("This is test data in 3"),
+			want:  "0xf449775f29162c3c63c740f93ab298a418145bac26ce120f5a16b55b0f7cb7d4",
+		},
+	}
+	for _, v := range testCase {
+		hash := BuildHash(v.mType, v.bytes)
+		if hash.String() != v.want {
+			t.Error("error")
+		}
+	}
+}
+
+// Detect performance of function execution.
+func Benchmark_BuildHash(b *testing.B) {
+	b.StopTimer()
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		BuildHash(byte(i), []byte(fmt.Sprintf("%d", i)))
+	}
+}
+
+func Test_MergeBytes(t *testing.T) {
+	var testCase = []struct {
+		flag bool
+		el1  []byte
+		el2  []byte
+		want []byte
+	}{
+		{
+			flag: true, el1: []byte("1"), el2: []byte("24"), want: []byte("124"),
+		},
+		{
+			flag: true, el1: []byte("Hello"), el2: []byte(" World"), want: []byte("Hello World"),
+		},
+		{
+			flag: false, el1: []byte("Hello "), el2: []byte(" World"), want: []byte("Hello World"),
+		},
+	}
+	for _, v := range testCase {
+		result := MergeBytes(v.el1, v.el2)
+		// Simulate an exception using flag.
+		if v.flag {
+			assert.Equal(t, result, v.want)
+		} else {
+			assert.NotEqual(t, result, v.want)
+		}
+	}
+}
