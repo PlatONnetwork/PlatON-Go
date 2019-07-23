@@ -267,7 +267,7 @@ func (sp *SlashingPlugin) Slash(evidences consensus.Evidences, blockHash common.
 
 func (sp *SlashingPlugin) executeSlash(evidence consensus.Evidence, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
 	if err := evidence.Validate(); nil != err {
-		log.Error("slashing evidence validate failed", "err", err)
+		log.Warn("slashing evidence validate failed", "err", err)
 		return common.NewBizError(err.Error())
 	}
 	if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB); len(value) > 0 {
