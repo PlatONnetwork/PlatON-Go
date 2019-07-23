@@ -2,7 +2,6 @@ package snapshotdb
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io"
 	"log"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // fileStorage is a file-system backed storage.
@@ -344,7 +345,7 @@ func fsParseName(name string) (fd fileDesc, ok bool) {
 		if strings.Contains(name, ".log") {
 			_, p := path.Split(name)
 			arr := strings.Split(p, "-")
-			i, err := strconv.ParseInt(arr[0], 10, 64)
+			i, err := strconv.ParseUint(arr[0], 10, 64)
 			if err != nil {
 				log.Printf("invalid name %s,can't, parse to int,%v", name, err)
 				return fd, false

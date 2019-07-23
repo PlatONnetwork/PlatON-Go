@@ -467,6 +467,36 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 	})
 }
 
+func TestSnapshotDB_Ranking4(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	generatekvs := generatekvWithPrefix(1000, "aaa")
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, generateHash("baseDBBlockhash"), generatekvs); err != nil {
+		t.Error(err)
+	}
+	f := func(hash common.Hash, prefix string, num int) kvs {
+		itr := dbInstance.Ranking(hash, []byte(prefix), num)
+		err := itr.Error()
+		if err != nil {
+			t.Fatal(err)
+		}
+		o := make(kvs, 0)
+		for itr.Next() {
+			o = append(o, kv{itr.Key(), itr.Value()})
+		}
+		itr.Release()
+		return o
+	}
+	v := f(common.ZeroHash, "aaa", 1000)
+	if err := v.compareWithkvs(generatekvs); err != nil {
+		t.Error(err)
+	}
+	v2 := f(common.ZeroHash, "aaa", 0)
+	if err := v2.compareWithkvs(generatekvs); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestSnapshotDB_Ranking3(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
@@ -572,11 +602,11 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	})
 
 	t.Run("walk base db when compaction,should lock", func(t *testing.T) {
-		dbInstance.snapshotLockC = true
+		dbInstance.snapshotLockC = snapshotLock
 		go func() {
 			time.Sleep(time.Millisecond * 500)
 			dbInstance.snapshotLock.Send(struct{}{})
-			dbInstance.snapshotLockC = false
+			dbInstance.snapshotLockC = snapshotUnLock
 		}()
 		f2 := func(num *big.Int, iter iterator.Iterator) error {
 			return nil
@@ -847,7 +877,7 @@ func TestPutToUnRecognized(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: block.Number.Int64(), BlockHash: db.getUnRecognizedHash()}
+	fd := fileDesc{Type: TypeJournal, Num: block.Number.Uint64(), BlockHash: db.getUnRecognizedHash()}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("should open storage", err)
@@ -939,7 +969,7 @@ func TestPutToRecognized(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Int64(), BlockHash: recognized.BlockHash}
+	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("[SnapshotDB]should open storage", err)
@@ -1032,7 +1062,7 @@ func TestFlush(t *testing.T) {
 		}
 	}
 
-	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Int64(), BlockHash: recognized.BlockHash}
+	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
 	read, err := db.storage.Open(fd)
 	if err != nil {
 		t.Fatal("[SnapshotDB]should open storage", err)

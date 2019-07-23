@@ -531,17 +531,23 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, 
 		return false, err
 	}*/
 
-	if (endVotingBlock+20)%xutil.ConsensusSize()*xutil.EpochSize() != 0 {
-		log.Warn("proposal's end-voting-block should be a specified number that less 20 than a certain epoch")
+	if (endVotingBlock+20)%xutil.ConsensusSize() != 0 {
+		log.Warn("proposal's end-voting-block should be a particular block that less 20 than a certain consensus round")
 		return common.NewBizError("end-voting-block invalid.")
 	}
-	if xutil.CalculateRound(endVotingBlock) <= xutil.CalculateRound(submitBlock) {
-		log.Warn("proposal's end-voting-block should greater than submit-block")
+
+	submitRound := xutil.CalculateRound(submitBlock)
+	endVotingRound := xutil.CalculateRound(endVotingBlock)
+
+	if endVotingRound <= submitRound {
+		log.Warn("end-voting-block's consensus round should be greater than submit-block's")
 		return common.NewBizError("end-voting-block invalid.")
 	}
-	if endVotingBlock > submitBlock+xutil.MaxVotingDuration() {
-		log.Warn("proposal's end-voting-block is too greater than the max duration")
+
+	if endVotingRound > (submitRound + xutil.MaxVotingConsensusRounds()) {
+		log.Warn("proposal's end-voting-block is too greater than the max consensus rounds")
 		return common.NewBizError("end-voting-block invalid.")
 	}
+
 	return nil
 }

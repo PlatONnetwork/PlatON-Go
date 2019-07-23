@@ -30,7 +30,7 @@ func buildSubmitTextInput() string {
 	input = append(input, common.MustRlpEncode("textTopic"))
 	input = append(input, common.MustRlpEncode("textDesc"))
 	input = append(input, common.MustRlpEncode("textUrl"))
-	input = append(input, common.MustRlpEncode(uint64(1000)))
+	input = append(input, common.MustRlpEncode(uint64(21480)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -45,8 +45,8 @@ func buildSubmitVersionInput() string {
 	input = append(input, common.MustRlpEncode("versionDesc"))
 	input = append(input, common.MustRlpEncode("versionUrl"))
 	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(uint64(1000)))
-	input = append(input, common.MustRlpEncode(uint64(2000)))
+	input = append(input, common.MustRlpEncode(uint64(21480)))
+	input = append(input, common.MustRlpEncode(uint64(22480)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -63,7 +63,7 @@ func buildSubmitParamInput() string {
 	input = append(input, common.MustRlpEncode(""))
 	input = append(input, common.MustRlpEncode("newValue"))
 
-	input = append(input, common.MustRlpEncode(uint64(1000)))
+	input = append(input, common.MustRlpEncode(uint64(21480)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -75,6 +75,7 @@ func buildVoteInput() string {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode(txHashArr[0]))
 	input = append(input, common.MustRlpEncode(uint8(1)))
+	input = append(input, common.MustRlpEncode(uint32(2<<16|0<<8|0)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -206,8 +207,8 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 
 	test := govContractCombinedTests[idx]
 
-	in := common.Hex2Bytes(test.Input)
-	gc.Contract.Gas = gc.RequiredGas(in)
+	//in := common.Hex2Bytes(test.Input)
+	//gc.Contract.Gas = gc.RequiredGas(in)
 
 	state := gc.Evm.StateDB.(*state.StateDB)
 
