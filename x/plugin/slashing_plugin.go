@@ -247,6 +247,9 @@ func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint32, error)
 }
 
 func (sp *SlashingPlugin) DecodeEvidence(data string) (consensus.Evidences, error) {
+	if sp.decodeEvidence == nil {
+		return nil, common.NewBizError("decodeEvidence function is nil")
+	}
 	return sp.decodeEvidence(data)
 }
 
