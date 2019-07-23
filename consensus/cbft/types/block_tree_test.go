@@ -40,10 +40,13 @@ func TestNewBlockTree(t *testing.T) {
 		fork2,
 	}
 
-	tree := NewBlockTree(root, &QuorumCert{ViewNumber: 1})
+	tree := NewBlockTree(root, nil)
 
 	for _, f := range forks {
 		for _, b := range f {
+			if b.NumberU64() == 0 {
+				tree.InsertQCBlock(b, nil)
+			}
 			tree.InsertQCBlock(b, &QuorumCert{ViewNumber: 1})
 		}
 	}

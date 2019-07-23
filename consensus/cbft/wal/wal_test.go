@@ -163,7 +163,16 @@ func testWalLoad() (int, error) {
 	// LoadJournal
 	count := 0
 	err = getWal().Load(func(msg interface{}) {
-		count++
+		switch msg.(type) {
+		case *protocols.ConfirmedViewChange:
+			count++
+		case *protocols.SendViewChange:
+			count++
+		case *protocols.SendPrepareBlock:
+			count++
+		case *protocols.SendPrepareVote:
+			count++
+		}
 	})
 	if err != nil {
 		return 0, err

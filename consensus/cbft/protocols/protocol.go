@@ -119,6 +119,10 @@ func (pb *PrepareBlock) Sign() []byte {
 	return pb.Signature.Bytes()
 }
 
+func (pb *PrepareBlock) SetSign(sign []byte) {
+	pb.Signature.SetBytes(sign)
+}
+
 // Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
 type PrepareVote struct {
 	Epoch       uint64             `json:"epoch"`
@@ -161,7 +165,11 @@ func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
 }
 
 func (pv *PrepareVote) Sign() []byte {
-	return nil
+	return pv.Signature.Bytes()
+}
+
+func (pv *PrepareVote) SetSign(sign []byte) {
+	pv.Signature.SetBytes(sign)
 }
 
 // Message structure for view switching.
@@ -203,7 +211,11 @@ func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
 }
 
 func (vc *ViewChange) Sign() []byte {
-	return nil
+	return vc.Signature.Bytes()
+}
+
+func (vc *ViewChange) SetSign(sign []byte) {
+	vc.Signature.SetBytes(sign)
 }
 
 // cbftStatusData implement Message and including status information about peer.
@@ -236,7 +248,7 @@ func (s *CbftStatusData) BHash() common.Hash {
 type GetPrepareBlock struct {
 	Epoch      uint64
 	ViewNumber uint64
-	BlockIndex uint64
+	BlockIndex uint32
 }
 
 func (s *GetPrepareBlock) String() string {
@@ -244,7 +256,7 @@ func (s *GetPrepareBlock) String() string {
 }
 
 func (s *GetPrepareBlock) MsgHash() common.Hash {
-	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), common.Uint64ToBytes(s.BlockIndex)))
+	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
 }
 
 func (s *GetPrepareBlock) BHash() common.Hash {
