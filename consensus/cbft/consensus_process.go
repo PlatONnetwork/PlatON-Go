@@ -277,9 +277,17 @@ func (cbft *Cbft) tryChangeView() {
 		}
 		return false
 	}
+
 	if viewChangeQC() {
 		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
+		_, viewNumber, _, number := viewChangeQC.MaxBlock()
+		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+		if number > qc.BlockNumber || viewNumber > qc.ViewNumber {
+			//fixme get qc block
+			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+			return
+		}
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 	}
 }
@@ -295,7 +303,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
-	cbft.state.SetViewChangeQC(viewChangeQC)
+	cbft.state.SetLastViewChangeQC(viewChangeQC)
 	cbft.clearInvalidBlocks(block)
 }
 

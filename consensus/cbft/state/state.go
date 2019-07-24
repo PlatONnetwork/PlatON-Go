@@ -219,12 +219,14 @@ type view struct {
 	// finish indicates whether the execution is complete,
 	// and the next block can be executed asynchronously after the execution is completed.
 	executing executing
-	//viewchange received by the current view
+
+	// viewchange received by the current view
 	viewChanges *viewChanges
 
-	viewChangeQC     *ctypes.ViewChangeQC
+	// QC of the previous view
 	lastViewChangeQC *ctypes.ViewChangeQC
-	//This view has been sent to other verifiers for voting
+
+	// This view has been sent to other verifiers for voting
 	hadSendPrepareVote *PrepareVoteQueue
 
 	//Pending votes of current view, parent block need receive N-f prepareVotes
@@ -430,8 +432,12 @@ func (vs *ViewState) Executing() (uint32, bool) {
 	return vs.view.executing.blockIndex, vs.view.executing.finish
 }
 
-func (vs *ViewState) SetViewChangeQC(qc *ctypes.ViewChangeQC) {
-	vs.view.viewChangeQC = qc
+func (vs *ViewState) SetLastViewChangeQC(qc *ctypes.ViewChangeQC) {
+	vs.view.lastViewChangeQC = qc
+}
+
+func (vs *ViewState) LastViewChangeQC() *ctypes.ViewChangeQC {
+	return vs.view.lastViewChangeQC
 }
 
 // Set Executing block status
@@ -473,6 +479,16 @@ func (vs *ViewState) ViewChangeLen() int {
 
 func (vs *ViewState) SetHighestExecutedBlock(block *types.Block) {
 	vs.highestExecutedBlock.Store(block)
+}
+
+func (vs *ViewState) HighestBlockString() string {
+	qc := vs.HighestQCBlock()
+	lock := vs.HighestLockBlock()
+	commit := vs.HighestCommitBlock()
+	return fmt.Sprintf("{HighestQC:{hash:%s,number:%d},HighestLock:{hash:%s,number:%d},HighestCommit:{hash:%s,number:%d}}",
+		qc.Hash().TerminalString(), qc.NumberU64(),
+		lock.Hash().TerminalString(), lock.NumberU64(),
+		commit.Hash().TerminalString(), commit.NumberU64())
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
