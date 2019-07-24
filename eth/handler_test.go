@@ -18,6 +18,12 @@ package eth
 
 import (
 	"encoding/binary"
+	"math"
+	"math/big"
+	"math/rand"
+	"os"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -29,11 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"math"
-	"math/big"
-	"math/rand"
-	"os"
-	"testing"
 )
 
 // Tests that protocol versions and modes of operations are matched up properly.
@@ -394,9 +395,6 @@ func TestGetPPOSStorageMsg(t *testing.T) {
 			t.Error(err)
 			return
 		}
-	}
-	if data.KVNum != 1028 {
-		t.Error("kv num is wrong")
 	}
 }
 

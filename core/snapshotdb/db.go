@@ -10,6 +10,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
+	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 )
@@ -106,6 +107,12 @@ func (s *snapshotDB) recover(stor storage) error {
 
 	//baseDB
 	baseDB, err := leveldb.OpenFile(getBaseDBPath(dbpath), nil)
+	if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
+		baseDB, err = leveldb.RecoverFile(getBaseDBPath(dbpath), nil)
+		if err != nil {
+			return fmt.Errorf("[SnapshotDB.recover]RecoverFile baseDB fail:%v", err)
+		}
+	}
 	if err != nil {
 		return fmt.Errorf("[SnapshotDB.recover]open baseDB fail:%v", err)
 	}
