@@ -1183,8 +1183,6 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 			t.Log("=====================")
 			t.Log("case5 pass")
 		}
-
-		t.Fatal("+++++++")
 	}
 }
 
@@ -1521,15 +1519,9 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 
 			t.Log("actually balance of restrict account: ", res.Balance)
 			t.Log("actually debt    of restrict account: ", res.Debt)
-			t.Log("actually slash   of restrict account: ", res.Slash)
-			t.Log("actually staking of restrict account: ", res.Staking)
+			t.Log("actually symbol  of restrict account: ", res.Symbol)
 
-			var infos []restricting.ReleaseAmountInfo
-			if err = json.Unmarshal(res.Entry, &infos); err != nil {
-				t.Fatalf("unmarshal release amout info failed, err:%s", err.Error())
-			}
-
-			for _, info := range infos {
+			for _, info := range res.Entry {
 				t.Logf("actually release amount at blockNumber [%d] is: %v", info.Height, info.Amount)
 			}
 		}
