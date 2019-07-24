@@ -1515,7 +1515,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			}
 
 			var res restricting.Result
-			if err = rlp.Decode(bytes.NewBuffer(result), &res); err != nil {
+			if err = json.Unmarshal(result, &res); err != nil {
 				t.Fatalf("failed to elp decode result, result: %s", result)
 			}
 

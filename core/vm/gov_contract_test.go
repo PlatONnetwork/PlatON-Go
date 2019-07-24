@@ -10,7 +10,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
@@ -219,13 +218,13 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 			t.Error(err)
 		} else if common.Bytes2Hex0x(res) != test.Expected {
 
-			t.Log(res)
-			var r xcom.Result
+			t.Log(string(res))
+			/*var r xcom.Result
 			if err = rlp.DecodeBytes(res, &r); err != nil {
 				t.Error(err)
 			} else {
 				t.Log(r.Data)
-			}
+			}*/
 		}
 	})
 }
