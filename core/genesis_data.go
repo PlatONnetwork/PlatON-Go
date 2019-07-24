@@ -89,51 +89,68 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 
 	}
 
-	// build epoch validators
-	verifierList := &staking.Validator_array{
+	validatorArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		return fmt.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	}
+
+	/**
+	Epoch
+	*/
+	// build epoch validators indexInfo
+	verifierIndex := &staking.ValArrIndex{
 		Start: 1,
 		End:   xutil.CalcBlocksEachEpoch(),
-		Arr:   validatorQueue,
 	}
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
 
-	// build current validators
-	validatorLIst := &staking.Validator_array{
-		Start: 1,
-		End:   xutil.ConsensusSize(),
-		Arr:   validatorQueue,
-	}
-
-	// build pre validators
-	pre_validatorLIst := &staking.Validator_array{
-		Start: 0,
-		End:   0,
-		Arr:   validatorQueue,
-	}
-
-	// current epoch
-	verifiers, err := rlp.EncodeToBytes(verifierList)
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		return fmt.Errorf("Failed to Store Epoch Validators: rlp encodeing failed. error:%s", err.Error())
+		return fmt.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
 	}
-	if err := snapdb.PutBaseDB(staking.GetEpochValidatorKey(), verifiers); nil != err {
+	if err := snapdb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		return fmt.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
+	}
+
+	// Epoch validators
+	if err := snapdb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), validatorArr); nil != err {
 		return fmt.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 	}
 
-	// pre round
-	pre_vals, err := rlp.EncodeToBytes(pre_validatorLIst)
-	if nil != err {
-		return fmt.Errorf("Failed to Store Previous Round Validators: rlp encodeing failed. error:%s", err.Error())
+	/**
+	Round
+	*/
+	// build previous validators indexInfo
+	pre_indexInfo := &staking.ValArrIndex{
+		Start: 0,
+		End:   0,
 	}
-	if err := snapdb.PutBaseDB(staking.GetPreRoundValidatorKey(), pre_vals); nil != err {
-		return fmt.Errorf("Failed to Store Previous Round Validators: PutBaseDB failed. error:%s", err.Error())
+	// build current validators indexInfo
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, pre_indexInfo)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		return fmt.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+	}
+	if err := snapdb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		return fmt.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
 	}
 
-	// current round
-	vals, err := rlp.EncodeToBytes(validatorLIst)
-	if nil != err {
-		return fmt.Errorf("Failed to Store Current Round Validators: rlp encodeing failed. error:%s", err.Error())
+	// Previous Round validator
+	if err := snapdb.PutBaseDB(staking.GetRoundValArrKey(pre_indexInfo.Start, pre_indexInfo.End), validatorArr); nil != err {
+		return fmt.Errorf("Failed to Store Previous Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
-	if err := snapdb.PutBaseDB(staking.GetCurRoundValidatorKey(), vals); nil != err {
+	// Current Round validator
+	if err := snapdb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), validatorArr); nil != err {
 		return fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
 

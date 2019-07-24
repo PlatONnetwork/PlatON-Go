@@ -320,152 +320,147 @@ func (db *StakingDB) GetUnDelegateItemStore(blockHash common.Hash, epoch, index 
 	return &unDelegateItem, nil
 }
 
-func (db *StakingDB) SetVerfierList(blockHash common.Hash, val_Arr *Validator_array) error {
+func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
+	value, err := rlp.EncodeToBytes(indexArr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, GetEpochIndexKey(), value)
+}
+
+func (db *StakingDB) GetEpochValIndexByBlockHash(blockHash common.Hash) (ValArrIndexQueue, error) {
+	val, err := db.get(blockHash, GetEpochIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
+
+func (db *StakingDB) GetEpochValIndexByIrr() (ValArrIndexQueue, error) {
+	val, err := db.getFromCommitted(GetEpochIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
+
+func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, val_Arr ValidatorQueue) error {
 
 	value, err := rlp.EncodeToBytes(val_Arr)
 	if nil != err {
 		return err
 	}
-	return db.put(blockHash, GetEpochValidatorKey(), value)
+	return db.put(blockHash, GetEpochValArrKey(start, end), value)
 }
 
-func (db *StakingDB) GetVerifierListByIrr() (*Validator_array, error) {
-
-	arrByte, err := db.getFromCommitted(GetEpochValidatorKey())
+func (db *StakingDB) GetEpochValListByIrr(start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.getFromCommitted(GetEpochValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-func (db *StakingDB) GetVerifierListByBlockHash(blockHash common.Hash) (*Validator_array, error) {
-
-	arrByte, err := db.get(blockHash, GetEpochValidatorKey())
+func (db *StakingDB) GetEpochValListByBlockHash(blockHash common.Hash, start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.get(blockHash, GetEpochValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-func (db *StakingDB) SetPreValidatorList(blockHash common.Hash, val_Arr *Validator_array) error {
+func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, end uint64) error {
+	return db.del(blockHash, GetEpochValArrKey(start, end))
+}
+
+func (db *StakingDB) SetRoundValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
+	value, err := rlp.EncodeToBytes(indexArr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, GetRoundIndexKey(), value)
+}
+
+func (db *StakingDB) GetRoundValIndexByBlockHash(blockHash common.Hash) (ValArrIndexQueue, error) {
+	val, err := db.get(blockHash, GetRoundIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
+
+func (db *StakingDB) GetRoundValIndexByIrr() (ValArrIndexQueue, error) {
+	val, err := db.getFromCommitted(GetRoundIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
+
+func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, val_Arr ValidatorQueue) error {
+
 	value, err := rlp.EncodeToBytes(val_Arr)
 	if nil != err {
 		return err
 	}
-	return db.put(blockHash, GetPreRoundValidatorKey(), value)
+	return db.put(blockHash, GetRoundValArrKey(start, end), value)
 }
 
-func (db *StakingDB) GetPreValidatorListByIrr() (*Validator_array, error) {
-	arrByte, err := db.getFromCommitted(GetPreRoundValidatorKey())
+func (db *StakingDB) GetRoundValListByIrr(start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.getFromCommitted(GetRoundValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-func (db *StakingDB) GetPreValidatorListByBlockHash(blockHash common.Hash) (*Validator_array, error) {
-	arrByte, err := db.get(blockHash, GetPreRoundValidatorKey())
+func (db *StakingDB) GetRoundValListByBlockHash(blockHash common.Hash, start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.get(blockHash, GetRoundValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-func (db *StakingDB) SetCurrentValidatorList(blockHash common.Hash, val_Arr *Validator_array) error {
-	value, err := rlp.EncodeToBytes(val_Arr)
-	if nil != err {
-		return err
-	}
-	return db.put(blockHash, GetCurRoundValidatorKey(), value)
+func (db *StakingDB) DelRoundValListByBlockHash(blockHash common.Hash, start, end uint64) error {
+	return db.del(blockHash, GetRoundValArrKey(start, end))
 }
-
-func (db *StakingDB) GetCurrentValidatorListByIrr() (*Validator_array, error) {
-	arrByte, err := db.getFromCommitted(GetCurRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) GetCurrentValidatorListByBlockHash(blockHash common.Hash) (*Validator_array, error) {
-	arrByte, err := db.get(blockHash, GetCurRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) SetNextValidatorList(blockHash common.Hash, val_Arr *Validator_array) error {
-	value, err := rlp.EncodeToBytes(val_Arr)
-	if nil != err {
-		return err
-	}
-	return db.put(blockHash, GetNextRoundValidatorKey(), value)
-}
-
-func (db *StakingDB) GetNextValidatorListByIrr() (*Validator_array, error) {
-	arrByte, err := db.getFromCommitted(GetNextRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) GetNextValidatorListByBlockHash(blockHash common.Hash) (*Validator_array, error) {
-	arrByte, err := db.get(blockHash, GetNextRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) DelNextValidatorListByBlockHash(blockHash common.Hash) error {
-	return db.del(blockHash, GetNextRoundValidatorKey())
-}
-
-//func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
-//	return db.ranking(common.ZeroHash, CanPowerKeyPrefix, ranges)
-//}
 
 func (db *StakingDB) IteratorCandidatePowerByBlockHash(blockHash common.Hash, ranges int) iterator.Iterator {
 	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)

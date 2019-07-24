@@ -621,3 +621,18 @@ type UnDelegateItem struct {
 	KeySuffix []byte
 	Amount    *big.Int
 }
+
+type ValArrIndex struct {
+	Start uint64
+	End   uint64
+}
+
+type ValArrIndexQueue []*ValArrIndex
+
+func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
+	queue = append(queue, index)
+	if size < len(queue) {
+		return queue[0], queue[1:]
+	}
+	return nil, queue
+}

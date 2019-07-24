@@ -69,19 +69,29 @@ func buildVerifierList(t *testing.T, blockNumber uint64) error {
 	validatorArr := make(staking.ValidatorQueue, 0)
 	queue := append(validatorArr, v)
 	oneEpochBlocks := xutil.CalcBlocksEachEpoch()
-	arr := &staking.Validator_array{
+	indexInfo := &staking.ValArrIndex{
 		Start: (blockNumber-1)/oneEpochBlocks*oneEpochBlocks + 1,
 		End:   (blockNumber-1)/oneEpochBlocks*oneEpochBlocks + oneEpochBlocks,
-		Arr:   queue,
+	}
+	indexQueue := make(staking.ValArrIndexQueue, 0)
+	indexQueue = append(indexQueue, indexInfo)
+	if indexArr, err := rlp.EncodeToBytes(indexQueue); nil != err {
+		t.Errorf("Failed to Store Epoch Validators indexQueue: rlp encodeing failed. error:%s", err)
+		return err
+	} else {
+		if err := snapdb.PutBaseDB(staking.GetEpochIndexKey(), indexArr); err != nil {
+			t.Errorf("Failed to Store Epoch Validators indexQueue: PutBaseDB failed. error:%s", err)
+			return err
+		}
 	}
 
-	if verifiers, err := rlp.EncodeToBytes(arr); err != nil {
+	if verifiers, err := rlp.EncodeToBytes(queue); err != nil {
 		t.Errorf("Failed to Store Epoch Validators: rlp encodeing failed. error:%s", err)
 		return err
 
 	} else {
 		snapdb := snapshotdb.Instance()
-		if err := snapdb.PutBaseDB(staking.GetEpochValidatorKey(), verifiers); err != nil {
+		if err := snapdb.PutBaseDB(staking.GetEpochValArrKey(indexInfo.Start, indexInfo.End), verifiers); err != nil {
 			t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err)
 			return err
 		}

@@ -620,7 +620,10 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	//  TODO  MOCK
 	//return stkc.getVerifierListMock()
 
-	arr, err := stkc.Plugin.GetVerifierList(common.ZeroHash, common.Big0.Uint64(), plugin.QueryStartIrr)
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
 
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
@@ -650,7 +653,10 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	//  TODO  MOCK
 	//return stkc.getValidatorListMock()
 
-	arr, err := stkc.Plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
