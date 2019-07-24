@@ -268,8 +268,17 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 
-	if cbft.fetcher.MatchTask(id, msg) {
-		return
+	switch msg := msg.(type) {
+	case *protocols.GetPrepareBlock:
+		cbft.OnGetPrepareBlock(id, msg)
+	case *protocols.GetBlockQuorumCert:
+		cbft.OnGetBlockQuorumCert(id, msg)
+	case *protocols.BlockQuorumCert:
+		cbft.OnBlockQuorumCert(id, msg)
+	case *protocols.GetQCBlockList:
+		cbft.OnGetQCBlockList(id, msg)
+	default:
+		cbft.fetcher.MatchTask(id, msg)
 	}
 }
 
