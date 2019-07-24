@@ -359,7 +359,7 @@ func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
-		Timestamp: 1546300800000,
+		Timestamp: 0,
 		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:  3150000000,
 		Alloc: map[common.Address]GenesisAccount{
