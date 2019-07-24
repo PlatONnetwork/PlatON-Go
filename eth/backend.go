@@ -596,6 +596,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RewardMgrInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	reactor.SetPluginEventMux()
 

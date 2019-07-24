@@ -563,15 +563,19 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, 
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
 	db := snapshotdb.Instance()
-	if err != nil {
-		return nil, 0, err
+	if b, err := db.BaseNum(); err != nil {
+		return nil, 0, errors.New("get snapshotdb baseNum fail")
+	} else {
+		if b.Uint64() != 0 {
+			db.Clear()
+			db = snapshotdb.Instance()
+		}
 	}
 	defer func() {
 		if err != nil {
 			db.Clear()
 		}
 	}()
-
 	go p.peer.RequestPPOSStorage()
 
 	var ttl time.Duration

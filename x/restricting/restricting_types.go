@@ -12,21 +12,20 @@ type RestrictingInfo struct {
 
 // for contract, plugin test, byte util
 type RestrictingPlan struct {
-	Epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
-	Amount	*big.Int `json:"amount"`		// amount representation of the released amount
+	Epoch  uint64   `json:"epoch"`  // epoch representation of the released epoch at the target blockNumber
+	Amount *big.Int `json:"amount"` // amount representation of the released amount
 }
 
 // for plugin test
 type ReleaseAmountInfo struct {
-	Height uint64    `json:"blockNumber"` // blockNumber representation of the block number at the released epoch
-	Amount *big.Int  `json:"amount"`      // amount representation of the released amount
+	Height uint64   `json:"blockNumber"` // blockNumber representation of the block number at the released epoch
+	Amount *big.Int `json:"amount"`      // amount representation of the released amount
 }
 
 // for plugin test
 type Result struct {
-	Balance *big.Int
-	Slash   *big.Int
-	Staking *big.Int
-	Debt    *big.Int
-	Entry   []byte
+	Balance *big.Int `json:"balance"`
+	Debt    *big.Int `json:"debt"`
+	Symbol  bool     `json:"symbol"`
+	Entry   []ReleaseAmountInfo
 }

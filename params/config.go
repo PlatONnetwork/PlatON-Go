@@ -284,7 +284,19 @@ var (
 	// adding flags to the config to also have to set these fields.
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, &CbftConfig{
+		InitialNodes:      convertNodeUrl(initialMainNetConsensusNodes),
+		PeerMsgQueueSize:  1024,
+		EvidenceDir:       "evidenceDir",
+		MaxResetCacheSize: 512,
+		MaxQueuesLimit:    4096,
+		MaxBlockDist:      192,
+		MaxPingLatency:    5000,
+		MaxAvgLatency:     2000,
+		CbftVersion:       byte(0x01),
+		Remaining:         50 * time.Millisecond,
+		ValidatorMode:     "ppos",
+	}, ""}
 
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), nil, nil, new(CbftConfig), ""}
 	TestRules              = TestChainConfig.Rules(new(big.Int))

@@ -1,7 +1,7 @@
 package vm_test
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -23,7 +23,7 @@ func buildRestrictingPlanData() ([]byte, error) {
 	for index := 0; index < len(plans); index++ {
 		epoch = uint64(index + 1)
 		plan.Epoch = uint64(epoch)
-		plan.Amount = big.NewInt(10000000)
+		plan.Amount = big.NewInt(1E18)
 		plans[index] = plan
 	}
 
@@ -74,7 +74,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 
 	var params [][]byte
 	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4100))
-	param1, _ := rlp.EncodeToBytes(addrArr[0])
+	param1, _ := rlp.EncodeToBytes(sender)
 	params = append(params, param0)
 	params = append(params, param1)
 	input, err := rlp.EncodeToBytes(params)
@@ -94,15 +94,14 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 		t.Log(string(result))
 
 		var res restricting.Result
-		if err = rlp.Decode(bytes.NewBuffer(result), &res); err != nil {
-			t.Fatalf("failed to get restricting info as rlp decode result failed, error: %s", err.Error())
+		if err = json.Unmarshal(result, &res); err != nil {
+			t.Fatalf("failed to json unmarshal result of restricting info , error: %s", err.Error())
 
 		} else {
 			t.Logf("%v", res.Balance)
-			t.Logf("%v", res.Staking)
-			t.Logf("%v", res.Slash)
 			t.Logf("%v", res.Debt)
-			t.Logf("%v", string(res.Entry))
+			t.Logf("%v", res.Symbol)
+			t.Logf("%v", res.Entry)
 		}
 		t.Log("test pass!")
 	}
