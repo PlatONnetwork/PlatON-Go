@@ -1,6 +1,9 @@
 package state
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	baseMs       = uint64(10 * time.Second)
@@ -18,7 +21,9 @@ type viewTimer struct {
 }
 
 func newViewTimer() *viewTimer {
-	return &viewTimer{timer: time.NewTimer(0), timeInterval: viewTimeInterval{baseMs: baseMs, exponentBase: exponentBase, maxExponent: maxExponent}}
+	timer := time.NewTimer(0)
+	timer.Stop()
+	return &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: baseMs, exponentBase: exponentBase, maxExponent: maxExponent}}
 }
 
 func (t *viewTimer) setupTimer(viewInterval uint64) {
@@ -32,7 +37,7 @@ func (t *viewTimer) timerChan() <-chan time.Time {
 }
 
 func (t viewTimer) isDeadline() bool {
-	return time.Now().Sub(t.deadline) <= 0
+	return t.deadline.Before(time.Now())
 }
 
 // Calculate the time window of each view，time=b*e^m
@@ -43,5 +48,10 @@ type viewTimeInterval struct {
 }
 
 func (vt viewTimeInterval) getViewTimeInterval(viewInterval uint64) time.Duration {
-	return 0
+	pow := viewInterval
+	if pow > vt.maxExponent {
+		pow = vt.maxExponent
+	}
+	mul := math.Pow(vt.exponentBase, float64(pow))
+	return time.Duration(uint64(float64(vt.baseMs) * mul))
 }

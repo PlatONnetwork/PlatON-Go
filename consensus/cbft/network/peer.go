@@ -208,7 +208,7 @@ func (p *peer) SetCommitdBn(commitBn *big.Int) {
 		p.cLock.Lock()
 		defer p.cLock.Unlock()
 		log.Debug("Set commitBn", "peerID", p.id, "oldCommitBn", p.commitBn.Uint64(), "newCommitBn", commitBn.Uint64())
-		p.lockedBn.Set(commitBn)
+		p.commitBn.Set(commitBn)
 	}
 }
 

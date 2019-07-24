@@ -7,10 +7,10 @@ import (
 
 type Cbft interface {
 
-	// Returns the ID value of the current node
+	// Returns the ID value of the current node.
 	NodeId() discover.NodeID
 
-	// Return a list of all consensus nodes
+	// Return a list of all consensus nodes.
 	ConsensusNodes() ([]discover.NodeID, error)
 
 	// Return configuration information of CBFT consensus.
