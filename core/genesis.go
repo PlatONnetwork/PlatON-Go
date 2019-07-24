@@ -90,7 +90,7 @@ type GenesisAccount struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	//Nonce     math.HexOrDecimal64
+	// Nonce     math.HexOrDecimal64
 	Nonce     []byte
 	Timestamp math.HexOrDecimal64
 	ExtraData hexutil.Bytes
@@ -230,6 +230,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if db == nil {
 		db = ethdb.NewMemDatabase()
 	}
+
+	genesisIssuance := new(big.Int)
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
@@ -243,8 +245,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
 			plugin.SetYearEndBalance(statedb, 0, account.Balance)
 		}
+		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
-	plugin.SetYearEndCumulativeIssue(statedb, 0, xcom.GenesisIssuance())
+	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssuance)
 
 	// Store somethings into State
 	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
@@ -253,7 +256,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	// Store genesis governance data
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
 	// Store restricting plans for increase issue for second and third year
-	if err := genesisAllowancePlan(statedb); nil != err {
+	if err := genesisAllowancePlan(statedb, genesisIssuance); nil != err {
 		panic("Failed to Store restricting plan: " + err.Error())
 	}
 	plugin.SetLatestEpoch(statedb, uint64(0))
@@ -337,18 +340,21 @@ func DefaultGenesisBlock() *Genesis {
 	// initial PlatON Foundation
 	platONFoundationIssue, _ := new(big.Int).SetString("905000000000000000000000000", 10)
 
-	// initial reward pool issuance, totally there is 6.5% of initial issuance in it, and first year can be used is 4.5%
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("65000000000000000000000000", 10)
+	// initial reward pool issuance, first year can be used is 4.5% of the genesis issuance
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("45000000000000000000000000", 10)
+
+	// initial balance of restricting contract, it is total the second year allowance and the third year allowance
+	restrictingIssue, _ := new(big.Int).SetString("20000000000000000000000000", 10)
 
 	// initial developer Foundation Issue
 	developerFoundationIssue, _ := new(big.Int).SetString("5000000000000000000000000", 10)
 
-	//// initial staking contract balance
+	// initial balance of staking contract
 	genesisNodesNumber := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
 	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
 
 	// initial reserved account balance
-	//reservedAccountIssue := big.NewInt(0)
+	// reservedAccountIssue := big.NewInt(0)
 
 	return &Genesis{
 		Config:    params.MainnetChainConfig,
@@ -359,9 +365,10 @@ func DefaultGenesisBlock() *Genesis {
 		Alloc: map[common.Address]GenesisAccount{
 			vm.PlatONFoundationAddress:      {Balance: platONFoundationIssue},
 			vm.RewardManagerPoolAddr:        {Balance: rewardMgrPoolIssue},
+			vm.RestrictingContractAddr:      {Balance: restrictingIssue},
 			vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
 			vm.StakingContractAddr:          {Balance: stakingContractIssue},
-			//vm.ReservedAccount:              {Balance: reservedAccountIssue},
+			// vm.ReservedAccount:              {Balance: reservedAccountIssue},
 		},
 	}
 }

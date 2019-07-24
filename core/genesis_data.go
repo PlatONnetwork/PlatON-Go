@@ -162,7 +162,7 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 
 // genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
-func genesisAllowancePlan(stateDb *state.StateDB) error {
+func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 
 	account := vm.RewardManagerPoolAddr
 
@@ -177,11 +177,17 @@ func genesisAllowancePlan(stateDb *state.StateDB) error {
 
 		// store release amount record
 		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
+		// At the first year end, 1.5% of genesis issuance need be released
+		// At the twice year end, 0.5% of genesis issuance need be released
 		switch {
 		case i == 0:
-			stateDb.SetState(account, releaseAmountKey, xutil.SecondYearAllowance().Bytes())
+			allowance := new(big.Int).Div(issue, big.NewInt(15))
+			allowance = allowance.Mul(allowance, big.NewInt(1000))
+			stateDb.SetState(account, releaseAmountKey, allowance.Bytes())
 		case i == 1:
-			stateDb.SetState(account, releaseAmountKey, xutil.ThirdYearAllowance().Bytes())
+			allowance := new(big.Int).Div(issue, big.NewInt(5))
+			allowance = allowance.Mul(allowance, big.NewInt(1000))
+			stateDb.SetState(account, releaseAmountKey, allowance.Bytes())
 		}
 
 		// store release epoch record
@@ -193,7 +199,7 @@ func genesisAllowancePlan(stateDb *state.StateDB) error {
 
 	// build restricting account info
 	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance = xutil.GenesisRestrictingBalance()
+	restrictInfo.Balance = stateDb.GetBalance(vm.RestrictingContractAddr)
 	restrictInfo.Debt = big.NewInt(0)
 	restrictInfo.DebtSymbol = false
 	restrictInfo.ReleaseList = epochList
