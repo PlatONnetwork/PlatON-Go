@@ -173,9 +173,9 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 		Arr:   queue,
 	}
 
-	stakingDB.SetVerfierList(blockHash, val_Arr)
-	stakingDB.SetPreValidatorList(blockHash, val_Arr)
-	stakingDB.SetCurrentValidatorList(blockHash, val_Arr)
+	setVerifierList(blockHash, val_Arr)
+	setRoundValList(blockHash, val_Arr)
+	setRoundValList(blockHash, val_Arr)
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
@@ -280,10 +280,11 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 }
 
 func TestSlashingPlugin_Slash(t *testing.T) {
+	_, genesis, _ := newChainState()
 	si, stateDB := initInfo(t)
 	blockNumber := new(big.Int).SetUint64(1)
 	chash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
-	snapshotdb.Instance().NewBlock(blockNumber, common.ZeroHash, common.ZeroHash)
+	snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash)
 	buildStakingData(common.ZeroHash, nil, t, stateDB)
 	snapshotdb.Instance().Flush(chash, blockNumber)
 	snapshotdb.Instance().Commit(chash)

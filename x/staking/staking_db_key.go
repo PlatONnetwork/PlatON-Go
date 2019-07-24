@@ -11,35 +11,44 @@ import (
 )
 
 const (
-	CandidatePrefixStr       = "Can"
-	CanPowerPrefixStr        = "Power"
-	UnStakeCountKeyStr       = "UnStakeCount"
-	UnStakeItemKeyStr        = "UnStakeItem"
-	DelegatePrefixStr        = "Del"
-	UnDelegateCountKeyStr    = "UnDelCount"
-	UnDelegateItemKeyStr     = "UnDelItem"
-	EpochValidatorKeyStr     = "EpochValidator"
-	PreRoundValidatorKeyStr  = "PreRoundValidator"
-	CurRoundValidatorKeyStr  = "CurRoundValidator"
-	NextRoundValidatorKeyStr = "NextRoundValidator"
-	PPOSHASHStr              = "PPOS_HASH"
+	CandidatePrefixStr    = "Can"
+	CanPowerPrefixStr     = "Power"
+	UnStakeCountKeyStr    = "UnStakeCount"
+	UnStakeItemKeyStr     = "UnStakeItem"
+	DelegatePrefixStr     = "Del"
+	UnDelegateCountKeyStr = "UnDelCount"
+	UnDelegateItemKeyStr  = "UnDelItem"
+	EpochIndexKeyStr      = "EpochIndex"
+	EpochValArrPrefixStr  = "EpochValArr"
+	RoundIndexKeyStr      = "RoundIndex"
+	RoundValArrPrefixStr  = "RoundValArr"
+	PPOSHASHStr           = "PPOS_HASH"
+	//EpochValidatorKeyStr     = "EpochValidator"
+	//PreRoundValidatorKeyStr  = "PreRoundValidator"
+	//CurRoundValidatorKeyStr  = "CurRoundValidator"
+	//NextRoundValidatorKeyStr = "NextRoundValidator"
+
 )
 
 var (
-	CandidateKeyPrefix    = []byte(CandidatePrefixStr)
-	CanPowerKeyPrefix     = []byte(CanPowerPrefixStr)
-	UnStakeCountKey       = []byte(UnStakeCountKeyStr)
-	UnStakeItemKey        = []byte(UnStakeItemKeyStr)
-	DelegateKeyPrefix     = []byte(DelegatePrefixStr)
-	UnDelegateCountKey    = []byte(UnDelegateCountKeyStr)
-	UnDelegateItemKey     = []byte(UnDelegateItemKeyStr)
-	EpochValidatorKey     = []byte(EpochValidatorKeyStr)
-	PreRoundValidatorKey  = []byte(PreRoundValidatorKeyStr)
-	CurRoundValidatorKey  = []byte(CurRoundValidatorKeyStr)
-	NextRoundValidatorKey = []byte(NextRoundValidatorKeyStr)
-	PPOSHASHKey           = []byte(PPOSHASHStr)
+	CandidateKeyPrefix = []byte(CandidatePrefixStr)
+	CanPowerKeyPrefix  = []byte(CanPowerPrefixStr)
+	UnStakeCountKey    = []byte(UnStakeCountKeyStr)
+	UnStakeItemKey     = []byte(UnStakeItemKeyStr)
+	DelegateKeyPrefix  = []byte(DelegatePrefixStr)
+	UnDelegateCountKey = []byte(UnDelegateCountKeyStr)
+	UnDelegateItemKey  = []byte(UnDelegateItemKeyStr)
+	EpochIndexKey      = []byte(EpochIndexKeyStr)
+	EpochValArrPrefix  = []byte(EpochValArrPrefixStr)
+	RoundIndexKey      = []byte(RoundIndexKeyStr)
+	RoundValArrPrefix  = []byte(RoundValArrPrefixStr)
+	PPOSHASHKey        = []byte(PPOSHASHStr)
+	b104Len            = len(math.MaxBig104.Bytes())
+	//EpochValidatorKey     = []byte(EpochValidatorKeyStr)
+	//PreRoundValidatorKey  = []byte(PreRoundValidatorKeyStr)
+	//CurRoundValidatorKey  = []byte(CurRoundValidatorKeyStr)
+	//NextRoundValidatorKey = []byte(NextRoundValidatorKeyStr)
 
-	b104Len = len(math.MaxBig104.Bytes())
 )
 
 func CandidateKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
@@ -104,20 +113,40 @@ func GetUnDelegateItemKey(epoch, index uint64) []byte {
 	return append(UnDelegateItemKey, append(common.Uint64ToBytes(epoch), common.Uint64ToBytes(index)...)...)
 }
 
-func GetEpochValidatorKey() []byte {
-	return EpochValidatorKey
+//func GetEpochValidatorKey() []byte {
+//	return EpochValidatorKey
+//}
+//
+//func GetPreRoundValidatorKey() []byte {
+//	return PreRoundValidatorKey
+//}
+//
+//func GetCurRoundValidatorKey() []byte {
+//	return CurRoundValidatorKey
+//}
+//
+//func GetNextRoundValidatorKey() []byte {
+//	return NextRoundValidatorKey
+//}
+
+func GetEpochIndexKey() []byte {
+	return EpochIndexKey
 }
 
-func GetPreRoundValidatorKey() []byte {
-	return PreRoundValidatorKey
+func GetEpochValArrKey(start, end uint64) []byte {
+	startByte := common.Uint64ToBytes(start)
+	endByte := common.Uint64ToBytes(end)
+	return append(EpochValArrPrefix, append(startByte, endByte...)...)
 }
 
-func GetCurRoundValidatorKey() []byte {
-	return CurRoundValidatorKey
+func GetRoundIndexKey() []byte {
+	return RoundIndexKey
 }
 
-func GetNextRoundValidatorKey() []byte {
-	return NextRoundValidatorKey
+func GetRoundValArrKey(start, end uint64) []byte {
+	startByte := common.Uint64ToBytes(start)
+	endByte := common.Uint64ToBytes(end)
+	return append(RoundValArrPrefix, append(startByte, endByte...)...)
 }
 
 func GetPPOSHASHKey() []byte {

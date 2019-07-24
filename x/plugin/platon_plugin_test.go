@@ -400,9 +400,9 @@ func build_staking_data_more(block uint64) {
 		Arr:   queue,
 	}
 
-	stakingDB.SetVerfierList(hash, epoch_Arr)
-	stakingDB.SetPreValidatorList(hash, pre_Arr)
-	stakingDB.SetCurrentValidatorList(hash, curr_Arr)
+	setVerifierList(hash, epoch_Arr)
+	setRoundValList(hash, pre_Arr)
+	setRoundValList(hash, curr_Arr)
 
 	lastBlockHash = hash
 	lastBlockNumber = block
@@ -538,9 +538,9 @@ func build_staking_data(genesisHash common.Hash) {
 		Arr:   queue,
 	}
 
-	stakingDB.SetVerfierList(blockHash, epoch_Arr)
-	stakingDB.SetPreValidatorList(blockHash, pre_Arr)
-	stakingDB.SetCurrentValidatorList(blockHash, curr_Arr)
+	setVerifierList(blockHash, epoch_Arr)
+	setRoundValList(blockHash, pre_Arr)
+	setRoundValList(blockHash, curr_Arr)
 
 	lastBlockHash = blockHash
 	lastBlockNumber = blockNumber.Uint64()
@@ -662,4 +662,126 @@ func buildDBStakingRestrictingFunds(t *testing.T, stateDB xcom.StateDB) {
 	stateDB.SetState(account, restrictingKey, bUser)
 
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(1E18)))
+}
+
+func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
+
+	stakeDB := staking.NewStakingDB()
+
+	queue, err := stakeDB.GetRoundValIndexByBlockHash(blockHash)
+	if nil != err && err != snapshotdb.ErrNotFound {
+		log.Error("Failed to setRoundValList: Query round valIndex is failed", "blockHash",
+			blockHash.Hex(), "Start", val_Arr.Start, "End", val_Arr.End, "err", err)
+		return err
+	}
+
+	var indexQueue staking.ValArrIndexQueue
+
+	index := &staking.ValArrIndex{
+		Start: val_Arr.Start,
+		End:   val_Arr.End,
+	}
+
+	if len(queue) == 0 {
+		indexQueue = make(staking.ValArrIndexQueue, 0)
+		_, indexQueue = indexQueue.ConstantAppend(index, plugin.RoundValIndexSize)
+	} else {
+
+		has := false
+		for _, indexInfo := range queue {
+			if indexInfo.Start == val_Arr.Start && indexInfo.End == val_Arr.End {
+				has = true
+				break
+			}
+		}
+		indexQueue = queue
+		if !has {
+
+			shabby, queue := queue.ConstantAppend(index, plugin.RoundValIndexSize)
+			indexQueue = queue
+			// delete the shabby validators
+			if nil != shabby {
+				if err := stakeDB.DelRoundValListByBlockHash(blockHash, shabby.Start, shabby.End); nil != err {
+					log.Error("Failed to setRoundValList: delete shabby validators is failed",
+						"shabby start", shabby.Start, "shabby end", shabby.End, "blockHash", blockHash.Hex())
+					return err
+				}
+			}
+		}
+	}
+
+	// Store new index Arr
+	if err := stakeDB.SetRoundValIndex(blockHash, indexQueue); nil != err {
+		log.Error("Failed to setRoundValList: store round validators new indexArr is failed", "blockHash", blockHash.Hex())
+		return err
+	}
+
+	// Store new round validator Item
+	if err := stakeDB.SetRoundValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
+		log.Error("Failed to setRoundValList: store new round validators is failed", "blockHash", blockHash.Hex())
+		return err
+	}
+
+	return nil
+}
+
+func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
+
+	stakeDB := staking.NewStakingDB()
+
+	queue, err := stakeDB.GetEpochValIndexByBlockHash(blockHash)
+	if nil != err && err != snapshotdb.ErrNotFound {
+		log.Error("Failed to setVerifierList: Query epoch valIndex is failed", "blockHash",
+			blockHash.Hex(), "Start", val_Arr.Start, "End", val_Arr.End, "err", err)
+		return err
+	}
+
+	var indexQueue staking.ValArrIndexQueue
+
+	index := &staking.ValArrIndex{
+		Start: val_Arr.Start,
+		End:   val_Arr.End,
+	}
+
+	if len(queue) == 0 {
+		indexQueue = make(staking.ValArrIndexQueue, 0)
+		_, indexQueue = indexQueue.ConstantAppend(index, plugin.EpochValIndexSize)
+	} else {
+
+		has := false
+		for _, indexInfo := range queue {
+			if indexInfo.Start == val_Arr.Start && indexInfo.End == val_Arr.End {
+				has = true
+				break
+			}
+		}
+		indexQueue = queue
+		if !has {
+
+			shabby, queue := queue.ConstantAppend(index, plugin.EpochValIndexSize)
+			indexQueue = queue
+			// delete the shabby validators
+			if nil != shabby {
+				if err := stakeDB.DelEpochValListByBlockHash(blockHash, shabby.Start, shabby.End); nil != err {
+					log.Error("Failed to setVerifierList: delete shabby validators is failed",
+						"shabby start", shabby.Start, "shabby end", shabby.End, "blockHash", blockHash.Hex())
+					return err
+				}
+			}
+		}
+	}
+
+	// Store new index Arr
+	if err := stakeDB.SetEpochValIndex(blockHash, indexQueue); nil != err {
+		log.Error("Failed to setVerifierList: store epoch validators new indexArr is failed", "blockHash", blockHash.Hex())
+		return err
+	}
+
+	// Store new epoch validator Item
+	if err := stakeDB.SetEpochValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
+		log.Error("Failed to setVerifierList: store new epoch validators is failed", "blockHash", blockHash.Hex())
+		return err
+	}
+
+	return nil
 }

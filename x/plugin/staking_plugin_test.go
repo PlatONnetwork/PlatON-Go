@@ -319,9 +319,9 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			//end := curr.End + xutil.ConsensusSize()
 
 			// add Current Validators And Epoch Validators
-			stakingDB.SetVerfierList(curr_Hash, epoch_Arr)
+			setVerifierList(curr_Hash, epoch_Arr)
 			//stakingDB.SetPreValidatorList(blockHash, val_Arr)
-			stakingDB.SetCurrentValidatorList(curr_Hash, curr_Arr)
+			setRoundValList(curr_Hash, curr_Arr)
 
 		} else {
 
@@ -567,9 +567,9 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			}
 
 			// add Current Validators And Epoch Validators
-			stakingDB.SetVerfierList(curr_Hash, epoch_Arr)
+			setVerifierList(curr_Hash, epoch_Arr)
 
-			stakingDB.SetCurrentValidatorList(curr_Hash, curr_Arr)
+			setRoundValList(curr_Hash, curr_Arr)
 
 		} else {
 
@@ -648,14 +648,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 				err = plugin.StakingInstance().Election(curr_Hash, header)
 				if nil != err {
 					t.Errorf("Failed to Election, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
-					return
-				}
-			}
-
-			if xutil.IsSwitch(header.Number.Uint64()) {
-				err = plugin.StakingInstance().Switch(curr_Hash, header.Number.Uint64())
-				if nil != err {
-					t.Errorf("Failed to Switch, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
 					return
 				}
 			}
@@ -1760,7 +1752,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -1935,7 +1927,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -1949,7 +1941,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -1986,223 +1978,6 @@ func TestStakingPlugin_Election(t *testing.T) {
 	err = plugin.StakingInstance().Election(blockHash2, header)
 	if nil != err {
 		t.Errorf("Failed to Election, err: %v", err)
-	}
-
-}
-
-func TestStakingPlugin_Switch(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
-	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
-		return
-	}
-	newPlugins()
-
-	build_gov_data(state)
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
-		return
-	}
-
-	for i := 0; i < 1000; i++ {
-
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
-
-		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
-		weight := mrand.Intn(1000000000)
-
-		ii := mrand.Intn(len(chaList))
-
-		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-
-		privateKey, err := crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
-			return
-		}
-
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
-
-		privateKey, err = crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random Address private key: %v", err)
-			return
-		}
-
-		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
-		canTmp := &staking.Candidate{
-			NodeId:          nodeId,
-			StakingAddress:  sender,
-			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
-			StakingTxIndex:  uint32(index),
-			Shares:          balance,
-			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-			// Prevent null pointer initialization
-			Released:           common.Big0,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
-
-			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
-			},
-		}
-
-		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
-
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
-			return
-		}
-
-		addr := common.BytesToAddress(addrSuffix)
-
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
-		}
-		queue = append(queue, val)
-		count++
-	}
-
-	new_verifierArr.Arr = queue
-
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
-	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
-		return
-	}
-
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
-		End:   xutil.ConsensusSize(),
-	}
-
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
-	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
-		return
-	}
-
-	// build ancestor nonces
-	currNonce, nonces := build_vrf_Nonce()
-	if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
-		t.Error("Storage previous nonce failed", "err", err)
-		return
-	} else {
-		sndb.Put(blockHash, xcom.NonceStorageKey, enValue)
-	}
-
-	// Commit Block 1
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-		return
-	}
-
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
-		return
-	}
-
-	header := &types.Header{
-		ParentHash: blockHash,
-		Number:     big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())),
-		Nonce:      types.EncodeNonce(currNonce),
-	}
-
-	err = plugin.StakingInstance().Election(blockHash2, header)
-	if nil != err {
-		t.Errorf("Failed to Election, err: %v", err)
-		return
-	}
-
-	// Commit Block 2
-	if err := sndb.Commit(blockHash2); nil != err {
-		t.Error("Commit 2 err", err)
-		return
-	}
-
-	if err := sndb.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
-		t.Error("newBlock 3 err", err)
-		return
-	}
-
-	/**
-	Start Switch
-	*/
-	electionNum := xutil.ConsensusSize()
-	err = plugin.StakingInstance().Switch(blockHash3, big.NewInt(int64(electionNum)).Uint64())
-	if nil != err {
-		t.Errorf("Failed to Switch, err: %v", err)
 	}
 
 }
@@ -2356,7 +2131,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -2771,7 +2546,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -2949,7 +2724,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -2963,7 +2738,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -3143,7 +2918,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -3157,7 +2932,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -3337,7 +3112,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -3517,7 +3292,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -3531,7 +3306,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -3703,7 +3478,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -4000,7 +3775,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -4014,7 +3789,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -4033,7 +3808,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	Start  IsCurrValidator
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := plugin.StakingInstance().IsCurrValidator(blockHash2, nodeId, plugin.QueryStartNotIrr)
+		yes, err := plugin.StakingInstance().IsCurrValidator(blockHash2, blockNumber2.Uint64(), nodeId, plugin.QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCurrValidator, index: %d, err: %v", i, err)
 			return
@@ -4194,7 +3969,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -4213,7 +3988,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 	Start  IsCurrVerifier
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := plugin.StakingInstance().IsCurrVerifier(blockHash2, nodeId, plugin.QueryStartNotIrr)
+		yes, err := plugin.StakingInstance().IsCurrVerifier(blockHash2, blockNumber2.Uint64(), nodeId, plugin.QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCurrVerifier, index: %d, err: %v", i, err)
 			return
@@ -4368,7 +4143,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -4382,7 +4157,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -4549,7 +4324,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
@@ -4563,7 +4338,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
-	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
 		return
@@ -4734,7 +4509,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 
 	new_verifierArr.Arr = queue
 
-	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	err = setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
 		return
