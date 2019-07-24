@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 
@@ -306,32 +305,35 @@ func (gc *GovContract) errHandler(funcName string, event string, err error, erro
 		log.Error("Call GovContract failed.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "errMsg", err)
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
-			result, _ := json.Marshal(res)
-			xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(result))
+			resultBytes, _ := json.Marshal(res)
+			xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(resultBytes))
 		} else {
 			return nil, err
 		}
 	}
 	res := xcom.Result{true, "", ""}
-	result, _ := json.Marshal(res)
-	xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, SubmitTextEvent, string(result))
+	resultBytes, _ := json.Marshal(res)
+	xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, SubmitTextEvent, string(resultBytes))
 
-	log.Debug("Call GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "result: ", string(result))
-	return common.MustRlpEncode(res), nil
+	log.Debug("Call GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "result: ", string(resultBytes))
+	return resultBytes, nil
 }
 
 func (gc *GovContract) returnHandler(resultValue interface{}, err error, errorMsg string) ([]byte, error) {
 	if nil != err {
 		res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
-		return common.MustRlpEncode(res), nil
+		resultBytes, _ := json.Marshal(res)
+		return resultBytes, nil
 	}
 	jsonByte, err := json.Marshal(resultValue)
 	if nil != err {
 		res := xcom.Result{false, "", err.Error()}
-		return common.MustRlpEncode(res), nil
+		resultBytes, _ := json.Marshal(res)
+		return resultBytes, nil
 	}
 	res := xcom.Result{true, string(jsonByte), ""}
-	return common.MustRlpEncode(res), nil
+	resultBytes, _ := json.Marshal(res)
+	return resultBytes, nil
 }
 
 /*func rlpEncodeProposalList(proposals []gov.Proposal) []byte{
@@ -346,7 +348,7 @@ func (gc *GovContract) returnHandler(resultValue interface{}, err error, errorMs
 	return data
 }*/
 
-func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte {
+/*func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte {
 	if len(proposals) == 0 {
 		return nil
 	}
@@ -378,4 +380,4 @@ func rlpEncodeProposal(proposal gov.Proposal) []byte {
 		data = bytes.Join([][]byte{data, encode}, Delimiter)
 	}
 	return data
-}
+}*/

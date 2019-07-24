@@ -217,8 +217,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 
 	state.SetState(account, restrictingKey, bAccInfo)
-	state.AddBalance(sender, totalAmount)
-	state.SubBalance(vm.RestrictingContractAddr, totalAmount)
+	state.SubBalance(sender, totalAmount)
+	state.AddBalance(vm.RestrictingContractAddr, totalAmount)
 
 	return nil
 }

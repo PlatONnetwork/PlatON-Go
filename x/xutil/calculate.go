@@ -185,22 +185,5 @@ func MaxVotingConsensusRounds() uint64 {
 }
 
 // TODO: calculate reward configure data for main net only
-// SecondYearAllowance is 1.5% of GenesisIssuance
-func SecondYearAllowance() *big.Int {
-	issue := xcom.GenesisIssuance()
-	allowance := new(big.Int).Mul(issue, big.NewInt(15))
-	return allowance.Div(allowance, big.NewInt(100))
-}
-
-// SecondYearAllowance is 0.5% of GenesisIssuance
-func ThirdYearAllowance() *big.Int {
-	issue := xcom.GenesisIssuance()
-	allowance := new(big.Int).Mul(issue, big.NewInt(5))
-	return allowance.Div(allowance, big.NewInt(100))
-}
 
 // TODO: calculate restricting configure data for main net only
-// GenesisRestrictingBalance is allowance at second year and the third year
-func GenesisRestrictingBalance() *big.Int {
-	return new(big.Int).Add(SecondYearAllowance(), ThirdYearAllowance())
-}

@@ -47,15 +47,6 @@ type slashingConfig struct {
 	DuplicateSignHighSlashing uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
 }
 
-type rewardConfig struct {
-	// initial issuance:
-	// 2% used for Reward
-	// 0.5% used for developer foundation
-	// 4.5% used for allowance
-	// 2.5% almost used for Staking
-	GenesisIssuance *big.Int // first year increase issuance at genesis block
-}
-
 type governanceConfig struct {
 	SupportRateThreshold float64
 }
@@ -65,7 +56,6 @@ type EconomicModel struct {
 	Common   commonConfig
 	Staking  stakingConfig
 	Slashing slashingConfig
-	Reward   rewardConfig
 	Gov      governanceConfig
 }
 
@@ -96,42 +86,32 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		success                bool
 		stakeThresholdCount    string
 		delegateThresholdCount string
-		genesisIssuanceCount   string
 		stakeThreshold         *big.Int
 		delegateThreshold      *big.Int
-		genesisIssuance        *big.Int
 	)
 
 	switch netId {
 	case DefaultMainNet, DefaultDeveloperNet:
-		stakeThresholdCount = "1000000000000000000000000"     // 100W von
-		delegateThresholdCount = "10000000000000000000"       // 10 von
-		genesisIssuanceCount = "1000000000000000000000000000" // 1,000,000,000 von
+		stakeThresholdCount = "1000000000000000000000000" // 100W von
+		delegateThresholdCount = "10000000000000000000"   // 10 von
 	case DefaultAlphaTestNet:
 		stakeThresholdCount = "1000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
-		genesisIssuanceCount = "1000000000000000000000000000"
 	case DefaultBetaTestNet:
 		stakeThresholdCount = "1000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
-		genesisIssuanceCount = "1000000000000000000000000000"
 	case DefaultInnerTestNet:
 		stakeThresholdCount = "1000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
-		genesisIssuanceCount = "1000000000000000000000000000"
 	case DefaultInnerDevNet:
 		stakeThresholdCount = "1000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
-		genesisIssuanceCount = "1000000000000000000000000000"
 	}
 
 	if stakeThreshold, success = new(big.Int).SetString(stakeThresholdCount, 10); !success {
 		return nil
 	}
 	if delegateThreshold, success = new(big.Int).SetString(delegateThresholdCount, 10); !success {
-		return nil
-	}
-	if genesisIssuance, success = new(big.Int).SetString(genesisIssuanceCount, 10); !success {
 		return nil
 	}
 
@@ -165,9 +145,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(20),
 			},
-			Reward: rewardConfig{
-				GenesisIssuance: genesisIssuance,
-			},
 			Gov: governanceConfig{
 				SupportRateThreshold: float64(0.85),
 			},
@@ -202,9 +179,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(20),
 			},
-			Reward: rewardConfig{
-				GenesisIssuance: genesisIssuance,
-			},
 			Gov: governanceConfig{
 				SupportRateThreshold: float64(0.85),
 			},
@@ -238,9 +212,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(20),
-			},
-			Reward: rewardConfig{
-				GenesisIssuance: genesisIssuance,
 			},
 			Gov: governanceConfig{
 				SupportRateThreshold: float64(0.85),
@@ -276,9 +247,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(20),
 			},
-			Reward: rewardConfig{
-				GenesisIssuance: genesisIssuance,
-			},
 			Gov: governanceConfig{
 				SupportRateThreshold: float64(0.85),
 			},
@@ -312,9 +280,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(20),
-			},
-			Reward: rewardConfig{
-				GenesisIssuance: genesisIssuance,
 			},
 			Gov: governanceConfig{
 				SupportRateThreshold: float64(0.85),
@@ -350,9 +315,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(20),
-			},
-			Reward: rewardConfig{
-				GenesisIssuance: genesisIssuance,
 			},
 			Gov: governanceConfig{
 				SupportRateThreshold: float64(0.85),
@@ -456,9 +418,6 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Reward config
  ******/
-func GenesisIssuance() *big.Int {
-	return ec.Reward.GenesisIssuance
-}
 
 /******
  * Governance config

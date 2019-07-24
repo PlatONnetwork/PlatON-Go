@@ -600,7 +600,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.SetPluginEventMux()
 
 	// TODO set rule order
-	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})
-	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.StakingRule, xcom.GovernanceRule})
+	reactor.SetBeginRule([]int{xcom.SlashingRule})
+	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
 
 }

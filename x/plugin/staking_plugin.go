@@ -126,7 +126,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Election next epoch validators
-		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64()); nil != err {
+		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64(), state); nil != err {
 			log.Error("Failed to call ElectNextVerifierList on stakingPlugin EndBlock", "blockHash",
 				blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
 			return err
@@ -1120,7 +1120,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 	return nil
 }
 
-func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64) error {
+func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 
 	log.Info("Call ElectNextVerifierList Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
@@ -1151,6 +1151,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
+	curr_version := govp.GetActiveVersion(state)
+	currVersion := xutil.CalcVersion(curr_version)
+
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
@@ -1172,6 +1175,11 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			return err
 		}
 
+		if can.ProgramVersion < currVersion {
+			// Low program version cannot be elected for epoch validator
+			continue
+		}
+
 		addr := common.BytesToAddress(addrSuffix)
 
 		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
@@ -1184,7 +1192,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			ValidatorTerm: 0,
 		}
 		queue = append(queue, val)
-
 	}
 
 	if len(queue) == 0 {
@@ -2137,13 +2144,17 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		}
 
 		orginLen := len(validators.Arr)
-		for i, val := range validators.Arr {
+		for i := 0; i < len(validators.Arr); i++ {
+
+			val := validators.Arr[i]
+
 			if val.NodeId == nodeId {
 
 				log.Debug("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
 				validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)
+				i--
 				break
 			}
 		}
@@ -2173,7 +2184,21 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
 
+	// delete low version validator of epoch
+	epochValidators, err := sk.db.GetVerifierListByBlockHash(blockHash)
+	if nil != err {
+		log.Error("Failed to ProposalPassedNotify: No found the VerifierLIst", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		return err
+	}
+
 	version := xutil.CalcVersion(programVersion)
+
+	epochNodeIds := make(map[discover.NodeID]struct{})
+
+	for _, val := range epochValidators.Arr {
+		epochNodeIds[val.NodeId] = struct{}{}
+	}
 
 	for _, nodeId := range nodeIds {
 
@@ -2211,6 +2236,25 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
+		delete(epochNodeIds, nodeId)
+	}
+
+	arr := make(staking.ValidatorQueue, len(epochValidators.Arr))
+	copy(arr, epochValidators.Arr)
+
+	for i := 0; i < len(arr); i++ {
+		val := arr[i]
+		if _, ok := epochNodeIds[val.NodeId]; ok {
+			arr = append(arr[:i], arr[i+1:]...)
+			i--
+		}
+	}
+	epochValidators.Arr = arr
+	// update epoch validators
+	if err := sk.db.SetVerfierList(blockHash, epochValidators); nil != err {
+		log.Error("Call ProposalPassedNotify: Store epoch validators after update validators is failed", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "err", err)
+		return err
 	}
 
 	return nil
