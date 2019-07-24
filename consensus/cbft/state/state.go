@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -258,6 +259,7 @@ func (v *view) Reset() {
 	v.hadSendPrepareVote.reset()
 	v.pendingVote.reset()
 	v.viewBlocks.clear()
+	v.viewQCs.clear()
 	v.viewVotes.clear()
 }
 
@@ -365,6 +367,9 @@ func (vs *ViewState) ViewNumber() uint64 {
 	return vs.view.viewNumber
 }
 
+func (vs *ViewState) ViewString() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d}", vs.view.epoch, vs.view.viewNumber)
+}
 func (vs *ViewState) Deadline() time.Time {
 	return vs.viewTimer.deadline
 }
