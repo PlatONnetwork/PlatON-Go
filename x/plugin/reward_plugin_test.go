@@ -392,7 +392,6 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	 */
 	// case1: current is common block
 	{
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 
 		totalReward, _ := new(big.Int).SetString("65000000000000000000000000", 10)
@@ -424,7 +423,6 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	// case2: current is settle block
 	{
 
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 		snapDb := snapshotdb.Instance()
 
@@ -470,7 +468,6 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 
 	// case3: current is end of year
 	{
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 		snapDb := snapshotdb.Instance()
 		currBlockNumber := uint64(1) * xutil.CalcBlocksEachYear()

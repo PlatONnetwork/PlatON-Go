@@ -84,7 +84,6 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 	// case1: blockChain not arrived settle block height
 	{
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 		head := types.Header{Number: big.NewInt(1)}

@@ -30,7 +30,6 @@ func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
 	if nil != err {
 		t.Error(err)
 	}
-	xcom.GetEc(xcom.DefaultDeveloperNet)
 	return si, stateDB
 }
 
