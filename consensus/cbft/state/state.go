@@ -222,8 +222,8 @@ type view struct {
 	//viewchange received by the current view
 	viewChanges *viewChanges
 
-	viewChangeQC        *ctypes.ViewChangeQC
-	lastestViewChangeQC *ctypes.ViewChangeQC
+	viewChangeQC     *ctypes.ViewChangeQC
+	lastViewChangeQC *ctypes.ViewChangeQC
 	//This view has been sent to other verifiers for voting
 	hadSendPrepareVote *PrepareVoteQueue
 
@@ -399,7 +399,10 @@ func (vs *ViewState) ViewBlockByIndex(index uint32) *types.Block {
 }
 
 func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
-	return vs.view.viewBlocks.index(index).prepareBlock()
+	if b := vs.view.viewBlocks.index(index); b != nil {
+		return b.prepareBlock()
+	}
+	return nil
 }
 
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
@@ -437,7 +440,11 @@ func (vs *ViewState) SetExecuting(index uint32, finish bool) {
 }
 
 func (vs *ViewState) ViewBlockAndQC(blockIndex uint32) (*types.Block, *ctypes.QuorumCert) {
-	return vs.view.viewBlocks.index(blockIndex).block(), vs.viewQCs.index(blockIndex)
+	qc := vs.viewQCs.index(blockIndex)
+	if b := vs.view.viewBlocks.index(blockIndex); b != nil {
+		return b.block(), qc
+	}
+	return nil, qc
 }
 
 func (vs *ViewState) AddPrepareBlock(pb *protocols.PrepareBlock) {
