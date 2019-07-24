@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -44,7 +45,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		cbft.fetching = true
 
 		cbft.fetcher.AddTask(id, match, executor, expire)
-		cbft.network.Send(id, &protocols.GetQCBlockList{BlockNumber: cbft.state.HighestQCBlock().NumberU64()})
+		cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: cbft.state.HighestQCBlock().Hash(), BlockNumber: cbft.state.HighestQCBlock().NumberU64()})
 	}
 }
 
@@ -54,7 +55,9 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 		for i := uint32(0); i < pb.BlockIndex; i++ {
 			b, _ := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				cbft.network.Send(id, &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i})
+				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
+				cbft.network.Send(id, msg)
+				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
 			}
 		}
 	}
@@ -67,10 +70,13 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		for i := uint32(0); i < vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				cbft.network.Send(id, &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i})
-			}
-			if q != nil {
-				cbft.network.Send(id, &protocols.GetBlockQuorumCert{BlockHash: b.Hash(), BlockNumber: b.NumberU64()})
+				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
+				cbft.network.Send(id, msg)
+				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+			} else if q != nil {
+				msg := &protocols.GetBlockQuorumCert{BlockHash: b.Hash(), BlockNumber: b.NumberU64()}
+				cbft.network.Send(id, msg)
+				cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
 			}
 		}
 	}
@@ -80,6 +86,7 @@ func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) {
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
 		if prepareBlock != nil {
+			cbft.log.Debug("Send PrepareBlock", "prepareBlock", prepareBlock.String())
 			cbft.network.Send(id, prepareBlock)
 		}
 	}
@@ -94,6 +101,7 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 
 func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
+		cbft.log.Debug("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
 		return
 	}
 
@@ -104,6 +112,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 		cbft.state.SetHighestQCBlock(block)
 		cbft.tryCommitNewBlock(lock, commit)
 		cbft.tryChangeView()
+		cbft.log.Debug("Receive BlockQuorumCert success", "msg", msg.String())
 	}
 }
 
@@ -112,6 +121,7 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 
 	if highestQC.NumberU64() > msg.BlockNumber+3 ||
 		(highestQC.Hash() == msg.BlockHash && highestQC.NumberU64() == msg.BlockNumber) {
+		cbft.log.Debug(fmt.Sprintf("Receive GetQCBlockList failed, local.highestQC:%s,%d, msg:%s", highestQC.Hash().String(), highestQC.NumberU64(), msg.String()))
 		return
 	}
 
@@ -121,26 +131,26 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 	qcs := make([]*ctypes.QuorumCert, 0)
 	blocks := make([]*types.Block, 0)
 
-	block, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-	qcs = append(qcs, qc)
-	blocks = append(blocks, block)
-
-	block, qc = cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
-	qcs = append(qcs, qc)
-	blocks = append(blocks, block)
-
-	block, qc = cbft.blockTree.FindBlockAndQC(highestQC.Hash(), highestQC.NumberU64())
-	qcs = append(qcs, qc)
-	blocks = append(blocks, block)
-
-	if commit.Hash() == msg.BlockHash && commit.NumberU64() == msg.BlockNumber {
-		qcs = qcs[1:]
-		blocks = blocks[1:]
+	if commit.ParentHash() == msg.BlockHash {
+		block, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
+		qcs = append(qcs, qc)
+		blocks = append(blocks, block)
 	}
 
-	if lock.Hash() == msg.BlockHash && lock.NumberU64() == msg.BlockNumber {
-		qcs = qcs[2:]
-		blocks = blocks[2:]
+	if lock.ParentHash() == msg.BlockHash || commit.ParentHash() == msg.BlockHash {
+		block, qc := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
+		qcs = append(qcs, qc)
+		blocks = append(blocks, block)
 	}
-	cbft.network.Send(id, &protocols.QCBlockList{QC: qcs, Blocks: blocks})
+	if highestQC.ParentHash() == msg.BlockHash || lock.ParentHash() == msg.BlockHash || commit.ParentHash() == msg.BlockHash {
+		block, qc := cbft.blockTree.FindBlockAndQC(highestQC.Hash(), highestQC.NumberU64())
+		qcs = append(qcs, qc)
+		blocks = append(blocks, block)
+	}
+
+	if len(qcs) != 0 {
+		cbft.network.Send(id, &protocols.QCBlockList{QC: qcs, Blocks: blocks})
+		cbft.log.Debug("Send QCBlockList", "len", len(qcs))
+	}
+
 }

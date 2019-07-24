@@ -1282,8 +1282,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
-	cfg.NodePriKey = nodeCfg.P2P.PrivateKey
-	cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
+	if nodeCfg.P2P.PrivateKey != nil {
+		cfg.NodePriKey = nodeCfg.P2P.PrivateKey
+		cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
+	}
 
 	//todo set bls private key
 

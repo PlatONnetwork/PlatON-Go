@@ -37,7 +37,7 @@ func (t *viewTimer) timerChan() <-chan time.Time {
 }
 
 func (t viewTimer) isDeadline() bool {
-	return time.Now().Sub(t.deadline) <= 0
+	return t.deadline.Before(time.Now())
 }
 
 // Calculate the time window of each view，time=b*e^m
@@ -50,8 +50,8 @@ type viewTimeInterval struct {
 func (vt viewTimeInterval) getViewTimeInterval(viewInterval uint64) time.Duration {
 	pow := viewInterval
 	if pow > vt.maxExponent {
-		pow = maxExponent
+		pow = vt.maxExponent
 	}
-	mul := math.Pow(exponentBase, float64(pow))
-	return time.Duration(baseMs * math.Float64bits(mul))
+	mul := math.Pow(vt.exponentBase, float64(pow))
+	return time.Duration(uint64(float64(vt.baseMs) * mul))
 }
