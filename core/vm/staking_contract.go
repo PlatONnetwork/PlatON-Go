@@ -102,11 +102,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	state := stkc.Evm.StateDB
 
 	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
-
-	//  TODO  MOCK
-	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benefitAddress, nodeId,
-	//	externalId, nodeName, website, details, amount, programVersion)
+		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
 	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
@@ -204,6 +200,16 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+
+			if er := stkc.Plugin.RollBackStaking(state, blockHash, blockNumber, canAddr, typ); nil != er {
+				log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
+					"blockNumber", blockNumber, "err", er)
+			}
+
+			res := xcom.Result{false, "", CreateCanErrStr + ": Call DeclareVersion is failed, " + err.Error()}
+			event, _ := json.Marshal(res)
+			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+			return event, nil
 		}
 	}
 
@@ -617,9 +623,6 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
-	//  TODO  MOCK
-	//return stkc.getVerifierListMock()
-
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
@@ -649,9 +652,6 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
-
-	//  TODO  MOCK
-	//return stkc.getValidatorListMock()
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -760,9 +760,6 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 
 func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
 
-	////  TODO  MOCK
-	//return stkc.getCandidateInfoMock()
-
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
@@ -805,146 +802,4 @@ func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHa
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Debug("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
-}
-
-//  TODO MOCK
-func (stkc *StakingContract) createMock(state xcom.StateDB, blockNumber uint64, txHash common.Hash, typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
-
-	fmt.Println("Call createStaking ~~~~~~~~~~~~~~")
-
-	fmt.Println("typ:", typ)
-	fmt.Println("benefitAddress:", benefitAddress.Hex())
-	fmt.Println("nodeId:", nodeId.String())
-	fmt.Println("externalId:", externalId)
-	fmt.Println("nodeName:", nodeName)
-	fmt.Println("website:", website)
-	fmt.Println("details:", details)
-	fmt.Println("amount:", amount)
-	fmt.Println("programVersion:", programVersion)
-
-	res := xcom.Result{true, "", "ok"}
-	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber, txHash, CreateStakingEvent, string(event), "createStaking")
-	return event, nil
-
-}
-
-func (stkc *StakingContract) getCandidateInfoMock() ([]byte, error) {
-
-	return nil, nil
-}
-
-func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
-
-	fmt.Println("Call getVerifierList ~~~~~~~~~~~~~~")
-
-	nodeIdArr := []string{
-		"0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28422334",
-		"0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28435466",
-		"0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28544878",
-		"0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28564646",
-	}
-
-	addrArr := []string{
-		"0x740ce31b3fac20dac379db243021a51e80qeqqee",
-		"0x740ce31b3fac20dac379db243021a51e80444555",
-		"0x740ce31b3fac20dac379db243021a51e80wrwwwd",
-		"0x740ce31b3fac20dac379db243021a51e80vvbbbb",
-	}
-
-	specialCharList := []string{
-		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "卍", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
-		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
-
-	queue := make(staking.ValidatorExQueue, 0)
-	for i := 0; i < 4; i++ {
-
-		valEx := &staking.ValidatorEx{
-			NodeId:          discover.MustHexID(nodeIdArr[i]),
-			StakingAddress:  common.HexToAddress(addrArr[i]),
-			BenefitAddress:  vm.StakingContractAddr,
-			StakingTxIndex:  uint32(i),
-			ProgramVersion:  uint32(i * i),
-			StakingBlockNum: uint64(i + 2),
-			Shares:          common.Big256,
-			//Description: staking.Description{
-			//	ExternalId: "xxccccdddddddd",
-			//	NodeName:   "I Am " + fmt.Sprint(i),
-			//	Website:    "www.baidu.com",
-			//	Details:    "this is  baidu ~~",
-			//},
-			Description: staking.Description{
-				ExternalId: "中文，我是中文中文",
-				NodeName:   "我是  特殊符号： " + specialCharList[i],
-				Website:    "www.baidu.com",
-				Details:    "this is  baidu ~~",
-			},
-			ValidatorTerm: uint32(2),
-		}
-
-		queue = append(queue, valEx)
-	}
-
-	jsonByte, err := json.Marshal(queue)
-	if nil != err {
-		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
-		data, _ := json.Marshal(res)
-		return data, nil
-	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := json.Marshal(res)
-	return data, nil
-}
-
-func (stkc *StakingContract) getValidatorListMock() ([]byte, error) {
-
-	fmt.Println("Call getValidatorList ~~~~~~~~~~~~~~")
-
-	nodeIdArr := []string{
-		"0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28422334",
-		"0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28435466",
-		"0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28544878",
-		"0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28564646",
-	}
-
-	addrArr := []string{
-		"0x740ce31b3fac20dac379db243021a51e80qeqqee",
-		"0x740ce31b3fac20dac379db243021a51e80444555",
-		"0x740ce31b3fac20dac379db243021a51e80wrwwwd",
-		"0x740ce31b3fac20dac379db243021a51e80vvbbbb",
-	}
-
-	queue := make(staking.ValidatorExQueue, 0)
-	for i := 0; i < 4; i++ {
-
-		valEx := &staking.ValidatorEx{
-			NodeId:          discover.MustHexID(nodeIdArr[i]),
-			StakingAddress:  common.HexToAddress(addrArr[i]),
-			BenefitAddress:  vm.StakingContractAddr,
-			StakingTxIndex:  uint32(i),
-			ProgramVersion:  uint32(i * i),
-			StakingBlockNum: uint64(i + 2),
-			Shares:          common.Big256,
-			Description: staking.Description{
-				ExternalId: "xxccccdddddddd",
-				NodeName:   "I Am " + fmt.Sprint(i),
-				Website:    "www.baidu.com",
-				Details:    "this is  baidu ~~",
-			},
-			ValidatorTerm: uint32(2),
-		}
-
-		queue = append(queue, valEx)
-	}
-
-	jsonByte, err := json.Marshal(queue)
-	if nil != err {
-		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
-		data, _ := json.Marshal(res)
-		return data, nil
-	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := json.Marshal(res)
-	return data, nil
 }
