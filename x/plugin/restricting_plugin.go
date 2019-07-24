@@ -17,10 +17,12 @@ import (
 )
 
 var (
-	errParamPeriodInvalid = common.NewBizError("param epoch invalid")
-	errBalanceNotEnough   = common.NewBizError("balance not enough to restrict")
-	errAccountNotFound    = common.NewBizError("account is not found")
-	monthOfThreeYear      = 12 * 3
+	errParamEpochInvalid   = common.NewBizError("param epoch can't be zero")
+	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
+	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
+	errBalanceNotEnough    = common.NewBizError("balance not enough to restrict")
+	errAccountNotFound     = common.NewBizError("account is not found")
+	monthOfThreeYear       = 12 * 3
 )
 
 type RestrictingPlugin struct {
@@ -78,37 +80,43 @@ func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []restricting.RestrictingPlan,
 	state xcom.StateDB) error {
 
+	// latest is the epoch of a settlement block closest to current block
+	latest := GetLatestEpoch(state)
+	// totalAmount is total restricting amount
+	totalAmount := new(big.Int)
+
 	// merge the amount of the same release epoch
 	mPlans := make(map[uint64]*big.Int, monthOfThreeYear)
 	for _, plan := range plans {
-		k, v := plan.Epoch, plan.Amount
 
+		k, v := plan.Epoch, plan.Amount
+		if k == 0 {
+			log.Debug("param epoch can't be zero")
+			return errParamEpochInvalid
+		}
+
+		k += latest
 		if mPlans[k] == nil {
 			mPlans[k] = v
 		} else {
 			mPlans[k] = v.Add(v, mPlans[k])
 		}
+		totalAmount = totalAmount.Add(totalAmount, v)
 	}
 
 	// pre-check
 	if len(mPlans) > monthOfThreeYear {
-		log.Debug("restricting plan must less than 36")
-		return errParamPeriodInvalid
+		log.Debug("the number of the restricting plan must less or equal than %d", monthOfThreeYear)
+		return errTooMuchPlan
 	}
 
-	latest := GetLatestEpoch(state)
-
-	totalAmount := new(big.Int) // total restricting amount
-	for epoch, amount := range mPlans {
-		if epoch <= latest || amount.Cmp(big.NewInt(1E18)) == -1 {
-			log.Error("param epoch or amount invalid", "epoch", epoch, "latest", latest, "amount", amount)
-			return errParamPeriodInvalid
-		}
-		totalAmount = totalAmount.Add(totalAmount, amount)
+	if totalAmount.Cmp(big.NewInt(1E18)) == -1 {
+		log.Debug("total restricting amount need more than 1 LAT", "sender", sender, "amount", totalAmount)
+		return errLockedAmountTooLess
 	}
 
 	if state.GetBalance(sender).Cmp(totalAmount) == -1 {
-		log.Error("sender's Balance not enough", "total", totalAmount)
+		log.Debug("balance of the sender is not enough", "total", totalAmount, "balance", state.GetBalance(sender))
 		return errBalanceNotEnough
 	}
 
@@ -230,7 +238,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
-		log.Error("record not found in PledgeLockFunds", "account", account, "funds", amount)
+		log.Debug("record not found in PledgeLockFunds", "account", account, "funds", amount)
 		return errAccountNotFound
 	}
 
@@ -245,7 +253,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	}
 
 	if info.Balance.Cmp(amount) == -1 {
-		log.Error("Balance of restricting account not enough", "balance", info.Balance, "funds", amount)
+		log.Debug("Balance of restricting account not enough", "balance", info.Balance, "funds", amount)
 		return errBalanceNotEnough
 	}
 
@@ -272,7 +280,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
-		log.Error("record not found in ReturnLockFunds", "account", account, "funds", amount)
+		log.Debug("record not found in ReturnLockFunds", "account", account, "funds", amount)
 		return errAccountNotFound
 	}
 
@@ -340,7 +348,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
-		log.Error("record not found in SlashingNotify", "account", account, "funds", amount)
+		log.Debug("record not found in SlashingNotify", "account", account, "funds", amount)
 		return errAccountNotFound
 	}
 
@@ -490,7 +498,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
-		log.Error("record not found in GetRestrictingInfo", "account", account)
+		log.Debug("record not found in GetRestrictingInfo", "account", account)
 		return []byte{}, errAccountNotFound
 	}
 
@@ -519,21 +527,19 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		plans = append(plans, plan)
 	}
 
-	bPlans, err := json.Marshal(plans)
+	result.Balance = info.Balance
+	result.Debt = info.Debt
+	result.Symbol = info.DebtSymbol
+	result.Entry = plans
+	log.Trace("get restricting result", "account", account, "result", result)
+
+	bResult, err := json.Marshal(result)
 	if err != nil {
 		log.Error("failed to Marshal restricting result")
 		return []byte{}, err
 	}
 
-	result.Balance = info.Balance
-	result.Debt = info.Debt
-	result.Slash = big.NewInt(0)
-	result.Staking = big.NewInt(0)
-	result.Entry = bPlans
-
-	log.Trace("get restricting result", "account", account, "result", result)
-
-	return rlp.EncodeToBytes(result)
+	return bResult, nil
 }
 
 // state DB operation
