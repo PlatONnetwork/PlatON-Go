@@ -26,7 +26,9 @@ const (
 )
 
 func (s *snapshotDB) schedule() {
+	// Compaction condition , last Compaction execute time gt than 60s or commit block num gt than 100
 	if counter.get() >= 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
+		//only one compaction can execute
 		if atomic.CompareAndSwapInt32(&s.snapshotLockC, snapshotUnLock, snapshotLock) {
 			if err := s.Compaction(); err != nil {
 				logger.Error("compaction fail", "err", err)
