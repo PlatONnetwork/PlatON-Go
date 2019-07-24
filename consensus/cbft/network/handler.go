@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -150,6 +151,48 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 	default:
 		log.Error("PartBroadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
+}
+
+// Forwarding is used to forward the messages and determine
+// whether forwarding is required according to the message type.
+//
+// Note:
+// 1. message type that need to be forwarded:
+//    PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
+// 2. message type that need not to be forwarded:
+//    (Except for the above types, the rest are not forwarded).
+func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
+	msgHash := msg.MsgHash()
+	msgType := protocols.MessageType(msg)
+
+	// the logic to forward message.
+	forward := func() error {
+		peers, err := h.Peers()
+		if err != nil || len(peers) == 0 {
+			return fmt.Errorf("peers is none, msgHash:%s", msgHash.TerminalString())
+		}
+		// Check all neighbor node lists and see if the specified message has been processed.
+		for _, peer := range peers {
+			// exclude currently send peer.
+			if peer.id == nodeId {
+				continue
+			}
+			if peer.ContainsMessageHash(msgHash) {
+				log.Warn("Needn't to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+				return fmt.Errorf("contain message and not formard, msgHash:%s", msgHash.TerminalString())
+			}
+		}
+		log.Debug("Need to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+		return nil
+	}
+	switch msgType {
+	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg,
+		protocols.BlockQuorumCertMsg, protocols.PrepareBlockHashMsg:
+		return forward()
+	default:
+		log.Warn("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+	}
+	return fmt.Errorf("unmatched message type")
 }
 
 // Protocols implemented the Protocols method and returned basic information about the CBFT protocol.
@@ -342,7 +385,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
-	case msg.Code == protocols.GetQCPrepareBlockMsg:
+	case msg.Code == protocols.GetQCBlockListMsg:
 		var request protocols.GetQCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
@@ -433,7 +476,9 @@ func (h *EngineManager) handleMsg(p *peer) error {
 					log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 					latency := (curTime - tInt64) / 2 / 1000000
 					// todo: need confirm
+					// Record the latency in metrics and output it. unit: second.
 					log.Trace("latency", "time", latency)
+					propPeerLatencyMeter.Mark(latency)
 					break
 				}
 			}

@@ -29,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -82,6 +83,11 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
+	stateMu            sync.Mutex
+	viewMu             sync.Mutex
+
+	// Record the number of peer requests for obtaining cbft information.
+	queues map[string]int // Per peer message counts to prevent memory exhaustion.
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -97,6 +103,8 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetching:           false,
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		nodeServiceContext: ctx,
+		queues:             make(map[string]int),
+		state:              cstate.NewViewState(),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
@@ -104,6 +112,10 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	} else {
 		return nil
 	}
+
+	//todo init safety rules, vote rules, state, asyncExecutor
+	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
+	cbft.voteRules = rules.NewVoteRules(cbft.state)
 
 	return cbft
 }
@@ -138,7 +150,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
-	cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+	if isGenesis() {
+		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
+	} else {
+		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+	}
 
 	//Initialize view state
 	cbft.state.SetHighestExecutedBlock(block)
@@ -220,7 +236,24 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
+
+			// Prevent Dos attacks and limit the number of messages sent by each node.
+			count := cbft.queues[msg.PeerID] + 1
+			if int64(count) > cbft.config.Option.MaxQueuesLimit {
+				log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
+				// Need further confirmation.
+				// todo: Is the program exiting or dropping the message here?
+				break
+			}
+			cbft.queues[msg.PeerID] = count
 			cbft.handleConsensusMsg(msg)
+			// After the message is processed, the counter is decremented by one.
+			// If it is reduced to 0, the mapping relationship of the corresponding
+			// node will be deleted.
+			cbft.queues[msg.PeerID]--
+			if cbft.queues[msg.PeerID] == 0 {
+				delete(cbft.queues, msg.PeerID)
+			}
 
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
@@ -229,13 +262,15 @@ func (cbft *Cbft) receiveLoop() {
 		case fn := <-cbft.asyncCallCh:
 			fn()
 
-		case <-cbft.state.ViewTimeout():
-			cbft.OnViewTimeout()
+		//case <-cbft.state.ViewTimeout():
+		//	cbft.OnViewTimeout()
 		default:
 		}
 
 		// read-only channel
-		select {}
+		select {
+		default:
+		}
 	}
 }
 
@@ -246,6 +281,9 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	}
 	msg, id := info.Msg, info.PeerID
 	var err error
+
+	// Forward the message before processing the message.
+	go cbft.network.Forwarding(id, msg)
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
@@ -265,8 +303,17 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 
-	if cbft.fetcher.MatchTask(id, msg) {
-		return
+	switch msg := msg.(type) {
+	case *protocols.GetPrepareBlock:
+		cbft.OnGetPrepareBlock(id, msg)
+	case *protocols.GetBlockQuorumCert:
+		cbft.OnGetBlockQuorumCert(id, msg)
+	case *protocols.BlockQuorumCert:
+		cbft.OnBlockQuorumCert(id, msg)
+	case *protocols.GetQCBlockList:
+		cbft.OnGetQCBlockList(id, msg)
+	default:
+		cbft.fetcher.MatchTask(id, msg)
 	}
 }
 
@@ -279,7 +326,20 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 }
 
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	return cbft.validatorPool.VerifyHeader(header)
+	if header.Number == nil {
+		cbft.log.Error("Verify header fail, unknown block")
+		return errors.New("unknown block")
+	}
+
+	cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
+	if len(header.Extra) < consensus.ExtraSeal {
+		cbft.log.Error("Verify header fail, missing signature", "number", header.Number, "hash", header.Hash)
+	}
+
+	if err := cbft.validatorPool.VerifyHeader(header); err != nil {
+		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "err", err)
+	}
+	return nil
 }
 
 func (Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
@@ -374,7 +434,8 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	// TODO: add viewchange qc
 
-	cbft.signMsg(prepareBlock)
+	// TODO: signature block - fake verify.
+	cbft.signMsgByBls(prepareBlock)
 
 	cbft.OnPrepareBlock("", prepareBlock)
 	cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex)
@@ -405,7 +466,7 @@ func (Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 }
 
 func (cbft *Cbft) Protocols() []p2p.Protocol {
-	panic("implement me")
+	return []p2p.Protocol{}
 }
 
 func (cbft *Cbft) NextBaseBlock() *types.Block {
@@ -521,6 +582,7 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 }
 
 func (cbft *Cbft) OnShouldSeal(result chan error) {
+	// todo: need add remark.
 	select {
 	case <-result:
 		cbft.log.Trace("Should seal timeout")
@@ -536,7 +598,12 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 	numValidators := cbft.validatorPool.Len(currentExecutedBlockNumber)
 	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, _ := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.Option.NodeID)
+	validator, err := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.Option.NodeID)
+	if err != nil {
+		cbft.log.Error("Should seal fail", "err", err)
+		result <- err
+		return
+	}
 	if currentProposer != uint64(validator.Index) {
 		result <- errors.New("current node not the proposer")
 		return
@@ -551,6 +618,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
+	cbft.log.Debug("Calc block deadline", "timePoint", timePoint, "stateDeadline", cbft.state.Deadline(), "produceInterval", produceInterval)
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
 		return timePoint.Add(produceInterval)
 	}
@@ -559,9 +627,13 @@ func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
-	if time.Now().Sub(blockTime) < produceInterval {
+	cbft.log.Debug("Calc next block time",
+		"blockTime", blockTime, "now", time.Now(), "produceInterval", produceInterval,
+		"period", cbft.config.Sys.Period, "amount", cbft.config.Sys.Amount,
+		"interval", time.Since(blockTime))
+	if time.Since(blockTime) < produceInterval {
 		// TODO: add network latency
-		return time.Now().Add(time.Now().Sub(blockTime))
+		return time.Now().Add(produceInterval - time.Since(blockTime))
 	}
 	return time.Now()
 }
@@ -585,11 +657,12 @@ func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Bl
 }
 
 func (Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	panic("implement me")
+	//panic("implement me")
 }
 
 func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
-	panic("implement me")
+	//panic("implement me")
+	return true
 }
 
 func (Cbft) TracingSwitch(flag int8) {
@@ -597,7 +670,7 @@ func (Cbft) TracingSwitch(flag int8) {
 }
 
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
-	panic("need to be improved")
+	//panic("need to be improved")
 	return nil
 }
 
@@ -655,4 +728,29 @@ func (cbft *Cbft) Evidences() string {
 
 func (cbft *Cbft) UnmarshalEvidence(data []byte) (cconsensus.Evidences, error) {
 	return cbft.evPool.UnmarshalEvidence(data)
+}
+
+// signFn use private key to sign byte slice.
+func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
+	return crypto.Sign(m, cbft.config.Option.NodePriKey)
+}
+
+// signFn use bls private key to sign byte slice.
+func (cbft *Cbft) signFnByBls(m []byte) ([]byte, error) {
+	// TODO: really signature
+	return []byte{}, nil
+}
+
+// signMsg use bls private key to sign msg.
+func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
+	buf, err := msg.CannibalizeBytes()
+	if err != nil {
+		return err
+	}
+	sign, err := cbft.signFnByBls(buf)
+	if err != nil {
+		return err
+	}
+	msg.SetSign(sign)
+	return nil
 }

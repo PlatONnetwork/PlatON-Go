@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
@@ -20,6 +21,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		} else {
+			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
 			return nil
 		}
 	}
@@ -297,24 +299,4 @@ func (cbft *Cbft) clearInvalidBlocks(newBlock *types.Block) {
 
 	//todo proposer is myself
 	cbft.txPool.ForkedReset(newHead, rollback)
-}
-
-// signFn use private key to sign byte slice.
-func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
-	// TODO: really signature
-	return []byte{}, nil
-}
-
-// signMsg use private key to sign msg.
-func (cbft *Cbft) signMsg(msg ctypes.ConsensusMsg) error {
-	buf, err := msg.CannibalizeBytes()
-	if err != nil {
-		return err
-	}
-	sign, err := cbft.signFn(buf)
-	if err != nil {
-		return err
-	}
-	msg.SetSign(sign)
-	return nil
 }
