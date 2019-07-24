@@ -79,10 +79,6 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 }
 
 func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, desc, url string, endVotingBlock uint64) ([]byte, error) {
-	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
-		return nil, ErrOutOfGas
-	}
-
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitText of GovContract",
 		"from", from.Hex(),
@@ -90,6 +86,10 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"endVotingBlock", endVotingBlock)
+
+	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
+		return nil, ErrOutOfGas
+	}
 
 	p := gov.TextProposal{
 		GithubID:       githubID,
@@ -107,11 +107,6 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 }
 
 func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint32, endVotingBlock, activeBlock uint64) ([]byte, error) {
-
-	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
-		return nil, ErrOutOfGas
-	}
-
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
@@ -121,6 +116,10 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 		"newVersion", newVersion,
 		"endVotingBlock", endVotingBlock,
 		"activeBlock", activeBlock)
+
+	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
+		return nil, ErrOutOfGas
+	}
 
 	p := gov.VersionProposal{
 		GithubID:       githubID,
@@ -140,11 +139,6 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 }
 
 func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, desc, url string, paramName string, currentValue, newValue string, endVotingBlock uint64) ([]byte, error) {
-
-	if !gc.Contract.UseGas(params.SubmitParamProposalGas) {
-		return nil, ErrOutOfGas
-	}
-
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
@@ -155,6 +149,10 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, de
 		"ParamName", paramName,
 		"CurrentValue", currentValue,
 		"NewValue", newValue)
+
+	if !gc.Contract.UseGas(params.SubmitParamProposalGas) {
+		return nil, ErrOutOfGas
+	}
 
 	p := gov.ParamProposal{
 		GithubID:       githubID,
@@ -175,15 +173,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, de
 }
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, nodeProgramVersion uint32) ([]byte, error) {
-
-	if !gc.Contract.UseGas(params.VoteGas) {
-		return nil, ErrOutOfGas
-	}
-
-	option := gov.ParseVoteOption(op)
-
 	from := gc.Contract.CallerAddress
-
 	log.Debug("Call vote of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
@@ -191,6 +181,12 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"option", op,
 		"nodeProgramVersion", nodeProgramVersion)
+
+	if !gc.Contract.UseGas(params.VoteGas) {
+		return nil, ErrOutOfGas
+	}
+
+	option := gov.ParseVoteOption(op)
 
 	v := gov.Vote{}
 	v.ProposalID = proposalID
@@ -203,19 +199,17 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 }
 
 func (gc *GovContract) declareVersion(activeNode discover.NodeID, version uint32) ([]byte, error) {
-
-	if !gc.Contract.UseGas(params.DeclareVersionGas) {
-		return nil, ErrOutOfGas
-	}
-
 	from := gc.Contract.CallerAddress
-
 	log.Debug("Call declareVersion of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]),
 		"version", version)
+
+	if !gc.Contract.UseGas(params.DeclareVersionGas) {
+		return nil, ErrOutOfGas
+	}
 
 	err := gc.Plugin.DeclareVersion(from, activeNode, version, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 
@@ -225,7 +219,6 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, version uint32
 func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	from := gc.Contract.CallerAddress
-
 	log.Debug("Call getProposal of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
@@ -234,12 +227,11 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	proposal, err := gc.Plugin.GetProposal(proposalID, gc.Evm.StateDB)
 
-	return gc.returnHandler(proposal, err, GetProposalErrorMsg)
+	return gc.returnHandler("getProposal", proposal, err, GetProposalErrorMsg)
 }
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-
 	log.Debug("Call getTallyResult of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
@@ -248,12 +240,11 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 
 	rallyResult, err := gc.Plugin.GetTallyResult(proposalID, gc.Evm.StateDB)
 
-	return gc.returnHandler(rallyResult, err, GetTallyResultErrorMsg)
+	return gc.returnHandler("getTallyResult", rallyResult, err, GetTallyResultErrorMsg)
 }
 
 func (gc *GovContract) listProposal() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-
 	log.Debug("Call listProposal of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
@@ -261,7 +252,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 
 	proposalList, err := gc.Plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
-	return gc.returnHandler(proposalList, err, ListProposalErrorMsg)
+	return gc.returnHandler("listProposal", proposalList, err, ListProposalErrorMsg)
 }
 
 func (gc *GovContract) getActiveVersion() ([]byte, error) {
@@ -273,7 +264,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 
 	activeVersion := gc.Plugin.GetActiveVersion(gc.Evm.StateDB)
 
-	return gc.returnHandler(activeVersion, nil, GetActiveVersionErrorMsg)
+	return gc.returnHandler("getActiveVersion", activeVersion, nil, GetActiveVersionErrorMsg)
 }
 
 func (gc *GovContract) getProgramVersion() ([]byte, error) {
@@ -285,7 +276,7 @@ func (gc *GovContract) getProgramVersion() ([]byte, error) {
 
 	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
-	return gc.returnHandler(programVersion, nil, GetProgramVersionErrorMsg)
+	return gc.returnHandler("getProgramVersion", programVersion, nil, GetProgramVersionErrorMsg)
 }
 
 func (gc *GovContract) listParam() ([]byte, error) {
@@ -297,12 +288,12 @@ func (gc *GovContract) listParam() ([]byte, error) {
 
 	paramList, err := gc.Plugin.ListParam(gc.Evm.StateDB)
 
-	return gc.returnHandler(paramList, err, ListParamErrorMsg)
+	return gc.returnHandler("listParam", paramList, err, ListParamErrorMsg)
 }
 
 func (gc *GovContract) errHandler(funcName string, event string, err error, errorMsg string) ([]byte, error) {
 	if err != nil {
-		log.Error("Call GovContract failed.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "errMsg", err)
+		log.Error("Process GovContract failed.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "errMsg", err)
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
 			resultBytes, _ := json.Marshal(res)
@@ -311,26 +302,28 @@ func (gc *GovContract) errHandler(funcName string, event string, err error, erro
 			return nil, err
 		}
 	}
+	log.Debug("Process GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash())
 	res := xcom.Result{true, "", ""}
 	resultBytes, _ := json.Marshal(res)
 	xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, SubmitTextEvent, string(resultBytes))
-
-	log.Debug("Call GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "result: ", string(resultBytes))
 	return resultBytes, nil
 }
 
-func (gc *GovContract) returnHandler(resultValue interface{}, err error, errorMsg string) ([]byte, error) {
+func (gc *GovContract) returnHandler(funcName string, resultValue interface{}, err error, errorMsg string) ([]byte, error) {
 	if nil != err {
+		log.Debug("Process GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "errMsg", err)
 		res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
 		resultBytes, _ := json.Marshal(res)
 		return resultBytes, nil
 	}
 	jsonByte, err := json.Marshal(resultValue)
 	if nil != err {
+		log.Debug("Process GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "errMsg", err)
 		res := xcom.Result{false, "", err.Error()}
 		resultBytes, _ := json.Marshal(res)
 		return resultBytes, nil
 	}
+	log.Debug("Process GovContract success", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", "returnValue", string(jsonByte))
 	res := xcom.Result{true, string(jsonByte), ""}
 	resultBytes, _ := json.Marshal(res)
 	return resultBytes, nil
