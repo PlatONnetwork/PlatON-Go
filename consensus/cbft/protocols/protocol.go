@@ -90,8 +90,8 @@ type PrepareBlock struct {
 }
 
 func (s *PrepareBlock) String() string {
-	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
-		s.ViewNumber, s.Block.Hash(), s.Block.NumberU64(), s.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
+		s.Epoch, s.ViewNumber, s.Block.Hash().TerminalString(), s.Block.NumberU64(), s.BlockIndex)
 }
 
 func (s *PrepareBlock) MsgHash() common.Hash {
@@ -136,7 +136,7 @@ type PrepareVote struct {
 
 func (s *PrepareVote) String() string {
 	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d}",
-		s.Epoch, s.ViewNumber, s.BlockHash, s.BlockNumber, s.BlockIndex)
+		s.Epoch, s.ViewNumber, s.BlockHash.TerminalString(), s.BlockNumber, s.BlockIndex)
 }
 
 func (s *PrepareVote) MsgHash() common.Hash {
@@ -183,7 +183,7 @@ type ViewChange struct {
 
 func (s *ViewChange) String() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%s,BlockNumber:%d}",
-		s.Epoch, s.ViewNumber, s.BlockHash, s.BlockNumber)
+		s.Epoch, s.ViewNumber, s.BlockHash.TerminalString(), s.BlockNumber)
 }
 
 func (s *ViewChange) MsgHash() common.Hash {
@@ -270,7 +270,7 @@ type GetBlockQuorumCert struct {
 }
 
 func (s *GetBlockQuorumCert) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash, s.BlockNumber)
+	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash.TerminalString(), s.BlockNumber)
 }
 
 func (s *GetBlockQuorumCert) MsgHash() common.Hash {
@@ -289,7 +289,7 @@ type BlockQuorumCert struct {
 
 func (s *BlockQuorumCert) String() string {
 	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d}",
-		s.BlockQC.ViewNumber, s.BlockQC.BlockHash, s.BlockQC.BlockNumber)
+		s.BlockQC.ViewNumber, s.BlockQC.BlockHash.TerminalString(), s.BlockQC.BlockNumber)
 }
 
 func (s *BlockQuorumCert) MsgHash() common.Hash {
@@ -331,7 +331,7 @@ type GetPrepareVote struct {
 }
 
 func (s *GetPrepareVote) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d,ViewNumber:%d}", s.BlockHash, s.BlockNumber, s.ViewNumber)
+	return fmt.Sprintf("{Hash:%s,Number:%d,ViewNumber:%d}", s.BlockHash.TerminalString(), s.BlockNumber, s.ViewNumber)
 }
 
 func (s *GetPrepareVote) MsgHash() common.Hash {
@@ -352,7 +352,7 @@ type PrepareVotes struct {
 }
 
 func (s *PrepareVotes) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d,Votes:%d}", s.BlockHash.String(), s.BlockNumber, len(s.Votes))
+	return fmt.Sprintf("{Hash:%s,Number:%d,Votes:%d}", s.BlockHash.TerminalString(), s.BlockNumber, len(s.Votes))
 }
 
 func (s *PrepareVotes) MsgHash() common.Hash {
@@ -370,7 +370,7 @@ type PrepareBlockHash struct {
 }
 
 func (s *PrepareBlockHash) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash, s.BlockNumber)
+	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash.TerminalString(), s.BlockNumber)
 }
 
 func (s *PrepareBlockHash) MsgHash() common.Hash {
