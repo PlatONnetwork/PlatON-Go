@@ -62,7 +62,7 @@ type Cbft struct {
 
 	fetcher *fetcher.Fetcher
 	// Control the current view state
-	state cstate.ViewState
+	state *cstate.ViewState
 
 	// Block asyncExecutor, the block responsible for executing the current view
 	asyncExecutor executor.AsyncBlockExecutor
@@ -127,8 +127,9 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockChain = chain
 	cbft.txPool = txPool
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
-	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.Sys.NodeID)
+	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.Option.NodeID)
 
+	cbft.state = cstate.NewViewState()
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
@@ -147,12 +148,21 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
+	if isGenesis() {
+		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
+	} else {
+		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+	}
 
 	//Initialize view state
 	cbft.state.SetHighestExecutedBlock(block)
 	cbft.state.SetHighestQCBlock(block)
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
+
+	//Initialize rules
+	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
+	cbft.voteRules = rules.NewVoteRules(cbft.state)
 
 	// load consensus state
 	if err := cbft.LoadWal(); err != nil {
@@ -401,24 +411,10 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	// TODO: signature block - fake verify.
 	cbft.signMsg(prepareBlock)
 
-	cbft.state.AddPrepareBlock(prepareBlock)
+	cbft.OnPrepareBlock("", prepareBlock)
+	cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex)
+
 	cbft.state.SetHighestExecutedBlock(block)
-
-	// TODO: single node process
-	if cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) == 1 {
-		cbft.state.SetHighestQCBlock(block)
-		cbft.state.SetHighestLockBlock(block)
-
-		qc := &ctypes.QuorumCert{
-			Epoch:       prepareBlock.Epoch,
-			ViewNumber:  prepareBlock.ViewNumber,
-			BlockHash:   prepareBlock.Block.Hash(),
-			BlockNumber: prepareBlock.Block.NumberU64(),
-			BlockIndex:  prepareBlock.BlockIndex,
-		}
-		cbft.commitBlock(block, qc)
-		cbft.state.SetHighestCommitBlock(block)
-	}
 
 	cbft.network.Broadcast(prepareBlock)
 
@@ -542,7 +538,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Sys.NodeID) {
+	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		return false, errors.New("current node not a validator")
 	}
 
@@ -569,14 +565,14 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Sys.NodeID) {
+	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")
 		return
 	}
 
 	numValidators := cbft.validatorPool.Len(currentExecutedBlockNumber)
 	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, _ := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.Sys.NodeID)
+	validator, _ := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.Option.NodeID)
 	if currentProposer != uint64(validator.Index) {
 		result <- errors.New("current node not the proposer")
 		return
@@ -607,7 +603,7 @@ func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 }
 
 func (cbft *Cbft) IsConsensusNode() bool {
-	return cbft.validatorPool.IsValidator(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Sys.NodeID)
+	return cbft.validatorPool.IsValidator(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 }
 
 func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
@@ -659,6 +655,10 @@ func (cbft *Cbft) HighestLockBlockBn() uint64 {
 // Return the highest QC block number of the current node.
 func (cbft *Cbft) HighestQCBlockBn() uint64 {
 	return cbft.state.HighestQCBlock().NumberU64()
+}
+
+func (cbft *Cbft) threshold(num int) int {
+	return num - (num-1)/3
 }
 
 func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {

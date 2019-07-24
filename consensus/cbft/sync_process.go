@@ -3,7 +3,8 @@ package cbft
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
@@ -12,12 +13,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 
 		parent := cbft.state.HighestQCBlock()
 
-		match := func(msg types.Message) bool {
+		match := func(msg ctypes.Message) bool {
 			_, ok := msg.(*protocols.QCBlockList)
 			return ok
 		}
 
-		executor := func(msg types.Message) {
+		executor := func(msg ctypes.Message) {
 			if blockList, ok := msg.(*protocols.QCBlockList); ok {
 				// Execution block
 				for _, block := range blockList.Blocks {
@@ -89,4 +90,57 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 	if qc != nil {
 		cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
 	}
+}
+
+func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
+	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
+		return
+	}
+
+	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
+	if block != nil {
+		cbft.state.AddQC(msg.BlockQC)
+		lock, commit := cbft.blockTree.InsertQCBlock(block, msg.BlockQC)
+		cbft.state.SetHighestQCBlock(block)
+		cbft.tryCommitNewBlock(lock, commit)
+		cbft.tryChangeView()
+	}
+}
+
+func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
+	highestQC := cbft.state.HighestQCBlock()
+
+	if highestQC.NumberU64() > msg.BlockNumber+3 ||
+		(highestQC.Hash() == msg.BlockHash && highestQC.NumberU64() == msg.BlockNumber) {
+		return
+	}
+
+	lock := cbft.state.HighestLockBlock()
+	commit := cbft.state.HighestCommitBlock()
+
+	qcs := make([]*ctypes.QuorumCert, 0)
+	blocks := make([]*types.Block, 0)
+
+	block, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
+	qcs = append(qcs, qc)
+	blocks = append(blocks, block)
+
+	block, qc = cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
+	qcs = append(qcs, qc)
+	blocks = append(blocks, block)
+
+	block, qc = cbft.blockTree.FindBlockAndQC(highestQC.Hash(), highestQC.NumberU64())
+	qcs = append(qcs, qc)
+	blocks = append(blocks, block)
+
+	if commit.Hash() == msg.BlockHash && commit.NumberU64() == msg.BlockNumber {
+		qcs = qcs[1:]
+		blocks = blocks[1:]
+	}
+
+	if lock.Hash() == msg.BlockHash && lock.NumberU64() == msg.BlockNumber {
+		qcs = qcs[2:]
+		blocks = blocks[2:]
+	}
+	cbft.network.Send(id, &protocols.QCBlockList{QC: qcs, Blocks: blocks})
 }

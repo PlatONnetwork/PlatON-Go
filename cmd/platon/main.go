@@ -167,9 +167,10 @@ var (
 	//}
 
 	cbftFlags = []cli.Flag{
-		utils.CbftBlockIntervalFlag,
-		utils.CbftBreakpointFlag,
-		utils.WalEnabledFlag,
+		utils.CbftPeerMsgQueueSize,
+		utils.CbftWalEnabledFlag,
+		utils.CbftEvidenceDir,
+		utils.CbftMaxPingLatency,
 	}
 )
 

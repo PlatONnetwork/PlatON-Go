@@ -255,7 +255,6 @@ type CbftConfig struct {
 	InitialNodes  []discover.Node `json:"initialNodes,omitempty"`  //Genesis consensus node
 	ValidatorMode string          `json:"validatorMode,omitempty"` //Validator mode for easy testing
 	PposConfig    *PposConfig     `json:"pposConfig,omitempty"`
-	NodeID        discover.NodeID
 }
 
 type PposConfig struct {
