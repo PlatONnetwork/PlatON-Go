@@ -17,7 +17,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 		} else if err.NewView() {
-			_, hash, number := msg.ViewChangeQC.MaxBlock()
+			_, _, hash, number := msg.ViewChangeQC.MaxBlock()
 			block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
 			cbft.log.Debug("Receive new view's block, change view", "newEpoch", msg.Epoch, "newView", msg.ViewNumber)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)

@@ -546,3 +546,7 @@ func (vs *ViewState) ViewTimeout() <-chan time.Time {
 func (vs *ViewState) SetViewTimer(viewInterval uint64) {
 	vs.viewTimer.setupTimer(viewInterval)
 }
+
+func (vs *ViewState) String() string {
+	return fmt.Sprintf("")
+}
