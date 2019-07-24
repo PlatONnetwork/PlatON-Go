@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
@@ -51,23 +52,23 @@ func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
 	evidences, err := sc.Plugin.DecodeEvidence(data)
 	if nil != err {
 		log.Error("slashingContract DecodeEvidence fail", "data", data, "err", err)
-		return sc.buildResult("", string(ReportDuplicateSignEvent), "ReportDuplicateSign", false), err
+		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false), err
 	}
 	if len(evidences) == 0 {
 		log.Error("slashing failed decodeEvidence len 0", "blockNumber", sc.Evm.BlockNumber.Uint64(), "blockHash", hex.EncodeToString(sc.Evm.BlockHash.Bytes()), "data", data)
-		return sc.buildResult("", string(ReportDuplicateSignEvent), "ReportDuplicateSign", false), common.NewBizError("evidences is nil")
+		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false), common.NewBizError("evidences is nil")
 	}
 	if !sc.Contract.UseGas(params.DuplicateEvidencesGas * uint64(len(evidences))) {
 		return nil, ErrOutOfGas
 	}
 	if err := sc.Plugin.Slash(evidences, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
 		if _, ok := err.(*common.BizError); ok {
-			return sc.buildResult("", string(ReportDuplicateSignEvent), "ReportDuplicateSign", false), err
+			return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false), err
 		} else {
 			return xcom.FailResult("", "fail"), err
 		}
 	}
-	return sc.buildResult("", string(ReportDuplicateSignEvent), "ReportDuplicateSign", true), nil
+	return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", true), nil
 }
 
 // Check if the node has double sign behavior at a certain block height
@@ -75,15 +76,15 @@ func (sc *SlashingContract) CheckDuplicateSign(etype uint32, addr common.Address
 	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, etype, sc.Evm.StateDB)
 	data := ""
 	if nil != err {
-		return sc.buildResult(data, string(CheckDuplicateSignEvent), "CheckDuplicateSign", false), err
+		return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, false), err
 	}
 	if len(txHash) > 0 {
 		data = hexutil.Encode(txHash)
 	}
-	return sc.buildResult(data, string(CheckDuplicateSignEvent), "CheckDuplicateSign", true), nil
+	return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, true), nil
 }
 
-func (sc *SlashingContract) buildResult(data, eventType, callFn string, success bool) []byte {
+func (sc *SlashingContract) buildResult(eventType int, callFn, data string, success bool) []byte {
 	var result []byte = nil
 	if success {
 		result = xcom.SuccessResult(data, "success")
@@ -91,7 +92,7 @@ func (sc *SlashingContract) buildResult(data, eventType, callFn string, success 
 		result = xcom.FailResult(data, "fail")
 	}
 	blockNumber := sc.Evm.BlockNumber.Uint64()
-	xcom.AddLog(sc.Evm.StateDB, blockNumber, vm.SlashingContractAddr, eventType, string(result))
+	xcom.AddLog(sc.Evm.StateDB, blockNumber, vm.SlashingContractAddr, strconv.Itoa(eventType), string(result))
 	log.Info("flaged to "+callFn+" of slashingContract", "txHash", sc.Evm.StateDB.TxHash().Hex(),
 		"blockNumber", blockNumber, "json: ", string(result))
 	return result
