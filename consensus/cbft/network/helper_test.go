@@ -36,3 +36,26 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 	tp := &fakePeer{app: app, net: net, peer: peer}
 	return tp, errc
 }
+
+// Create a new peer for testing, return peer and ID.
+func newPeer(version int, name string) (*peer, discover.NodeID) {
+	_, net := p2p.MsgPipe()
+
+	// Generate a random id and create the peer.
+	var id discover.NodeID
+	rand.Read(id[:])
+
+	// Create a peer that belonging to cbft.
+	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net)
+	return peer, id
+}
+
+func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, discover.NodeID) {
+	// Generate a random id and create the peer.
+	var id discover.NodeID
+	rand.Read(id[:])
+
+	// Create a peer that belonging to cbft.
+	peer := NewPeer(version, p2p.NewPeer(id, name, nil), rw)
+	return peer, id
+}

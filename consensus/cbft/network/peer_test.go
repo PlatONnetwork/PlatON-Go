@@ -21,18 +21,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
-func newPeer(version int, name string) (*peer, discover.NodeID) {
-	_, net := p2p.MsgPipe()
-
-	// Generate a random id and create the peer.
-	var id discover.NodeID
-	rand.Read(id[:])
-
-	// Create a peer that belonging to cbft.
-	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net)
-	return peer, id
-}
-
 func Test_NewPeer(t *testing.T) {
 	version := 1
 	name := "test"

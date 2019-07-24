@@ -365,7 +365,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetQuorumCertMsg:
@@ -373,7 +373,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.BlockQuorumCertMsg:
@@ -382,7 +382,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetQCBlockListMsg:
@@ -390,7 +390,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetPrepareVoteMsg:
@@ -398,7 +398,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareBlockHashMsg:
@@ -407,7 +407,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareVotesMsg:
@@ -415,7 +415,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.QCBlockListMsg:
@@ -423,7 +423,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.GetLatestStatusMsg:
