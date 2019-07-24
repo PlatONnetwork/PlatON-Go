@@ -126,9 +126,10 @@ type Ppos_2002 struct {
 
 // vote
 type Ppos_2003 struct {
-	Verifier   discover.NodeID
-	ProposalID common.Hash
-	Op         uint8
+	Verifier       discover.NodeID
+	ProposalID     common.Hash
+	Op             uint8
+	ProgramVersion uint32
 }
 
 //declareVersion
@@ -376,9 +377,11 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			verifier, _ := rlp.EncodeToBytes(cfg.P2003.Verifier)
 			proposalID, _ := rlp.EncodeToBytes(cfg.P2003.ProposalID.Bytes())
 			op, _ := rlp.EncodeToBytes(cfg.P2003.Op)
+			programVersion, _ := rlp.EncodeToBytes(cfg.P2003.ProgramVersion)
 			params = append(params, verifier)
 			params = append(params, proposalID)
 			params = append(params, op)
+			params = append(params, programVersion)
 		}
 	case 2004:
 		{
