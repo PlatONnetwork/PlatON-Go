@@ -72,3 +72,45 @@ func Test_NewPeer(t *testing.T) {
 	assert.Contains(t, string(json), "{")
 
 }
+
+func Test_PeerSet_Register(t *testing.T) {
+	ps := NewPeerSet()
+	p1, _ := newPeer(1, "ps1")
+	p2, _ := newPeer(1, "ps2")
+	//p3, _ := newPeer(1, "ps3")
+
+	// for the function of Register.
+	err := ps.Register(p1)
+	if err != nil {
+		t.Error("err should not be nil")
+	}
+	err = ps.Register(p1)
+	assert.Equal(t, err.Error(), errAlreadyRegistered.Error())
+	ps.Close()
+	err = ps.Register(p2)
+	assert.Equal(t, err.Error(), errClosed.Error())
+}
+
+func Test_PeerSet_Unregister(t *testing.T) {
+	// Create new peerSet and do some initialization.
+	ps := NewPeerSet()
+	p1, _ := newPeer(1, "ps1")
+	p2, _ := newPeer(1, "ps2")
+	p3, _ := newPeer(1, "ps3")
+	ps.Register(p1)
+	ps.Register(p2)
+
+	// unregister
+	err := ps.Unregister(p1.id)
+	if err != nil {
+		t.Error("err should not be nil")
+	}
+	// Try to destroy a peer that does not exist,
+	// match the expected error.
+	err = ps.Unregister(p3.id)
+	assert.Equal(t, err.Error(), errNotRegistered.Error())
+
+	//
+	rp, _ := ps.Get(p1.id)
+	assert.Equal(t, p1, rp)
+}
