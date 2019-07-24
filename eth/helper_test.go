@@ -22,11 +22,14 @@ package eth
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"sort"
 	"sync"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -49,6 +52,7 @@ var (
 // with the given number of blocks already known, and potential notification
 // channels for different events.
 func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func(int, *core.BlockGen), newtx chan<- []*types.Transaction) (*ProtocolManager, *ethdb.MemDatabase, error) {
+	xcom.GetEc(xcom.DefaultInnerTestNet)
 	var (
 		evmux = new(event.TypeMux)
 		//	engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, nil)
@@ -59,7 +63,6 @@ func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func
 			Alloc:  core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},
 		}
 		genesis = gspec.MustCommit(db)
-
 		//blockchain, _ = core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	)
 	//cache := core.NewBlockChainCache(blockchain)

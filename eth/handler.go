@@ -494,7 +494,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				})
 				ps.KVNum++
 				count++
-
 			}
 			ps.Last = true
 			if err := p.SendPPOSStorage(ps); err != nil {
