@@ -387,7 +387,10 @@ func (vs *ViewState) PrepareVoteLenByIndex(index uint32) int {
 
 // Find the block corresponding to the current view according to the index
 func (vs *ViewState) ViewBlockByIndex(index uint32) *types.Block {
-	return vs.view.viewBlocks.index(index).block()
+	if b := vs.view.viewBlocks.index(index); b != nil {
+		return b.block()
+	}
+	return nil
 }
 
 func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
@@ -510,4 +513,8 @@ func (vs *ViewState) IsDeadline() bool {
 
 func (vs *ViewState) ViewTimeout() <-chan time.Time {
 	return vs.viewTimer.timerChan()
+}
+
+func (vs *ViewState) SetViewTimer(viewInterval uint64) {
+	vs.viewTimer.setupTimer(viewInterval)
 }
