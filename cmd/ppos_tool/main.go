@@ -140,7 +140,6 @@ type Ppos_2004 struct {
 
 // getProposal
 type Ppos_2100 struct {
-	Verifier   discover.NodeID
 	ProposalID common.Hash
 }
 
