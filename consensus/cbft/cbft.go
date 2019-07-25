@@ -887,7 +887,12 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 
 		if vc, ok := qcs[v.BlockHash]; !ok {
 			qc := &ViewChangeQC{
-				cert:   &ctypes.ViewChangeQuorumCert{},
+				cert: &ctypes.ViewChangeQuorumCert{
+					Epoch:       v.Epoch,
+					ViewNumber:  v.ViewNumber,
+					BlockHash:   v.BlockHash,
+					BlockNumber: v.BlockNumber,
+				},
 				aggSig: &aggSig,
 				ba:     utils.NewBitArray(total),
 			}
