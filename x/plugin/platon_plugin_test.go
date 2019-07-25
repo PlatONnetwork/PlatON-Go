@@ -31,7 +31,7 @@ import (
 )
 
 func init() {
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(1), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
 var (
@@ -619,6 +619,9 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
 	stateDB.SetState(account, restrictingKey, bUser)
+
+	t.Log("-----------------1", stateDB.GetState(account, restrictingKey))
+	t.Log("-----------------1", account.String())
 
 	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))

@@ -18,9 +18,11 @@ import (
 )
 
 var (
-	errParamPeriodInvalid = common.NewBizError("param epoch invalid")
-	errBalanceNotEnough   = common.NewBizError("balance not enough to restrict")
-	errAccountNotFound    = common.NewBizError("account is not found")
+	errParamEpochInvalid   = common.NewBizError("param epoch can't be zero")
+	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
+	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
+	errBalanceNotEnough    = common.NewBizError("balance not enough to restrict")
+	errAccountNotFound     = common.NewBizError("account is not found")
 )
 
 func showRestrictingAccountInfo(t *testing.T, state xcom.StateDB, account common.Address) {
@@ -442,7 +444,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	var plan restricting.RestrictingPlan
 
 	// case1: release epoch is less than latest epoch
-	{
+	/*	{
 		stateDb := buildStateDB(t)
 		plugin.SetLatestEpoch(stateDb, 2)
 
@@ -463,7 +465,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		}
 		t.Log("=====================")
 		t.Log("case1 pass")
-	}
+	}*/
 
 	// case2: balance of sender not enough
 	{
@@ -1183,8 +1185,6 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 			t.Log("=====================")
 			t.Log("case5 pass")
 		}
-
-		t.Fatal("+++++++")
 	}
 }
 
@@ -1223,10 +1223,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
 		stateDb.SetState(restrictingAcc, restrictingKey, []byte(testData))
 
-		// build date of restricting account for case2
-		buildDbRestrictingPlan(addrArr[0], t, stateDb)
-
-		err := plugin.RestrictingInstance().SlashingNotify(addrArr[0], lockFunds, stateDb)
+		err := plugin.RestrictingInstance().SlashingNotify(restrictingAcc, lockFunds, stateDb)
 
 		// show expected result
 		t.Logf("expecetd error is [rlp: expected input list for restricting.RestrictingInfo]")
@@ -1521,15 +1518,9 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 
 			t.Log("actually balance of restrict account: ", res.Balance)
 			t.Log("actually debt    of restrict account: ", res.Debt)
-			t.Log("actually slash   of restrict account: ", res.Slash)
-			t.Log("actually staking of restrict account: ", res.Staking)
+			t.Log("actually symbol  of restrict account: ", res.Symbol)
 
-			var infos []restricting.ReleaseAmountInfo
-			if err = json.Unmarshal(res.Entry, &infos); err != nil {
-				t.Fatalf("unmarshal release amout info failed, err:%s", err.Error())
-			}
-
-			for _, info := range infos {
+			for _, info := range res.Entry {
 				t.Logf("actually release amount at blockNumber [%d] is: %v", info.Height, info.Amount)
 			}
 		}
