@@ -27,6 +27,7 @@ var govp *GovPlugin
 
 func GovPluginInstance() *GovPlugin {
 	govPluginOnce.Do(func() {
+		log.Info("Init Governance plugin ...")
 		govp = &GovPlugin{govDB: gov.GovDBInstance()}
 	})
 	return govp
@@ -204,11 +205,23 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 // nil is allowed
 func (govPlugin *GovPlugin) GetPreActiveVersion(state xcom.StateDB) uint32 {
+	if nil == govPlugin {
+		log.Error("The gov instance is nil on GetPreActiveVersion")
+	}
+	if nil == govPlugin.govDB {
+		log.Error("The govDB instance is nil on GetPreActiveVersion")
+	}
 	return govPlugin.govDB.GetPreActiveVersion(state)
 }
 
 // should not be a nil value
 func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
+	if nil == govPlugin {
+		log.Error("The gov instance is nil on GetActiveVersion")
+	}
+	if nil == govPlugin.govDB {
+		log.Error("The govDB instance is nil on GetActiveVersion")
+	}
 	return govPlugin.govDB.GetActiveVersion(state)
 }
 

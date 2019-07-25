@@ -25,6 +25,7 @@ var (
 
 func RewardMgrInstance() *rewardMgrPlugin {
 	rewardOnce.Do(func() {
+		log.Info("Init Reward plugin ...")
 		rm = &rewardMgrPlugin{}
 	})
 	return rm

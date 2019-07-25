@@ -27,6 +27,7 @@ func GovDBInstance() *GovDB {
 	//	govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	//})
 	if govDB == nil {
+		log.Info("Init GovDB ........")
 		govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	}
 	return govDB

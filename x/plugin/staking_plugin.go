@@ -63,6 +63,7 @@ const (
 // Instance a global StakingPlugin
 func StakingInstance() *StakingPlugin {
 	stakePlnOnce.Do(func() {
+		log.Info("Init Staking plugin ...")
 		stk = &StakingPlugin{
 			db: staking.NewStakingDB(),
 		}
