@@ -620,9 +620,6 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 	restrictingKey := restricting.GetRestrictingKey(account)
 	stateDB.SetState(account, restrictingKey, bUser)
 
-	t.Log("-----------------1", stateDB.GetState(account, restrictingKey))
-	t.Log("-----------------1", account.String())
-
 	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }
