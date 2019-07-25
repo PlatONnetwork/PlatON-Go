@@ -1300,9 +1300,9 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 }
 
 // flag:NOTE
-// 1: Query previous round consensus validator
-// 2:  Query current round consensus validaor
-// 3:  Query next round consensus validator
+// 0: 	Query previous round consensus validator
+// 1:  	Query current round consensus validaor
+// 3:  	Query next round consensus validator
 func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
 	staking.ValidatorExQueue, error) {
 

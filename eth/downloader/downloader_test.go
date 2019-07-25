@@ -41,6 +41,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
