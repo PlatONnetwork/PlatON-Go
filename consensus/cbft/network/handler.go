@@ -56,15 +56,13 @@ func NewEngineManger(engine Cbft) *EngineManager {
 		sendQueue: make(chan *types.MsgPackage, sendQueueSize),
 		quitSend:  make(chan struct{}, 0),
 	}
+	// init router
+	handler.router = NewRouter(handler.Unregister, handler.GetPeer, handler.ConsensusNodes, handler.Peers)
 	return handler
 }
 
 // Start the loop to send message.
 func (h *EngineManager) Start() {
-
-	// init router
-	h.router = NewRouter(h.Unregister, h.Get, h.ConsensusNodes, h.Peers)
-
 	// Launch goroutine loop release separately.
 	go h.sendLoop()
 	go h.synchronize()
@@ -83,7 +81,6 @@ func (h *EngineManager) sendLoop() {
 		select {
 		case m := <-h.sendQueue:
 			// todo: Need to add to the processing judgment of wal
-
 			if len(m.PeerID()) == 0 {
 				h.broadcast(m)
 			} else {
@@ -183,6 +180,8 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 			}
 		}
 		log.Debug("Need to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+		// Need to broadcast the message.
+		h.Broadcast(msg)
 		return nil
 	}
 	switch msgType {
@@ -210,7 +209,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 				return h.NodeInfo()
 			},
 			PeerInfo: func(id discover.NodeID) interface{} {
-				if p, err := h.peers.Get(fmt.Sprintf("%5x", id[:8])); err == nil {
+				if p, err := h.peers.Get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
 				return nil
@@ -222,11 +221,6 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 // Return all neighbor node lists.
 func (h *EngineManager) Peers() ([]*peer, error) {
 	return h.peers.Peers(), nil
-}
-
-// Return a peer by id.
-func (h *EngineManager) Get(id string) (*peer, error) {
-	return h.peers.Get(id)
 }
 
 // Remove the peer with the specified ID
@@ -368,7 +362,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
-	case msg.Code == protocols.GetQuorumCertMsg:
+	case msg.Code == protocols.GetBlockQuorumCertMsg:
 		var request protocols.GetBlockQuorumCert
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
@@ -484,7 +478,6 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			}
 		}
 		return nil
-
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -544,7 +537,7 @@ func (h *EngineManager) synchronize() {
 // bType:
 //  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
 func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
-	if peers != nil && len(peers) != 0 {
+	if peers == nil || len(peers) == 0 {
 		return nil, 0
 	}
 	largerNum := number

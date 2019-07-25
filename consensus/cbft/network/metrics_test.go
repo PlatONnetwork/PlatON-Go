@@ -40,7 +40,7 @@ func Test_MeteredMsgReadWriter_ReadMsg(t *testing.T) {
 		{protocols.ViewChangeMsg, 111, 111},
 		{protocols.PrepareVoteMsg, 131, 131},
 		{protocols.GetPrepareBlockMsg, 1, 1},
-		{protocols.GetQuorumCertMsg, 3, 3},
+		{protocols.GetBlockQuorumCertMsg, 3, 3},
 		{protocols.BlockQuorumCertMsg, 3, 3},
 		{protocols.GetPrepareVoteMsg, 3, 3},
 		{protocols.PrepareVotesMsg, 3, 3},
@@ -67,7 +67,7 @@ func Test_MeteredMsgReadWriter_ReadMsg(t *testing.T) {
 			assert.NotEqual(t, 0, reqGetPrepareBlockInPacketsMeter.Count())
 			assert.Equal(t, v.want, reqGetPrepareBlockInTrafficMeter.Count())
 
-		case v.code == protocols.GetQuorumCertMsg:
+		case v.code == protocols.GetBlockQuorumCertMsg:
 			assert.NotEqual(t, 0, reqGetQuorumCertInPacketsMeter.Count())
 			assert.Equal(t, v.want, reqGetQuorumCertInTrafficMeter.Count())
 
@@ -113,7 +113,7 @@ func TestMeteredMsgReadWriter_WriteMsg(t *testing.T) {
 		{protocols.ViewChangeMsg, 111, 111},
 		{protocols.PrepareVoteMsg, 131, 131},
 		{protocols.GetPrepareBlockMsg, 1, 1},
-		{protocols.GetQuorumCertMsg, 3, 3},
+		{protocols.GetBlockQuorumCertMsg, 3, 3},
 		{protocols.BlockQuorumCertMsg, 3, 3},
 		{protocols.GetPrepareVoteMsg, 3, 3},
 		{protocols.PrepareVotesMsg, 3, 3},
@@ -141,7 +141,7 @@ func TestMeteredMsgReadWriter_WriteMsg(t *testing.T) {
 			assert.NotEqual(t, 0, reqGetPrepareBlockOutPacketsMeter.Count())
 			assert.Equal(t, v.want, reqGetPrepareBlockOutTrafficMeter.Count())
 
-		case v.code == protocols.GetQuorumCertMsg:
+		case v.code == protocols.GetBlockQuorumCertMsg:
 			assert.NotEqual(t, 0, reqGetQuorumCertOutPacketsMeter.Count())
 			assert.Equal(t, v.want, reqGetQuorumCertOutTrafficMeter.Count())
 
