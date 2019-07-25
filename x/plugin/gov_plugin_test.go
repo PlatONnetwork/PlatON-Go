@@ -3,8 +3,6 @@ package plugin_test
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -27,6 +25,7 @@ var (
 	//newVersion     = uint32(2<<16 | 0<<8 | 0)
 	endVotingBlock uint64
 	activeBlock    uint64
+	stk            *plugin.StakingPlugin
 )
 
 func setup(t *testing.T) func() {
@@ -38,6 +37,7 @@ func setup(t *testing.T) func() {
 	newPlugins()
 
 	govPlugin = plugin.GovPluginInstance()
+	stk = plugin.StakingInstance()
 
 	lastBlockHash = genesis.Hash()
 
@@ -131,7 +131,9 @@ func submitParam(t *testing.T, pid common.Hash) {
 
 func allVote(t *testing.T, pid common.Hash) {
 	//for _, nodeID := range nodeIdArr {
-	for i := uint64(0); i < xcom.ConsValidatorNum(); i++ {
+	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
+	voteCount := len(currentValidatorList)
+	for i := 0; i < voteCount; i++ {
 		vote := gov.Vote{
 			ProposalID: pid,
 			VoteNodeID: nodeIdArr[i],
@@ -145,8 +147,9 @@ func allVote(t *testing.T, pid common.Hash) {
 }
 
 func halfVote(t *testing.T, pid common.Hash) {
-	//for i := 0; i < len(nodeIdArr)/2; i++ {
-	for i := uint64(0); i < xcom.ConsValidatorNum()/2; i++ {
+	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
+	voteCount := len(currentValidatorList)
+	for i := 0; i < voteCount/2; i++ {
 		vote := gov.Vote{
 			ProposalID: pid,
 			VoteNodeID: nodeIdArr[i],

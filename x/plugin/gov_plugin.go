@@ -45,7 +45,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 //implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	blockNumber := header.Number.Uint64()
+	var blockNumber = header.Number.Uint64()
 
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
@@ -85,10 +85,10 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		if nil != err {
 			return err
 		}
-		if votingProposal.GetEndVotingBlock() == header.Number.Uint64() {
+		if votingProposal.GetEndVotingBlock() == blockNumber {
 			log.Debug("proposal's end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
 			//According to the proposal's rules, the end-voting block must not be the end-voting block, so, to accumulate current verifiers for current voting proposal.
-			verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+			verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
 			if err != nil {
 				return err
 			}
@@ -149,9 +149,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 	if isVersionProposal {
 		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockHash", blockHash, "blockNumber", blockNumber, "activeBlockNumber", versionProposal.GetActiveBlock())
-		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
-		if sub >= 0 && sub%xutil.ConsensusSize() == 0 {
-			currentValidatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
+		if blockNumber >= versionProposal.GetActiveBlock() && (blockNumber-versionProposal.GetActiveBlock())%xutil.ConsensusSize() == 0 {
+			currentValidatorList, err := stk.ListCurrentValidatorID(blockHash, blockNumber)
 			if err != nil {
 				log.Error("list current round validators failed.", "blockHash", blockHash, "blockNumber", blockNumber)
 				return err

@@ -63,6 +63,7 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 
 func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 	// build db data for getting info
+	account := addrArr[0]
 	stateDb, _, _ := newChainState()
 	buildDbRestrictingPlan(t, stateDb)
 
@@ -74,7 +75,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 
 	var params [][]byte
 	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4100))
-	param1, _ := rlp.EncodeToBytes(sender)
+	param1, _ := rlp.EncodeToBytes(account)
 	params = append(params, param0)
 	params = append(params, param1)
 	input, err := rlp.EncodeToBytes(params)
