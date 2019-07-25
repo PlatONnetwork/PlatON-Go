@@ -17,12 +17,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 		} else if err.NewView() {
-			_, hash, number := msg.ViewChangeQC.MaxBlock()
+			_, _, hash, number := msg.ViewChangeQC.MaxBlock()
 			block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+			cbft.log.Debug("Receive new view's block, change view", "newEpoch", msg.Epoch, "newView", msg.ViewNumber)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		} else {
 			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-			return nil
+			return err
 		}
 	}
 
@@ -142,6 +143,12 @@ func (cbft *Cbft) trySendPrepareVote() {
 		}
 
 		block := cbft.state.ViewBlockByIndex(p.BlockIndex)
+		// The executed block has a signature.
+		// Only when the view is switched, the block is cleared but the vote is also cleared.
+		// If there is no block, the consensus process is abnormal and should not run.
+		if block == nil {
+			cbft.log.Crit("Try send PrepareVote failed", "err", "vote corresponding block not found", "view", cbft.state.ViewString(), p.String())
+		}
 		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil {
 			p.ParentQC = qc
 			hadSend.Push(p)
@@ -216,8 +223,15 @@ func (cbft *Cbft) findQCBlock() {
 	cbft.tryChangeView()
 }
 
-func (cbft *Cbft) generatePrepareQC(map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
+func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
 	qc := &ctypes.QuorumCert{}
+	for _, p := range votes {
+		qc.Epoch = p.Epoch
+		qc.ViewNumber = p.ViewNumber
+		qc.BlockHash = p.BlockHash
+		qc.BlockNumber = p.BlockNumber
+		qc.BlockIndex = p.BlockIndex
+	}
 	return qc
 }
 
@@ -228,6 +242,10 @@ func (cbft *Cbft) generateViewChangeQC(map[uint32]*protocols.ViewChange) *ctypes
 
 // Try commit a new block
 func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
+	if lock == nil || commit == nil {
+		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
+		return
+	}
 	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 
 	// Incremental commit block
@@ -255,7 +273,9 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	if enough() {
+		cbft.log.Debug("Produce enough blocks, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, nil)
+		return
 	}
 
 	viewChangeQC := func() bool {
@@ -264,8 +284,17 @@ func (cbft *Cbft) tryChangeView() {
 		}
 		return false
 	}
+
 	if viewChangeQC() {
+		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
+		_, viewNumber, _, number := viewChangeQC.MaxBlock()
+		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+		if number > qc.BlockNumber || viewNumber > qc.ViewNumber {
+			//fixme get qc block
+			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+			return
+		}
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 	}
 }
@@ -281,7 +310,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
-	cbft.state.SetViewChangeQC(viewChangeQC)
+	cbft.state.SetLastViewChangeQC(viewChangeQC)
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {
 		cbft.confirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)

@@ -32,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/ethclient"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
@@ -171,6 +172,7 @@ var (
 		utils.CbftWalEnabledFlag,
 		utils.CbftEvidenceDir,
 		utils.CbftMaxPingLatency,
+		utils.CbftBlsPriKeyFileFlag,
 	}
 )
 
@@ -224,6 +226,7 @@ func init() {
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
+		bls.Init(bls.CurveFp254BNb)
 
 		logdir := ""
 		if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {

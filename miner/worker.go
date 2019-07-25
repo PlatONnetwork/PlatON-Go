@@ -417,6 +417,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 									log.Debug("begin to package new block regularly ")
 									blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
 									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+									continue
 								}
 							}
 						}
@@ -588,7 +589,7 @@ func (w *worker) resultLoop() {
 		select {
 		case obj := <-w.bftResultSub.Chan():
 			if obj == nil {
-				log.Error("receive nil maybe channel is closed")
+				//log.Error("receive nil maybe channel is closed")
 				continue
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
@@ -621,7 +622,7 @@ func (w *worker) resultLoop() {
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			//todo remove extra magic number
-			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Extra()[32:]) {
+			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Header()) {
 				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil

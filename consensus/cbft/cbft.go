@@ -3,6 +3,7 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 	"sync/atomic"
@@ -112,10 +113,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	} else {
 		return nil
 	}
-
-	//todo init safety rules, vote rules, state, asyncExecutor
-	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
-	cbft.voteRules = rules.NewVoteRules(cbft.state)
 
 	return cbft
 }
@@ -434,13 +431,15 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		prepareBlock.PrepareQC = parentQC
 	}
 
-	// TODO: add viewchange qc
+	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
 
 	// TODO: signature block - fake verify.
 	cbft.signMsgByBls(prepareBlock)
 
+	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
 	cbft.OnPrepareBlock("", prepareBlock)
 	cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex)
+	cbft.findQCBlock()
 
 	cbft.state.SetHighestExecutedBlock(block)
 
@@ -576,7 +575,7 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 		return false, errors.New("current node not a validator")
 	}
 
-	result := make(chan error, 1)
+	result := make(chan error, 2)
 	cbft.asyncCallCh <- func() {
 		cbft.OnShouldSeal(result)
 	}
@@ -668,9 +667,8 @@ func (Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	//panic("implement me")
 }
 
-func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
-	//panic("implement me")
-	return true
+func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
+	return cbft.verifySelfSigned(sealHash.Bytes(), header.Signature())
 }
 
 func (Cbft) TracingSwitch(flag int8) {
@@ -738,6 +736,21 @@ func (cbft *Cbft) UnmarshalEvidence(data []byte) (cconsensus.Evidences, error) {
 	return cbft.evPool.UnmarshalEvidence(data)
 }
 
+// verifySelfSigned
+func (cbft *Cbft) verifySelfSigned(m []byte, sig []byte) bool {
+	recPubKey, err := crypto.Ecrecover(m, sig)
+	if err != nil {
+		return false
+	}
+
+	pubKey := cbft.config.Option.NodePriKey.PublicKey
+	pbytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
+	if !bytes.Equal(pbytes, recPubKey) {
+		return false
+	}
+	return true
+}
+
 // signFn use private key to sign byte slice.
 func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
 	return crypto.Sign(m, cbft.config.Option.NodePriKey)
@@ -745,8 +758,8 @@ func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
 
 // signFn use bls private key to sign byte slice.
 func (cbft *Cbft) signFnByBls(m []byte) ([]byte, error) {
-	// TODO: really signature
-	return []byte{}, nil
+	sign := cbft.config.Option.BlsPriKey.Sign(string(m))
+	return sign.Serialize(), nil
 }
 
 // signMsg use bls private key to sign msg.
