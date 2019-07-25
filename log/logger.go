@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/go-stack/stack"
 )
 
@@ -134,7 +136,7 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}, skip int) {
 	l.h.Log(&Record{
 		Time: time.Now(),
 		Lvl:  lvl,
-		Msg:  msg,
+		Msg:  fmt.Sprintf("routine %s ", common.CurrentGoRoutineID()) + msg,
 		Ctx:  newContext(l.ctx, ctx),
 		Call: stack.Caller(skip),
 		KeyNames: RecordKeyNames{
