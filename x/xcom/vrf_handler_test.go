@@ -20,7 +20,6 @@ func initHandler() *ecdsa.PrivateKey {
 		panic(err)
 	}
 	vh.SetPrivateKey(pri)
-	GetEc(DefaultDeveloperNet)
 	return pri
 }
 

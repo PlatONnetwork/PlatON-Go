@@ -44,6 +44,7 @@ var slsh *SlashingPlugin
 
 func SlashInstance() *SlashingPlugin {
 	once.Do(func() {
+		log.Info("Init Slashing plugin ...")
 		slsh = &SlashingPlugin{
 			db: snapshotdb.Instance(),
 		}

@@ -698,9 +698,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)

@@ -61,6 +61,30 @@ func buildVerifierList(t *testing.T, blockNumber uint64) error {
 		return err
 	}
 
+	snapdb = snapshotdb.Instance()
+
+	// build epoch validators indexInfo
+	oneEpochBlocks := xutil.CalcBlocksEachEpoch()
+	verifierIndex := &staking.ValArrIndex{
+		Start: (blockNumber-1)/oneEpochBlocks*oneEpochBlocks + 1,
+		End:   (blockNumber-1)/oneEpochBlocks*oneEpochBlocks + oneEpochBlocks,
+	}
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// store current epoch start and end index
+	bEpochIndex, err := rlp.EncodeToBytes(epochIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return err
+	}
+	if err := snapdb.PutBaseDB(staking.GetEpochIndexKey(), bEpochIndex); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
+		return err
+	}
+
+	// store epoch validators
+	validatorQueue := make(staking.ValidatorQueue, 0)
 	v := &staking.Validator{
 		NodeAddress: addr,
 		NodeId:      node.ID,
@@ -68,35 +92,18 @@ func buildVerifierList(t *testing.T, blockNumber uint64) error {
 			string(blockNumber), string(0)},
 		ValidatorTerm: 0,
 	}
-	validatorArr := make(staking.ValidatorQueue, 0)
-	queue := append(validatorArr, v)
-	oneEpochBlocks := xutil.CalcBlocksEachEpoch()
-	indexInfo := &staking.ValArrIndex{
-		Start: (blockNumber-1)/oneEpochBlocks*oneEpochBlocks + 1,
-		End:   (blockNumber-1)/oneEpochBlocks*oneEpochBlocks + oneEpochBlocks,
-	}
-	indexQueue := make(staking.ValArrIndexQueue, 0)
-	indexQueue = append(indexQueue, indexInfo)
-	if indexArr, err := rlp.EncodeToBytes(indexQueue); nil != err {
-		t.Errorf("Failed to Store Epoch Validators indexQueue: rlp encodeing failed. error:%s", err)
+	validatorQueue = append(validatorQueue, v)
+
+	bValidatorQueue, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return err
-	} else {
-		if err := snapdb.PutBaseDB(staking.GetEpochIndexKey(), indexArr); err != nil {
-			t.Errorf("Failed to Store Epoch Validators indexQueue: PutBaseDB failed. error:%s", err)
-			return err
-		}
 	}
 
-	if verifiers, err := rlp.EncodeToBytes(queue); err != nil {
-		t.Errorf("Failed to Store Epoch Validators: rlp encodeing failed. error:%s", err)
+	// store epoch validators
+	if err := snapdb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), bValidatorQueue); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return err
-
-	} else {
-		snapdb := snapshotdb.Instance()
-		if err := snapdb.PutBaseDB(staking.GetEpochValArrKey(indexInfo.Start, indexInfo.End), verifiers); err != nil {
-			t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err)
-			return err
-		}
 	}
 
 	return nil
@@ -394,10 +401,9 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	 */
 	// case1: current is common block
 	{
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 
-		totalReward, _ := new(big.Int).SetString("65000000000000000000000000", 10)
+		totalReward, _ := new(big.Int).SetString("45000000000000000000000000", 10)
 		stateDb.AddBalance(vm.RewardManagerPoolAddr, totalReward)
 		plugin.SetYearEndBalance(stateDb, 0, totalReward)
 
@@ -426,7 +432,6 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	// case2: current is settle block
 	{
 
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 		snapDb := snapshotdb.Instance()
 
@@ -438,7 +443,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 		}
 
 		// restore data in levelDB
-		totalReward, _ := new(big.Int).SetString("65000000000000000000000000", 10)
+		totalReward, _ := new(big.Int).SetString("45000000000000000000000000", 10)
 		stateDb.AddBalance(vm.RewardManagerPoolAddr, totalReward)
 		plugin.SetYearEndBalance(stateDb, 0, totalReward)
 
@@ -472,7 +477,6 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 
 	// case3: current is end of year
 	{
-		xcom.GetEc(xcom.DefaultDeveloperNet)
 		stateDb := buildStateDB(t)
 		snapDb := snapshotdb.Instance()
 		currBlockNumber := uint64(1) * xutil.CalcBlocksEachYear()
@@ -486,7 +490,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 
 		// restore data in levelDB
 		histIssuance, _ := new(big.Int).SetString("1000000000000000000000000000", 10)
-		totalReward, _ := new(big.Int).SetString("65000000000000000000000000", 10)
+		totalReward, _ := new(big.Int).SetString("45000000000000000000000000", 10)
 		stateDb.AddBalance(vm.RewardManagerPoolAddr, totalReward)
 		plugin.SetYearEndBalance(stateDb, 0, totalReward)
 		plugin.SetYearEndCumulativeIssue(stateDb, 0, histIssuance)

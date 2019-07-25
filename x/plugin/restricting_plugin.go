@@ -35,6 +35,7 @@ var (
 
 func RestrictingInstance() *RestrictingPlugin {
 	restrictingOnce.Do(func() {
+		log.Info("Init Restricting plugin ...")
 		rt = &RestrictingPlugin{}
 	})
 	return rt

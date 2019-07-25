@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -22,6 +24,21 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 	version := xutil.CalcVersion(programVersion)
 
 	var length int
+
+	isDone := false
+	switch {
+	case nil == g.Config:
+		isDone = true
+	case nil == g.Config.Cbft:
+		isDone = true
+	case len(g.Config.Cbft.InitialNodes) == 0:
+		isDone = true
+	}
+
+	if isDone {
+		log.Warn("Genesis StakingData, the genesis config or cbft or initialNodes is nil, Not building staking data")
+		return nil
+	}
 
 	if int(xcom.ConsValidatorNum()) <= len(g.Config.Cbft.InitialNodes) {
 		length = int(xcom.ConsValidatorNum())

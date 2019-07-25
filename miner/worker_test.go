@@ -17,10 +17,11 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -31,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -143,18 +145,18 @@ func testPendingStateAndBlock(t *testing.T, chainConfig *params.ChainConfig, eng
 	defer engine.Close()
 
 	minningConfig := &core.MiningConfig{
-		MiningLogAtDepth: 		7,
-		TxChanSize: 			4096,
-		ChainHeadChanSize: 		10,
-		ChainSideChanSize:		10,
-		ResultQueueSize:		10,
+		MiningLogAtDepth:       7,
+		TxChanSize:             4096,
+		ChainHeadChanSize:      10,
+		ChainSideChanSize:      10,
+		ResultQueueSize:        10,
 		ResubmitAdjustChanSize: 10,
-		MinRecommitInterval:	1 * time.Second,
-		MaxRecommitInterval:	15 * time.Second,
-		IntervalAdjustRatio:	0.1,
-		IntervalAdjustBias:		200 * 1000.0 * 1000.0,
-		StaleThreshold:			7,
-		DefaultCommitRatio:		0.95,
+		MinRecommitInterval:    1 * time.Second,
+		MaxRecommitInterval:    15 * time.Second,
+		IntervalAdjustRatio:    0.1,
+		IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+		StaleThreshold:         7,
+		DefaultCommitRatio:     0.95,
 	}
 
 	w, b := newTestWorker(t, chainConfig, minningConfig, engine, 0)
@@ -190,18 +192,18 @@ func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consens
 	defer engine.Close()
 
 	minningConfig := &core.MiningConfig{
-		MiningLogAtDepth: 		7,
-		TxChanSize: 			4096,
-		ChainHeadChanSize: 		10,
-		ChainSideChanSize:		10,
-		ResultQueueSize:		10,
+		MiningLogAtDepth:       7,
+		TxChanSize:             4096,
+		ChainHeadChanSize:      10,
+		ChainSideChanSize:      10,
+		ResultQueueSize:        10,
 		ResubmitAdjustChanSize: 10,
-		MinRecommitInterval:	1 * time.Second,
-		MaxRecommitInterval:	15 * time.Second,
-		IntervalAdjustRatio:	0.1,
-		IntervalAdjustBias:		200 * 1000.0 * 1000.0,
-		StaleThreshold:			7,
-		DefaultCommitRatio:		0.95,
+		MinRecommitInterval:    1 * time.Second,
+		MaxRecommitInterval:    15 * time.Second,
+		IntervalAdjustRatio:    0.1,
+		IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+		StaleThreshold:         7,
+		DefaultCommitRatio:     0.95,
 	}
 	w, _ := newTestWorker(t, chainConfig, minningConfig, engine, 0)
 
@@ -319,18 +321,18 @@ func testRegenerateMiningBlock(t *testing.T, chainConfig *params.ChainConfig, en
 	defer engine.Close()
 
 	minningConfig := &core.MiningConfig{
-		MiningLogAtDepth: 		7,
-		TxChanSize: 			4096,
-		ChainHeadChanSize: 		10,
-		ChainSideChanSize:		10,
-		ResultQueueSize:		10,
+		MiningLogAtDepth:       7,
+		TxChanSize:             4096,
+		ChainHeadChanSize:      10,
+		ChainSideChanSize:      10,
+		ResultQueueSize:        10,
 		ResubmitAdjustChanSize: 10,
-		MinRecommitInterval:	1 * time.Second,
-		MaxRecommitInterval:	15 * time.Second,
-		IntervalAdjustRatio:	0.1,
-		IntervalAdjustBias:		200 * 1000.0 * 1000.0,
-		StaleThreshold:			7,
-		DefaultCommitRatio:		0.95,
+		MinRecommitInterval:    1 * time.Second,
+		MaxRecommitInterval:    15 * time.Second,
+		IntervalAdjustRatio:    0.1,
+		IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+		StaleThreshold:         7,
+		DefaultCommitRatio:     0.95,
 	}
 	w, b := newTestWorker(t, chainConfig, minningConfig, engine, 0)
 
@@ -395,18 +397,18 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 	defer engine.Close()
 
 	minningConfig := &core.MiningConfig{
-		MiningLogAtDepth: 		7,
-		TxChanSize: 			4096,
-		ChainHeadChanSize: 		10,
-		ChainSideChanSize:		10,
-		ResultQueueSize:		10,
+		MiningLogAtDepth:       7,
+		TxChanSize:             4096,
+		ChainHeadChanSize:      10,
+		ChainSideChanSize:      10,
+		ResultQueueSize:        10,
 		ResubmitAdjustChanSize: 10,
-		MinRecommitInterval:	1 * time.Second,
-		MaxRecommitInterval:	15 * time.Second,
-		IntervalAdjustRatio:	0.1,
-		IntervalAdjustBias:		200 * 1000.0 * 1000.0,
-		StaleThreshold:			7,
-		DefaultCommitRatio:		0.95,
+		MinRecommitInterval:    1 * time.Second,
+		MaxRecommitInterval:    15 * time.Second,
+		IntervalAdjustRatio:    0.1,
+		IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+		StaleThreshold:         7,
+		DefaultCommitRatio:     0.95,
 	}
 
 	w, _ := newTestWorker(t, chainConfig, minningConfig, engine, 0)

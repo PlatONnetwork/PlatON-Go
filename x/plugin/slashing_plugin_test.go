@@ -30,7 +30,6 @@ func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
 	if nil != err {
 		t.Error(err)
 	}
-	xcom.GetEc(xcom.DefaultDeveloperNet)
 	return si, stateDB
 }
 
@@ -362,7 +361,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		return
 	}
 	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	data = `{
           "duplicate_prepare": [
             {
@@ -393,7 +392,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		return
 	}
 	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestSlashingPlugin_CheckMutiSign(t *testing.T) {

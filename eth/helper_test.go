@@ -41,6 +41,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (

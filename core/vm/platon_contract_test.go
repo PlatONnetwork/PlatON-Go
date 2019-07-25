@@ -154,8 +154,6 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 
 	node, _ := discover.ParseNode(url)
 
-	xcom.GetEc(xcom.DefaultMainNet)
-
 	gen := &core.Genesis{
 		Config: &params.ChainConfig{
 			Cbft: &params.CbftConfig{
