@@ -107,11 +107,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
 	if block != nil {
-		cbft.state.AddQC(msg.BlockQC)
-		lock, commit := cbft.blockTree.InsertQCBlock(block, msg.BlockQC)
-		cbft.state.SetHighestQCBlock(block)
-		cbft.tryCommitNewBlock(lock, commit)
-		cbft.tryChangeView()
+		cbft.insertQCBlock(block, msg.BlockQC)
 		cbft.log.Debug("Receive BlockQuorumCert success", "msg", msg.String())
 	}
 }
