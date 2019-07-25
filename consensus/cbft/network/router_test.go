@@ -139,6 +139,7 @@ func Test_Router_SendMessage(t *testing.T) {
 				t.Fatal("Error message code")
 			}
 			t.Logf("messageType: %d", msg.Code)
+			msg.Discard()
 			wg.Done()
 		}
 	}()

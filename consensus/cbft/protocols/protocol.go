@@ -90,8 +90,8 @@ type PrepareBlock struct {
 }
 
 func (s *PrepareBlock) String() string {
-	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
-		s.ViewNumber, s.Block.Hash().TerminalString(), s.Block.NumberU64(), s.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
+		s.Epoch, s.ViewNumber, s.Block.Hash().TerminalString(), s.Block.NumberU64(), s.BlockIndex)
 }
 
 func (s *PrepareBlock) MsgHash() common.Hash {

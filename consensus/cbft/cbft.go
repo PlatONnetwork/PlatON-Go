@@ -113,10 +113,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		return nil
 	}
 
-	//todo init safety rules, vote rules, state, asyncExecutor
-	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
-	cbft.voteRules = rules.NewVoteRules(cbft.state)
-
 	return cbft
 }
 
@@ -432,13 +428,15 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		prepareBlock.PrepareQC = parentQC
 	}
 
-	// TODO: add viewchange qc
+	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
 
 	// TODO: signature block - fake verify.
 	cbft.signMsgByBls(prepareBlock)
 
+	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
 	cbft.OnPrepareBlock("", prepareBlock)
 	cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex)
+	cbft.findQCBlock()
 
 	cbft.state.SetHighestExecutedBlock(block)
 
@@ -568,7 +566,7 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 		return false, errors.New("current node not a validator")
 	}
 
-	result := make(chan error, 1)
+	result := make(chan error, 2)
 	cbft.asyncCallCh <- func() {
 		cbft.OnShouldSeal(result)
 	}

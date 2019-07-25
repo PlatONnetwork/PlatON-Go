@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -218,12 +219,14 @@ type view struct {
 	// finish indicates whether the execution is complete,
 	// and the next block can be executed asynchronously after the execution is completed.
 	executing executing
-	//viewchange received by the current view
+
+	// viewchange received by the current view
 	viewChanges *viewChanges
 
-	viewChangeQC        *ctypes.ViewChangeQC
-	lastestViewChangeQC *ctypes.ViewChangeQC
-	//This view has been sent to other verifiers for voting
+	// QC of the previous view
+	lastViewChangeQC *ctypes.ViewChangeQC
+
+	// This view has been sent to other verifiers for voting
 	hadSendPrepareVote *PrepareVoteQueue
 
 	//Pending votes of current view, parent block need receive N-f prepareVotes
@@ -258,6 +261,7 @@ func (v *view) Reset() {
 	v.hadSendPrepareVote.reset()
 	v.pendingVote.reset()
 	v.viewBlocks.clear()
+	v.viewQCs.clear()
 	v.viewVotes.clear()
 }
 
@@ -365,6 +369,9 @@ func (vs *ViewState) ViewNumber() uint64 {
 	return vs.view.viewNumber
 }
 
+func (vs *ViewState) ViewString() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d}", vs.view.epoch, vs.view.viewNumber)
+}
 func (vs *ViewState) Deadline() time.Time {
 	return vs.viewTimer.deadline
 }
@@ -394,7 +401,10 @@ func (vs *ViewState) ViewBlockByIndex(index uint32) *types.Block {
 }
 
 func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
-	return vs.view.viewBlocks.index(index).prepareBlock()
+	if b := vs.view.viewBlocks.index(index); b != nil {
+		return b.prepareBlock()
+	}
+	return nil
 }
 
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
@@ -422,8 +432,12 @@ func (vs *ViewState) Executing() (uint32, bool) {
 	return vs.view.executing.blockIndex, vs.view.executing.finish
 }
 
-func (vs *ViewState) SetViewChangeQC(qc *ctypes.ViewChangeQC) {
-	vs.view.viewChangeQC = qc
+func (vs *ViewState) SetLastViewChangeQC(qc *ctypes.ViewChangeQC) {
+	vs.view.lastViewChangeQC = qc
+}
+
+func (vs *ViewState) LastViewChangeQC() *ctypes.ViewChangeQC {
+	return vs.view.lastViewChangeQC
 }
 
 // Set Executing block status
@@ -432,7 +446,11 @@ func (vs *ViewState) SetExecuting(index uint32, finish bool) {
 }
 
 func (vs *ViewState) ViewBlockAndQC(blockIndex uint32) (*types.Block, *ctypes.QuorumCert) {
-	return vs.view.viewBlocks.index(blockIndex).block(), vs.viewQCs.index(blockIndex)
+	qc := vs.viewQCs.index(blockIndex)
+	if b := vs.view.viewBlocks.index(blockIndex); b != nil {
+		return b.block(), qc
+	}
+	return nil, qc
 }
 
 func (vs *ViewState) AddPrepareBlock(pb *protocols.PrepareBlock) {
@@ -461,6 +479,16 @@ func (vs *ViewState) ViewChangeLen() int {
 
 func (vs *ViewState) SetHighestExecutedBlock(block *types.Block) {
 	vs.highestExecutedBlock.Store(block)
+}
+
+func (vs *ViewState) HighestBlockString() string {
+	qc := vs.HighestQCBlock()
+	lock := vs.HighestLockBlock()
+	commit := vs.HighestCommitBlock()
+	return fmt.Sprintf("{HighestQC:{hash:%s,number:%d},HighestLock:{hash:%s,number:%d},HighestCommit:{hash:%s,number:%d}}",
+		qc.Hash().TerminalString(), qc.NumberU64(),
+		lock.Hash().TerminalString(), lock.NumberU64(),
+		commit.Hash().TerminalString(), commit.NumberU64())
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
@@ -517,4 +545,8 @@ func (vs *ViewState) ViewTimeout() <-chan time.Time {
 
 func (vs *ViewState) SetViewTimer(viewInterval uint64) {
 	vs.viewTimer.setupTimer(viewInterval)
+}
+
+func (vs *ViewState) String() string {
+	return fmt.Sprintf("")
 }

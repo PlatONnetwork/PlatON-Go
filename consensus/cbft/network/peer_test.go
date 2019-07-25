@@ -241,5 +241,4 @@ func Test_Peer_Handshake(t *testing.T) {
 			}
 		}
 	}
-
 }
