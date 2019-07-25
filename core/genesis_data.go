@@ -198,20 +198,20 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		// At the twice year end, 0.5% of genesis issuance need be released
 		switch {
 		case i == 0:
-			allowance := new(big.Int).Div(issue, big.NewInt(15))
-			allowance = allowance.Mul(allowance, big.NewInt(1000))
+			allowance := new(big.Int).Mul(issue, big.NewInt(15))
+			allowance = allowance.Div(allowance, big.NewInt(1000))
 			stateDb.SetState(account, releaseAmountKey, allowance.Bytes())
 		case i == 1:
-			allowance := new(big.Int).Div(issue, big.NewInt(5))
-			allowance = allowance.Mul(allowance, big.NewInt(1000))
+			allowance := new(big.Int).Mul(issue, big.NewInt(5))
+			allowance = allowance.Div(allowance, big.NewInt(1000))
 			stateDb.SetState(account, releaseAmountKey, allowance.Bytes())
 		}
 
 		// store release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
-		stateDb.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		stateDb.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
 
-		epochList = append(epochList, uint64(epoch))
+		epochList[i] = uint64(epoch)
 	}
 
 	// build restricting account info
@@ -228,7 +228,7 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 
 	// store restricting account info
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
+	stateDb.SetState(account, restrictingKey, bRestrictInfo)
 
 	return nil
 }

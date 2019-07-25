@@ -98,7 +98,7 @@ func (rmp *rewardMgrPlugin) increaseIssuance(blockNumber uint64, state xcom.Stat
 	histIssuance.Add(histIssuance, currIssuance)
 	SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 
-	// restore the Balance of rewardMgrPool
+	// restore the Balance of rewardMgrPool at this year end
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
 }
@@ -118,13 +118,16 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	}
 	log.Trace("get verifier list success", "list", list)
 
+	validatorNum := int64(len(list))
+	everyValidatorReward := new(big.Int).Sub(reward, big.NewInt(validatorNum))
+
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenefitAddress
-		log.Trace("rewarding staking...", "benefitAddress", addr.String())
+		log.Trace("rewarding staking", "benefitAddress", addr.String())
 
 		if addr != vm.RewardManagerPoolAddr {
-			state.SubBalance(vm.RewardManagerPoolAddr, reward)
-			state.AddBalance(addr, reward)
+			state.SubBalance(vm.RewardManagerPoolAddr, everyValidatorReward)
+			state.AddBalance(addr, everyValidatorReward)
 		}
 	}
 
