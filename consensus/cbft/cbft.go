@@ -6,6 +6,8 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	errors "github.com/pkg/errors"
 
@@ -781,7 +783,7 @@ func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
 	return nil
 }
 
-func (cbft *Cbft) VerifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
 	digest, err := msg.CannibalizeBytes()
 	if err != nil {
 		return nil, errors.Wrap(err, "get msg's cannibalize bytes failed")
@@ -796,5 +798,139 @@ func (cbft *Cbft) VerifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	if err != nil {
 		return nil, errors.Wrap(err, "get validator failed")
 	}
+
+	var prepareQC *ctypes.QuorumCert
+
+	switch cm := msg.(type) {
+	case *protocols.PrepareBlock:
+		prepareQC = cm.PrepareQC
+		if cm.ViewChangeQC != nil {
+			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
+				return nil, err
+			}
+		}
+	case *protocols.PrepareVote:
+		prepareQC = cm.ParentQC
+	case *protocols.ViewChange:
+		prepareQC = cm.PrepareQC
+	}
+
+	if err := cbft.verifyPrepareQC(prepareQC); err != nil {
+		return nil, err
+	}
+
 	return vnode, nil
+}
+
+func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
+	if len(votes) == 0 {
+		return nil
+	}
+
+	var vote *protocols.PrepareVote
+
+	for _, v := range votes {
+		vote = v
+	}
+
+	// Validator set prepareQC is the same as highestQC
+	total := cbft.validatorPool.Len(vote.BlockNum())
+
+	vSet := utils.NewBitArray(uint32(total))
+	vSet.SetIndex(vote.NodeIndex(), true)
+
+	var aggSig bls.Sign
+	if err := aggSig.Deserialize(vote.Sign()); err != nil {
+		return nil
+	}
+
+	qc := &ctypes.QuorumCert{
+		Epoch:       vote.Epoch,
+		ViewNumber:  vote.ViewNumber,
+		BlockHash:   vote.BlockHash,
+		BlockNumber: vote.BlockNumber,
+		BlockIndex:  vote.BlockIndex,
+	}
+	for _, p := range votes {
+		if p.NodeIndex() != vote.NodeIndex() {
+			var sig bls.Sign
+			err := sig.Deserialize(vote.Sign())
+			if err != nil {
+				return nil
+			}
+
+			aggSig.Add(&sig)
+			vSet.SetIndex(p.NodeIndex(), true)
+		}
+	}
+	qc.Signature.SetBytes(aggSig.Serialize())
+	qc.ValidatorSet.Update(vSet)
+	return qc
+}
+
+func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewChange) *ctypes.ViewChangeQC {
+	type ViewChangeQC struct {
+		cert   *ctypes.ViewChangeQuorumCert
+		aggSig *bls.Sign
+		ba     *utils.BitArray
+	}
+
+	total := uint32(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
+
+	qcs := make(map[common.Hash]*ViewChangeQC)
+
+	for _, v := range viewChanges {
+		var aggSig bls.Sign
+		if err := aggSig.Deserialize(v.Sign()); err != nil {
+			return nil
+		}
+
+		if vc, ok := qcs[v.BlockHash]; !ok {
+			qc := &ViewChangeQC{
+				cert:   &ctypes.ViewChangeQuorumCert{},
+				aggSig: &aggSig,
+				ba:     utils.NewBitArray(total),
+			}
+			qcs[v.BlockHash] = qc
+		} else {
+			vc.aggSig.Add(&aggSig)
+			vc.ba.SetIndex(v.NodeIndex(), true)
+		}
+	}
+
+	qc := &ctypes.ViewChangeQC{QCs: make([]*ctypes.ViewChangeQuorumCert, 0)}
+	for _, q := range qcs {
+		q.cert.Signature.SetBytes(q.aggSig.Serialize())
+		q.cert.ValidatorSet.Update(q.ba)
+		qc.QCs = append(qc.QCs, q.cert)
+	}
+	return qc
+}
+
+func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
+	var cb []byte
+	var err error
+	if cb, err = qc.CannibalizeBytes(); err != nil {
+		return err
+	}
+	if cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
+		return fmt.Errorf("verify prepare qc failed")
+	}
+	return err
+}
+
+func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+	var err error
+	for _, vc := range viewChangeQC.QCs {
+		var cb []byte
+		if cb, err = vc.CannibalizeBytes(); err != nil {
+			break
+		}
+		if cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
+			err = fmt.Errorf("verify viewchange qc failed")
+			break
+		}
+	}
+
+	return err
 }

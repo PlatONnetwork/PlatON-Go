@@ -25,7 +25,7 @@ func CreateCBFT() *Cbft {
 		Epoch:        1,
 		Period:       10,
 		Amount:       10,
-		InitialNodes: []discover.Node{},
+		InitialNodes: []params.CbftNode{},
 	}
 
 	optConfig := &types.OptionsConfig{
@@ -38,7 +38,7 @@ func CreateCBFT() *Cbft {
 	return New(sysConfig, optConfig, ctx.EventMux, ctx)
 }
 
-func CreateBackend(engine *Cbft, nodes []discover.Node) {
+func CreateBackend(engine *Cbft, nodes []params.CbftNode) {
 	var (
 		db    = ethdb.NewMemDatabase()
 		gspec = core.Genesis{

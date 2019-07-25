@@ -22,7 +22,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		executor := func(msg ctypes.Message) {
 			if blockList, ok := msg.(*protocols.QCBlockList); ok {
 				// Execution block
-				for _, block := range blockList.Blocks {
+				for i, block := range blockList.Blocks {
+					if err := cbft.verifyPrepareQC(blockList.QC[i]); err != nil {
+						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+						return
+					}
+
 					if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
@@ -102,6 +107,10 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
 		cbft.log.Debug("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
+		return
+	}
+
+	if err := cbft.verifyPrepareQC(msg.BlockQC); err != nil {
 		return
 	}
 
