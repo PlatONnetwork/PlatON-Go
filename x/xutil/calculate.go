@@ -107,6 +107,13 @@ func IsYearEnd(blockNumber uint64) bool {
 	return blockNumber > 0 && blockNumber%size == 0
 }
 
+func IsSpecialBlock(blockNumber uint64) bool {
+	if IsElection(blockNumber) || IsSwitch(blockNumber) || IsSettlementPeriod(blockNumber) || IsYearEnd(blockNumber) {
+		return true
+	}
+	return false
+}
+
 // calculate the Epoch number by blockNumber
 func CalculateEpoch(blockNumber uint64) uint64 {
 	size := CalcBlocksEachEpoch()

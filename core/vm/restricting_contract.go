@@ -43,19 +43,19 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 // createRestrictingPlan is a PlatON precompiled contract function, used for create a restricting plan
 func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
 
-	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
-		return nil, ErrOutOfGas
-	}
-	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
-		return nil, ErrOutOfGas
-	}
-
 	sender := rc.Contract.Caller()
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNum := rc.Evm.BlockNumber
 	state := rc.Evm.StateDB
 
 	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64())
+
+	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
+		return nil, ErrOutOfGas
+	}
+	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
+		return nil, ErrOutOfGas
+	}
 
 	if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
 		if _, ok := err.(*common.SysError); ok {

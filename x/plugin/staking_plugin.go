@@ -242,8 +242,16 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
-		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate power failed",
+		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate power is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+		return err
+	}
+
+	// add the account staking Reference Count
+	if err := sk.db.AddAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+		log.Error("Failed to CreateCandidate on stakingPlugin: Store Staking Account Reference Count (add) is failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "canAddr", addr.String(),
+			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
 
@@ -292,6 +300,14 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate power failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+		return err
+	}
+
+	// sub the account staking Reference Count
+	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+		log.Error("Failed to RollBackStaking on stakingPlugin: Store Staking Account Reference Count (sub) is failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "canAddr", addr.String(),
+			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
 
@@ -416,6 +432,15 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 	}
+
+	// sub the account staking Reference Count
+	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+		log.Error("Failed to WithdrewStaking on stakingPlugin: Store Staking Account Reference Count (sub) is failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "canAddr", addr.String(),
+			"staking Account", can.StakingAddress.String(), "err", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -2712,4 +2737,8 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 	}
 
 	return nil
+}
+
+func (sk *StakingPlugin) HasStake(blockHash common.Hash, addr common.Address) (bool, error) {
+	return sk.db.HasAccountStakeRc(blockHash, addr)
 }
