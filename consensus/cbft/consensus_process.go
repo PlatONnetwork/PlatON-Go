@@ -87,8 +87,34 @@ func (cbft *Cbft) OnViewTimeout() {
 
 //Perform security rule verification, view switching
 func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
+	if len(blocks) != len(qcs) {
+		return fmt.Errorf("block")
+	}
 	//todo insert tree, update view
+	for i := 0; i < len(blocks); i++ {
+		block, qc := blocks[i], qcs[i]
+		//todo verify qc
+
+		if err := cbft.safetyRules.QCBlockRules(block, qc); err != nil {
+			if err.NewView() {
+				cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+			}
+		}
+
+		cbft.insertQCBlock(block, qc)
+		cbft.log.Debug("Insert QC block success", "hash", qc.BlockHash, "number", qc.BlockNumber)
+	}
+
 	return nil
+}
+
+// Update blockTree, try commit new block
+func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
+	cbft.state.AddQC(qc)
+	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
+	cbft.state.SetHighestQCBlock(block)
+	cbft.tryCommitNewBlock(lock, commit)
+	cbft.tryChangeView()
 }
 
 // Asynchronous execution block callback function
@@ -208,10 +234,7 @@ func (cbft *Cbft) findQCBlock() {
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
-		cbft.state.AddQC(qc)
-		lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
-		cbft.state.SetHighestQCBlock(block)
-		cbft.tryCommitNewBlock(lock, commit)
+		cbft.insertQCBlock(block, qc)
 	}
 	cbft.tryChangeView()
 }

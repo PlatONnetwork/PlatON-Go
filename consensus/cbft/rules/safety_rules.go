@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"time"
 )
 
@@ -71,11 +72,14 @@ type SafetyRules interface {
 
 	// Security rules for viewChange
 	ViewChangeRules(vote *protocols.ViewChange) SafetyError
+
+	// Security rules for qcblock
+	QCBlockRules(block *types.Block, qc *ctypes.QuorumCert) SafetyError
 }
 
 type baseSafetyRules struct {
 	viewState *state.ViewState
-	blockTree *types.BlockTree
+	blockTree *ctypes.BlockTree
 }
 
 // PrepareBlock rules
@@ -183,7 +187,21 @@ func (r *baseSafetyRules) changeEpochViewChangeRules(viewChange *protocols.ViewC
 	return newFetchError("new epoch, need fetch blocks")
 }
 
-func NewSafetyRules(viewState *state.ViewState, blockTree *types.BlockTree) SafetyRules {
+func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert) SafetyError {
+	if r.viewState.Epoch() > qc.Epoch || r.viewState.ViewNumber() > qc.ViewNumber {
+		return newError(fmt.Sprintf("epoch or viewNumber too low(local:%s, msg:{Epoch:%d,ViewNumber:%d})", r.viewState.ViewString(), qc.Epoch, qc.ViewNumber))
+	}
+
+	if b := r.blockTree.FindBlockByHash(qc.BlockHash); b == nil {
+		return newError(fmt.Sprintf("not find parent qc block"))
+	}
+	if r.viewState.Epoch() > qc.Epoch || r.viewState.ViewNumber() > qc.ViewNumber {
+		return newViewError("need change view")
+	}
+	return nil
+}
+
+func NewSafetyRules(viewState *state.ViewState, blockTree *ctypes.BlockTree) SafetyRules {
 	return &baseSafetyRules{
 		viewState: viewState,
 		blockTree: blockTree,

@@ -92,7 +92,7 @@ type Cbft struct {
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	cbft := &Cbft{
-		config:             ctypes.Config{sysConfig, optConfig},
+		config:             ctypes.Config{Sys: sysConfig, Option: optConfig},
 		eventMux:           eventMux,
 		exitCh:             make(chan struct{}),
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
@@ -177,6 +177,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	go cbft.network.Start()
 
 	cbft.start = true
+	cbft.log.Info("Cbft engine start")
 	return nil
 }
 
