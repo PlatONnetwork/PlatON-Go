@@ -44,12 +44,15 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 //implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	log.Debug("call EndBlock()", "blockNumber", header.Number.Uint64(), "blockHash", blockHash)
+
+	blockNumber := header.Number.Uint64()
+
+	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
 	//if current block is a settlement block, to accumulate current verifiers for each voting proposal.
-	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
-		log.Debug("settlement block", "blockNumber", header.Number.Uint64(), "blockHash", blockHash)
-		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+	if xutil.IsSettlementPeriod(blockNumber) {
+		log.Debug("settlement block", "blockNumber", blockNumber, "blockHash", blockHash)
+		verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
 		if err != nil {
 			return err
 		}
@@ -83,7 +86,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			return err
 		}
 		if votingProposal.GetEndVotingBlock() == header.Number.Uint64() {
-			log.Debug("proposal's end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", header.Number.Uint64())
+			log.Debug("proposal's end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
 			//According to the proposal's rules, the end-voting block must not be the end-voting block, so, to accumulate current verifiers for current voting proposal.
 			verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 			if err != nil {
@@ -101,7 +104,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					return err
 				}
 			} else if votingProposal.GetProposalType() == gov.Version {
-				getNewPreActiveProposal, err = govPlugin.tallyForVersionProposal(votingProposal.(gov.VersionProposal), blockHash, header.Number.Uint64(), state)
+				getNewPreActiveProposal, err = govPlugin.tallyForVersionProposal(votingProposal.(gov.VersionProposal), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
@@ -145,31 +148,33 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	versionProposal, isVersionProposal := preActiveProposal.(gov.VersionProposal)
 
 	if isVersionProposal {
-		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockNumber", header.Number.Uint64(), "activeBlockNumber", versionProposal.GetActiveBlock())
+		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockHash", blockHash, "blockNumber", blockNumber, "activeBlockNumber", versionProposal.GetActiveBlock())
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
 		if sub >= 0 && sub%xutil.ConsensusSize() == 0 {
-			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
+			currentValidatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 			if err != nil {
-				log.Error("list current round validators failed.", "blockHash", blockHash, "blockNumber", header.Number.Uint64())
+				log.Error("list current round validators failed.", "blockHash", blockHash, "blockNumber", blockNumber)
 				return err
 			}
-			var updatedNodes uint64 = 0
+			var updatedNodes int = 0
+			var totalValidators int = len(currentValidatorList)
 
 			//all active validators
 			activeList, err := govPlugin.govDB.GetActiveNodeList(blockHash, preActiveProposalID)
 			if err != nil {
-				log.Error("list all active nodes failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)
+				log.Error("list all active nodes failed.", "blockHash", blockHash, "blockNumber", blockNumber, "preActiveProposalID", preActiveProposalID)
 				return err
 			}
 
 			//check if all validators are active
-			for _, val := range validatorList {
+			for _, val := range currentValidatorList {
 				if inNodeList(val, activeList) {
 					updatedNodes++
 				}
 			}
-			log.Debug("check active criteria", "pre-active nodes", updatedNodes, "total validators", xcom.ConsValidatorNum())
-			if updatedNodes == xcom.ConsValidatorNum() {
+
+			log.Debug("check active criteria", "pre-active nodes", updatedNodes, "total validators", totalValidators)
+			if updatedNodes == totalValidators {
 				log.Debug("the pre-active version proposal has passed")
 				tallyResult, err := govPlugin.govDB.GetTallyResult(preActiveProposalID, state)
 				if err != nil {
