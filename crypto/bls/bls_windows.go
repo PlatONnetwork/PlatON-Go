@@ -3,7 +3,7 @@
 package bls
 
 /*
-#cgo CFLAGS: -I./src/
+#cgo CFLAGS: -I./include/
 #include <stdio.h>
 #include <bls/bls.h>
 */
