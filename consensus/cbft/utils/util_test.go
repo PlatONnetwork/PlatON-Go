@@ -13,11 +13,15 @@ func Test_RandomOffset(t *testing.T) {
 		max int
 	}{
 		{min: 1, max: 10},
+		{min: 2, max: 10},
+		{min: 3, max: 10},
+		{min: 4, max: 10},
 		{min: 0, max: 5},
-		{min: 100, max: 300},
+		{min: 5, max: 300},
 	}
 	for _, data := range testCase {
 		offset := RandomOffset(data.min)
+		t.Logf("offset: %d", offset)
 		if data.min == 0 && offset != 0 {
 			t.Fatalf("bad offset")
 		}

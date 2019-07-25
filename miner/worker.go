@@ -622,7 +622,7 @@ func (w *worker) resultLoop() {
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			//todo remove extra magic number
-			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Extra()[32:]) {
+			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Header()) {
 				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil
