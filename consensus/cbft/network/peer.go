@@ -124,6 +124,7 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 	// 1、If the QCBlock from another peer is less than the current node,
 	// determine if the local node contains a block height and a hash that matches it.
 	// qcBn/lockedBn/commitBn.
+	p.highestQCBn, p.lockedBn, p.commitBn = inStatus.QCBn, inStatus.LockBn, inStatus.CmtBn
 
 	return nil
 }

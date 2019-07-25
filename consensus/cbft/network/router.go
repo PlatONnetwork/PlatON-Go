@@ -151,8 +151,10 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 	if err != nil {
 		return nil, err
 	}
-	//existsPeers := r.msgHandler.PeerSet().Peers()
-	existsPeers := make([]*peer, 0)
+	existsPeers, err := r.peers()
+	if err != nil {
+		return nil, err
+	}
 	log.Debug("kConsensusRandomNodes select node", "msgHash", condition, "cNodesLen", len(cNodes), "peerSetLen", len(existsPeers))
 
 	// The maximum capacity will not exceed the capacity of existsPeers.
@@ -164,6 +166,9 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 				consensusPeers = append(consensusPeers, peer)
 				break
 			}
+		}
+		if peer.ContainsMessageHash(condition) {
+			continue
 		}
 	}
 	if random {
@@ -179,8 +184,10 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 	if err != nil {
 		return nil, err
 	}
-	//existsPeers := r.msgHandler.PeerSet().Peers()
-	existsPeers := make([]*peer, 0)
+	existsPeers, err := r.peers()
+	if err != nil {
+		return nil, err
+	}
 	consensusPeers := make([]*peer, 0, len(existsPeers))
 	// The length of non-consensus nodes is equal to the default fan-out value.
 	nonconsensusPeers := make([]*peer, 0, DEFAULT_FAN_OUT)
@@ -191,6 +198,9 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 				isConsensus = true
 				break
 			}
+		}
+		if peer.ContainsMessageHash(condition) {
+			continue
 		}
 		if isConsensus {
 			consensusPeers = append(consensusPeers, peer)
