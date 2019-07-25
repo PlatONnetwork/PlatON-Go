@@ -101,7 +101,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 		} else {
 			t.Logf("%v", res.Balance)
 			t.Logf("%v", res.Debt)
-			t.Logf("%v", res.Symbol)
+			//t.Logf("%v", res.Symbol)
 			t.Logf("%v", res.Entry)
 		}
 		t.Log("test pass!")

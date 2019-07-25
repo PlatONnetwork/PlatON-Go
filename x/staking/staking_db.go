@@ -475,3 +475,62 @@ func (db *StakingDB) IteratorDelegateByBlockHashWithAddr(blockHash common.Hash, 
 	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
 	return db.ranking(blockHash, prefix, ranges)
 }
+
+func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Address) error {
+	key := GetAccountStakeRcKey(addr)
+	val, err := db.get(blockHash, key)
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
+		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
+	}
+
+	v++
+
+	return db.put(blockHash, key, common.Uint64ToBytes(v))
+}
+
+func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Address) error {
+	key := GetAccountStakeRcKey(addr)
+	val, err := db.get(blockHash, key)
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
+		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
+	}
+
+	v--
+
+	if v == 0 {
+		return db.del(blockHash, key)
+	} else if v < 0 {
+		return common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
+	} else {
+		return db.put(blockHash, key, common.Uint64ToBytes(v))
+	}
+}
+
+func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Address) (bool, error) {
+	key := GetAccountStakeRcKey(addr)
+	val, err := db.get(blockHash, key)
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
+		return false, err
+	case nil != err && err == snapshotdb.ErrNotFound:
+		return false, nil
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
+	}
+	if v == 0 {
+		return false, nil
+	} else if v > 0 {
+		return true, nil
+	} else {
+		return false, common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
+	}
+}

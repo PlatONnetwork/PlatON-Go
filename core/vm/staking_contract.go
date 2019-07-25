@@ -88,10 +88,6 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
 
-	if !stkc.Contract.UseGas(params.CreateStakeGas) {
-		return nil, ErrOutOfGas
-	}
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
 	blockNumber := stkc.Evm.BlockNumber
@@ -103,6 +99,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
+
+	if !stkc.Contract.UseGas(params.CreateStakeGas) {
+		return nil, ErrOutOfGas
+	}
 
 	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
@@ -126,6 +126,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		res := xcom.Result{false, "", ProgramVersionErr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
 
 	} else if inputVersion > currVersion {
 		isDeclareVersion = true
@@ -222,10 +223,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string) ([]byte, error) {
 
-	if !stkc.Contract.UseGas(params.EditCandidatGas) {
-		return nil, ErrOutOfGas
-	}
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -236,6 +233,10 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	log.Info("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+
+	if !stkc.Contract.UseGas(params.EditCandidatGas) {
+		return nil, ErrOutOfGas
+	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -303,10 +304,6 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
 
-	if !stkc.Contract.UseGas(params.IncStakeGas) {
-		return nil, ErrOutOfGas
-	}
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -317,6 +314,10 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	log.Info("Call increaseStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+
+	if !stkc.Contract.UseGas(params.IncStakeGas) {
+		return nil, ErrOutOfGas
+	}
 
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
@@ -384,10 +385,6 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, error) {
 
-	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
-		return nil, ErrOutOfGas
-	}
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -398,6 +395,10 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	log.Info("Call withdrewStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+
+	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
+		return nil, ErrOutOfGas
+	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -440,8 +441,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", WithdrewCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent,
-				string(event), "withdrewStaking")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, string(event), "withdrewStaking")
 			return event, nil
 		} else {
 			log.Error("Failed to withdrewStaking by WithdrewStaking", "txHash", txHash,
@@ -460,10 +460,6 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
-	if !stkc.Contract.UseGas(params.DelegateGas) {
-		return nil, ErrOutOfGas
-	}
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -475,8 +471,25 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	log.Info("Call delegate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String())
 
+	if !stkc.Contract.UseGas(params.DelegateGas) {
+		return nil, ErrOutOfGas
+	}
+
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
+		return event, nil
+	}
+
+	// check account
+	hasStake, err := stkc.Plugin.HasStake(blockHash, from)
+	if nil != err {
+		return nil, err
+	}
+
+	if hasStake {
+		res := xcom.Result{false, "", DelegateErrStr + ": Account of Candidate(Validator)  is not allowed to be used for delegating"}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
@@ -566,10 +579,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
-	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
-		return nil, ErrOutOfGas
-	}
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -580,6 +589,10 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 	log.Info("Call withdrewDelegate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String())
+
+	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
+		return nil, ErrOutOfGas
+	}
 
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}

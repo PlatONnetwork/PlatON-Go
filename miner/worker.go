@@ -22,6 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -1221,12 +1223,22 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
+	// Short circuit if The Current Block is Special Block
+	if xutil.IsSpecialBlock(header.Number.Uint64()) {
+		if _, ok := w.engine.(consensus.Bft); ok {
+			w.commit(nil, true, tstart)
+		} else {
+			w.updateSnapshot()
+		}
+		return
+	}
+
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
-		// No empty block
-		if "off" == w.EmptyBlock {
-			return
-		}
+		//// No empty block
+		//if "off" == w.EmptyBlock {
+		//	return
+		//}
 		if _, ok := w.engine.(consensus.Bft); ok {
 			w.commit(nil, true, tstart)
 		} else {
@@ -1287,9 +1299,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(interval func(), update bool, start time.Time) error {
-	if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
-		return nil
-	}
+	//if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
+	//	return nil
+	//}
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
