@@ -32,7 +32,7 @@ func (cs *ChainState) String() string {
 	if cs == nil {
 		return ""
 	}
-	return fmt.Sprintf("[commitNum:%d,commitHash:%s,lockNum:%d,lockHash:%s,qcNum:%d,qcHash:%s]",
+	return fmt.Sprintf("[commitNum:%d, commitHash:%s, lockNum:%d, lockHash:%s, qcNum:%d, qcHash:%s]",
 		cs.Commit.Block.NumberU64(), cs.Commit.Block.Hash(),
 		cs.Lock.Block.NumberU64(), cs.Lock.Block.Hash(),
 		cs.QC[0].Block.NumberU64(), cs.QC[0].Block.Hash())
@@ -40,8 +40,18 @@ func (cs *ChainState) String() string {
 
 // ConfirmedViewChange indicates the latest confirmed view.
 type ConfirmedViewChange struct {
-	Epoch      uint64
-	ViewNumber uint64
+	Epoch        uint64
+	ViewNumber   uint64
+	Block        *types.Block
+	QC           *ctypes.QuorumCert
+	ViewChangeQC *ctypes.ViewChangeQC
+}
+
+func (c *ConfirmedViewChange) String() string {
+	if c == nil {
+		return ""
+	}
+	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]", c.Epoch, c.ViewNumber, c.QC.BlockIndex, c.QC.BlockNumber, c.QC.BlockHash.String())
 }
 
 // SendViewChange indicates the viewChange sent by the local node.

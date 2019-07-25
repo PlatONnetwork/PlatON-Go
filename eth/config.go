@@ -43,7 +43,7 @@ var DefaultConfig = Config{
 		WalMode: false,
 
 		PeerMsgQueueSize: 1024,
-		EvidenceDir:      "evidencedata",
+		EvidenceDir:      "evidence",
 		MaxPingLatency:   5000,
 		MaxQueuesLimit:   4096,
 	},

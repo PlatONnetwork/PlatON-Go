@@ -81,6 +81,9 @@ func (cbft *Cbft) OnViewTimeout() {
 		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
 	}
 
+	// write sendViewChange info to wal
+	cbft.sendViewChange(viewChange)
+
 	cbft.network.Broadcast(viewChange)
 }
 
@@ -145,6 +148,10 @@ func (cbft *Cbft) trySendPrepareVote() {
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
+
+			// write sendPrepareVote info to wal
+			cbft.sendPrepareVote(block, p)
+
 			cbft.network.Broadcast(p)
 		} else {
 			break
@@ -275,6 +282,10 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetViewChangeQC(viewChangeQC)
+	// write confirmed viewChange info to wal
+	if !cbft.isLoading() {
+		cbft.confirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
+	}
 	cbft.clearInvalidBlocks(block)
 }
 

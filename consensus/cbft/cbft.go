@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	errors2 "github.com/pkg/errors"
 
@@ -83,8 +84,7 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
-	stateMu            sync.Mutex
-	viewMu             sync.Mutex
+	loading            int32
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -107,7 +107,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		state:              cstate.NewViewState(),
 	}
 
-	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
@@ -150,6 +150,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
+	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
 		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
 	} else {
@@ -170,6 +171,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
+	atomic.StoreInt32(&cbft.loading, 0)
 
 	go cbft.receiveLoop()
 
@@ -442,6 +444,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.state.SetHighestExecutedBlock(block)
 
+	// write sendPrepareBlock info to wal
+	cbft.sendPrepareBlock(prepareBlock.Block)
+
 	cbft.network.Broadcast(prepareBlock)
 
 	go func() {
@@ -563,6 +568,9 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
+	if cbft.isLoading() {
+		return false, nil
+	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		return false, errors.New("current node not a validator")
@@ -753,4 +761,8 @@ func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
 	}
 	msg.SetSign(sign)
 	return nil
+}
+
+func (cbft *Cbft) isLoading() bool {
+	return atomic.LoadInt32(&cbft.loading) == 1
 }

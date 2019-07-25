@@ -2,14 +2,14 @@ package cbft
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 var (
@@ -53,41 +53,57 @@ func (cbft *Cbft) addQCState(qc *protocols.State) error {
 	return cbft.wal.UpdateChainState(chainState)
 }
 
-func (cbft *Cbft) confirmViewChange(epoch uint64, viewNumber uint64) error {
+func (cbft *Cbft) confirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
 	meta := &wal.ViewChangeMessage{
 		Epoch:      epoch,
 		ViewNumber: viewNumber,
 	}
 	if err := cbft.wal.UpdateViewChange(meta); err != nil {
-		return err
+		panic(fmt.Sprintf("update viewChange meta error: %s", err.Error()))
 	}
 	vc := &protocols.ConfirmedViewChange{
-		Epoch:      epoch,
-		ViewNumber: viewNumber,
+		Epoch:        epoch,
+		ViewNumber:   viewNumber,
+		Block:        block,
+		QC:           qc,
+		ViewChangeQC: viewChangeQC,
 	}
-	return cbft.wal.WriteSync(vc)
+	if err := cbft.wal.WriteSync(vc); err != nil {
+		panic(fmt.Sprintf("write confirmed viewChange error: %s", err.Error()))
+	}
 }
 
-func (cbft *Cbft) sendViewChange(view *protocols.ViewChange) error {
+func (cbft *Cbft) sendViewChange(view *protocols.ViewChange) {
 	s := &protocols.SendViewChange{
 		ViewChange: view,
 	}
-	return cbft.wal.WriteSync(s)
+	if err := cbft.wal.WriteSync(s); err != nil {
+		panic(fmt.Sprintf("write send viewChange error: %s", err.Error()))
+	}
 }
 
-func (cbft *Cbft) sendPrepareBlock(block *types.Block) error {
+func (cbft *Cbft) sendPrepareBlock(block *types.Block) {
 	s := &protocols.SendPrepareBlock{
 		Block: block,
 	}
-	return cbft.wal.WriteSync(s)
+	if err := cbft.wal.WriteSync(s); err != nil {
+		panic(fmt.Sprintf("write send prepareBlock error: %s", err.Error()))
+	}
 }
 
-func (cbft *Cbft) sendPrepareVote(block *types.Block, vote *protocols.PrepareVote) error {
+func (cbft *Cbft) sendPrepareVote(block *types.Block, vote *protocols.PrepareVote) {
 	s := &protocols.SendPrepareVote{
 		Block: block,
 		Vote:  vote,
 	}
-	return cbft.wal.WriteSync(s)
+	if err := cbft.wal.WriteSync(s); err != nil {
+		panic(fmt.Sprintf("write send prepareVote error: %s", err.Error()))
+	}
+}
+
+func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) {
+	cbft.log.Debug("Recover chain state from wal", "chainState", chainState.String())
+	// TODO
 }
 
 func (cbft *Cbft) recoveryMsg(msg interface{}) {
@@ -95,25 +111,33 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) {
 
 	switch m := msg.(type) {
 	case *protocols.ConfirmedViewChange:
-		log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "confirmedViewChange,epoch", m.Epoch, "viewNumber", m.ViewNumber)
-		// 去掉number小于highestQC的
-		// TODO
+		cbft.log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "confirmedViewChange", m.String())
+		// TODO : 去掉number小于highestQC的
+		cbft.changeView(m.Epoch, m.ViewNumber, m.Block, m.QC, m.ViewChangeQC)
 
 	case *protocols.SendViewChange:
-		log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "sendViewChange", m.ViewChange.String())
-		// TODO
+		cbft.log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "sendViewChange", m.ViewChange.String())
+		// TODO : 去掉number小于highestQC的
 
 	case *protocols.SendPrepareBlock:
-		log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "sendPrepareBlock,number", m.Block.NumberU64(), "hash", m.Block.Hash())
-		// TODO
+		cbft.log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "sendPrepareBlock,number", m.Block.NumberU64(), "hash", m.Block.Hash())
+		// TODO : 去掉number小于highestQC的
+		if m.Block.NumberU64() > cbft.HighestQCBlockBn() {
+			// 执行区块
+			block := m.Block
+			parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
+			if parent == nil {
+				panic(fmt.Sprintf("Find executable block's parent failed :[%d,%s]", block.NumberU64(), block.Hash()))
+			}
+			if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
+				panic(fmt.Sprintf("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err))
+			}
+			// 写回内存
+
+		}
 
 	case *protocols.SendPrepareVote:
-		log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "sendPrepareVote", m.Vote.String())
-		// TODO
+		cbft.log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "sendPrepareVote", m.Vote.String())
+		// TODO : 去掉number小于highestQC的
 	}
-}
-
-func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) {
-	cbft.log.Debug("Recover chain state from wal", "chainState", chainState.String())
-	// TODO
 }
