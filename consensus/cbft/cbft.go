@@ -7,9 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	errors2 "github.com/pkg/errors"
+	errors "github.com/pkg/errors"
 
-	"errors"
 	"reflect"
 	"sync"
 	"time"
@@ -125,6 +124,7 @@ func (cbft *Cbft) NodeId() discover.NodeID {
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.blockChain = chain
 	cbft.txPool = txPool
+	cbft.blockCacheWriter = blockCacheWriter
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.Option.NodeID)
 
@@ -142,7 +142,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 		_, qc, err = ctypes.DecodeExtra(block.ExtraData())
 
 		if err != nil {
-			return errors2.Wrap(err, fmt.Sprintf("start cbft failed"))
+			return errors.Wrap(err, fmt.Sprintf("start cbft failed"))
 		}
 	}
 
@@ -260,8 +260,8 @@ func (cbft *Cbft) receiveLoop() {
 		case fn := <-cbft.asyncCallCh:
 			fn()
 
-		//case <-cbft.state.ViewTimeout():
-		//	cbft.OnViewTimeout()
+		case <-cbft.state.ViewTimeout():
+			cbft.OnViewTimeout()
 		default:
 		}
 
@@ -433,11 +433,23 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
 
 	// TODO: signature block - fake verify.
-	cbft.signMsgByBls(prepareBlock)
+	if err := cbft.signMsgByBls(prepareBlock); err != nil {
+		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
+		return
+	}
 
 	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
-	cbft.OnPrepareBlock("", prepareBlock)
-	cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex)
+
+	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
+		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
+		return
+	}
+
+	if err := cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex); err != nil {
+		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
+		return
+	}
+
 	cbft.findQCBlock()
 
 	cbft.state.SetHighestExecutedBlock(block)
@@ -767,4 +779,22 @@ func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
 	}
 	msg.SetSign(sign)
 	return nil
+}
+
+func (cbft *Cbft) VerifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+	digest, err := msg.CannibalizeBytes()
+	if err != nil {
+		return nil, errors.Wrap(err, "get msg's cannibalize bytes failed")
+	}
+
+	if !cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()) {
+		return nil, fmt.Errorf("signature verification failed")
+	}
+
+	vnode, err := cbft.validatorPool.GetValidatorByIndex(cbft.state.HighestQCBlock().NumberU64(), msg.NodeIndex())
+
+	if err != nil {
+		return nil, errors.Wrap(err, "get validator failed")
+	}
+	return vnode, nil
 }
