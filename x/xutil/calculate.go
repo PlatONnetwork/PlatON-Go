@@ -52,13 +52,12 @@ func ProgramVersion2Str(programVersion uint32) string {
 	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
 }
 
-// TODO: calculate common data of block height
-// Number of blocks per consensus round
+// ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
 	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
 }
 
-// EpochSize is after how many consensus cycles, settle once
+// EpochSize returns how many consensus rounds per epoch.
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
 	em := xcom.ExpectedMinutes()
@@ -68,19 +67,19 @@ func EpochSize() uint64 {
 	return epochSize
 }
 
-// epochs numbers each year
+// EpochsPerYear returns how many epochs per year
 func EpochsPerYear() uint64 {
 	epochBlocks := CalcBlocksEachEpoch()
 	i := xcom.Interval()
 	return xcom.SecondsPerYear / (i * epochBlocks)
 }
 
-// calculates how many new blocks in a settlement period
+// CalcBlocksEachEpoch return how many blocks per epoch
 func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
-// calculate how many new blocks in one year
+// calculate returns how many blocks per year.
 func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * CalcBlocksEachEpoch()
 }
@@ -96,6 +95,7 @@ func IsSwitch(blockNumber uint64) bool {
 	return mod == 0
 }
 
+// IsSettlementPeriod checks the block if it is the end of a epoch
 func IsSettlementPeriod(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()
 	mod := blockNumber % uint64(size)

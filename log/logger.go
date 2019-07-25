@@ -3,9 +3,9 @@ package log
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"runtime/debug"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/go-stack/stack"
 )
@@ -136,7 +136,7 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}, skip int) {
 	l.h.Log(&Record{
 		Time: time.Now(),
 		Lvl:  lvl,
-		Msg:  fmt.Sprintf("routine %s ", common.CurrentGoRoutineID()) + msg,
+		Msg:  fmt.Sprintf("routine %s ", CurrentGoRoutineID()) + msg,
 		Ctx:  newContext(l.ctx, ctx),
 		Call: stack.Caller(skip),
 		KeyNames: RecordKeyNames{
@@ -244,4 +244,22 @@ func (c Ctx) toArray() []interface{} {
 	}
 
 	return arr
+}
+
+func CurrentGoRoutineID() string {
+	bytes := debug.Stack()
+	for i, ch := range bytes {
+		if ch == '\n' || ch == '\r' {
+			bytes = bytes[0:i]
+			break
+		}
+	}
+	line := string(bytes)
+	var valid = regexp.MustCompile(`goroutine\s(\d+)\s+\[`)
+
+	if params := valid.FindAllStringSubmatch(line, -1); params != nil {
+		return params[0][1]
+	} else {
+		return ""
+	}
 }
