@@ -3,16 +3,49 @@ package types
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"reflect"
 )
 
-type Signature struct {
+const (
+	SignatureLength = 32
+)
+
+type Signature [SignatureLength]byte
+
+func (sig *Signature) String() string {
+	return fmt.Sprintf("%x", sig[:])
 }
 
-func (s *Signature) Bytes() []byte {
-	return nil
+func (sig *Signature) SetBytes(signSlice []byte) {
+	copy(sig[:], signSlice[:])
 }
 
-func (s *Signature) SetBytes(buf []byte) {
+func (sig *Signature) Bytes() []byte {
+	target := make([]byte, len(sig))
+	copy(target[:], sig[:])
+	return target
+}
+
+// MarshalText returns the hex representation of a.
+func (sig Signature) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(sig[:]).MarshalText()
+}
+
+// UnmarshalText parses a hash in hex syntax.
+func (sig *Signature) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("BlockConfirmSign", input, sig[:])
+}
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (sig *Signature) UnmarshalJSON(input []byte) error {
+	return hexutil.UnmarshalFixedJSON(reflect.TypeOf(Signature{}), input, sig[:])
+}
+
+func BytesToSignature(signSlice []byte) Signature {
+	var sign Signature
+	copy(sign[:], signSlice[:])
+	return sign
 }
 
 type QuorumCert struct {
