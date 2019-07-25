@@ -250,6 +250,54 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
+/// This method may only be called when creatStaking
+func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
+	addr common.Address, typ uint16) error {
+
+	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
+
+	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	if nil != err {
+		return err
+	}
+
+	if blockNumber.Uint64() != can.StakingBlockNum {
+		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking ...", ParamsErr)
+	}
+
+	// RollBack Staking
+
+	if typ == FreeOrigin {
+
+		state.AddBalance(can.StakingAddress, can.ReleasedHes)
+		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
+
+	} else if typ == RestrictingPlanOrigin {
+
+		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
+		if nil != err {
+			log.Error("Failed to RollBackStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(),
+				"RollBack stakingVon", can.RestrictingPlanHes, "err", err)
+			return err
+		}
+	}
+
+	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
+		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate info is failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+		return err
+	}
+
+	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate power failed",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+		return err
+	}
+
+	return nil
+}
+
 func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, can *staking.Candidate) error {
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -2330,7 +2378,7 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
-				targetIndex = indexs[i]
+				targetIndex = indexs[i-1]
 				break
 			}
 		}
@@ -2342,7 +2390,7 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
-				targetIndex = indexs[i]
+				targetIndex = indexs[i-1]
 				break
 			}
 		}
@@ -2464,7 +2512,7 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && i < len(indexs)-1 {
-				targetIndex = indexs[i]
+				targetIndex = indexs[i+1]
 				break
 			}
 		}
@@ -2476,7 +2524,7 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && i < len(indexs)-1 {
-				targetIndex = indexs[i]
+				targetIndex = indexs[i+1]
 				break
 			}
 		}
@@ -2660,54 +2708,6 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 	// Store new epoch validator Item
 	if err := sk.db.SetEpochValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
 		log.Error("Failed to setVerifierList: store new epoch validators is failed", "blockHash", blockHash.Hex())
-		return err
-	}
-
-	return nil
-}
-
-/// This method may only be called when creatStaking
-func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
-	addr common.Address, typ uint16) error {
-
-	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
-
-	can, err := sk.db.GetCandidateStore(blockHash, addr)
-	if nil != err {
-		return err
-	}
-
-	if blockNumber.Uint64() != can.StakingBlockNum {
-		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking ...", ParamsErr)
-	}
-
-	// RollBack Staking
-
-	if typ == FreeOrigin {
-
-		state.AddBalance(can.StakingAddress, can.ReleasedHes)
-		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
-
-	} else if typ == RestrictingPlanOrigin {
-
-		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
-		if nil != err {
-			log.Error("Failed to RollBackStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(),
-				"RollBack stakingVon", can.RestrictingPlanHes, "err", err)
-			return err
-		}
-	}
-
-	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
-		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate info is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
-		return err
-	}
-
-	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate power failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
 		return err
 	}
 
