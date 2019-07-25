@@ -34,6 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // A BlockTest checks handling of entire blocks.
