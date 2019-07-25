@@ -218,10 +218,12 @@ func (cbft *Cbft) LoadWal() error {
 	//cbft.wal = &emptyWal{}
 	// load consensus chainState
 	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
+		cbft.log.Error(err.Error())
 		return err
 	}
 	// load consensus message
 	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
+		cbft.log.Error(err.Error())
 		return err
 	}
 	return nil
@@ -444,7 +446,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.state.SetHighestExecutedBlock(block)
 
 	// write sendPrepareBlock info to wal
-	cbft.sendPrepareBlock(prepareBlock.Block)
+	cbft.sendPrepareBlock(prepareBlock)
 
 	cbft.network.Broadcast(prepareBlock)
 

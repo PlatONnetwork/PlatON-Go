@@ -315,7 +315,7 @@ func (journal *journal) ExpireJournalFile(fileID uint32) error {
 // LoadJournal tries to load consensus message from journal file
 // search starting from the specified file and seq,will verify each message at the same time
 // recovery is the callback function
-func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, recovery func(msg interface{})) (err error) {
+func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, recovery recoveryConsensusMsgFn) (err error) {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -340,7 +340,7 @@ func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, recovery 
 
 // loadJournal is a concrete implementation to load consensus message from journal file
 // Each message is loaded into the caller as a callback function
-func (journal *journal) loadJournal(fileID uint32, seq uint64, recovery func(msg interface{})) error {
+func (journal *journal) loadJournal(fileID uint32, seq uint64, recovery recoveryConsensusMsgFn) error {
 	file, err := os.Open(filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID)))
 	if err != nil {
 		return err
@@ -382,7 +382,9 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, recovery func(msg
 
 		// decode journal message
 		if msgInfo, err := WALDecode(pack[10:], msgType); err == nil {
-			recovery(msgInfo)
+			if err = recovery(msgInfo); err != nil {
+				return err
+			}
 		} else {
 			log.Error("Failed to decode journal msg", "err", err)
 			return errLoadJournal

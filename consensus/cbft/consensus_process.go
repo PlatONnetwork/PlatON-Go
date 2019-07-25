@@ -223,6 +223,36 @@ func (cbft *Cbft) findQCBlock() {
 	cbft.tryChangeView()
 }
 
+// updateChainState tries to update consensus state to wal
+// If the write fails, the process will stop
+func (cbft *Cbft) updateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
+	var qcState, lockState, commitState *protocols.State
+	qcState = &protocols.State{
+		Block:      qcBlock,
+		QuorumCert: qcQC,
+	}
+	if lock == nil || commit == nil {
+		if err := cbft.addQCState(qcState); err != nil {
+			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+		}
+	} else {
+		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
+		commitBlock, commitQC := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
+		lockState = &protocols.State{
+			Block:      lockBlock,
+			QuorumCert: lockQC,
+		}
+		commitState = &protocols.State{
+			Block:      commitBlock,
+			QuorumCert: commitQC,
+		}
+		if err := cbft.newChainState(commitState, lockState, qcState); err != nil {
+			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+		}
+	}
+}
+
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
 	qc := &ctypes.QuorumCert{}
 	for _, p := range votes {
@@ -246,6 +276,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
 		return
 	}
+	highestqc := cbft.state.HighestQCBlock()
 	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 
 	// Incremental commit block
@@ -254,8 +285,11 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		cbft.commitBlock(commit, qc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
+		cbft.updateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
+	} else {
+		cbft.updateChainState(highestqc, nil, nil)
 	}
 }
 

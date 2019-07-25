@@ -51,7 +51,8 @@ func (c *ConfirmedViewChange) String() string {
 	if c == nil {
 		return ""
 	}
-	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]", c.Epoch, c.ViewNumber, c.QC.BlockIndex, c.QC.BlockNumber, c.QC.BlockHash.String())
+	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]",
+		c.Epoch, c.ViewNumber, c.QC.BlockIndex, c.QC.BlockNumber, c.QC.BlockHash.String())
 }
 
 // SendViewChange indicates the viewChange sent by the local node.
@@ -59,15 +60,39 @@ type SendViewChange struct {
 	ViewChange *ViewChange
 }
 
+func (s *SendViewChange) String() string {
+	if s == nil {
+		return ""
+	}
+	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockNumber:%d, blockHash:%s]",
+		s.ViewChange.Epoch, s.ViewChange.ViewNumber, s.ViewChange.BlockNumber, s.ViewChange.BlockHash.String())
+}
+
 // SendPrepareBlock indicates the prepareBlock sent by the local node.
 type SendPrepareBlock struct {
-	Block *types.Block
+	Prepare *PrepareBlock
+}
+
+func (s *SendPrepareBlock) String() string {
+	if s == nil {
+		return ""
+	}
+	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]",
+		s.Prepare.Epoch, s.Prepare.ViewNumber, s.Prepare.BlockIndex, s.Prepare.Block.NumberU64(), s.Prepare.Block.Hash().String())
 }
 
 // SendPrepareVote indicates the prepareVote sent by the local node.
 type SendPrepareVote struct {
 	Block *types.Block
 	Vote  *PrepareVote
+}
+
+func (s *SendPrepareVote) String() string {
+	if s == nil {
+		return ""
+	}
+	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]",
+		s.Vote.Epoch, s.Vote.ViewNumber, s.Vote.BlockIndex, s.Vote.BlockNumber, s.Vote.BlockHash.String())
 }
 
 var (

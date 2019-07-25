@@ -51,10 +51,10 @@ var (
 )
 
 // recoveryChainStateFn is a callback type for recovery chainState to consensus.
-type recoveryChainStateFn func(chainState *protocols.ChainState)
+type recoveryChainStateFn func(chainState *protocols.ChainState) error
 
 // recoveryConsensusMsgFn is a callback type for recovery message to consensus.
-type recoveryConsensusMsgFn func(msg interface{})
+type recoveryConsensusMsgFn func(msg interface{}) error
 
 type ViewChangeMessage struct {
 	Epoch      uint64
@@ -197,8 +197,7 @@ func (wal *baseWal) LoadChainState(recovery recoveryChainStateFn) error {
 		log.Error("Failed to decode chainState")
 		return errGetChainState
 	}
-	recovery(&cs)
-	return nil
+	return recovery(&cs)
 }
 
 // Write adds the specified consensus msg to the local disk journal.
