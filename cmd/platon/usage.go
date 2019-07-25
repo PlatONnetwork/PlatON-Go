@@ -249,6 +249,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CbftWalEnabledFlag,
 			utils.CbftEvidenceDir,
 			utils.CbftMaxPingLatency,
+			utils.CbftBlsPriKeyFileFlag,
 		},
 	},
 	{

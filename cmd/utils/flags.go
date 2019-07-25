@@ -28,17 +28,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/fdlimit"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/dashboard"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -624,6 +624,11 @@ var (
 		Name:  "cbft.max_ping_latency",
 		Usage: "Maximum latency of ping",
 		Value: 2000,
+	}
+
+	CbftBlsPriKeyFileFlag = cli.StringFlag{
+		Name:  "cbft.blskey",
+		Usage: "BLS key file",
 	}
 )
 
@@ -1287,7 +1292,13 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 		cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
 	}
 
-	//todo set bls private key
+	if ctx.GlobalIsSet(CbftBlsPriKeyFileFlag.Name) {
+		priKey, err := bls.LoadBLS(ctx.GlobalString(CbftBlsPriKeyFileFlag.Name))
+		if err != nil {
+			Fatalf("Failed to load bls key from file: %v", err)
+		}
+		cfg.BlsPriKey = priKey
+	}
 
 	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
 		cfg.WalMode = ctx.GlobalBool(CbftWalEnabledFlag.Name)

@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -248,13 +249,18 @@ type ChainConfig struct {
 	VMInterpreter string `json:"interpreter,omitempty"`
 }
 
+type CbftNode struct {
+	Node      discover.Node `json:"node"`
+	BlsPubKey bls.PublicKey `json:"blsPubKey"`
+}
+
 type CbftConfig struct {
-	Epoch         uint64          `json:"epoch,omitempty"`         // Epoch length to reset votes and checkpoint
-	Period        uint64          `json:"period,omitempty"`        // Number of seconds between blocks to enforce
-	Amount        uint32          `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
-	InitialNodes  []discover.Node `json:"initialNodes,omitempty"`  //Genesis consensus node
-	ValidatorMode string          `json:"validatorMode,omitempty"` //Validator mode for easy testing
-	PposConfig    *PposConfig     `json:"pposConfig,omitempty"`
+	Epoch         uint64      `json:"epoch,omitempty"`         // Epoch length to reset votes and checkpoint
+	Period        uint64      `json:"period,omitempty"`        // Number of seconds between blocks to enforce
+	Amount        uint32      `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
+	InitialNodes  []CbftNode  `json:"initialNodes,omitempty"`  //Genesis consensus node
+	ValidatorMode string      `json:"validatorMode,omitempty"` //Validator mode for easy testing
+	PposConfig    *PposConfig `json:"pposConfig,omitempty"`
 }
 
 type PposConfig struct {
@@ -428,14 +434,14 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 	}
 }
 
-func convertNodeUrl(initialNodes []string) []discover.Node {
-	NodeList := make([]discover.Node, 0, len(initialNodes))
+func convertNodeUrl(initialNodes []string) []CbftNode {
+	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, url := range initialNodes {
 		//if nodeID, error := discover.HexID(value); error == nil {
 		//	NodeIDList = append(NodeIDList, nodeID)
 		//}
 		if node, err := discover.ParseNode(url); err == nil {
-			NodeList = append(NodeList, *node)
+			NodeList = append(NodeList, CbftNode{Node: *node})
 		}
 	}
 	return NodeList

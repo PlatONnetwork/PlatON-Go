@@ -9,8 +9,8 @@ import (
 	"sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	mycrypto "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -75,7 +75,7 @@ type ValidateNode struct {
 	Address   common.Address `json:"-"`
 	PubKey    *ecdsa.PublicKey
 	NodeID    discover.NodeID
-	AggPubKey *mycrypto.PublicKey
+	BlsPubKey *bls.PublicKey
 }
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
@@ -98,13 +98,13 @@ func (vn *ValidateNode) String() string {
 }
 
 func (vn *ValidateNode) Verify(data, sign []byte) bool {
-	sig := &mycrypto.Signature{}
-	err := sig.Recover(string(sign))
+	var sig bls.Sign
+	err := sig.Deserialize(sign)
 	if err != nil {
 		return false
 	}
 
-	return sig.Verify(vn.AggPubKey, string(data))
+	return sig.Verify(vn.BlsPubKey, string(data))
 }
 
 func (vnm ValidateNodeMap) String() string {
