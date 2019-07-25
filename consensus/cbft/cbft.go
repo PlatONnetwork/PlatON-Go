@@ -3,6 +3,7 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 
@@ -658,9 +659,8 @@ func (Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	//panic("implement me")
 }
 
-func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
-	//panic("implement me")
-	return true
+func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
+	return cbft.verifySelfSigned(sealHash.Bytes(), header.Signature())
 }
 
 func (Cbft) TracingSwitch(flag int8) {
@@ -728,6 +728,21 @@ func (cbft *Cbft) UnmarshalEvidence(data []byte) (cconsensus.Evidences, error) {
 	return cbft.evPool.UnmarshalEvidence(data)
 }
 
+// verifySelfSigned
+func (cbft *Cbft) verifySelfSigned(m []byte, sig []byte) bool {
+	recPubKey, err := crypto.Ecrecover(m, sig)
+	if err != nil {
+		return false
+	}
+
+	pubKey := cbft.config.Option.NodePriKey.PublicKey
+	pbytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
+	if !bytes.Equal(pbytes, recPubKey) {
+		return false
+	}
+	return true
+}
+
 // signFn use private key to sign byte slice.
 func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
 	return crypto.Sign(m, cbft.config.Option.NodePriKey)
@@ -735,8 +750,8 @@ func (cbft *Cbft) signFn(m []byte) ([]byte, error) {
 
 // signFn use bls private key to sign byte slice.
 func (cbft *Cbft) signFnByBls(m []byte) ([]byte, error) {
-	// TODO: really signature
-	return []byte{}, nil
+	sign := cbft.config.Option.BlsPriKey.Sign(string(m))
+	return sign.Serialize(), nil
 }
 
 // signMsg use bls private key to sign msg.
