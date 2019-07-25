@@ -222,6 +222,8 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * miningConfig.DefaultCommitRatio)
 	log.Info("commitDuration in Millisecond", "commitDuration", worker.commitDuration)
 
+	worker.commitWorkEnv.nextBlockTime.Store(time.Now())
+
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
 	go worker.resultLoop()
@@ -328,7 +330,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		interrupt = new(int32)
 		log.Debug("Begin to commit new worker", "baseBlockHash", baseBlock.Hash(), "baseBlockNumber", baseBlock.Number(), "timestamp", common.Millis(timestamp), "deadline", common.Millis(blockDeadline), "deadlineDuration", blockDeadline.Sub(timestamp))
 		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp, blockDeadline: blockDeadline, commitBlock: baseBlock}
-		timer.Reset(blockDeadline.Sub(timestamp) * time.Millisecond)
+		timer.Reset(blockDeadline.Sub(timestamp))
 		atomic.StoreInt32(&w.newTxs, 0)
 	}
 	// recalcRecommit recalculates the resubmitting interval upon feedback.
@@ -406,14 +408,17 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// higher priced transactions. Disable this overhead for pending blocks.
 			timestamp = time.Now()
 			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
-			if w.isRunning() && status == commitStatusIdle {
+			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
-						if shouldSeal {
-							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
-								log.Debug("begin to package new block regularly ")
-								blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
-								commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+					if status == commitStatusIdle {
+						if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
+							if shouldSeal {
+								if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
+									log.Debug("begin to package new block regularly ")
+									blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
+									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+									continue
+								}
 							}
 						}
 					}
@@ -584,7 +589,7 @@ func (w *worker) resultLoop() {
 		select {
 		case obj := <-w.bftResultSub.Chan():
 			if obj == nil {
-				log.Error("receive nil maybe channel is closed")
+				//log.Error("receive nil maybe channel is closed")
 				continue
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
@@ -617,7 +622,7 @@ func (w *worker) resultLoop() {
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			//todo remove extra magic number
-			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Extra()[32:]) {
+			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Header()) {
 				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil
@@ -994,6 +999,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	defer func() {
 		if engine, ok := w.engine.(consensus.Bft); ok {
 			w.commitWorkEnv.nextBlockTime.Store(engine.CalcNextBlockTime(common.MillisToTime(timestamp)))
+			log.Debug("Next block time", "time", w.commitWorkEnv.nextBlockTime.Load().(time.Time))
 		}
 	}()
 

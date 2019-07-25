@@ -9,62 +9,88 @@ import (
 
 var (
 
-	// for the message
+	// Network delay record
+	propPeerLatencyMeter = metrics.NewRegisteredMeter("cbft/prop/pong/latency", nil)
+
+	// PrepareBlockMsg
 	propPrepareBlockInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_blocks/in/packets", nil)
 	propPrepareBlockInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_blocks/in/traffic", nil)
 	propPrepareBlockOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_blocks/out/packets", nil)
 	propPrepareBlockOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_blocks/out/traffic", nil)
 
-	propViewChangeInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/view_changes/in/packets", nil)
-	propViewChangeInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/view_changes/in/traffic", nil)
-	propViewChangeOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/view_changes/out/packets", nil)
-	propViewChangeOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/view_changes/out/traffic", nil)
+	// PrepareVoteMsg
+	propPrepareVoteInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_vote/in/packets", nil)
+	propPrepareVoteInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_vote/in/traffic", nil)
+	propPrepareVoteOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_vote/out/packets", nil)
+	propPrepareVoteOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_vote/out/traffic", nil)
 
-	propViewChangeVoteInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/view_change_votes/in/packets", nil)
-	propViewChangeVoteInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/view_change_votes/in/traffic", nil)
-	propViewChangeVoteOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/view_change_votes/out/packets", nil)
-	propViewChangeVoteOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/view_change_votes/out/traffic", nil)
+	// ViewChangeMsg
+	propViewChangeInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/view_change/in/packets", nil)
+	propViewChangeInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/view_change/in/traffic", nil)
+	propViewChangeOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/view_change/out/packets", nil)
+	propViewChangeOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/view_change/out/traffic", nil)
 
-	propPrepareVoteInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/in/packets", nil)
-	propPrepareVoteInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/in/traffic", nil)
-	propPrepareVoteOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/out/packets", nil)
-	propPrepareVoteOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/out/traffic", nil)
+	// PrepareBlockHashMsg
+	propPrepareBlockHashInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/in/packets", nil)
+	propPrepareBlockHashInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/in/traffic", nil)
+	propPrepareBlockHashOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/out/packets", nil)
+	propPrepareBlockHashOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/out/traffic", nil)
 
-	propConfirmedPrepareBlockInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/in/packets", nil)
-	propConfirmedPrepareBlockInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/in/traffic", nil)
-	propConfirmedPrepareBlockOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/out/packets", nil)
-	propConfirmedPrepareBlockOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_votes/out/traffic", nil)
+	// GetPrepareBlockMsg
+	reqGetPrepareBlockInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/get_prepare_block/in/packets", nil)
+	reqGetPrepareBlockInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/get_prepare_block/in/traffic", nil)
+	reqGetPrepareBlockOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/get_prepare_block/out/packets", nil)
+	reqGetPrepareBlockOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/get_prepare_block/out/traffic", nil)
 
+	// GetQuorumCertMsg
+	reqGetQuorumCertInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/get_quorum_cert/in/packets", nil)
+	reqGetQuorumCertInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/get_quorum_cert/in/traffic", nil)
+	reqGetQuorumCertOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/get_quorum_cert/out/packets", nil)
+	reqGetQuorumCertOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/get_quorum_cert/out/traffic", nil)
+
+	// BlockQuorumCertMsg
+	reqBlockQuorumCertInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/block_quorum_cert/in/packets", nil)
+	reqBlockQuorumCertInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/block_quorum_cert/in/traffic", nil)
+	reqBlockQuorumCertOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/block_quorum_cert/out/packets", nil)
+	reqBlockQuorumCertOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/block_quorum_cert/out/traffic", nil)
+
+	// GetPrepareVoteMsg
+	reqGetPrepareVoteInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/get_prepare_vote/in/packets", nil)
+	reqGetPrepareVoteInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/get_prepare_vote/in/traffic", nil)
+	reqGetPrepareVoteOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/get_prepare_vote/out/packets", nil)
+	reqGetPrepareVoteOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/get_prepare_vote/out/traffic", nil)
+
+	// PrepareVotesMsg
 	reqPrepareVotesInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/prepare_votes/in/packets", nil)
 	reqPrepareVotesInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/prepare_votes/in/traffic", nil)
 	reqPrepareVotesOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/prepare_votes/out/packets", nil)
 	reqPrepareVotesOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/prepare_votes/out/traffic", nil)
 
-	reqHighestPrepareBlockInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/highest_prepare_blocks/in/packets", nil)
-	reqHighestPrepareBlockInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/highest_prepare_blocks/in/traffic", nil)
-	reqHighestPrepareBlockOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/highest_prepare_blocks/out/packets", nil)
-	reqHighestPrepareBlockOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/highest_prepare_blocks/out/traffic", nil)
+	// GetQCBlockListMsg
+	reqGetQCBlockListInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/get_qc_block_list/in/packets", nil)
+	reqGetQCBlockListInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/get_qc_block_list/in/traffic", nil)
+	reqGetQCBlockListOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/get_qc_block_list/out/packets", nil)
+	reqGetQCBlockListOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/get_qc_block_list/out/traffic", nil)
 
-	propPrepareBlockHashInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hashes/in/packets", nil)
-	propPrepareBlockHashInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hashes/in/traffic", nil)
-	propPrepareBlockHashOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hashes/out/packets", nil)
-	propPrepareBlockHashOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hashes/out/traffic", nil)
+	// QCBlockListMsg
+	reqQCBlockListInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/qc_block_list/in/packets", nil)
+	reqQCBlockListInTrafficMeter  = metrics.NewRegisteredMeter("cbft/req/qc_block_list/in/traffic", nil)
+	reqQCBlockListOutPacketsMeter = metrics.NewRegisteredMeter("cbft/req/qc_block_list/out/packets", nil)
+	reqQCBlockListOutTrafficMeter = metrics.NewRegisteredMeter("cbft/req/qc_block_list/out/traffic", nil)
 
+	// Unmatched message type
 	miscInPacketsMeter  = metrics.NewRegisteredMeter("cbft/misc/in/packets", nil)
 	miscInTrafficMeter  = metrics.NewRegisteredMeter("cbft/misc/in/traffic", nil)
 	miscOutPacketsMeter = metrics.NewRegisteredMeter("cbft/misc/out/packets", nil)
 	miscOutTrafficMeter = metrics.NewRegisteredMeter("cbft/misc/out/traffic", nil)
 
 	// for the consensus of cbft
-	//blockConfirmedCountFulfillTimer		= metrics.NewRegisteredTimer("cbft/blocks/count/fulfill", nil)
-	blockMinedTimer = metrics.NewRegisteredTimer("cbft/blocks/mined", nil)
-	//blockImportTimer					= metrics.NewRegisteredTimer("cbft/blocks/imported", nil)
-	blockExecuteTimer          = metrics.NewRegisteredTimer("cbft/blocks/execute", nil)
-	blockConfirmedTimer        = metrics.NewRegisteredTimer("cbft/blocks/confirmed", nil)
-	viewChangeTimer            = metrics.NewRegisteredTimer("cbft/views/change", nil)
-	viewChangeConfirmedTimer   = metrics.NewRegisteredTimer("cbft/views/confirm", nil)
-	viewChangeVoteFulfillTimer = metrics.NewRegisteredTimer("cbft/views/count/fulfill", nil)
-
+	blockMinedTimer               = metrics.NewRegisteredTimer("cbft/blocks/mined", nil)
+	blockExecuteTimer             = metrics.NewRegisteredTimer("cbft/blocks/execute", nil)
+	blockConfirmedTimer           = metrics.NewRegisteredTimer("cbft/blocks/confirmed", nil)
+	viewChangeTimer               = metrics.NewRegisteredTimer("cbft/views/change", nil)
+	viewChangeConfirmedTimer      = metrics.NewRegisteredTimer("cbft/views/confirm", nil)
+	viewChangeVoteFulfillTimer    = metrics.NewRegisteredTimer("cbft/views/count/fulfill", nil)
 	messageGossipMeter            = metrics.NewRegisteredMeter("cbft/meter/message/gossip", nil)
 	messageRepeatMeter            = metrics.NewRegisteredMeter("cbft/meter/message/repeat", nil)
 	blockMinedMeter               = metrics.NewRegisteredMeter("cbft/meter/blocks/mined", nil)
@@ -72,15 +98,12 @@ var (
 	signatureVerifyFailMeter      = metrics.NewRegisteredMeter("cbft/meter/signature/verify/fail", nil)
 	viewChangeVoteVerifyFailMeter = metrics.NewRegisteredMeter("cbft/meter/view_change_votes/verify/fail", nil)
 	blockConfirmedMeter           = metrics.NewRegisteredMeter("cbft/meter/blocks/confirmed", nil)
-	//blockMissMeter						= metrics.NewRegisteredMeter("cbft/meter/blocks/miss", nil)
-	viewChangeTimeoutMeter     = metrics.NewRegisteredMeter("cbft/meter/view/view_changes/timeout", nil)
-	viewChangeVoteTimeoutMeter = metrics.NewRegisteredMeter("cbft/meter/view/view_change_votes/timeout", nil)
+	viewChangeTimeoutMeter        = metrics.NewRegisteredMeter("cbft/meter/view/view_changes/timeout", nil)
+	viewChangeVoteTimeoutMeter    = metrics.NewRegisteredMeter("cbft/meter/view/view_change_votes/timeout", nil)
 
-	viewChangeCounter = metrics.NewRegisteredCounter("cbft/counter/view_changes/count", nil)
-	//blockMinedCountCounter				= metrics.NewRegisteredCounter("cbft/counter/blocks/mined", nil)		//  The number of blocks in a round of views
+	viewChangeCounter    = metrics.NewRegisteredCounter("cbft/counter/view_changes/count", nil)
 	consensusJoinCounter = metrics.NewRegisteredCounter("cbft/counter/consensus/join", nil) //
 
-	//blockUnconfirmedGauage				= metrics.NewRegisteredGauge("cbft/gauage/blocks/unconfirmed", nil)
 	blockHighNumConfirmedGauage = metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/confirmed", nil)
 	blockHighNumLogicGauage     = metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/logic", nil)
 	viewChangeGauage            = metrics.NewRegisteredGauge("cbft/gauage/views/viewchange", nil)
@@ -118,12 +141,24 @@ func (rw *meteredMsgReadWriter) ReadMsg() (p2p.Msg, error) {
 	switch {
 	case msg.Code == protocols.PrepareBlockMsg:
 		packets, traffic = propPrepareBlockInPacketsMeter, propPrepareBlockInTrafficMeter
-	case msg.Code == protocols.ViewChangeMsg:
-		packets, traffic = propViewChangeInPacketsMeter, propViewChangeInTrafficMeter
 	case msg.Code == protocols.PrepareVoteMsg:
 		packets, traffic = propPrepareVoteInPacketsMeter, propPrepareVoteInTrafficMeter
-	case msg.Code == protocols.PrepareBlockHashMsg:
-		packets, traffic = propPrepareBlockHashInPacketsMeter, propPrepareBlockHashInTrafficMeter
+	case msg.Code == protocols.ViewChangeMsg:
+		packets, traffic = propViewChangeInPacketsMeter, propViewChangeInTrafficMeter
+	case msg.Code == protocols.GetPrepareBlockMsg:
+		packets, traffic = reqGetPrepareBlockInPacketsMeter, reqGetPrepareBlockInTrafficMeter
+	case msg.Code == protocols.GetQuorumCertMsg:
+		packets, traffic = reqGetQuorumCertInPacketsMeter, reqGetQuorumCertInTrafficMeter
+	case msg.Code == protocols.BlockQuorumCertMsg:
+		packets, traffic = reqBlockQuorumCertInPacketsMeter, reqBlockQuorumCertInTrafficMeter
+	case msg.Code == protocols.GetPrepareVoteMsg:
+		packets, traffic = reqGetPrepareVoteInPacketsMeter, reqGetPrepareVoteInTrafficMeter
+	case msg.Code == protocols.PrepareVotesMsg:
+		packets, traffic = reqPrepareVotesInPacketsMeter, reqPrepareVotesInTrafficMeter
+	case msg.Code == protocols.GetQCBlockListMsg:
+		packets, traffic = reqGetQCBlockListInPacketsMeter, reqGetQCBlockListInTrafficMeter
+	case msg.Code == protocols.QCBlockListMsg:
+		packets, traffic = reqQCBlockListInPacketsMeter, reqQCBlockListInTrafficMeter
 	}
 	packets.Mark(1)
 	traffic.Mark(int64(msg.Size))
@@ -137,21 +172,37 @@ func (rw *meteredMsgReadWriter) WriteMsg(msg p2p.Msg) error {
 	switch {
 	case msg.Code == protocols.PrepareBlockMsg:
 		packets, traffic = propPrepareBlockOutPacketsMeter, propPrepareBlockOutTrafficMeter
-		common.PrepareBlockCBFTEgressTrafficMeter.Mark(int64(msg.Size))
-	case msg.Code == protocols.ViewChangeMsg:
-		packets, traffic = propViewChangeOutPacketsMeter, propViewChangeOutTrafficMeter
-		common.ViewChangeEgressTrafficMeter.Mark(int64(msg.Size))
+
 	case msg.Code == protocols.PrepareVoteMsg:
 		packets, traffic = propPrepareVoteOutPacketsMeter, propPrepareVoteOutTrafficMeter
-		common.PrepareVoteEgressTrafficMeter.Mark(int64(msg.Size))
+
+	case msg.Code == protocols.ViewChangeMsg:
+		packets, traffic = propViewChangeOutPacketsMeter, propViewChangeOutTrafficMeter
+
+	case msg.Code == protocols.GetPrepareBlockMsg:
+		packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareBlockOutTrafficMeter
+
 	case msg.Code == protocols.PrepareBlockHashMsg:
 		packets, traffic = propPrepareBlockHashOutPacketsMeter, propPrepareBlockHashOutTrafficMeter
-		common.PrepareBlockHashEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.GetPrepareVoteMsg:
-		common.GetPrepareVoteEgressTrafficMeter.Mark(int64(msg.Size))
-	case msg.Code == protocols.GetPrepareBlockMsg:
-		common.GetPrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
+		packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareVoteOutTrafficMeter
+
+	case msg.Code == protocols.GetQuorumCertMsg:
+		packets, traffic = reqGetQuorumCertOutPacketsMeter, reqGetQuorumCertOutTrafficMeter
+
+	case msg.Code == protocols.BlockQuorumCertMsg:
+		packets, traffic = reqBlockQuorumCertOutPacketsMeter, reqBlockQuorumCertOutTrafficMeter
+
+	case msg.Code == protocols.PrepareVotesMsg:
+		packets, traffic = reqPrepareVotesOutPacketsMeter, reqPrepareVotesOutTrafficMeter
+
+	case msg.Code == protocols.GetQCBlockListMsg:
+		packets, traffic = reqGetQCBlockListOutPacketsMeter, reqGetQCBlockListOutTrafficMeter
+
+	case msg.Code == protocols.QCBlockListMsg:
+		packets, traffic = reqQCBlockListOutPacketsMeter, reqQCBlockListOutTrafficMeter
+
 	case msg.Code == protocols.CBFTStatusMsg:
 		common.CBFTStatusEgressTrafficMeter.Mark(int64(msg.Size))
 	}

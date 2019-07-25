@@ -31,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -213,7 +214,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
 	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, core.NewTxPoolBlockChain(blockChainCache))
+	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
 
 	// mpcPool deal with mpc transactions
 	// modify By J
@@ -246,17 +247,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		// - ppos
 		//log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 		//if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
-		//	agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
+		agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
 		//} else if chainConfig.Cbft.ValidatorMode == "inner" {
-		//	blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
+		//	blocksPerNode := int()
 		//	offset := blocksPerNode * 2
 		//	agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 		//} else if chainConfig.Cbft.ValidatorMode == "ppos" {
-		//	// TODO init reactor
-		//	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-		//	xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-		//	handlePlugin(reactor, snapshotdb.Instance())
-		//	agency = reactor
+		// TODO init reactor
+		//reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+		//xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
+		//handlePlugin(reactor, snapshotdb.Instance())
+		//agency = reactor
 		//}
 		// TODO test vrf
 		/*reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
@@ -521,7 +522,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 				}
 			}*/
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
-				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+				srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
 			}
 		}
 		s.StartMining()

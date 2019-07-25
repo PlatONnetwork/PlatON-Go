@@ -6,35 +6,39 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	mycrypto "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-func newValidators(nodes []discover.Node, validBlockNumber uint64) *cbfttypes.Validators {
+func newValidators(nodes []params.CbftNode, validBlockNumber uint64) *cbfttypes.Validators {
 	vds := &cbfttypes.Validators{
 		Nodes:            make(cbfttypes.ValidateNodeMap, len(nodes)),
 		ValidBlockNumber: validBlockNumber,
 	}
 
 	for i, node := range nodes {
-		pubkey, err := node.ID.Pubkey()
+		pubkey, err := node.Node.ID.Pubkey()
 		if err != nil {
 			panic(err)
 		}
 
-		vds.Nodes[node.ID] = &cbfttypes.ValidateNode{
-			Index:   i,
-			Address: crypto.PubkeyToAddress(*pubkey),
-			PubKey:  pubkey,
-			NodeID:  node.ID,
+		blsPubKey := node.BlsPubKey
+
+		vds.Nodes[node.Node.ID] = &cbfttypes.ValidateNode{
+			Index:     i,
+			Address:   crypto.PubkeyToAddress(*pubkey),
+			PubKey:    pubkey,
+			NodeID:    node.Node.ID,
+			BlsPubKey: &blsPubKey,
 		}
 	}
 	return vds
@@ -46,7 +50,7 @@ type StaticAgency struct {
 	validators *cbfttypes.Validators
 }
 
-func NewStaticAgency(nodes []discover.Node) consensus.Agency {
+func NewStaticAgency(nodes []params.CbftNode) consensus.Agency {
 	return &StaticAgency{
 		validators: newValidators(nodes, 0),
 	}
@@ -86,7 +90,7 @@ type InnerAgency struct {
 	defaultValidators     *cbfttypes.Validators
 }
 
-func NewInnerAgency(nodes []discover.Node, chain *core.BlockChain, blocksPerNode, offset int) consensus.Agency {
+func NewInnerAgency(nodes []params.CbftNode, chain *core.BlockChain, blocksPerNode, offset int) consensus.Agency {
 	return &InnerAgency{
 		blocksPerNode:         uint64(blocksPerNode),
 		defaultBlocksPerRound: uint64(len(nodes) * blocksPerNode),
@@ -395,6 +399,17 @@ func (vp *ValidatorPool) validatorList(blockNumber uint64) []discover.NodeID {
 
 // VerifyHeader verify block's header.
 func (vp *ValidatorPool) VerifyHeader(header *types.Header) error {
+	recPubKey, err := crypto.Ecrecover(header.SealHash().Bytes(), header.Signature())
+	if err != nil {
+		return err
+	}
+	var nodeID discover.NodeID
+	copy(nodeID[:], recPubKey[1:])
+
+	_, err = vp.getValidatorByNodeID(header.Number.Uint64(), nodeID)
+	if err != nil {
+		return err
+	}
 	return vp.agency.VerifyHeader(header)
 }
 
@@ -427,7 +442,7 @@ func (vp *ValidatorPool) Len(blockNumber uint64) int {
 	return vp.currentValidators.Len()
 }
 
-// Verify verify signature.
+// Verify verifies signature using the specified validator's bls public key.
 func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, signature []byte) bool {
 	validator, err := vp.GetValidatorByIndex(blockNumber, validatorIndex)
 	if err != nil {
@@ -436,7 +451,7 @@ func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, 
 	return validator.Verify(msg, signature)
 }
 
-// VerifyAggSig verify aggregation signature.
+// VerifyAggSig verifies aggregation signature using the specified validators' public keys.
 func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uint32, msg, signature []byte) bool {
 	vp.lock.RLock()
 	validators := vp.currentValidators
@@ -450,17 +465,17 @@ func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uin
 	}
 	vp.lock.RUnlock()
 
-	pub := &mycrypto.PublicKey{}
+	var pub bls.PublicKey
 	for _, node := range nodeList {
-		pub.Add(node.AggPubKey)
+		pub.Add(node.BlsPubKey)
 	}
 
-	sig := &mycrypto.Signature{}
-	err = sig.Recover(string(signature))
+	var sig bls.Sign
+	err = sig.Deserialize(signature)
 	if err != nil {
 		return false
 	}
-	return sig.Verify(pub, string(msg))
+	return sig.Verify(&pub, string(msg))
 }
 
 func nextRound(blockNumber uint64) uint64 {

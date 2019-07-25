@@ -45,6 +45,7 @@ var DefaultConfig = Config{
 		PeerMsgQueueSize: 1024,
 		EvidenceDir:      "evidencedata",
 		MaxPingLatency:   5000,
+		MaxQueuesLimit:   4096,
 	},
 	NetworkId:     1,
 	LightPeers:    100,
