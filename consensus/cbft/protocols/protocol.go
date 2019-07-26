@@ -356,6 +356,7 @@ type GetPrepareVote struct {
 	ViewNumber  uint32
 	BlockHash   common.Hash
 	BlockNumber uint64
+	BlockIndex  uint32
 	VoteBits    *utils.BitArray
 }
 

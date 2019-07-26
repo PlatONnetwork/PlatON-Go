@@ -167,13 +167,43 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 // OnGetPrepareVote is responsible for processing the business logic
 // of the GetPrepareVote message. It will synchronously return a
 // PrepareVotes message to the sender.
-func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) {
-	// todo: Logic is incomplete.
+func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
+	// Get all the received PrepareVote of the block according to the index
+	// position of the block in the view.
+	prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
+
+	// Defining an array for receiving PrepareVote.
+	votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
+	if prepareVoteMap != nil {
+		for i := uint32(0); i < msg.VoteBits.Size(); i++ {
+			if msg.VoteBits.GetIndex(i) {
+				continue
+			}
+			if v, ok := prepareVoteMap[i]; ok {
+				votes = append(votes, v)
+			}
+		}
+	} else {
+		// todo: need to confirm.
+		// Is it necessary to obtain the PrepareVotes from the blockchain
+		// when it is not in the memory?
+	}
+	if len(votes) != 0 {
+		cbft.network.Send(id, &protocols.PrepareVotes{BlockHash: msg.BlockHash, BlockNumber: msg.BlockNumber, Votes: votes})
+		cbft.log.Debug("Send PrepareVotes", "peer", id, "hash", msg.BlockHash, "number", msg.BlockNumber)
+	}
+	return nil
 }
 
 // OnPrepareVotes handling response from GetPrepareVote response.
-func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) {
-	// todo: Logic is incomplete.
+func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
+	for _, vote := range msg.Votes {
+		if err := cbft.OnPrepareVote(id, vote); err != nil {
+			cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (cbft *Cbft) OnQCBlockList(id string, msg *protocols.QCBlockList) {
@@ -253,7 +283,7 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	return nil
 }
 
-//
+// OnLatestStatus is used to process LatestStatus messages that received from peer.
 func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash().TerminalString())
 	switch msg.LogicType {
