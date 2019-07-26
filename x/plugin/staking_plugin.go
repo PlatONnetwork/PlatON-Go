@@ -1653,6 +1653,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		return ValidatorNotExist
 	}
 
+	// todo test
+	xcom.PrintObject("Call Election Curr validators", curr)
+
 	if blockNumber != (curr.End - xcom.ElectionDistance()) {
 		log.Error("Failed to Election: this blockNumber invalid", "Target blockNumber",
 			curr.End-xcom.ElectionDistance(), "blockNumber", blockNumber, "blockHash", blockHash.Hex())
@@ -1685,7 +1688,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	mbn := 1 // Minimum allowed total number of consensus nodes
 	diffQueueLen := len(diffQueue)
-	doubleSignNum := 0
+	duplicateSignNum := 0
 	curr_num := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
@@ -1706,7 +1709,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		if staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
-			doubleSignNum++
+			duplicateSignNum++
 		}
 	}
 
@@ -1720,6 +1723,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		// Increase term of validator
 		nextValidators := make(staking.ValidatorQueue, len(curr.Arr))
 		copy(nextValidators, curr.Arr)
+
 		for i, v := range nextValidators {
 			v.ValidatorTerm++
 			nextValidators[i] = v
@@ -1738,15 +1742,24 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	var nextQueue staking.ValidatorQueue
 
-	if doubleSignNum >= diffQueueLen {
-		if curr_num-doubleSignNum+diffQueueLen < mbn {
+	if duplicateSignNum >= diffQueueLen {
+
+		log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
+
+		if curr_num-duplicateSignNum+diffQueueLen < mbn {
+
+			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", curr_num-duplicateSignNum+diffQueueLen,
+				"Minimum allowed", mbn)
+
 			// Must remain one validator TODO (Normally, this should not be the case.)
-			nextQueue = shuffle(doubleSignNum-1, diffQueue)
+			nextQueue = shuffle(duplicateSignNum-1, diffQueue)
 		} else {
 
 			// Maybe this diffQueue length large than eight,
 			// But it must less than current validator size.
-			nextQueue = shuffle(doubleSignNum, diffQueue)
+			nextQueue = shuffle(duplicateSignNum, diffQueue)
 		}
 	} else {
 
@@ -1762,12 +1775,21 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				return err
 			} else {
 
-				if doubleSignNum >= len(queue) {
-					if curr_num-doubleSignNum+len(queue) < mbn {
+				if duplicateSignNum >= len(queue) {
+
+					log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
+						blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
+
+					if curr_num-duplicateSignNum+len(queue) < mbn {
+
+						log.Warn("Warn Election, finally vrf the next round validators num less than Minimum allowed", "blockNumber",
+							blockNumber, "blockHash", blockHash.Hex(), "next round num will be", curr_num-duplicateSignNum+len(queue),
+							"Minimum allowed", mbn)
+
 						// Must remain one validator TODO (Normally, this should not be the case.)
-						nextQueue = shuffle(doubleSignNum-1, queue)
+						nextQueue = shuffle(duplicateSignNum-1, queue)
 					} else {
-						nextQueue = shuffle(doubleSignNum, queue)
+						nextQueue = shuffle(duplicateSignNum, queue)
 					}
 				} else {
 					nextQueue = shuffle(len(queue), queue)
@@ -1802,9 +1824,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		}
 	}
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
+
 	// todo test
-	xcom.PrintObject("Curr validators", curr)
-	xcom.PrintObject("Next validators", next)
+	xcom.PrintObject("Call Election Next validators", next)
 	return nil
 }
 
