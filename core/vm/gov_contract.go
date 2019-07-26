@@ -102,7 +102,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 		ProposalID:     gc.Evm.StateDB.TxHash(),
 		Proposer:       verifier,
 	}
-	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return gc.errHandler("submitText", SubmitTextEvent, err, SubmitTextProposalErrorMsg)
 }
 
@@ -134,7 +134,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 		NewVersion:     newVersion,
 		ActiveBlock:    activeBlock,
 	}
-	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
 }
 
@@ -168,7 +168,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, de
 		CurrentValue:   currentValue,
 		NewValue:       newValue,
 	}
-	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
 }
 
@@ -217,7 +217,6 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, version uint32
 }
 
 func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
-
 	from := gc.Contract.CallerAddress
 	log.Debug("Call getProposal of GovContract",
 		"from", from.Hex(),

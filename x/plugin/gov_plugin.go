@@ -44,9 +44,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 //implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-
 	var blockNumber = header.Number.Uint64()
-
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
 	//if current block is a settlement block, to accumulate current verifiers for each voting proposal.
@@ -99,7 +97,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 			//tally the results
 			if votingProposal.GetProposalType() == gov.Text {
-				_, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, state)
+				_, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
@@ -110,12 +108,12 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				}
 
 			} else if votingProposal.GetProposalType() == gov.Param {
-				pass, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, state)
+				pass, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
 				if pass {
-					if err := govPlugin.updateParam(votingProposal.(gov.ParamProposal), blockHash, state); err != nil {
+					if err := govPlugin.updateParam(votingProposal.(gov.ParamProposal), blockHash, blockNumber, state); err != nil {
 						return err
 					}
 				}
@@ -230,10 +228,8 @@ func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // submit a proposal
-func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) error {
-
-	hex := common.Bytes2Hex(blockHash.Bytes())
-	log.Debug("check sender", "blockHash", hex, "blockNumber", proposal.GetSubmitBlock())
+func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
 	if err := proposal.Verify(proposal.GetSubmitBlock(), state); err != nil {
@@ -250,7 +246,7 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 	_, isVP := proposal.(gov.VersionProposal)
 	if isVP {
 		//another versionProposal in voting, exit.
-		vp, err := govPlugin.findVotingVersionProposal(blockHash, state)
+		vp, err := govPlugin.findVotingVersionProposal(blockHash, blockNumber, state)
 		if err != nil {
 			log.Error("to find if there's a voting version proposal failed", "blockHash", blockHash)
 			return err
@@ -282,7 +278,8 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 }
 
 // vote for a proposal
-func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, nodeProgramVersion uint32, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, programVersion uint32, state xcom.StateDB) error {
+	log.Debug("call Vote", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "voteInfo", vote)
 	if len(vote.ProposalID) == 0 || len(vote.VoteNodeID) == 0 || vote.VoteOption == 0 {
 		return common.NewBizError("empty parameter detected.")
 	}
@@ -296,15 +293,6 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return common.NewBizError("incorrect proposal ID.")
 	}
 
-	if proposal.GetProposalType() == gov.Version {
-		if vp, ok := proposal.(gov.VersionProposal); ok {
-			if vp.GetNewVersion() != nodeProgramVersion {
-				log.Error("vote failed because node did not upgrade", "version proposal's new version", vp.GetNewVersion(), "nodeProgramVersion", nodeProgramVersion)
-				return common.NewBizError("vote failed because node did not upgrade")
-			}
-		}
-	}
-
 	//check caller and voter
 	if err := govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()); err != nil {
 		return err
@@ -315,12 +303,21 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return common.NewBizError("vote option is error.")
 	}
 
+	if proposal.GetProposalType() == gov.Version {
+		if vp, ok := proposal.(gov.VersionProposal); ok {
+			if vp.GetNewVersion() != programVersion {
+				log.Error("cannot vote for version proposal until node upgrade to a new version", "newVersion", vp.GetNewVersion(), "programVersion", programVersion)
+				return common.NewBizError("node have not upgraded to a new version")
+			}
+		}
+	}
+
 	//check if vote.proposalID is in voting
-	votingIDs, err := govPlugin.listVotingProposalID(blockHash, state)
+	votingIDs, err := govPlugin.listVotingProposalID(blockHash, blockNumber, state)
 	if err != nil {
 		log.Error("list all voting proposal IDs failed", "blockHash", blockHash)
 		return err
-	} else if votingIDs == nil {
+	} else if len(votingIDs) == 0 {
 		log.Error("there's no voting proposal ID.", "blockHash", blockHash)
 		return err
 	} else {
@@ -367,7 +364,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 
 // node declares it's version
 func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
-
+	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion)
 	//check caller is a Verifier or Candidate
 	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
@@ -381,7 +378,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 		return common.NewBizError("wrong active version.")
 	}
 
-	votingVP, err := govPlugin.findVotingVersionProposal(blockHash, state)
+	votingVP, err := govPlugin.findVotingVersionProposal(blockHash, blockNumber, state)
 	if err != nil {
 		log.Error("find if there's a voting version proposal failed", "blockHash", blockHash)
 		return err
@@ -428,6 +425,8 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 
 // client query a specified proposal
 func (govPlugin *GovPlugin) GetProposal(proposalID common.Hash, state xcom.StateDB) (gov.Proposal, error) {
+	log.Debug("call GetProposal", "proposalID", proposalID)
+
 	proposal, err := govPlugin.govDB.GetProposal(proposalID, state)
 	if err != nil {
 		log.Error("get proposal by ID failed", "proposalID", proposalID, "msg", err.Error())
@@ -455,6 +454,7 @@ func (govPlugin *GovPlugin) GetTallyResult(proposalID common.Hash, state xcom.St
 
 // query proposal list
 func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.StateDB) ([]gov.Proposal, error) {
+	log.Debug("call ListProposal")
 	var proposalIDs []common.Hash
 	var proposals []gov.Proposal
 
@@ -492,67 +492,11 @@ func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.State
 	return proposals, nil
 }
 
-// tally a text proposal
-func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.TextProposal, blockHash common.Hash, state xcom.StateDB) error {
-
-	proposalID := proposal.ProposalID
-	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
-	if err != nil {
-		log.Error("count accumulated verifiers failed", "proposalID", proposalID, "blockHash", blockHash)
-		return err
-	}
-
-	status := gov.Voting
-	yeas := uint16(0)
-	nays := uint16(0)
-	abstentions := uint16(0)
-
-	voteList, err := govPlugin.govDB.ListVoteValue(proposal.ProposalID, state)
-	if err != nil {
-		log.Error("list voted value failed.", "blockHash", blockHash)
-		return err
-	}
-	for _, v := range voteList {
-		if v.VoteOption == gov.Yes {
-			yeas++
-		}
-		if v.VoteOption == gov.No {
-			nays++
-		}
-		if v.VoteOption == gov.Abstention {
-			abstentions++
-		}
-	}
-	supportRate := float64(yeas) / float64(accuCnt)
-
-	if supportRate >= xcom.SupportRateThreshold() {
-		status = gov.Pass
-	} else {
-		status = gov.Failed
-	}
-
-	tallyResult := &gov.TallyResult{
-		ProposalID:    proposal.ProposalID,
-		Yeas:          yeas,
-		Nays:          nays,
-		Abstentions:   abstentions,
-		AccuVerifiers: verifiersCnt,
-		Status:        status,
-	}
-
-	govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposal.ProposalID, state)
-
-	if err := govPlugin.govDB.SetTallyResult(*tallyResult, state); err != nil {
-		log.Error("save tally result failed", "tallyResult", tallyResult)
-		return err
-	}
-	return nil
-}
-
 // tally a version proposal
 func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (bool, error) {
-
 	proposalID := proposal.ProposalID
+	log.Debug("call tallyForVersionProposal", "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposal.ProposalID)
+
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
 	if err != nil {
 		log.Error("count accumulated verifiers failed", "proposalID", proposalID, "blockHash", blockHash)
@@ -570,6 +514,8 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 
 	status := gov.Voting
 	supportRate := float64(yeas) * 100 / float64(verifiersCnt)
+	log.Debug("version proposal's supportRate", "supportRate", supportRate)
+
 	if supportRate > xcom.SupportRateThreshold() {
 		status = gov.PreActive
 
@@ -617,7 +563,9 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 	return status == gov.PreActive, nil
 }
 
-func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.Hash, state xcom.StateDB) (pass bool, err error) {
+func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+	log.Debug("call tallyBasic", "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
+
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
 	if err != nil {
 		log.Error("count accumulated verifiers failed", "proposalID", proposalID, "blockHash", blockHash)
@@ -677,6 +625,7 @@ func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.
 
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
+	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
@@ -686,17 +635,20 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
+				log.Debug("tx sender is a verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
 				return common.NewBizError("tx sender should be node's staking address.")
 			}
 		}
 	}
-	return common.NewBizError("tx sender is not verifier.")
+	log.Error("tx sender is not a verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+	return common.NewBizError("tx sender is not a verifier.")
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
+	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 	candidateList, err := stk.GetCandidateList(blockHash)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
@@ -706,6 +658,7 @@ func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.
 	for _, candidate := range candidateList {
 		if candidate.NodeId == nodeID {
 			if candidate.StakingAddress == from {
+				log.Debug("tx sender is a candidate.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
 				return common.NewBizError("tx sender should be node's staking address.")
@@ -716,7 +669,8 @@ func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.
 }
 
 // list all proposal IDs at voting stage
-func (govPlugin *GovPlugin) listVotingProposalID(blockHash common.Hash, state xcom.StateDB) ([]common.Hash, error) {
+func (govPlugin *GovPlugin) listVotingProposalID(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) ([]common.Hash, error) {
+	log.Debug("call checkCandidate", "blockHash", blockHash, "blockNumber", blockNumber)
 	idList, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
 	if err != nil {
 		log.Error("find voting version proposal failed", "blockHash", blockHash)
@@ -726,7 +680,8 @@ func (govPlugin *GovPlugin) listVotingProposalID(blockHash common.Hash, state xc
 }
 
 // find a version proposal at voting stage
-func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, state xcom.StateDB) (*gov.VersionProposal, error) {
+func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*gov.VersionProposal, error) {
+	log.Debug("call findVotingVersionProposal", "blockHash", blockHash, "blockNumber", blockNumber)
 	idList, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
 	if err != nil {
 		log.Error("find voting version proposal failed", "blockHash", blockHash)
@@ -746,10 +701,12 @@ func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, sta
 }
 
 func (govPlugin *GovPlugin) SetParam(paraMap map[string]string, state xcom.StateDB) error {
+	log.Debug("call SetParam", "paraMap", paraMap)
 	return govPlugin.govDB.SetParam(paraMap, state)
 }
 
 func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]string, error) {
+	log.Debug("call ListParam")
 	paramList, err := govPlugin.govDB.ListParam(state)
 	if err != nil {
 		log.Error("list all parameters failed", "msg", err.Error())
@@ -759,6 +716,7 @@ func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]string, er
 }
 
 func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (string, error) {
+	log.Debug("call GetParamValue", "name", name)
 	value, err := govPlugin.govDB.GetParam(name, state)
 	if err != nil {
 		log.Error("fina a parameter failed", "msg", err.Error())
@@ -767,7 +725,8 @@ func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (stri
 	return value, nil
 }
 
-func (govPlugin *GovPlugin) updateParam(proposal gov.ParamProposal, hashes common.Hash, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) updateParam(proposal gov.ParamProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	log.Debug("call updateParam", "blockHash", blockHash, "blockNumber", blockNumber)
 	if err := govPlugin.govDB.UpdateParam(proposal.ParamName, proposal.CurrentValue, proposal.NewValue, state); err != nil {
 		log.Error("update parameter value failed", "msg", err.Error())
 		return err

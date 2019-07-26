@@ -49,7 +49,9 @@ func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // for create new block, this is necessary. At last if current block is the last block at the end
 // of year, increasing issuance.
 func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+
 	blockNumber := head.Number.Uint64()
+	log.Debug("begin to EndBlock in reward plugin", "hash", blockHash, "blockNumber", blockNumber)
 
 	stakingReward, newBlockReward := rmp.calculateExpectReward(blockNumber, state)
 	log.Trace("show calculated data", "blockNumber", blockNumber, "stkReward", stakingReward, "nbReward", newBlockReward)
@@ -70,6 +72,8 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		log.Info("ready to increase issuance", "blockNumber", blockNumber, "hash", head.Hash())
 		rmp.increaseIssuance(blockNumber, state)
 	}
+
+	log.Debug("end to EndBlock in reward plugin")
 
 	return nil
 }
@@ -116,10 +120,11 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 		log.Debug("get verifier list failed in rewardStaking", "blockNumber", blockNumber, "hash", blockHash)
 		return err
 	}
-	log.Trace("get verifier list success", "list", list)
 
 	validatorNum := int64(len(list))
-	everyValidatorReward := new(big.Int).Sub(reward, big.NewInt(validatorNum))
+	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
+
+	log.Debug("get verifier list success", "listLen", len(list), "everyOneReward", everyValidatorReward, "list", list)
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenefitAddress
