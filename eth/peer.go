@@ -19,11 +19,13 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -62,16 +64,16 @@ const (
 
 	handshakeTimeout = 5 * time.Second
 
-	maxBlockingTxs = 10
+	maxBlockingTxs       = 10
 	maxPrioritySigCounts = 10
 )
 
 // PeerInfo represents a short summary of the Ethereum sub-protocol metadata known
 // about a connected peer.
 type PeerInfo struct {
-	Version    int      `json:"version"`    // Ethereum protocol version negotiated
-	BN         *big.Int `json:"number"`     // The block number of the peer's blockchain
-	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
+	Version int      `json:"version"` // Ethereum protocol version negotiated
+	BN      *big.Int `json:"number"`  // The block number of the peer's blockchain
+	Head    string   `json:"head"`    // SHA3 hash of the peer's best owned block
 }
 
 // propEvent is a block propagation, waiting for its turn in the broadcast queue.
@@ -85,8 +87,8 @@ type peer struct {
 	*p2p.Peer
 	rw p2p.MsgReadWriter
 
-	version  int         // Protocol version negotiated
-//	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
+	version int // Protocol version negotiated
+	//	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
 
 	head common.Hash
 	bn   *big.Int
@@ -185,9 +187,9 @@ func (p *peer) Info() *PeerInfo {
 	hash, bn := p.Head()
 
 	return &PeerInfo{
-		Version:    p.version,
-		BN: bn,
-		Head:       hash.Hex(),
+		Version: p.version,
+		BN:      bn,
+		Head:    hash.Hex(),
 	}
 }
 
@@ -237,12 +239,12 @@ func (p *peer) SendTransactions(txs types.Transactions) error {
 	if len(p.queuedSignature) != 0 && len(txs) > maxBlockingTxs {
 		var count uint32
 	finish:
-		for  {
+		for {
 			if len(p.queuedSignature) == 0 || count > maxPrioritySigCounts {
 				break finish
 			}
 			select {
-			case prop := <- p.queuedSignature:
+			case prop := <-p.queuedSignature:
 				signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
 				if err := p.SendSignature(signature); err != nil {
 					p.Log().Error("Propagated signature fail::", "hash", signature.Hash)
@@ -298,6 +300,22 @@ func (p *peer) AsyncSendNewBlockHash(block *types.Block) {
 	default:
 		p.Log().Debug("Dropping block announcement", "number", block.NumberU64(), "hash", block.Hash())
 	}
+}
+
+type PPOSStorage struct {
+	KVs    []downloader.PPOSStorageKV
+	Latest *types.Header
+	Pivot  *types.Header
+	KVNum  uint64
+	Last   bool
+}
+
+func (p *peer) SendPPOSStorage(data PPOSStorage) error {
+	return p2p.Send(p.rw, PPOSStorageMsg, data)
+}
+
+func (p *peer) SendOriginAndPivot(data []*types.Header) error {
+	return p2p.Send(p.rw, OriginAndPivotMsg, data)
 }
 
 // SendNewBlock propagates an entire block to a remote peer.
@@ -384,6 +402,24 @@ func (p *peer) RequestNodeData(hashes []common.Hash) error {
 func (p *peer) RequestReceipts(hashes []common.Hash) error {
 	p.Log().Debug("Fetching batch of receipts", "count", len(hashes))
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
+}
+
+func (p *peer) RequestPPOSStorage() error {
+	p.Log().Debug("Fetching latest ppos storage")
+	if err := p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{}); err != nil {
+		p.Log().Error("Fetching latest ppos storage error", "err", err.Error())
+		return err
+	}
+	return nil
+}
+
+func (p *peer) RequestOriginAndPivotByCurrent(current uint64) error {
+	p.Log().Debug("Fetching Origin and  Pivot", "curremt", current)
+	if err := p2p.Send(p.rw, GetOriginAndPivotMsg, current); err != nil {
+		p.Log().Error("Fetching Origin and  Pivot error", "err", err.Error())
+		return err
+	}
+	return nil
 }
 
 // Handshake executes the eth protocol handshake, negotiating version number,
@@ -562,7 +598,7 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 
 // ConsensusPeersWithoutTx retrieves a list of consensus peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer{
+func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

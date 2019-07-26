@@ -3,6 +3,9 @@ package gov_test
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -11,8 +14,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"math/big"
-	"testing"
 )
 
 func getGovDB() (*gov.GovDB, *state.StateDB) {
@@ -102,7 +103,7 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 		}
 	}
 
-	if err := db.MoveVotingProposalIDToPreActive(blockhash, proposalIds[1], statedb); err != nil {
+	if err := db.MoveVotingProposalIDToPreActive(blockhash, proposalIds[1]); err != nil {
 		t.Fatalf("move voting proposal to pre active failed...%s", err)
 	} else {
 		proposalIdsPre = proposalIds[1]
@@ -156,6 +157,12 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 	if vget != version {
 		t.Fatalf("get pre-active version error,expect version:%d,get version:%d", version, vget)
 	}
+}
+
+func TestGovDB_GetPreActiveVersionNotExist(t *testing.T) {
+	db, statedb := getGovDB()
+	vget := db.GetPreActiveVersion(statedb)
+	t.Logf("get pre-active version error,get version:%d", vget)
 }
 
 func TestGovDB_SetActiveVersion(t *testing.T) {
@@ -257,59 +264,6 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 	db.Reset()
 }
 
-func TestGovDB_AddVotedVerifier(t *testing.T) {
-
-	db, _ := getGovDB()
-
-	snapdb := snapshotdb.Instance()
-	defer snapdb.Clear()
-	//create block
-	blockhash, e := newblock(snapdb, big.NewInt(1))
-	if e != nil {
-		t.Fatalf("create block error ...%s", e)
-	}
-	proposal := getTxtProposal()
-
-	var nodeIds1 []discover.NodeID
-	var nodeIds2 []discover.NodeID
-
-	for i, node := range nodeIdTests {
-		if err := db.AddVotedVerifier(blockhash, proposal.ProposalID, node.VoteNodeID); err != nil {
-			t.Fatalf("add voted verifier error...%s", err)
-		}
-		if i < 3 {
-			nodeIds1 = append(nodeIds1, node.VoteNodeID)
-		} else {
-			nodeIds2 = append(nodeIds2, node.VoteNodeID)
-		}
-	}
-
-	if err := db.AccuVerifiers(blockhash, proposal.ProposalID, nodeIds1); err != nil {
-		t.Fatalf("AccuVerifiers error...%s", err)
-	} else {
-		if l, err := db.AccuVerifiersLength(blockhash, proposal.ProposalID); err != nil {
-			t.Fatalf("AccuVerifiersLength error，%s", err)
-		} else {
-			if int(l) != len(nodeIds1) {
-				t.Fatalf("AccuVerifiersLength error, expect len:%d,get len:%d", len(nodeIds1), l)
-			}
-		}
-	}
-
-	if err := db.AccuVerifiers(blockhash, proposal.ProposalID, nodeIds2); err != nil {
-		t.Fatalf("AccuVerifiers error...%s", err)
-	} else {
-		if l, err := db.AccuVerifiersLength(blockhash, proposal.ProposalID); err != nil {
-			t.Fatalf("AccuVerifiersLength error，%s", err)
-		} else {
-			if int(l) != len(nodeIds2)+len(nodeIds1) {
-				t.Fatalf("AccuVerifiersLength error, expect len:%d,get len:%d", len(nodeIds1)+len(nodeIds2), l)
-			}
-		}
-	}
-	db.Reset()
-}
-
 func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
 
 	recognizedHash := generateHash("recognizedHash")
@@ -353,18 +307,16 @@ func getTxtProposal() gov.TextProposal {
 
 func getVerProposal(proposalId common.Hash) gov.VersionProposal {
 	return gov.VersionProposal{
-		gov.TextProposal{
-			proposalId,
-			"p#01",
-			gov.Version,
-			"up,up,up....",
-			"This is an example...",
-			"em。。。。",
-			uint64(1000),
-			uint64(10000000),
-			discover.NodeID{},
-			gov.TallyResult{},
-		},
+		proposalId,
+		"p#01",
+		gov.Version,
+		"up,up,up....",
+		"This is an example...",
+		"em。。。。",
+		uint64(1000),
+		uint64(10000000),
+		discover.NodeID{},
+		gov.TallyResult{},
 		32,
 		uint64(562222),
 	}

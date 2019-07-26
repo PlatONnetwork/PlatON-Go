@@ -17,6 +17,8 @@
 package node
 
 import (
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -24,8 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"errors"
-	"fmt"
 	"github.com/prometheus/prometheus/util/flock"
 	"net"
 	"os"

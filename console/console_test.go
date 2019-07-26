@@ -20,19 +20,21 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 const (

@@ -1,67 +1,57 @@
 package staking
 
 import (
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"math/big"
 )
-
-
-
-
 
 type StakingDB struct {
 	db snapshotdb.DB
 }
 
-
-func NewStakingDB () *StakingDB{
-	return &StakingDB {
+func NewStakingDB() *StakingDB {
+	return &StakingDB{
 		db: snapshotdb.Instance(),
 	}
 }
 
-func (db *StakingDB) get (blockHash common.Hash, key []byte) ([]byte, error) {
+func (db *StakingDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
 	return db.db.Get(blockHash, key)
 }
 
-func (db *StakingDB) getFromCommitted (key []byte) ([]byte, error) {
+func (db *StakingDB) getFromCommitted(key []byte) ([]byte, error) {
 	return db.db.GetFromCommittedBlock(key)
 }
 
-func (db *StakingDB) put (blockHash common.Hash, key, value []byte) error {
+func (db *StakingDB) put(blockHash common.Hash, key, value []byte) error {
 	return db.db.Put(blockHash, key, value)
 }
 
-func (db *StakingDB) del (blockHash common.Hash, key []byte) error {
+func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
 	return db.db.Del(blockHash, key)
 }
 
-func (db *StakingDB) ranking (blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
+func (db *StakingDB) ranking(blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
 	return db.db.Ranking(blockHash, prefix, ranges)
 }
 
-func (db *StakingDB) GetLastKVHash (blockHash common.Hash) []byte {
+func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 	return db.db.GetLastKVHash(blockHash)
 }
 
-
-
-
-
-
-func (db *StakingDB) GetCandidateStore (blockHash common.Hash, addr common.Address) (*xcom.Candidate, error) {
-	key := xcom.CandidateKeyByAddr(addr)
+func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Address) (*Candidate, error) {
+	key := CandidateKeyByAddr(addr)
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
 		return nil, err
 	}
-	var can xcom.Candidate
+	var can Candidate
 
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
@@ -69,14 +59,14 @@ func (db *StakingDB) GetCandidateStore (blockHash common.Hash, addr common.Addre
 	return &can, nil
 }
 
-func (db *StakingDB) GetCandidateStoreByIrr (addr common.Address) (*xcom.Candidate, error) {
-	key := xcom.CandidateKeyByAddr(addr)
+func (db *StakingDB) GetCandidateStoreByIrr(addr common.Address) (*Candidate, error) {
+	key := CandidateKeyByAddr(addr)
 	canByte, err := db.getFromCommitted(key)
 
 	if nil != err {
 		return nil, err
 	}
-	var can xcom.Candidate
+	var can Candidate
 
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
@@ -84,16 +74,14 @@ func (db *StakingDB) GetCandidateStoreByIrr (addr common.Address) (*xcom.Candida
 	return &can, nil
 }
 
-
-
-func (db *StakingDB) GetCandidateStoreWithSuffix (blockHash common.Hash, suffix []byte) (*xcom.Candidate, error) {
-	key := xcom.CandidateKeyBySuffix(suffix)
+func (db *StakingDB) GetCandidateStoreWithSuffix(blockHash common.Hash, suffix []byte) (*Candidate, error) {
+	key := CandidateKeyBySuffix(suffix)
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
 		return nil, err
 	}
-	var can xcom.Candidate
+	var can Candidate
 
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
@@ -101,14 +89,14 @@ func (db *StakingDB) GetCandidateStoreWithSuffix (blockHash common.Hash, suffix 
 	return &can, nil
 }
 
-func (db *StakingDB) GetCandidateStoreByIrrWithSuffix (suffix []byte) (*xcom.Candidate, error) {
-	key := xcom.CandidateKeyBySuffix(suffix)
+func (db *StakingDB) GetCandidateStoreByIrrWithSuffix(suffix []byte) (*Candidate, error) {
+	key := CandidateKeyBySuffix(suffix)
 	canByte, err := db.getFromCommitted(key)
 
 	if nil != err {
 		return nil, err
 	}
-	var can xcom.Candidate
+	var can Candidate
 
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
@@ -116,58 +104,57 @@ func (db *StakingDB) GetCandidateStoreByIrrWithSuffix (suffix []byte) (*xcom.Can
 	return &can, nil
 }
 
-func (db *StakingDB) SetCandidateStore (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
+func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
 
-	key := xcom.CandidateKeyByAddr(addr)
+	key := CandidateKeyByAddr(addr)
 
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
-	}else {
+	} else {
 		return db.put(blockHash, key, val)
 	}
 }
 
-func (db *StakingDB) DelCandidateStore (blockHash common.Hash, addr common.Address) error {
-	key := xcom.CandidateKeyByAddr(addr)
+func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Address) error {
+	key := CandidateKeyByAddr(addr)
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) SetCanPowerStore (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
-	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProcessVersion)
+func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
+	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 	return db.put(blockHash, key, addr.Bytes())
 }
 
-func (db *StakingDB) DelCanPowerStore (blockHash common.Hash, can *xcom.Candidate) error {
-	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProcessVersion)
+func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
+	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 	return db.del(blockHash, key)
 }
 
+func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, addr common.Address) error {
 
-
-func (db *StakingDB) AddUnStakeItemStore (blockHash common.Hash, epoch uint64, addr common.Address) error {
-
-
-	count_key := xcom.GetUnStakeCountKey(epoch)
+	count_key := GetUnStakeCountKey(epoch)
 
 	val, err := db.get(blockHash, count_key)
-	if nil != err {
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
 	}
-
-	v := common.BytesToUint64(val)
 
 	v++
 
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
 	}
-	item_key := xcom.GetUnStakeItemKey(epoch, v)
+	item_key := GetUnStakeItemKey(epoch, v)
 
 	return db.put(blockHash, item_key, addr.Bytes())
 }
 
-func (db *StakingDB) GetUnStakeCountStore (blockHash common.Hash, epoch uint64) (uint64, error) {
-	count_key := xcom.GetUnStakeCountKey(epoch)
+func (db *StakingDB) GetUnStakeCountStore(blockHash common.Hash, epoch uint64) (uint64, error) {
+	count_key := GetUnStakeCountKey(epoch)
 
 	val, err := db.get(blockHash, count_key)
 	if nil != err {
@@ -176,8 +163,8 @@ func (db *StakingDB) GetUnStakeCountStore (blockHash common.Hash, epoch uint64) 
 	return common.BytesToUint64(val), nil
 }
 
-func (db *StakingDB) GetUnStakeItemStore (blockHash common.Hash, epoch, index uint64) (common.Address, error) {
-	item_key := xcom.GetUnStakeItemKey(epoch, index)
+func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uint64) (common.Address, error) {
+	item_key := GetUnStakeItemKey(epoch, index)
 	addrByte, err := db.get(blockHash, item_key)
 	if nil != err {
 		return common.ZeroAddr, err
@@ -185,52 +172,63 @@ func (db *StakingDB) GetUnStakeItemStore (blockHash common.Hash, epoch, index ui
 	return common.BytesToAddress(addrByte), nil
 }
 
-
-func (db *StakingDB) DelUnStakeCountStore (blockHash common.Hash, epoch uint64) error {
-	count_key := xcom.GetUnStakeCountKey(epoch)
+func (db *StakingDB) DelUnStakeCountStore(blockHash common.Hash, epoch uint64) error {
+	count_key := GetUnStakeCountKey(epoch)
 	return db.del(blockHash, count_key)
 }
 
-func (db *StakingDB) DelUnStakeItemStore (blockHash common.Hash, epoch, index uint64) error {
-	item_key := xcom.GetUnStakeItemKey(epoch, index)
+func (db *StakingDB) DelUnStakeItemStore(blockHash common.Hash, epoch, index uint64) error {
+	item_key := GetUnStakeItemKey(epoch, index)
 	return db.del(blockHash, item_key)
 }
 
-
-
-func (db *StakingDB) GetDelegateStore (blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*xcom.Delegation, error) {
-	key := xcom.GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
+	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
 	delByte, err := db.get(blockHash, key)
 	if nil != err {
 		return nil, err
 	}
 
-	var del xcom.Delegation
+	var del Delegation
 	if err := rlp.DecodeBytes(delByte, &del); nil != err {
 		return nil, err
 	}
 	return &del, nil
 }
 
+func (db *StakingDB) GetDelegateStoreByIrr(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
+	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
-func (db *StakingDB) GetDelegateStoreBySuffix (blockHash common.Hash, keySuffix[]byte) (*xcom.Delegation, error) {
-	key := xcom.GetDelegateKeyBySuffix(keySuffix)
+	delByte, err := db.getFromCommitted(key)
+	if nil != err {
+		return nil, err
+	}
+
+	var del Delegation
+	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+		return nil, err
+	}
+	return &del, nil
+}
+
+func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix []byte) (*Delegation, error) {
+	key := GetDelegateKeyBySuffix(keySuffix)
 	delByte, err := db.get(blockHash, key)
 	if nil != err {
 		return nil, err
 	}
 
-	var del xcom.Delegation
+	var del Delegation
 	if err := rlp.DecodeBytes(delByte, &del); nil != err {
 		return nil, err
 	}
 	return &del, nil
 }
 
-func (db *StakingDB) SetDelegateStore (blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
-	stakeBlockNumber uint64, del  *xcom.Delegation) error {
-	key := xcom.GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+	stakeBlockNumber uint64, del *Delegation) error {
+	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
 	delByte, err := rlp.EncodeToBytes(del)
 	if nil != err {
@@ -239,8 +237,8 @@ func (db *StakingDB) SetDelegateStore (blockHash common.Hash, delAddr common.Add
 	return db.put(blockHash, key, delByte)
 }
 
-func (db *StakingDB) SetDelegateStoreBySuffix (blockHash common.Hash, suffix []byte, del *xcom.Delegation) error {
-	key := xcom.GetDelegateKeyBySuffix(suffix)
+func (db *StakingDB) SetDelegateStoreBySuffix(blockHash common.Hash, suffix []byte, del *Delegation) error {
+	key := GetDelegateKeyBySuffix(suffix)
 	delByte, err := rlp.EncodeToBytes(del)
 	if nil != err {
 		return err
@@ -248,42 +246,43 @@ func (db *StakingDB) SetDelegateStoreBySuffix (blockHash common.Hash, suffix []b
 	return db.put(blockHash, key, delByte)
 }
 
-func (db *StakingDB) DelDelegateStore (blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
 	stakeBlockNumber uint64) error {
-	key := xcom.GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) DelDelegateStoreBySuffix (blockHash common.Hash, suffix []byte) error {
-	key := xcom.GetDelegateKeyBySuffix(suffix)
+func (db *StakingDB) DelDelegateStoreBySuffix(blockHash common.Hash, suffix []byte) error {
+	key := GetDelegateKeyBySuffix(suffix)
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) AddUnDelegateItemStore (blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+func (db *StakingDB) AddUnDelegateItemStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
 	epoch, stakeBlockNumber uint64, amount *big.Int) error {
 
-
-	count_key := xcom.GetUnDelegateCountKey(epoch)
+	count_key := GetUnDelegateCountKey(epoch)
 
 	val, err := db.get(blockHash, count_key)
-	if nil != err {
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
 	}
 
-	v := common.BytesToUint64(val)
 	v++
-
 
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
 	}
-	item_key := xcom.GetUnDelegateItemKey(epoch, v)
+	item_key := GetUnDelegateItemKey(epoch, v)
 
-	suffix :=  append(delAddr.Bytes(), append(nodeId.Bytes(), common.Uint64ToBytes(stakeBlockNumber)...)...)
+	suffix := append(delAddr.Bytes(), append(nodeId.Bytes(), common.Uint64ToBytes(stakeBlockNumber)...)...)
 
-	unDelegateItem := &xcom.UnDelegateItem{
-		KeySuffix: 	suffix,
-		Amount: 	amount,
+	unDelegateItem := &UnDelegateItem{
+		KeySuffix: suffix,
+		Amount:    amount,
 	}
 
 	item, err := rlp.EncodeToBytes(unDelegateItem)
@@ -293,9 +292,9 @@ func (db *StakingDB) AddUnDelegateItemStore (blockHash common.Hash, delAddr comm
 	return db.put(blockHash, item_key, item)
 }
 
-func (db *StakingDB) GetUnDelegateCountStore (blockHash common.Hash, epoch uint64) (uint64, error) {
+func (db *StakingDB) GetUnDelegateCountStore(blockHash common.Hash, epoch uint64) (uint64, error) {
 
-	count_key := xcom.GetUnDelegateCountKey(epoch)
+	count_key := GetUnDelegateCountKey(epoch)
 
 	val, err := db.get(blockHash, count_key)
 	if nil != err {
@@ -305,190 +304,233 @@ func (db *StakingDB) GetUnDelegateCountStore (blockHash common.Hash, epoch uint6
 	return common.BytesToUint64(val), nil
 }
 
-func (db *StakingDB) GetUnDelegateItemStore (blockHash common.Hash, epoch, index uint64) (*xcom.UnDelegateItem, error) {
+func (db *StakingDB) GetUnDelegateItemStore(blockHash common.Hash, epoch, index uint64) (*UnDelegateItem, error) {
 
-	item_key := xcom.GetUnDelegateItemKey(epoch, index)
+	item_key := GetUnDelegateItemKey(epoch, index)
 
 	itemByte, err := db.get(blockHash, item_key)
 	if nil != err {
 		return nil, err
 	}
 
-	var unDelegateItem xcom.UnDelegateItem
+	var unDelegateItem UnDelegateItem
 	if err := rlp.DecodeBytes(itemByte, &unDelegateItem); nil != err {
 		return nil, err
 	}
 	return &unDelegateItem, nil
 }
 
+func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
+	value, err := rlp.EncodeToBytes(indexArr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, GetEpochIndexKey(), value)
+}
 
+func (db *StakingDB) GetEpochValIndexByBlockHash(blockHash common.Hash) (ValArrIndexQueue, error) {
+	val, err := db.get(blockHash, GetEpochIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
 
+func (db *StakingDB) GetEpochValIndexByIrr() (ValArrIndexQueue, error) {
+	val, err := db.getFromCommitted(GetEpochIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
 
-func (db *StakingDB) SetVerfierList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
+func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, val_Arr ValidatorQueue) error {
 
 	value, err := rlp.EncodeToBytes(val_Arr)
 	if nil != err {
 		return err
 	}
-	return db.put(blockHash, xcom.GetEpochValidatorKey(), value)
+	return db.put(blockHash, GetEpochValArrKey(start, end), value)
 }
 
-
-func (db *StakingDB) GetVerifierListByIrr () (*xcom.Validator_array, error) {
-
-	arrByte, err := db.getFromCommitted(xcom.GetEpochValidatorKey())
+func (db *StakingDB) GetEpochValListByIrr(start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.getFromCommitted(GetEpochValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *xcom.Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-
-func (db *StakingDB) GetVerifierListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
-
-	arrByte, err := db.get(blockHash, xcom.GetEpochValidatorKey())
+func (db *StakingDB) GetEpochValListByBlockHash(blockHash common.Hash, start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.get(blockHash, GetEpochValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *xcom.Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
+func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, end uint64) error {
+	return db.del(blockHash, GetEpochValArrKey(start, end))
+}
 
+func (db *StakingDB) SetRoundValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
+	value, err := rlp.EncodeToBytes(indexArr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, GetRoundIndexKey(), value)
+}
 
-func (db *StakingDB) SetPreValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
+func (db *StakingDB) GetRoundValIndexByBlockHash(blockHash common.Hash) (ValArrIndexQueue, error) {
+	val, err := db.get(blockHash, GetRoundIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
+
+func (db *StakingDB) GetRoundValIndexByIrr() (ValArrIndexQueue, error) {
+	val, err := db.getFromCommitted(GetRoundIndexKey())
+	if nil != err {
+		return nil, err
+	}
+	var queue ValArrIndexQueue
+	if err := rlp.DecodeBytes(val, &queue); nil != err {
+		return nil, err
+	}
+	return queue, nil
+}
+
+func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, val_Arr ValidatorQueue) error {
+
 	value, err := rlp.EncodeToBytes(val_Arr)
 	if nil != err {
 		return err
 	}
-	return db.put(blockHash, xcom.GetPreRoundValidatorKey(), value)
+	return db.put(blockHash, GetRoundValArrKey(start, end), value)
 }
 
-func (db *StakingDB) GetPreValidatorListByIrr () (*xcom.Validator_array, error) {
-	arrByte, err := db.getFromCommitted(xcom.GetPreRoundValidatorKey())
+func (db *StakingDB) GetRoundValListByIrr(start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.getFromCommitted(GetRoundValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *xcom.Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-func (db *StakingDB) GetPreValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
-	arrByte, err := db.get(blockHash, xcom.GetPreRoundValidatorKey())
+func (db *StakingDB) GetRoundValListByBlockHash(blockHash common.Hash, start, end uint64) (ValidatorQueue, error) {
+	arrByte, err := db.get(blockHash, GetRoundValArrKey(start, end))
 	if nil != err {
 		return nil, err
 	}
 
-	var arr *xcom.Validator_array
+	var arr ValidatorQueue
 	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
 		return nil, err
 	}
 	return arr, nil
 }
 
-
-func (db *StakingDB) SetCurrentValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
-	value, err := rlp.EncodeToBytes(val_Arr)
-	if nil != err {
-		return err
-	}
-	return db.put(blockHash, xcom.GetCurRoundValidatorKey(), value)
+func (db *StakingDB) DelRoundValListByBlockHash(blockHash common.Hash, start, end uint64) error {
+	return db.del(blockHash, GetRoundValArrKey(start, end))
 }
 
-func (db *StakingDB) GetCurrentValidatorListByIrr () (*xcom.Validator_array, error) {
-	arrByte, err := db.getFromCommitted(xcom.GetCurRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *xcom.Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
+func (db *StakingDB) IteratorCandidatePowerByBlockHash(blockHash common.Hash, ranges int) iterator.Iterator {
+	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)
 }
 
-func (db *StakingDB) GetCurrentValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
-	arrByte, err := db.get(blockHash, xcom.GetCurRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
+//func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
+//	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
+//	return db.ranking(common.ZeroHash, prefix, ranges)
+//}
 
-	var arr *xcom.Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) SetNextValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
-	value, err := rlp.EncodeToBytes(val_Arr)
-	if nil != err {
-		return err
-	}
-	return db.put(blockHash, xcom.GetNextRoundValidatorKey(), value)
-}
-
-func (db *StakingDB) GetNextValidatorListByIrr () (*xcom.Validator_array, error) {
-	arrByte, err := db.getFromCommitted(xcom.GetNextRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *xcom.Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) GetNextValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
-	arrByte, err := db.get(blockHash, xcom.GetNextRoundValidatorKey())
-	if nil != err {
-		return nil, err
-	}
-
-	var arr *xcom.Validator_array
-	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
-		return nil, err
-	}
-	return arr, nil
-}
-
-func (db *StakingDB) DelNextValidatorListByBlockHash (blockHash common.Hash) error {
-	return db.del(blockHash, xcom.GetNextRoundValidatorKey())
-}
-
-
-func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
-	return db.ranking(common.ZeroHash, xcom.CanPowerKeyPrefix, ranges)
-}
-
-func (db *StakingDB) IteratorCandidatePowerByBlockHash (blockHash common.Hash, ranges int) iterator.Iterator {
-	return db.ranking(blockHash, xcom.CanPowerKeyPrefix, ranges)
-}
-
-
-func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
-	prefix := append(xcom.DelegateKeyPrefix, addr.Bytes()...)
-	return db.ranking(common.ZeroHash, prefix, ranges)
-}
-
-func (db *StakingDB) IteratorDelegateByBlockHashWithAddr (blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
-	prefix := append(xcom.DelegateKeyPrefix, addr.Bytes()...)
+func (db *StakingDB) IteratorDelegateByBlockHashWithAddr(blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
+	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
 	return db.ranking(blockHash, prefix, ranges)
 }
 
+func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Address) error {
+	key := GetAccountStakeRcKey(addr)
+	val, err := db.get(blockHash, key)
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
+		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
+	}
+
+	v++
+
+	return db.put(blockHash, key, common.Uint64ToBytes(v))
+}
+
+func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Address) error {
+	key := GetAccountStakeRcKey(addr)
+	val, err := db.get(blockHash, key)
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
+		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
+	}
+
+	v--
+
+	if v == 0 {
+		return db.del(blockHash, key)
+	} else if v < 0 {
+		return common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
+	} else {
+		return db.put(blockHash, key, common.Uint64ToBytes(v))
+	}
+}
+
+func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Address) (bool, error) {
+	key := GetAccountStakeRcKey(addr)
+	val, err := db.get(blockHash, key)
+	var v uint64
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
+		return false, err
+	case nil != err && err == snapshotdb.ErrNotFound:
+		return false, nil
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
+	}
+	if v == 0 {
+		return false, nil
+	} else if v > 0 {
+		return true, nil
+	} else {
+		return false, common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
+	}
+}

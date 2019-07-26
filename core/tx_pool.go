@@ -81,6 +81,9 @@ var (
 	// than some meaningful limit a user might use. This is not a consensus error
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
+
+	// PlatON inner contract tx data invalid
+	ErrPlatONTxDataInvalid = errors.New("the tx data is invalid")
 )
 
 var (
@@ -859,8 +862,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	// Verify inner contract tx
-	if err := bcr.Verify_tx(tx, from); nil != err {
-		return err
+	if nil != tx.To() {
+		if err := bcr.Verify_tx(tx, *(tx.To())); nil != err {
+			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
+		}
 	}
 
 	return nil

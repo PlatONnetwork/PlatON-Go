@@ -65,7 +65,9 @@ var (
 )
 
 func NewFaker() consensus.Engine {
-	return new(consensus.BftMock)
+	c := new(consensus.BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	return c
 }
 
 type Cbft struct {
@@ -902,6 +904,8 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 	cbft.bp.InternalBP().Seal(context.TODO(), current, cbft)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, cbft)
+
+	cbft.agency.Flush(sealedBlock.Header())
 
 	cbft.broadcastBlock(current)
 	//todo change sign and block state
@@ -2287,6 +2291,7 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 			return
 		}
 		current.view = extra.ViewChange
+		current.viewChangeVotes = extra.ViewChangeVotes
 
 		for _, vote := range extra.Prepare {
 			current.timestamp = vote.Timestamp

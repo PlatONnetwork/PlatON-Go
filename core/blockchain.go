@@ -55,29 +55,29 @@ type CacheConfig struct {
 	TrieNodeLimit int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit time.Duration // Time limit after which to flush the current in-memory trie to disk
 
-	BodyCacheLimit 	 int
-	BlockCacheLimit  int
-	MaxFutureBlocks  int
-	BadBlockLimit 	 int
-	TriesInMemory	 int
-	DefaultTxsCacheSize int
+	BodyCacheLimit           int
+	BlockCacheLimit          int
+	MaxFutureBlocks          int
+	BadBlockLimit            int
+	TriesInMemory            int
+	DefaultTxsCacheSize      int
 	DefaultBroadcastInterval time.Duration
 }
 
 // mining related configuration
 type MiningConfig struct {
-	MiningLogAtDepth  		uint
-	TxChanSize		  		int
-	ChainHeadChanSize 		int
-	ChainSideChanSize 		int
-	ResultQueueSize			int
-	ResubmitAdjustChanSize  int
-	MinRecommitInterval		time.Duration
-	MaxRecommitInterval		time.Duration
-	IntervalAdjustRatio		float64
-	IntervalAdjustBias		float64
-	StaleThreshold			uint64
-	DefaultCommitRatio		float64
+	MiningLogAtDepth       uint
+	TxChanSize             int
+	ChainHeadChanSize      int
+	ChainSideChanSize      int
+	ResultQueueSize        int
+	ResubmitAdjustChanSize int
+	MinRecommitInterval    time.Duration
+	MaxRecommitInterval    time.Duration
+	IntervalAdjustRatio    float64
+	IntervalAdjustBias     float64
+	StaleThreshold         uint64
+	DefaultCommitRatio     float64
 }
 
 // BlockChain represents the canonical chain given a database with a genesis
@@ -146,14 +146,14 @@ type BlockChain struct {
 func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
-			TrieNodeLimit: 256 * 1024 * 1024,
-			TrieTimeLimit: 5 * time.Minute,
-			BodyCacheLimit:  256,
-			BlockCacheLimit: 256,
-			MaxFutureBlocks: 256,
-			BadBlockLimit:	 10,
-			TriesInMemory:	 128,
-			DefaultTxsCacheSize: 20,
+			TrieNodeLimit:            256 * 1024 * 1024,
+			TrieTimeLimit:            5 * time.Minute,
+			BodyCacheLimit:           256,
+			BlockCacheLimit:          256,
+			MaxFutureBlocks:          256,
+			BadBlockLimit:            10,
+			TriesInMemory:            128,
+			DefaultTxsCacheSize:      20,
 			DefaultBroadcastInterval: 100 * time.Millisecond,
 		}
 	}
@@ -440,6 +440,10 @@ func (bc *BlockChain) repair(head **types.Block) error {
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
+
+		num := (*head).NumberU64() - 1
+		fmt.Println(num)
+
 		// Otherwise rewind one block and recheck state availability there
 		(*head) = bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
 	}

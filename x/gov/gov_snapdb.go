@@ -3,6 +3,7 @@ package gov
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -51,8 +52,22 @@ func (self *GovSnapshotDB) getVotingIDList(blockHash common.Hash) ([]common.Hash
 	return self.getProposalIDListByKey(blockHash, KeyVotingProposals())
 }
 
-func (self *GovSnapshotDB) getPreActiveIDList(blockHash common.Hash) ([]common.Hash, error) {
-	return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
+func (self *GovSnapshotDB) getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
+	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
+	bytes, err := self.get(blockHash, KeyPreActiveProposals())
+
+	if err != nil && err != snapshotdb.ErrNotFound {
+		return common.Hash{}, err
+	}
+
+	var proposalID common.Hash
+	if len(bytes) > 0 {
+		if err = rlp.DecodeBytes(bytes, &proposalID); err != nil {
+			return common.Hash{}, err
+		}
+	}
+	return proposalID, nil
+
 }
 
 func (self *GovSnapshotDB) getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
@@ -65,7 +80,7 @@ func (self *GovSnapshotDB) getProposalIDListByKey(blockHash common.Hash, key []b
 		return nil, err
 	}
 	var idList []common.Hash
-	if bytes != nil {
+	if len(bytes) > 0 {
 		if err = rlp.DecodeBytes(bytes, &idList); err != nil {
 			return nil, err
 		}
@@ -76,40 +91,30 @@ func (self *GovSnapshotDB) getProposalIDListByKey(blockHash common.Hash, key []b
 func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 	var total []common.Hash
 
-	hashes, _ := self.getVotingIDList(blockHash)
-	total = append(total, hashes...)
-
-	hashes, _ = self.getPreActiveIDList(blockHash)
-	total = append(total, hashes...)
-
-	hashes, _ = self.getEndIDList(blockHash)
-	total = append(total, hashes...)
-	return total, nil
-}
-
-func (self *GovSnapshotDB) addVotedVerifier(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
-
-	nodes, err := self.getVotedVerifierList(blockHash, proposalId)
+	hashes, err := self.getVotingIDList(blockHash)
 	if err != nil {
-		return err
-	}
-	nodes = append(nodes, node)
-
-	return self.put(blockHash, keyPrefixVotedVerifiers, nodes)
-}
-
-func (self *GovSnapshotDB) getVotedVerifierList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
-	value, err := self.get(blockHash, KeyVotedVerifiers(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+		log.Error("list voting proposal IDs failed", "blockHash", blockHash)
 		return nil, err
+	} else if len(hashes) > 0 {
+		total = append(total, hashes...)
 	}
-	var nodes []discover.NodeID
-	if value != nil {
-		if err := rlp.DecodeBytes(value, &nodes); err != nil {
-			return nil, err
-		}
+
+	hash, err := self.getPreActiveProposalID(blockHash)
+	if err != nil {
+		log.Error("list pre-active proposal IDs failed", "blockHash", blockHash)
+		return nil, err
+	} else if len(hash) > 0 {
+		total = append(total, hash)
 	}
-	return nodes, nil
+	hashes, err = self.getEndIDList(blockHash)
+	if err != nil {
+		log.Error("list end proposal IDs failed", "blockHash", blockHash)
+		return nil, err
+	} else if len(hashes) > 0 {
+		total = append(total, hashes...)
+	}
+
+	return total, nil
 }
 
 func (self *GovSnapshotDB) addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
@@ -129,7 +134,7 @@ func (self *GovSnapshotDB) getActiveNodeList(blockHash common.Hash, proposalId c
 		return nil, err
 	}
 	var nodes []discover.NodeID
-	if value != nil {
+	if len(value) > 0 {
 		if err := rlp.DecodeBytes(value, &nodes); err != nil {
 			return nil, err
 		}
@@ -164,7 +169,7 @@ func (self *GovSnapshotDB) getAccuVerifiersLength(blockHash common.Hash, proposa
 		return 0, err
 	}
 
-	if value != nil {
+	if len(value) > 0 {
 		var verifiers []discover.NodeID
 		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
 			return 0, err

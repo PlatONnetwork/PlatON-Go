@@ -17,11 +17,14 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -124,12 +127,12 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	EmptyBlock string
-	config     *params.ChainConfig
+	EmptyBlock   string
+	config       *params.ChainConfig
 	miningConfig *core.MiningConfig
-	engine     consensus.Engine
-	eth        Backend
-	chain      *core.BlockChain
+	engine       consensus.Engine
+	eth          Backend
+	chain        *core.BlockChain
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -192,7 +195,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:             config,
-		miningConfig:		miningConfig,
+		miningConfig:       miningConfig,
 		engine:             engine,
 		eth:                eth,
 		mux:                mux,
@@ -576,8 +579,6 @@ func (w *worker) mainLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				hash     = block.Hash()
 			)
-
-			//core.GetReactorInstance().PrepareResult(block)
 
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
@@ -1186,10 +1187,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-	/*// TODO begin()
-	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
+
+	// TODO begin()
+	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
+		log.Error("Failed GetReactorInstance BeginBlocker", "err", err)
 		return
-	}*/
+	}
 
 	if !noempty && "on" == w.EmptyBlock {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
@@ -1220,12 +1223,22 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
+	// Short circuit if The Current Block is Special Block
+	if xutil.IsSpecialBlock(header.Number.Uint64()) {
+		if _, ok := w.engine.(consensus.Bft); ok {
+			w.commit(nil, true, tstart)
+		} else {
+			w.updateSnapshot()
+		}
+		return
+	}
+
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
-		// No empty block
-		if "off" == w.EmptyBlock {
-			return
-		}
+		//// No empty block
+		//if "off" == w.EmptyBlock {
+		//	return
+		//}
 		if _, ok := w.engine.(consensus.Bft); ok {
 			w.commit(nil, true, tstart)
 		} else {
@@ -1286,9 +1299,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(interval func(), update bool, start time.Time) error {
-	if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
-		return nil
-	}
+	//if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
+	//	return nil
+	//}
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
@@ -1297,10 +1310,10 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	}
 	s := w.current.state.Copy()
 
-	/*// TODO end()
-	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
+	// TODO end()
+	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
 		return err
-	}*/
+	}
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
