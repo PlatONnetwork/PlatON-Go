@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -693,18 +694,18 @@ func (cbft *Cbft) Config() *ctypes.Config {
 }
 
 // Return the highest submitted block number of the current node.
-func (cbft *Cbft) HighestCommitBlockBn() uint64 {
-	return cbft.state.HighestQCBlock().NumberU64()
+func (cbft *Cbft) HighestCommitBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 }
 
 // Return the highest locked block number of the current node.
-func (cbft *Cbft) HighestLockBlockBn() uint64 {
-	return cbft.state.HighestLockBlock().NumberU64()
+func (cbft *Cbft) HighestLockBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 }
 
 // Return the highest QC block number of the current node.
-func (cbft *Cbft) HighestQCBlockBn() uint64 {
-	return cbft.state.HighestQCBlock().NumberU64()
+func (cbft *Cbft) HighestQCBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 }
 
 func (cbft *Cbft) threshold(num int) int {

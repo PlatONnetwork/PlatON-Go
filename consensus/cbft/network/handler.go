@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -255,12 +254,9 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// todo:
 	// 1.need qcBn/qcHash/lockedBn/lockedHash/commitBn/commitHash from cbft.
 	var (
-		qcBn       = 1
-		qcHash     = common.Hash{}
-		lockedBn   = 1
-		lockedHash = common.Hash{}
-		commitBn   = 1
-		commitHash = common.Hash{}
+		qcBn, qcHash         = h.engine.HighestQCBlockBn()
+		lockedBn, lockedHash = h.engine.HighestLockBlockBn()
+		commitBn, commitHash = h.engine.HighestCommitBlockBn()
 	)
 	p.Log().Debug("CBFT peer connected, do handshake", "name", peer.Name())
 
@@ -502,28 +498,43 @@ func (h *EngineManager) synchronize() {
 	for {
 		select {
 		case <-qcTicker.C:
-			qcBn := h.engine.HighestQCBlockBn()
+			qcBn, _ := h.engine.HighestQCBlockBn()
 			highPeers := h.peers.PeersWithHighestQCBn(qcBn)
 			biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
 			if biggestPeer != nil {
 				log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
 				// todo: Build a message and then send a message
+				msg := &protocols.GetLatestStatus{
+					BlockNumber: qcBn,
+					LogicType:   TypeForQCBn,
+				}
+				h.Send(biggestPeer.PeerID(), msg)
 			}
 		case <-lockedTicker.C:
-			lockedBn := h.engine.HighestLockBlockBn()
+			lockedBn, _ := h.engine.HighestLockBlockBn()
 			highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
 			biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
 			if biggestPeer != nil {
 				log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
 				// todo: Build a message and then send a message
+				msg := &protocols.GetLatestStatus{
+					BlockNumber: lockedBn,
+					LogicType:   TypeForLockedBn,
+				}
+				h.Send(biggestPeer.PeerID(), msg)
 			}
 		case <-commitTicker.C:
-			commitBn := h.engine.HighestCommitBlockBn()
+			commitBn, _ := h.engine.HighestCommitBlockBn()
 			highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
 			biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
 			if biggestPeer != nil {
 				log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
 				// todo: Build a message and then send a message
+				msg := &protocols.GetLatestStatus{
+					BlockNumber: commitBn,
+					LogicType:   TypeForCommitBn,
+				}
+				h.Send(biggestPeer.PeerID(), msg)
 			}
 		case <-h.quitSend:
 			log.Error("synchronize quit")
