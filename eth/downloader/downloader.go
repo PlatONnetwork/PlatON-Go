@@ -102,9 +102,10 @@ type Downloader struct {
 	mode SyncMode       // Synchronisation mode defining the strategy used (per sync cycle)
 	mux  *event.TypeMux // Event multiplexer to announce sync operation events
 
-	queue   *queue   // Scheduler for selecting the hashes to download
-	peers   *peerSet // Set of active peers from which download can proceed
-	stateDB ethdb.Database
+	queue      *queue   // Scheduler for selecting the hashes to download
+	peers      *peerSet // Set of active peers from which download can proceed
+	stateDB    ethdb.Database
+	snapshotDB snapshotdb.DB
 
 	rttEstimate   uint64 // Round trip time to target for download requests
 	rttConfidence uint64 // Confidence in the estimated RTT (unit: millionths to allow atomic ops)
@@ -203,7 +204,7 @@ type BlockChain interface {
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
-func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn) *Downloader {
+func New(mode SyncMode, stateDb ethdb.Database, snapshotDB snapshotdb.DB, mux *event.TypeMux, chain BlockChain, lightchain LightChain, dropPeer peerDropFn) *Downloader {
 	if lightchain == nil {
 		lightchain = chain
 	}
@@ -233,6 +234,7 @@ func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockC
 			processed: rawdb.ReadFastTrieProgress(stateDb),
 		},
 		trackStateReq: make(chan *stateReq),
+		snapshotDB:    snapshotDB,
 	}
 	go dl.qosTuner()
 	go dl.stateFetcher()
@@ -444,7 +446,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	origin = originh.Number.Uint64()
 	pivot = pivoth.Number.Uint64()
 
-	log.Info("synchronising findOrigin", "peer", p.id, "eth", "origin", origin, "pivot", pivot)
+	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivot)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
 	if d.mode == FastSync && pivot > origin {
@@ -496,6 +498,8 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	return d.spawnSync(fetchers)
 }
 
+// origin is the this chain  current block header ,compare remote  the same num of header in remote,
+// the pivot header is the remote peer  snapshotDB base num
 func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header, error) {
 	var current *types.Header
 	if d.mode == FullSync {
@@ -550,6 +554,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 
 }
 
+// Latest is the  remote currentHeader, pivot is remote snapshotDB base num
 func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, pivot uint64, err error) {
 	p.log.Debug("Retrieving latest ppos storage cache from remote peer")
 	var current *types.Block
@@ -562,18 +567,18 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, 
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-	db := snapshotdb.Instance()
-	if b, err := db.BaseNum(); err != nil {
+	//db := snapshotdb.Instance()
+	if b, err := d.snapshotDB.BaseNum(); err != nil {
 		return nil, 0, errors.New("get snapshotdb baseNum fail")
 	} else {
 		if b.Uint64() != 0 {
-			db.Clear()
-			db = snapshotdb.Instance()
+			d.snapshotDB.Clear()
+			d.snapshotDB = snapshotdb.Instance()
 		}
 	}
 	defer func() {
 		if err != nil {
-			db.Clear()
+			d.snapshotDB.Clear()
 		}
 	}()
 	go p.peer.RequestPPOSStorage()
@@ -613,7 +618,7 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, 
 					p.log.Error("current is larger than pposDada.pivot", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
 					return nil, 0, errors.New("pivotNumber is larger than latestNumber")
 				}
-				if err := db.SetCurrent(common.ZeroHash, *pivotNumber, *pivotNumber); err != nil {
+				if err := d.snapshotDB.SetCurrent(common.ZeroHash, *pivotNumber, *pivotNumber); err != nil {
 					p.log.Error("set snapshotdb current fail", "err", err)
 					return nil, 0, errors.New("set current fail")
 				}
@@ -628,7 +633,7 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, 
 				return nil, 0, errors.New("received ppos storage from incorrect kvNum")
 			}
 
-			if err := db.WriteBaseDB(pposDada.KVs()); err != nil {
+			if err := d.snapshotDB.WriteBaseDB(pposDada.KVs()); err != nil {
 				p.log.Error("write to base db fail", "err", err)
 				return nil, 0, errors.New("write to base db fail")
 			}
