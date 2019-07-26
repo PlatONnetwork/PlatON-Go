@@ -271,12 +271,24 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		CmtBlock:        commitHash,
 	}
 	// do handshake
-	if err := peer.Handshake(cbftStatus); err != nil {
+	remoteStatus, err := peer.Handshake(cbftStatus)
+	if err != nil {
 		p.Log().Debug("CBFT handshake failed", "err", err)
 		return err
-	} else {
-		p.Log().Debug("CBFT consensus handshake success", "msgHash", cbftStatus.MsgHash().TerminalString())
 	}
+	// If blockNumber in the local is better than the remote
+	// then determine if there is a fork.
+	if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
+		// todo: to be added
+	}
+	if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
+		// todo: to be added
+	}
+	if cbftStatus.CmtBn.Uint64() > remoteStatus.CmtBn.Uint64() {
+		// todo: to be added
+	}
+
+	p.Log().Debug("CBFT consensus handshake success", "msgHash", cbftStatus.MsgHash().TerminalString())
 
 	// The newly established node is registered to the neighbor node list.
 	if err := h.peers.Register(peer); err != nil {

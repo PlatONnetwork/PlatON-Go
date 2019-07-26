@@ -183,7 +183,7 @@ func Test_Peer_Handshake(t *testing.T) {
 		me := NewPeer(1, p2p.NewPeer(id, "me", nil), in)
 		you := NewPeer(1, p2p.NewPeer(id, "you", nil), out)
 		go func() {
-			err := me.Handshake(inStatus)
+			_, err := me.Handshake(inStatus)
 			if err != nil && wantErr != nil {
 				assert.Contains(t, err.Error(), wantErr.Error())
 				t.Log(err.Error())
@@ -197,7 +197,7 @@ func Test_Peer_Handshake(t *testing.T) {
 			t.Log("handshake done to me")
 		}()
 		go func() {
-			err := you.Handshake(outStatus)
+			_, err := you.Handshake(outStatus)
 			if err != nil && wantErr != nil {
 				t.Log(err.Error())
 				t.Log(wantErr.Error())
