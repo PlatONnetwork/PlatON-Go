@@ -62,7 +62,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 			res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
 			event, _ := json.Marshal(res)
 			rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
-			return nil, nil
+			return event, nil
 
 		} else {
 			log.Debug("AddRestrictingRecord failed to createRestrictingPlan", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "error", err)
@@ -74,7 +74,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	event, _ := json.Marshal(res)
 	rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 
-	return nil, nil
+	return event, nil
 }
 
 // createRestrictingPlan is a PlatON precompiled contract function, used for getting restricting info.

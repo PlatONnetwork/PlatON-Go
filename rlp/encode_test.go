@@ -19,7 +19,6 @@ package rlp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -325,18 +324,23 @@ func TestDecodeEncode(t *testing.T) {
 	// 	}
 	// }
 
-	data := "0x7b22537461747573223a66616c73652c2244617461223a22222c224572724d7367223a22637265617465207265737472696374696e6720706c616e3a6163636f756e74206973206e6f7420666f756e64206f6e207265737472696374696e6720636f6e7472616374227d"
+	data := []byte{206, 136, 27, 193, 109, 103, 78, 200, 0, 0, 128, 128, 194, 51, 50}
 
-	var result Result
-	_ = json.Unmarshal([]byte(data), &result)
+	var result RestrictingInfo
 
-	t.Log(result)
+	err := Decode(bytes.NewBuffer(data), &result)
+	if err != nil {
+		t.Fatal(err.Error())
+	} else {
+		t.Log(result)
+	}
 }
 
-type Result struct {
-	Status bool
-	Data   string
-	ErrMsg string
+type RestrictingInfo struct {
+	Balance     *big.Int // Balance representation all locked amount
+	Debt        *big.Int // Debt representation will released amount.
+	DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
+	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
 }
 
 func TestEncodeF03(t *testing.T) {
