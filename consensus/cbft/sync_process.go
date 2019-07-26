@@ -22,7 +22,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		executor := func(msg ctypes.Message) {
 			if blockList, ok := msg.(*protocols.QCBlockList); ok {
 				// Execution block
-				for _, block := range blockList.Blocks {
+				for i, block := range blockList.Blocks {
+					if err := cbft.verifyPrepareQC(blockList.QC[i]); err != nil {
+						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+						return
+					}
+
 					if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
@@ -105,13 +110,13 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 		return
 	}
 
+	if err := cbft.verifyPrepareQC(msg.BlockQC); err != nil {
+		return
+	}
+
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
 	if block != nil {
-		cbft.state.AddQC(msg.BlockQC)
-		lock, commit := cbft.blockTree.InsertQCBlock(block, msg.BlockQC)
-		cbft.state.SetHighestQCBlock(block)
-		cbft.tryCommitNewBlock(lock, commit)
-		cbft.tryChangeView()
+		cbft.insertQCBlock(block, msg.BlockQC)
 		cbft.log.Debug("Receive BlockQuorumCert success", "msg", msg.String())
 	}
 }

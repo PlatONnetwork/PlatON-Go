@@ -45,6 +45,8 @@ func ErrResp(code ErrCode, format string, v ...interface{}) error {
 }
 
 type ConsensusMsg interface {
+	BlockNum() uint64
+	NodeIndex() uint32
 	CannibalizeBytes() ([]byte, error)
 	Sign() []byte
 	SetSign([]byte)
