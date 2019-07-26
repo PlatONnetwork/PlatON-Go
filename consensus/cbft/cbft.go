@@ -213,13 +213,16 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
 }
 
 // LoadWal tries to recover consensus state and view msg from the wal.
-func (cbft *Cbft) LoadWal() error {
+func (cbft *Cbft) LoadWal() (err error) {
 	// init wal and load wal state
-	var err error
-	if cbft.wal, err = wal.NewWal(cbft.nodeServiceContext, ""); err != nil {
+	var context *node.ServiceContext
+	if cbft.config.Option.WalMode {
+		context = cbft.nodeServiceContext
+	}
+	if cbft.wal, err = wal.NewWal(context, ""); err != nil {
 		return err
 	}
-	//cbft.wal = &emptyWal{}
+
 	// load consensus chainState
 	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
 		cbft.log.Error(err.Error())
