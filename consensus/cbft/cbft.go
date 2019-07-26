@@ -162,6 +162,15 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
 
+	// Initialize current view
+	cbft.state.SetHighestExecutedBlock(block)
+	cbft.state.AddQCBlock(block, qc)
+	cbft.state.SetExecuting(qc.BlockIndex, true)
+	cbft.state.AddQC(qc)
+
+	// try change view again
+	cbft.tryChangeView()
+
 	//Initialize rules
 	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
 	cbft.voteRules = rules.NewVoteRules(cbft.state)
@@ -421,10 +430,11 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		Epoch:      cbft.state.Epoch(),
 		ViewNumber: cbft.state.ViewNumber(),
 		Block:      block,
-		BlockIndex: cbft.state.NumViewBlocks(),
+		BlockIndex: cbft.state.NextViewBlockIndex(),
 	}
 
-	if cbft.state.NumViewBlocks() == 0 {
+	// Next index is equal zero, This view does not produce a block.
+	if cbft.state.NextViewBlockIndex() == 0 {
 		parentBlock, parentQC := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
 		if parentBlock == nil {
 			cbft.log.Error("Can not find parent block", "number", block.Number(), "parentHash", block.ParentHash())
@@ -790,10 +800,12 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		return nil, errors.Wrap(err, "get msg's cannibalize bytes failed")
 	}
 
+	// Verify consensus msg signature
 	if !cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()) {
 		return nil, fmt.Errorf("signature verification failed")
 	}
 
+	// Get validator of signer
 	vnode, err := cbft.validatorPool.GetValidatorByIndex(cbft.state.HighestQCBlock().NumberU64(), msg.NodeIndex())
 
 	if err != nil {
@@ -804,6 +816,11 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 
 	switch cm := msg.(type) {
 	case *protocols.PrepareBlock:
+		// BlockNum equal 1, the parent's block is genesis, doesn't has prepareQC
+		// BlockIndex is not equal 0, this is not first block of current proposer
+		if cm.BlockNum() == 1 || cm.BlockIndex != 0 {
+			return vnode, nil
+		}
 		prepareQC = cm.PrepareQC
 		if cm.ViewChangeQC != nil {
 			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {

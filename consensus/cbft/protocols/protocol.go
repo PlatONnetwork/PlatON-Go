@@ -91,7 +91,7 @@ type PrepareBlock struct {
 }
 
 func (pb *PrepareBlock) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%pb,Number:%d,BlockIndex:%d}",
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
 		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex)
 }
 
