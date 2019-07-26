@@ -116,6 +116,16 @@ func (v *viewBlocks) len() int {
 	return len(v.blocks)
 }
 
+func (v *viewBlocks) MaxIndex() uint32 {
+	max := uint32(math.MaxUint32)
+	for _, b := range v.blocks {
+		if max == math.MaxUint32 || b.blockIndex() > max {
+			max = b.blockIndex()
+		}
+	}
+	return max
+}
+
 type viewQCs struct {
 	maxIndex uint32
 	qcs      map[uint32]*ctypes.QuorumCert
@@ -378,6 +388,10 @@ func (vs *ViewState) Deadline() time.Time {
 
 func (vs *ViewState) NumViewBlocks() uint32 {
 	return uint32(vs.viewBlocks.len())
+}
+
+func (vs *ViewState) NextViewBlockIndex() uint32 {
+	return vs.viewBlocks.MaxIndex() + 1
 }
 
 func (vs *ViewState) MaxQCIndex() uint32 {

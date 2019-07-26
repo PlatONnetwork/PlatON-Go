@@ -487,14 +487,15 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 	}
 
 	nodeList, err := validators.NodeListByBitArray(vSet)
-	if err != nil {
+	if err != nil || len(nodeList) == 0 {
 		return false
 	}
 	vp.lock.RUnlock()
 
 	var pub bls.PublicKey
-	for _, node := range nodeList {
-		pub.Add(node.BlsPubKey)
+	pub.Deserialize(nodeList[0].BlsPubKey.Serialize())
+	for i := 1; i < len(nodeList); i++ {
+		pub.Add(nodeList[i].BlsPubKey)
 	}
 
 	var sig bls.Sign
