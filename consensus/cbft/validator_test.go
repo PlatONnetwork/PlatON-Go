@@ -19,6 +19,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -139,7 +140,7 @@ func TestValidators(t *testing.T) {
 	badNodes := make([]discover.Node, 0)
 	badNode, _ := discover.ParseNode("enode://111164b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
 	badNodes = append(badNodes, *badNode)
-	assert.Panics(t, func() { newValidators(badNodes, 0)})
+	assert.Panics(t, func() { newValidators(badNodes, 0) })
 }
 
 func TestStaticAgency(t *testing.T) {

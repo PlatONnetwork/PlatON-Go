@@ -589,7 +589,7 @@ func (s *Ethereum) Stop() error {
 	return nil
 }
 
-// TODO RegisterPlugin one by one
+// RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
@@ -600,7 +600,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 
 	reactor.SetPluginEventMux()
 
-	// TODO set rule order
+	// set rule order
 	reactor.SetBeginRule([]int{xcom.SlashingRule})
 	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
 

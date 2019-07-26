@@ -21,9 +21,10 @@ func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
 
 // The ProgramVersion: Major.Minor.Patch eg. 1.1.0
 // Calculate the LargeVersion
-// eg: 1.1.0 ==> 1.1
+// eg: 1.1.x ==> 1.1.0
 func CalcVersion(programVersion uint32) uint32 {
-	return programVersion >> 8
+	programVersion = programVersion >> 8
+	return programVersion << 8
 }
 
 func IsWorker(extra []byte) bool {
@@ -52,13 +53,12 @@ func ProgramVersion2Str(programVersion uint32) string {
 	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
 }
 
-// TODO: calculate common data of block height
-// Number of blocks per consensus round
+// ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
 	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
 }
 
-// EpochSize is after how many consensus cycles, settle once
+// EpochSize returns how many consensus rounds per epoch.
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
 	em := xcom.ExpectedMinutes()
@@ -68,19 +68,19 @@ func EpochSize() uint64 {
 	return epochSize
 }
 
-// epochs numbers each year
+// EpochsPerYear returns how many epochs per year
 func EpochsPerYear() uint64 {
 	epochBlocks := CalcBlocksEachEpoch()
 	i := xcom.Interval()
 	return xcom.SecondsPerYear / (i * epochBlocks)
 }
 
-// calculates how many new blocks in a settlement period
+// CalcBlocksEachEpoch return how many blocks per epoch
 func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
-// calculate how many new blocks in one year
+// calculate returns how many blocks per year.
 func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * CalcBlocksEachEpoch()
 }
@@ -96,6 +96,7 @@ func IsSwitch(blockNumber uint64) bool {
 	return mod == 0
 }
 
+// IsSettlementPeriod checks the block if it is the end of a epoch
 func IsSettlementPeriod(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()
 	mod := blockNumber % uint64(size)
@@ -105,6 +106,13 @@ func IsSettlementPeriod(blockNumber uint64) bool {
 func IsYearEnd(blockNumber uint64) bool {
 	size := CalcBlocksEachYear()
 	return blockNumber > 0 && blockNumber%size == 0
+}
+
+func IsSpecialBlock(blockNumber uint64) bool {
+	if IsElection(blockNumber) || IsSwitch(blockNumber) || IsSettlementPeriod(blockNumber) || IsYearEnd(blockNumber) {
+		return true
+	}
+	return false
 }
 
 // calculate the Epoch number by blockNumber

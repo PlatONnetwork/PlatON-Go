@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -29,20 +30,25 @@ type BlockChainReactor struct {
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
 	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
 	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
-	validatorMode string
-	exitCh        chan struct{}
+	validatorMode string                    // mode: static, inner, ppos
+	exitCh        chan struct{}             // Used to receive an exit signal
+	exitOnce      sync.Once
 }
 
-var bcr *BlockChainReactor
+var (
+	brcOnce sync.Once
+	bcr     *BlockChainReactor
+)
 
 func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChainReactor {
-	if nil == bcr {
+	brcOnce.Do(func() {
+		log.Info("Init BlockChainReactor ...")
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
 			exitCh:        make(chan struct{}),
 		}
-	}
+	})
 	return bcr
 }
 
@@ -58,8 +64,10 @@ func (brc *BlockChainReactor) Start(mode string) {
 }
 
 func (brc *BlockChainReactor) Close() {
-	close(brc.exitCh)
-	log.Info("blockchain_reactor is closed")
+	brc.exitOnce.Do(func() {
+		close(brc.exitCh)
+		log.Info("blockchain_reactor is closed")
+	})
 }
 
 // Getting the global bcr single instance
@@ -135,7 +143,8 @@ func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	//if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	if nil != bcr.vh {
 		bcr.vh.SetPrivateKey(privateKey)
 	}
 }

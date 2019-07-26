@@ -36,8 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -232,6 +230,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 
 	genesisIssuance := new(big.Int)
+	genesisReward := common.Big0
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
@@ -242,26 +241,19 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 
+		// ppos add
 		if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
-			plugin.SetYearEndBalance(statedb, 0, account.Balance)
+			genesisReward = account.Balance
+
 		}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
-	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssuance)
-
-	// Store somethings into State
+	// ppos add
 	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
-	log.Debug("Store version for gov", "version", version)
-	// Store genesis governance data
-	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
-	// Store restricting plans for increase issue for second and third year
-	if err := genesisAllowancePlan(statedb, genesisIssuance); nil != err {
-		panic("Failed to Store restricting plan: " + err.Error())
+	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, version); nil != err {
+		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
-	plugin.SetLatestEpoch(statedb, uint64(0))
-
-	// the State root
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
@@ -277,22 +269,18 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
-
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
 	if err := statedb.Database().TrieDB().Commit(root, true); nil != err {
 		panic("Failed to trieDB commit by genesis: " + err.Error())
 	}
-
-	// Store somethings into snapshotDB
 	block := types.NewBlock(head, nil, nil)
 
 	// Store genesis staking data
 	if err := genesisStakingData(g, block.Hash(), version); nil != err {
 		panic("Failed Store staking: " + err.Error())
 	}
-
 	return block
 }
 

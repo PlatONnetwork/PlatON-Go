@@ -39,6 +39,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var logger = log.New("test", "down")

@@ -3,8 +3,6 @@ package plugin_test
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -27,6 +25,7 @@ var (
 	//newVersion     = uint32(2<<16 | 0<<8 | 0)
 	endVotingBlock uint64
 	activeBlock    uint64
+	stk            *plugin.StakingPlugin
 )
 
 func setup(t *testing.T) func() {
@@ -38,6 +37,7 @@ func setup(t *testing.T) func() {
 	newPlugins()
 
 	govPlugin = plugin.GovPluginInstance()
+	stk = plugin.StakingInstance()
 
 	lastBlockHash = genesis.Hash()
 
@@ -73,7 +73,7 @@ func submitText(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit text proposal err: %s", err)
 	}
@@ -97,7 +97,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 
-	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit version proposal err: %s", err)
 	}
@@ -123,7 +123,7 @@ func submitParam(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit param proposal err: %s", err)
 	}
@@ -131,7 +131,9 @@ func submitParam(t *testing.T, pid common.Hash) {
 
 func allVote(t *testing.T, pid common.Hash) {
 	//for _, nodeID := range nodeIdArr {
-	for i := uint64(0); i < xcom.ConsValidatorNum(); i++ {
+	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
+	voteCount := len(currentValidatorList)
+	for i := 0; i < voteCount; i++ {
 		vote := gov.Vote{
 			ProposalID: pid,
 			VoteNodeID: nodeIdArr[i],
@@ -145,8 +147,9 @@ func allVote(t *testing.T, pid common.Hash) {
 }
 
 func halfVote(t *testing.T, pid common.Hash) {
-	//for i := 0; i < len(nodeIdArr)/2; i++ {
-	for i := uint64(0); i < xcom.ConsValidatorNum()/2; i++ {
+	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
+	voteCount := len(currentValidatorList)
+	for i := 0; i < voteCount/2; i++ {
 		vote := gov.Vote{
 			ProposalID: pid,
 			VoteNodeID: nodeIdArr[i],
@@ -208,7 +211,7 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(anotherSender, vp, lastBlockHash, evm.StateDB) //sender error
+	err := govPlugin.Submit(anotherSender, vp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB) //sender error
 	if err != nil && (err.Error() == "tx sender is not verifier." || err.Error() == "tx sender should be node's staking address.") {
 		t.Log("detected invalid sender.", err)
 	} else {
@@ -234,7 +237,7 @@ func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil && err.Error() == "end-voting-block invalid." {
 		t.Logf("detected invalid end-voting-block.")
 	} else {
@@ -278,7 +281,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil && err.Error() == "end-voting-block invalid." {
 		t.Logf("detected invalid end-voting-block.")
 	} else {
@@ -305,7 +308,7 @@ func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil && err.Error() == "active-block invalid." {
 		t.Logf("detected invalid active-block.")
 	} else {
@@ -351,7 +354,7 @@ func TestGovPlugin_SubmitParam_invalidEndVotingBlock(t *testing.T) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil && err.Error() == "end-voting-block invalid." {
 		t.Logf("detected invalid end-voting-block.")
 	} else {
@@ -380,7 +383,7 @@ func TestGovPlugin_SubmitParam_unsupportedParameter(t *testing.T) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil && err.Error() == "unsupported parameter." {
 		t.Logf("detected unsupported parameter.")
 	} else {

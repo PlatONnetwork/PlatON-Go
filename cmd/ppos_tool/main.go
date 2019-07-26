@@ -140,13 +140,28 @@ type Ppos_2004 struct {
 
 // getProposal
 type Ppos_2100 struct {
-	Verifier   discover.NodeID
 	ProposalID common.Hash
 }
 
 // getTallyResult
 type Ppos_2101 struct {
 	ProposalID common.Hash
+}
+
+// listProposal
+type Ppos_2102 struct {
+}
+
+// getActiveVersion
+type Ppos_2103 struct {
+}
+
+// getProgramVersion
+type Ppos_2104 struct {
+}
+
+// listParam
+type Ppos_2105 struct {
 }
 
 // ReportDuplicateSign
@@ -189,6 +204,10 @@ type decDataConfig struct {
 	P2004 Ppos_2004
 	P2100 Ppos_2100
 	P2101 Ppos_2101
+	P2102 Ppos_2102
+	P2103 Ppos_2103
+	P2104 Ppos_2104
+	P2105 Ppos_2105
 	P3000 Ppos_3000
 	P3001 Ppos_3001
 	P4000 Ppos_4000

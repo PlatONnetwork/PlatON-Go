@@ -43,13 +43,6 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 // createRestrictingPlan is a PlatON precompiled contract function, used for create a restricting plan
 func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
 
-	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
-		return nil, ErrOutOfGas
-	}
-	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
-		return nil, ErrOutOfGas
-	}
-
 	sender := rc.Contract.Caller()
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNum := rc.Evm.BlockNumber
@@ -57,12 +50,19 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 
 	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64())
 
+	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
+		return nil, ErrOutOfGas
+	}
+	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
+		return nil, ErrOutOfGas
+	}
+
 	if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
 		if _, ok := err.(*common.SysError); ok {
-			res := xcom.Result{Status: false, Data: "", ErrMsg: "create lock repo plan:" + err.Error()}
+			res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
 			event, _ := json.Marshal(res)
 			rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
-			return nil, nil
+			return event, nil
 
 		} else {
 			log.Debug("AddRestrictingRecord failed to createRestrictingPlan", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "error", err)
@@ -74,7 +74,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	event, _ := json.Marshal(res)
 	rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 
-	return nil, nil
+	return event, nil
 }
 
 // createRestrictingPlan is a PlatON precompiled contract function, used for getting restricting info.
@@ -87,7 +87,18 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 
 	log.Info("Call getRestrictingInfo of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
 
-	return rc.Plugin.GetRestrictingInfo(account, state)
+	result, err := rc.Plugin.GetRestrictingInfo(account, state)
+	var res xcom.Result
+	if err != nil {
+		res.Status = false
+		res.Data = ""
+		res.ErrMsg = "create restricting plan:" + err.Error()
+	} else {
+		res.Status = true
+		res.Data = string(result)
+		res.ErrMsg = "ok"
+	}
+	return json.Marshal(res)
 }
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
