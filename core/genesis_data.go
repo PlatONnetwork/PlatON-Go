@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -19,12 +23,6 @@ import (
 
 func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint32) error {
 
-	snapdb := snapshotdb.Instance()
-
-	version := xutil.CalcVersion(programVersion)
-
-	var length int
-
 	isDone := false
 	switch {
 	case nil == g.Config:
@@ -39,6 +37,17 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 		log.Warn("Genesis StakingData, the genesis config or cbft or initialNodes is nil, Not building staking data")
 		return nil
 	}
+
+	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
+		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
+		return nil
+	}
+
+	snapdb := snapshotdb.Instance()
+
+	version := xutil.CalcVersion(programVersion)
+
+	var length int
 
 	if int(xcom.ConsValidatorNum()) <= len(g.Config.Cbft.InitialNodes) {
 		length = int(xcom.ConsValidatorNum())
@@ -230,5 +239,45 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 	restrictingKey := restricting.GetRestrictingKey(account)
 	stateDb.SetState(account, restrictingKey, bRestrictInfo)
 
+	return nil
+}
+
+func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genesisIssue *big.Int, programVersion uint32) error {
+
+	isDone := false
+	switch {
+	case nil == g.Config:
+		isDone = true
+	case nil == g.Config.Cbft:
+		isDone = true
+	}
+
+	if isDone {
+		log.Warn("Genesis xxPlugin statedb, the genesis config or cbft is nil, Not Store plugin genesis state")
+		return nil
+	}
+
+	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
+		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
+		return nil
+	}
+
+	// Store genesis yearEnd reward balance item
+	plugin.SetYearEndBalance(statedb, 0, genesisReward)
+
+	// Store genesis Issue for LAT
+	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
+
+	log.Info("Store version for gov into genesis statedb", "real version", fmt.Sprintf("%d.%d.%d",
+		params.VersionMajor, params.VersionMinor, params.VersionPatch), "uint32 version", programVersion)
+
+	// Store genesis governance data
+	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(programVersion))
+	// Store restricting plans for increase issue for second and third year
+	if err := genesisAllowancePlan(statedb, genesisIssue); nil != err {
+		return err
+	}
+	// Store genesis last Epoch
+	plugin.SetLatestEpoch(statedb, uint64(0))
 	return nil
 }
