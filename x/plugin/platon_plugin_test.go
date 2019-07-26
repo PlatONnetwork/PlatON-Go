@@ -242,6 +242,7 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 	node, _ := discover.ParseNode(url)
 	gen := core.DefaultGenesisBlock()
 	gen.Config.Cbft.InitialNodes = []discover.Node{*node}
+	gen.Config.Cbft.ValidatorMode = "ppos"
 
 	var (
 		db      = ethdb.NewMemDatabase()

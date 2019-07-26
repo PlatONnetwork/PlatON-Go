@@ -157,7 +157,8 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 	gen := &core.Genesis{
 		Config: &params.ChainConfig{
 			Cbft: &params.CbftConfig{
-				InitialNodes: []discover.Node{*node},
+				InitialNodes:  []discover.Node{*node},
+				ValidatorMode: "ppos",
 			},
 		},
 	}
