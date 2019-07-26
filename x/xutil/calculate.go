@@ -27,11 +27,6 @@ func CalcVersion(programVersion uint32) uint32 {
 	return programVersion << 8
 }
 
-func VersionToString(ver uint32) string {
-	b := common.Uint32ToBytes(ver)
-	return fmt.Sprintf("%d.%d.%d", b[1], b[2], b[3])
-}
-
 func IsWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
 }
