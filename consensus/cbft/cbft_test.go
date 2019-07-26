@@ -16,6 +16,9 @@ import (
 	"testing"
 )
 
+func init() {
+	bls.Init(bls.CurveFp254BNb)
+}
 func TestThreshold(t *testing.T) {
 	f := &Cbft{}
 	assert.Equal(t, 1, f.threshold(1))
@@ -70,7 +73,6 @@ func TestBls(t *testing.T) {
 	assert.True(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
 }
 func TestAgg(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
 	num := 4
 	pk, sk := generateKeys(num)
 	nodes := make([]params.CbftNode, num)
@@ -79,7 +81,7 @@ func TestAgg(t *testing.T) {
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 	}
 
-	agency := validator.NewStaticAgency(nodes)
+	agency := validator.NewStaticAgency(nodes[0:num])
 
 	cnode := make([]*Cbft, num)
 
@@ -105,7 +107,7 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 	pbs := make(map[uint32]*protocols.PrepareVote, 0)
 
 	for i := 0; i < len(cnode); i++ {
-		pb := &protocols.PrepareVote{}
+		pb := &protocols.PrepareVote{ValidatorIndex: uint32(i)}
 		assert.NotNil(t, cnode[i])
 		cnode[i].signMsgByBls(pb)
 		pbs[uint32(i)] = pb
@@ -113,12 +115,15 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 	qc := cnode[0].generatePrepareQC(pbs)
 
 	assert.Nil(t, cnode[0].verifyPrepareQC(qc))
+	qc.ValidatorSet = nil
+	assert.NotNil(t, cnode[0].verifyPrepareQC(qc))
+
 }
 func testViewChangeQC(t *testing.T, cnode []*Cbft) {
 	pbs := make(map[uint32]*protocols.ViewChange, 0)
 
 	for i := 0; i < len(cnode); i++ {
-		pb := &protocols.ViewChange{BlockHash: common.BigToHash(big.NewInt(int64(i))), BlockNumber: uint64(i)}
+		pb := &protocols.ViewChange{BlockHash: common.BigToHash(big.NewInt(int64(i))), BlockNumber: uint64(i), ValidatorIndex: uint32(i)}
 		assert.NotNil(t, cnode[i])
 		cnode[i].signMsgByBls(pb)
 		pbs[uint32(i)] = pb

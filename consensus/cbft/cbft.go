@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -158,10 +159,19 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	//Initialize view state
-	cbft.state.SetHighestExecutedBlock(block)
 	cbft.state.SetHighestQCBlock(block)
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
+
+	// Initialize current view
+	if qc != nil {
+		cbft.state.SetExecuting(qc.BlockIndex, true)
+		cbft.state.AddQCBlock(block, qc)
+		cbft.state.AddQC(qc)
+	}
+
+	// try change view again
+	cbft.tryChangeView()
 
 	//Initialize rules
 	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
@@ -422,10 +432,11 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		Epoch:      cbft.state.Epoch(),
 		ViewNumber: cbft.state.ViewNumber(),
 		Block:      block,
-		BlockIndex: cbft.state.NumViewBlocks(),
+		BlockIndex: cbft.state.NextViewBlockIndex(),
 	}
 
-	if cbft.state.NumViewBlocks() == 0 {
+	// Next index is equal zero, This view does not produce a block.
+	if cbft.state.NextViewBlockIndex() == 0 {
 		parentBlock, parentQC := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
 		if parentBlock == nil {
 			cbft.log.Error("Can not find parent block", "number", block.Number(), "parentHash", block.ParentHash())
@@ -455,8 +466,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.findQCBlock()
-
-	cbft.state.SetHighestExecutedBlock(block)
 
 	cbft.network.Broadcast(prepareBlock)
 
@@ -547,7 +556,6 @@ func (cbft *Cbft) FastSyncCommitHead() <-chan error {
 		currentBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
 
 		// TODO: update view
-		cbft.state.SetHighestExecutedBlock(currentBlock)
 		cbft.state.SetHighestQCBlock(currentBlock)
 		cbft.state.SetHighestLockBlock(currentBlock)
 		cbft.state.SetHighestCommitBlock(currentBlock)
@@ -695,18 +703,18 @@ func (cbft *Cbft) Config() *ctypes.Config {
 }
 
 // Return the highest submitted block number of the current node.
-func (cbft *Cbft) HighestCommitBlockBn() uint64 {
-	return cbft.state.HighestQCBlock().NumberU64()
+func (cbft *Cbft) HighestCommitBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 }
 
 // Return the highest locked block number of the current node.
-func (cbft *Cbft) HighestLockBlockBn() uint64 {
-	return cbft.state.HighestLockBlock().NumberU64()
+func (cbft *Cbft) HighestLockBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 }
 
 // Return the highest QC block number of the current node.
-func (cbft *Cbft) HighestQCBlockBn() uint64 {
-	return cbft.state.HighestQCBlock().NumberU64()
+func (cbft *Cbft) HighestQCBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 }
 
 func (cbft *Cbft) threshold(num int) int {
@@ -791,10 +799,12 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		return nil, errors.Wrap(err, "get msg's cannibalize bytes failed")
 	}
 
+	// Verify consensus msg signature
 	if !cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()) {
 		return nil, fmt.Errorf("signature verification failed")
 	}
 
+	// Get validator of signer
 	vnode, err := cbft.validatorPool.GetValidatorByIndex(cbft.state.HighestQCBlock().NumberU64(), msg.NodeIndex())
 
 	if err != nil {
@@ -805,6 +815,11 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 
 	switch cm := msg.(type) {
 	case *protocols.PrepareBlock:
+		// BlockNum equal 1, the parent's block is genesis, doesn't has prepareQC
+		// BlockIndex is not equal 0, this is not first block of current proposer
+		if cm.BlockNum() == 1 || cm.BlockIndex != 0 {
+			return vnode, nil
+		}
 		prepareQC = cm.PrepareQC
 		if cm.ViewChangeQC != nil {
 			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
@@ -847,16 +862,17 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	}
 
 	qc := &ctypes.QuorumCert{
-		Epoch:       vote.Epoch,
-		ViewNumber:  vote.ViewNumber,
-		BlockHash:   vote.BlockHash,
-		BlockNumber: vote.BlockNumber,
-		BlockIndex:  vote.BlockIndex,
+		Epoch:        vote.Epoch,
+		ViewNumber:   vote.ViewNumber,
+		BlockHash:    vote.BlockHash,
+		BlockNumber:  vote.BlockNumber,
+		BlockIndex:   vote.BlockIndex,
+		ValidatorSet: utils.NewBitArray(vSet.Size()),
 	}
 	for _, p := range votes {
 		if p.NodeIndex() != vote.NodeIndex() {
 			var sig bls.Sign
-			err := sig.Deserialize(vote.Sign())
+			err := sig.Deserialize(p.Sign())
 			if err != nil {
 				return nil
 			}
@@ -890,14 +906,16 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		if vc, ok := qcs[v.BlockHash]; !ok {
 			qc := &ViewChangeQC{
 				cert: &ctypes.ViewChangeQuorumCert{
-					Epoch:       v.Epoch,
-					ViewNumber:  v.ViewNumber,
-					BlockHash:   v.BlockHash,
-					BlockNumber: v.BlockNumber,
+					Epoch:        v.Epoch,
+					ViewNumber:   v.ViewNumber,
+					BlockHash:    v.BlockHash,
+					BlockNumber:  v.BlockNumber,
+					ValidatorSet: utils.NewBitArray(total),
 				},
 				aggSig: &aggSig,
 				ba:     utils.NewBitArray(total),
 			}
+			qc.ba.SetIndex(v.NodeIndex(), true)
 			qcs[v.BlockHash] = qc
 		} else {
 			vc.aggSig.Add(&aggSig)
@@ -920,7 +938,7 @@ func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
 	if cb, err = qc.CannibalizeBytes(); err != nil {
 		return err
 	}
-	if cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
+	if !cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
 		return fmt.Errorf("verify prepare qc failed")
 	}
 	return err
@@ -933,7 +951,8 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 		if cb, err = vc.CannibalizeBytes(); err != nil {
 			break
 		}
-		if cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
+
+		if !cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
 			err = fmt.Errorf("verify viewchange qc failed")
 			break
 		}

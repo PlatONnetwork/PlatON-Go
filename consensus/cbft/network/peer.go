@@ -25,7 +25,8 @@ var (
 	errClosed                  = errors.New("peer set is closed")
 	errAlreadyRegistered       = errors.New("peer is already registered")
 	errNotRegistered           = errors.New("peer is not registered")           // errNotRegistered represents that the node is not registered.
-	errInvalidHandshakeMessage = errors.New("Invalid handshake message params") // The parameters passed in the node handshake are not correct.
+	errInvalidHandshakeMessage = errors.New("invalid handshake message params") // The parameters passed in the node handshake are not correct.
+	errForkBlock               = errors.New("forked block")                     // Means that when the block heights are equal and the block hashes are not equal.
 )
 
 const (
@@ -120,6 +121,28 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 	}
 	// If the height of the peer block is less than local,
 	// determine whether it belongs to the fork block.
+	if inStatus.QCBn.Uint64() == outStatus.QCBn.Uint64() && inStatus.QCBlock != outStatus.QCBlock {
+		log.Error("Unmatched block on the QC", "localNumber", outStatus.QCBn.Uint64(),
+			"localHash", outStatus.QCBlock.TerminalString(),
+			"remoteNumber", inStatus.QCBn.Uint64(),
+			"remoteHash", inStatus.QCBlock.TerminalString())
+		return errForkBlock
+	}
+	if inStatus.LockBn.Uint64() == outStatus.LockBn.Uint64() && inStatus.LockBlock != outStatus.LockBlock {
+		log.Error("Unmatched block on the locked", "localNumber", outStatus.LockBn.Uint64(),
+			"localHash", outStatus.LockBlock.TerminalString(),
+			"remoteNumber", inStatus.LockBn.Uint64(),
+			"remoteHash", inStatus.LockBlock.TerminalString())
+		return errForkBlock
+	}
+	if inStatus.CmtBn.Uint64() == outStatus.CmtBn.Uint64() && inStatus.CmtBlock != outStatus.CmtBlock {
+		log.Error("Unmatched block on the commit", "localNumber", outStatus.CmtBn.Uint64(),
+			"localHash", outStatus.CmtBlock.TerminalString(),
+			"remoteNumber", inStatus.CmtBn.Uint64(),
+			"remoteHash", inStatus.CmtBlock.TerminalString())
+		return errForkBlock
+	}
+
 	// todo:
 	// 1、If the QCBlock from another peer is less than the current node,
 	// determine if the local node contains a block height and a hash that matches it.

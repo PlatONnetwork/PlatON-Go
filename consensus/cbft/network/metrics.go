@@ -147,7 +147,7 @@ func (rw *meteredMsgReadWriter) ReadMsg() (p2p.Msg, error) {
 		packets, traffic = propViewChangeInPacketsMeter, propViewChangeInTrafficMeter
 	case msg.Code == protocols.GetPrepareBlockMsg:
 		packets, traffic = reqGetPrepareBlockInPacketsMeter, reqGetPrepareBlockInTrafficMeter
-	case msg.Code == protocols.GetQuorumCertMsg:
+	case msg.Code == protocols.GetBlockQuorumCertMsg:
 		packets, traffic = reqGetQuorumCertInPacketsMeter, reqGetQuorumCertInTrafficMeter
 	case msg.Code == protocols.BlockQuorumCertMsg:
 		packets, traffic = reqBlockQuorumCertInPacketsMeter, reqBlockQuorumCertInTrafficMeter
@@ -188,7 +188,7 @@ func (rw *meteredMsgReadWriter) WriteMsg(msg p2p.Msg) error {
 	case msg.Code == protocols.GetPrepareVoteMsg:
 		packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareVoteOutTrafficMeter
 
-	case msg.Code == protocols.GetQuorumCertMsg:
+	case msg.Code == protocols.GetBlockQuorumCertMsg:
 		packets, traffic = reqGetQuorumCertOutPacketsMeter, reqGetQuorumCertOutTrafficMeter
 
 	case msg.Code == protocols.BlockQuorumCertMsg:
