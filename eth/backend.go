@@ -258,7 +258,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				reactor.Start(common.INNER_VALIDATOR_MODE)
 			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 				reactor.Start(common.PPOS_VALIDATOR_MODE)
-				reactor.SetVRF_hanlder(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+				reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 				handlePlugin(reactor)
 				agency = reactor
 			}

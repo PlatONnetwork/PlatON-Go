@@ -138,7 +138,7 @@ func (bcr *BlockChainReactor) setValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
-func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
+func (bcr *BlockChainReactor) SetVRF_handler(vher *xcom.VrfHandler) {
 	bcr.vh = vher
 }
 
