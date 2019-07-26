@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -25,6 +26,10 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
 			return err
 		}
+	}
+
+	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
+		return err
 	}
 
 	cbft.state.AddPrepareBlock(msg)
@@ -47,8 +52,11 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 
 	cbft.prepareVoteFetchRules(id, msg)
 
-	//todo find validator index based on message
-	node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+	var node *cbfttypes.ValidateNode
+	var err error
+	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
+		return err
+	}
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
 
@@ -64,8 +72,11 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 		}
 	}
 
-	//todo find validator index based on message
-	node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+	var node *cbfttypes.ValidateNode
+	var err error
+	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
+		return err
+	}
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)
 
@@ -75,6 +86,12 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 }
 
 func (cbft *Cbft) OnViewTimeout() {
+	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+	if err != nil {
+		cbft.log.Error("ViewTimeout local node is not validator")
+		return
+	}
+
 	viewChange := &protocols.ViewChange{
 		Epoch:       cbft.state.Epoch(),
 		ViewNumber:  cbft.state.ViewNumber(),
@@ -85,24 +102,59 @@ func (cbft *Cbft) OnViewTimeout() {
 	// write sendViewChange info to wal
 	cbft.sendViewChange(viewChange)
 
+	cbft.state.AddViewChange(uint32(node.Index), viewChange)
 	cbft.network.Broadcast(viewChange)
 }
 
 //Perform security rule verification, view switching
 func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
+	if len(blocks) != len(qcs) {
+		return fmt.Errorf("block")
+	}
 	//todo insert tree, update view
+	for i := 0; i < len(blocks); i++ {
+		block, qc := blocks[i], qcs[i]
+		//todo verify qc
+
+		if err := cbft.safetyRules.QCBlockRules(block, qc); err != nil {
+			if err.NewView() {
+				cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+			}
+		}
+
+		cbft.insertQCBlock(block, qc)
+		cbft.log.Debug("Insert QC block success", "hash", qc.BlockHash, "number", qc.BlockNumber)
+	}
+
 	return nil
+}
+
+// Update blockTree, try commit new block
+func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
+	cbft.state.AddQC(qc)
+	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
+	cbft.state.SetHighestQCBlock(block)
+	cbft.tryCommitNewBlock(lock, commit)
+	cbft.tryChangeView()
 }
 
 // Asynchronous execution block callback function
 func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
+	if s.Err != nil {
+		cbft.log.Error("Execute block failed", "err", s.Err, "hash", s.Hash, "number", s.Number)
+		return
+	}
+
 	index, finish := cbft.state.Executing()
 	if !finish {
 		block := cbft.state.ViewBlockByIndex(index)
 		if block != nil {
 			if block.Hash() == s.Hash {
 				cbft.state.SetExecuting(index, true)
-				cbft.signBlock(block.Hash(), block.NumberU64(), index)
+				if err := cbft.signBlock(block.Hash(), block.NumberU64(), index); err != nil {
+					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
+					return
+				}
 			}
 		}
 	}
@@ -112,7 +164,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 
 // Sign the block that has been executed
 // Every time try to trigger a send PrepareVote
-func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) {
+func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
 	// todo sign vote
 	// parentQC added when sending
 	prepareVote := &protocols.PrepareVote{
@@ -123,9 +175,14 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) {
 		BlockIndex:  index,
 	}
 
+	if err := cbft.signMsgByBls(prepareVote); err != nil {
+		return err
+	}
+
 	cbft.state.PendingPrepareVote().Push(prepareVote)
 
 	cbft.trySendPrepareVote()
+	return nil
 }
 
 // Send a signature,
@@ -215,10 +272,7 @@ func (cbft *Cbft) findQCBlock() {
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
-		cbft.state.AddQC(qc)
-		lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
-		cbft.state.SetHighestQCBlock(block)
-		cbft.tryCommitNewBlock(lock, commit)
+		cbft.insertQCBlock(block, qc)
 	}
 	cbft.tryChangeView()
 }
@@ -251,23 +305,6 @@ func (cbft *Cbft) updateChainState(qc *types.Block, lock *types.Block, commit *t
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
 	}
-}
-
-func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
-	qc := &ctypes.QuorumCert{}
-	for _, p := range votes {
-		qc.Epoch = p.Epoch
-		qc.ViewNumber = p.ViewNumber
-		qc.BlockHash = p.BlockHash
-		qc.BlockNumber = p.BlockNumber
-		qc.BlockIndex = p.BlockIndex
-	}
-	return qc
-}
-
-func (cbft *Cbft) generateViewChangeQC(map[uint32]*protocols.ViewChange) *ctypes.ViewChangeQC {
-	qc := &ctypes.ViewChangeQC{}
-	return qc
 }
 
 // Try commit a new block

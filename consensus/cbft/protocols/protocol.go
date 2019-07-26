@@ -80,34 +80,45 @@ func MessageType(msg interface{}) uint64 {
 
 // Proposed block carrier.
 type PrepareBlock struct {
-	Epoch        uint64               `json:"epoch"`
-	ViewNumber   uint64               `json:"view_number"`
-	Block        *types.Block         `json:"block_hash"`
-	BlockIndex   uint32               `json:"block_index"`   // The block number of the current ViewNumber proposal, 0....10
-	PrepareQC    *ctypes.QuorumCert   `json:"prepare_qc"`    // N-f aggregate signature
-	ViewChangeQC *ctypes.ViewChangeQC `json:"viewchange_qc"` // viewChange aggregate signature
-	Signature    ctypes.Signature     `json:"signature"`
+	Epoch         uint64               `json:"epoch"`
+	ViewNumber    uint64               `json:"view_number"`
+	Block         *types.Block         `json:"block_hash"`
+	BlockIndex    uint32               `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
+	ProposalIndex uint32               `json:"proposal_index"`
+	PrepareQC     *ctypes.QuorumCert   `json:"prepare_qc"`    // N-f aggregate signature
+	ViewChangeQC  *ctypes.ViewChangeQC `json:"viewchange_qc"` // viewChange aggregate signature
+	Signature     ctypes.Signature     `json:"signature"`
 }
 
-func (s *PrepareBlock) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
-		s.Epoch, s.ViewNumber, s.Block.Hash().TerminalString(), s.Block.NumberU64(), s.BlockIndex)
+func (pb *PrepareBlock) String() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%pb,Number:%d,BlockIndex:%d}",
+		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex)
 }
 
-func (s *PrepareBlock) MsgHash() common.Hash {
+func (pb *PrepareBlock) MsgHash() common.Hash {
 	return utils.BuildHash(PrepareBlockMsg,
-		utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), s.Block.Hash().Bytes(), s.Signature.Bytes()))
+		utils.MergeBytes(common.Uint64ToBytes(pb.ViewNumber), pb.Block.Hash().Bytes(), pb.Signature.Bytes()))
 }
 
-func (s *PrepareBlock) BHash() common.Hash {
-	return s.Block.Hash()
+func (pb *PrepareBlock) BHash() common.Hash {
+	return pb.Block.Hash()
 }
 
-func (s *PrepareBlock) CannibalizeBytes() ([]byte, error) {
+func (pb *PrepareBlock) BlockNum() uint64 {
+	return pb.Block.NumberU64()
+}
+
+func (pb *PrepareBlock) NodeIndex() uint32 {
+	return pb.ProposalIndex
+}
+
+func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
-		s.Epoch,
-		s.ViewNumber,
-		s.BlockIndex,
+		pb.Epoch,
+		pb.ViewNumber,
+		pb.Block.Hash(),
+		pb.BlockIndex,
+		pb.ProposalIndex,
 	})
 	if err != nil {
 		return nil, err
@@ -125,27 +136,36 @@ func (pb *PrepareBlock) SetSign(sign []byte) {
 
 // Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
 type PrepareVote struct {
-	Epoch       uint64             `json:"epoch"`
-	ViewNumber  uint64             `json:"view_number"`
-	BlockHash   common.Hash        `json:"block_hash"`
-	BlockNumber uint64             `json:"block_number"`
-	BlockIndex  uint32             `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
-	ParentQC    *ctypes.QuorumCert `json:"parent_qc"`
-	Signature   ctypes.Signature   `json:"signature"`
+	Epoch          uint64             `json:"epoch"`
+	ViewNumber     uint64             `json:"view_number"`
+	BlockHash      common.Hash        `json:"block_hash"`
+	BlockNumber    uint64             `json:"block_number"`
+	BlockIndex     uint32             `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
+	ValidatorIndex uint32             `json:"validator_index"`
+	ParentQC       *ctypes.QuorumCert `json:"parent_qc"`
+	Signature      ctypes.Signature   `json:"signature"`
 }
 
-func (s *PrepareVote) String() string {
-	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d}",
-		s.Epoch, s.ViewNumber, s.BlockHash.TerminalString(), s.BlockNumber, s.BlockIndex)
+func (pv *PrepareVote) String() string {
+	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%pv,BlockNumber:%d,BlockIndex:%d}",
+		pv.Epoch, pv.ViewNumber, pv.BlockHash.TerminalString(), pv.BlockNumber, pv.BlockIndex)
 }
 
-func (s *PrepareVote) MsgHash() common.Hash {
+func (pv *PrepareVote) MsgHash() common.Hash {
 	return utils.BuildHash(PrepareVoteMsg,
-		utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), s.BlockHash.Bytes(), common.Uint32ToBytes(s.BlockIndex), s.Signature.Bytes()))
+		utils.MergeBytes(common.Uint64ToBytes(pv.ViewNumber), pv.BlockHash.Bytes(), common.Uint32ToBytes(pv.BlockIndex), pv.Signature.Bytes()))
 }
 
-func (s *PrepareVote) BHash() common.Hash {
-	return s.BlockHash
+func (pv *PrepareVote) BHash() common.Hash {
+	return pv.BlockHash
+}
+
+func (pv *PrepareVote) BlockNum() uint64 {
+	return pv.BlockNumber
+}
+
+func (pv *PrepareVote) NodeIndex() uint32 {
+	return pv.ValidatorIndex
 }
 
 func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
@@ -173,26 +193,35 @@ func (pv *PrepareVote) SetSign(sign []byte) {
 
 // Message structure for view switching.
 type ViewChange struct {
-	Epoch       uint64             `json:"epoch"`
-	ViewNumber  uint64             `json:"view_number"`
-	BlockHash   common.Hash        `json:"block_hash"`
-	BlockNumber uint64             `json:"block_number"`
-	PrepareQC   *ctypes.QuorumCert `json:"prepare_qc"`
-	Signature   ctypes.Signature   `json:"signature"`
+	Epoch          uint64             `json:"epoch"`
+	ViewNumber     uint64             `json:"view_number"`
+	BlockHash      common.Hash        `json:"block_hash"`
+	BlockNumber    uint64             `json:"block_number"`
+	ValidatorIndex uint32             `json:"validator_index"`
+	PrepareQC      *ctypes.QuorumCert `json:"prepare_qc"`
+	Signature      ctypes.Signature   `json:"signature"`
 }
 
-func (s *ViewChange) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%s,BlockNumber:%d}",
-		s.Epoch, s.ViewNumber, s.BlockHash.TerminalString(), s.BlockNumber)
+func (vc *ViewChange) String() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%vc,BlockNumber:%d}",
+		vc.Epoch, vc.ViewNumber, vc.BlockHash.TerminalString(), vc.BlockNumber)
 }
 
-func (s *ViewChange) MsgHash() common.Hash {
-	return utils.BuildHash(ViewChangeMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber),
-		s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
+func (vc *ViewChange) MsgHash() common.Hash {
+	return utils.BuildHash(ViewChangeMsg, utils.MergeBytes(common.Uint64ToBytes(vc.ViewNumber),
+		vc.BlockHash.Bytes(), common.Uint64ToBytes(vc.BlockNumber)))
 }
 
-func (s *ViewChange) BHash() common.Hash {
-	return s.BlockHash
+func (vc *ViewChange) BHash() common.Hash {
+	return vc.BlockHash
+}
+
+func (vc *ViewChange) BlockNum() uint64 {
+	return vc.BlockNumber
+}
+
+func (vc *ViewChange) NodeIndex() uint32 {
+	return vc.ValidatorIndex
 }
 
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {

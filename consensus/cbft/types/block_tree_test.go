@@ -21,7 +21,6 @@ func newBlock(parent common.Hash, number uint64) *types.Block {
 	return block
 }
 func TestNewBlockTree(t *testing.T) {
-
 	root := newBlock(common.Hash{}, 0)
 	fork1 := types.Blocks{
 		root,

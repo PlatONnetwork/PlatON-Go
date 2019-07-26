@@ -3,34 +3,98 @@ package types
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"reflect"
 )
 
-type Signature struct {
+const (
+	SignatureLength = 32
+)
+
+type Signature [SignatureLength]byte
+
+func (sig *Signature) String() string {
+	return fmt.Sprintf("%x", sig[:])
 }
 
-func (s *Signature) Bytes() []byte {
-	return nil
+func (sig *Signature) SetBytes(signSlice []byte) {
+	copy(sig[:], signSlice[:])
 }
 
-func (s *Signature) SetBytes(buf []byte) {
+func (sig *Signature) Bytes() []byte {
+	target := make([]byte, len(sig))
+	copy(target[:], sig[:])
+	return target
+}
+
+// MarshalText returns the hex representation of a.
+func (sig Signature) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(sig[:]).MarshalText()
+}
+
+// UnmarshalText parses a hash in hex syntax.
+func (sig *Signature) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("BlockConfirmSign", input, sig[:])
+}
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (sig *Signature) UnmarshalJSON(input []byte) error {
+	return hexutil.UnmarshalFixedJSON(reflect.TypeOf(Signature{}), input, sig[:])
+}
+
+func BytesToSignature(signSlice []byte) Signature {
+	var sign Signature
+	copy(sign[:], signSlice[:])
+	return sign
 }
 
 type QuorumCert struct {
-	Epoch       uint64      `json:"epoch"`
-	ViewNumber  uint64      `json:"view_number"`
-	BlockHash   common.Hash `json:"block_hash"`
-	BlockNumber uint64      `json:"block_number"`
-	BlockIndex  uint32      `json:"block_index"`
-	Signature   Signature   `json:"signature"`
+	Epoch        uint64          `json:"epoch"`
+	ViewNumber   uint64          `json:"view_number"`
+	BlockHash    common.Hash     `json:"block_hash"`
+	BlockNumber  uint64          `json:"block_number"`
+	BlockIndex   uint32          `json:"block_index"`
+	Signature    Signature       `json:"signature"`
+	ValidatorSet *utils.BitArray `json:"validator_set"`
+}
+
+func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		q.Epoch,
+		q.ViewNumber,
+		q.BlockHash,
+		q.BlockNumber,
+		q.BlockIndex,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 type ViewChangeQuorumCert struct {
-	Epoch       uint64      `json:"epoch"`
-	ViewNumber  uint64      `json:"view_number"`
-	BlockHash   common.Hash `json:"block_hash"`
-	BlockNumber uint64      `json:"block_number"`
-	Signature   Signature   `json:"signature"`
-	PrepareQC   *QuorumCert `json:"prepare_qc"`
+	Epoch        uint64          `json:"epoch"`
+	ViewNumber   uint64          `json:"view_number"`
+	BlockHash    common.Hash     `json:"block_hash"`
+	BlockNumber  uint64          `json:"block_number"`
+	Signature    Signature       `json:"signature"`
+	ValidatorSet *utils.BitArray `json:"validator_set"`
+}
+
+func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		q.Epoch,
+		q.ViewNumber,
+		q.BlockHash,
+		q.BlockNumber,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 type ViewChangeQC struct {
