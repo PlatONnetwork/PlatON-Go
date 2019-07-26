@@ -27,7 +27,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		}
 	}
 
-	if _, err := cbft.VerifyConsensusMsg(msg); err != nil {
+	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
 
@@ -53,7 +53,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 
 	var node *cbfttypes.ValidateNode
 	var err error
-	if node, err = cbft.VerifyConsensusMsg(msg); err != nil {
+	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
 
@@ -73,7 +73,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 
 	var node *cbfttypes.ValidateNode
 	var err error
-	if node, err = cbft.VerifyConsensusMsg(msg); err != nil {
+	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
 
@@ -268,23 +268,6 @@ func (cbft *Cbft) findQCBlock() {
 		cbft.insertQCBlock(block, qc)
 	}
 	cbft.tryChangeView()
-}
-
-func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
-	qc := &ctypes.QuorumCert{}
-	for _, p := range votes {
-		qc.Epoch = p.Epoch
-		qc.ViewNumber = p.ViewNumber
-		qc.BlockHash = p.BlockHash
-		qc.BlockNumber = p.BlockNumber
-		qc.BlockIndex = p.BlockIndex
-	}
-	return qc
-}
-
-func (cbft *Cbft) generateViewChangeQC(map[uint32]*protocols.ViewChange) *ctypes.ViewChangeQC {
-	qc := &ctypes.ViewChangeQC{}
-	return qc
 }
 
 // Try commit a new block

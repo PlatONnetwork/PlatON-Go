@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"reflect"
 )
 
@@ -49,21 +52,49 @@ func BytesToSignature(signSlice []byte) Signature {
 }
 
 type QuorumCert struct {
-	Epoch       uint64      `json:"epoch"`
-	ViewNumber  uint64      `json:"view_number"`
-	BlockHash   common.Hash `json:"block_hash"`
-	BlockNumber uint64      `json:"block_number"`
-	BlockIndex  uint32      `json:"block_index"`
-	Signature   Signature   `json:"signature"`
+	Epoch        uint64          `json:"epoch"`
+	ViewNumber   uint64          `json:"view_number"`
+	BlockHash    common.Hash     `json:"block_hash"`
+	BlockNumber  uint64          `json:"block_number"`
+	BlockIndex   uint32          `json:"block_index"`
+	Signature    Signature       `json:"signature"`
+	ValidatorSet *utils.BitArray `json:"validator_set"`
+}
+
+func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		q.Epoch,
+		q.ViewNumber,
+		q.BlockHash,
+		q.BlockNumber,
+		q.BlockIndex,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 type ViewChangeQuorumCert struct {
-	Epoch       uint64      `json:"epoch"`
-	ViewNumber  uint64      `json:"view_number"`
-	BlockHash   common.Hash `json:"block_hash"`
-	BlockNumber uint64      `json:"block_number"`
-	Signature   Signature   `json:"signature"`
-	PrepareQC   *QuorumCert `json:"prepare_qc"`
+	Epoch        uint64          `json:"epoch"`
+	ViewNumber   uint64          `json:"view_number"`
+	BlockHash    common.Hash     `json:"block_hash"`
+	BlockNumber  uint64          `json:"block_number"`
+	Signature    Signature       `json:"signature"`
+	ValidatorSet *utils.BitArray `json:"validator_set"`
+}
+
+func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		q.Epoch,
+		q.ViewNumber,
+		q.BlockHash,
+		q.BlockNumber,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 type ViewChangeQC struct {

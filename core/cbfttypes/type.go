@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"math/big"
 	"sort"
 
@@ -137,6 +138,23 @@ func (vs *Validators) NodeListByIndexes(indexes []uint32) ([]*ValidateNode, erro
 			return nil, errors.New("invalid index")
 		}
 		l = append(l, vs.sortedNodes[int(index)])
+	}
+	return l, nil
+}
+
+func (vs *Validators) NodeListByBitArray(vSet *utils.BitArray) ([]*ValidateNode, error) {
+	if len(vs.sortedNodes) == 0 {
+		vs.sort()
+	}
+	l := make([]*ValidateNode, 0)
+
+	for index := uint32(0); index < vSet.Size(); index++ {
+		if vSet.GetIndex(index) {
+			if int(index) >= len(vs.sortedNodes) {
+				return nil, errors.New("invalid index")
+			}
+			l = append(l, vs.sortedNodes[int(index)])
+		}
 	}
 	return l, nil
 }
