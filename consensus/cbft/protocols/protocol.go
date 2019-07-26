@@ -394,12 +394,15 @@ func (s *PrepareVotes) BHash() common.Hash {
 
 // Represents the hash of the proposed block for secondary propagation.
 type PrepareBlockHash struct {
+	Epoch       uint64
+	ViewNumber  uint64
+	BlockIndex  uint32
 	BlockHash   common.Hash
 	BlockNumber uint64
 }
 
 func (s *PrepareBlockHash) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d}", s.BlockHash.TerminalString(), s.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d,Hash:%s,Number:%d}", s.Epoch, s.ViewNumber, s.BlockIndex, s.BlockHash.TerminalString(), s.BlockNumber)
 }
 
 func (s *PrepareBlockHash) MsgHash() common.Hash {

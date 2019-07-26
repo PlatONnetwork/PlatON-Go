@@ -190,7 +190,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 	default:
 		log.Warn("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
-	return fmt.Errorf("unmatched message type")
+	return nil
 }
 
 // Protocols implemented the Protocols method and returned basic information about the CBFT protocol.
