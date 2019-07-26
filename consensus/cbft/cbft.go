@@ -6,7 +6,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -694,18 +694,18 @@ func (cbft *Cbft) Config() *ctypes.Config {
 }
 
 // Return the highest submitted block number of the current node.
-func (cbft *Cbft) HighestCommitBlockBn() uint64 {
-	return cbft.state.HighestQCBlock().NumberU64()
+func (cbft *Cbft) HighestCommitBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 }
 
 // Return the highest locked block number of the current node.
-func (cbft *Cbft) HighestLockBlockBn() uint64 {
-	return cbft.state.HighestLockBlock().NumberU64()
+func (cbft *Cbft) HighestLockBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 }
 
 // Return the highest QC block number of the current node.
-func (cbft *Cbft) HighestQCBlockBn() uint64 {
-	return cbft.state.HighestQCBlock().NumberU64()
+func (cbft *Cbft) HighestQCBlockBn() (uint64, common.Hash) {
+	return cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 }
 
 func (cbft *Cbft) threshold(num int) int {
@@ -841,7 +841,6 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	vSet.SetIndex(vote.NodeIndex(), true)
 
 	var aggSig bls.Sign
-	fmt.Println(hexutil.Encode(vote.Sign()))
 	if err := aggSig.Deserialize(vote.Sign()); err != nil {
 		return nil
 	}
@@ -937,10 +936,8 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 			break
 		}
 
-		fmt.Println(vc.ValidatorSet.String())
 		if !cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
 			err = fmt.Errorf("verify viewchange qc failed")
-			fmt.Println("err", vc.ValidatorSet.String())
 			break
 		}
 	}
