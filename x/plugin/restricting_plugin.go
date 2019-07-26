@@ -81,6 +81,8 @@ func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []restricting.RestrictingPlan,
 	state xcom.StateDB) error {
 
+	log.Debug("begin to addRestrictingRecord", "sender", sender.String(), "account", account.String(), "plans", plans)
+
 	// latest is the epoch of a settlement block closest to current block
 	latest := GetLatestEpoch(state)
 	// totalAmount is total restricting amount
@@ -229,11 +231,15 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	state.SubBalance(sender, totalAmount)
 	state.AddBalance(vm.RestrictingContractAddr, totalAmount)
 
+	log.Debug("end to addRestrictingRecord", "account", account, "restrictingInfo", bAccInfo)
+
 	return nil
 }
 
 // PledgeLockFunds transfer the money from the restricting contract account to the staking contract account
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
+
+	log.Debug("begin to PledgeLockFunds", "account", account.String(), "amount", amount)
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
@@ -271,11 +277,15 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	state.SubBalance(vm.RestrictingContractAddr, amount)
 	state.AddBalance(vm.StakingContractAddr, amount)
 
+	log.Debug("begin to PledgeLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "STKContractBalance", state.GetBalance(vm.StakingContractAddr))
+
 	return nil
 }
 
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
+
+	log.Debug("begin to ReturnLockFunds", "account", account.String(), "amount", amount)
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
@@ -339,11 +349,15 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	}
 	state.AddBalance(vm.RestrictingContractAddr, left)
 
+	log.Debug("end to ReturnLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr))
+
 	return nil
 }
 
 // SlashingNotify modify Debt of restricting account
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
+
+	log.Debug("begin to SlashingNotify", "account", account, "amount", amount)
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
@@ -385,11 +399,15 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	}
 	state.SetState(account, restrictingKey, bAccInfo)
 
+	log.Debug("begin to SlashingNotify", "restrictingInfo", bAccInfo)
+
 	return nil
 }
 
 // releaseRestricting will release restricting plans on target epoch
 func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
+
+	log.Debug("begin to releaseRestricting", "epoch", epoch)
 
 	releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
 	bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
@@ -490,10 +508,14 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 	// delete ReleaseEpoch
 	state.SetState(vm.RestrictingContractAddr, releaseEpochKey, []byte{})
 
+	log.Debug("end to releaseRestricting")
+
 	return nil
 }
 
 func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) ([]byte, error) {
+
+	log.Debug("begin to GetRestrictingInfo", "account", account)
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
@@ -539,6 +561,8 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		log.Error("failed to Marshal restricting result")
 		return []byte{}, err
 	}
+
+	log.Debug("end to GetRestrictingInfo", "restrictingInfo", bResult)
 
 	return bResult, nil
 }
