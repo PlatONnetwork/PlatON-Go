@@ -48,7 +48,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	blockNum := rc.Evm.BlockNumber
 	state := rc.Evm.StateDB
 
-	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64())
+	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "sender", sender, "account", account)
 
 	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
 		return nil, ErrOutOfGas
