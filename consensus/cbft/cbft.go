@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -840,21 +841,23 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	vSet.SetIndex(vote.NodeIndex(), true)
 
 	var aggSig bls.Sign
+	fmt.Println(hexutil.Encode(vote.Sign()))
 	if err := aggSig.Deserialize(vote.Sign()); err != nil {
 		return nil
 	}
 
 	qc := &ctypes.QuorumCert{
-		Epoch:       vote.Epoch,
-		ViewNumber:  vote.ViewNumber,
-		BlockHash:   vote.BlockHash,
-		BlockNumber: vote.BlockNumber,
-		BlockIndex:  vote.BlockIndex,
+		Epoch:        vote.Epoch,
+		ViewNumber:   vote.ViewNumber,
+		BlockHash:    vote.BlockHash,
+		BlockNumber:  vote.BlockNumber,
+		BlockIndex:   vote.BlockIndex,
+		ValidatorSet: utils.NewBitArray(vSet.Size()),
 	}
 	for _, p := range votes {
 		if p.NodeIndex() != vote.NodeIndex() {
 			var sig bls.Sign
-			err := sig.Deserialize(vote.Sign())
+			err := sig.Deserialize(p.Sign())
 			if err != nil {
 				return nil
 			}
@@ -888,14 +891,16 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		if vc, ok := qcs[v.BlockHash]; !ok {
 			qc := &ViewChangeQC{
 				cert: &ctypes.ViewChangeQuorumCert{
-					Epoch:       v.Epoch,
-					ViewNumber:  v.ViewNumber,
-					BlockHash:   v.BlockHash,
-					BlockNumber: v.BlockNumber,
+					Epoch:        v.Epoch,
+					ViewNumber:   v.ViewNumber,
+					BlockHash:    v.BlockHash,
+					BlockNumber:  v.BlockNumber,
+					ValidatorSet: utils.NewBitArray(total),
 				},
 				aggSig: &aggSig,
 				ba:     utils.NewBitArray(total),
 			}
+			qc.ba.SetIndex(v.NodeIndex(), true)
 			qcs[v.BlockHash] = qc
 		} else {
 			vc.aggSig.Add(&aggSig)
@@ -918,7 +923,7 @@ func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
 	if cb, err = qc.CannibalizeBytes(); err != nil {
 		return err
 	}
-	if cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
+	if !cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
 		return fmt.Errorf("verify prepare qc failed")
 	}
 	return err
@@ -931,8 +936,11 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 		if cb, err = vc.CannibalizeBytes(); err != nil {
 			break
 		}
-		if cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
+
+		fmt.Println(vc.ValidatorSet.String())
+		if !cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
 			err = fmt.Errorf("verify viewchange qc failed")
+			fmt.Println("err", vc.ValidatorSet.String())
 			break
 		}
 	}
