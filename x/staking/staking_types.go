@@ -87,7 +87,7 @@ type Candidate struct {
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node program
-	// (Store Large Verson: the 2.1.x large version is 2.1)
+	// (Store Large Verson: the 2.1.x large version is 2.1.0)
 	ProgramVersion uint32
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`

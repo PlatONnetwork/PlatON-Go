@@ -68,7 +68,10 @@ func CandidateKeyBySuffix(addr []byte) []byte {
 
 // need to add ProgramVersion
 func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programVersion uint32) []byte {
-	version := common.Uint32ToBytes(programVersion)
+
+	subVersion := math.MaxInt32 - programVersion
+
+	sortVersion := common.Uint32ToBytes(subVersion)
 	priority := new(big.Int).Sub(math.MaxBig104, shares)
 
 	zeros := make([]byte, b104Len)
@@ -76,7 +79,7 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
-	return append(CanPowerKeyPrefix, append(version, append(prio,
+	return append(CanPowerKeyPrefix, append(sortVersion, append(prio,
 		append(num, txIndex...)...)...)...)
 }
 

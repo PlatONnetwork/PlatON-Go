@@ -119,7 +119,7 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	log.Trace("get verifier list success", "list", list)
 
 	validatorNum := int64(len(list))
-	everyValidatorReward := new(big.Int).Sub(reward, big.NewInt(validatorNum))
+	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenefitAddress

@@ -92,19 +92,19 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 	switch netId {
 	case DefaultMainNet, DefaultDeveloperNet:
-		stakeThresholdCount = "1000000000000000000000000" // 100W von
-		delegateThresholdCount = "10000000000000000000"   // 10 von
+		stakeThresholdCount = "10000000000000000000000000" // 1000W von
+		delegateThresholdCount = "10000000000000000000"    // 10 von
 	case DefaultAlphaTestNet:
-		stakeThresholdCount = "1000000000000000000000000"
+		stakeThresholdCount = "10000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
 	case DefaultBetaTestNet:
-		stakeThresholdCount = "1000000000000000000000000"
+		stakeThresholdCount = "10000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
 	case DefaultInnerTestNet:
-		stakeThresholdCount = "1000000000000000000000000"
+		stakeThresholdCount = "10000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
 	case DefaultInnerDevNet:
-		stakeThresholdCount = "1000000000000000000000000"
+		stakeThresholdCount = "10000000000000000000000000"
 		delegateThresholdCount = "10000000000000000000"
 	}
 

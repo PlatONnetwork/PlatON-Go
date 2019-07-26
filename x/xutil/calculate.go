@@ -21,9 +21,10 @@ func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
 
 // The ProgramVersion: Major.Minor.Patch eg. 1.1.0
 // Calculate the LargeVersion
-// eg: 1.1.0 ==> 1.1
+// eg: 1.1.x ==> 1.1.0
 func CalcVersion(programVersion uint32) uint32 {
-	return programVersion >> 8
+	programVersion = programVersion >> 8
+	return programVersion << 8
 }
 
 func IsWorker(extra []byte) bool {
