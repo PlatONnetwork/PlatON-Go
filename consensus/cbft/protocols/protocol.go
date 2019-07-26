@@ -17,22 +17,22 @@ import (
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
 
 const (
-	CBFTStatusMsg       = 0x00 // Protocol messages belonging to cbft
-	PrepareBlockMsg     = 0x01
-	PrepareVoteMsg      = 0x02
-	ViewChangeMsg       = 0x03
-	GetPrepareBlockMsg  = 0x04
-	GetQuorumCertMsg    = 0x05
-	BlockQuorumCertMsg  = 0x06
-	GetPrepareVoteMsg   = 0x07
-	PrepareVotesMsg     = 0x08
-	GetQCBlockListMsg   = 0x09
-	QCBlockListMsg      = 0x0a
-	GetLatestStatusMsg  = 0x0b
-	LatestStatusMsg     = 0x0c
-	PrepareBlockHashMsg = 0x0d
-	PingMsg             = 0x0e
-	PongMsg             = 0x0f
+	CBFTStatusMsg         = 0x00 // Protocol messages belonging to cbft
+	PrepareBlockMsg       = 0x01
+	PrepareVoteMsg        = 0x02
+	ViewChangeMsg         = 0x03
+	GetPrepareBlockMsg    = 0x04
+	GetBlockQuorumCertMsg = 0x05
+	BlockQuorumCertMsg    = 0x06
+	GetPrepareVoteMsg     = 0x07
+	PrepareVotesMsg       = 0x08
+	GetQCBlockListMsg     = 0x09
+	QCBlockListMsg        = 0x0a
+	GetLatestStatusMsg    = 0x0b
+	LatestStatusMsg       = 0x0c
+	PrepareBlockHashMsg   = 0x0d
+	PingMsg               = 0x0e
+	PongMsg               = 0x0f
 )
 
 // A is used to convert specific message types according to the message body.
@@ -52,7 +52,7 @@ func MessageType(msg interface{}) uint64 {
 	case *GetPrepareBlock:
 		return GetPrepareBlockMsg
 	case *GetBlockQuorumCert:
-		return GetQuorumCertMsg
+		return GetBlockQuorumCertMsg
 	case *BlockQuorumCert:
 		return BlockQuorumCertMsg
 	case *GetQCBlockList:
@@ -91,7 +91,7 @@ type PrepareBlock struct {
 }
 
 func (pb *PrepareBlock) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%pb,Number:%d,BlockIndex:%d}",
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
 		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex)
 }
 
@@ -303,7 +303,7 @@ func (s *GetBlockQuorumCert) String() string {
 }
 
 func (s *GetBlockQuorumCert) MsgHash() common.Hash {
-	return utils.BuildHash(GetQuorumCertMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
+	return utils.BuildHash(GetBlockQuorumCertMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *GetBlockQuorumCert) BHash() common.Hash {

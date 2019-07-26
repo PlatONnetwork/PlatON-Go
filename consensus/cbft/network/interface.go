@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -25,11 +26,11 @@ type Cbft interface {
 	ReceiveSyncMsg(msg *types.MsgInfo)
 
 	// Return the highest QC block number of the current node.
-	HighestQCBlockBn() uint64
+	HighestQCBlockBn() (uint64, common.Hash)
 
 	// Return the highest locked block number of the current node.
-	HighestLockBlockBn() uint64
+	HighestLockBlockBn() (uint64, common.Hash)
 
 	// Return the highest commit block number of the current node.
-	HighestCommitBlockBn() uint64
+	HighestCommitBlockBn() (uint64, common.Hash)
 }
