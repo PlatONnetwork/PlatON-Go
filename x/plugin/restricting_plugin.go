@@ -21,7 +21,7 @@ var (
 	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
 	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
 	errBalanceNotEnough    = common.NewBizError("balance not enough to restrict")
-	errAccountNotFound     = common.NewBizError("account is not found on restricing contract")
+	errAccountNotFound     = common.NewBizError("account is not found on restricting contract")
 	monthOfThreeYear       = 12 * 3
 )
 
