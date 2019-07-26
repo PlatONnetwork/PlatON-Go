@@ -19,7 +19,7 @@ package rlp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -288,42 +288,55 @@ func boolToBytes(val bool) []byte {
 
 func TestDecodeEncode(t *testing.T) {
 	///////////////////////////////////////////////////////////////////////////////
-	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
-	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
+	// nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	// owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
+	//
+	// var source [][]byte
+	// source = make([][]byte, 0)
+	// source = append(source, uint64ToBytes(0xf1))
+	// source = append(source, []byte("CandidateDeposit"))
+	// source = append(source, nodeId)
+	// source = append(source, owner)
+	// source = append(source, uint64ToBytes(500)) //10000
+	// source = append(source, []byte("127.0.0.1"))
+	// source = append(source, []byte("7890"))
+	// source = append(source, []byte("extra data"))
+	//
+	// //rlp Encode
+	// buffer := new(bytes.Buffer)
+	// err := Encode(buffer, source)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	t.Errorf("fail")
+	// } else {
+	// 	fmt.Println("encode_hex_string: ", hexutil.Encode(buffer.Bytes()))
+	// 	fmt.Println("encode_bytes: ", buffer.Bytes())
+	// }
+	//
+	// //rlp Decode
+	// ptr := new(interface{})
+	// if err := Decode(bytes.NewReader(buffer.Bytes()), &ptr); err != nil {
+	// 	fmt.Println(err)
+	// 	t.Errorf("fail")
+	// } else {
+	// 	deref := reflect.ValueOf(ptr).Elem().Interface()
+	// 	for i, v := range deref.([]interface{}) {
+	// 		fmt.Println(i, ": ", hex.EncodeToString(v.([]byte)))
+	// 	}
+	// }
 
-	var source [][]byte
-	source = make([][]byte, 0)
-	source = append(source, uint64ToBytes(0xf1))
-	source = append(source, []byte("CandidateDeposit"))
-	source = append(source, nodeId)
-	source = append(source, owner)
-	source = append(source, uint64ToBytes(500)) //10000
-	source = append(source, []byte("127.0.0.1"))
-	source = append(source, []byte("7890"))
-	source = append(source, []byte("extra data"))
+	data := "0x7b22537461747573223a66616c73652c2244617461223a22222c224572724d7367223a22637265617465207265737472696374696e6720706c616e3a6163636f756e74206973206e6f7420666f756e64206f6e207265737472696374696e6720636f6e7472616374227d"
 
-	//rlp Encode
-	buffer := new(bytes.Buffer)
-	err := Encode(buffer, source)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("fail")
-	} else {
-		fmt.Println("encode_hex_string: ", hexutil.Encode(buffer.Bytes()))
-		fmt.Println("encode_bytes: ", buffer.Bytes())
-	}
+	var result Result
+	_ = json.Unmarshal([]byte(data), &result)
 
-	//rlp Decode
-	ptr := new(interface{})
-	if err := Decode(bytes.NewReader(buffer.Bytes()), &ptr); err != nil {
-		fmt.Println(err)
-		t.Errorf("fail")
-	} else {
-		deref := reflect.ValueOf(ptr).Elem().Interface()
-		for i, v := range deref.([]interface{}) {
-			fmt.Println(i, ": ", hex.EncodeToString(v.([]byte)))
-		}
-	}
+	t.Log(result)
+}
+
+type Result struct {
+	Status bool
+	Data   string
+	ErrMsg string
 }
 
 func TestEncodeF03(t *testing.T) {
