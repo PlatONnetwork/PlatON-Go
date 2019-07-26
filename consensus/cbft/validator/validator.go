@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -460,6 +461,32 @@ func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uin
 	}
 
 	nodeList, err := validators.NodeListByIndexes(validatorIndexes)
+	if err != nil {
+		return false
+	}
+	vp.lock.RUnlock()
+
+	var pub bls.PublicKey
+	for _, node := range nodeList {
+		pub.Add(node.BlsPubKey)
+	}
+
+	var sig bls.Sign
+	err = sig.Deserialize(signature)
+	if err != nil {
+		return false
+	}
+	return sig.Verify(&pub, string(msg))
+}
+
+func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArray, msg, signature []byte) bool {
+	vp.lock.RLock()
+	validators := vp.currentValidators
+	if blockNumber <= vp.switchPoint {
+		validators = vp.prevValidators
+	}
+
+	nodeList, err := validators.NodeListByBitArray(vSet)
 	if err != nil {
 		return false
 	}
