@@ -136,7 +136,7 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
 	cbft.state.AddQC(state.QuorumCert)
 	cbft.blockTree.InsertQCBlock(state.Block, state.QuorumCert)
-	cbft.state.SetHighestExecutedBlock(state.Block)
+	//cbft.state.SetHighestExecutedBlock(state.Block)
 	cbft.state.SetExecuting(state.QuorumCert.BlockIndex, true)
 
 	switch stateType {
@@ -194,7 +194,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			//cbft.OnPrepareBlock("", m.Prepare)
 			cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
 			//cbft.findQCBlock()
-			cbft.state.SetHighestExecutedBlock(block)
+			//cbft.state.SetHighestExecutedBlock(block)
 			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 		}
 
@@ -221,7 +221,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
-			cbft.state.SetHighestExecutedBlock(block)
+			//cbft.state.SetHighestExecutedBlock(block)
 			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 		}
 	}
@@ -249,7 +249,8 @@ func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	if !cbft.equalViewState(msg) {
 		return false, fmt.Errorf("non equal view state, curEpoch:%d, curViewNum:%d, preEpoch:%d, preViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
 	}
-	return msg.BlockNumber() > cbft.HighestQCBlockBn(), nil
+	highestQCBlockBn, _ := cbft.HighestQCBlockBn()
+	return msg.BlockNumber() > highestQCBlockBn, nil
 }
 
 func (cbft *Cbft) equalViewState(msg protocols.WalMsg) bool {
