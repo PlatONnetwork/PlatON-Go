@@ -260,35 +260,43 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	)
 	p.Log().Debug("CBFT peer connected, do handshake", "name", peer.Name())
 
-	// Build a new CbftStatusData object as a handshake parameter
-	cbftStatus := &protocols.CbftStatusData{
-		ProtocolVersion: CbftProtocolVersion,
-		QCBn:            new(big.Int).SetUint64(uint64(qcBn)),
-		QCBlock:         qcHash,
-		LockBn:          new(big.Int).SetUint64(uint64(lockedBn)),
-		LockBlock:       lockedHash,
-		CmtBn:           new(big.Int).SetUint64(uint64(commitBn)),
-		CmtBlock:        commitHash,
+	// Execution handshake function.
+	handshake := func() error {
+		// Build a new CbftStatusData object as a handshake parameter
+		cbftStatus := &protocols.CbftStatusData{
+			ProtocolVersion: CbftProtocolVersion,
+			QCBn:            new(big.Int).SetUint64(uint64(qcBn)),
+			QCBlock:         qcHash,
+			LockBn:          new(big.Int).SetUint64(uint64(lockedBn)),
+			LockBlock:       lockedHash,
+			CmtBn:           new(big.Int).SetUint64(uint64(commitBn)),
+			CmtBlock:        commitHash,
+		}
+		// do handshake
+		remoteStatus, err := peer.Handshake(cbftStatus)
+		if err != nil {
+			p.Log().Debug("CBFT handshake failed", "err", err)
+			return err
+		}
+		// If blockNumber in the local is better than the remote
+		// then determine if there is a fork.
+		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
+			// todo: to be added
+		}
+		if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
+			// todo: to be added
+		}
+		if cbftStatus.CmtBn.Uint64() > remoteStatus.CmtBn.Uint64() {
+			// todo: to be added
+		}
+		p.Log().Debug("CBFT consensus handshake success", "msgHash", cbftStatus.MsgHash().TerminalString())
+		return nil
 	}
-	// do handshake
-	remoteStatus, err := peer.Handshake(cbftStatus)
-	if err != nil {
-		p.Log().Debug("CBFT handshake failed", "err", err)
-		return err
+	handErr := handshake()
+	if handErr != nil {
+		p.Log().Error("CBFT handshake failed", "err", handErr)
+		return handErr
 	}
-	// If blockNumber in the local is better than the remote
-	// then determine if there is a fork.
-	if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
-		// todo: to be added
-	}
-	if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
-		// todo: to be added
-	}
-	if cbftStatus.CmtBn.Uint64() > remoteStatus.CmtBn.Uint64() {
-		// todo: to be added
-	}
-
-	p.Log().Debug("CBFT consensus handshake success", "msgHash", cbftStatus.MsgHash().TerminalString())
 
 	// The newly established node is registered to the neighbor node list.
 	if err := h.peers.Register(peer); err != nil {
