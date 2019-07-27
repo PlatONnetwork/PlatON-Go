@@ -148,6 +148,8 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) (*protocols.CbftSt
 	// determine if the local node contains a block height and a hash that matches it.
 	// qcBn/lockedBn/commitBn.
 	p.highestQCBn, p.lockedBn, p.commitBn = inStatus.QCBn, inStatus.LockBn, inStatus.CmtBn
+	log.Debug("Handshake success and done", "remoteQCBn", p.QCBn(),
+		"remoteLockedBn", p.LockedBn(), "remoteCommitBn", p.CommitBn())
 
 	return &inStatus, nil
 }

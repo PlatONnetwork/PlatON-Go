@@ -331,6 +331,9 @@ func (q qcBlock) number() uint64 {
 	return q.b.NumberU64()
 }
 func (q qcBlock) blockIndex() uint32 {
+	if q.qc == nil {
+		return 0
+	}
 	return q.qc.BlockIndex
 }
 
