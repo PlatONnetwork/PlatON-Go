@@ -1173,6 +1173,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 				return
 			}*/
 		header.Coinbase = w.coinbase
+		core.GetReactorInstance().SetWorkerCoinBase(header, w.config.Cbft.PrivateKey)
 	}
 
 	log.Info("cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
