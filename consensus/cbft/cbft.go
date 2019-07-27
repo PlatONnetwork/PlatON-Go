@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -86,8 +87,7 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
-	stateMu            sync.Mutex
-	viewMu             sync.Mutex
+	loading            int32
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -110,7 +110,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		state:              cstate.NewViewState(),
 	}
 
-	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
@@ -150,6 +150,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
+	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
 		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
 	} else {
@@ -179,6 +180,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
+	atomic.StoreInt32(&cbft.loading, 0)
 
 	// init handler and router to process message.
 	// cbft -> handler -> router.
@@ -220,19 +222,24 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
 }
 
 // LoadWal tries to recover consensus state and view msg from the wal.
-func (cbft *Cbft) LoadWal() error {
+func (cbft *Cbft) LoadWal() (err error) {
 	// init wal and load wal state
-	var err error
-	if cbft.wal, err = wal.NewWal(cbft.nodeServiceContext, ""); err != nil {
+	var context *node.ServiceContext
+	if cbft.config.Option.WalMode {
+		context = cbft.nodeServiceContext
+	}
+	if cbft.wal, err = wal.NewWal(context, ""); err != nil {
 		return err
 	}
-	//cbft.wal = &emptyWal{}
+
 	// load consensus chainState
 	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
+		cbft.log.Error(err.Error())
 		return err
 	}
 	// load consensus message
 	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
+		cbft.log.Error(err.Error())
 		return err
 	}
 	return nil
@@ -313,15 +320,40 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 
+	// Forward the message before processing the message.
+	go cbft.network.Forwarding(id, msg)
+
 	switch msg := msg.(type) {
 	case *protocols.GetPrepareBlock:
 		cbft.OnGetPrepareBlock(id, msg)
+
 	case *protocols.GetBlockQuorumCert:
 		cbft.OnGetBlockQuorumCert(id, msg)
+
 	case *protocols.BlockQuorumCert:
 		cbft.OnBlockQuorumCert(id, msg)
+
+	case *protocols.GetPrepareVote:
+		cbft.OnGetPrepareVote(id, msg)
+
+	case *protocols.PrepareVotes:
+		cbft.OnPrepareVotes(id, msg)
+
 	case *protocols.GetQCBlockList:
 		cbft.OnGetQCBlockList(id, msg)
+
+	case *protocols.QCBlockList:
+		cbft.OnQCBlockList(id, msg)
+
+	case *protocols.GetLatestStatus:
+		cbft.OnGetLatestStatus(id, msg)
+
+	case *protocols.LatestStatus:
+		cbft.OnLatestStatus(id, msg)
+
+	case *protocols.PrepareBlockHash:
+		cbft.OnPrepareBlockHash(id, msg)
+
 	default:
 		cbft.fetcher.MatchTask(id, msg)
 	}
@@ -465,6 +497,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.findQCBlock()
 
+	// write sendPrepareBlock info to wal
+	cbft.sendPrepareBlock(prepareBlock)
+
 	cbft.network.Broadcast(prepareBlock)
 
 	go func() {
@@ -585,6 +620,9 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
+	if cbft.isLoading() {
+		return false, nil
+	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		return false, errors.New("current node not a validator")
@@ -789,6 +827,10 @@ func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
 	}
 	msg.SetSign(sign)
 	return nil
+}
+
+func (cbft *Cbft) isLoading() bool {
+	return atomic.LoadInt32(&cbft.loading) == 1
 }
 
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {

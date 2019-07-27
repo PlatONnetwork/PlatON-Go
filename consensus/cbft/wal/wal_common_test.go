@@ -18,6 +18,24 @@ var (
 	ordinal = 0
 )
 
+func buildPrepareBlock() *protocols.PrepareBlock {
+	return &protocols.PrepareBlock{
+		Epoch:         1,
+		ViewNumber:    1,
+		Block:         block,
+		BlockIndex:    1,
+		ProposalIndex: 1,
+		PrepareQC: &ctypes.QuorumCert{
+			ViewNumber:  1,
+			BlockHash:   common.BytesToHash(Rand32Bytes(32)),
+			BlockNumber: 1,
+			Signature:   ctypes.Signature{},
+		},
+		ViewChangeQC: &ctypes.ViewChangeQC{},
+		Signature:    ctypes.Signature{},
+	}
+}
+
 func buildQuorumCert() *ctypes.QuorumCert {
 	return &ctypes.QuorumCert{
 		ViewNumber:  viewNumber,
@@ -61,7 +79,7 @@ func buildViewChange() *protocols.ViewChange {
 
 func buildSendPrepareBlock() *protocols.SendPrepareBlock {
 	return &protocols.SendPrepareBlock{
-		Block: block,
+		Prepare: buildPrepareBlock(),
 	}
 }
 

@@ -18,7 +18,6 @@ var (
 	prepareDualPrefix = byte(0x1)
 	voteDualPrefix    = byte(0x2)
 	viewDualPrefix    = byte(0x3)
-	evidenceDir       = "evidence" // Evidence working directory
 )
 
 type EvidencePool interface {
@@ -64,7 +63,7 @@ type baseEvidencePool struct {
 	db *leveldb.DB
 }
 
-func NewEvidencePool(ctx *node.ServiceContext) (EvidencePool, error) {
+func NewEvidencePool(ctx *node.ServiceContext, evidenceDir string) (EvidencePool, error) {
 	path := ""
 	if ctx != nil {
 		path = ctx.ResolvePath(evidenceDir)
