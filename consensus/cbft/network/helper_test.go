@@ -51,7 +51,15 @@ func newFakePrepareVote() *protocols.PrepareVote {
 }
 
 func newQuorumCert() *types2.QuorumCert {
-	return &types2.QuorumCert{}
+	return &types2.QuorumCert{
+		Epoch:        1,
+		ViewNumber:   1,
+		BlockHash:    common.Hash{},
+		BlockNumber:  1,
+		BlockIndex:   1,
+		Signature:    newSignature(),
+		ValidatorSet: utils.NewBitArray(32),
+	}
 }
 
 func newSignature() types2.Signature {
