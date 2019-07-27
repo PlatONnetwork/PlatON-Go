@@ -91,11 +91,17 @@ func (cbft *Cbft) OnViewTimeout() {
 		return
 	}
 
+	hash, number := cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64()
+
+	_, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+
 	viewChange := &protocols.ViewChange{
-		Epoch:       cbft.state.Epoch(),
-		ViewNumber:  cbft.state.ViewNumber(),
-		BlockHash:   cbft.state.HighestQCBlock().Hash(),
-		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
+		Epoch:          cbft.state.Epoch(),
+		ViewNumber:     cbft.state.ViewNumber(),
+		BlockHash:      hash,
+		BlockNumber:    number,
+		ValidatorIndex: uint32(node.Index),
+		PrepareQC:      qc,
 	}
 
 	cbft.state.AddViewChange(uint32(node.Index), viewChange)

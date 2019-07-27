@@ -180,11 +180,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 		return err
 	}
 
-	go cbft.receiveLoop()
-
 	// init handler and router to process message.
 	// cbft -> handler -> router.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
+
+	go cbft.receiveLoop()
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
@@ -489,7 +489,7 @@ func (Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 }
 
 func (cbft *Cbft) Protocols() []p2p.Protocol {
-	return []p2p.Protocol{}
+	return cbft.network.Protocols()
 }
 
 func (cbft *Cbft) NextBaseBlock() *types.Block {
@@ -611,7 +611,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
-
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")
@@ -635,6 +634,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- errors.New("produce block over limit")
 		return
 	}
+
 	result <- nil
 }
 
