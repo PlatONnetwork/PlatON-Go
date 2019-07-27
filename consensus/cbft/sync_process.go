@@ -175,11 +175,8 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 	// Defining an array for receiving PrepareVote.
 	votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
 	if prepareVoteMap != nil {
-		for i := uint32(0); i < msg.VoteBits.Size(); i++ {
-			if msg.VoteBits.GetIndex(i) {
-				continue
-			}
-			if v, ok := prepareVoteMap[i]; ok {
+		for k, v := range prepareVoteMap {
+			if !msg.VoteBits.GetIndex(k) {
 				votes = append(votes, v)
 			}
 		}
