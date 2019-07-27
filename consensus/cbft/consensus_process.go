@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
@@ -98,8 +99,10 @@ func (cbft *Cbft) OnViewTimeout() {
 		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
 	}
 
-	cbft.state.AddViewChange(uint32(node.Index), viewChange)
+	// write sendViewChange info to wal
+	cbft.sendViewChange(viewChange)
 
+	cbft.state.AddViewChange(uint32(node.Index), viewChange)
 	cbft.network.Broadcast(viewChange)
 }
 
@@ -209,6 +212,10 @@ func (cbft *Cbft) trySendPrepareVote() {
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
+
+			// write sendPrepareVote info to wal
+			cbft.sendPrepareVote(block, p)
+
 			cbft.network.Broadcast(p)
 		} else {
 			break
@@ -270,12 +277,43 @@ func (cbft *Cbft) findQCBlock() {
 	cbft.tryChangeView()
 }
 
+// updateChainState tries to update consensus state to wal
+// If the write fails, the process will stop
+func (cbft *Cbft) updateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
+	var qcState, lockState, commitState *protocols.State
+	qcState = &protocols.State{
+		Block:      qcBlock,
+		QuorumCert: qcQC,
+	}
+	if lock == nil || commit == nil {
+		if err := cbft.addQCState(qcState); err != nil {
+			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+		}
+	} else {
+		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
+		commitBlock, commitQC := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
+		lockState = &protocols.State{
+			Block:      lockBlock,
+			QuorumCert: lockQC,
+		}
+		commitState = &protocols.State{
+			Block:      commitBlock,
+			QuorumCert: commitQC,
+		}
+		if err := cbft.newChainState(commitState, lockState, qcState); err != nil {
+			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+		}
+	}
+}
+
 // Try commit a new block
 func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	if lock == nil || commit == nil {
 		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
 		return
 	}
+	highestqc := cbft.state.HighestQCBlock()
 	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 
 	// Incremental commit block
@@ -284,8 +322,11 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		cbft.commitBlock(commit, qc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
+		cbft.updateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
+	} else {
+		cbft.updateChainState(highestqc, nil, nil)
 	}
 }
 
@@ -341,6 +382,10 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
+	// write confirmed viewChange info to wal
+	if !cbft.isLoading() {
+		cbft.confirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
+	}
 	cbft.clearInvalidBlocks(block)
 }
 
