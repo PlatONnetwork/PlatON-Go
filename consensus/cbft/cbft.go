@@ -516,7 +516,7 @@ func (Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 }
 
 func (cbft *Cbft) Protocols() []p2p.Protocol {
-	return []p2p.Protocol{}
+	return cbft.network.Protocols()
 }
 
 func (cbft *Cbft) NextBaseBlock() *types.Block {
