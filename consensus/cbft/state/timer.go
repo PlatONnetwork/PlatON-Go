@@ -48,7 +48,7 @@ type viewTimeInterval struct {
 }
 
 func (vt viewTimeInterval) getViewTimeInterval(viewInterval uint64) time.Duration {
-	pow := viewInterval
+	pow := viewInterval - 1
 	if pow > vt.maxExponent {
 		pow = vt.maxExponent
 	}

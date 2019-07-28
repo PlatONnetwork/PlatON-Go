@@ -449,8 +449,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
 	// TODO: check is turn to seal block
 
-	if cbft.state.HighestQCBlock().Hash() != block.ParentHash() ||
-		cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
+	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "nubmer", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
 			"exectedNumber", cbft.state.HighestExecutedBlock().Number(), "exectedHash", cbft.state.HighestExecutedBlock().Hash())
@@ -620,7 +619,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
-	if cbft.isLoading() {
+	if cbft.isLoading() && !cbft.isStart() {
 		return false, nil
 	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
@@ -833,6 +832,10 @@ func (cbft *Cbft) isLoading() bool {
 	return atomic.LoadInt32(&cbft.loading) == 1
 }
 
+func (cbft *Cbft) isStart() bool {
+	return cbft.start
+}
+
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
 	digest, err := msg.CannibalizeBytes()
 	if err != nil {
@@ -867,8 +870,15 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 			}
 		}
 	case *protocols.PrepareVote:
+		if cm.BlockNum() == 1 {
+			return vnode, nil
+		}
 		prepareQC = cm.ParentQC
 	case *protocols.ViewChange:
+		// Genesis block doesn't has prepareQC
+		if cm.BlockNumber == 0 {
+			return vnode, nil
+		}
 		prepareQC = cm.PrepareQC
 	}
 

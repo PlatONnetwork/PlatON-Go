@@ -91,12 +91,20 @@ func (cbft *Cbft) OnViewTimeout() {
 		cbft.log.Error("ViewTimeout local node is not validator")
 		return
 	}
+	hash, number := cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64()
+	_, qc := cbft.blockTree.FindBlockAndQC(hash, number)
 
 	viewChange := &protocols.ViewChange{
 		Epoch:       cbft.state.Epoch(),
 		ViewNumber:  cbft.state.ViewNumber(),
-		BlockHash:   cbft.state.HighestQCBlock().Hash(),
-		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
+		BlockHash:   hash,
+		BlockNumber: number,
+		PrepareQC:   qc,
+	}
+
+	if err := cbft.signMsgByBls(viewChange); err != nil {
+		cbft.log.Error("Sign ViewChange failed", "err", err)
+		return
 	}
 
 	// write sendViewChange info to wal
