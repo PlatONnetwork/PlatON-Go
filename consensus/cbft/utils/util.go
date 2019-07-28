@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"math/rand"
+	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
@@ -44,4 +45,20 @@ func MergeBytes(bts ...[]byte) []byte {
 		response = temp
 	}
 	return response
+}
+
+func True(atm *int32) bool {
+	return atomic.LoadInt32(atm) == 1
+}
+
+func False(atm *int32) bool {
+	return atomic.LoadInt32(atm) == 0
+}
+
+func SetFalse(atm *int32) {
+	atomic.StoreInt32(atm, 0)
+}
+
+func SetTrue(atm *int32) {
+	atomic.StoreInt32(atm, 1)
 }
