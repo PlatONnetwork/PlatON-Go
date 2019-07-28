@@ -2,14 +2,10 @@ package cbft
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 	"sync/atomic"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	errors "github.com/pkg/errors"
 
@@ -28,12 +24,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -59,9 +57,9 @@ type Cbft struct {
 	log              log.Logger
 	network          *network.EngineManager
 
-	start    bool
-	syncing  bool
-	fetching bool
+	start    int32
+	syncing  int32
+	fetching int32
 	// Async call channel
 	asyncCallCh chan func()
 
@@ -101,9 +99,9 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		log:                log.New(),
-		start:              false,
-		syncing:            false,
-		fetching:           false,
+		start:              0,
+		syncing:            0,
+		fetching:           0,
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
@@ -191,7 +189,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	// Start the handler to process the message.
 	go cbft.network.Start()
 
-	cbft.start = true
+	utils.SetTrue(&cbft.start)
 	cbft.log.Info("Cbft engine start")
 	return nil
 }
@@ -360,7 +358,7 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 }
 
 func (cbft *Cbft) running() bool {
-	return !cbft.syncing && !cbft.fetching
+	return utils.False(&cbft.syncing) && utils.False(&cbft.fetching)
 }
 
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
@@ -384,8 +382,24 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	return nil
 }
 
-func (Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	panic("implement me")
+func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+	cbft.log.Trace("Verify headers", "total", len(headers))
+
+	abort := make(chan struct{})
+	results := make(chan error, len(headers))
+
+	go func() {
+		for _, header := range headers {
+			err := cbft.VerifyHeader(chain, header, false)
+
+			select {
+			case <-abort:
+				return
+			case results <- err:
+			}
+		}
+	}()
+	return abort, results
 }
 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
@@ -448,7 +462,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
 	// TODO: check is turn to seal block
-
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "nubmer", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
@@ -456,12 +469,14 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	// TODO: seal process
+	me, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestExecutedBlock().NumberU64(), cbft.config.Option.NodeID)
+
 	prepareBlock := &protocols.PrepareBlock{
-		Epoch:      cbft.state.Epoch(),
-		ViewNumber: cbft.state.ViewNumber(),
-		Block:      block,
-		BlockIndex: cbft.state.NextViewBlockIndex(),
+		Epoch:         cbft.state.Epoch(),
+		ViewNumber:    cbft.state.ViewNumber(),
+		Block:         block,
+		BlockIndex:    cbft.state.NextViewBlockIndex(),
+		ProposalIndex: uint32(me.Index),
 	}
 
 	// Next index is equal zero, This view does not produce a block.
@@ -476,7 +491,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
 
-	// TODO: signature block - fake verify.
 	if err := cbft.signMsgByBls(prepareBlock); err != nil {
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		return
@@ -536,8 +550,62 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 	return <-result
 }
 
-func (Cbft) InsertChain(block *types.Block, errCh chan error) {
-	panic("implement me")
+func (cbft *Cbft) InsertChain(block *types.Block) error {
+	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash())
+	cbft.pause()
+	defer cbft.resume()
+
+	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() {
+		cbft.log.Debug("The inserted block has exists in chain",
+			"number", block.Number(), "hash", block.Hash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash())
+		return nil
+	}
+
+	// Check if the inserted block's parent is highest locked block or highest qc block.
+	// The correct block can link chain.
+	if block.ParentHash() != cbft.state.HighestLockBlock().Hash() &&
+		block.ParentHash() != cbft.state.HighestQCBlock().Hash() {
+		cbft.log.Warn("Not found the inserted block's parent block",
+			"nubmer", block.Number(), "hash", block.Hash(),
+			"parentHash", block.ParentHash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash(),
+			"qcNumber", cbft.state.HighestQCBlock().Number(),
+			"qcHash", cbft.state.HighestQCBlock().Hash())
+		return errors.New("orphan block")
+	}
+
+	// Verifies block
+	_, qc, err := ctypes.DecodeExtra(block.ExtraData())
+	if err != nil {
+		cbft.log.Error("Decode block extra date fail", "number", block.Number(), "hash", block.Hash())
+		return errors.New("failed to decode block extra data")
+	}
+
+	if err := cbft.verifyPrepareQC(qc); err != nil {
+		cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
+		return err
+	}
+
+	parent := cbft.state.HighestQCBlock()
+	if block.ParentHash() == cbft.state.HighestLockBlock().Hash() {
+		parent = cbft.state.HighestQCBlock()
+	}
+
+	err = cbft.blockCacheWriter.Execute(block, parent)
+	if err != nil {
+		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash())
+		return errors.New("failed to executed block")
+	}
+	// FIXME: needed update highest exection block?
+
+	result := make(chan error, 1)
+	cbft.asyncCallCh <- func() {
+		result <- cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{qc})
+	}
+	return <-result
 }
 
 // HashBlock check if the specified block exists in block tree.
@@ -576,30 +644,41 @@ func (cbft *Cbft) CurrentBlock() *types.Block {
 }
 
 func (cbft *Cbft) checkStart(exe func()) {
-	if cbft.start {
+	if utils.True(&cbft.start) {
 		exe()
 	}
 }
 
-func (cbft *Cbft) FastSyncCommitHead() <-chan error {
+func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
+	cbft.log.Debug("Fast sync commit head", "number", block.Number(), "hash", block.Hash())
+	cbft.pause()
+	defer cbft.resume()
+
 	result := make(chan error, 1)
-
 	cbft.asyncCallCh <- func() {
-		currentBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
+		_, qc, err := ctypes.DecodeExtra(block.ExtraData())
+		if err != nil {
+			cbft.log.Warn("Decode block extra data fail", "number", block.Number(), "hash", block.Hash())
+			result <- errors.New("failed to decode block extra data")
+			return
+		}
 
-		// TODO: update view
-		cbft.state.SetHighestQCBlock(currentBlock)
-		cbft.state.SetHighestLockBlock(currentBlock)
-		cbft.state.SetHighestCommitBlock(currentBlock)
+		cbft.blockTree = ctypes.NewBlockTree(block, qc)
+
+		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+
+		cbft.state.SetHighestQCBlock(block)
+		cbft.state.SetHighestLockBlock(block)
+		cbft.state.SetHighestCommitBlock(block)
 
 		result <- nil
 	}
-	return result
+	return <-result
 }
 
 func (cbft *Cbft) Close() error {
 	cbft.log.Info("Close cbft consensus")
-	cbft.start = false
+	utils.SetFalse(&cbft.start)
 	cbft.closeOnce.Do(func() {
 		// Short circuit if the exit channel is not allocated.
 		if cbft.exitCh == nil {
@@ -641,7 +720,6 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 }
 
 func (cbft *Cbft) OnShouldSeal(result chan error) {
-	// todo: need add remark.
 	select {
 	case <-result:
 		cbft.log.Trace("Should seal timeout")
@@ -715,10 +793,6 @@ func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Bl
 	return block
 }
 
-func (Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	//panic("implement me")
-}
-
 func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
 	return cbft.verifySelfSigned(sealHash.Bytes(), header.Signature())
 }
@@ -733,8 +807,7 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 }
 
 func (cbft *Cbft) Config() *ctypes.Config {
-	panic("need to be improved")
-	return nil
+	return &cbft.config
 }
 
 // Return the highest submitted block number of the current node.
@@ -833,7 +906,7 @@ func (cbft *Cbft) isLoading() bool {
 }
 
 func (cbft *Cbft) isStart() bool {
-	return cbft.start
+	return utils.True(&cbft.start)
 }
 
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
@@ -888,6 +961,9 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 
 	return vnode, nil
 }
+
+func (cbft *Cbft) pause()  { utils.SetTrue(&cbft.syncing) }
+func (cbft *Cbft) resume() { utils.SetFalse(&cbft.syncing) }
 
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
 	if len(votes) == 0 {

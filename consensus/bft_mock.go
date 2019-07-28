@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -153,10 +152,6 @@ func (bm *BftMock) HighestConfirmedBlock() *types.Block {
 
 func (bm *BftMock) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return nil
-}
-
-func (bm *BftMock) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-
 }
 
 func (bm *BftMock) NextBaseBlock() *types.Block {
