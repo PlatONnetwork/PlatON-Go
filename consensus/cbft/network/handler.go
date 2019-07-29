@@ -180,9 +180,27 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 		}
 		log.Debug("Need to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 		// Need to broadcast the message.
-		go h.Broadcast(msg)
+		// For PrepareBlockMsg messages, here are some differences:
+		// 1.PrepareBlock does not forward directly but sends its hash (PrepareBlockHash).
+		if msgType == protocols.PrepareBlockMsg {
+			// Special treatment.
+			if v, ok := msg.(*protocols.PrepareBlock); ok {
+				go h.Broadcast(&protocols.PrepareBlockHash{
+					Epoch:       v.Epoch,
+					ViewNumber:  v.ViewNumber,
+					BlockIndex:  v.BlockIndex,
+					BlockHash:   v.Block.Hash(),
+					BlockNumber: v.Block.NumberU64(),
+				})
+				log.Trace("PrepareBlockHash is forwarded instead of PrepareBlock done")
+			}
+		} else {
+			// Direct forwarding.
+			go h.Broadcast(msg)
+		}
 		return nil
 	}
+	// PrepareBlockMsg does not forward, the message will be forwarded using PrepareBlockHash.
 	switch msgType {
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg,
 		protocols.BlockQuorumCertMsg, protocols.PrepareBlockHashMsg:

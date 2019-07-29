@@ -12,6 +12,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+const (
+	MAX_QC_BLOCK = 3
+)
+
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	if cbft.state.HighestQCBlock().NumberU64() < number {
@@ -203,8 +207,23 @@ func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 	return nil
 }
 
+// OnQCBlockList processes the received QCBlockList message.
+//
+// The length of the QCBlockList message packet cannot exceed 3.
+// Generally, the length of blocks received here is 3.
 func (cbft *Cbft) OnQCBlockList(id string, msg *protocols.QCBlockList) {
-	// todo: Logic is incomplete.
+	// todo: The logic here needs to be confirmed.
+	cbft.log.Debug("Received message on OnQCBlockList", "from", id, "blocksLen", len(msg.Blocks), "qcLen", len(msg.QC),
+		"msgHash", msg.MsgHash().TerminalString())
+	if len(msg.Blocks) > MAX_QC_BLOCK {
+		cbft.log.Error("The length of arrays exceeds the predetermined value")
+		return
+	}
+	err := cbft.OnInsertQCBlock(msg.Blocks, msg.QC)
+	if err != nil {
+		cbft.log.Error("OnInsertQCBlock return error", err)
+		return
+	}
 }
 
 // OnGetLatestStatus hands GetLatestStatus messages.
