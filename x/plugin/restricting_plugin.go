@@ -129,6 +129,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		epochList  []uint64
 		index      uint32
 		info       restricting.RestrictingInfo
+		repay      *big.Int
 		accNumbers uint32
 	)
 
@@ -176,6 +177,19 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		if err = rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
 			log.Error("failed to rlp decode the restricting account", "err", err.Error())
 			return common.NewSysError(err.Error())
+		}
+
+		if info.DebtSymbol == true && info.Debt.Cmp(common.Big0) == 1 {
+			if totalAmount.Cmp(info.Debt) >= 0 {
+				repay = info.Debt
+				totalAmount = totalAmount.Sub(totalAmount, info.Debt)
+				info.Debt = common.Big0
+				info.DebtSymbol = false
+			} else {
+				repay = totalAmount
+				totalAmount = common.Big0
+				info.Debt = info.Debt.Sub(info.Debt, totalAmount)
+			}
 		}
 
 		for epoch, amount := range mPlans {
@@ -226,8 +240,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		log.Error("failed to rlp encode restricting info", "account", account.String(), "error", err)
 		return common.NewSysError(err.Error())
 	}
-
 	state.SetState(account, restrictingKey, bAccInfo)
+
+	if repay.Cmp(common.Big0) == 1 {
+		state.AddBalance(account, repay)
+	}
 	state.SubBalance(sender, totalAmount)
 	state.AddBalance(vm.RestrictingContractAddr, totalAmount)
 

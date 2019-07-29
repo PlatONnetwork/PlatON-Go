@@ -1120,7 +1120,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		}
 	}
 
-	// case5: restricting account exist, and debt symbol is true, and amount is more than debt
+	// case5: restricting account exist, and debt symbol is true, and amount is less than total debt and balance
 	{
 		stateDb := buildStateDB(t)
 		restrictingAcc := addrArr[0]
@@ -1190,7 +1190,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		}
 	}
 
-	// case6: restricting account exist, and debt symbol is true, and amount is more than debt
+	// case6: restricting account exist, and debt symbol is true, and amount is more than total debt and balance
 	{
 		stateDb := buildStateDB(t)
 		restrictingAcc := addrArr[0]
