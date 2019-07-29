@@ -106,6 +106,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		state:              cstate.NewViewState(),
+		fetcher:            fetcher.NewFetcher(),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -188,6 +189,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
+
+	cbft.fetcher.Start()
 
 	utils.SetTrue(&cbft.start)
 	cbft.log.Info("Cbft engine start")
