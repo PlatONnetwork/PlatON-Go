@@ -1120,7 +1120,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		}
 	}
 
-	// case5: restricting account exist, and debt symbol is true, and amount is less than total debt and balance
+	// case5: restricting account exist, and debt symbol is true, and amount is not less than debt
 	{
 		stateDb := buildStateDB(t)
 		restrictingAcc := addrArr[0]
@@ -1187,76 +1187,6 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 			showReleaseAmount(t, stateDb, restrictingAcc, uint64(5))
 			t.Log("=====================")
 			t.Log("case5 pass")
-		}
-	}
-
-	// case6: restricting account exist, and debt symbol is true, and amount is more than total debt and balance
-	{
-		stateDb := buildStateDB(t)
-		restrictingAcc := addrArr[0]
-		returnFunds := big.NewInt(3E18)
-
-		var info restricting.RestrictingInfo
-		info.Balance = big.NewInt(0)
-		info.Debt = big.NewInt(2E18)
-		info.DebtSymbol = true
-		info.ReleaseList = []uint64{5}
-
-		bInfo, err := rlp.EncodeToBytes(info)
-		if err != nil {
-			t.Fatal("rlp encode test data failed")
-		}
-
-		// store restricting info
-		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
-
-		// store epoch
-		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
-		stateDb.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
-
-		// store release account
-		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(5), uint32(1))
-		stateDb.SetState(vm.RestrictingContractAddr, releaseAccountKey, restrictingAcc.Bytes())
-
-		// store release amount
-		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
-		amount := big.NewInt(3E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
-
-		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(3E18))
-
-		// do ReturnLockFunds
-		err = plugin.RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
-
-		// show expected result
-		t.Log("=====================")
-		t.Log("expected case6 of ReturnLockFunds success")
-		t.Log("expected balance of restricting account:", big.NewInt(int64(2E18)))
-		t.Log("expected balance of staking contract:", big.NewInt(0))
-		t.Log("expected balance of restrict account: ", big.NewInt(1E18))
-		t.Log("expected debt    of restrict account: ", big.NewInt(int64(0)))
-		t.Log("expected symbol  of restrict account: ", false)
-		t.Log("expected list    of restrict account: ", []uint64{5})
-		t.Log("=====================")
-		t.Log("expected account numbers of release epoch 5: 1")
-		t.Logf("expected release accounts of epoch 5: %s", restrictingAcc.String())
-		t.Logf("expected release amount of account [%s]: %v", restrictingAcc.String(), big.NewInt(3E18))
-		t.Log("=====================")
-
-		if err != nil {
-			t.Errorf("case6 of ReturnLockFunds failed. Actually returns error: %s", err.Error())
-		} else {
-			t.Log("=====================")
-			t.Log("case6 return success!")
-			t.Log("actually balance of restricting account:", stateDb.GetBalance(restrictingAcc))
-			t.Log("actually balance of staking contract:", stateDb.GetBalance(vm.StakingContractAddr))
-			showRestrictingAccountInfo(t, stateDb, restrictingAcc)
-
-			showReleaseEpoch(t, stateDb, uint64(5))
-			showReleaseAmount(t, stateDb, restrictingAcc, uint64(5))
-			t.Log("=====================")
-			t.Log("case6 pass")
 		}
 	}
 }
