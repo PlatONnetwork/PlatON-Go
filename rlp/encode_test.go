@@ -302,7 +302,7 @@ func TestDecodeEncode(t *testing.T) {
 	source = append(source, []byte("7890"))
 	source = append(source, []byte("extra data"))
 
-	//rlp Encode
+	// rlp Encode
 	buffer := new(bytes.Buffer)
 	err := Encode(buffer, source)
 	if err != nil {
@@ -313,7 +313,7 @@ func TestDecodeEncode(t *testing.T) {
 		fmt.Println("encode_bytes: ", buffer.Bytes())
 	}
 
-	//rlp Decode
+	// rlp Decode
 	ptr := new(interface{})
 	if err := Decode(bytes.NewReader(buffer.Bytes()), &ptr); err != nil {
 		fmt.Println(err)

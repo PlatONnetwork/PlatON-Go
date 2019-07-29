@@ -198,6 +198,19 @@ func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash, addr common.Add
 	return sk.db.GetCandidateStore(blockHash, addr)
 }
 
+func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNumber uint64, addr common.Address) (*staking.Candidate, error) {
+	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	if nil != err {
+		return nil, err
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcStakeAmount(epoch, can)
+
+	return can, nil
+}
+
 func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Candidate, error) {
 	return sk.db.GetCandidateStoreByIrr(addr)
 }
@@ -205,7 +218,8 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
 
-	log.Debug("Call CreateCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
+	log.Debug("Call CreateCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+		"nodeId", can.NodeId.String())
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -315,6 +329,10 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 }
 
 func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, can *staking.Candidate) error {
+
+	log.Debug("Call EditCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+		"nodeId", can.NodeId.String())
+
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
@@ -338,6 +356,9 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
+
+	log.Debug("Call IncreaseStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"epoch", epoch, "nodeId", can.NodeId.String(), "typ", typ, "amount", amount)
 
 	lazyCalcStakeAmount(epoch, can)
 
@@ -400,6 +421,9 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
+
+	log.Debug("Call WithdrewStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"epoch", epoch, "nodeId", can.NodeId.String())
 
 	lazyCalcStakeAmount(epoch, can)
 
@@ -642,6 +666,26 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 	}, nil
 }
 
+func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNumber uint64, delAddr common.Address,
+	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+
+	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
+	if nil != err {
+		return nil, err
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcDelegateAmount(epoch, del)
+
+	return &staking.DelegationEx{
+		Addr:            delAddr,
+		NodeId:          nodeId,
+		StakingBlockNum: stakeBlockNumber,
+		Delegation:      *del,
+	}, nil
+}
+
 func (sk *StakingPlugin) GetDelegateInfoByIrr(delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
 
@@ -670,6 +714,10 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	canAddr := crypto.PubkeyToAddress(*pubKey)
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
+
+	log.Debug("Call Delegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "epoch", epoch,
+		"delAddr", delAddr.String(), "nodeId", can.NodeId.String(), "StakingNum", can.StakingBlockNum, "typ", typ,
+		"amount", amount)
 
 	lazyCalcDelegateAmount(epoch, del)
 
@@ -737,6 +785,11 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
 	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation) error {
+
+	log.Debug("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount)
+	// todo test
+	xcom.PrintObject("Call WithdrewDelegate, the delegate info", del)
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -1537,7 +1590,9 @@ func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint
 	return flag, nil
 }
 
-func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.CandidateQueue, error) {
+func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateQueue, error) {
+
+	epoch := xutil.CalculateEpoch(blockNumber)
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
 	if err := iter.Error(); nil != err {
@@ -1553,6 +1608,9 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.Candid
 		if nil != err {
 			return nil, err
 		}
+
+		lazyCalcStakeAmount(epoch, can)
+
 		queue = append(queue, can)
 	}
 

@@ -178,15 +178,22 @@ func Open(path string) (DB, error) {
 		return nil, err
 	}
 	if len(fds) > 0 {
-		logger.Info("begin open")
+		logger.Info("begin recover")
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
 			logger.Error("recover db fail:", "error", err)
 			return nil, err
 		}
 		return db, nil
+	} else {
+		logger.Info("begin new")
+		db, err := newDB(s)
+		if err != nil {
+			logger.Error(fmt.Sprint("new db fail:", err))
+			return nil, err
+		}
+		return db, nil
 	}
-	return nil, nil
 }
 
 func copyDB(from, to *snapshotDB) {

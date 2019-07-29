@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // build input data
@@ -94,15 +95,14 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 
 		t.Log(string(result))
 
-		var res restricting.Result
+		var res xcom.Result
 		if err = json.Unmarshal(result, &res); err != nil {
 			t.Fatalf("failed to json unmarshal result of restricting info , error: %s", err.Error())
 
 		} else {
-			t.Logf("%v", res.Balance)
-			t.Logf("%v", res.Debt)
-			//t.Logf("%v", res.Symbol)
-			t.Logf("%v", res.Entry)
+			t.Logf("%v", res.Status)
+			t.Logf("%v", res.ErrMsg)
+			t.Logf("%v", res.Data)
 		}
 		t.Log("test pass!")
 	}
