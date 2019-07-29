@@ -268,7 +268,6 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
-
 	return nil
 }
 
