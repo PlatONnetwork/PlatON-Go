@@ -183,14 +183,19 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 // Sign the block that has been executed
 // Every time try to trigger a send PrepareVote
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
+	vIdx, err := cbft.validatorPool.GetIndexByNodeID(number, cbft.config.Option.NodeID)
+	if err != nil {
+		return err
+	}
 	// todo sign vote
 	// parentQC added when sending
 	prepareVote := &protocols.PrepareVote{
-		Epoch:       cbft.state.Epoch(),
-		ViewNumber:  cbft.state.ViewNumber(),
-		BlockHash:   hash,
-		BlockNumber: number,
-		BlockIndex:  index,
+		Epoch:          cbft.state.Epoch(),
+		ViewNumber:     cbft.state.ViewNumber(),
+		BlockHash:      hash,
+		BlockNumber:    number,
+		BlockIndex:     index,
+		ValidatorIndex: uint32(vIdx),
 	}
 
 	if err := cbft.signMsgByBls(prepareVote); err != nil {

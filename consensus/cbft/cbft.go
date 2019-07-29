@@ -306,7 +306,7 @@ func (cbft *Cbft) receiveLoop() {
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	if !cbft.running() {
-		cbft.log.Debug("Consensus message pause")
+		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
 		return
 	}
 	msg, id := info.Msg, info.PeerID
@@ -509,6 +509,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
+		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
 		return
 	}
 
@@ -731,6 +732,13 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
+
+	if cbft.state.IsDeadline() {
+		cbft.log.Warn("View is timeout, canceled seal")
+		result <- errors.New("view timeout")
+		return
+	}
+
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")
