@@ -1916,11 +1916,21 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		return err
 	}
 
+	// todo test
+	if len(slashAddrQueue) != 0 {
+		log.Debug("Election Slashing addr", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex())
+		xcom.PrintObject("Election Slashing addr", slashAddrQueue)
+	}
+
 	// update candidate status
 	// Must sort
 	for _, addr := range slashAddrQueue {
 		can := slashCans[addr]
 		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
+			// TODO test
+			log.Debug("Election slashed addr", addr.Hex())
+
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
