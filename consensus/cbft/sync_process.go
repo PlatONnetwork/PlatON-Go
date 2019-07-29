@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -44,14 +44,14 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Insert block failed", "error", err)
 					}
 				}
-				cbft.fetching = false
+				utils.SetFalse(&cbft.fetching)
 			}
 		}
 
 		expire := func() {
-			cbft.fetching = false
+			utils.SetFalse(&cbft.fetching)
 		}
-		cbft.fetching = true
+		utils.SetTrue(&cbft.fetching)
 
 		cbft.fetcher.AddTask(id, match, executor, expire)
 		cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: cbft.state.HighestQCBlock().Hash(), BlockNumber: cbft.state.HighestQCBlock().NumberU64()})

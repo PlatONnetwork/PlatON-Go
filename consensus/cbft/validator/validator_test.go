@@ -2,11 +2,14 @@ package validator
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -462,10 +465,17 @@ func TestValidatorPoolVerify(t *testing.T) {
 	var sec3 bls.SecretKey
 	sec3.SetByCSPRNG()
 
+	priKey, _ := crypto.GenerateKey()
+	nodeStr := fmt.Sprintf("enode://%s@127.0.0.1:6666", hex.EncodeToString(crypto.FromECDSAPub(&priKey.PublicKey)[1:]))
+	n4, _ := discover.ParseNode(nodeStr)
+	var sec4 bls.SecretKey
+	sec4.SetByCSPRNG()
+
 	nodes = append(nodes, params.CbftNode{Node: *n0, BlsPubKey: *sec0.GetPublicKey()})
 	nodes = append(nodes, params.CbftNode{Node: *n1, BlsPubKey: *sec1.GetPublicKey()})
 	nodes = append(nodes, params.CbftNode{Node: *n2, BlsPubKey: *sec2.GetPublicKey()})
 	nodes = append(nodes, params.CbftNode{Node: *n3, BlsPubKey: *sec3.GetPublicKey()})
+	nodes = append(nodes, params.CbftNode{Node: *n4, BlsPubKey: *sec4.GetPublicKey()})
 
 	agency := newTestInnerAgency(nodes)
 	vp := NewValidatorPool(agency, 0, nodes[0].Node.ID)
@@ -488,4 +498,22 @@ func TestValidatorPoolVerify(t *testing.T) {
 	assert.True(t, vp.VerifyAggSig(0, []uint32{0, 1, 2, 3}, []byte(m), sig0.Serialize()))
 	assert.True(t, vp.VerifyAggSig(0, []uint32{1, 0, 3, 2}, []byte(m), sig0.Serialize()))
 	assert.False(t, vp.VerifyAggSig(0, []uint32{0, 1, 2}, []byte(m), sig0.Serialize()))
+
+	header := types.Header{
+		ParentHash: common.Hash{},
+		Root:       common.Hash{},
+		Number:     big.NewInt(0),
+		Time:       big.NewInt(time.Now().Unix()),
+		Extra:      make([]byte, 32+consensus.ExtraSeal),
+	}
+	sig, err := crypto.Sign(header.SealHash().Bytes(), priKey)
+	assert.Nil(t, err)
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sig[:])
+
+	assert.Nil(t, vp.VerifyHeader(&header))
+
+	priKey1, _ := crypto.GenerateKey()
+	sigWrong, _ := crypto.Sign(header.SealHash().Bytes(), priKey1)
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sigWrong[:])
+	assert.NotNil(t, vp.VerifyHeader(&header))
 }

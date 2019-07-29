@@ -50,6 +50,12 @@ var (
 	errGetChainState        = errors.New("failed to get chainState")
 )
 
+// recoveryChainStateFn is a callback type for recovery chainState to consensus.
+type recoveryChainStateFn func(chainState *protocols.ChainState) error
+
+// recoveryConsensusMsgFn is a callback type for recovery message to consensus.
+type recoveryConsensusMsgFn func(msg interface{}) error
+
 type ViewChangeMessage struct {
 	Epoch      uint64
 	ViewNumber uint64
@@ -60,11 +66,11 @@ type ViewChangeMessage struct {
 // Wal encapsulates functions required to update and load consensus state.
 type Wal interface {
 	UpdateChainState(chainState *protocols.ChainState) error
-	LoadChainState(recovery func(chainState *protocols.ChainState)) error
+	LoadChainState(fn recoveryChainStateFn) error
 	Write(msg interface{}) error
 	WriteSync(msg interface{}) error
 	UpdateViewChange(info *ViewChangeMessage) error
-	Load(recovery func(msg interface{})) error
+	Load(fn recoveryConsensusMsgFn) error
 	Close()
 }
 
@@ -76,7 +82,7 @@ func (w *emptyWal) UpdateChainState(chainState *protocols.ChainState) error {
 	return nil
 }
 
-func (w *emptyWal) LoadChainState(recovery func(chainState *protocols.ChainState)) error {
+func (w *emptyWal) LoadChainState(fn recoveryChainStateFn) error {
 	return nil
 }
 
@@ -92,7 +98,7 @@ func (w *emptyWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return nil
 }
 
-func (w *emptyWal) Load(recovery func(msg interface{})) error {
+func (w *emptyWal) Load(fn recoveryConsensusMsgFn) error {
 	return nil
 }
 
@@ -178,7 +184,7 @@ func (wal *baseWal) UpdateChainState(chainState *protocols.ChainState) error {
 }
 
 // LoadChainState tries to load consensus state from leveldb
-func (wal *baseWal) LoadChainState(recovery func(chainState *protocols.ChainState)) error {
+func (wal *baseWal) LoadChainState(recovery recoveryChainStateFn) error {
 	// open wal database
 	data, err := wal.metaDB.Get(chainStateKey)
 	if err != nil {
@@ -191,8 +197,7 @@ func (wal *baseWal) LoadChainState(recovery func(chainState *protocols.ChainStat
 		log.Error("Failed to decode chainState")
 		return errGetChainState
 	}
-	recovery(&cs)
-	return nil
+	return recovery(&cs)
 }
 
 // Write adds the specified consensus msg to the local disk journal.
@@ -220,7 +225,7 @@ func (wal *baseWal) UpdateViewChange(info *ViewChangeMessage) error {
 
 // Load tries to load consensus msg from the local disk journal.
 // recovery is the callback function
-func (wal *baseWal) Load(recovery func(msg interface{})) error {
+func (wal *baseWal) Load(recovery recoveryConsensusMsgFn) error {
 	// open wal database
 	data, err := wal.metaDB.Get(viewChangeKey)
 	if err != nil {
