@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	errors "github.com/pkg/errors"
 
 	"reflect"
@@ -31,7 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -85,6 +85,7 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
+	bridge             Bridge
 	loading            int32
 
 	// Record the number of peer requests for obtaining cbft information.
@@ -227,6 +228,9 @@ func (cbft *Cbft) LoadWal() (err error) {
 		context = cbft.nodeServiceContext
 	}
 	if cbft.wal, err = wal.NewWal(context, ""); err != nil {
+		return err
+	}
+	if cbft.bridge, err = NewBridge(context, cbft); err != nil {
 		return err
 	}
 
@@ -512,7 +516,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.findQCBlock()
 
 	// write sendPrepareBlock info to wal
-	cbft.sendPrepareBlock(prepareBlock)
+	cbft.bridge.SendPrepareBlock(prepareBlock)
 
 	cbft.network.Broadcast(prepareBlock)
 

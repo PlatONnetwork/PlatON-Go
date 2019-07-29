@@ -112,7 +112,7 @@ func (cbft *Cbft) OnViewTimeout() {
 	}
 
 	// write sendViewChange info to wal
-	cbft.sendViewChange(viewChange)
+	cbft.bridge.SendViewChange(viewChange)
 
 	cbft.state.AddViewChange(uint32(node.Index), viewChange)
 	cbft.log.Debug("Local add viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
@@ -229,7 +229,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			pending.Pop()
 
 			// write sendPrepareVote info to wal
-			cbft.sendPrepareVote(block, p)
+			cbft.bridge.SendPrepareVote(block, p)
 
 			cbft.network.Broadcast(p)
 		} else {
@@ -293,37 +293,6 @@ func (cbft *Cbft) findQCBlock() {
 	cbft.tryChangeView()
 }
 
-// updateChainState tries to update consensus state to wal
-// If the write fails, the process will stop
-func (cbft *Cbft) updateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
-	return
-	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
-	var qcState, lockState, commitState *protocols.State
-	qcState = &protocols.State{
-		Block:      qcBlock,
-		QuorumCert: qcQC,
-	}
-	if lock == nil || commit == nil {
-		if err := cbft.addQCState(qcState); err != nil {
-			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
-		}
-	} else {
-		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
-		commitBlock, commitQC := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		lockState = &protocols.State{
-			Block:      lockBlock,
-			QuorumCert: lockQC,
-		}
-		commitState = &protocols.State{
-			Block:      commitBlock,
-			QuorumCert: commitQC,
-		}
-		if err := cbft.newChainState(commitState, lockState, qcState); err != nil {
-			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
-		}
-	}
-}
-
 // Try commit a new block
 func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	if lock == nil || commit == nil {
@@ -339,11 +308,11 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		cbft.commitBlock(commit, qc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
-		cbft.updateChainState(highestqc, lock, commit)
+		cbft.bridge.UpdateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
 	} else {
-		cbft.updateChainState(highestqc, nil, nil)
+		cbft.bridge.UpdateChainState(highestqc, nil, nil)
 	}
 }
 
@@ -401,7 +370,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {
-		cbft.confirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
+		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 	cbft.clearInvalidBlocks(block)
 }
