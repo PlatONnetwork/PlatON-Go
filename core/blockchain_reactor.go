@@ -36,12 +36,12 @@ type BlockChainReactor struct {
 }
 
 var (
-	brcOnce sync.Once
+	bcrOnce sync.Once
 	bcr     *BlockChainReactor
 )
 
 func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChainReactor {
-	brcOnce.Do(func() {
+	bcrOnce.Do(func() {
 		log.Info("Init BlockChainReactor ...")
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
@@ -52,8 +52,8 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 	return bcr
 }
 
-func (brc *BlockChainReactor) Start(mode string) {
-	brc.setValidatorMode(mode)
+func (bcr *BlockChainReactor) Start(mode string) {
+	bcr.setValidatorMode(mode)
 	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
@@ -63,9 +63,9 @@ func (brc *BlockChainReactor) Start(mode string) {
 	}
 }
 
-func (brc *BlockChainReactor) Close() {
-	brc.exitOnce.Do(func() {
-		close(brc.exitCh)
+func (bcr *BlockChainReactor) Close() {
+	bcr.exitOnce.Do(func() {
+		close(bcr.exitCh)
 		log.Info("blockchain_reactor is closed")
 	})
 }
@@ -75,7 +75,7 @@ func GetReactorInstance() *BlockChainReactor {
 	return bcr
 }
 
-func (brc *BlockChainReactor) loop() {
+func (bcr *BlockChainReactor) loop() {
 
 	for {
 		select {
@@ -99,7 +99,7 @@ func (brc *BlockChainReactor) loop() {
 			/**
 			notify P2P module the nodeId of the next round validator
 			*/
-			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
+			if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
@@ -107,7 +107,7 @@ func (brc *BlockChainReactor) loop() {
 			}
 
 			// Slashing
-			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
+			if plugin, ok := bcr.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
@@ -119,7 +119,7 @@ func (brc *BlockChainReactor) loop() {
 				continue
 			}
 		// stop this routine
-		case <-brc.exitCh:
+		case <-bcr.exitCh:
 			return
 		}
 	}
@@ -154,6 +154,34 @@ func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
 }
 func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
+}
+
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, privateKey *ecdsa.PrivateKey) {
+
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return
+	}
+
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	addr, _ := xutil.NodeId2Addr(nodeId)
+
+	log.Info("Call SetWorkerCoinBase on blockchain_reactor", "blockNumber", header.Number,
+		"nodeId", nodeId.String(), "addr", addr.Hex())
+
+	if plu, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
+		stake := plu.(*plugin.StakingPlugin)
+		can, err := stake.GetCandidateInfo(common.ZeroHash, addr)
+		if nil != err {
+			log.Error("Failed to SetWorkerCoinBase: Query candidate info is failed", "err", err)
+			return
+		}
+		header.Coinbase = can.BenefitAddress
+		log.Info("SetWorkerCoinBase Successfully", "coinbase", header.Coinbase.Hex())
+	}
+
 }
 
 // Called before every block has not executed all txs
@@ -284,7 +312,7 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 
 func (bcr *BlockChainReactor) VerifyHeader(header *types.Header) error {
 
-	//header.Extra
+	// TODO header.Extra
 
 	return nil
 }
@@ -293,7 +321,7 @@ func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
 	return plugin.StakingInstance().GetLastNumber(blockNumber)
 }
 
-func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+func (bcr *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
 	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 

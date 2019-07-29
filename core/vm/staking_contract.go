@@ -696,9 +696,11 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getCandidateList() ([]byte, error) {
+
+	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
-	arr, err := stkc.Plugin.GetCandidateList(blockHash)
+	arr, err := stkc.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
@@ -754,7 +756,10 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr common.Address,
 	nodeId discover.NodeID) ([]byte, error) {
 
-	del, err := stkc.Plugin.GetDelegateExInfoByIrr(delAddr, nodeId, stakingBlockNum)
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
+	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
@@ -780,13 +785,16 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 
 func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
 
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	can, err := stkc.Plugin.GetCandidateInfoByIrr(canAddr)
+	can, err := stkc.Plugin.GetCandidateCompactInfo(blockHash, blockNumber.Uint64(), canAddr)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)

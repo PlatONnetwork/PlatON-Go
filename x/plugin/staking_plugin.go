@@ -198,6 +198,19 @@ func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash, addr common.Add
 	return sk.db.GetCandidateStore(blockHash, addr)
 }
 
+func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNumber uint64, addr common.Address) (*staking.Candidate, error) {
+	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	if nil != err {
+		return nil, err
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcStakeAmount(epoch, can)
+
+	return can, nil
+}
+
 func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Candidate, error) {
 	return sk.db.GetCandidateStoreByIrr(addr)
 }
@@ -645,6 +658,26 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 	if nil != err {
 		return nil, err
 	}
+	return &staking.DelegationEx{
+		Addr:            delAddr,
+		NodeId:          nodeId,
+		StakingBlockNum: stakeBlockNumber,
+		Delegation:      *del,
+	}, nil
+}
+
+func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNumber uint64, delAddr common.Address,
+	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+
+	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
+	if nil != err {
+		return nil, err
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcDelegateAmount(epoch, del)
+
 	return &staking.DelegationEx{
 		Addr:            delAddr,
 		NodeId:          nodeId,
@@ -1557,7 +1590,9 @@ func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint
 	return flag, nil
 }
 
-func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.CandidateQueue, error) {
+func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateQueue, error) {
+
+	epoch := xutil.CalculateEpoch(blockNumber)
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
 	if err := iter.Error(); nil != err {
@@ -1573,6 +1608,9 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.Candid
 		if nil != err {
 			return nil, err
 		}
+
+		lazyCalcStakeAmount(epoch, can)
+
 		queue = append(queue, can)
 	}
 

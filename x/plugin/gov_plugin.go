@@ -649,7 +649,7 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 // check if the node a candidate, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
 	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	candidateList, err := stk.GetCandidateList(blockHash)
+	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
 		return err
