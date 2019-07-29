@@ -268,6 +268,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
+		log.Info("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
 	}
 
 	return nil
