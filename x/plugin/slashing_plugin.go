@@ -106,7 +106,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 				if isSlash && rate > 0 {
 					slashAmount := calcSlashAmount(validator, rate)
-					log.Info("slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()),
+					log.Info("Call Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()),
 						"nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount, "isDelete", isDelete, "rate", rate, "slashAmount", slashAmount)
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
 					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, isDelete, staking.LowRatio, common.ZeroAddr); nil != err {
@@ -286,7 +286,13 @@ func (sp *SlashingPlugin) executeSlash(evidence consensus.Evidence, blockHash co
 			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 			return common.NewBizError(errDuplicateSignVerify.Error())
 		}
-		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.DuplicateSignLowSlash()), true, staking.DuplicateSign, caller); nil != err {
+
+		slash_amount := calcSlashAmount(candidate, xcom.DuplicateSignLowSlash())
+
+		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()),
+			"nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "slashAmount", slash_amount, "reporter", caller.Hex())
+
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slash_amount, true, staking.DuplicateSign, caller); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return err
 		}
