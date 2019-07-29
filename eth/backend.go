@@ -245,13 +245,14 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		// - static (default)
 		// - inner (via inner contract)
 		// - ppos
-		//log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-		//if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
-		agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-		//} else if chainConfig.Cbft.ValidatorMode == "inner" {
-		//	blocksPerNode := int()
-		//	offset := blocksPerNode * 2
-		//	agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
+		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+			agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
+		} else if chainConfig.Cbft.ValidatorMode == "inner" {
+			blocksPerNode := int(chainConfig.Cbft.Amount)
+			offset := blocksPerNode * 2
+			agency = validator.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+		}
 		//} else if chainConfig.Cbft.ValidatorMode == "ppos" {
 		// TODO init reactor
 		//reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
