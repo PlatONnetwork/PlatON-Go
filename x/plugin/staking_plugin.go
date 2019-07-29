@@ -84,6 +84,8 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
+	log.Info("Call EndBlock on staking plugin", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
+
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		// handle UnStaking Item
 		err := sk.HandleUnCandidateItem(state, blockHash, epoch)
@@ -118,11 +120,14 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 			return err
 		}
 	}
-
+	log.Info("Finished EndBlock on staking plugin", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
 	return nil
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
+
+	log.Info("Call Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
+
 	if xutil.IsElection(block.NumberU64()) {
 
 		next, err := sk.getNextValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
@@ -164,7 +169,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			log.Debug("stakingPlugin removeConsensusNode success", "blockNumber", block.NumberU64(), "size", len(result))
 		}
 	}
-
+	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
 	return nil
 }
 
@@ -276,6 +281,12 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	addr common.Address, typ uint16) error {
 
 	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
 
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err {
@@ -470,9 +481,16 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
 	if can.ReleasedHes.Cmp(common.Big0) > 0 {
+
 		state.AddBalance(can.StakingAddress, can.ReleasedHes)
 		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
 		//can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
@@ -595,10 +613,17 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	lazyCalcStakeAmount(epoch, can)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
+
 			state.AddBalance(can.StakingAddress, balance)
 			state.SubBalance(vm.StakingContractAddr, balance)
 			return common.Big0
@@ -790,6 +815,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	// todo test
 	xcom.PrintObject("Call WithdrewDelegate, the delegate info", del)
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: nodeId parse addr failed",
@@ -816,6 +847,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	inner Fn
 	*/
 	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
+
 		state.AddBalance(delAddr, sub)
 		state.SubBalance(vm.StakingContractAddr, sub)
 		return new(big.Int).Sub(source, sub), common.Big0
@@ -1061,6 +1093,12 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	unDel *staking.UnDelegateItem, del *staking.Delegation) error {
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	// del addr
 	delAddrByte := unDel.KeySuffix[0:common.AddressLength]
 	delAddr := common.BytesToAddress(delAddrByte)
@@ -1085,6 +1123,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		refundReleaseFn := func(balance *big.Int) *big.Int {
 			if balance.Cmp(common.Big0) > 0 {
+
 				state.AddBalance(delAddr, balance)
 				state.SubBalance(vm.StakingContractAddr, balance)
 				return common.Big0
@@ -1134,6 +1173,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		refundReleaseFn := func(balance, remain *big.Int) (*big.Int, *big.Int) {
 			if remain.Cmp(common.Big0) > 0 {
+
 				if remain.Cmp(balance) >= 0 {
 					state.SubBalance(vm.StakingContractAddr, balance)
 					state.AddBalance(delAddr, balance)
@@ -1801,8 +1841,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	if duplicateSignNum >= diffQueueLen {
 
-		log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
-			blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
+		if duplicateSignNum > diffQueueLen {
+			log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
+		}
 
 		if curr_num-duplicateSignNum+diffQueueLen < mbn {
 
@@ -1834,8 +1876,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 				if duplicateSignNum >= len(queue) {
 
-					log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
-						blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
+					if duplicateSignNum > len(queue) {
+						log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
+							blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
+					}
 
 					if curr_num-duplicateSignNum+len(queue) < mbn {
 
@@ -1890,6 +1934,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
 	nodeId discover.NodeID, amount *big.Int, needDelete bool, slashType int, caller common.Address) error {
 
+	log.Info("Call SlashCandidates start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"slashType", slashType, "nodeId", nodeId.String(), "amount", amount, "needDelete", needDelete,
+		"reporter", caller.Hex())
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to SlashCandidates: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -1934,6 +1988,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		balanceTmp := common.Big0
 
 		if remain.Cmp(balance) >= 0 {
+
 			state.SubBalance(vm.StakingContractAddr, balance)
 			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, balance)
@@ -2054,7 +2109,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 			if val.NodeId == nodeId {
 
-				log.Debug("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
+				log.Info("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
 				validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)
