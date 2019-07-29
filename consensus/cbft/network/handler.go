@@ -180,7 +180,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 		}
 		log.Debug("Need to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 		// Need to broadcast the message.
-		h.Broadcast(msg)
+		go h.Broadcast(msg)
 		return nil
 	}
 	switch msgType {

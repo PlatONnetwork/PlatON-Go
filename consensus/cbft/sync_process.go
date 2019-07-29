@@ -337,7 +337,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 
 // OnPrepareBlockHash responsible for handling PrepareBlockHash message.
 //
-// Note: After receiving the A message, it is determined whether the
+// Note: After receiving the PrepareBlockHash message, it is determined whether the
 // block information exists locally. If not, send a network request to get
 // the block data.
 func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash) error {

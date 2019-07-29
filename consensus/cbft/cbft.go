@@ -261,6 +261,10 @@ func (cbft *Cbft) receiveLoop() {
 				break
 			}
 			cbft.queues[msg.PeerID] = count
+
+			// Forward the message before processing the message.
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
+
 			cbft.handleConsensusMsg(msg)
 			// After the message is processed, the counter is decremented by one.
 			// If it is reduced to 0, the mapping relationship of the corresponding
@@ -271,7 +275,10 @@ func (cbft *Cbft) receiveLoop() {
 			}
 
 		case msg := <-cbft.syncMsgCh:
+			// Forward the message before processing the message.
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 			cbft.handleSyncMsg(msg)
+
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
@@ -297,9 +304,6 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 	var err error
 
-	// Forward the message before processing the message.
-	go cbft.network.Forwarding(id, msg)
-
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
 		err = cbft.OnPrepareBlock(id, msg)
@@ -317,9 +321,6 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
-
-	// Forward the message before processing the message.
-	go cbft.network.Forwarding(id, msg)
 
 	switch msg := msg.(type) {
 	case *protocols.GetPrepareBlock:
