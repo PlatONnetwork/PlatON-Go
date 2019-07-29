@@ -22,7 +22,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	build_staking_data(genesis.Hash())
 	contract := &vm.SlashingContract{
@@ -90,7 +90,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		t.Errorf("ReportDuplicateSign encode rlp data fail: %v", err)
+		t.Fatalf("ReportDuplicateSign encode rlp data fail: %v", err)
 	} else {
 		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -98,7 +98,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
 	nodeId, err := discover.HexID("0x38e2724b366d66a5acb271dba36bc45e2161e868d961ee299f4e331927feb5e9373f35229ef7fe7e84c083b0fbf24264faef01faaf388df5f459b87638aa620b")
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	can := &staking.Candidate{
 		NodeId:          nodeId,
@@ -117,7 +117,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	state.CreateAccount(addr)
 	state.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
 	if err := plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, can.Shares, 0, addr, can); nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	runContract(contract, buf.Bytes(), t)
 }
@@ -125,7 +125,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	state, _, err := newChainState()
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
@@ -150,7 +150,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		t.Errorf("CheckDuplicateSign encode rlp data fail: %v", err)
+		t.Fatalf("CheckDuplicateSign encode rlp data fail: %v", err)
 	} else {
 		t.Log("CheckDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -160,7 +160,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 func runContract(contract *vm.SlashingContract, buf []byte, t *testing.T) {
 	res, err := contract.Run(buf)
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	} else {
 		t.Log(string(res))
 	}
