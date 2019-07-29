@@ -14,6 +14,7 @@ import (
 
 // Perform security rule verification，store in blockTree, Whether to start synchronization
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
+	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
@@ -33,7 +34,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	}
 
 	cbft.state.AddPrepareBlock(msg)
-
 	cbft.prepareBlockFetchRules(id, msg)
 
 	cbft.findExecutableBlock()
@@ -69,6 +69,8 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+		} else {
+			return err
 		}
 	}
 
@@ -79,21 +81,20 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	}
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)
-
+	cbft.log.Debug("Had receive viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
 	// It is possible to achieve viewchangeQC every time you add viewchange
 	cbft.tryChangeView()
 	return nil
 }
 
 func (cbft *Cbft) OnViewTimeout() {
+	cbft.log.Info("Current view timeout", "view", cbft.state.ViewString())
 	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 	if err != nil {
 		cbft.log.Error("ViewTimeout local node is not validator")
 		return
 	}
-
 	hash, number := cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64()
-
 	_, qc := cbft.blockTree.FindBlockAndQC(hash, number)
 
 	viewChange := &protocols.ViewChange{
@@ -105,11 +106,19 @@ func (cbft *Cbft) OnViewTimeout() {
 		PrepareQC:      qc,
 	}
 
+	if err := cbft.signMsgByBls(viewChange); err != nil {
+		cbft.log.Error("Sign ViewChange failed", "err", err)
+		return
+	}
+
 	// write sendViewChange info to wal
 	cbft.sendViewChange(viewChange)
 
 	cbft.state.AddViewChange(uint32(node.Index), viewChange)
+	cbft.log.Debug("Local add viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
+
 	cbft.network.Broadcast(viewChange)
+	cbft.tryChangeView()
 }
 
 //Perform security rule verification, view switching
@@ -146,11 +155,11 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 
 // Asynchronous execution block callback function
 func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
+	cbft.log.Debug("Async Execute Block", "hash", s.Hash, "number", s.Number)
 	if s.Err != nil {
 		cbft.log.Error("Execute block failed", "err", s.Err, "hash", s.Hash, "number", s.Number)
 		return
 	}
-
 	index, finish := cbft.state.Executing()
 	if !finish {
 		block := cbft.state.ViewBlockByIndex(index)
@@ -161,6 +170,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
 					return
 				}
+				cbft.log.Debug("Sign block", "hash", s.Hash, "number", s.Number)
 			}
 		}
 	}
@@ -184,7 +194,6 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 	if err := cbft.signMsgByBls(prepareVote); err != nil {
 		return err
 	}
-
 	cbft.state.PendingPrepareVote().Push(prepareVote)
 
 	cbft.trySendPrepareVote()
@@ -232,7 +241,6 @@ func (cbft *Cbft) trySendPrepareVote() {
 // Every time there is a new block or a new executed block result will enter this judgment, find the next executable block
 func (cbft *Cbft) findExecutableBlock() {
 	blockIndex, finish := cbft.state.Executing()
-
 	if blockIndex == math.MaxUint32 {
 		block := cbft.state.ViewBlockByIndex(blockIndex + 1)
 		if block != nil {
@@ -241,6 +249,7 @@ func (cbft *Cbft) findExecutableBlock() {
 				cbft.log.Error(fmt.Sprintf("Find executable block's parent failed :[%d,%d,%s]", blockIndex, block.NumberU64(), block.Hash()))
 			}
 
+			cbft.log.Debug("Find Executable Block", "hash", block.Hash(), "number", block.NumberU64())
 			if err := cbft.asyncExecutor.Execute(block, parent); err != nil {
 				cbft.log.Error("Async Execute block failed", "error", err)
 			}
@@ -260,8 +269,8 @@ func (cbft *Cbft) findExecutableBlock() {
 			if err := cbft.asyncExecutor.Execute(block, parent); err != nil {
 				cbft.log.Error("Async Execute block failed", "error", err)
 			}
+			cbft.state.SetExecuting(blockIndex+1, false)
 		}
-		cbft.state.SetExecuting(blockIndex+1, false)
 	}
 }
 
@@ -272,6 +281,7 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
+		fmt.Println("size:", size, "had:", cbft.state.HadSendPrepareVote().Had(next))
 		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
@@ -286,6 +296,7 @@ func (cbft *Cbft) findQCBlock() {
 // updateChainState tries to update consensus state to wal
 // If the write fails, the process will stop
 func (cbft *Cbft) updateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+	return
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
 	var qcState, lockState, commitState *protocols.State
 	qcState = &protocols.State{
@@ -356,7 +367,7 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	viewChangeQC := func() bool {
-		if cbft.state.ViewChangeLen() > cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
+		if cbft.state.ViewChangeLen() >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
 			return true
 		}
 		return false
@@ -367,7 +378,7 @@ func (cbft *Cbft) tryChangeView() {
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
 		_, viewNumber, _, number := viewChangeQC.MaxBlock()
 		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
-		if number > qc.BlockNumber || viewNumber > qc.ViewNumber {
+		if block.NumberU64() != 0 && (number > qc.BlockNumber || viewNumber > qc.ViewNumber) {
 			//fixme get qc block
 			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
 			return

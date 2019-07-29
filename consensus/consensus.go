@@ -18,7 +18,6 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
@@ -116,7 +115,7 @@ type Engine interface {
 
 	NextBaseBlock() *types.Block
 
-	InsertChain(block *types.Block, errCh chan error)
+	InsertChain(block *types.Block) error
 
 	HasBlock(hash common.Hash, number uint64) bool
 
@@ -125,7 +124,7 @@ type Engine interface {
 
 	CurrentBlock() *types.Block
 
-	FastSyncCommitHead() <-chan error
+	FastSyncCommitHead(block *types.Block) error
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
@@ -169,8 +168,6 @@ type Bft interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
 	GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block
-
-	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
 	IsSignedBySelf(sealHash common.Hash, header *types.Header) bool
 
