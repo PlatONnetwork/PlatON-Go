@@ -125,13 +125,13 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 	// TODO
 	var (
+		accNumbers uint32
 		err        error
 		epochList  []uint64
 		index      uint32
 		info       restricting.RestrictingInfo
-		repay      *big.Int
-		accNumbers uint32
 	)
+	var repay = common.Big0
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
