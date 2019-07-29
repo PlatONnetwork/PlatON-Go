@@ -187,6 +187,10 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, privateKey
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
 
+	// todo test
+	pposHash := state.GetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey())
+	log.Info("Query ppos hash", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
+
 	/**
 	this things about ppos
 	*/
