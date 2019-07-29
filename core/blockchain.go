@@ -41,7 +41,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -55,29 +55,29 @@ type CacheConfig struct {
 	TrieNodeLimit int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit time.Duration // Time limit after which to flush the current in-memory trie to disk
 
-	BodyCacheLimit 	 int
-	BlockCacheLimit  int
-	MaxFutureBlocks  int
-	BadBlockLimit 	 int
-	TriesInMemory	 int
-	DefaultTxsCacheSize int
+	BodyCacheLimit           int
+	BlockCacheLimit          int
+	MaxFutureBlocks          int
+	BadBlockLimit            int
+	TriesInMemory            int
+	DefaultTxsCacheSize      int
 	DefaultBroadcastInterval time.Duration
 }
 
 // mining related configuration
 type MiningConfig struct {
-	MiningLogAtDepth  		uint
-	TxChanSize		  		int
-	ChainHeadChanSize 		int
-	ChainSideChanSize 		int
-	ResultQueueSize			int
-	ResubmitAdjustChanSize  int
-	MinRecommitInterval		time.Duration
-	MaxRecommitInterval		time.Duration
-	IntervalAdjustRatio		float64
-	IntervalAdjustBias		float64
-	StaleThreshold			uint64
-	DefaultCommitRatio		float64
+	MiningLogAtDepth       uint
+	TxChanSize             int
+	ChainHeadChanSize      int
+	ChainSideChanSize      int
+	ResultQueueSize        int
+	ResubmitAdjustChanSize int
+	MinRecommitInterval    time.Duration
+	MaxRecommitInterval    time.Duration
+	IntervalAdjustRatio    float64
+	IntervalAdjustBias     float64
+	StaleThreshold         uint64
+	DefaultCommitRatio     float64
 }
 
 // BlockChain represents the canonical chain given a database with a genesis
@@ -146,14 +146,14 @@ type BlockChain struct {
 func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
-			TrieNodeLimit: 256 * 1024 * 1024,
-			TrieTimeLimit: 5 * time.Minute,
-			BodyCacheLimit:  256,
-			BlockCacheLimit: 256,
-			MaxFutureBlocks: 256,
-			BadBlockLimit:	 10,
-			TriesInMemory:	 128,
-			DefaultTxsCacheSize: 20,
+			TrieNodeLimit:            256 * 1024 * 1024,
+			TrieTimeLimit:            5 * time.Minute,
+			BodyCacheLimit:           256,
+			BlockCacheLimit:          256,
+			MaxFutureBlocks:          256,
+			BadBlockLimit:            10,
+			TriesInMemory:            128,
+			DefaultTxsCacheSize:      20,
 			DefaultBroadcastInterval: 100 * time.Millisecond,
 		}
 	}
@@ -341,7 +341,7 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	bc.mu.Unlock()
 
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
-	return <-bc.engine.FastSyncCommitHead()
+	return bc.engine.FastSyncCommitHead(block)
 }
 
 // GasLimit returns the gas limit of the current HEAD block.
@@ -1126,118 +1126,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				continue
 			}
 
-		//case err == consensus.ErrFutureBlock:
-		//	// Allow up to MaxFuture second in the future blocks. If this limit is exceeded
-		//	// the chain is discarded and processed at a later time if given.
-		//	max := big.NewInt(time.Now().Unix() + maxTimeFutureBlocks)
-		//	if block.Time().Cmp(max) > 0 {
-		//		return i, events, coalescedLogs, fmt.Errorf("future block: %v > %v", block.Time(), max)
-		//	}
-		//	bc.futureBlocks.Add(block.Hash(), block)
-		//	stats.queued++
-		//	continue
-		//
-		//case err == consensus.ErrUnknownAncestor && bc.futureBlocks.Contains(block.ParentHash()):
-		//	bc.futureBlocks.Add(block.Hash(), block)
-		//	stats.queued++
-		//	continue
-		//
-		//case err == consensus.ErrPrunedAncestor:
-		//	// Block competing with the canonical chain, store in the db, but don't process
-		//	// until the competitor TD goes above the canonical TD
-		//	currentBlock := bc.CurrentBlock()
-		//	localBn := currentBlock.Number()
-		//	externBn := block.Number()
-		//	if localBn.Cmp(externBn) > 0 {
-		//		if err = bc.WriteBlockWithoutState(block); err != nil {
-		//			return i, events, coalescedLogs, err
-		//		}
-		//		continue
-		//	}
-		//	// Competitor chain beat canonical, gather all blocks from the common ancestor
-		//	var winner []*types.Block
-		//
-		//	parent := bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-		//	for !bc.HasState(parent.Root()) {
-		//		winner = append(winner, parent)
-		//		parent = bc.GetBlock(parent.ParentHash(), parent.NumberU64()-1)
-		//	}
-		//	for j := 0; j < len(winner)/2; j++ {
-		//		winner[j], winner[len(winner)-1-j] = winner[len(winner)-1-j], winner[j]
-		//	}
-		//	// Import all the pruned blocks to make the state available
-		//	bc.chainmu.Unlock()
-		//	_, evs, logs, err := bc.insertChain(winner)
-		//	bc.chainmu.Lock()
-		//	events, coalescedLogs = evs, logs
-		//
-		//	if err != nil {
-		//		return i, events, coalescedLogs, err
-		//	}
-
 		case err != nil:
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
-		errCh := make(chan error, 1)
-		bc.engine.InsertChain(block, errCh)
-		err = <-errCh
+		err = bc.engine.InsertChain(block)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-		// Create a new statedb using the parent block and report an
-		// error if it fails.
-		//var parent *types.Block
-		//if i == 0 {
-		//	parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-		//} else {
-		//	parent = chain[i-1]
-		//}
-		//state, err := state.New(parent.Root(), bc.stateCache)
-		//if err != nil {
-		//	return i, events, coalescedLogs, err
-		//}
-		//// Process block using the parent state as reference point.
-		//receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
-		//if err != nil {
-		//	bc.reportBlock(block, receipts, err)
-		//	return i, events, coalescedLogs, err
-		//}
-		//// Validate the state using the default validator
-		//err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
-		//if err != nil {
-		//	bc.reportBlock(block, receipts, err)
-		//	return i, events, coalescedLogs, err
-		//}
-		////proctime := time.Since(bstart)
-		//
-		//// Write the block to the chain and get the status.
-		//status, err := bc.WriteBlockWithState(block, receipts, state)
-		//if err != nil {
-		//	return i, events, coalescedLogs, err
-		//}
-		//switch status {
-		//case CanonStatTy:
-		//	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
-		//		"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
-		//
-		//	coalescedLogs = append(coalescedLogs, logs...)
-		//	blockInsertTimer.UpdateSince(bstart)
-		//	events = append(events, ChainEvent{block, block.Hash(), logs})
-		//	lastCanon = block
-		//
-		//	// Only count canonical blocks for GC processing time
-		//	bc.gcproc += proctime
-		//
-		//case SideStatTy:
-		//	log.Debug("Inserted forked block", "number", block.Number(), "hash", block.Hash(), "elapsed",
-		//		common.PrettyDuration(time.Since(bstart)), "txs", len(block.Transactions()), "gas", block.GasUsed())
-		//
-		//	blockInsertTimer.UpdateSince(bstart)
-		//	events = append(events, ChainSideEvent{block})
-		//}
-		//stats.processed++
-		//stats.usedGas += usedGas
 
 		cache, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, i, cache)

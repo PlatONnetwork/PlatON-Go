@@ -72,8 +72,8 @@ func Test_Router_Gossip(t *testing.T) {
 		message types.Message
 		mode    uint64
 	}{
-		{&protocols.PrepareBlockHash{common.Hash{}, 1}, types.FullMode},
-		{&protocols.PrepareBlockHash{common.Hash{}, 1}, types.PartMode},
+		{&protocols.PrepareBlockHash{1, 1, 1, common.Hash{}, 1}, types.FullMode},
+		{&protocols.PrepareBlockHash{1, 1, 1, common.Hash{}, 1}, types.PartMode},
 	}
 	// Keep sending message.
 	go func() {

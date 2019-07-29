@@ -172,36 +172,47 @@ func (rw *meteredMsgReadWriter) WriteMsg(msg p2p.Msg) error {
 	switch {
 	case msg.Code == protocols.PrepareBlockMsg:
 		packets, traffic = propPrepareBlockOutPacketsMeter, propPrepareBlockOutTrafficMeter
+		common.PrepareBlockCBFTEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.PrepareVoteMsg:
 		packets, traffic = propPrepareVoteOutPacketsMeter, propPrepareVoteOutTrafficMeter
+		common.PrepareVoteEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.ViewChangeMsg:
 		packets, traffic = propViewChangeOutPacketsMeter, propViewChangeOutTrafficMeter
+		common.ViewChangeEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.GetPrepareBlockMsg:
-		packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareBlockOutTrafficMeter
+		//packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareBlockOutTrafficMeter
+		common.GetPrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.PrepareBlockHashMsg:
-		packets, traffic = propPrepareBlockHashOutPacketsMeter, propPrepareBlockHashOutTrafficMeter
+		//packets, traffic = propPrepareBlockHashOutPacketsMeter, propPrepareBlockHashOutTrafficMeter
+		common.PrepareBlockHashEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.GetPrepareVoteMsg:
-		packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareVoteOutTrafficMeter
+		//packets, traffic = reqGetPrepareBlockOutPacketsMeter, reqGetPrepareVoteOutTrafficMeter
+		common.GetPrepareVoteEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.GetBlockQuorumCertMsg:
-		packets, traffic = reqGetQuorumCertOutPacketsMeter, reqGetQuorumCertOutTrafficMeter
+		//packets, traffic = reqGetQuorumCertOutPacketsMeter, reqGetQuorumCertOutTrafficMeter
+		common.GetBlockQuorumCertEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.BlockQuorumCertMsg:
-		packets, traffic = reqBlockQuorumCertOutPacketsMeter, reqBlockQuorumCertOutTrafficMeter
+		//packets, traffic = reqBlockQuorumCertOutPacketsMeter, reqBlockQuorumCertOutTrafficMeter
+		common.BlockQuorumCertEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.PrepareVotesMsg:
-		packets, traffic = reqPrepareVotesOutPacketsMeter, reqPrepareVotesOutTrafficMeter
+		//packets, traffic = reqPrepareVotesOutPacketsMeter, reqPrepareVotesOutTrafficMeter
+		common.PrepareVotesEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.GetQCBlockListMsg:
-		packets, traffic = reqGetQCBlockListOutPacketsMeter, reqGetQCBlockListOutTrafficMeter
+		//packets, traffic = reqGetQCBlockListOutPacketsMeter, reqGetQCBlockListOutTrafficMeter
+		common.GetQCBlockListEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.QCBlockListMsg:
-		packets, traffic = reqQCBlockListOutPacketsMeter, reqQCBlockListOutTrafficMeter
+		//packets, traffic = reqQCBlockListOutPacketsMeter, reqQCBlockListOutTrafficMeter
+		common.QCBlockListEgressTrafficMeter.Mark(int64(msg.Size))
 
 	case msg.Code == protocols.CBFTStatusMsg:
 		common.CBFTStatusEgressTrafficMeter.Mark(int64(msg.Size))

@@ -331,6 +331,9 @@ func (q qcBlock) number() uint64 {
 	return q.b.NumberU64()
 }
 func (q qcBlock) blockIndex() uint32 {
+	if q.qc == nil {
+		return 0
+	}
 	return q.qc.BlockIndex
 }
 
@@ -491,10 +494,6 @@ func (vs *ViewState) ViewChangeLen() int {
 	return vs.view.viewChanges.len()
 }
 
-func (vs *ViewState) SetHighestExecutedBlock(block *types.Block) {
-	vs.highestExecutedBlock.Store(block)
-}
-
 func (vs *ViewState) HighestBlockString() string {
 	qc := vs.HighestQCBlock()
 	lock := vs.HighestLockBlock()
@@ -506,11 +505,18 @@ func (vs *ViewState) HighestBlockString() string {
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
-	if v := vs.highestQCBlock.Load(); v == nil {
-		panic("Get highest executed block failed")
-	} else {
-		return v.(*types.Block)
+	if (vs.executing.blockIndex == 0 && vs.executing.finish == false) ||
+		vs.executing.blockIndex == math.MaxUint32 {
+		return vs.HighestQCBlock()
 	}
+
+	var block *types.Block
+	if vs.executing.finish {
+		block = vs.viewBlocks.index(vs.executing.blockIndex).block()
+	} else {
+		block = vs.viewBlocks.index(vs.executing.blockIndex - 1).block()
+	}
+	return block
 }
 
 func (vs *ViewState) SetHighestQCBlock(ext *types.Block) {

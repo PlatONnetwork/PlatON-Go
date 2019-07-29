@@ -93,9 +93,9 @@ func (p *peer) ReadWriter() p2p.MsgReadWriter {
 
 // Handshake passes each other's status data and verifies the protocol version,
 // the successful handshake can successfully establish a connection by peer.
-func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
+func (p *peer) Handshake(outStatus *protocols.CbftStatusData) (*protocols.CbftStatusData, error) {
 	if nil == outStatus {
-		return errInvalidHandshakeMessage
+		return nil, errInvalidHandshakeMessage
 	}
 	errc := make(chan error, 2)
 	var inStatus protocols.CbftStatusData
@@ -113,10 +113,10 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 		select {
 		case err := <-errc:
 			if err != nil {
-				return err
+				return nil, err
 			}
 		case <-timeout.C:
-			return p2p.DiscReadTimeout
+			return nil, p2p.DiscReadTimeout
 		}
 	}
 	// If the height of the peer block is less than local,
@@ -126,21 +126,21 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 			"localHash", outStatus.QCBlock.TerminalString(),
 			"remoteNumber", inStatus.QCBn.Uint64(),
 			"remoteHash", inStatus.QCBlock.TerminalString())
-		return errForkBlock
+		return nil, errForkBlock
 	}
 	if inStatus.LockBn.Uint64() == outStatus.LockBn.Uint64() && inStatus.LockBlock != outStatus.LockBlock {
 		log.Error("Unmatched block on the locked", "localNumber", outStatus.LockBn.Uint64(),
 			"localHash", outStatus.LockBlock.TerminalString(),
 			"remoteNumber", inStatus.LockBn.Uint64(),
 			"remoteHash", inStatus.LockBlock.TerminalString())
-		return errForkBlock
+		return nil, errForkBlock
 	}
 	if inStatus.CmtBn.Uint64() == outStatus.CmtBn.Uint64() && inStatus.CmtBlock != outStatus.CmtBlock {
 		log.Error("Unmatched block on the commit", "localNumber", outStatus.CmtBn.Uint64(),
 			"localHash", outStatus.CmtBlock.TerminalString(),
 			"remoteNumber", inStatus.CmtBn.Uint64(),
 			"remoteHash", inStatus.CmtBlock.TerminalString())
-		return errForkBlock
+		return nil, errForkBlock
 	}
 
 	// todo:
@@ -148,8 +148,10 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 	// determine if the local node contains a block height and a hash that matches it.
 	// qcBn/lockedBn/commitBn.
 	p.highestQCBn, p.lockedBn, p.commitBn = inStatus.QCBn, inStatus.LockBn, inStatus.CmtBn
+	log.Debug("Handshake success and done", "remoteQCBn", p.QCBn(),
+		"remoteLockedBn", p.LockedBn(), "remoteCommitBn", p.CommitBn())
 
-	return nil
+	return &inStatus, nil
 }
 
 // readStatus receive status data from another.
