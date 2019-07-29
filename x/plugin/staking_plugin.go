@@ -1789,6 +1789,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	curr_num := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
+	slashAddrQueue := make([]common.Address, 0)
+
 	for _, v := range curr.Arr {
 
 		addr, _ := xutil.NodeId2Addr(v.NodeId)
@@ -1802,10 +1804,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		if staking.Is_LowRatio(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
+			slashAddrQueue = append(slashAddrQueue, addr)
 		}
 		if staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
+			slashAddrQueue = append(slashAddrQueue, addr)
 			duplicateSignNum++
 		}
 	}
@@ -1913,7 +1917,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 
 	// update candidate status
-	for addr, can := range slashCans {
+	// Must sort
+	for _, addr := range slashAddrQueue {
+		can := slashCans[addr]
 		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
