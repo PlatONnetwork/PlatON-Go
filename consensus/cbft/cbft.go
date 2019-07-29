@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	errors "github.com/pkg/errors"
 
 	"reflect"
@@ -31,7 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -85,6 +85,7 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                wal.Wal
+	bridge             Bridge
 	loading            int32
 
 	// Record the number of peer requests for obtaining cbft information.
@@ -151,7 +152,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
+		cbft.changeView(cbft.config.Sys.Epoch, 3, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
@@ -181,11 +182,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 	atomic.StoreInt32(&cbft.loading, 0)
 
-	go cbft.receiveLoop()
-
 	// init handler and router to process message.
 	// cbft -> handler -> router.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
+
+	go cbft.receiveLoop()
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
@@ -232,6 +233,9 @@ func (cbft *Cbft) LoadWal() (err error) {
 	if cbft.wal, err = wal.NewWal(context, ""); err != nil {
 		return err
 	}
+	if cbft.bridge, err = NewBridge(context, cbft); err != nil {
+		return err
+	}
 
 	// load consensus chainState
 	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
@@ -264,6 +268,10 @@ func (cbft *Cbft) receiveLoop() {
 				break
 			}
 			cbft.queues[msg.PeerID] = count
+
+			// Forward the message before processing the message.
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
+
 			cbft.handleConsensusMsg(msg)
 			// After the message is processed, the counter is decremented by one.
 			// If it is reduced to 0, the mapping relationship of the corresponding
@@ -274,7 +282,10 @@ func (cbft *Cbft) receiveLoop() {
 			}
 
 		case msg := <-cbft.syncMsgCh:
+			// Forward the message before processing the message.
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 			cbft.handleSyncMsg(msg)
+
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
@@ -294,14 +305,12 @@ func (cbft *Cbft) receiveLoop() {
 
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
-	if cbft.running() {
+	if !cbft.running() {
+		cbft.log.Debug("Consensus message pause")
 		return
 	}
 	msg, id := info.Msg, info.PeerID
 	var err error
-
-	// Forward the message before processing the message.
-	go cbft.network.Forwarding(id, msg)
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
@@ -320,9 +329,6 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
-
-	// Forward the message before processing the message.
-	go cbft.network.Forwarding(id, msg)
 
 	switch msg := msg.(type) {
 	case *protocols.GetPrepareBlock:
@@ -514,7 +520,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.findQCBlock()
 
 	// write sendPrepareBlock info to wal
-	cbft.sendPrepareBlock(prepareBlock)
+	cbft.bridge.SendPrepareBlock(prepareBlock)
 
 	cbft.network.Broadcast(prepareBlock)
 
@@ -704,10 +710,6 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	if cbft.isLoading() && !cbft.isStart() {
 		return false, nil
 	}
-	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
-		return false, errors.New("current node not a validator")
-	}
 
 	result := make(chan error, 2)
 	cbft.asyncCallCh <- func() {
@@ -729,7 +731,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
-
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")
@@ -753,6 +754,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- errors.New("produce block over limit")
 		return
 	}
+
 	result <- nil
 }
 

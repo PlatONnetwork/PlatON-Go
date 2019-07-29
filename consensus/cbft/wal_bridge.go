@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/PlatONnetwork/PlatON-Go/node"
+
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
@@ -16,12 +18,143 @@ var (
 	errNonContiguous = errors.New("non contiguous chain block state")
 )
 
+// Bridge encapsulates functions required to update consensus state and consensus msg.
+// As a bridge layer for cbft and wal.
+type Bridge interface {
+	UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block)
+	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC)
+	SendViewChange(view *protocols.ViewChange)
+	SendPrepareBlock(pb *protocols.PrepareBlock)
+	SendPrepareVote(block *types.Block, vote *protocols.PrepareVote)
+}
+
+// emptyBridge is a empty implementation for Bridge
+type emptyBridge struct {
+}
+
+func (b *emptyBridge) UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+}
+
+func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+}
+
+func (b *emptyBridge) SendViewChange(view *protocols.ViewChange) {
+}
+
+func (b *emptyBridge) SendPrepareBlock(pb *protocols.PrepareBlock) {
+}
+
+func (b *emptyBridge) SendPrepareVote(block *types.Block, vote *protocols.PrepareVote) {
+}
+
+// baseBridge is a default implementation for Bridge
+type baseBridge struct {
+	cbft *Cbft
+}
+
+// NewBridge creates a new Bridge to update consensus state and consensus msg.
+func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
+	if ctx == nil {
+		return &emptyBridge{}, nil
+	}
+	baseBridge := &baseBridge{
+		cbft: cbft,
+	}
+	return baseBridge, nil
+}
+
+// UpdateChainState tries to update consensus state to wal
+// If the write fails, the process will stop
+// lockChainState or commitChainState may be nil, if it is nil, we only append qc to the qcChain array
+func (b *baseBridge) UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+	qcBlock, qcQC := b.cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
+	var qcState, lockState, commitState *protocols.State
+	qcState = &protocols.State{
+		Block:      qcBlock,
+		QuorumCert: qcQC,
+	}
+	if lock == nil || commit == nil {
+		if err := b.cbft.addQCState(qcState); err != nil {
+			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+		}
+	} else {
+		lockBlock, lockQC := b.cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
+		commitBlock, commitQC := b.cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
+		lockState = &protocols.State{
+			Block:      lockBlock,
+			QuorumCert: lockQC,
+		}
+		commitState = &protocols.State{
+			Block:      commitBlock,
+			QuorumCert: commitQC,
+		}
+		if err := b.cbft.newChainState(commitState, lockState, qcState); err != nil {
+			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+		}
+	}
+}
+
+// ConfirmViewChange tries to update ConfirmedViewChange consensus msg to wal.
+// at the same time we will record the current fileID and fileSequence.
+// the next time the platon node restart, we will recovery the msg from this check point.
+func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+	meta := &wal.ViewChangeMessage{
+		Epoch:      epoch,
+		ViewNumber: viewNumber,
+	}
+	if err := b.cbft.wal.UpdateViewChange(meta); err != nil {
+		panic(fmt.Sprintf("update viewChange meta error, err:%s", err.Error()))
+	}
+	vc := &protocols.ConfirmedViewChange{
+		Epoch:        epoch,
+		ViewNumber:   viewNumber,
+		Block:        block,
+		QC:           qc,
+		ViewChangeQC: viewChangeQC,
+	}
+	if err := b.cbft.wal.WriteSync(vc); err != nil {
+		panic(fmt.Sprintf("write confirmed viewChange error, err:%s", err.Error()))
+	}
+}
+
+// SendViewChange tries to update SendViewChange consensus msg to wal.
+func (b *baseBridge) SendViewChange(view *protocols.ViewChange) {
+	s := &protocols.SendViewChange{
+		ViewChange: view,
+	}
+	if err := b.cbft.wal.WriteSync(s); err != nil {
+		panic(fmt.Sprintf("write send viewChange error, err:%s", err.Error()))
+	}
+}
+
+// SendPrepareBlock tries to update SendPrepareBlock consensus msg to wal.
+func (b *baseBridge) SendPrepareBlock(pb *protocols.PrepareBlock) {
+	s := &protocols.SendPrepareBlock{
+		Prepare: pb,
+	}
+	if err := b.cbft.wal.WriteSync(s); err != nil {
+		panic(fmt.Sprintf("write send prepareBlock error, err:%s", err.Error()))
+	}
+}
+
+// SendPrepareVote tries to update SendPrepareVote consensus msg to wal.
+func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.PrepareVote) {
+	s := &protocols.SendPrepareVote{
+		Block: block,
+		Vote:  vote,
+	}
+	if err := b.cbft.wal.WriteSync(s); err != nil {
+		panic(fmt.Sprintf("write send prepareVote error, err:%s", err.Error()))
+	}
+}
+
 // newChainState tries to update consensus state to wal
 // Need to do continuous block check before writing.
 func (cbft *Cbft) newChainState(commit *protocols.State, lock *protocols.State, qc *protocols.State) error {
 	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || qc == nil || qc.Block == nil {
 		return errNonContiguous
 	}
+	// check continuous block chain
 	if !cbft.contiguousChainBlock(commit.Block, lock.Block) || !cbft.contiguousChainBlock(lock.Block, qc.Block) {
 		return errNonContiguous
 	}
@@ -37,11 +170,13 @@ func (cbft *Cbft) newChainState(commit *protocols.State, lock *protocols.State, 
 // Need to do continuous block check before writing.
 func (cbft *Cbft) addQCState(qc *protocols.State) error {
 	var chainState *protocols.ChainState
+	// load current consensus state
 	cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
 		chainState = cs
 		return nil
 	})
 	lock := chainState.Lock
+	// check continuous block chain
 	if !cbft.contiguousChainBlock(lock.Block, qc.Block) {
 		return errNonContiguous
 	}
@@ -49,54 +184,9 @@ func (cbft *Cbft) addQCState(qc *protocols.State) error {
 	return cbft.wal.UpdateChainState(chainState)
 }
 
-func (cbft *Cbft) confirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
-	meta := &wal.ViewChangeMessage{
-		Epoch:      epoch,
-		ViewNumber: viewNumber,
-	}
-	if err := cbft.wal.UpdateViewChange(meta); err != nil {
-		panic(fmt.Sprintf("update viewChange meta error, err:%s", err.Error()))
-	}
-	vc := &protocols.ConfirmedViewChange{
-		Epoch:        epoch,
-		ViewNumber:   viewNumber,
-		Block:        block,
-		QC:           qc,
-		ViewChangeQC: viewChangeQC,
-	}
-	if err := cbft.wal.WriteSync(vc); err != nil {
-		panic(fmt.Sprintf("write confirmed viewChange error, err:%s", err.Error()))
-	}
-}
-
-func (cbft *Cbft) sendViewChange(view *protocols.ViewChange) {
-	s := &protocols.SendViewChange{
-		ViewChange: view,
-	}
-	if err := cbft.wal.WriteSync(s); err != nil {
-		panic(fmt.Sprintf("write send viewChange error, err:%s", err.Error()))
-	}
-}
-
-func (cbft *Cbft) sendPrepareBlock(pb *protocols.PrepareBlock) {
-	s := &protocols.SendPrepareBlock{
-		Prepare: pb,
-	}
-	if err := cbft.wal.WriteSync(s); err != nil {
-		panic(fmt.Sprintf("write send prepareBlock error, err:%s", err.Error()))
-	}
-}
-
-func (cbft *Cbft) sendPrepareVote(block *types.Block, vote *protocols.PrepareVote) {
-	s := &protocols.SendPrepareVote{
-		Block: block,
-		Vote:  vote,
-	}
-	if err := cbft.wal.WriteSync(s); err != nil {
-		panic(fmt.Sprintf("write send prepareVote error, err:%s", err.Error()))
-	}
-}
-
+// recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
+// need to do some necessary checks based on the latest blockchain block.
+// execute commit/lock/qcs block and load the corresponding state to cbft consensus.
 func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	cbft.log.Debug("Recover chain state from wal", "chainState", chainState.String())
 	commit, lock, qcs := chainState.Commit, chainState.Lock, chainState.QC
@@ -131,6 +221,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	return nil
 }
 
+// recoveryChainStateProcess tries to recovery the corresponding state to cbft consensus.
 func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.State) {
 	cbft.tryWalChangeView(state.QuorumCert.Epoch, state.QuorumCert.ViewNumber, state.Block, state.QuorumCert, nil)
 	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
@@ -149,12 +240,14 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 	}
 }
 
+// tryWalChangeView tries to change view.
 func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
 	if epoch != cbft.state.Epoch() || viewNumber != cbft.state.ViewNumber() {
 		cbft.changeView(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 }
 
+// recoveryMsg tries to recovery consensus msg from wal when the platon node restart.
 func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 	cbft.log.Debug("Recover journal message from wal", "msgType", reflect.TypeOf(msg))
 
@@ -228,10 +321,12 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 	return nil
 }
 
+// contiguousChainBlock check if the two incoming blocks are continuous.
 func (cbft *Cbft) contiguousChainBlock(p *types.Block, s *types.Block) bool {
 	return p.NumberU64() == s.NumberU64()-1 && p.Hash() == s.ParentHash()
 }
 
+// executeBlock call blockCacheWriter to execute block.
 func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	if parent == nil {
 		parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
@@ -245,6 +340,8 @@ func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	return nil
 }
 
+// shouldRecovery check if the consensus msg needs to be recovery.
+// if the msg does not belong to the current view or the msg number is smaller than the qc number discard it.
 func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	if !cbft.equalViewState(msg) {
 		return false, fmt.Errorf("non equal view state, curEpoch:%d, curViewNum:%d, preEpoch:%d, preViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
@@ -253,6 +350,7 @@ func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	return msg.BlockNumber() > highestQCBlockBn, nil
 }
 
+// equalViewState check if the view is equal.
 func (cbft *Cbft) equalViewState(msg protocols.WalMsg) bool {
 	return msg.Epoch() == cbft.state.Epoch() && msg.ViewNumber() == cbft.state.ViewNumber()
 }

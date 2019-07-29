@@ -5,9 +5,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
@@ -33,10 +32,12 @@ var (
 
 func NewBlock(parent common.Hash, number uint64) *types.Block {
 	header := &types.Header{
-		Number:     big.NewInt(int64(number)),
-		ParentHash: parent,
-		Time:       big.NewInt(time.Now().UnixNano()),
-		Extra:      make([]byte, 77),
+		Number:      big.NewInt(int64(number)),
+		ParentHash:  parent,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 77),
+		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 	}
 	block := types.NewBlockWithHeader(header)
 	return block
