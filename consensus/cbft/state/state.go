@@ -424,6 +424,9 @@ func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
 	return nil
 }
 
+func (vs *ViewState) ViewBlockSize() int {
+	return len(vs.viewBlocks.blocks)
+}
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
 	return vs.view.hadSendPrepareVote
 }

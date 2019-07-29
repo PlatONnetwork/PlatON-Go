@@ -151,7 +151,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, 1, block, qc, nil)
+		cbft.changeView(cbft.config.Sys.Epoch, 3, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
@@ -181,11 +181,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 	atomic.StoreInt32(&cbft.loading, 0)
 
-	go cbft.receiveLoop()
-
 	// init handler and router to process message.
 	// cbft -> handler -> router.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
+
+	go cbft.receiveLoop()
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
@@ -295,7 +295,8 @@ func (cbft *Cbft) receiveLoop() {
 
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
-	if cbft.running() {
+	if !cbft.running() {
+		cbft.log.Debug("Consensus message pause")
 		return
 	}
 	msg, id := info.Msg, info.PeerID
@@ -705,10 +706,6 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	if cbft.isLoading() && !cbft.isStart() {
 		return false, nil
 	}
-	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
-		return false, errors.New("current node not a validator")
-	}
 
 	result := make(chan error, 2)
 	cbft.asyncCallCh <- func() {
@@ -730,7 +727,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
-
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")
@@ -754,6 +750,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- errors.New("produce block over limit")
 		return
 	}
+
 	result <- nil
 }
 
