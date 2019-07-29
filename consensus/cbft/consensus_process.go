@@ -277,17 +277,30 @@ func (cbft *Cbft) findQCBlock() {
 		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
+	updated := false
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
 		cbft.insertQCBlock(block, qc)
+
+		// Update validators
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			updated = true
+			if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+				cbft.state.ResetView(cbft.state.Epoch()+1, 0)
+			}
+		}
 	}
-	cbft.tryChangeView()
+
+	if !updated {
+		cbft.tryChangeView()
+	}
 }
 
 // updateChainState tries to update consensus state to wal
 // If the write fails, the process will stop
 func (cbft *Cbft) updateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+	return
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
 	var qcState, lockState, commitState *protocols.State
 	qcState = &protocols.State{
