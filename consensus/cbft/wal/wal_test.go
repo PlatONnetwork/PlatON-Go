@@ -115,8 +115,9 @@ func testWalLoadChainState() (*protocols.ChainState, error) {
 	var err error
 	// Load chainState
 	var chainState *protocols.ChainState
-	err = getWal().LoadChainState(func(cs *protocols.ChainState) {
+	err = getWal().LoadChainState(func(cs *protocols.ChainState) error {
 		chainState = cs
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -162,7 +163,7 @@ func testWalLoad() (int, error) {
 	var err error
 	// LoadJournal
 	count := 0
-	err = getWal().Load(func(msg interface{}) {
+	err = getWal().Load(func(msg interface{}) error {
 		switch msg.(type) {
 		case *protocols.ConfirmedViewChange:
 			count++
@@ -173,6 +174,7 @@ func testWalLoad() (int, error) {
 		case *protocols.SendPrepareVote:
 			count++
 		}
+		return nil
 	})
 	if err != nil {
 		return 0, err
@@ -206,7 +208,7 @@ func testLevelDB() error {
 func TestEmptyWal(t *testing.T) {
 	wal := &emptyWal{}
 	assert.Nil(t, wal.Write(nil))
-	assert.Nil(t, wal.Load(func(msg interface{}) {}))
+	assert.Nil(t, wal.Load(func(msg interface{}) error { return nil }))
 	assert.Nil(t, wal.UpdateViewChange(nil))
 }
 
