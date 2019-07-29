@@ -501,7 +501,6 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	s.protocolManager.Start(maxPeers)
 
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
-		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		// TODO VRF
 		//xcom.GetVrfHandlerInstance().SetPrivateKey(srvr.Config.PrivateKey)
 

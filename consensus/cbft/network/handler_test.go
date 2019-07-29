@@ -62,14 +62,14 @@ func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) {
 func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) {
 	fmt.Println(fmt.Sprintf("ReceiveSyncMsg, type: %T", msg.Msg))
 }
-func (s *fakeCbft) HighestQCBlockBn() uint64 {
-	return s.localPeer.QCBn()
+func (s *fakeCbft) HighestQCBlockBn() (uint64, common.Hash) {
+	return s.localPeer.QCBn(), common.Hash{}
 }
-func (s *fakeCbft) HighestLockBlockBn() uint64 {
-	return s.localPeer.LockedBn()
+func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
+	return s.localPeer.LockedBn(), common.Hash{}
 }
-func (s *fakeCbft) HighestCommitBlockBn() uint64 {
-	return s.localPeer.CommitBn()
+func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
+	return s.localPeer.CommitBn(), common.Hash{}
 }
 
 // Create a new EngineManager.

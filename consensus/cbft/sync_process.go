@@ -2,9 +2,12 @@ package cbft
 
 import (
 	"fmt"
+	"math/big"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -40,14 +43,14 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Insert block failed", "error", err)
 					}
 				}
-				cbft.fetching = false
+				utils.SetFalse(&cbft.fetching)
 			}
 		}
 
 		expire := func() {
-			cbft.fetching = false
+			utils.SetFalse(&cbft.fetching)
 		}
-		cbft.fetching = true
+		utils.SetTrue(&cbft.fetching)
 
 		cbft.fetcher.AddTask(id, match, executor, expire)
 		cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: cbft.state.HighestQCBlock().Hash(), BlockNumber: cbft.state.HighestQCBlock().NumberU64()})
@@ -158,4 +161,196 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 		cbft.log.Debug("Send QCBlockList", "len", len(qcs))
 	}
 
+}
+
+// OnGetPrepareVote is responsible for processing the business logic
+// of the GetPrepareVote message. It will synchronously return a
+// PrepareVotes message to the sender.
+func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
+	// Get all the received PrepareVote of the block according to the index
+	// position of the block in the view.
+	prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
+
+	// Defining an array for receiving PrepareVote.
+	votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
+	if prepareVoteMap != nil {
+		for i := uint32(0); i < msg.VoteBits.Size(); i++ {
+			if msg.VoteBits.GetIndex(i) {
+				continue
+			}
+			if v, ok := prepareVoteMap[i]; ok {
+				votes = append(votes, v)
+			}
+		}
+	} else {
+		// todo: need to confirm.
+		// Is it necessary to obtain the PrepareVotes from the blockchain
+		// when it is not in the memory?
+	}
+	if len(votes) != 0 {
+		cbft.network.Send(id, &protocols.PrepareVotes{BlockHash: msg.BlockHash, BlockNumber: msg.BlockNumber, Votes: votes})
+		cbft.log.Debug("Send PrepareVotes", "peer", id, "hash", msg.BlockHash, "number", msg.BlockNumber)
+	}
+	return nil
+}
+
+// OnPrepareVotes handling response from GetPrepareVote response.
+func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
+	for _, vote := range msg.Votes {
+		if err := cbft.OnPrepareVote(id, vote); err != nil {
+			cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (cbft *Cbft) OnQCBlockList(id string, msg *protocols.QCBlockList) {
+	// todo: Logic is incomplete.
+}
+
+// OnGetLatestStatus hands GetLatestStatus messages.
+//
+// main logic:
+// 1.Compare the blockNumber of the sending node with the local node,
+// and if the blockNumber of local node is larger then reply LatestStatus message,
+// the message contains the status information of the local node.
+func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) error {
+	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash().TerminalString())
+	// Define a function that performs the send action.
+	launcher := func(bType uint64, targetId string, message ctypes.Message) error {
+		p, err := cbft.network.GetPeer(id)
+		if err != nil {
+			cbft.log.Error("GetPeer failed", "err", err, "peerId", id)
+			return err
+		}
+		switch bType {
+		case network.TypeForQCBn:
+			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
+		case network.TypeForLockedBn:
+			p.SetLockedBn(new(big.Int).SetUint64(msg.BlockNumber))
+		case network.TypeForCommitBn:
+			p.SetCommitdBn(new(big.Int).SetUint64(msg.BlockNumber))
+		default:
+		}
+		// response to sender.
+		cbft.network.Send(targetId, message)
+		return nil
+	}
+	//
+	if msg.LogicType == network.TypeForQCBn {
+		localQCNum := cbft.state.HighestQCBlock().NumberU64()
+		if localQCNum < msg.BlockNumber {
+			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+			return launcher(msg.LogicType, id, &protocols.GetQCBlockList{
+				BlockNumber: localQCNum,
+				BlockHash:   cbft.state.HighestQCBlock().Hash(),
+			})
+		} else {
+			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, LogicType: msg.LogicType})
+		}
+	}
+	//
+	if msg.LogicType == network.TypeForLockedBn {
+		localLockedNum := cbft.state.HighestLockBlock().NumberU64()
+		if localLockedNum < msg.BlockNumber {
+			cbft.log.Debug("Local lockedBn is larger than the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
+			return launcher(msg.LogicType, id, &protocols.GetQCBlockList{
+				BlockNumber: localLockedNum,
+				BlockHash:   cbft.state.HighestLockBlock().Hash(),
+			})
+		} else {
+			cbft.log.Debug("Local lockedBn is less than the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
+			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localLockedNum, LogicType: msg.LogicType})
+		}
+	}
+	//
+	if msg.LogicType == network.TypeForCommitBn {
+		localCommitNum := cbft.state.HighestCommitBlock().NumberU64()
+		if localCommitNum < msg.BlockNumber {
+			cbft.log.Debug("Local commitBn is larger than the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
+			return launcher(msg.LogicType, id, &protocols.GetQCBlockList{
+				BlockNumber: localCommitNum,
+				BlockHash:   cbft.state.HighestCommitBlock().Hash(),
+			})
+		} else {
+			cbft.log.Debug("Local commitBn is less than the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
+			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localCommitNum, LogicType: msg.LogicType})
+		}
+	}
+	return nil
+}
+
+// OnLatestStatus is used to process LatestStatus messages that received from peer.
+func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
+	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash().TerminalString())
+	switch msg.LogicType {
+	case network.TypeForQCBn:
+		localQCBn := cbft.state.HighestQCBlock().NumberU64()
+		if localQCBn < msg.BlockNumber {
+			p, err := cbft.network.GetPeer(id)
+			if err != nil {
+				cbft.log.Error("GetPeer failed", "err", err)
+				return err
+			}
+			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
+			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
+			cbft.network.Send(id, &protocols.GetQCBlockList{
+				BlockNumber: localQCBn,
+				BlockHash:   cbft.state.HighestQCBlock().Hash(),
+			})
+		}
+
+	case network.TypeForLockedBn:
+		localLockedBn := cbft.state.HighestLockBlock().NumberU64()
+		if localLockedBn < msg.BlockNumber {
+			p, err := cbft.network.GetPeer(id)
+			if err != nil {
+				cbft.log.Error("GetPeer failed", "err", err)
+				return err
+			}
+			p.SetLockedBn(new(big.Int).SetUint64(msg.BlockNumber))
+			cbft.log.Debug("LocalLockedBn is lower than sender's", "localBn", localLockedBn, "remoteBn", msg.BlockNumber)
+			cbft.network.Send(id, &protocols.GetQCBlockList{
+				BlockNumber: localLockedBn,
+				BlockHash:   cbft.state.HighestLockBlock().Hash(),
+			})
+		}
+
+	case network.TypeForCommitBn:
+		localCommitBn := cbft.state.HighestCommitBlock().NumberU64()
+		if localCommitBn < msg.BlockNumber {
+			p, err := cbft.network.GetPeer(id)
+			if err != nil {
+				cbft.log.Error("GetPeer failed", "err", err)
+				return err
+			}
+			p.SetCommitdBn(new(big.Int).SetUint64(msg.BlockNumber))
+			cbft.log.Debug("LocalCommitBn is lower than sender's", "localBn", localCommitBn, "remoteBn", msg.BlockNumber)
+			cbft.network.Send(id, &protocols.GetQCBlockList{
+				BlockNumber: localCommitBn,
+				BlockHash:   cbft.state.HighestCommitBlock().Hash(),
+			})
+		}
+	}
+	return nil
+}
+
+// OnPrepareBlockHash responsible for handling PrepareBlockHash message.
+//
+// Note: After receiving the A message, it is determined whether the
+// block information exists locally. If not, send a network request to get
+// the block data.
+func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash) error {
+	cbft.log.Debug("Received message on OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash())
+	block := cbft.blockTree.FindBlockByHash(msg.BlockHash)
+	if block == nil {
+		cbft.network.Send(id, &protocols.GetPrepareBlock{
+			Epoch:      msg.Epoch,
+			ViewNumber: msg.ViewNumber,
+			BlockIndex: msg.BlockIndex,
+		})
+	}
+	return nil
 }
