@@ -624,16 +624,8 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 // HashBlock check if the specified block exists in block tree.
 func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
-	has := make(chan bool, 1)
-	cbft.checkStart(func() {
-		cbft.asyncCallCh <- func() {
-			if cbft.state.HighestExecutedBlock().NumberU64() >= number {
-				has <- true
-			}
-		}
-	})
-
-	return <-has
+	// Can only be invoked after startup
+	return cbft.state.HighestQCBlock().NumberU64() > number
 }
 
 func (Cbft) Status() string {
