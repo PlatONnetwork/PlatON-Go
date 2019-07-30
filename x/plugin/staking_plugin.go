@@ -2102,6 +2102,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the ramain is not zero, remain:%s", remain)
 	}
 
+	// sub Shares to effect power
+	can.Shares = new(big.Int).Sub(can.Shares, amount)
+
 	remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
 	remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
 	canRemain := new(big.Int).Add(remainRelease, remainRestrictingPlan)
@@ -2123,8 +2126,11 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	if !needDelete {
 		sk.db.SetCanPowerStore(blockHash, addr, can)
-		can.Status |= staking.Invalided
 	} else {
+		//because of deleted candidate info ,clean Shares
+		can.Shares = common.Big0
+		can.Status |= staking.Invalided
+
 		validators, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to SlashCandidates: Query Verifier List is failed", "slashType", slashType,

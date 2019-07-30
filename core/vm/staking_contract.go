@@ -828,6 +828,6 @@ func (stkc *StakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txH
 
 func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Info("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
+	log.Warn("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
 }

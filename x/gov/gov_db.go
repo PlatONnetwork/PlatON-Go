@@ -441,11 +441,13 @@ func (self *GovDB) UpdateParam(name string, oldValue, newValue string, state xco
 
 func (self *GovDB) ListParam(state xcom.StateDB) (map[string]string, error) {
 	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
-
-	var paraMap map[string]string
-	if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
-		return nil, common.NewSysError(err.Error())
+	if len(paraListBytes) > 0 {
+		var paraMap map[string]string
+		if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
+			return nil, common.NewSysError(err.Error())
+		}
+		return paraMap, nil
+	} else {
+		return nil, nil
 	}
-	return paraMap, nil
-
 }

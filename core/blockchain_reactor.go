@@ -157,7 +157,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
-func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, privateKey *ecdsa.PrivateKey) {
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId discover.NodeID /*privateKey *ecdsa.PrivateKey*/) {
 
 	/**
 	this things about ppos
@@ -166,7 +166,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, privateKey
 		return
 	}
 
-	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	//nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	addr, _ := xutil.NodeId2Addr(nodeId)
 
 	log.Info("Call SetWorkerCoinBase on blockchain_reactor", "blockNumber", header.Number,
@@ -266,11 +266,6 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
 
-	// todo test
-	root := state.IntermediateRoot(true)
-	log.Debug("EndBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
-
 	/**
 	this things about ppos
 	*/
@@ -283,6 +278,11 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.Hash()
 	}
+
+	// todo test
+	root := state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root", "blockHash", blockHash.Hex(), "blockNumber",
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	// TODO test
 	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
@@ -311,7 +311,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 	// todo test
 	root = state.IntermediateRoot(true)
-	log.Debug("EndBlock StateDB root, After EndBlock by plugin", "blockHash", header.Hash().Hex(),
+	log.Debug("EndBlock StateDB root, After EndBlock by plugin", "blockHash", blockHash.Hex(),
 		"blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	// storage the ppos k-v Hash
@@ -330,7 +330,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 	// todo test
 	root = state.IntermediateRoot(true)
-	log.Debug("EndBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
+	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	return nil

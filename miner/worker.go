@@ -17,6 +17,8 @@
 package miner
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -878,6 +880,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
 	if err != nil {
+		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "err", err)
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
 	}
@@ -1172,8 +1175,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 				log.Error("Refusing to mine without etherbase")
 				return
 			}*/
-		header.Coinbase = w.coinbase
-		core.GetReactorInstance().SetWorkerCoinBase(header, w.config.Cbft.PrivateKey)
+		core.GetReactorInstance().SetWorkerCoinBase(header, w.config.Cbft.NodeID /*w.config.Cbft.PrivateKey*/)
 	}
 
 	log.Info("cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
@@ -1303,17 +1305,41 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	//if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
 	//	return nil
 	//}
+
+	// TODO test
+	for _, r := range w.current.receipts {
+		rbyte, _ := json.Marshal(r.Logs)
+		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
+	}
+
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
+
+	// todo test
+	root := w.current.state.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))
+
 	s := w.current.state.Copy()
+
+	// todo test
+	root = s.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
 
 	// TODO end()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
 		return err
+	}
+
+	// TODO test
+	for _, r := range receipts {
+		rbyte, _ := json.Marshal(r.Logs)
+		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
 	}
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)

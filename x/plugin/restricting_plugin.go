@@ -294,7 +294,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	state.SubBalance(vm.RestrictingContractAddr, amount)
 	state.AddBalance(vm.StakingContractAddr, amount)
 
-	log.Debug("begin to PledgeLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "STKContractBalance", state.GetBalance(vm.StakingContractAddr))
+	log.Debug("end to PledgeLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "STKContractBalance", state.GetBalance(vm.StakingContractAddr))
 
 	return nil
 }
@@ -556,14 +556,13 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, common.NewSysError(err.Error())
 	}
 
-	var amount = new(big.Int)
 	for i := 0; i < len(info.ReleaseList); i++ {
 		epoch := info.ReleaseList[i]
 		releaseAmountKey = restricting.GetReleaseAmountKey(epoch, account)
 		bAmount = state.GetState(account, releaseAmountKey)
 
 		plan.Height = GetBlockNumberByEpoch(epoch)
-		plan.Amount = amount.SetBytes(bAmount)
+		plan.Amount = new(big.Int).SetBytes(bAmount)
 		plans = append(plans, plan)
 	}
 
