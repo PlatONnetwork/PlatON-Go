@@ -17,12 +17,15 @@
 package core
 
 import (
+	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -84,6 +87,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
 			return nil, nil, 0, err
 		}
+	}
+
+	// TODO test
+	for _, r := range receipts {
+		rbyte, _ := json.Marshal(r.Logs)
+		log.Info("Print receipt log on StateProcessor, Before finalize", "blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "log", string(rbyte))
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
