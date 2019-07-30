@@ -104,6 +104,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		syncing:            0,
 		fetching:           0,
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
+		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		state:              cstate.NewViewState(),
@@ -187,8 +188,12 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	go cbft.receiveLoop()
 
+	cbft.fetcher.Start()
+
 	// Start the handler to process the message.
 	go cbft.network.Start()
+
+	cbft.fetcher.Start()
 
 	utils.SetTrue(&cbft.start)
 	cbft.log.Info("Cbft engine start")
@@ -303,7 +308,7 @@ func (cbft *Cbft) receiveLoop() {
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	if !cbft.running() {
-		cbft.log.Debug("Consensus message pause")
+		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
 		return
 	}
 	msg, id := info.Msg, info.PeerID
@@ -327,39 +332,41 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 
-	switch msg := msg.(type) {
-	case *protocols.GetPrepareBlock:
-		cbft.OnGetPrepareBlock(id, msg)
+	if !cbft.fetcher.MatchTask(id, msg) {
+		switch msg := msg.(type) {
+		case *protocols.GetPrepareBlock:
+			cbft.OnGetPrepareBlock(id, msg)
 
-	case *protocols.GetBlockQuorumCert:
-		cbft.OnGetBlockQuorumCert(id, msg)
+		case *protocols.GetBlockQuorumCert:
+			cbft.OnGetBlockQuorumCert(id, msg)
 
-	case *protocols.BlockQuorumCert:
-		cbft.OnBlockQuorumCert(id, msg)
+		case *protocols.BlockQuorumCert:
+			cbft.OnBlockQuorumCert(id, msg)
 
-	case *protocols.GetPrepareVote:
-		cbft.OnGetPrepareVote(id, msg)
+		case *protocols.GetPrepareVote:
+			cbft.OnGetPrepareVote(id, msg)
 
-	case *protocols.PrepareVotes:
-		cbft.OnPrepareVotes(id, msg)
+		case *protocols.PrepareVotes:
+			cbft.OnPrepareVotes(id, msg)
 
-	case *protocols.GetQCBlockList:
-		cbft.OnGetQCBlockList(id, msg)
+		//case *protocols.GetQCBlockList:
+		//	cbft.OnGetQCBlockList(id, msg)
+		//
+		//case *protocols.QCBlockList:
+		//	cbft.OnQCBlockList(id, msg)
 
-	case *protocols.QCBlockList:
-		cbft.OnQCBlockList(id, msg)
+		case *protocols.GetLatestStatus:
+			cbft.OnGetLatestStatus(id, msg)
 
-	case *protocols.GetLatestStatus:
-		cbft.OnGetLatestStatus(id, msg)
+		case *protocols.LatestStatus:
+			cbft.OnLatestStatus(id, msg)
 
-	case *protocols.LatestStatus:
-		cbft.OnLatestStatus(id, msg)
+		case *protocols.PrepareBlockHash:
+			cbft.OnPrepareBlockHash(id, msg)
 
-	case *protocols.PrepareBlockHash:
-		cbft.OnPrepareBlockHash(id, msg)
+			//default:
 
-	default:
-		cbft.fetcher.MatchTask(id, msg)
+		}
 	}
 }
 
@@ -506,6 +513,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
+		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
 		return
 	}
 
@@ -616,14 +624,8 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 // HashBlock check if the specified block exists in block tree.
 func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
-	has := false
-	cbft.checkStart(func() {
-		if cbft.state.HighestExecutedBlock().NumberU64() >= number {
-			has = true
-		}
-	})
-
-	return has
+	// Can only be invoked after startup
+	return cbft.state.HighestQCBlock().NumberU64() > number
 }
 
 func (Cbft) Status() string {
@@ -728,6 +730,13 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
+
+	if cbft.state.IsDeadline() {
+		cbft.log.Warn("View is timeout, canceled seal")
+		result <- errors.New("view timeout")
+		return
+	}
+
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")

@@ -130,6 +130,7 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, 
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
+	return r.peers()
 	switch msgType {
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
 		protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:

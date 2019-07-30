@@ -185,12 +185,17 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
 	// todo sign vote
 	// parentQC added when sending
+	node, err := cbft.validatorPool.GetValidatorByNodeID(number, cbft.config.Option.NodeID)
+	if err != nil {
+		return err
+	}
 	prepareVote := &protocols.PrepareVote{
-		Epoch:       cbft.state.Epoch(),
-		ViewNumber:  cbft.state.ViewNumber(),
-		BlockHash:   hash,
-		BlockNumber: number,
-		BlockIndex:  index,
+		Epoch:          cbft.state.Epoch(),
+		ViewNumber:     cbft.state.ViewNumber(),
+		BlockHash:      hash,
+		BlockNumber:    number,
+		BlockIndex:     index,
+		ValidatorIndex: uint32(node.Index),
 	}
 
 	if err := cbft.signMsgByBls(prepareVote); err != nil {
@@ -213,6 +218,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 	for !pending.Empty() {
 		p := pending.Top()
 		if err := cbft.voteRules.AllowVote(p); err != nil {
+			cbft.log.Debug("Not allow send vote", "err", err, "msg", p.String())
 			break
 		}
 
@@ -223,7 +229,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 		if block == nil {
 			cbft.log.Crit("Try send PrepareVote failed", "err", "vote corresponding block not found", "view", cbft.state.ViewString(), p.String())
 		}
-		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil {
+		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil || block.NumberU64() == 0 {
 			p.ParentQC = qc
 			hadSend.Push(p)
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
@@ -283,16 +289,27 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
-		fmt.Println("size:", size, "had:", cbft.state.HadSendPrepareVote().Had(next))
 		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
+	updated := false
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
 		cbft.insertQCBlock(block, qc)
+
+		// Update validators
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			updated = true
+			if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+				cbft.state.ResetView(cbft.state.Epoch()+1, 0)
+			}
+		}
 	}
-	cbft.tryChangeView()
+
+	if !updated {
+		cbft.tryChangeView()
+	}
 }
 
 // Try commit a new block
