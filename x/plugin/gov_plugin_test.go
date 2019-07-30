@@ -193,6 +193,22 @@ func TestGovPlugin_SubmitText(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_GetProposal(t *testing.T) {
+	defer setup(t)()
+	submitText(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	buildBlockNoCommit(2)
+
+	p, err := govPlugin.GetProposal(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatalf("Get proposal error: %s", err)
+	} else {
+		t.Logf("Get proposal success: %x", p.GetProposalID())
+	}
+}
+
 func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	defer setup(t)()
 
@@ -741,6 +757,30 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_GetPreActiveVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	buildBlockNoCommit(2)
+
+	ver := govPlugin.GetPreActiveVersion(evm.StateDB)
+	t.Logf("Get pre-active version: %d", ver)
+}
+
+func TestGovPlugin_GetActiveVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	buildBlockNoCommit(2)
+
+	ver := govPlugin.GetActiveVersion(evm.StateDB)
+	t.Logf("Get active version: %d", ver)
+}
+
 func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	defer setup(t)()
@@ -801,7 +841,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_SetParam(t *testing.T) {
+func TestGovPlugin_SetGetParam(t *testing.T) {
 	defer setup(t)()
 
 	paraMap := make(map[string]string)
