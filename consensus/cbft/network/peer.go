@@ -65,7 +65,7 @@ type peer struct {
 	PingList *list.List
 }
 
-// newPeer creates a new peer.
+// NewPeer creates a new peer.
 func NewPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
 		Peer:             p,
@@ -492,7 +492,7 @@ func (ps *PeerSet) printPeers() {
 				}
 			}
 			pInfo := bf.String()
-			log.Info(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
+			log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
 		}
 	}
 }

@@ -2,10 +2,16 @@ package network
 
 import (
 	"crypto/rand"
+	"flag"
+	"fmt"
 	"math/big"
+	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/mattn/go-colorable"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -14,6 +20,8 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
+
+var loglevel = flag.Int("loglevel", 4, "verbosity of logs")
 
 // Create a new PrepareBlock for testing.
 func newFakePrepareBlock() *protocols.PrepareBlock {
@@ -248,4 +256,81 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, disco
 	// Create a peer that belonging to cbft.
 	peer := NewPeer(version, p2p.NewPeer(id, name, nil), rw)
 	return peer, id
+}
+
+func Test_InitializePeers(t *testing.T) {
+
+	log.PrintOrigins(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
+
+	// Randomly generated ID.
+	nodeIds := randomID()
+
+	// init cbft
+	cbft1 := &mockCbft{nodeIds, nodeIds[0]}
+	cbft2 := &mockCbft{nodeIds, nodeIds[1]}
+	cbft3 := &mockCbft{nodeIds, nodeIds[2]}
+	cbft4 := &mockCbft{nodeIds, nodeIds[3]}
+
+	// init handler
+	h1 := NewEngineManger(cbft1)
+	h2 := NewEngineManger(cbft2)
+	h3 := NewEngineManger(cbft3)
+	h4 := NewEngineManger(cbft4)
+
+	// register
+	//initializeHandler(peers, []*EngineManager{h1, h2, h3, h4})
+	EnhanceEngineManager(nodeIds, []*EngineManager{h1, h2, h3, h4})
+
+	// start handler.
+	h1.Start()
+	h2.Start()
+	h4.Start()
+	h3.Start()
+
+	h1.Testing()
+	h2.Testing()
+	h3.Testing()
+	h4.Testing()
+
+	// Pretend to send data to p1.p2.p3
+	time.Sleep(1 * time.Second)
+	h1.Broadcast(newFakePrepareBlockHash())
+	time.Sleep(1 * time.Second)
+	h2.Broadcast(newFakeViewChange())
+	time.Sleep(1 * time.Second)
+	h3.Broadcast(newFakeGetPrepareVote())
+	time.Sleep(3 * time.Second)
+}
+
+type mockCbft struct {
+	consensusNodes []discover.NodeID
+	peerId         discover.NodeID
+}
+
+func (s *mockCbft) NodeId() discover.NodeID {
+	return s.peerId
+}
+
+func (s *mockCbft) ConsensusNodes() ([]discover.NodeID, error) {
+	return s.consensusNodes, nil
+}
+
+func (s *mockCbft) Config() *types2.Config {
+	return nil
+}
+func (s *mockCbft) ReceiveMessage(msg *types2.MsgInfo) {
+	log.Debug("ReceiveMessage", "from", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg))
+}
+func (s *mockCbft) ReceiveSyncMsg(msg *types2.MsgInfo) {
+	log.Debug("ReceiveSyncMsg", "from", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg))
+}
+func (s *mockCbft) HighestQCBlockBn() (uint64, common.Hash) {
+	return 0, common.Hash{}
+}
+func (s *mockCbft) HighestLockBlockBn() (uint64, common.Hash) {
+	return 0, common.Hash{}
+}
+func (s *mockCbft) HighestCommitBlockBn() (uint64, common.Hash) {
+	return 0, common.Hash{}
 }
