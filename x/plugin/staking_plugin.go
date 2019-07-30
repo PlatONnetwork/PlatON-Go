@@ -119,6 +119,11 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 				"blockNumber", header.Number.Uint64(), "err", err)
 			return err
 		}
+
+		// todo test
+		pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+		log.Info("Query ppos hash, After Election", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
+
 	}
 	log.Info("Finished EndBlock on staking plugin", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
 	return nil
@@ -1928,11 +1933,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	for _, addr := range slashAddrQueue {
 		can := slashCans[addr]
 		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
-			// TODO test
-			log.Debug("Election slashed addr", addr.Hex())
 
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
+
+			// TODO test
+			log.Debug("Election slashed addr", "addr", addr.Hex())
+			xcom.PrintObject("Election slashed addr", can)
+
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -1940,6 +1948,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			}
 		}
 	}
+
+	// todo test
+	if len(slashAddrQueue) != 0 {
+		log.Debug("Election slashed addr Done ...")
+	}
+
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
 
 	// todo test

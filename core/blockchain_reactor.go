@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -188,6 +189,10 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, privateKey
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
 
 	// todo test
+	root := state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
+	// todo test
 	pposHash := state.GetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey())
 	log.Info("Query ppos hash", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
 
@@ -221,6 +226,10 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
+	// TODO test
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("BeginBlock pposHash, Before beginBlock", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(blockHash.Bytes()))
+
 	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
 		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
@@ -235,11 +244,23 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
+	// TODO test
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("BeginBlock pposHash, After beginBlock", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(blockHash.Bytes()))
+
+	// todo test
+	root = state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
 	return nil
 }
 
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
+
+	// todo test
+	root := state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	/**
 	this things about ppos
@@ -253,11 +274,20 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.Hash()
 	}
+
+	// TODO test
+	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("EndBlock pposHash, Before Store VRF Seed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(blockHash.Bytes()))
+
 	// Store the previous vrf random number
 	if err := bcr.vh.Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
-		log.Error("blockchain_reactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+		log.Error("blockchain_reactor Storage proof failed", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return err
 	}
+
+	// TODO test
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("EndBlock pposHash, After Store VRF Seed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(blockHash.Bytes()))
 
 	for _, pluginRule := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
@@ -267,13 +297,25 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		}
 	}
 
+	// todo test
+	root = state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root, After EndBlock by plugin", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
 	// storage the ppos k-v Hash
-	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+
+	// TODO test
+	log.Debug("EndBlock pposHash, Before Store pposHash", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(blockHash.Bytes()))
+
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
 		log.Info("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
 	}
+
+	// todo test
+	root = state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
