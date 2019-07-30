@@ -16,6 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 )
 
 const (
@@ -29,9 +30,10 @@ const (
 )
 
 type ValidateNode struct {
-	Index   uint            `json:"index"`
-	NodeID  discover.NodeID `json:"nodeID"`
-	Address common.Address  `json:"-"`
+	Index     uint            `json:"index"`
+	NodeID    discover.NodeID `json:"nodeID"`
+	Address   common.Address  `json:"-"`
+	BlsPubKey bls.PublicKey   `json:"blsPubKey"`
 }
 
 type NodeList []*ValidateNode
@@ -135,7 +137,7 @@ func (vic *validatorInnerContract) SwitchValidators(validBlockNumber uint64) err
 		nvs.ValidBlockNumber = validBlockNumber
 		b, _ = rlp.EncodeToBytes(nvs)
 		state.SetState(vic.Contract.Address(), []byte(CurrentValidatorKey), b)
-		log.Debug("Switch validators success", "number", vic.Evm.BlockNumber , "validators", nvs.String())
+		log.Debug("Switch validators success", "number", vic.Evm.BlockNumber, "validators", nvs.String())
 		return nil
 	}
 

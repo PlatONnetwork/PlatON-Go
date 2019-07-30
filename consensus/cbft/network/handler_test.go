@@ -168,7 +168,7 @@ func Test_EngineManager_Forwarding(t *testing.T) {
 	peers := fake.peers
 	// scenes:
 	// 1.need to broadcast, the count of sendQueues is 1.
-	// 2. need not to broadcast, the count of sendQueues is 0.
+	// 2.need not to broadcast, the count of sendQueues is 0.
 	fakePeer := peers[1]
 	handle.peers.Register(fakePeer)
 	fakeMessage := &protocols.PrepareBlockHash{
@@ -182,9 +182,10 @@ func Test_EngineManager_Forwarding(t *testing.T) {
 	if err != nil {
 		t.Error("forwarding failed.", err)
 	}
-	assert.Equal(t, 1, len(handle.sendQueue))
+
 	select {
 	case <-handle.sendQueue:
+		assert.Equal(t, 0, len(handle.sendQueue))
 	}
 
 	// mark the msgHash to queues.
