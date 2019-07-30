@@ -332,38 +332,36 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 
-	switch msg := msg.(type) {
-	case *protocols.GetPrepareBlock:
-		cbft.OnGetPrepareBlock(id, msg)
+	if !cbft.fetcher.MatchTask(id, msg) {
+		switch msg := msg.(type) {
+		case *protocols.GetPrepareBlock:
+			cbft.OnGetPrepareBlock(id, msg)
 
-	case *protocols.GetBlockQuorumCert:
-		cbft.OnGetBlockQuorumCert(id, msg)
+		case *protocols.GetBlockQuorumCert:
+			cbft.OnGetBlockQuorumCert(id, msg)
 
-	case *protocols.BlockQuorumCert:
-		cbft.OnBlockQuorumCert(id, msg)
+		case *protocols.BlockQuorumCert:
+			cbft.OnBlockQuorumCert(id, msg)
 
-	case *protocols.GetPrepareVote:
-		cbft.OnGetPrepareVote(id, msg)
+		case *protocols.GetPrepareVote:
+			cbft.OnGetPrepareVote(id, msg)
 
-	case *protocols.PrepareVotes:
-		cbft.OnPrepareVotes(id, msg)
+		case *protocols.PrepareVotes:
+			cbft.OnPrepareVotes(id, msg)
 
-	case *protocols.GetQCBlockList:
-		cbft.OnGetQCBlockList(id, msg)
+		case *protocols.GetQCBlockList:
+			cbft.OnGetQCBlockList(id, msg)
 
-	case *protocols.QCBlockList:
-		// Special: Use fetch tasks for asynchronous operations.
-		cbft.fetcher.MatchTask(id, msg)
+		case *protocols.GetLatestStatus:
+			cbft.OnGetLatestStatus(id, msg)
 
-	case *protocols.GetLatestStatus:
-		cbft.OnGetLatestStatus(id, msg)
+		case *protocols.LatestStatus:
+			cbft.OnLatestStatus(id, msg)
 
-	case *protocols.LatestStatus:
-		cbft.OnLatestStatus(id, msg)
+		case *protocols.PrepareBlockHash:
+			cbft.OnPrepareBlockHash(id, msg)
 
-	case *protocols.PrepareBlockHash:
-		cbft.OnPrepareBlockHash(id, msg)
-
+		}
 	}
 }
 
