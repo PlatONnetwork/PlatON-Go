@@ -84,6 +84,8 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
+	log.Info("Call EndBlock on staking plugin", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
+
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		// handle UnStaking Item
 		err := sk.HandleUnCandidateItem(state, blockHash, epoch)
@@ -117,12 +119,20 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 				"blockNumber", header.Number.Uint64(), "err", err)
 			return err
 		}
-	}
 
+		// todo test
+		pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+		log.Info("Query ppos hash, After Election", "blockHash", header.Hash().Hex(), "blockNumber", header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
+
+	}
+	log.Info("Finished EndBlock on staking plugin", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
 	return nil
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
+
+	log.Info("Call Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
+
 	if xutil.IsElection(block.NumberU64()) {
 
 		next, err := sk.getNextValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
@@ -164,7 +174,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			log.Debug("stakingPlugin removeConsensusNode success", "blockNumber", block.NumberU64(), "size", len(result))
 		}
 	}
-
+	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
 	return nil
 }
 
@@ -198,6 +208,19 @@ func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash, addr common.Add
 	return sk.db.GetCandidateStore(blockHash, addr)
 }
 
+func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNumber uint64, addr common.Address) (*staking.Candidate, error) {
+	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	if nil != err {
+		return nil, err
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcStakeAmount(epoch, can)
+
+	return can, nil
+}
+
 func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Candidate, error) {
 	return sk.db.GetCandidateStoreByIrr(addr)
 }
@@ -205,7 +228,8 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
 
-	log.Debug("Call CreateCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
+	log.Debug("Call CreateCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+		"nodeId", can.NodeId.String())
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -254,7 +278,6 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
-
 	return nil
 }
 
@@ -263,6 +286,12 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	addr common.Address, typ uint16) error {
 
 	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
 
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err {
@@ -315,6 +344,10 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 }
 
 func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, can *staking.Candidate) error {
+
+	log.Debug("Call EditCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+		"nodeId", can.NodeId.String())
+
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
@@ -338,6 +371,9 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
+
+	log.Debug("Call IncreaseStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"epoch", epoch, "nodeId", can.NodeId.String(), "typ", typ, "amount", amount)
 
 	lazyCalcStakeAmount(epoch, can)
 
@@ -401,6 +437,9 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
+	log.Debug("Call WithdrewStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"epoch", epoch, "nodeId", can.NodeId.String())
+
 	lazyCalcStakeAmount(epoch, can)
 
 	addr := crypto.PubkeyToAddress(*pubKey)
@@ -447,9 +486,16 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
 	if can.ReleasedHes.Cmp(common.Big0) > 0 {
+
 		state.AddBalance(can.StakingAddress, can.ReleasedHes)
 		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
 		//can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
@@ -572,10 +618,17 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	lazyCalcStakeAmount(epoch, can)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
+
 			state.AddBalance(can.StakingAddress, balance)
 			state.SubBalance(vm.StakingContractAddr, balance)
 			return common.Big0
@@ -642,6 +695,26 @@ func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common
 	}, nil
 }
 
+func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNumber uint64, delAddr common.Address,
+	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+
+	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
+	if nil != err {
+		return nil, err
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcDelegateAmount(epoch, del)
+
+	return &staking.DelegationEx{
+		Addr:            delAddr,
+		NodeId:          nodeId,
+		StakingBlockNum: stakeBlockNumber,
+		Delegation:      *del,
+	}, nil
+}
+
 func (sk *StakingPlugin) GetDelegateInfoByIrr(delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
 
@@ -670,6 +743,10 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	canAddr := crypto.PubkeyToAddress(*pubKey)
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
+
+	log.Debug("Call Delegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "epoch", epoch,
+		"delAddr", delAddr.String(), "nodeId", can.NodeId.String(), "StakingNum", can.StakingBlockNum, "typ", typ,
+		"amount", amount)
 
 	lazyCalcDelegateAmount(epoch, del)
 
@@ -738,6 +815,17 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
 	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation) error {
 
+	log.Debug("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount)
+	// todo test
+	xcom.PrintObject("Call WithdrewDelegate, the delegate info", del)
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: nodeId parse addr failed",
@@ -764,6 +852,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	inner Fn
 	*/
 	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
+
 		state.AddBalance(delAddr, sub)
 		state.SubBalance(vm.StakingContractAddr, sub)
 		return new(big.Int).Sub(source, sub), common.Big0
@@ -1009,6 +1098,12 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	unDel *staking.UnDelegateItem, del *staking.Delegation) error {
 
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	// del addr
 	delAddrByte := unDel.KeySuffix[0:common.AddressLength]
 	delAddr := common.BytesToAddress(delAddrByte)
@@ -1033,6 +1128,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		refundReleaseFn := func(balance *big.Int) *big.Int {
 			if balance.Cmp(common.Big0) > 0 {
+
 				state.AddBalance(delAddr, balance)
 				state.SubBalance(vm.StakingContractAddr, balance)
 				return common.Big0
@@ -1082,6 +1178,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		refundReleaseFn := func(balance, remain *big.Int) (*big.Int, *big.Int) {
 			if remain.Cmp(common.Big0) > 0 {
+
 				if remain.Cmp(balance) >= 0 {
 					state.SubBalance(vm.StakingContractAddr, balance)
 					state.AddBalance(delAddr, balance)
@@ -1537,7 +1634,9 @@ func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, blockNumber uint
 	return flag, nil
 }
 
-func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.CandidateQueue, error) {
+func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateQueue, error) {
+
+	epoch := xutil.CalculateEpoch(blockNumber)
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
 	if err := iter.Error(); nil != err {
@@ -1553,6 +1652,9 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.Candid
 		if nil != err {
 			return nil, err
 		}
+
+		lazyCalcStakeAmount(epoch, can)
+
 		queue = append(queue, can)
 	}
 
@@ -1692,6 +1794,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	curr_num := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
+	slashAddrQueue := make([]common.Address, 0)
+
 	for _, v := range curr.Arr {
 
 		addr, _ := xutil.NodeId2Addr(v.NodeId)
@@ -1705,10 +1809,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		if staking.Is_LowRatio(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
+			slashAddrQueue = append(slashAddrQueue, addr)
 		}
 		if staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
+			slashAddrQueue = append(slashAddrQueue, addr)
 			duplicateSignNum++
 		}
 	}
@@ -1744,8 +1850,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	if duplicateSignNum >= diffQueueLen {
 
-		log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
-			blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
+		if duplicateSignNum > diffQueueLen {
+			log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
+		}
 
 		if curr_num-duplicateSignNum+diffQueueLen < mbn {
 
@@ -1777,8 +1885,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 				if duplicateSignNum >= len(queue) {
 
-					log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
-						blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
+					if duplicateSignNum > len(queue) {
+						log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
+							blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
+					}
 
 					if curr_num-duplicateSignNum+len(queue) < mbn {
 
@@ -1811,11 +1921,26 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		return err
 	}
 
+	// todo test
+	if len(slashAddrQueue) != 0 {
+		log.Debug("Election Slashing addr", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex())
+		xcom.PrintObject("Election Slashing addr", slashAddrQueue)
+	}
+
 	// update candidate status
-	for addr, can := range slashCans {
+	// Must sort
+	for _, addr := range slashAddrQueue {
+		can := slashCans[addr]
 		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
+
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
+
+			// TODO test
+			log.Debug("Election slashed addr", "addr", addr.Hex())
+			xcom.PrintObject("Election slashed addr", can)
+
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -1823,6 +1948,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			}
 		}
 	}
+
+	// todo test
+	if len(slashAddrQueue) != 0 {
+		log.Debug("Election slashed addr Done ...")
+	}
+
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
 
 	// todo test
@@ -1832,6 +1963,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
 	nodeId discover.NodeID, amount *big.Int, needDelete bool, slashType int, caller common.Address) error {
+
+	log.Info("Call SlashCandidates start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"slashType", slashType, "nodeId", nodeId.String(), "amount", amount, "needDelete", needDelete,
+		"reporter", caller.Hex())
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 {
+		log.Error("Failed to SlashCandidates: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		panic("the balance is invalid of stakingContracr Account")
+	}
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -1877,6 +2018,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		balanceTmp := common.Big0
 
 		if remain.Cmp(balance) >= 0 {
+
 			state.SubBalance(vm.StakingContractAddr, balance)
 			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, balance)
@@ -1960,6 +2102,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the ramain is not zero, remain:%s", remain)
 	}
 
+	// sub Shares to effect power
+	can.Shares = new(big.Int).Sub(can.Shares, amount)
+
 	remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
 	remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
 	canRemain := new(big.Int).Add(remainRelease, remainRestrictingPlan)
@@ -1981,8 +2126,11 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	if !needDelete {
 		sk.db.SetCanPowerStore(blockHash, addr, can)
-		can.Status |= staking.Invalided
 	} else {
+		//because of deleted candidate info ,clean Shares
+		can.Shares = common.Big0
+		can.Status |= staking.Invalided
+
 		validators, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to SlashCandidates: Query Verifier List is failed", "slashType", slashType,
@@ -1997,7 +2145,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 			if val.NodeId == nodeId {
 
-				log.Debug("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
+				log.Info("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
 				validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)

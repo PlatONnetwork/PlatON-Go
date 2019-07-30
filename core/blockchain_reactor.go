@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -36,12 +37,12 @@ type BlockChainReactor struct {
 }
 
 var (
-	brcOnce sync.Once
+	bcrOnce sync.Once
 	bcr     *BlockChainReactor
 )
 
 func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChainReactor {
-	brcOnce.Do(func() {
+	bcrOnce.Do(func() {
 		log.Info("Init BlockChainReactor ...")
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
@@ -52,8 +53,8 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 	return bcr
 }
 
-func (brc *BlockChainReactor) Start(mode string) {
-	brc.setValidatorMode(mode)
+func (bcr *BlockChainReactor) Start(mode string) {
+	bcr.setValidatorMode(mode)
 	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
@@ -63,9 +64,9 @@ func (brc *BlockChainReactor) Start(mode string) {
 	}
 }
 
-func (brc *BlockChainReactor) Close() {
-	brc.exitOnce.Do(func() {
-		close(brc.exitCh)
+func (bcr *BlockChainReactor) Close() {
+	bcr.exitOnce.Do(func() {
+		close(bcr.exitCh)
 		log.Info("blockchain_reactor is closed")
 	})
 }
@@ -75,7 +76,7 @@ func GetReactorInstance() *BlockChainReactor {
 	return bcr
 }
 
-func (brc *BlockChainReactor) loop() {
+func (bcr *BlockChainReactor) loop() {
 
 	for {
 		select {
@@ -99,7 +100,7 @@ func (brc *BlockChainReactor) loop() {
 			/**
 			notify P2P module the nodeId of the next round validator
 			*/
-			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
+			if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
@@ -107,7 +108,7 @@ func (brc *BlockChainReactor) loop() {
 			}
 
 			// Slashing
-			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
+			if plugin, ok := bcr.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
@@ -119,7 +120,7 @@ func (brc *BlockChainReactor) loop() {
 				continue
 			}
 		// stop this routine
-		case <-brc.exitCh:
+		case <-bcr.exitCh:
 			return
 		}
 	}
@@ -138,7 +139,7 @@ func (bcr *BlockChainReactor) setValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
-func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
+func (bcr *BlockChainReactor) SetVRF_handler(vher *xcom.VrfHandler) {
 	bcr.vh = vher
 }
 
@@ -156,8 +157,46 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, privateKey *ecdsa.PrivateKey) {
+
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return
+	}
+
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	addr, _ := xutil.NodeId2Addr(nodeId)
+
+	log.Info("Call SetWorkerCoinBase on blockchain_reactor", "blockNumber", header.Number,
+		"nodeId", nodeId.String(), "addr", addr.Hex())
+
+	if plu, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
+		stake := plu.(*plugin.StakingPlugin)
+		can, err := stake.GetCandidateInfo(common.ZeroHash, addr)
+		if nil != err {
+			log.Error("Failed to SetWorkerCoinBase: Query candidate info is failed", "err", err)
+			return
+		}
+		header.Coinbase = can.BenefitAddress
+		log.Info("SetWorkerCoinBase Successfully", "coinbase", header.Coinbase.Hex())
+	}
+
+}
+
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
+
+	// todo test
+	root := state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber",
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
+	// todo test
+	pposHash := state.GetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey())
+	log.Info("Query ppos hash", "blockHash", header.Hash().Hex(), "blockNumber",
+		header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
 
 	/**
 	this things about ppos
@@ -189,9 +228,17 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
-	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
+	// TODO test
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("BeginBlock pposHash, Before beginBlock", "blockNumber", header.Number.Uint64(),
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
+		"hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
+			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
+			hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
 		return err
 	}
 
@@ -203,11 +250,26 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
+	// TODO test
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("BeginBlock pposHash, After beginBlock", "blockNumber", header.Number.Uint64(),
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	// todo test
+	root = state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
 	return nil
 }
 
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
+
+	// todo test
+	root := state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber",
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	/**
 	this things about ppos
@@ -221,11 +283,23 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.Hash()
 	}
+
+	// TODO test
+	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("EndBlock pposHash, Before Store VRF Seed", "blockNumber", header.Number.Uint64(),
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
 	// Store the previous vrf random number
 	if err := bcr.vh.Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
-		log.Error("blockchain_reactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+		log.Error("blockchain_reactor Storage proof failed", "blockNumber", header.Number.Uint64(),
+			"blockHash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return err
 	}
+
+	// TODO test
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("EndBlock pposHash, After Store VRF Seed", "blockNumber", header.Number.Uint64(),
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	for _, pluginRule := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
@@ -235,12 +309,29 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		}
 	}
 
+	// todo test
+	root = state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root, After EndBlock by plugin", "blockHash", header.Hash().Hex(),
+		"blockNumber", header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
 	// storage the ppos k-v Hash
-	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	pposHash = snapshotdb.Instance().GetLastKVHash(blockHash)
+
+	// TODO test
+	log.Debug("EndBlock pposHash, Before Store pposHash", "blockNumber", header.Number.Uint64(),
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
+		log.Info("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(),
+			"pposHash", hex.EncodeToString(pposHash))
 	}
+
+	// todo test
+	root = state.IntermediateRoot(true)
+	log.Debug("EndBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
@@ -284,7 +375,7 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 
 func (bcr *BlockChainReactor) VerifyHeader(header *types.Header) error {
 
-	//header.Extra
+	// TODO header.Extra
 
 	return nil
 }
@@ -293,7 +384,7 @@ func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
 	return plugin.StakingInstance().GetLastNumber(blockNumber)
 }
 
-func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+func (bcr *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
 	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 

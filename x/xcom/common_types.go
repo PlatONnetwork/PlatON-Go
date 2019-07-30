@@ -65,6 +65,8 @@ type StateDB interface {
 	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
+
+	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
 // inner contract event data

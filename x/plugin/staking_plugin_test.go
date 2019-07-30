@@ -861,7 +861,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	/**
 	Start GetCandidateList
 	*/
-	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash); nil != err {
+	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64()); nil != err {
 		t.Error("Failed to GetCandidateList", err)
 	} else {
 		if count != len(queue) {

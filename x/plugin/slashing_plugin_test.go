@@ -28,7 +28,7 @@ func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
 	db := ethdb.NewMemDatabase()
 	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db))
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	return si, stateDB
 }
@@ -186,31 +186,26 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	pri, phash := confirmBlock(t, 478)
 	blockNumber := new(big.Int).SetInt64(479)
 	if err := snapshotdb.Instance().NewBlock(blockNumber, phash, common.ZeroHash); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	buildStakingData(common.ZeroHash, pri, t, stateDB)
 
 	phash = common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
 	if err := snapshotdb.Instance().Flush(phash, blockNumber); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := snapshotdb.Instance().Commit(phash); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	header := &types.Header{
 		Number: new(big.Int).SetUint64(480),
 		Extra:  make([]byte, 97),
 	}
 	if err := snapshotdb.Instance().NewBlock(header.Number, phash, common.ZeroHash); nil != err {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := si.BeginBlock(common.ZeroHash, header, stateDB); nil != err {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 }
 
@@ -222,7 +217,7 @@ func TestSlashingPlugin_Confirmed(t *testing.T) {
 	confirmBlock(t, 251)
 	result, err := si.GetPreNodeAmount()
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	fmt.Println(result)
 }
@@ -244,9 +239,7 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 	_, genesis, _ := newChainState()
 	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
-
 		blockNum := big.NewInt(int64(i + 1))
-
 		if i == 7 {
 			sk = pri2
 		}
@@ -256,22 +249,21 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 		}
 		sign, err := crypto.Sign(header.SealHash().Bytes(), sk)
 		if nil != err {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
 		block := types.NewBlock(header, nil, nil)
 		if err := plugin.SlashInstance().Confirmed(block); nil != err {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		if err := db.NewBlock(blockNum, parentHash, common.ZeroHash); err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
-		//hash = crypto.Keccak256Hash(common.Int32ToBytes(int32(i)))
 		if err := db.Flush(header.Hash(), blockNum); err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 		if err := db.Commit(header.Hash()); err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 		parentHash = header.Hash()
 	}
@@ -283,10 +275,16 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	si, stateDB := initInfo(t)
 	blockNumber := new(big.Int).SetUint64(1)
 	chash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
-	snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash)
+	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
 	buildStakingData(common.ZeroHash, nil, t, stateDB)
-	snapshotdb.Instance().Flush(chash, blockNumber)
-	snapshotdb.Instance().Commit(chash)
+	if err := snapshotdb.Instance().Flush(chash, blockNumber); nil != err {
+		t.Fatal(err)
+	}
+	if err := snapshotdb.Instance().Commit(chash); nil != err {
+		t.Fatal(err)
+	}
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
@@ -320,7 +318,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
 	nodeId, err := discover.HexID("0x38e2724b366d66a5acb271dba36bc45e2161e868d961ee299f4e331927feb5e9373f35229ef7fe7e84c083b0fbf24264faef01faaf388df5f459b87638aa620b")
 	if nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	can := &staking.Candidate{
 		NodeId:          nodeId,
@@ -339,26 +337,24 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	stateDB.CreateAccount(addr)
 	stateDB.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
 	if err := snapshotdb.Instance().NewBlock(blockNumber, chash, common.ZeroHash); nil != err {
-		panic(err)
+		t.Fatal(err)
 	}
 	if err := plugin.StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	evidence, err := si.DecodeEvidence(data)
 	if nil != err {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if value, err := si.CheckDuplicateSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	evidence, err = si.DecodeEvidence(data)
 	if nil != err {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
 	assert.Nil(t, err)
@@ -388,8 +384,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
         }`
 	evidence, err = si.DecodeEvidence(data)
 	if nil != err {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
 	assert.Nil(t, err)
@@ -402,6 +397,6 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	}()
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
 	if _, err := si.CheckDuplicateSign(addr, 1, 1, stateDB); nil != err {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
