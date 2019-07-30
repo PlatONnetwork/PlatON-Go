@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -91,11 +90,6 @@ func getWal() Wal {
 
 func testWalUpdateChainState() (*protocols.ChainState, error) {
 	// UpdateChainState
-	qc := make([]*protocols.State, 0)
-	qc = append(qc, &protocols.State{
-		Block:      block,
-		QuorumCert: buildQuorumCert(),
-	})
 	chainState := &protocols.ChainState{
 		Commit: &protocols.State{
 			Block:      block,
@@ -105,7 +99,10 @@ func testWalUpdateChainState() (*protocols.ChainState, error) {
 			Block:      block,
 			QuorumCert: buildQuorumCert(),
 		},
-		QC: qc,
+		QC: []*protocols.State{{
+			Block:      block,
+			QuorumCert: buildQuorumCert(),
+		}},
 	}
 	err := getWal().UpdateChainState(chainState)
 	return chainState, err
@@ -141,13 +138,14 @@ func testWalWrite() (int, error) {
 	for i := 0; i < times; i++ {
 		ordinal := ordinalMessages()
 		if ordinal == 0 {
-			err = getWal().WriteSync(buildSendPrepareBlock())
-		} else if ordinal == 1 {
-			err = getWal().WriteSync(buildSendPrepareVote())
-		} else if ordinal == 2 {
-			err = getWal().WriteSync(buildSendViewChange())
-		} else if ordinal == 3 {
 			err = getWal().WriteSync(buildConfirmedViewChange())
+		} else if ordinal == 1 {
+			err = getWal().WriteSync(buildSendViewChange())
+		} else if ordinal == 2 {
+			err = getWal().WriteSync(buildSendPrepareBlock())
+		} else if ordinal == 3 {
+			//err = getWal().WriteSync(buildSendPrepareVote())
+			err = getWal().Write(buildSendPrepareVote())
 		}
 		if err != nil {
 			return 0, err
@@ -215,10 +213,7 @@ func TestEmptyWal(t *testing.T) {
 func TestRlpDecode(t *testing.T) {
 	msg := &Message{
 		Timestamp: uint64(time.Now().UnixNano()),
-		Data: &protocols.ConfirmedViewChange{
-			Epoch:      1,
-			ViewNumber: 1,
-		},
+		Data:      buildConfirmedViewChange(),
 	}
 	data, _ := rlp.EncodeToBytes(msg)
 

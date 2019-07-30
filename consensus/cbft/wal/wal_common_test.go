@@ -2,7 +2,8 @@ package wal
 
 import (
 	"math/big"
-	"math/rand"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -11,8 +12,12 @@ import (
 )
 
 var (
-	header = &types.Header{
-		Number: big.NewInt(1),
+	blockNumber    = uint64(100)
+	blockIndex     = uint32(1)
+	proposalIndex  = uint32(2)
+	validatorIndex = uint32(6)
+	header         = &types.Header{
+		Number: big.NewInt(100),
 	}
 	block   = types.NewBlock(header, nil, nil)
 	ordinal = 0
@@ -20,60 +25,64 @@ var (
 
 func buildPrepareBlock() *protocols.PrepareBlock {
 	return &protocols.PrepareBlock{
-		Epoch:         1,
-		ViewNumber:    1,
+		Epoch:         epoch,
+		ViewNumber:    viewNumber,
 		Block:         block,
-		BlockIndex:    1,
-		ProposalIndex: 1,
-		PrepareQC: &ctypes.QuorumCert{
-			ViewNumber:  1,
-			BlockHash:   common.BytesToHash(Rand32Bytes(32)),
-			BlockNumber: 1,
-			Signature:   ctypes.Signature{},
-		},
-		ViewChangeQC: &ctypes.ViewChangeQC{},
-		Signature:    ctypes.Signature{},
+		BlockIndex:    blockIndex,
+		ProposalIndex: proposalIndex,
+		PrepareQC:     buildQuorumCert(),
+		ViewChangeQC:  buildViewChangeQC(),
+		Signature:     ctypes.BytesToSignature(utils.Rand32Bytes(32)),
 	}
 }
 
 func buildQuorumCert() *ctypes.QuorumCert {
 	return &ctypes.QuorumCert{
-		ViewNumber:  viewNumber,
-		BlockHash:   common.BytesToHash(Rand32Bytes(32)),
-		BlockNumber: block.NumberU64(),
+		Epoch:        epoch,
+		ViewNumber:   viewNumber,
+		BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
+		BlockNumber:  blockNumber,
+		BlockIndex:   blockIndex,
+		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+		ValidatorSet: utils.NewBitArray(110),
+	}
+}
+
+func buildViewChangeQC() *ctypes.ViewChangeQC {
+	return &ctypes.ViewChangeQC{
+		QCs: []*ctypes.ViewChangeQuorumCert{{
+			Epoch:        epoch,
+			ViewNumber:   viewNumber,
+			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
+			BlockNumber:  blockNumber,
+			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+			ValidatorSet: utils.NewBitArray(110),
+		}},
 	}
 }
 
 func buildPrepareVote() *protocols.PrepareVote {
 	return &protocols.PrepareVote{
-		Epoch:       1,
-		ViewNumber:  1,
-		BlockHash:   common.BytesToHash(Rand32Bytes(32)),
-		BlockNumber: 1,
-		BlockIndex:  1,
-		ParentQC: &ctypes.QuorumCert{
-			ViewNumber:  1,
-			BlockHash:   common.BytesToHash(Rand32Bytes(32)),
-			BlockNumber: 1,
-			Signature:   ctypes.Signature{},
-		},
-		Signature: ctypes.Signature{},
+		Epoch:          epoch,
+		ViewNumber:     viewNumber,
+		BlockHash:      common.BytesToHash(utils.Rand32Bytes(32)),
+		BlockNumber:    blockNumber,
+		BlockIndex:     blockIndex,
+		ValidatorIndex: validatorIndex,
+		ParentQC:       buildQuorumCert(),
+		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(32)),
 	}
 }
 
 func buildViewChange() *protocols.ViewChange {
 	return &protocols.ViewChange{
-		Epoch:       1,
-		ViewNumber:  1,
-		BlockHash:   common.BytesToHash(Rand32Bytes(32)),
-		BlockNumber: 1,
-		PrepareQC: &ctypes.QuorumCert{
-			ViewNumber:  1,
-			BlockHash:   common.BytesToHash(Rand32Bytes(32)),
-			BlockNumber: 1,
-			Signature:   ctypes.Signature{},
-		},
-		Signature: ctypes.Signature{},
+		Epoch:          epoch,
+		ViewNumber:     viewNumber,
+		BlockHash:      common.BytesToHash(utils.Rand32Bytes(32)),
+		BlockNumber:    blockNumber,
+		ValidatorIndex: validatorIndex,
+		PrepareQC:      buildQuorumCert(),
+		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(32)),
 	}
 }
 
@@ -98,8 +107,11 @@ func buildSendViewChange() *protocols.SendViewChange {
 
 func buildConfirmedViewChange() *protocols.ConfirmedViewChange {
 	return &protocols.ConfirmedViewChange{
-		Epoch:      epoch,
-		ViewNumber: viewNumber,
+		Epoch:        epoch,
+		ViewNumber:   viewNumber,
+		Block:        block,
+		QC:           buildQuorumCert(),
+		ViewChangeQC: buildViewChangeQC(),
 	}
 }
 
@@ -111,12 +123,4 @@ func ordinalMessages() int {
 	current := ordinal
 	ordinal = ordinal + 1
 	return current
-}
-
-func Rand32Bytes(n uint32) []byte {
-	bs := make([]byte, n)
-	for i := 0; i < len(bs); i++ {
-		bs[i] = byte(rand.Int31n(int32(n)) & 0xFF)
-	}
-	return bs
 }
