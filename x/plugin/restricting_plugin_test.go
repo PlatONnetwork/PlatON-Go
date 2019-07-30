@@ -1530,4 +1530,27 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			t.Log("case2 pass")
 		}
 	}
+
+	// case3: get genesis restricting info
+	{
+		stateDb, _, _ := newChainState()
+		result, err := plugin.RestrictingInstance().GetRestrictingInfo(vm.RewardManagerPoolAddr, stateDb)
+
+		// show expected result
+		t.Logf("expected result is [123 34 98 97 108 97 110 99 101 34 58 50 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 44 34 100 101 98 116 34 58 48 44 34 115 121 109 98 111 108 34 58 102 97 108 115 101 44 34 69 110 116 114 121 34 58 91 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 51 49 53 51 54 48 48 48 44 34 97 109 111 117 110 116 34 58 49 56 51 55 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 44 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 54 51 48 55 50 48 48 48 44 34 97 109 111 117 110 116 34 58 54 49 50 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 93 125]")
+		t.Logf("actually result is %v", result)
+
+		var res restricting.Result
+		if err != nil {
+			t.Error(err.Error())
+		} else {
+			if err := json.Unmarshal(result, &res); err != nil {
+				t.Error(err.Error())
+			} else {
+				t.Log(res)
+				t.Log("=====================")
+				t.Log("case3 pass")
+			}
+		}
+	}
 }
