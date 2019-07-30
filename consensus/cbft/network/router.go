@@ -181,6 +181,7 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 	// all consensus nodes + a number of k non-consensus nodes
 	cNodes, err := r.consensusNodes()
+	log.Debug("consensusNodes in kMixingRandomNodes", "cNodes", len(cNodes), "ids", formatNodes(cNodes))
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +272,18 @@ func formatPeers(peers []*peer) string {
 	for idx, peer := range peers {
 		bf.WriteString(peer.id)
 		if idx < len(peers)-1 {
+			bf.WriteString(",")
+		}
+	}
+	return bf.String()
+}
+
+// formatNodes is used to print the information about peerID.
+func formatNodes(ids []discover.NodeID) string {
+	var bf bytes.Buffer
+	for idx, id := range ids {
+		bf.WriteString(id.TerminalString())
+		if idx < len(ids)-1 {
 			bf.WriteString(",")
 		}
 	}
