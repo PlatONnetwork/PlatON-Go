@@ -1,8 +1,10 @@
 package validator
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+	"errors"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -244,7 +246,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 
 	// Only updated once
 	if blockNumber <= vp.switchPoint {
-		return nil
+		return errors.New("already updated before")
 	}
 
 	isValidatorBefore := vp.isValidator(blockNumber, vp.nodeID)

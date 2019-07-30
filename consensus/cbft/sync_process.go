@@ -28,6 +28,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		}
 
 		executor := func(msg ctypes.Message) {
+			defer utils.SetFalse(&cbft.fetching)
 			if blockList, ok := msg.(*protocols.QCBlockList); ok {
 				// Execution block
 				for i, block := range blockList.Blocks {
@@ -48,7 +49,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Insert block failed", "error", err)
 					}
 				}
-				utils.SetFalse(&cbft.fetching)
 			}
 		}
 

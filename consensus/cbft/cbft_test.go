@@ -1,20 +1,26 @@
 package cbft
 
 import (
+	"encoding/json"
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	cvm "github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -169,6 +175,61 @@ func testTimeout(t *testing.T, node, node2 *TestCBFT) {
 	assert.Nil(t, node2.engine.OnViewChange(node.engine.config.Option.NodeID.TerminalString(), node.engine.state.AllViewChange()[0]))
 }
 
+func TestExecuteBlock(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(4)
+	nodes := make([]*TestCBFT, 0)
+	for i := 0; i < 4; i++ {
+		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		assert.Nil(t, node.Start())
+
+		nodes = append(nodes, node)
+		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+	}
+
+	result := make(chan *types.Block, 1)
+
+	parent := nodes[0].chain.Genesis()
+	for i := 0; i < 8; i++ {
+		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
+		nodes[0].engine.OnSeal(block, result, nil)
+
+		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
+		select {
+		case b := <-result:
+			assert.NotNil(t, b)
+			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+			for j := 1; j < 4; j++ {
+				msg := &protocols.PrepareVote{
+					Epoch:          nodes[0].engine.state.Epoch(),
+					ViewNumber:     nodes[0].engine.state.ViewNumber(),
+					BlockIndex:     uint32(i),
+					BlockHash:      b.Hash(),
+					BlockNumber:    b.NumberU64(),
+					ValidatorIndex: uint32(j),
+					ParentQC:       qc,
+				}
+				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
+				assert.NotNil(t, pb)
+				fmt.Println("block:", uint32(i))
+				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
+				time.Sleep(50 * time.Millisecond)
+				index, finish := nodes[j].engine.state.Executing()
+				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
+				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+				assert.Nil(t, nodes[1].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+			}
+			parent = b
+		}
+	}
+	assert.Equal(t, uint64(8), nodes[0].engine.state.HighestQCBlock().NumberU64())
+	assert.Equal(t, uint64(8), nodes[1].engine.state.HighestQCBlock().NumberU64())
+
+	//assert.Equal(t, uint64(2), nodes[0].engine.state.ViewNumber())
+
+}
+
 func TestChangeView(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
@@ -209,5 +270,177 @@ func TestChangeView(t *testing.T) {
 		}
 	}
 	assert.Equal(t, uint64(2), nodes[0].engine.state.ViewNumber())
+}
 
+func TestValidatorSwitch(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(4)
+	nodes := make([]*TestCBFT, 0)
+	for i := 0; i < 4; i++ {
+		node := MockValidator(pk[i], sk[i], cbftnodes, 10000, 10)
+		assert.Nil(t, node.Start())
+
+		nodes = append(nodes, node)
+	}
+
+	switchNode, switchCbftNode := func() (*TestCBFT, params.CbftNode) {
+		pk, sk, ns := GenerateCbftNode(1)
+		node := MockValidator(pk[0], sk[0], cbftnodes, 10000, 10)
+		assert.Nil(t, node.Start())
+		return node, ns[0]
+	}()
+
+	result := make(chan *types.Block, 1)
+
+	parent := nodes[0].chain.Genesis()
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 10; j++ {
+			block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+			if i == 1 && j == 0 {
+				newUpdateValidatorTx(t, parent, block, cbftnodes, switchCbftNode, nodes[i])
+			}
+			assert.True(t, nodes[i].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
+			nodes[i].engine.OnSeal(block, result, nil)
+
+			_, qc := nodes[i].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
+			switchNode.engine.InsertChain(parent)
+			select {
+			case b := <-result:
+				assert.NotNil(t, b)
+				assert.Equal(t, uint32(j-1), nodes[i].engine.state.MaxQCIndex())
+				for k := 0; k < 4; k++ {
+					if k == i {
+						continue
+					}
+
+					msgPrepare := &protocols.PrepareBlock{
+						Epoch:         nodes[i].engine.state.Epoch(),
+						ViewNumber:    nodes[i].engine.state.ViewNumber(),
+						Block:         block,
+						BlockIndex:    uint32(j),
+						ProposalIndex: uint32(i),
+					}
+					if j == 0 {
+						msgPrepare.PrepareQC = qc
+					}
+					assert.Nil(t, nodes[i].engine.signMsgByBls(msgPrepare))
+					assert.Nil(t, nodes[k].engine.OnPrepareBlock(fmt.Sprintf("%d", i), msgPrepare))
+
+					msg := &protocols.PrepareVote{
+						Epoch:          nodes[i].engine.state.Epoch(),
+						ViewNumber:     nodes[i].engine.state.ViewNumber(),
+						BlockIndex:     uint32(j),
+						BlockHash:      b.Hash(),
+						BlockNumber:    b.NumberU64(),
+						ValidatorIndex: uint32(k),
+						ParentQC:       qc,
+					}
+					assert.Nil(t, nodes[k].engine.signMsgByBls(msg))
+					for kk := 0; kk < 4; kk++ {
+						if kk == k {
+							continue
+						}
+						assert.Nil(t, nodes[kk].engine.OnPrepareVote(fmt.Sprintf("%d", i), msg), fmt.Sprintf("number: %d", b.NumberU64()))
+					}
+				}
+				parent = b
+			}
+		}
+	}
+	switchNode.engine.InsertChain(parent)
+
+	assert.False(t, switchNode.engine.IsConsensusNode())
+
+	nodes = append(nodes, nodes[:3]...)
+	nodes = append(nodes, switchNode)
+
+	block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+	assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
+	nodes[0].engine.OnSeal(block, result, nil)
+	_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
+	select {
+	case b := <-result:
+		assert.NotNil(t, b)
+		//assert.Equal(t, , nodes[0].engine.state.MaxQCIndex())
+		for i := 1; i < 4; i++ {
+			if i == 2 {
+				continue
+			}
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     0,
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(0),
+				ParentQC:       qc,
+			}
+			assert.Nil(t, nodes[i].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number: %d", block.NumberU64()))
+			assert.Nil(t, nodes[3].engine.OnPrepareVote("id", msg), fmt.Sprintf("number: %d", block.NumberU64()))
+		}
+	}
+	qcBlock0, _ := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+	qcBlock1, _ := nodes[3].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+	assert.NotNil(t, qcBlock0)
+	assert.NotNil(t, qcBlock1)
+	assert.Equal(t, qcBlock0.NumberU64(), qcBlock1.NumberU64())
+	assert.Equal(t, qcBlock1.Hash(), qcBlock1.Hash())
+}
+
+func newUpdateValidatorTx(t *testing.T, parent, block *types.Block, nodes []params.CbftNode, switchNode params.CbftNode, mineNode *TestCBFT) *types.Block {
+	type Vd struct {
+		Index     uint            `json:"index"`
+		NodeID    discover.NodeID `json:"nodeID"`
+		BlsPubKey bls.PublicKey   `json:"blsPubKey"`
+	}
+	type VdList struct {
+		NodeList []*Vd `json:"validateNode"`
+	}
+
+	vdl := &VdList{
+		NodeList: make([]*Vd, 0),
+	}
+
+	for i := 0; i < 3; i++ {
+		vdl.NodeList = append(vdl.NodeList, &Vd{
+			Index:     uint(i),
+			NodeID:    nodes[i].Node.ID,
+			BlsPubKey: nodes[i].BlsPubKey,
+		})
+	}
+	vdl.NodeList = append(vdl.NodeList, &Vd{
+		Index:     3,
+		NodeID:    switchNode.Node.ID,
+		BlsPubKey: switchNode.BlsPubKey,
+	})
+
+	buf, _ := json.Marshal(vdl)
+
+	param := [][]byte{
+		common.Int64ToBytes(2000),
+		[]byte("UpdateValidators"),
+		buf,
+	}
+	data, err := rlp.EncodeToBytes(param)
+	assert.Nil(t, err)
+	signer := types.NewEIP155Signer(chainConfig.ChainID)
+	tx, err := types.SignTx(
+		types.NewTransaction(
+			0,
+			vm.ValidatorInnerContractAddr,
+			big.NewInt(1000),
+			3000*3000,
+			big.NewInt(3000),
+			data),
+		signer,
+		testKey)
+	assert.Nil(t, err)
+
+	statedb, err := mineNode.chain.StateAt(parent.Root())
+	assert.Nil(t, err)
+	statedb.Prepare(tx.Hash(), common.Hash{}, 1)
+	receipt, _, err := core.ApplyTransaction(chainConfig, nil, &block.Header().Coinbase, nil, statedb, block.Header(), tx, &block.Header().GasUsed, cvm.Config{})
+	block, err = mineNode.engine.Finalize(mineNode.chain, block.Header(), statedb, []*types.Transaction{tx}, []*types.Receipt{receipt})
+	assert.Nil(t, err)
+	return block
 }
