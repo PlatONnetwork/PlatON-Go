@@ -104,10 +104,10 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		syncing:            0,
 		fetching:           0,
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
+		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		state:              cstate.NewViewState(),
-		fetcher:            fetcher.NewFetcher(),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -187,6 +187,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
 
 	go cbft.receiveLoop()
+
+	cbft.fetcher.Start()
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
@@ -330,39 +332,41 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 
-	switch msg := msg.(type) {
-	case *protocols.GetPrepareBlock:
-		cbft.OnGetPrepareBlock(id, msg)
+	if !cbft.fetcher.MatchTask(id, msg) {
+		switch msg := msg.(type) {
+		case *protocols.GetPrepareBlock:
+			cbft.OnGetPrepareBlock(id, msg)
 
-	case *protocols.GetBlockQuorumCert:
-		cbft.OnGetBlockQuorumCert(id, msg)
+		case *protocols.GetBlockQuorumCert:
+			cbft.OnGetBlockQuorumCert(id, msg)
 
-	case *protocols.BlockQuorumCert:
-		cbft.OnBlockQuorumCert(id, msg)
+		case *protocols.BlockQuorumCert:
+			cbft.OnBlockQuorumCert(id, msg)
 
-	case *protocols.GetPrepareVote:
-		cbft.OnGetPrepareVote(id, msg)
+		case *protocols.GetPrepareVote:
+			cbft.OnGetPrepareVote(id, msg)
 
-	case *protocols.PrepareVotes:
-		cbft.OnPrepareVotes(id, msg)
+		case *protocols.PrepareVotes:
+			cbft.OnPrepareVotes(id, msg)
 
-	case *protocols.GetQCBlockList:
-		cbft.OnGetQCBlockList(id, msg)
+		//case *protocols.GetQCBlockList:
+		//	cbft.OnGetQCBlockList(id, msg)
+		//
+		//case *protocols.QCBlockList:
+		//	cbft.OnQCBlockList(id, msg)
 
-	case *protocols.QCBlockList:
-		cbft.OnQCBlockList(id, msg)
+		case *protocols.GetLatestStatus:
+			cbft.OnGetLatestStatus(id, msg)
 
-	case *protocols.GetLatestStatus:
-		cbft.OnGetLatestStatus(id, msg)
+		case *protocols.LatestStatus:
+			cbft.OnLatestStatus(id, msg)
 
-	case *protocols.LatestStatus:
-		cbft.OnLatestStatus(id, msg)
+		case *protocols.PrepareBlockHash:
+			cbft.OnPrepareBlockHash(id, msg)
 
-	case *protocols.PrepareBlockHash:
-		cbft.OnPrepareBlockHash(id, msg)
+			//default:
 
-	default:
-		cbft.fetcher.MatchTask(id, msg)
+		}
 	}
 }
 
@@ -620,14 +624,8 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 // HashBlock check if the specified block exists in block tree.
 func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
-	has := false
-	cbft.checkStart(func() {
-		if cbft.state.HighestExecutedBlock().NumberU64() >= number {
-			has = true
-		}
-	})
-
-	return has
+	// Can only be invoked after startup
+	return cbft.state.HighestQCBlock().NumberU64() > number
 }
 
 func (Cbft) Status() string {

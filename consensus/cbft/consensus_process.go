@@ -183,19 +183,19 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 // Sign the block that has been executed
 // Every time try to trigger a send PrepareVote
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
-	vIdx, err := cbft.validatorPool.GetIndexByNodeID(number, cbft.config.Option.NodeID)
+	// todo sign vote
+	// parentQC added when sending
+	node, err := cbft.validatorPool.GetValidatorByNodeID(number, cbft.config.Option.NodeID)
 	if err != nil {
 		return err
 	}
-	// todo sign vote
-	// parentQC added when sending
 	prepareVote := &protocols.PrepareVote{
 		Epoch:          cbft.state.Epoch(),
 		ViewNumber:     cbft.state.ViewNumber(),
 		BlockHash:      hash,
 		BlockNumber:    number,
 		BlockIndex:     index,
-		ValidatorIndex: uint32(vIdx),
+		ValidatorIndex: uint32(node.Index),
 	}
 
 	if err := cbft.signMsgByBls(prepareVote); err != nil {
@@ -218,6 +218,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 	for !pending.Empty() {
 		p := pending.Top()
 		if err := cbft.voteRules.AllowVote(p); err != nil {
+			cbft.log.Debug("Not allow send vote", "err", err, "msg", p.String())
 			break
 		}
 
@@ -228,7 +229,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 		if block == nil {
 			cbft.log.Crit("Try send PrepareVote failed", "err", "vote corresponding block not found", "view", cbft.state.ViewString(), p.String())
 		}
-		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil {
+		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil || block.NumberU64() == 0 {
 			p.ParentQC = qc
 			hadSend.Push(p)
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
@@ -288,7 +289,6 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
-		fmt.Println("size:", size, "had:", cbft.state.HadSendPrepareVote().Had(next))
 		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
