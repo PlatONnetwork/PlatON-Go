@@ -55,7 +55,6 @@ type StateDB interface {
 	GetState(common.Address, []byte) []byte
 	SetState(common.Address, []byte, []byte)
 
-
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
 
@@ -77,6 +76,8 @@ type StateDB interface {
 	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
+
+	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
