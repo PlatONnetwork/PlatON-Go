@@ -675,7 +675,7 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
+func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	defer setup(t)()
 
@@ -741,7 +741,7 @@ func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_versionProposalSuccess(t *testing.T) {
+func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	defer setup(t)()
 
@@ -801,7 +801,7 @@ func TestGovPlugin_versionProposalSuccess(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_Param(t *testing.T) {
+func TestGovPlugin_SetParam(t *testing.T) {
 	defer setup(t)()
 
 	paraMap := make(map[string]string)
