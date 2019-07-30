@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -61,6 +62,10 @@ type Message interface {
 type MsgInfo struct {
 	Msg    Message
 	PeerID string
+}
+
+func (m MsgInfo) String() string {
+	return fmt.Sprintf("{peer:%s,type:%s,msg:%s}", m.PeerID, reflect.TypeOf(m.Msg), m.Msg.String())
 }
 
 // Create a new MsgInfo object.

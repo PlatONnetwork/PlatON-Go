@@ -124,5 +124,5 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
 
 func (v ViewChangeQC) String() string {
 	epoch, view, hash, number := v.MaxBlock()
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", epoch, view, hash, number)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", epoch, view, hash.TerminalString(), number)
 }

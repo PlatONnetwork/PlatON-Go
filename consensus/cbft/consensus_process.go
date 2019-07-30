@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -19,8 +20,14 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 		} else if err.NewView() {
-			_, _, hash, number := msg.ViewChangeQC.MaxBlock()
-			block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+			var block *types.Block
+			var qc *ctypes.QuorumCert
+			if msg.ViewChangeQC != nil {
+				_, _, hash, number := msg.ViewChangeQC.MaxBlock()
+				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
+			} else {
+				block, qc = cbft.blockTree.FindBlockAndQC(msg.Block.ParentHash(), msg.Block.NumberU64()-1)
+			}
 			cbft.log.Debug("Receive new view's block, change view", "newEpoch", msg.Epoch, "newView", msg.ViewNumber)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		} else {
@@ -59,6 +66,8 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
+
+	cbft.insertPrepareQC(msg.ParentQC)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
 
@@ -153,6 +162,20 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.SetHighestQCBlock(block)
 	cbft.tryCommitNewBlock(lock, commit)
 	cbft.tryChangeView()
+}
+
+func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
+	if qc != nil {
+		hasExecuted := func() bool {
+			return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) &&
+				cbft.state.HighestQCBlock().NumberU64()+1 == qc.BlockNumber
+		}
+
+		block := cbft.state.ViewBlockByIndex(qc.BlockIndex)
+		if block != nil && hasExecuted() {
+			cbft.insertQCBlock(block, qc)
+		}
+	}
 }
 
 // Asynchronous execution block callback function
@@ -255,6 +278,7 @@ func (cbft *Cbft) findExecutableBlock() {
 			parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
 			if parent == nil {
 				cbft.log.Error(fmt.Sprintf("Find executable block's parent failed :[%d,%d,%s]", blockIndex, block.NumberU64(), block.Hash()))
+				return
 			}
 
 			cbft.log.Debug("Find Executable Block", "hash", block.Hash(), "number", block.NumberU64())
@@ -349,7 +373,7 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	if enough() {
-		cbft.log.Debug("Produce enough blocks, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
+		cbft.log.Debug("Produce enough blocks, change view", "view", cbft.state.ViewString())
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, nil)
 		return
 	}
@@ -358,15 +382,16 @@ func (cbft *Cbft) tryChangeView() {
 		if cbft.state.ViewChangeLen() >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
 			return true
 		}
+		cbft.log.Debug("Had receive viewchange", "len", cbft.state.ViewChangeLen(), "view", cbft.state.ViewString())
 		return false
 	}
 
 	if viewChangeQC() {
 		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
-		_, viewNumber, _, number := viewChangeQC.MaxBlock()
+		_, _, _, number := viewChangeQC.MaxBlock()
 		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
-		if block.NumberU64() != 0 && (number > qc.BlockNumber || viewNumber > qc.ViewNumber) {
+		if block.NumberU64() != 0 && (number > qc.BlockNumber) {
 			//fixme get qc block
 			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
 			return
@@ -392,6 +417,8 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 	cbft.clearInvalidBlocks(block)
+	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
+	cbft.log.Debug(fmt.Sprintf("Current view deadline:%v", cbft.state.Deadline()))
 }
 
 // Clean up invalid blocks in the previous view
