@@ -117,9 +117,9 @@ func (h *EngineManager) Send(peerID string, msg types.Message) {
 	msgPkg := types.NewMsgPackage(peerID, msg, types.NoneMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("Send message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
+		log.Trace("Send message to sendQueue", "msgHash", msg.MsgHash(), "BHash", msg.BHash(), "msg", msg.String())
 	default:
-		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 	}
 	// todo: Whether to consider the problem of blocking
 }
@@ -131,9 +131,9 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	msgPkg := types.NewMsgPackage("", msg, types.FullMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("Broadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
+		log.Trace("Broadcast message to sendQueue", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
 	default:
-		log.Error("Broadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Error("Broadcast message failed, message queue blocking", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 	}
 }
 
