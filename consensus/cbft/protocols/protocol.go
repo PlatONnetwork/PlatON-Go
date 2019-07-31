@@ -31,8 +31,9 @@ const (
 	GetLatestStatusMsg    = 0x0b
 	LatestStatusMsg       = 0x0c
 	PrepareBlockHashMsg   = 0x0d
-	PingMsg               = 0x0e
-	PongMsg               = 0x0f
+	GetViewChangeMsg      = 0x0e
+	PingMsg               = 0x0f
+	PongMsg               = 0x10
 )
 
 // A is used to convert specific message types according to the message body.
@@ -69,6 +70,8 @@ func MessageType(msg interface{}) uint64 {
 		return GetLatestStatusMsg
 	case *LatestStatus:
 		return LatestStatusMsg
+	case *GetViewChange:
+		return GetViewChangeMsg
 	case *Ping:
 		return PingMsg
 	case *Pong:
@@ -506,5 +509,24 @@ func (s *LatestStatus) MsgHash() common.Hash {
 }
 
 func (s *LatestStatus) BHash() common.Hash {
+	return common.Hash{}
+}
+
+// Used to actively request to get viewChange.
+type GetViewChange struct {
+	Epoch      uint64 `json:"epoch"`
+	ViewNumber uint64 `json:"view_number"`
+}
+
+func (s *GetViewChange) String() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d}", s.Epoch, s.ViewNumber)
+}
+
+func (s *GetViewChange) MsgHash() common.Hash {
+	return utils.BuildHash(GetViewChangeMsg,
+		utils.MergeBytes(common.Uint64ToBytes(s.Epoch), common.Uint64ToBytes(s.ViewNumber)))
+}
+
+func (s *GetViewChange) BHash() common.Hash {
 	return common.Hash{}
 }

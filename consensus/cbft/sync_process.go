@@ -334,3 +334,31 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 	}
 	return nil
 }
+
+// OnGetViewChange responds to nodes that require viewChange.
+//
+// The Epoch and viewNumber of viewChange must be consistent
+// with the state of the current node.
+func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error {
+	cbft.log.Debug("Received message on OnGetViewChange", "from", id, "msgHash", msg.MsgHash())
+	localEpoch, localViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
+	if msg.Epoch != localEpoch {
+		cbft.log.Error("Epoch must be equal.", "reqEpoch", msg.Epoch, "localEpoch", localEpoch)
+		return fmt.Errorf("epoch not equal")
+	}
+	if msg.ViewNumber != localViewNumber {
+		cbft.log.Error("ViewNumber must be equal.", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
+		return fmt.Errorf("viewNumer not equal")
+	}
+	// Get the viewChange belong to local node.
+	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+	if err != nil {
+		cbft.log.Error("GetValidatorByNodeID occurs error", err)
+		return fmt.Errorf("get valididator failed")
+	}
+	if v, ok := cbft.state.AllViewChange()[uint32(node.Index)]; ok {
+		//todo: broadcast or responsive?
+		cbft.network.Send(id, v)
+	}
+	return nil
+}

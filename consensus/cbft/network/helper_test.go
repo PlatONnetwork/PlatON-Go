@@ -334,3 +334,9 @@ func (s *mockCbft) HighestLockBlockBn() (uint64, common.Hash) {
 func (s *mockCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return 0, common.Hash{}
 }
+func (s *mockCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
+	return []discover.NodeID{s.consensusNodes[0]}, &protocols.GetViewChange{
+		Epoch:      1,
+		ViewNumber: 1,
+	}, nil
+}

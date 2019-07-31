@@ -31,6 +31,7 @@ const (
 	QCBnMonitorInterval     = 4 // Qc block synchronization detection interval
 	LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+	SyncViewChangeInterval  = 4
 
 	//
 	TypeForQCBn     = 1
@@ -470,6 +471,14 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
+	case msg.Code == protocols.GetViewChangeMsg:
+		var request protocols.GetViewChange
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+		return nil
+
 	case msg.Code == protocols.PingMsg:
 		var pingTime protocols.Ping
 		if err := msg.Decode(&pingTime); err != nil {
@@ -532,6 +541,7 @@ func (h *EngineManager) synchronize() {
 	qcTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
 	lockedTicker := time.NewTicker(LockedBnMonitorInterval * time.Second)
 	commitTicker := time.NewTicker(CommitBnMonitorInterval * time.Second)
+	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
 
 	for {
 		select {
@@ -574,6 +584,21 @@ func (h *EngineManager) synchronize() {
 				}
 				h.Send(biggestPeer.PeerID(), msg)
 			}
+
+		case <-viewTicker.C:
+			// If the local viewChange has insufficient votes,
+			// the GetViewChange message is sent from the missing node.
+			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
+			if err != nil {
+				log.Error("Get consensus nodes failed", err)
+				break
+			}
+			log.Trace("missingViewNodes get done", "missingNodes", formatNodes(missingViewNodes))
+			// send GetViewChange to missing node.
+			for _, v := range missingViewNodes {
+				h.Send(v.TerminalString(), msg)
+			}
+
 		case <-h.quitSend:
 			log.Error("synchronize quit")
 			return

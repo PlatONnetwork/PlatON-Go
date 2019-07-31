@@ -361,6 +361,9 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 		case *protocols.PrepareBlockHash:
 			cbft.OnPrepareBlockHash(id, msg)
 
+		case *protocols.GetViewChange:
+			cbft.OnGetViewChange(id, msg)
+
 		}
 	}
 }
@@ -1091,4 +1094,41 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
+}
+
+// Returns the node ID of the missing vote.
+func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
+	allViewChange := cbft.state.AllViewChange()
+	nodeIds := make([]discover.NodeID, 0, len(allViewChange))
+	for k, _ := range allViewChange {
+		nodeId := cbft.validatorPool.GetNodeIDByIndex(cbft.state.HighestQCBlock().NumberU64(), int(k))
+		nodeIds = append(nodeIds, nodeId)
+	}
+	// all consensus
+	consensusNodes, err := cbft.ConsensusNodes()
+	if err != nil {
+		return nil, nil, err
+	}
+	// get difference set.
+	missingNodes := make([]discover.NodeID, len(consensusNodes)-len(nodeIds))
+	for _, cv := range consensusNodes {
+		isExists := false
+		for _, v := range nodeIds {
+			if cv == v {
+				isExists = true
+				break
+			}
+		}
+		if !isExists {
+			missingNodes = append(missingNodes, cv)
+		}
+	}
+	// Synchronize only when there are missing votes for half of the nodes.
+	if len(missingNodes) < len(consensusNodes)/2 {
+		return nil, nil, fmt.Errorf("within the safety value")
+	}
+	return missingNodes, &protocols.GetViewChange{
+		Epoch:      cbft.state.Epoch(),
+		ViewNumber: cbft.state.ViewNumber(),
+	}, nil
 }
