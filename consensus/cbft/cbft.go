@@ -1136,7 +1136,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		return nil, nil, err
 	}
 	// get difference set.
-	missingNodes := make([]discover.NodeID, len(consensusNodes)-len(nodeIds))
+	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
 	for _, cv := range consensusNodes {
 		isExists := false
 		for _, v := range nodeIds {
@@ -1154,7 +1154,8 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		return nil, nil, fmt.Errorf("within the safety value")
 	}
 	return missingNodes, &protocols.GetViewChange{
-		Epoch:      cbft.state.Epoch(),
-		ViewNumber: cbft.state.ViewNumber(),
+		Epoch:       cbft.state.Epoch(),
+		ViewNumber:  cbft.state.ViewNumber(),
+		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
 	}, nil
 }
