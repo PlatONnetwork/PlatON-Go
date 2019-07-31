@@ -1276,7 +1276,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if ok, timeout := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp, blockDeadline); ok {
+		if ok, timeout := w.commitTransactionsWithHeader(header, txs, header.Coinbase, interrupt, timestamp, blockDeadline); ok {
 			return
 		} else {
 			localTimeout = timeout
@@ -1289,7 +1289,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if ok, _ := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp, blockDeadline); ok {
+		if ok, _ := w.commitTransactionsWithHeader(header, txs, header.Coinbase, interrupt, timestamp, blockDeadline); ok {
 			return
 		}
 	}

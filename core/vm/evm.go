@@ -17,11 +17,12 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -70,7 +71,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				return RunPlatONPrecompiledContract(staking, input, contract)
 			case *RestrictingContract:
 				restricting := &RestrictingContract{
-					Plugin  : plugin.RestrictingInstance(),
+					Plugin:   plugin.RestrictingInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}

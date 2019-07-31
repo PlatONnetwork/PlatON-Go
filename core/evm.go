@@ -17,8 +17,9 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -50,7 +51,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 
 	// store the sign in  header.Extra[32:97]
 	if !xutil.IsWorker(header.Extra) {
-		blockHash =  header.Hash()
+		blockHash = header.Hash()
 	}
 
 	return vm.Context{
@@ -61,11 +62,9 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        new(big.Int).Set(header.Time),
-		//Difficulty:  new(big.Int).Set(header.Difficulty),
 		GasLimit:    header.GasLimit,
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
-
-		BlockHash: blockHash,
+		BlockHash:   blockHash,
 	}
 }
 
