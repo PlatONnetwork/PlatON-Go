@@ -143,6 +143,8 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 		if err := cbft.safetyRules.QCBlockRules(block, qc); err != nil {
 			if err.NewView() {
 				cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
+			} else {
+				return err
 			}
 		}
 
@@ -155,8 +157,10 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
-	cbft.log.Debug("Insert QC Block", "qc", qc.String())
-	cbft.state.AddQC(qc)
+	cbft.log.Debug("Insert QC block", "qc", qc.String())
+	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
+		cbft.state.AddQC(qc)
+	}
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
 	cbft.tryCommitNewBlock(lock, commit)
