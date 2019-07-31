@@ -61,7 +61,7 @@ func TestViewVotes(t *testing.T) {
 	assert.Len(t, viewState.AllPrepareVoteByIndex(uint32(len(prepareVotes))), 0)
 
 	votes.clear()
-	assert.Len(t, votes.votes, 0)
+	assert.Len(t, votes.Votes, 0)
 }
 
 func TestNewViewQC(t *testing.T) {

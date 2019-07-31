@@ -81,6 +81,7 @@ type SafetyRules interface {
 type baseSafetyRules struct {
 	viewState *state.ViewState
 	blockTree *ctypes.BlockTree
+	config    *ctypes.Config
 }
 
 // PrepareBlock rules
@@ -109,7 +110,16 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		isNextView := func() bool {
 			return r.viewState.ViewNumber()+1 == block.ViewNumber
 		}
-		if isNextView() && isFirstBlock() && (isQCChild() || isLockChild()) {
+
+		acceptViewChangeQC := func() bool {
+			if block.ViewChangeQC == nil {
+				return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
+			} else {
+				_, _, hash, number := block.ViewChangeQC.MaxBlock()
+				return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
+			}
+		}
+		if isNextView() && isFirstBlock() && (isQCChild() || isLockChild()) && acceptViewChangeQC() {
 			return newViewError("need change view")
 		}
 
@@ -202,9 +212,10 @@ func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert
 	return nil
 }
 
-func NewSafetyRules(viewState *state.ViewState, blockTree *ctypes.BlockTree) SafetyRules {
+func NewSafetyRules(viewState *state.ViewState, blockTree *ctypes.BlockTree, config *ctypes.Config) SafetyRules {
 	return &baseSafetyRules{
 		viewState: viewState,
 		blockTree: blockTree,
+		config:    config,
 	}
 }

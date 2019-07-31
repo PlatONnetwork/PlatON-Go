@@ -173,7 +173,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.tryChangeView()
 
 	//Initialize rules
-	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree)
+	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree, &cbft.config)
 	cbft.voteRules = rules.NewVoteRules(cbft.state)
 
 	// load consensus state
@@ -206,7 +206,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString(), "msg", msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -219,7 +219,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "peer", msg.PeerID, "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString(), "msg", msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -349,11 +349,8 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 		case *protocols.PrepareVotes:
 			cbft.OnPrepareVotes(id, msg)
 
-		//case *protocols.GetQCBlockList:
-		//	cbft.OnGetQCBlockList(id, msg)
-		//
-		//case *protocols.QCBlockList:
-		//	cbft.OnQCBlockList(id, msg)
+		case *protocols.GetQCBlockList:
+			cbft.OnGetQCBlockList(id, msg)
 
 		case *protocols.GetLatestStatus:
 			cbft.OnGetLatestStatus(id, msg)
@@ -363,8 +360,6 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 
 		case *protocols.PrepareBlockHash:
 			cbft.OnPrepareBlockHash(id, msg)
-
-			//default:
 
 		}
 	}
@@ -546,8 +541,15 @@ func (cbft *Cbft) SealHash(header *types.Header) common.Hash {
 	return header.SealHash()
 }
 
-func (Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	return []rpc.API{}
+func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
+	return []rpc.API{
+		{
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
+	}
 }
 
 func (cbft *Cbft) Protocols() []p2p.Protocol {
@@ -628,8 +630,16 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 	return cbft.state.HighestQCBlock().NumberU64() > number
 }
 
-func (Cbft) Status() string {
-	panic("implement me")
+func (cbft *Cbft) Status() string {
+	status := make(chan string, 1)
+	cbft.asyncCallCh <- func() {
+		if s, err := json.Marshal(cbft.state); err == nil {
+			status <- string(s)
+		} else {
+			status <- ""
+		}
+	}
+	return <-status
 }
 
 // GetBlockByHash get the specified block by hash.
@@ -732,7 +742,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	if cbft.state.IsDeadline() {
-		cbft.log.Warn("View is timeout, canceled seal")
 		result <- errors.New("view timeout")
 		return
 	}
@@ -920,6 +929,14 @@ func (cbft *Cbft) isStart() bool {
 	return utils.True(&cbft.start)
 }
 
+func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
+	number := cbft.state.HighestQCBlock().NumberU64()
+	numValidators := cbft.validatorPool.Len(number)
+	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
+	validator, _ := cbft.validatorPool.GetValidatorByIndex(number, uint32(currentProposer))
+	return validator
+}
+
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
 	digest, err := msg.CannibalizeBytes()
 	if err != nil {
@@ -942,6 +959,10 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 
 	switch cm := msg.(type) {
 	case *protocols.PrepareBlock:
+		proposer := cbft.currentProposer()
+		if uint32(proposer.Index) != msg.NodeIndex() {
+			return nil, fmt.Errorf("current proposer index:%d, prepare block author index:%d", proposer.Index, msg.NodeIndex())
+		}
 		// BlockNum equal 1, the parent's block is genesis, doesn't has prepareQC
 		// BlockIndex is not equal 0, this is not first block of current proposer
 		if cm.BlockNum() == 1 || cm.BlockIndex != 0 {

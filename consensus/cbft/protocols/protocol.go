@@ -147,7 +147,7 @@ type PrepareVote struct {
 }
 
 func (pv *PrepareVote) String() string {
-	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%pv,BlockNumber:%d,BlockIndex:%d}",
+	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d}",
 		pv.Epoch, pv.ViewNumber, pv.BlockHash.TerminalString(), pv.BlockNumber, pv.BlockIndex)
 }
 
