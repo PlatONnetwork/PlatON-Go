@@ -122,11 +122,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 		return
 	}
 
-	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
-	if block != nil {
-		cbft.insertQCBlock(block, msg.BlockQC)
-		cbft.log.Debug("Receive BlockQuorumCert success", "msg", msg.String())
-	}
+	cbft.insertPrepareQC(msg.BlockQC)
 }
 
 func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
