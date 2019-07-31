@@ -589,6 +589,12 @@ func (h *EngineManager) synchronize() {
 		}
 	}
 
+	// Update if it is the same state within 5 seconds
+	var (
+		lastEpoch      uint64 = 0
+		lastViewNumber uint64 = 0
+	)
+
 	for {
 		select {
 		case <-blockNumberTicker.C:
@@ -604,11 +610,17 @@ func (h *EngineManager) synchronize() {
 				log.Error("Get consensus nodes failed", err)
 				break
 			}
-			log.Trace("missingViewNodes get done", "missingNodes", formatNodes(missingViewNodes))
-			// send GetViewChange to missing node.
-			for _, v := range missingViewNodes {
-				h.Send(v.TerminalString(), msg)
+			// Initi.al situation.
+			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
+				log.Debug("missingViewNodes get done", "missingNodes", formatNodes(missingViewNodes))
+				// send GetViewChange to missing node.
+				for _, v := range missingViewNodes {
+					h.Send(v.TerminalString(), msg)
+				}
+			} else {
+				log.Debug("Waiting for the next round")
 			}
+			lastEpoch, lastViewNumber = msg.Epoch, msg.ViewNumber
 
 		case <-h.quitSend:
 			log.Error("synchronize quit")

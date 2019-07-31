@@ -206,7 +206,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString(), "msg", msg.String())
+		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}

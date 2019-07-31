@@ -357,6 +357,8 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	if v, ok := cbft.state.AllViewChange()[uint32(node.Index)]; ok {
 		//todo: broadcast or responsive?
 		cbft.network.Send(id, v)
+	} else {
+		cbft.log.Warn("No ViewChange found for the current node")
 	}
 	return nil
 }

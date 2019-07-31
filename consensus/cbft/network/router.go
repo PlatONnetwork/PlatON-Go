@@ -108,7 +108,7 @@ func (r *router) Gossip(m *types.MsgPackage) {
 func (h *router) SendMessage(m *types.MsgPackage) {
 	if peer, err := h.get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
-			"msgHash", m.Message().MsgHash().TerminalString(), "BHash", m.Message().BHash().TerminalString())
+			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash())
 		if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
 			log.Error("Send Peer error")
 			h.unregister(m.PeerID())
