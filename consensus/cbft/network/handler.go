@@ -610,7 +610,7 @@ func (h *EngineManager) synchronize() {
 				log.Error("Get consensus nodes failed", err)
 				break
 			}
-			if msg.Epoch == 0 && msg.BlockNumber == 0 {
+			if msg.Epoch == 0 && msg.ViewNumber == 0 {
 				break
 			}
 			// Initi.al situation.

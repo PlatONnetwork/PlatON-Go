@@ -346,24 +346,24 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	cbft.log.Debug("Received message on OnGetViewChange", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	localEpoch, localViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
 	if msg.Epoch != localEpoch {
-		cbft.log.Error("Epoch must be equal.", "reqEpoch", msg.Epoch, "localEpoch", localEpoch)
+		cbft.log.Error("Epoch not equal, get view change failed", "reqEpoch", msg.Epoch, "localEpoch", localEpoch)
 		return fmt.Errorf("epoch not equal")
 	}
 	if msg.ViewNumber != localViewNumber {
-		cbft.log.Error("ViewNumber must be equal.", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
+		cbft.log.Error("ViewNumber not equal, get view change failed", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
 		return fmt.Errorf("viewNumer not equal")
 	}
 	// Get the viewChange belong to local node.
-	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+	node, err := cbft.validatorPool.GetValidatorByNodeID(msg.BlockNumber, cbft.config.Option.NodeID)
 	if err != nil {
-		cbft.log.Error("Get validator error", "err", err)
+		cbft.log.Error("Get validator error, get view change failed", "err", err)
 		return fmt.Errorf("get validator failed")
 	}
 	if v, ok := cbft.state.AllViewChange()[uint32(node.Index)]; ok {
 		//todo: broadcast or responsive?
 		cbft.network.Send(id, v)
 	} else {
-		cbft.log.Warn("No ViewChange found for the current node")
+		cbft.log.Warn("No ViewChange found in current node")
 	}
 	return nil
 }

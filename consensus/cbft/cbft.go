@@ -1158,6 +1158,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 			missingNodes = append(missingNodes, cv)
 		}
 	}
+	log.Debug("missiong nodes on MissingViewChangeNodes", "count", len(missingNodes))
 	// Synchronize only when there are missing votes for half of the nodes.
 	if len(missingNodes) < len(consensusNodes)/2 {
 		return nil, nil, fmt.Errorf("within the safety value")
