@@ -1340,7 +1340,13 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	queue := make(staking.ValidatorQueue, 0)
 
+	// todo test
+	count := 0
+
 	for iter.Valid(); iter.Next(); {
+
+		count++
+
 		addrSuffix := iter.Value()
 		var can *staking.Candidate
 
@@ -1352,6 +1358,11 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		}
 
 		if can.ProgramVersion < currVersion {
+
+			log.Debug("Call ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+				can.ProgramVersion, "currVersion", currVersion)
+
 			// Low program version cannot be elected for epoch validator
 			continue
 		}
@@ -1383,7 +1394,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		return err
 	}
 
-	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue))
+	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue), "loopNum", count)
 	return nil
 }
 
