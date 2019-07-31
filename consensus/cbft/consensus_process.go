@@ -54,9 +54,8 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
-		} else {
-			return err
 		}
+		return err
 	}
 
 	cbft.prepareVoteFetchRules(id, msg)
@@ -156,6 +155,7 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
+	cbft.log.Debug("Insert QC Block", "qc", qc.String())
 	cbft.state.AddQC(qc)
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
