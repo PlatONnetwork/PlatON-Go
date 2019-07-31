@@ -38,6 +38,8 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Extra:       make([]byte, 77),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x936fc1c230a4a6d65cece52afadcf64b3f622f31faef4fa87c7c0335eaf67c2f")),
+		Coinbase:    common.Address{},
+		GasLimit:    10000000000,
 	}
 	block := types.NewBlockWithHeader(header)
 	return block
@@ -96,14 +98,6 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 			Alloc:  core.GenesisAlloc{},
 		}
 	)
-	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
-	balance := big.NewInt(0)
-	gspec.Alloc[testAddress] = core.GenesisAccount{
-		Code:    nil,
-		Storage: nil,
-		Balance: balance.SetBytes(balanceBytes),
-		Nonce:   0,
-	}
 	gspec.MustCommit(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
@@ -121,6 +115,14 @@ func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockC
 			Alloc:  core.GenesisAlloc{},
 		}
 	)
+	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
+	balance := big.NewInt(0)
+	gspec.Alloc[testAddress] = core.GenesisAccount{
+		Code:    nil,
+		Storage: nil,
+		Balance: balance.SetBytes(balanceBytes),
+		Nonce:   0,
+	}
 	gspec.MustCommit(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
