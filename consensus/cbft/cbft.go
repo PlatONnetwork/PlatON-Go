@@ -579,20 +579,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return nil
 	}
 
-	// Check if the inserted block's parent is highest locked block or highest qc block.
-	// The correct block can link chain.
-	if block.ParentHash() != cbft.state.HighestLockBlock().Hash() &&
-		block.ParentHash() != cbft.state.HighestQCBlock().Hash() {
-		cbft.log.Warn("Not found the inserted block's parent block",
-			"number", block.Number(), "hash", block.Hash(),
-			"parentHash", block.ParentHash(),
-			"lockedNumber", cbft.state.HighestLockBlock().Number(),
-			"lockedHash", cbft.state.HighestLockBlock().Hash(),
-			"qcNumber", cbft.state.HighestQCBlock().Number(),
-			"qcHash", cbft.state.HighestQCBlock().Hash())
-		return errors.New("orphan block")
-	}
-
 	// Verifies block
 	_, qc, err := ctypes.DecodeExtra(block.ExtraData())
 	if err != nil {
@@ -605,9 +591,16 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return err
 	}
 
-	parent := cbft.state.HighestQCBlock()
-	if block.ParentHash() == cbft.state.HighestLockBlock().Hash() {
-		parent = cbft.state.HighestQCBlock()
+	parent := cbft.GetBlock(block.ParentHash(), block.NumberU64()-1)
+	if parent == nil {
+		cbft.log.Warn("Not found the inserted block's parent block",
+			"number", block.Number(), "hash", block.Hash(),
+			"parentHash", block.ParentHash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash(),
+			"qcNumber", cbft.state.HighestQCBlock().Number(),
+			"qcHash", cbft.state.HighestQCBlock().Hash())
+		return errors.New("orphan block")
 	}
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
