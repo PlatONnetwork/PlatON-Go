@@ -40,8 +40,14 @@ type ChainContext interface {
 // NewEVMContext creates a new context for use in the EVM.
 func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Context {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
-	var beneficiary common.Address
-	beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
+	beneficiary := header.Coinbase // we're must use header validation
+
+	/*var beneficiary common.Address
+	if author == nil {
+		beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
+	} else {
+		beneficiary = *author
+	}*/
 
 	blockHash := common.ZeroHash
 
