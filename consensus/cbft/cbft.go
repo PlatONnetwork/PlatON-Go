@@ -1134,8 +1134,9 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
 	allViewChange := cbft.state.AllViewChange()
 	nodeIds := make([]discover.NodeID, 0, len(allViewChange))
+	qcBlockBn := cbft.state.HighestQCBlock().NumberU64()
 	for k, _ := range allViewChange {
-		nodeId := cbft.validatorPool.GetNodeIDByIndex(cbft.state.HighestQCBlock().NumberU64(), int(k))
+		nodeId := cbft.validatorPool.GetNodeIDByIndex(qcBlockBn, int(k))
 		nodeIds = append(nodeIds, nodeId)
 	}
 	// all consensus

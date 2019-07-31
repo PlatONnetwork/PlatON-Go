@@ -31,7 +31,7 @@ const (
 	QCBnMonitorInterval     = 4 // Qc block synchronization detection interval
 	LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval  = 4
+	SyncViewChangeInterval  = 10
 
 	//
 	TypeForQCBn     = 1
@@ -608,6 +608,9 @@ func (h *EngineManager) synchronize() {
 			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
 			if err != nil {
 				log.Error("Get consensus nodes failed", err)
+				break
+			}
+			if msg.Epoch == 0 && msg.BlockNumber == 0 {
 				break
 			}
 			// Initi.al situation.
