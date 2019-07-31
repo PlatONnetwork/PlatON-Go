@@ -522,10 +522,10 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	cbft.findQCBlock()
-
 	// write sendPrepareBlock info to wal
 	cbft.bridge.SendPrepareBlock(prepareBlock)
+
+	cbft.findQCBlock()
 
 	cbft.network.Broadcast(prepareBlock)
 

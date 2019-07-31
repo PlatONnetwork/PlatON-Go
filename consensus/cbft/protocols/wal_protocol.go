@@ -56,7 +56,7 @@ type ConfirmedViewChange struct {
 	ViewNumber   uint64
 	Block        *types.Block
 	QC           *ctypes.QuorumCert
-	ViewChangeQC *ctypes.ViewChangeQC
+	ViewChangeQC *ctypes.ViewChangeQC `rlp:"nil"`
 }
 
 func (c *ConfirmedViewChange) String() string {

@@ -92,15 +92,15 @@ func testWalUpdateChainState() (*protocols.ChainState, error) {
 	// UpdateChainState
 	chainState := &protocols.ChainState{
 		Commit: &protocols.State{
-			Block:      block,
+			Block:      newBlock(),
 			QuorumCert: buildQuorumCert(),
 		},
 		Lock: &protocols.State{
-			Block:      block,
+			Block:      newBlock(),
 			QuorumCert: buildQuorumCert(),
 		},
 		QC: []*protocols.State{{
-			Block:      block,
+			Block:      newBlock(),
 			QuorumCert: buildQuorumCert(),
 		}},
 	}

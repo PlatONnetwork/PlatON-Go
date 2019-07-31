@@ -2,6 +2,7 @@ package wal
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -16,18 +17,27 @@ var (
 	blockIndex     = uint32(1)
 	proposalIndex  = uint32(2)
 	validatorIndex = uint32(6)
-	header         = &types.Header{
-		Number: big.NewInt(100),
-	}
-	block   = types.NewBlock(header, nil, nil)
-	ordinal = 0
+	ordinal        = 0
 )
+
+func newBlock() *types.Block {
+	header := &types.Header{
+		Number:      big.NewInt(int64(blockNumber)),
+		ParentHash:  common.BytesToHash(utils.Rand32Bytes(32)),
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 77),
+		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
+		Root:        common.BytesToHash(utils.Rand32Bytes(32)),
+	}
+	block := types.NewBlockWithHeader(header)
+	return block
+}
 
 func buildPrepareBlock() *protocols.PrepareBlock {
 	return &protocols.PrepareBlock{
 		Epoch:         epoch,
 		ViewNumber:    viewNumber,
-		Block:         block,
+		Block:         newBlock(),
 		BlockIndex:    blockIndex,
 		ProposalIndex: proposalIndex,
 		PrepareQC:     buildQuorumCert(),
@@ -94,7 +104,7 @@ func buildSendPrepareBlock() *protocols.SendPrepareBlock {
 
 func buildSendPrepareVote() *protocols.SendPrepareVote {
 	return &protocols.SendPrepareVote{
-		Block: block,
+		Block: newBlock(),
 		Vote:  buildPrepareVote(),
 	}
 }
@@ -109,7 +119,7 @@ func buildConfirmedViewChange() *protocols.ConfirmedViewChange {
 	return &protocols.ConfirmedViewChange{
 		Epoch:        epoch,
 		ViewNumber:   viewNumber,
-		Block:        block,
+		Block:        newBlock(),
 		QC:           buildQuorumCert(),
 		ViewChangeQC: buildViewChangeQC(),
 	}
