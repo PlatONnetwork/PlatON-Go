@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -141,6 +142,13 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 
 		cbft.insertQCBlock(block, qc)
 		cbft.log.Debug("Insert QC block success", "hash", qc.BlockHash, "number", qc.BlockNumber)
+
+		// Update validator
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+				cbft.state.ResetView(cbft.state.Epoch()+1, state.DefaultViewNumber)
+			}
+		}
 	}
 
 	return nil
@@ -302,7 +310,7 @@ func (cbft *Cbft) findQCBlock() {
 		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
 			updated = true
 			if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
-				cbft.state.ResetView(cbft.state.Epoch()+1, 0)
+				cbft.state.ResetView(cbft.state.Epoch()+1, state.DefaultViewNumber)
 			}
 		}
 	}

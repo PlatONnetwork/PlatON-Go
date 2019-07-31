@@ -14,6 +14,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+const DefaultViewNumber = 1
+
 type PrepareVoteQueue struct {
 	votes []*protocols.PrepareVote
 }

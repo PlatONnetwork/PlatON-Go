@@ -2,11 +2,12 @@ package rules
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"time"
 )
 
 type SafetyError interface {
@@ -116,7 +117,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 	}
 
 	if r.viewState.IsDeadline() {
-		return newError(fmt.Sprintf("view's deadline is expire(over:%d)", time.Since(r.viewState.Deadline())))
+		return newError(fmt.Sprintf("view's deadline is expire(over:%s)", time.Since(r.viewState.Deadline())))
 	}
 	return nil
 }

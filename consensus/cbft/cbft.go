@@ -152,7 +152,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, 3, block, qc, nil)
+		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
@@ -476,9 +476,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
 	// TODO: check is turn to seal block
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
-		cbft.log.Warn("Futile block cause highest executed block changed", "nubmer", block.Number(), "parentHash", block.ParentHash(),
+		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
-			"exectedNumber", cbft.state.HighestExecutedBlock().Number(), "exectedHash", cbft.state.HighestExecutedBlock().Hash())
+			"executedNumber", cbft.state.HighestExecutedBlock().Number(), "executedHash", cbft.state.HighestExecutedBlock().Hash())
 		return
 	}
 
@@ -582,7 +582,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 	if block.ParentHash() != cbft.state.HighestLockBlock().Hash() &&
 		block.ParentHash() != cbft.state.HighestQCBlock().Hash() {
 		cbft.log.Warn("Not found the inserted block's parent block",
-			"nubmer", block.Number(), "hash", block.Hash(),
+			"number", block.Number(), "hash", block.Hash(),
 			"parentHash", block.ParentHash(),
 			"lockedNumber", cbft.state.HighestLockBlock().Number(),
 			"lockedHash", cbft.state.HighestLockBlock().Hash(),
