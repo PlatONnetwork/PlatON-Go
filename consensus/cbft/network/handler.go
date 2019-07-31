@@ -87,7 +87,7 @@ func (h *EngineManager) sendLoop() {
 			}
 		case <-h.quitSend:
 			log.Error("Terminate sending message")
-			break
+			return
 		}
 	}
 }
@@ -116,7 +116,7 @@ func (h *EngineManager) Send(peerID string, msg types.Message) {
 	msgPkg := types.NewMsgPackage(peerID, msg, types.NoneMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("Send message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Debug("Send message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
 	default:
 		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
@@ -130,7 +130,7 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	msgPkg := types.NewMsgPackage("", msg, types.FullMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("Broadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Debug("Broadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
 	default:
 		log.Error("Broadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
@@ -611,4 +611,20 @@ func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 		return peers[largerIndex], largerNum
 	}
 	return nil, 0
+}
+
+// Testing is only used for unit testing.
+func (h *EngineManager) Testing() {
+	peers, _ := h.Peers()
+	for _, v := range peers {
+		go func(p *peer) {
+			for {
+				if err := h.handleMsg(p); err != nil {
+					p.Log().Error("In the testing, CBFT message handling failed", "err", err)
+					break
+				}
+			}
+		}(v)
+	}
+
 }

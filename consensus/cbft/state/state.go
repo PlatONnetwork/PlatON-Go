@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -15,47 +16,47 @@ import (
 )
 
 type PrepareVoteQueue struct {
-	votes []*protocols.PrepareVote
+	Votes []*protocols.PrepareVote `json:"votes"`
 }
 
 func newPrepareVoteQueue() *PrepareVoteQueue {
 	return &PrepareVoteQueue{
-		votes: make([]*protocols.PrepareVote, 0),
+		Votes: make([]*protocols.PrepareVote, 0),
 	}
 }
 
 func (p *PrepareVoteQueue) Top() *protocols.PrepareVote {
-	return p.votes[0]
+	return p.Votes[0]
 }
 
 func (p *PrepareVoteQueue) Pop() *protocols.PrepareVote {
-	v := p.votes[0]
-	p.votes = p.votes[1:]
+	v := p.Votes[0]
+	p.Votes = p.Votes[1:]
 	return v
 }
 
 func (p *PrepareVoteQueue) Push(vote *protocols.PrepareVote) {
-	p.votes = append(p.votes, vote)
+	p.Votes = append(p.Votes, vote)
 }
 
 func (p *PrepareVoteQueue) Peek() []*protocols.PrepareVote {
-	return p.votes
+	return p.Votes
 }
 
 func (p *PrepareVoteQueue) Empty() bool {
-	return len(p.votes) == 0
+	return len(p.Votes) == 0
 }
 
 func (p *PrepareVoteQueue) Len() int {
-	return len(p.votes)
+	return len(p.Votes)
 }
 
 func (p *PrepareVoteQueue) reset() {
-	p.votes = make([]*protocols.PrepareVote, 0)
+	p.Votes = make([]*protocols.PrepareVote, 0)
 }
 
 func (p *PrepareVoteQueue) Had(index uint32) bool {
-	for _, p := range p.votes {
+	for _, p := range p.Votes {
 		if p.BlockIndex == index {
 			return true
 		}
@@ -64,17 +65,17 @@ func (p *PrepareVoteQueue) Had(index uint32) bool {
 }
 
 type prepareVotes struct {
-	votes map[uint32]*protocols.PrepareVote
+	Votes map[uint32]*protocols.PrepareVote `json:"votes"`
 }
 
 func newPrepareVotes() *prepareVotes {
 	return &prepareVotes{
-		votes: make(map[uint32]*protocols.PrepareVote),
+		Votes: make(map[uint32]*protocols.PrepareVote),
 	}
 }
 
 func (p *prepareVotes) hadVote(vote *protocols.PrepareVote) bool {
-	for _, v := range p.votes {
+	for _, v := range p.Votes {
 		if v.MsgHash() == vote.MsgHash() {
 			return true
 		}
@@ -83,42 +84,42 @@ func (p *prepareVotes) hadVote(vote *protocols.PrepareVote) bool {
 }
 
 func (p *prepareVotes) len() int {
-	return len(p.votes)
+	return len(p.Votes)
 }
 
 func (p *prepareVotes) clear() {
-	p.votes = make(map[uint32]*protocols.PrepareVote)
+	p.Votes = make(map[uint32]*protocols.PrepareVote)
 }
 
 type viewBlocks struct {
-	blocks map[uint32]viewBlock
+	Blocks map[uint32]viewBlock `json:"blocks"`
 }
 
 func newViewBlocks() *viewBlocks {
 	return &viewBlocks{
-		blocks: make(map[uint32]viewBlock),
+		Blocks: make(map[uint32]viewBlock),
 	}
 }
 
 func (v *viewBlocks) index(i uint32) viewBlock {
-	return v.blocks[i]
+	return v.Blocks[i]
 }
 
 func (v *viewBlocks) addBlock(block viewBlock) {
-	v.blocks[block.blockIndex()] = block
+	v.Blocks[block.blockIndex()] = block
 }
 
 func (v *viewBlocks) clear() {
-	v.blocks = make(map[uint32]viewBlock)
+	v.Blocks = make(map[uint32]viewBlock)
 }
 
 func (v *viewBlocks) len() int {
-	return len(v.blocks)
+	return len(v.Blocks)
 }
 
 func (v *viewBlocks) MaxIndex() uint32 {
 	max := uint32(math.MaxUint32)
-	for _, b := range v.blocks {
+	for _, b := range v.Blocks {
 		if max == math.MaxUint32 || b.blockIndex() > max {
 			max = b.blockIndex()
 		}
@@ -127,98 +128,98 @@ func (v *viewBlocks) MaxIndex() uint32 {
 }
 
 type viewQCs struct {
-	maxIndex uint32
-	qcs      map[uint32]*ctypes.QuorumCert
+	MaxIndex uint32                        `json:"max_index"`
+	QCs      map[uint32]*ctypes.QuorumCert `json:"qcs"`
 }
 
 func newViewQCs() *viewQCs {
 	return &viewQCs{
-		maxIndex: math.MaxUint32,
-		qcs:      make(map[uint32]*ctypes.QuorumCert),
+		MaxIndex: math.MaxUint32,
+		QCs:      make(map[uint32]*ctypes.QuorumCert),
 	}
 }
 
 func (v *viewQCs) index(i uint32) *ctypes.QuorumCert {
-	return v.qcs[i]
+	return v.QCs[i]
 }
 
 func (v *viewQCs) addQC(qc *ctypes.QuorumCert) {
-	v.qcs[qc.BlockIndex] = qc
-	if v.maxIndex == math.MaxUint32 {
-		v.maxIndex = qc.BlockIndex
+	v.QCs[qc.BlockIndex] = qc
+	if v.MaxIndex == math.MaxUint32 {
+		v.MaxIndex = qc.BlockIndex
 	}
-	if v.maxIndex < qc.BlockIndex {
-		v.maxIndex = qc.BlockIndex
+	if v.MaxIndex < qc.BlockIndex {
+		v.MaxIndex = qc.BlockIndex
 	}
 }
 
 func (v *viewQCs) maxQCIndex() uint32 {
-	return v.maxIndex
+	return v.MaxIndex
 }
 
 func (v *viewQCs) clear() {
-	v.qcs = make(map[uint32]*ctypes.QuorumCert)
-	v.maxIndex = math.MaxUint32
+	v.QCs = make(map[uint32]*ctypes.QuorumCert)
+	v.MaxIndex = math.MaxUint32
 }
 
 func (v *viewQCs) len() int {
-	return len(v.qcs)
+	return len(v.QCs)
 }
 
 type viewVotes struct {
-	votes map[uint32]*prepareVotes
+	Votes map[uint32]*prepareVotes `json:"votes"`
 }
 
 func newViewVotes() *viewVotes {
 	return &viewVotes{
-		votes: make(map[uint32]*prepareVotes),
+		Votes: make(map[uint32]*prepareVotes),
 	}
 }
 
 func (v *viewVotes) addVote(id uint32, vote *protocols.PrepareVote) {
-	if ps, ok := v.votes[vote.BlockIndex]; ok {
-		ps.votes[id] = vote
+	if ps, ok := v.Votes[vote.BlockIndex]; ok {
+		ps.Votes[id] = vote
 	} else {
 		ps := newPrepareVotes()
-		ps.votes[id] = vote
-		v.votes[vote.BlockIndex] = ps
+		ps.Votes[id] = vote
+		v.Votes[vote.BlockIndex] = ps
 	}
 }
 func (v *viewVotes) index(i uint32) *prepareVotes {
-	return v.votes[i]
+	return v.Votes[i]
 }
 
 func (v *viewVotes) clear() {
-	v.votes = make(map[uint32]*prepareVotes)
+	v.Votes = make(map[uint32]*prepareVotes)
 }
 
 type viewChanges struct {
-	viewChanges map[uint32]*protocols.ViewChange
+	ViewChanges map[uint32]*protocols.ViewChange `json:"viewchanges"`
 }
 
 func newViewChanges() *viewChanges {
 	return &viewChanges{
-		viewChanges: make(map[uint32]*protocols.ViewChange),
+		ViewChanges: make(map[uint32]*protocols.ViewChange),
 	}
 }
 
 func (v *viewChanges) addViewChange(id uint32, viewChange *protocols.ViewChange) {
-	v.viewChanges[id] = viewChange
+	v.ViewChanges[id] = viewChange
 }
 
 func (v *viewChanges) len() int {
-	return len(v.viewChanges)
+	return len(v.ViewChanges)
 }
 
 func (v *viewChanges) clear() {
-	v.viewChanges = make(map[uint32]*protocols.ViewChange)
+	v.ViewChanges = make(map[uint32]*protocols.ViewChange)
 }
 
 type executing struct {
 	// Block index of current view
-	blockIndex uint32
+	BlockIndex uint32 `json:"block_index"`
 	// Whether to complete
-	finish bool
+	Finish bool `json:"Finish"`
 }
 
 type view struct {
@@ -226,7 +227,7 @@ type view struct {
 	viewNumber uint64
 
 	// The status of the block is currently being executed,
-	// finish indicates whether the execution is complete,
+	// Finish indicates whether the execution is complete,
 	// and the next block can be executed asynchronously after the execution is completed.
 	executing executing
 
@@ -239,7 +240,7 @@ type view struct {
 	// This view has been sent to other verifiers for voting
 	hadSendPrepareVote *PrepareVoteQueue
 
-	//Pending votes of current view, parent block need receive N-f prepareVotes
+	//Pending Votes of current view, parent block need receive N-f prepareVotes
 	pendingVote *PrepareVoteQueue
 
 	//Current view of the proposed block by the proposer
@@ -265,8 +266,8 @@ func newView() *view {
 func (v *view) Reset() {
 	v.epoch = 0
 	v.viewNumber = 0
-	v.executing.blockIndex = math.MaxUint32
-	v.executing.finish = false
+	v.executing.BlockIndex = math.MaxUint32
+	v.executing.Finish = false
 	v.viewChanges.clear()
 	v.hadSendPrepareVote.reset()
 	v.pendingVote.reset()
@@ -281,6 +282,35 @@ func (v *view) ViewNumber() uint64 {
 
 func (v *view) Epoch() uint64 {
 	return v.epoch
+}
+
+func (v *view) MarshalJSON() ([]byte, error) {
+	type view struct {
+		Epoch              uint64               `json:"epoch"`
+		ViewNumber         uint64               `json:"view_number"`
+		Executing          executing            `json:"executing"`
+		ViewChanges        *viewChanges         `json:"viewchange"`
+		LastViewChangeQC   *ctypes.ViewChangeQC `json:"last_viewchange"`
+		HadSendPrepareVote *PrepareVoteQueue    `json:"had_send_prepare_vote"`
+		PendingVote        *PrepareVoteQueue    `json:"pending_prepare_vote"`
+		ViewBlocks         *viewBlocks          `json:"view_blocks"`
+		ViewQCs            *viewQCs             `json:"view_qcs"`
+		ViewVotes          *viewVotes           `json:"view_votes"`
+	}
+	vv := &view{
+		Epoch:              v.epoch,
+		ViewNumber:         v.viewNumber,
+		Executing:          v.executing,
+		ViewChanges:        v.viewChanges,
+		LastViewChangeQC:   v.lastViewChangeQC,
+		HadSendPrepareVote: v.hadSendPrepareVote,
+		PendingVote:        v.pendingVote,
+		ViewBlocks:         v.viewBlocks,
+		ViewQCs:            v.viewQCs,
+		ViewVotes:          v.viewVotes,
+	}
+
+	return json.Marshal(vv)
 }
 
 //func (v *view) HadSendPrepareVote(vote *protocols.PrepareVote) bool {
@@ -347,11 +377,8 @@ func (q qcBlock) prepareBlock() *protocols.PrepareBlock {
 
 type ViewState struct {
 
-	//Include ViewNumber, viewChanges, prepareVote , proposal block of current view
+	//Include ViewNumber, ViewChanges, prepareVote , proposal block of current view
 	*view
-
-	//Highest executed block height
-	highestExecutedBlock atomic.Value
 
 	highestQCBlock     atomic.Value
 	highestLockBlock   atomic.Value
@@ -425,7 +452,7 @@ func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
 }
 
 func (vs *ViewState) ViewBlockSize() int {
-	return len(vs.viewBlocks.blocks)
+	return len(vs.viewBlocks.Blocks)
 }
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
 	return vs.view.hadSendPrepareVote
@@ -438,18 +465,18 @@ func (vs *ViewState) PendingPrepareVote() *PrepareVoteQueue {
 func (vs *ViewState) AllPrepareVoteByIndex(index uint32) map[uint32]*protocols.PrepareVote {
 	ps := vs.viewVotes.index(index)
 	if ps != nil {
-		return ps.votes
+		return ps.Votes
 	}
 	return nil
 }
 
 func (vs *ViewState) AllViewChange() map[uint32]*protocols.ViewChange {
-	return vs.viewChanges.viewChanges
+	return vs.viewChanges.ViewChanges
 }
 
 // Returns the block index being executed, has it been completed
 func (vs *ViewState) Executing() (uint32, bool) {
-	return vs.view.executing.blockIndex, vs.view.executing.finish
+	return vs.view.executing.BlockIndex, vs.view.executing.Finish
 }
 
 func (vs *ViewState) SetLastViewChangeQC(qc *ctypes.ViewChangeQC) {
@@ -462,7 +489,7 @@ func (vs *ViewState) LastViewChangeQC() *ctypes.ViewChangeQC {
 
 // Set Executing block status
 func (vs *ViewState) SetExecuting(index uint32, finish bool) {
-	vs.view.executing.blockIndex, vs.view.executing.finish = index, finish
+	vs.view.executing.BlockIndex, vs.view.executing.Finish = index, finish
 }
 
 func (vs *ViewState) ViewBlockAndQC(blockIndex uint32) (*types.Block, *ctypes.QuorumCert) {
@@ -508,16 +535,16 @@ func (vs *ViewState) HighestBlockString() string {
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
-	if (vs.executing.blockIndex == 0 && vs.executing.finish == false) ||
-		vs.executing.blockIndex == math.MaxUint32 {
+	if (vs.executing.BlockIndex == 0 && vs.executing.Finish == false) ||
+		vs.executing.BlockIndex == math.MaxUint32 {
 		return vs.HighestQCBlock()
 	}
 
 	var block *types.Block
-	if vs.executing.finish {
-		block = vs.viewBlocks.index(vs.executing.blockIndex).block()
+	if vs.executing.Finish {
+		block = vs.viewBlocks.index(vs.executing.BlockIndex).block()
 	} else {
-		block = vs.viewBlocks.index(vs.executing.blockIndex - 1).block()
+		block = vs.viewBlocks.index(vs.executing.BlockIndex - 1).block()
 	}
 	return block
 }
@@ -572,4 +599,25 @@ func (vs *ViewState) SetViewTimer(viewInterval uint64) {
 
 func (vs *ViewState) String() string {
 	return fmt.Sprintf("")
+}
+
+func (vs *ViewState) MarshalJSON() ([]byte, error) {
+	type hashNumber struct {
+		Hash   common.Hash `json:"hash"`
+		Number uint64      `json:"number"`
+	}
+	type state struct {
+		View               *view      `json:"view"`
+		HighestQCBlock     hashNumber `json:"highest_qc_block"`
+		HighestLockBlock   hashNumber `json:"highest_lock_block"`
+		HighestCommitBlock hashNumber `json:"highest_commit_block"`
+	}
+
+	s := &state{
+		View:               vs.view,
+		HighestQCBlock:     hashNumber{Hash: vs.HighestQCBlock().Hash(), Number: vs.HighestQCBlock().NumberU64()},
+		HighestLockBlock:   hashNumber{Hash: vs.HighestLockBlock().Hash(), Number: vs.HighestLockBlock().NumberU64()},
+		HighestCommitBlock: hashNumber{Hash: vs.HighestCommitBlock().Hash(), Number: vs.HighestCommitBlock().NumberU64()},
+	}
+	return json.Marshal(s)
 }

@@ -29,9 +29,18 @@ func newViewTimer() *viewTimer {
 func (t *viewTimer) setupTimer(viewInterval uint64) {
 	duration := t.timeInterval.getViewTimeInterval(viewInterval)
 	t.deadline = time.Now().Add(duration)
+	t.stopTimer()
 	t.timer.Reset(duration)
 }
 
+func (t *viewTimer) stopTimer() {
+	if !t.timer.Stop() {
+		select {
+		case <-t.timer.C:
+		default:
+		}
+	}
+}
 func (t *viewTimer) timerChan() <-chan time.Time {
 	return t.timer.C
 }

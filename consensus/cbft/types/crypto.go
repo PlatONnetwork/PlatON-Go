@@ -75,6 +75,10 @@ func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
 	return crypto.Keccak256(buf), nil
 }
 
+func (q QuorumCert) String() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
+}
+
 type ViewChangeQuorumCert struct {
 	Epoch        uint64          `json:"epoch"`
 	ViewNumber   uint64          `json:"view_number"`
@@ -95,6 +99,9 @@ func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
 		return nil, err
 	}
 	return crypto.Keccak256(buf), nil
+}
+func (q ViewChangeQuorumCert) String() string {
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber)
 }
 
 type ViewChangeQC struct {
@@ -124,5 +131,5 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
 
 func (v ViewChangeQC) String() string {
 	epoch, view, hash, number := v.MaxBlock()
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", epoch, view, hash, number)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", epoch, view, hash.TerminalString(), number)
 }
