@@ -100,7 +100,7 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 	}
 
-	initProgramVersion = uint32(1<<16 | 0<<8 | 0) // 65536
+	initProgramVersion = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
 	balanceStr = []string{
 
