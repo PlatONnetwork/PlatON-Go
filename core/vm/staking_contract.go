@@ -183,7 +183,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	canNew.ProgramVersion = currVersion
 
+	// TODO add root log
+	root := state.IntermediateRoot(true)
+	log.Debug("CreateCandidate before", "root", root.Bytes())
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
+	root = state.IntermediateRoot(true)
+	log.Debug("CreateCandidate after", "root", root.Bytes())
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
@@ -199,8 +204,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if isDeclareVersion {
 		// Declare new Version
+		// TODO add root log
+		root := state.IntermediateRoot(true)
+		log.Debug("GovPluginInstance DeclareVersion before", "root", root.Hex())
 		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
 			programVersion, blockHash, blockNumber.Uint64(), state)
+		// TODO add root log
+		root = state.IntermediateRoot(true)
+		log.Debug("GovPluginInstance DeclareVersion after", "root", root.Hex())
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
@@ -209,10 +220,16 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 				log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
 					"blockNumber", blockNumber, "err", er)
 			}
+			// TODO add root log
+			root := state.IntermediateRoot(true)
+			log.Debug("Plugin RollBackStaking after", "root", root.Hex())
 
 			res := xcom.Result{false, "", CreateCanErrStr + ": Call DeclareVersion is failed, " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+			// TODO add root log
+			root = state.IntermediateRoot(true)
+			log.Debug("createStaking Call DeclareVersion badLog after", "root", root.Hex())
 			return event, nil
 		}
 	}
