@@ -139,8 +139,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	*usedGas += gas
 
 	// todo test
-	log.Debug("Exec tx, stateDB info", "blockNumber", "gasUse", gas, "totalGasUse", *usedGas, "failed", failed,
-		header.Number.Uint64(), "root", stateRoot.Hex(), "pointer", fmt.Sprintf("%p", statedb))
+	log.Debug("Exec tx, stateDB info", "blockNumber", header.Number.Uint64(), "gasUse", gas,
+		"totalGasUse", *usedGas, "failed", failed, "root", stateRoot.Hex(), "pointer", fmt.Sprintf("%p", statedb))
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.

@@ -185,10 +185,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	// TODO add root log
 	root := state.IntermediateRoot(true)
-	log.Debug("CreateCandidate before", "root", root.Bytes())
+	log.Debug("CreateCandidate before", "root", root.Hex())
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
 	root = state.IntermediateRoot(true)
-	log.Debug("CreateCandidate after", "root", root.Bytes())
+	log.Debug("CreateCandidate after", "root", root.Hex())
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
