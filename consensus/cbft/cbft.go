@@ -474,9 +474,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
 	// TODO: check is turn to seal block
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
-		cbft.log.Warn("Futile block cause highest executed block changed", "nubmer", block.Number(), "parentHash", block.ParentHash(),
+		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
-			"exectedNumber", cbft.state.HighestExecutedBlock().Number(), "exectedHash", cbft.state.HighestExecutedBlock().Hash())
+			"executedNumber", cbft.state.HighestExecutedBlock().Number(), "executedHash", cbft.state.HighestExecutedBlock().Hash())
 		return
 	}
 
@@ -634,10 +634,18 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 func (cbft *Cbft) Status() string {
+	type Status struct {
+		Tree  *ctypes.BlockTree `json:"block_tree"`
+		State *cstate.ViewState `json:"state"`
+	}
 	status := make(chan string, 1)
 	cbft.asyncCallCh <- func() {
-		if s, err := json.Marshal(cbft.state); err == nil {
-			status <- string(s)
+		s := &Status{
+			Tree:  cbft.blockTree,
+			State: cbft.state,
+		}
+		if t, err := json.Marshal(s); err == nil {
+			status <- string(t)
 		} else {
 			status <- ""
 		}

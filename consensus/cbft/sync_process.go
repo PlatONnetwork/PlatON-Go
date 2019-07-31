@@ -18,8 +18,8 @@ const (
 
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
-	if cbft.state.HighestQCBlock().NumberU64() < number {
-
+	if cbft.fetcher.Len() == 0 && cbft.state.HighestQCBlock().NumberU64() < number {
+		cbft.log.Debug("Fetch block", "fetch", fmt.Sprintf("hash:%s,number:%d", hash.TerminalString(), number), "highestQCBlock", cbft.state.HighestQCBlock().NumberU64())
 		parent := cbft.state.HighestQCBlock()
 
 		match := func(msg ctypes.Message) bool {
@@ -28,7 +28,10 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		}
 
 		executor := func(msg ctypes.Message) {
-			defer utils.SetFalse(&cbft.fetching)
+			defer func() {
+				cbft.log.Debug("Close fetching")
+				utils.SetFalse(&cbft.fetching)
+			}()
 			if blockList, ok := msg.(*protocols.QCBlockList); ok {
 				// Execution block
 				for i, block := range blockList.Blocks {
@@ -53,10 +56,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		}
 
 		expire := func() {
+			cbft.log.Debug("Fetch timeout, close fetching")
 			utils.SetFalse(&cbft.fetching)
 		}
-		utils.SetTrue(&cbft.fetching)
+		cbft.log.Debug("Start fetching")
 
+		utils.SetTrue(&cbft.fetching)
 		cbft.fetcher.AddTask(id, match, executor, expire)
 		cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: cbft.state.HighestQCBlock().Hash(), BlockNumber: cbft.state.HighestQCBlock().NumberU64()})
 	}

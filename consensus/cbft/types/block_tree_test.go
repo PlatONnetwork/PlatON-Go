@@ -56,7 +56,7 @@ func TestNewBlockTree(t *testing.T) {
 				return
 			}
 		}
-		t.Error(fmt.Sprintf("Clear block failed"))
+		t.Error(fmt.Sprintf("Clear Block failed"))
 	})
 
 	for _, b := range fork1[1:] {

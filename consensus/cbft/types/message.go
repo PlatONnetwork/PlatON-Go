@@ -37,7 +37,7 @@ var errorToString = map[int]string{
 	ErrInvalidMsgCode:              "Invalid message code",
 	ErrCbftProtocolVersionMismatch: "CBFT Protocol version mismatch",
 	ErrNoStatusMsg:                 "No status message",
-	ErrForkedBlock:                 "Forked block",
+	ErrForkedBlock:                 "Forked Block",
 }
 
 // Build an error object based on the error code.
