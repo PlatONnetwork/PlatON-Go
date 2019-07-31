@@ -538,52 +538,63 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // 3. Synchronous blocks with inconsistent commit block height.
 func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
-	qcTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
-	lockedTicker := time.NewTicker(LockedBnMonitorInterval * time.Second)
-	commitTicker := time.NewTicker(CommitBnMonitorInterval * time.Second)
+	blockNumberTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
+
+	// Logic used to synchronize QC.
+	syncQCBnFunc := func() {
+		qcBn, _ := h.engine.HighestQCBlockBn()
+		highPeers := h.peers.PeersWithHighestQCBn(qcBn)
+		biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
+		if biggestPeer != nil {
+			log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+			// todo: Build a message and then send a message
+			msg := &protocols.GetLatestStatus{
+				BlockNumber: qcBn,
+				LogicType:   TypeForQCBn,
+			}
+			h.Send(biggestPeer.PeerID(), msg)
+		}
+	}
+
+	// Logic used to synchronize locked.
+	syncLockedBnFunc := func() {
+		lockedBn, _ := h.engine.HighestLockBlockBn()
+		highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
+		biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
+		if biggestPeer != nil {
+			log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+			// todo: Build a message and then send a message
+			msg := &protocols.GetLatestStatus{
+				BlockNumber: lockedBn,
+				LogicType:   TypeForLockedBn,
+			}
+			h.Send(biggestPeer.PeerID(), msg)
+		}
+	}
+
+	// Logic used to synchronize commit.
+	syncCommitBnFunc := func() {
+		commitBn, _ := h.engine.HighestCommitBlockBn()
+		highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
+		biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
+		if biggestPeer != nil {
+			log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+			// todo: Build a message and then send a message
+			msg := &protocols.GetLatestStatus{
+				BlockNumber: commitBn,
+				LogicType:   TypeForCommitBn,
+			}
+			h.Send(biggestPeer.PeerID(), msg)
+		}
+	}
 
 	for {
 		select {
-		case <-qcTicker.C:
-			qcBn, _ := h.engine.HighestQCBlockBn()
-			highPeers := h.peers.PeersWithHighestQCBn(qcBn)
-			biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
-			if biggestPeer != nil {
-				log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-				// todo: Build a message and then send a message
-				msg := &protocols.GetLatestStatus{
-					BlockNumber: qcBn,
-					LogicType:   TypeForQCBn,
-				}
-				h.Send(biggestPeer.PeerID(), msg)
-			}
-		case <-lockedTicker.C:
-			lockedBn, _ := h.engine.HighestLockBlockBn()
-			highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
-			biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
-			if biggestPeer != nil {
-				log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-				// todo: Build a message and then send a message
-				msg := &protocols.GetLatestStatus{
-					BlockNumber: lockedBn,
-					LogicType:   TypeForLockedBn,
-				}
-				h.Send(biggestPeer.PeerID(), msg)
-			}
-		case <-commitTicker.C:
-			commitBn, _ := h.engine.HighestCommitBlockBn()
-			highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
-			biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
-			if biggestPeer != nil {
-				log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-				// todo: Build a message and then send a message
-				msg := &protocols.GetLatestStatus{
-					BlockNumber: commitBn,
-					LogicType:   TypeForCommitBn,
-				}
-				h.Send(biggestPeer.PeerID(), msg)
-			}
+		case <-blockNumberTicker.C:
+			syncQCBnFunc()
+			syncLockedBnFunc()
+			syncCommitBnFunc()
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
