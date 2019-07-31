@@ -133,7 +133,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	if err != nil {
 		return nil, err
 	}
-	context := core.NewEVMContext(msg, block.Header(), nil, &t.json.Env.Coinbase)
+	context := core.NewEVMContext(msg, block.Header(), nil)
 	context.GetHash = vmTestBlockHash
 	evm := vm.NewEVM(context, statedb, config, vmconfig)
 
@@ -187,12 +187,12 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB 
 
 func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
 	return &core.Genesis{
-		Config:     config,
-		Coinbase:   t.json.Env.Coinbase,
-		GasLimit:   t.json.Env.GasLimit,
-		Number:     t.json.Env.Number,
-		Timestamp:  t.json.Env.Timestamp,
-		Alloc:      t.json.Pre,
+		Config:    config,
+		Coinbase:  t.json.Env.Coinbase,
+		GasLimit:  t.json.Env.GasLimit,
+		Number:    t.json.Env.Number,
+		Timestamp: t.json.Env.Timestamp,
+		Alloc:     t.json.Pre,
 	}
 }
 

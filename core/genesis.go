@@ -263,7 +263,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
-		Coinbase:   g.Coinbase,
+		Coinbase:   vm.RewardManagerPoolAddr,
 		Root:       root,
 	}
 	if g.GasLimit == 0 {

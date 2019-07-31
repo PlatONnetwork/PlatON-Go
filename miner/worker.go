@@ -875,10 +875,10 @@ func (w *worker) updateSnapshot() {
 	w.snapshotState = w.current.state.Copy()
 }
 
-func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
+func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "err", err)
 		w.current.state.RevertToSnapshot(snap)
@@ -889,7 +889,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	return receipt.Logs, nil
 }
-func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64, blockDeadline time.Time) (bool, bool) {
+func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (bool, bool) {
 	// Short circuit if current is nil
 	timeout := false
 
@@ -957,7 +957,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
-		logs, err := w.commitTransaction(tx, coinbase)
+		logs, err := w.commitTransaction(tx)
 
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1012,7 +1012,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	return false, timeout
 }
 
-func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
+func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64) bool {
 	// Short circuit if current is nil
 	if w.current == nil {
 		return true
@@ -1076,7 +1076,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
-		logs, err := w.commitTransaction(tx, coinbase)
+		logs, err := w.commitTransaction(tx)
 
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1276,7 +1276,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if ok, timeout := w.commitTransactionsWithHeader(header, txs, header.Coinbase, interrupt, timestamp, blockDeadline); ok {
+		if ok, timeout := w.commitTransactionsWithHeader(header, txs, interrupt, timestamp, blockDeadline); ok {
 			return
 		} else {
 			localTimeout = timeout
@@ -1289,7 +1289,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if ok, _ := w.commitTransactionsWithHeader(header, txs, header.Coinbase, interrupt, timestamp, blockDeadline); ok {
+		if ok, _ := w.commitTransactionsWithHeader(header, txs, interrupt, timestamp, blockDeadline); ok {
 			return
 		}
 	}

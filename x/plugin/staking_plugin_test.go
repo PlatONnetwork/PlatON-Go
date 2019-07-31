@@ -319,8 +319,10 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			//end := curr.End + xutil.ConsensusSize()
 
 			// add Current Validators And Epoch Validators
+			t.Log("Store Curr Epoch VerifierList", "len", len(epoch_Arr.Arr))
 			setVerifierList(curr_Hash, epoch_Arr)
 			//stakingDB.SetPreValidatorList(blockHash, val_Arr)
+			t.Log("Store CuRR Round Validator", "len", len(epoch_Arr.Arr))
 			setRoundValList(curr_Hash, curr_Arr)
 
 		} else {

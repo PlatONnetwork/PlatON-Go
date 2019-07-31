@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	AmountIllegalErrStr      = "This amount is illege"
+	AmountIllegalErrStr      = "This amount is too low"
 	CanAlreadyExistsErrStr   = "This candidate is already exists"
 	CanNotExistErrStr        = "This candidate is not exist"
 	CreateCanErrStr          = "Create candidate failed"
@@ -183,12 +183,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	canNew.ProgramVersion = currVersion
 
-	// TODO add root log
-	root := state.IntermediateRoot(true)
-	log.Debug("CreateCandidate before", "root", root.Hex())
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
-	root = state.IntermediateRoot(true)
-	log.Debug("CreateCandidate after", "root", root.Hex())
+
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
@@ -204,14 +200,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if isDeclareVersion {
 		// Declare new Version
-		// TODO add root log
-		root := state.IntermediateRoot(true)
-		log.Debug("GovPluginInstance DeclareVersion before", "root", root.Hex())
 		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
 			programVersion, blockHash, blockNumber.Uint64(), state)
-		// TODO add root log
-		root = state.IntermediateRoot(true)
-		log.Debug("GovPluginInstance DeclareVersion after", "root", root.Hex())
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
@@ -220,16 +210,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 				log.Error("Failed to createStaking by RollBackStaking", "txHash", txHash,
 					"blockNumber", blockNumber, "err", er)
 			}
-			// TODO add root log
-			root := state.IntermediateRoot(true)
-			log.Debug("Plugin RollBackStaking after", "root", root.Hex())
 
 			res := xcom.Result{false, "", CreateCanErrStr + ": Call DeclareVersion is failed, " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
-			// TODO add root log
-			root = state.IntermediateRoot(true)
-			log.Debug("createStaking Call DeclareVersion badLog after", "root", root.Hex())
 			return event, nil
 		}
 	}
@@ -341,7 +325,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if !xutil.CheckMinimumThreshold(amount) {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
@@ -498,8 +482,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
-		res := xcom.Result{false, "", AmountIllegalErrStr}
+	if !xutil.CheckMinimumThreshold(amount) {
+		res := xcom.Result{false, "", DelegateVonTooLowStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
@@ -563,13 +547,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if nil == del {
 
-		// First delegate
-		if !xutil.CheckDelegateThreshold(amount) {
-			res := xcom.Result{false, "", DelegateVonTooLowStr}
-			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
-			return event, nil
-		}
 		// build delegate
 		del = new(staking.Delegation)
 
@@ -618,7 +595,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if !xutil.CheckMinimumThreshold(amount) {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")

@@ -913,19 +913,33 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	switch {
 
-	// When the related candidate info does not exist
+	/**
+	**
+	**
+	When the related candidate info does not exist
+	**
+	**
+	*/
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
 		nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Invalid(can.Status):
 
 		if total.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: delegate info amount is not enough",
+			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of invalid delegate is not enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 				"delegate amount", total, "withdrew amount", amount)
 			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
 				DelegateVonNotEnough.Error(), total.String(), amount.String())
 		}
 
-		remain := amount
+		remain := common.Big0
+		sub := new(big.Int).Sub(total, amount)
+
+		// When the sub less than threshold
+		if !xutil.CheckMinimumThreshold(sub) {
+			remain = total
+		} else {
+			remain = amount
+		}
 
 		/**
 		handle delegate on Hesitate period
@@ -952,7 +966,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return WithdrewDelegateVonCalcErr
 		}
 
-		if total.Cmp(amount) == 0 {
+		if total.Cmp(remain) == 0 {
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete detegate is failed", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
@@ -962,8 +976,8 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		} else {
 			sub := new(big.Int).Sub(total, del.Reduction)
 
-			if sub.Cmp(amount) < 0 {
-				diff := new(big.Int).Sub(amount, sub)
+			if sub.Cmp(remain) < 0 {
+				diff := new(big.Int).Sub(remain, sub)
 				del.Reduction = new(big.Int).Sub(del.Reduction, diff)
 			}
 
@@ -974,27 +988,50 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			}
 		}
 
-		// Illegal parameter
+	/**
+	**
+	**
+	Illegal parameter
+	**
+	**
+	*/
 	case nil != can && stakingBlockNum > can.StakingBlockNum:
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: the stakeBlockNum invalid",
 			"blockHash", blockHash.Hex(), "fn.stakeBlockNum", stakingBlockNum, "can.stakeBlockNum", can.StakingBlockNum)
 		return ParamsErr
 
-		// When the delegate is normally revoked
-	case nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Valid(can.Status):
+	/**
+	**
+	**
+	When the delegate is normally revoked
+	**
+	**
+	*/
+	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
+		// First need to deduct the von that is being refunded
 		total = new(big.Int).Sub(total, del.Reduction)
 
 		if total.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: delegate amount is not enough",
+			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of valid delegate is not enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 				"delegate amount", total, "withdrew amount", amount)
 			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
 				DelegateVonNotEnough.Error(), total.String(), amount.String())
 		}
 
-		remain := amount
+		remain := common.Big0
+		realSub := common.Big0
+		sub := new(big.Int).Sub(total, amount)
 
+		// When the sub less than threshold
+		if !xutil.CheckMinimumThreshold(sub) {
+			remain = total
+		} else {
+			remain = amount
+		}
+
+		realSub = remain
 		/**
 		handle delegate on Hesitate period
 		*/
@@ -1027,8 +1064,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return err
 		}
 
-		// change candidate shares
-		can.Shares = new(big.Int).Sub(can.Shares, amount)
+		/**
+		**
+		change candidate shares
+		**
+		*/
+		can.Shares = new(big.Int).Sub(can.Shares, realSub)
 
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate info is failed", "blockNumber",
@@ -1299,7 +1340,13 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	queue := make(staking.ValidatorQueue, 0)
 
+	// todo test
+	count := 0
+
 	for iter.Valid(); iter.Next(); {
+
+		count++
+
 		addrSuffix := iter.Value()
 		var can *staking.Candidate
 
@@ -1311,6 +1358,11 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		}
 
 		if can.ProgramVersion < currVersion {
+
+			log.Debug("Call ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
+				can.ProgramVersion, "currVersion", currVersion)
+
 			// Low program version cannot be elected for epoch validator
 			continue
 		}
@@ -1342,7 +1394,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		return err
 	}
 
-	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue))
+	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue), "loopNum", count)
 	return nil
 }
 
@@ -1790,8 +1842,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	mbn := 1 // Minimum allowed total number of consensus nodes
 	diffQueueLen := len(diffQueue)
-	duplicateSignNum := 0
-	curr_num := len(curr.Arr)
+	invalidLen := 0 // duplicateSign And lowRatio No enough von
+	currLen := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
 	slashAddrQueue := make([]common.Address, 0)
@@ -1806,23 +1858,38 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			return err
 		}
 
-		if staking.Is_LowRatio(can.Status) {
+		if staking.Is_LowRatio(can.Status) || staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
 			slashAddrQueue = append(slashAddrQueue, addr)
-		}
-		if staking.Is_DuplicateSign(can.Status) {
-			addr, _ := xutil.NodeId2Addr(v.NodeId)
-			slashCans[addr] = can
-			slashAddrQueue = append(slashAddrQueue, addr)
-			duplicateSignNum++
+
+			if staking.Is_Invalid(can.Status) {
+				invalidLen++
+			}
 		}
 	}
 
 	shuffle := func(deleteLen int, shiftQueue staking.ValidatorQueue) staking.ValidatorQueue {
 
+		realDeleteLen := 0
+
+		if currLen-deleteLen+len(shiftQueue) < mbn {
+
+			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-deleteLen+len(shiftQueue),
+				"Minimum allowed", mbn)
+
+			// Must remain one validator TODO (Normally, this should not be the case.)
+			realDeleteLen = deleteLen - 1
+		} else {
+
+			// Maybe this diffQueue length large than eight,
+			// But it must less than current validator size.
+			realDeleteLen = deleteLen
+		}
+
 		// Sort before removal
-		if deleteLen != 0 {
+		if realDeleteLen != 0 {
 			curr.Arr.ValidatorSort(slashCans, staking.CompareForDel)
 		}
 
@@ -1848,30 +1915,20 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	var nextQueue staking.ValidatorQueue
 
-	if duplicateSignNum >= diffQueueLen {
+	if invalidLen > 0 && invalidLen >= diffQueueLen {
 
-		if duplicateSignNum > diffQueueLen {
-			log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
-		}
+		log.Warn("Call Election, the invalidLen large than or equal diffQueueLen", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
 
-		if curr_num-duplicateSignNum+diffQueueLen < mbn {
-
-			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", curr_num-duplicateSignNum+diffQueueLen,
-				"Minimum allowed", mbn)
-
-			// Must remain one validator TODO (Normally, this should not be the case.)
-			nextQueue = shuffle(duplicateSignNum-1, diffQueue)
-		} else {
-
-			// Maybe this diffQueue length large than eight,
-			// But it must less than current validator size.
-			nextQueue = shuffle(duplicateSignNum, diffQueue)
-		}
+		nextQueue = shuffle(invalidLen, diffQueue)
 	} else {
 
-		if len(diffQueue) <= int(xcom.ShiftValidatorNum()) {
+		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
+
+			log.Info("Call Election, the invalidLen less than  diffQueueLen AND diffQueueLen less than ShiftValidatorNum",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+				"diffQueueLen", diffQueueLen, "ShiftValidatorNum", xcom.ShiftValidatorNum())
+
 			nextQueue = shuffle(diffQueueLen, diffQueue)
 		} else {
 			/**
@@ -1883,25 +1940,18 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				return err
 			} else {
 
-				if duplicateSignNum >= len(queue) {
+				if invalidLen >= len(queue) {
 
-					if duplicateSignNum > len(queue) {
-						log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
-							blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
-					}
+					log.Info("Call Election, the invalidLen large than or equal vrf queue", "blockNumber",
+						blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "vrfQueueLen", len(queue))
 
-					if curr_num-duplicateSignNum+len(queue) < mbn {
+					nextQueue = shuffle(invalidLen, queue)
 
-						log.Warn("Warn Election, finally vrf the next round validators num less than Minimum allowed", "blockNumber",
-							blockNumber, "blockHash", blockHash.Hex(), "next round num will be", curr_num-duplicateSignNum+len(queue),
-							"Minimum allowed", mbn)
-
-						// Must remain one validator TODO (Normally, this should not be the case.)
-						nextQueue = shuffle(duplicateSignNum-1, queue)
-					} else {
-						nextQueue = shuffle(duplicateSignNum, queue)
-					}
 				} else {
+
+					log.Info("Call Election, the next is curr shift vrf queue", "blockNumber",
+						blockNumber, "blockHash", blockHash.Hex(), "vrfQueueLen", len(queue))
+
 					nextQueue = shuffle(len(queue), queue)
 				}
 			}
@@ -1932,7 +1982,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	// Must sort
 	for _, addr := range slashAddrQueue {
 		can := slashCans[addr]
-		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
+		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
 
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
@@ -2004,6 +2054,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			", candidate total amount:%s, slashing amount: %s", total, amount)
 	}
 
+	// clean the candidate power, first
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Call SlashCandidates: Delete candidate old power is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
@@ -2125,6 +2176,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if !needDelete {
+		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		sk.db.SetCanPowerStore(blockHash, addr, can)
 	} else {
 		//because of deleted candidate info ,clean Shares
@@ -2138,6 +2190,8 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 
+		// remove the val from epoch validators,
+		// becouse the candidate status is invalid after slashed
 		orginLen := len(validators.Arr)
 		for i := 0; i < len(validators.Arr); i++ {
 
