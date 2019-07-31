@@ -981,7 +981,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return ParamsErr
 
 		// When the delegate is normally revoked
-	case nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Valid(can.Status):
+	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
 		total = new(big.Int).Sub(total, del.Reduction)
 
@@ -1790,8 +1790,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	mbn := 1 // Minimum allowed total number of consensus nodes
 	diffQueueLen := len(diffQueue)
-	duplicateSignNum := 0
-	curr_num := len(curr.Arr)
+	duplicateSignLen := 0
+	lowRatioInvalidLen := 0 // lowratio and no enough von (status has lowratio and invalid)
+	currLen := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
 	slashAddrQueue := make([]common.Address, 0)
@@ -1810,12 +1811,15 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
 			slashAddrQueue = append(slashAddrQueue, addr)
+			if staking.Is_Invalid(can.Status) {
+				lowRatioInvalidLen++
+			}
 		}
 		if staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
 			slashAddrQueue = append(slashAddrQueue, addr)
-			duplicateSignNum++
+			duplicateSignLen++
 		}
 	}
 
@@ -1848,30 +1852,30 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	var nextQueue staking.ValidatorQueue
 
-	if duplicateSignNum >= diffQueueLen {
+	if duplicateSignLen >= diffQueueLen && duplicateSignLen != 0 {
 
-		if duplicateSignNum > diffQueueLen {
-			log.Warn("Warn Election, the duplicateSignNum large than or equal diffQueueLen", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "diffQueueLen", diffQueueLen)
+		if duplicateSignLen > diffQueueLen {
+			log.Warn("Warn Election, the duplicateSignLen large than or equal diffQueueLen", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "duplicateSignLen", duplicateSignLen, "diffQueueLen", diffQueueLen)
 		}
 
-		if curr_num-duplicateSignNum+diffQueueLen < mbn {
+		if currLen-duplicateSignLen+diffQueueLen < mbn {
 
 			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", curr_num-duplicateSignNum+diffQueueLen,
+				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-duplicateSignLen+diffQueueLen,
 				"Minimum allowed", mbn)
 
 			// Must remain one validator TODO (Normally, this should not be the case.)
-			nextQueue = shuffle(duplicateSignNum-1, diffQueue)
+			nextQueue = shuffle(duplicateSignLen-1, diffQueue)
 		} else {
 
 			// Maybe this diffQueue length large than eight,
 			// But it must less than current validator size.
-			nextQueue = shuffle(duplicateSignNum, diffQueue)
+			nextQueue = shuffle(duplicateSignLen, diffQueue)
 		}
 	} else {
 
-		if len(diffQueue) <= int(xcom.ShiftValidatorNum()) {
+		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
 			nextQueue = shuffle(diffQueueLen, diffQueue)
 		} else {
 			/**
@@ -1883,23 +1887,23 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				return err
 			} else {
 
-				if duplicateSignNum >= len(queue) {
+				if duplicateSignLen >= len(queue) {
 
-					if duplicateSignNum > len(queue) {
-						log.Info("Warn Election, the duplicateSignNum large than or equal vrf queue", "blockNumber",
-							blockNumber, "blockHash", blockHash.Hex(), "duplicateSignNum", duplicateSignNum, "vrf queue", len(queue))
+					if duplicateSignLen > len(queue) {
+						log.Info("Warn Election, the duplicateSignLen large than or equal vrf queue", "blockNumber",
+							blockNumber, "blockHash", blockHash.Hex(), "duplicateSignLen", duplicateSignLen, "vrf queue", len(queue))
 					}
 
-					if curr_num-duplicateSignNum+len(queue) < mbn {
+					if currLen-duplicateSignLen+len(queue) < mbn {
 
 						log.Warn("Warn Election, finally vrf the next round validators num less than Minimum allowed", "blockNumber",
-							blockNumber, "blockHash", blockHash.Hex(), "next round num will be", curr_num-duplicateSignNum+len(queue),
+							blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-duplicateSignLen+len(queue),
 							"Minimum allowed", mbn)
 
 						// Must remain one validator TODO (Normally, this should not be the case.)
-						nextQueue = shuffle(duplicateSignNum-1, queue)
+						nextQueue = shuffle(duplicateSignLen-1, queue)
 					} else {
-						nextQueue = shuffle(duplicateSignNum, queue)
+						nextQueue = shuffle(duplicateSignLen, queue)
 					}
 				} else {
 					nextQueue = shuffle(len(queue), queue)
@@ -1932,7 +1936,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	// Must sort
 	for _, addr := range slashAddrQueue {
 		can := slashCans[addr]
-		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
+		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
 
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio

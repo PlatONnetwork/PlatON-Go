@@ -25,10 +25,6 @@ const (
 
 const SWeightItem = 4
 
-func Is_Valid(status uint32) bool {
-	return status&Valided == Valided
-}
-
 func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
 }
@@ -443,11 +439,14 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 					} else { // When both LowRatio
 
 						switch {
-						case Is_Invalid(lCan.Status) && Is_Valid(rCan.Status):
+						// left.Status(xxxxx1) && right.Status(xxxxx0)
+						case Is_Invalid(lCan.Status) && !Is_Invalid(rCan.Status):
 							return 1
-						case Is_Valid(lCan.Status) && Is_Invalid(rCan.Status):
+						// left.Status(xxxxx0) && right.Status(xxxxx1)
+						case !Is_Invalid(lCan.Status) && Is_Invalid(rCan.Status):
 							return -1
-						default: // When both valid OR both Invalid
+						// When both valid OR both Invalid
+						default:
 							return compareTermFunc(left, right)
 						}
 
