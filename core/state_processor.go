@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -82,6 +83,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 
+	// todo test
+	root := statedb.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, On StateProcessor", "blockNumber",
+		block.Number().Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", statedb))
+
 	if bcr != nil {
 		// TODO end ()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
@@ -122,9 +128,19 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		return nil, 0, err
 	}
 	// Update the state with pending changes
+	//var root []byte
+	//root = statedb.IntermediateRoot(true).Bytes()
+	//*usedGas += gas
+
+	stateRoot := statedb.IntermediateRoot(true)
+
 	var root []byte
-	root = statedb.IntermediateRoot(true).Bytes()
+	root = stateRoot.Bytes()
 	*usedGas += gas
+
+	// todo test
+	log.Debug("Exec tx, stateDB info", "blockNumber", "gasUse", gas, "totalGasUse", *usedGas, "failed", failed,
+		header.Number.Uint64(), "root", stateRoot.Hex(), "pointer", fmt.Sprintf("%p", statedb))
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
