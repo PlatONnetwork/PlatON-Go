@@ -87,7 +87,7 @@ func (h *EngineManager) sendLoop() {
 			}
 		case <-h.quitSend:
 			log.Error("Terminate sending message")
-			break
+			return
 		}
 	}
 }
@@ -611,4 +611,20 @@ func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 		return peers[largerIndex], largerNum
 	}
 	return nil, 0
+}
+
+// Testing is only used for unit testing.
+func (h *EngineManager) Testing() {
+	peers, _ := h.Peers()
+	for _, v := range peers {
+		go func(p *peer) {
+			for {
+				if err := h.handleMsg(p); err != nil {
+					p.Log().Error("In the testing, CBFT message handling failed", "err", err)
+					break
+				}
+			}
+		}(v)
+	}
+
 }

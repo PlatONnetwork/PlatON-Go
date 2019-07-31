@@ -41,7 +41,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	}
 
 	// The new block is notified by the PrepareBlockHash to the nodes in the network.
-
 	cbft.state.AddPrepareBlock(msg)
 	cbft.prepareBlockFetchRules(id, msg)
 
