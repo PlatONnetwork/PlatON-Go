@@ -1831,8 +1831,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	mbn := 1 // Minimum allowed total number of consensus nodes
 	diffQueueLen := len(diffQueue)
-	duplicateSignLen := 0
-	lowRatioInvalidLen := 0 // lowratio and no enough von (status has lowratio and invalid)
+	invalidLen := 0 // duplicateSign And lowRatio No enough von
 	currLen := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
@@ -1848,26 +1847,38 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			return err
 		}
 
-		if staking.Is_LowRatio(can.Status) {
+		if staking.Is_LowRatio(can.Status) || staking.Is_DuplicateSign(can.Status) {
 			addr, _ := xutil.NodeId2Addr(v.NodeId)
 			slashCans[addr] = can
 			slashAddrQueue = append(slashAddrQueue, addr)
+
 			if staking.Is_Invalid(can.Status) {
-				lowRatioInvalidLen++
+				invalidLen++
 			}
-		}
-		if staking.Is_DuplicateSign(can.Status) {
-			addr, _ := xutil.NodeId2Addr(v.NodeId)
-			slashCans[addr] = can
-			slashAddrQueue = append(slashAddrQueue, addr)
-			duplicateSignLen++
 		}
 	}
 
 	shuffle := func(deleteLen int, shiftQueue staking.ValidatorQueue) staking.ValidatorQueue {
 
+		realDeleteLen := 0
+
+		if currLen-deleteLen+len(shiftQueue) < mbn {
+
+			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-deleteLen+len(shiftQueue),
+				"Minimum allowed", mbn)
+
+			// Must remain one validator TODO (Normally, this should not be the case.)
+			realDeleteLen = deleteLen - 1
+		} else {
+
+			// Maybe this diffQueue length large than eight,
+			// But it must less than current validator size.
+			realDeleteLen = deleteLen
+		}
+
 		// Sort before removal
-		if deleteLen != 0 {
+		if realDeleteLen != 0 {
 			curr.Arr.ValidatorSort(slashCans, staking.CompareForDel)
 		}
 
@@ -1893,30 +1904,20 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	var nextQueue staking.ValidatorQueue
 
-	if duplicateSignLen >= diffQueueLen && duplicateSignLen != 0 {
+	if invalidLen > 0 && invalidLen >= diffQueueLen {
 
-		if duplicateSignLen > diffQueueLen {
-			log.Warn("Warn Election, the duplicateSignLen large than or equal diffQueueLen", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "duplicateSignLen", duplicateSignLen, "diffQueueLen", diffQueueLen)
-		}
+		log.Warn("Call Election, the invalidLen large than or equal diffQueueLen", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
 
-		if currLen-duplicateSignLen+diffQueueLen < mbn {
-
-			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
-				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-duplicateSignLen+diffQueueLen,
-				"Minimum allowed", mbn)
-
-			// Must remain one validator TODO (Normally, this should not be the case.)
-			nextQueue = shuffle(duplicateSignLen-1, diffQueue)
-		} else {
-
-			// Maybe this diffQueue length large than eight,
-			// But it must less than current validator size.
-			nextQueue = shuffle(duplicateSignLen, diffQueue)
-		}
+		nextQueue = shuffle(invalidLen, diffQueue)
 	} else {
 
 		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
+
+			log.Info("Call Election, the invalidLen less than  diffQueueLen AND diffQueueLen less than ShiftValidatorNum",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+				"diffQueueLen", diffQueueLen, "ShiftValidatorNum", xcom.ShiftValidatorNum())
+
 			nextQueue = shuffle(diffQueueLen, diffQueue)
 		} else {
 			/**
@@ -1928,25 +1929,18 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				return err
 			} else {
 
-				if duplicateSignLen >= len(queue) {
+				if invalidLen >= len(queue) {
 
-					if duplicateSignLen > len(queue) {
-						log.Info("Warn Election, the duplicateSignLen large than or equal vrf queue", "blockNumber",
-							blockNumber, "blockHash", blockHash.Hex(), "duplicateSignLen", duplicateSignLen, "vrf queue", len(queue))
-					}
+					log.Info("Call Election, the invalidLen large than or equal vrf queue", "blockNumber",
+						blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "vrfQueueLen", len(queue))
 
-					if currLen-duplicateSignLen+len(queue) < mbn {
+					nextQueue = shuffle(invalidLen, queue)
 
-						log.Warn("Warn Election, finally vrf the next round validators num less than Minimum allowed", "blockNumber",
-							blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-duplicateSignLen+len(queue),
-							"Minimum allowed", mbn)
-
-						// Must remain one validator TODO (Normally, this should not be the case.)
-						nextQueue = shuffle(duplicateSignLen-1, queue)
-					} else {
-						nextQueue = shuffle(duplicateSignLen, queue)
-					}
 				} else {
+
+					log.Info("Call Election, the next is curr shift vrf queue", "blockNumber",
+						blockNumber, "blockHash", blockHash.Hex(), "vrfQueueLen", len(queue))
+
 					nextQueue = shuffle(len(queue), queue)
 				}
 			}
@@ -2049,6 +2043,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			", candidate total amount:%s, slashing amount: %s", total, amount)
 	}
 
+	// clean the candidate power, first
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Call SlashCandidates: Delete candidate old power is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
@@ -2170,6 +2165,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if !needDelete {
+		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		sk.db.SetCanPowerStore(blockHash, addr, can)
 	} else {
 		//because of deleted candidate info ,clean Shares
@@ -2183,6 +2179,8 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 
+		// remove the val from epoch validators,
+		// becouse the candidate status is invalid after slashed
 		orginLen := len(validators.Arr)
 		for i := 0; i < len(validators.Arr); i++ {
 
