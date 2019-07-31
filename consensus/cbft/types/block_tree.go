@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -165,6 +166,9 @@ func (b *BlockTree) insertBlock(ext *BlockExt) (*types.Block, *types.Block) {
 // Return LockQC, Commit Blocks
 func (b *BlockTree) commitBlock(ext *BlockExt) (*types.Block, *types.Block) {
 	lock := ext.parent
+	if lock == nil {
+		panic(fmt.Sprintf("%s,%d", ext.block.Hash().String(), ext.block.NumberU64()))
+	}
 	if lock.block.Hash() == b.root.block.Hash() {
 		return b.root.block, b.root.block
 	}

@@ -269,7 +269,7 @@ func TestChangeView(t *testing.T) {
 			parent = b
 		}
 	}
-	assert.Equal(t, uint64(2), nodes[0].engine.state.ViewNumber())
+	assert.Equal(t, uint64(4), nodes[0].engine.state.ViewNumber())
 }
 
 func TestValidatorSwitch(t *testing.T) {
