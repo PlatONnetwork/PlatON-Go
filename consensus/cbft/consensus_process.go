@@ -19,6 +19,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
+			return err
 		} else if err.NewView() {
 			var block *types.Block
 			var qc *ctypes.QuorumCert
@@ -79,9 +80,8 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
-		} else {
-			return err
 		}
+		return err
 	}
 
 	var node *cbfttypes.ValidateNode
@@ -91,7 +91,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	}
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)
-	cbft.log.Debug("Had receive viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
+	cbft.log.Debug("Receive new viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
 	// It is possible to achieve viewchangeQC every time you add viewchange
 	cbft.tryChangeView()
 	return nil
@@ -320,7 +320,7 @@ func (cbft *Cbft) findQCBlock() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
 		cbft.insertQCBlock(block, qc)
-
+		cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
 		// Update validators
 		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
 			updated = true
@@ -381,7 +381,7 @@ func (cbft *Cbft) tryChangeView() {
 		if cbft.state.ViewChangeLen() >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
 			return true
 		}
-		cbft.log.Debug("Had receive viewchange", "len", cbft.state.ViewChangeLen(), "view", cbft.state.ViewString())
+		cbft.log.Debug("Try change view failed, had receive viewchange", "len", cbft.state.ViewChangeLen(), "view", cbft.state.ViewString())
 		return false
 	}
 
