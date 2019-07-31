@@ -349,11 +349,8 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 		case *protocols.PrepareVotes:
 			cbft.OnPrepareVotes(id, msg)
 
-		//case *protocols.GetQCBlockList:
-		//	cbft.OnGetQCBlockList(id, msg)
-		//
-		//case *protocols.QCBlockList:
-		//	cbft.OnQCBlockList(id, msg)
+		case *protocols.GetQCBlockList:
+			cbft.OnGetQCBlockList(id, msg)
 
 		case *protocols.GetLatestStatus:
 			cbft.OnGetLatestStatus(id, msg)
@@ -363,8 +360,6 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 
 		case *protocols.PrepareBlockHash:
 			cbft.OnPrepareBlockHash(id, msg)
-
-			//default:
 
 		}
 	}
