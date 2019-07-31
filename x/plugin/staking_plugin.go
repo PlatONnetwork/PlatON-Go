@@ -913,19 +913,33 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	switch {
 
-	// When the related candidate info does not exist
+	/**
+	**
+	**
+	When the related candidate info does not exist
+	**
+	**
+	*/
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
 		nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Invalid(can.Status):
 
 		if total.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: delegate info amount is not enough",
+			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of invalid delegate is not enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 				"delegate amount", total, "withdrew amount", amount)
 			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
 				DelegateVonNotEnough.Error(), total.String(), amount.String())
 		}
 
-		remain := amount
+		remain := common.Big0
+		sub := new(big.Int).Sub(total, amount)
+
+		// When the sub less than threshold
+		if !xutil.CheckMinimumThreshold(sub) {
+			remain = total
+		} else {
+			remain = amount
+		}
 
 		/**
 		handle delegate on Hesitate period
@@ -952,7 +966,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return WithdrewDelegateVonCalcErr
 		}
 
-		if total.Cmp(amount) == 0 {
+		if total.Cmp(remain) == 0 {
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete detegate is failed", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
@@ -962,8 +976,8 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		} else {
 			sub := new(big.Int).Sub(total, del.Reduction)
 
-			if sub.Cmp(amount) < 0 {
-				diff := new(big.Int).Sub(amount, sub)
+			if sub.Cmp(remain) < 0 {
+				diff := new(big.Int).Sub(remain, sub)
 				del.Reduction = new(big.Int).Sub(del.Reduction, diff)
 			}
 
@@ -974,27 +988,50 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			}
 		}
 
-		// Illegal parameter
+	/**
+	**
+	**
+	Illegal parameter
+	**
+	**
+	*/
 	case nil != can && stakingBlockNum > can.StakingBlockNum:
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: the stakeBlockNum invalid",
 			"blockHash", blockHash.Hex(), "fn.stakeBlockNum", stakingBlockNum, "can.stakeBlockNum", can.StakingBlockNum)
 		return ParamsErr
 
-		// When the delegate is normally revoked
+	/**
+	**
+	**
+	When the delegate is normally revoked
+	**
+	**
+	*/
 	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
+		// First need to deduct the von that is being refunded
 		total = new(big.Int).Sub(total, del.Reduction)
 
 		if total.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: delegate amount is not enough",
+			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of valid delegate is not enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 				"delegate amount", total, "withdrew amount", amount)
 			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
 				DelegateVonNotEnough.Error(), total.String(), amount.String())
 		}
 
-		remain := amount
+		remain := common.Big0
+		realSub := common.Big0
+		sub := new(big.Int).Sub(total, amount)
 
+		// When the sub less than threshold
+		if !xutil.CheckMinimumThreshold(sub) {
+			remain = total
+		} else {
+			remain = amount
+		}
+
+		realSub = remain
 		/**
 		handle delegate on Hesitate period
 		*/
@@ -1027,8 +1064,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return err
 		}
 
-		// change candidate shares
-		can.Shares = new(big.Int).Sub(can.Shares, amount)
+		/**
+		**
+		change candidate shares
+		**
+		*/
+		can.Shares = new(big.Int).Sub(can.Shares, realSub)
 
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate info is failed", "blockNumber",

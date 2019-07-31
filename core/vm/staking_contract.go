@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	AmountIllegalErrStr      = "This amount is illege"
+	AmountIllegalErrStr      = "This amount is too low"
 	CanAlreadyExistsErrStr   = "This candidate is already exists"
 	CanNotExistErrStr        = "This candidate is not exist"
 	CreateCanErrStr          = "Create candidate failed"
@@ -325,7 +325,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if !xutil.CheckMinimumThreshold(amount) {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
@@ -482,8 +482,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
-		res := xcom.Result{false, "", AmountIllegalErrStr}
+	if !xutil.CheckMinimumThreshold(amount) {
+		res := xcom.Result{false, "", DelegateVonTooLowStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
@@ -547,13 +547,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if nil == del {
 
-		// First delegate
-		if !xutil.CheckDelegateThreshold(amount) {
-			res := xcom.Result{false, "", DelegateVonTooLowStr}
-			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
-			return event, nil
-		}
 		// build delegate
 		del = new(staking.Delegation)
 
@@ -602,7 +595,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if !xutil.CheckMinimumThreshold(amount) {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")

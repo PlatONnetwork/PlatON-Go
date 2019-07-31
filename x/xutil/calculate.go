@@ -35,8 +35,8 @@ func CheckStakeThreshold(stake *big.Int) bool {
 	return stake.Cmp(xcom.StakeThreshold()) >= 0
 }
 
-func CheckDelegateThreshold(delegate *big.Int) bool {
-	return delegate.Cmp(xcom.DelegateThreshold()) >= 0
+func CheckMinimumThreshold(balance *big.Int) bool {
+	return balance.Cmp(xcom.MinimumThreshold()) >= 0
 }
 
 // eg. 65536 => 1.0.0
