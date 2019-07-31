@@ -18,12 +18,13 @@ package eth
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"math/big"
 	"os"
 	"os/user"
 	"path/filepath"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -31,7 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -50,47 +50,47 @@ var DefaultConfig = Config{
 		BlockInterval:    100,
 		WalMode:          false,
 
-		PeerMsgQueueSize: 	1024,
-		EvidenceDir:	 	"evidenceDir",
-		MaxResetCacheSize:	512,
-		MaxQueuesLimit:		4096,
-		MaxBlockDist:		192,
-		MaxPingLatency:		5000,
-		MaxAvgLatency:		2000,
-		CbftVersion:		byte(0x01),
-		Remaining:			50 * time.Millisecond,
+		PeerMsgQueueSize:  1024,
+		EvidenceDir:       "evidenceDir",
+		MaxResetCacheSize: 512,
+		MaxQueuesLimit:    4096,
+		MaxBlockDist:      192,
+		MaxPingLatency:    5000,
+		MaxAvgLatency:     2000,
+		CbftVersion:       byte(0x01),
+		Remaining:         50 * time.Millisecond,
 	},
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 3150000000,
-	MinerGasCeil:  3150000000,
-	MinerGasPrice: big.NewInt(params.GVon),
+	MinerGasFloor: 4000 * 21000 * 1.2,
+	MinerGasCeil:  4000 * 21000 * 1.2,
+	MinerGasPrice: big.NewInt(5e11),
 	MinerRecommit: 3 * time.Second,
 
-	MiningLogAtDepth: 		7,
-	TxChanSize: 			4096,
-	ChainHeadChanSize: 		10,
-	ChainSideChanSize:		10,
-	ResultQueueSize:		10,
+	MiningLogAtDepth:       7,
+	TxChanSize:             4096,
+	ChainHeadChanSize:      10,
+	ChainSideChanSize:      10,
+	ResultQueueSize:        10,
 	ResubmitAdjustChanSize: 10,
-	MinRecommitInterval:	1 * time.Second,
-	MaxRecommitInterval:	15 * time.Second,
-	IntervalAdjustRatio:	0.1,
-	IntervalAdjustBias:		200 * 1000.0 * 1000.0,
-	StaleThreshold:			7,
-	DefaultCommitRatio:		0.95,
+	MinRecommitInterval:    1 * time.Second,
+	MaxRecommitInterval:    15 * time.Second,
+	IntervalAdjustRatio:    0.1,
+	IntervalAdjustBias:     200 * 1000.0 * 1000.0,
+	StaleThreshold:         7,
+	DefaultCommitRatio:     0.95,
 
-	BodyCacheLimit: 	  		256,
-	BlockCacheLimit:			256,
-	MaxFutureBlocks:			256,
-	BadBlockLimit:				10,
-	TriesInMemory:				128,
-	BlockChainVersion:			3,
-	DefaultTxsCacheSize:		20,
-	DefaultBroadcastInterval: 	100 * time.Millisecond,
+	BodyCacheLimit:           256,
+	BlockCacheLimit:          256,
+	MaxFutureBlocks:          256,
+	BadBlockLimit:            10,
+	TriesInMemory:            128,
+	BlockChainVersion:        3,
+	DefaultTxsCacheSize:      20,
+	DefaultBroadcastInterval: 100 * time.Millisecond,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{
@@ -137,35 +137,35 @@ type Config struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	MinerNotify    []string       `toml:",omitempty"`
-	MinerExtraData []byte         `toml:",omitempty"`
+	MinerNotify    []string `toml:",omitempty"`
+	MinerExtraData []byte   `toml:",omitempty"`
 	MinerGasFloor  uint64
 	MinerGasCeil   uint64
 	MinerGasPrice  *big.Int
 	MinerRecommit  time.Duration
 	MinerNoverify  bool
 	// minning conig
-	MiningLogAtDepth  		uint // miningLogAtDepth is the number of confirmations before logging successful mining.
-	TxChanSize		  		int  // txChanSize is the size of channel listening to NewTxsEvent.The number is referenced from the size of tx pool.
-	ChainHeadChanSize 		int  // chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	ChainSideChanSize 		int	 // chainSideChanSize is the size of channel listening to ChainSideEvent.
-	ResultQueueSize			int  // resultQueueSize is the size of channel listening to sealing result.
-	ResubmitAdjustChanSize  int	 // resubmitAdjustChanSize is the size of resubmitting interval adjustment channel.
-	MinRecommitInterval		time.Duration // minRecommitInterval is the minimal time interval to recreate the mining block with any newly arrived transactions.
-	MaxRecommitInterval		time.Duration // maxRecommitInterval is the maximum time interval to recreate the mining block with any newly arrived transactions.
-	IntervalAdjustRatio		float64 // intervalAdjustRatio is the impact a single interval adjustment has on sealing work resubmitting interval.
-	IntervalAdjustBias		float64 // intervalAdjustBias is applied during the new resubmit interval calculation in favor of increasing upper limit or decreasing lower limit so that the limit can be reachable.
-	StaleThreshold			uint64  // staleThreshold is the maximum depth of the acceptable stale block.
-	DefaultCommitRatio		float64
+	MiningLogAtDepth       uint          // miningLogAtDepth is the number of confirmations before logging successful mining.
+	TxChanSize             int           // txChanSize is the size of channel listening to NewTxsEvent.The number is referenced from the size of tx pool.
+	ChainHeadChanSize      int           // chainHeadChanSize is the size of channel listening to ChainHeadEvent.
+	ChainSideChanSize      int           // chainSideChanSize is the size of channel listening to ChainSideEvent.
+	ResultQueueSize        int           // resultQueueSize is the size of channel listening to sealing result.
+	ResubmitAdjustChanSize int           // resubmitAdjustChanSize is the size of resubmitting interval adjustment channel.
+	MinRecommitInterval    time.Duration // minRecommitInterval is the minimal time interval to recreate the mining block with any newly arrived transactions.
+	MaxRecommitInterval    time.Duration // maxRecommitInterval is the maximum time interval to recreate the mining block with any newly arrived transactions.
+	IntervalAdjustRatio    float64       // intervalAdjustRatio is the impact a single interval adjustment has on sealing work resubmitting interval.
+	IntervalAdjustBias     float64       // intervalAdjustBias is applied during the new resubmit interval calculation in favor of increasing upper limit or decreasing lower limit so that the limit can be reachable.
+	StaleThreshold         uint64        // staleThreshold is the maximum depth of the acceptable stale block.
+	DefaultCommitRatio     float64
 
 	// block config
-	BodyCacheLimit 	  		 int
-	BlockCacheLimit   		 int
-	MaxFutureBlocks   		 int
-	BadBlockLimit 	  		 int
-	TriesInMemory	  		 int
-	BlockChainVersion 		 int  // BlockChainVersion ensures that an incompatible database forces a resync from scratch.
-	DefaultTxsCacheSize		 int
+	BodyCacheLimit           int
+	BlockCacheLimit          int
+	MaxFutureBlocks          int
+	BadBlockLimit            int
+	TriesInMemory            int
+	BlockChainVersion        int // BlockChainVersion ensures that an incompatible database forces a resync from scratch.
+	DefaultTxsCacheSize      int
 	DefaultBroadcastInterval time.Duration
 
 	// Transaction pool options
@@ -188,7 +188,7 @@ type Config struct {
 	// MPC pool options
 	//MPCPool core.MPCPoolConfig
 	//VCPool  core.VCPoolConfig
-	Debug   bool
+	Debug bool
 }
 
 type CbftConfig struct {
@@ -204,15 +204,15 @@ type CbftConfig struct {
 	BreakpointLog  string
 	WalMode        bool
 
-	PeerMsgQueueSize 	uint64
-	EvidenceDir		 	string
-	MaxResetCacheSize	int
-	MaxQueuesLimit		int
-	MaxBlockDist		uint64
-	MaxPingLatency		int64	// maxPingLatency is the time in milliseconds between Ping and Pong
-	MaxAvgLatency		int64	//maxAvgLatency is the time in milliseconds between two peers
-	CbftVersion			uint8
-	Remaining			time.Duration
+	PeerMsgQueueSize  uint64
+	EvidenceDir       string
+	MaxResetCacheSize int
+	MaxQueuesLimit    int
+	MaxBlockDist      uint64
+	MaxPingLatency    int64 // maxPingLatency is the time in milliseconds between Ping and Pong
+	MaxAvgLatency     int64 //maxAvgLatency is the time in milliseconds between two peers
+	CbftVersion       uint8
+	Remaining         time.Duration
 }
 
 type configMarshaling struct {

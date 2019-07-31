@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/big"
+	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -18,6 +19,7 @@ import (
 
 var (
 	errParamEpochInvalid   = common.NewBizError("param epoch can't be zero")
+	errEmptyRestrictPlan   = common.NewBizError("the number of the restricting plan can't be zero")
 	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
 	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
 	errBalanceNotEnough    = common.NewBizError("balance not enough to restrict")
@@ -82,6 +84,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	state xcom.StateDB) error {
 
 	log.Debug("begin to addRestrictingRecord", "sender", sender.String(), "account", account.String(), "plans", plans)
+
+	if len(plans) == 0 {
+		log.Debug("the number of restricting plan can't be zero")
+		return errEmptyRestrictPlan
+	}
 
 	// latest is the epoch of a settlement block closest to current block
 	latest := GetLatestEpoch(state)
@@ -164,6 +171,10 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			state.SetState(account, releaseAmountKey, amount.Bytes())
 
 			epochList = append(epochList, epoch)
+			// sort release list
+			sort.Slice(epochList, func(i, j int) bool {
+				return epochList[i] < epochList[j]
+			})
 		}
 
 		info.Balance = totalAmount
@@ -218,6 +229,10 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 				info.ReleaseList = append(info.ReleaseList, epoch)
+				// sort release list
+				sort.Slice(info.ReleaseList, func(i, j int) bool {
+					return info.ReleaseList[i] < info.ReleaseList[j]
+				})
 
 			} else {
 				log.Trace("release record exist at curr epoch", "account", account.String(), "epoch", epoch)

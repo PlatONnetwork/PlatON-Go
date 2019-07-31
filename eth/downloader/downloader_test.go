@@ -1410,17 +1410,17 @@ func checkProgress(t *testing.T, d *Downloader, stage string, want ethereum.Sync
 
 //func TestFailedSyncProgress63Full(t *testing.T) { testFailedSyncProgress(t, 63, FullSync) }
 
-//func TestFailedSyncProgress63Fast(t *testing.T)  { testFailedSyncProgress(t, 63, FastSync) }
-//func TestFailedSyncProgress64Full(t *testing.T)  { testFailedSyncProgress(t, 64, FullSync) }
-//func TestFailedSyncProgress64Fast(t *testing.T)  { testFailedSyncProgress(t, 64, FastSync) }
-//func TestFailedSyncProgress64Light(t *testing.T) { testFailedSyncProgress(t, 64, LightSync) }
+func TestFailedSyncProgress63Fast(t *testing.T)  { testFailedSyncProgress(t, 63, FastSync) }
+func TestFailedSyncProgress64Full(t *testing.T)  { testFailedSyncProgress(t, 64, FullSync) }
+func TestFailedSyncProgress64Fast(t *testing.T)  { testFailedSyncProgress(t, 64, FastSync) }
+func TestFailedSyncProgress64Light(t *testing.T) { testFailedSyncProgress(t, 64, LightSync) }
 
 func testFailedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 	t.Parallel()
 
 	tester := newTester()
 	defer tester.terminate()
-	chain := testChainBase.shorten(blockCacheItems - 15)
+	chain := testChainBase.shorten(blockSyncItems - 15)
 
 	// Set a sync init hook to catch progress changes
 	starting := make(chan struct{})
@@ -1562,22 +1562,22 @@ func testFakedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 // We use data driven subtests to manage this so that it will be parallel on its own
 // and not with the other tests, avoiding intermittent failures.
 func TestDeliverHeadersHang(t *testing.T) {
-	//testCases := []struct {
-	//	protocol int
-	//	syncMode SyncMode
-	//}{
-	//	//{62, FullSync},
-	//	//{63, FullSync},
-	//	//{63, FastSync},
-	//	//{64, FullSync},
-	//	//{64, FastSync},
-	//	//{64, LightSync},
-	//}
-	//for _, tc := range testCases {
-	//	t.Run(fmt.Sprintf("protocol %d mode %v", tc.protocol, tc.syncMode), func(t *testing.T) {
-	//		testDeliverHeadersHang(t, tc.protocol, tc.syncMode)
-	//	})
-	//}
+	testCases := []struct {
+		protocol int
+		syncMode SyncMode
+	}{
+		//{62, FullSync},
+		//{63, FullSync},
+		//{63, FastSync},
+		//{64, FullSync},
+		//{64, FastSync},
+		//{64, LightSync},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("protocol %d mode %v", tc.protocol, tc.syncMode), func(t *testing.T) {
+			testDeliverHeadersHang(t, tc.protocol, tc.syncMode)
+		})
+	}
 }
 
 type floodingTestPeer struct {
