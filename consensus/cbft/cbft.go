@@ -364,6 +364,9 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 		case *protocols.GetViewChange:
 			cbft.OnGetViewChange(id, msg)
 
+		case *protocols.ViewChangeQuorumCert:
+			cbft.OnViewChangeQuorumCert(id, msg)
+
 		}
 	}
 }

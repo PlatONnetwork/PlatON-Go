@@ -2,12 +2,13 @@ package types
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"reflect"
 )
 
 const (
@@ -106,6 +107,15 @@ func (q ViewChangeQuorumCert) String() string {
 
 type ViewChangeQC struct {
 	QCs []*ViewChangeQuorumCert
+}
+
+func (v ViewChangeQC) EqualAll(epoch uint64, viewNumber uint64) error {
+	for _, v := range v.QCs {
+		if v.ViewNumber != viewNumber || v.Epoch != epoch {
+			return fmt.Errorf("not equal, local:{%d}, want{%d}", v.ViewNumber, viewNumber)
+		}
+	}
+	return nil
 }
 
 func (v ViewChangeQC) Verify() error {

@@ -349,21 +349,56 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		cbft.log.Error("Epoch not equal, get view change failed", "reqEpoch", msg.Epoch, "localEpoch", localEpoch)
 		return fmt.Errorf("epoch not equal")
 	}
-	if msg.ViewNumber != localViewNumber {
-		cbft.log.Error("ViewNumber not equal, get view change failed", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
+	if msg.ViewNumber != localViewNumber && msg.ViewNumber+1 != localViewNumber {
+		cbft.log.Error("ViewNumber not equal and not less than 1, get view change failed", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
 		return fmt.Errorf("viewNumer not equal")
 	}
-	// Get the viewChange belong to local node.
-	node, err := cbft.validatorPool.GetValidatorByNodeID(msg.BlockNumber, cbft.config.Option.NodeID)
-	if err != nil {
-		cbft.log.Error("Get validator error, get view change failed", "err", err)
-		return fmt.Errorf("get validator failed")
+	if msg.ViewNumber == localViewNumber {
+		// Get the viewChange belong to local node.
+		node, err := cbft.validatorPool.GetValidatorByNodeID(msg.BlockNumber, cbft.config.Option.NodeID)
+		if err != nil {
+			cbft.log.Error("Get validator error, get view change failed", "err", err)
+			return fmt.Errorf("get validator failed")
+		}
+		if v, ok := cbft.state.AllViewChange()[uint32(node.Index)]; ok {
+			//todo: broadcast or responsive?
+			cbft.network.Send(id, v)
+		} else {
+			cbft.log.Warn("No ViewChange found in current node")
+		}
 	}
-	if v, ok := cbft.state.AllViewChange()[uint32(node.Index)]; ok {
-		//todo: broadcast or responsive?
-		cbft.network.Send(id, v)
-	} else {
-		cbft.log.Warn("No ViewChange found in current node")
+	// Return view QC in the case of less than 1.
+	if msg.ViewNumber+1 == localViewNumber {
+		lastViewChangeQC := cbft.state.LastViewChangeQC()
+		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)
+		if err != nil {
+			cbft.log.Error("last view change is not equal msg.viewNumber", "err", err)
+			return err
+		}
+		cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
+			ViewChangeQC: lastViewChangeQC,
+		})
 	}
+
 	return nil
+}
+
+func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
+	cbft.log.Debug("Received message on OnViewChangeQuorumCert", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	viewChangeQC := msg.ViewChangeQC
+	epoch, viewNumber, _, number := viewChangeQC.MaxBlock()
+	if cbft.state.Epoch() != epoch || cbft.state.ViewNumber() != viewNumber {
+		return
+	}
+	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+	if block.NumberU64() != 0 && (number > qc.BlockNumber) {
+		//fixme get qc block
+		cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+		return
+	}
+
+	increasing := func() uint64 {
+		return cbft.state.ViewNumber() + 1
+	}
+	cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 }
