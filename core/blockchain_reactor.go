@@ -188,16 +188,6 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
 
-	// todo test
-	root := state.IntermediateRoot(true)
-	log.Debug("BeginBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
-
-	// todo test
-	pposHash := state.GetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey())
-	log.Info("Query ppos hash", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "pposHash", hex.EncodeToString(pposHash))
-
 	/**
 	this things about ppos
 	*/
@@ -206,6 +196,16 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	blockHash := common.ZeroHash
+
+	// todo test
+	root := state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root", "blockHash", header.Hash().Hex(), "blockNumber",
+		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+
+	// TODO test
+	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	log.Debug("BeginBlock pposHash, Before beginBlock", "blockNumber", header.Number.Uint64(),
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// store the sign in  header.Extra[32:97]
 	if xutil.IsWorker(header.Extra) {

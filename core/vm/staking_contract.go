@@ -654,14 +654,17 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		return data, nil
 	}
 
-	jsonByte, err := json.Marshal(arr)
+	arrByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
+	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getVerifierList", "verArr", string(arrByte))
 	return data, nil
 }
 
@@ -686,6 +689,9 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	arrByte, _ := json.Marshal(arr)
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getValidatorList", "valArr", string(arrByte))
 	return data, nil
 }
 
@@ -707,14 +713,17 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 		return data, nil
 	}
 
-	jsonByte, err := json.Marshal(arr)
+	arrByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
+	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getCandidateList", "canArr", string(arrByte))
 	return data, nil
 }
 
@@ -744,6 +753,9 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getRelatedListByDelAddr", "relateArr", string(jsonByte))
 	return data, nil
 }
 
@@ -774,6 +786,9 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getDelegateInfo", "delinfo", string(jsonByte))
 	return data, nil
 }
 
@@ -810,6 +825,8 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
+	// todo test
+	log.Debug("getCandidateInfo", "caninfo", string(jsonByte))
 	return data, nil
 
 }

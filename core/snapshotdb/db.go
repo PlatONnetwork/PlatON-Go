@@ -2,11 +2,14 @@ package snapshotdb
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"path"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -292,6 +295,8 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if block.readOnly {
 		return errors.New("can't put read only block")
 	}
+	// TODO test
+	log.Debug("old pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
 
 	jData := journalData{
 		Key:   key,
@@ -309,5 +314,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		return err
 	}
 	block.kvHash = jData.Hash
+	// TODO test
+	log.Debug("new pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
 	return nil
 }

@@ -375,6 +375,9 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	log.Debug("Call IncreaseStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"epoch", epoch, "nodeId", can.NodeId.String(), "typ", typ, "amount", amount)
 
+	// todo test
+	xcom.PrintObject("IncreaseStaking, Method Start can", can)
+
 	lazyCalcStakeAmount(epoch, can)
 
 	addr := crypto.PubkeyToAddress(*pubKey)
@@ -406,6 +409,14 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 
 	can.StakingEpoch = uint32(epoch)
 
+	// TODO test
+	pposHash := sk.db.GetLastKVHash(blockHash)
+	log.Debug("IncreaseStaking pposHash, Before DelCanPowerStore", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	// todo test
+	xcom.PrintObject("IncreaseStaking, Method Before DelCanPowerStore", can)
+
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Delete Candidate old power is failed",
@@ -415,6 +426,14 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 
 	can.Shares = new(big.Int).Add(can.Shares, amount)
 
+	// TODO test
+	pposHash = sk.db.GetLastKVHash(blockHash)
+	log.Debug("IncreaseStaking pposHash, Before SetCanPowerStore", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	// todo test
+	xcom.PrintObject("IncreaseStaking, Method Before SetCanPowerStore", can)
+
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Store Candidate new power is failed",
@@ -422,11 +441,24 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
+	// TODO test
+	pposHash = sk.db.GetLastKVHash(blockHash)
+	log.Debug("IncreaseStaking pposHash, Before SetCandidateStore", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	// todo test
+	xcom.PrintObject("IncreaseStaking, Method Before SetCandidateStore", can)
+
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Store Candidate info is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
+
+	// TODO test
+	pposHash = sk.db.GetLastKVHash(blockHash)
+	log.Debug("IncreaseStaking pposHash, End SetCandidateStore", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	return nil
 }
