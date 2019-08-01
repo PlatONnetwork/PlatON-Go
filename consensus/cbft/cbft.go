@@ -360,6 +360,12 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 
 		case *protocols.PrepareBlockHash:
 			cbft.OnPrepareBlockHash(id, msg)
+<<<<<<< Updated upstream
+=======
+		case *protocols.ViewChangeQuorumCert:
+			cbft.OnViewChangeQuorumCert(id, msg)	
+			//default:
+>>>>>>> Stashed changes
 
 		}
 	}

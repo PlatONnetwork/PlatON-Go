@@ -335,3 +335,22 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 	}
 	return nil
 }
+
+func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
+	viewChangeQC := msg.ViewChangeQC
+	epoch, viewNumber, _, number := viewChangeQC.MaxBlock()
+	if cbft.state.Epoch() != epoch || cbft.state.ViewNumber() != viewNumber {
+		return
+	}
+	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+	if block.NumberU64() != 0 && (number > qc.BlockNumber) {
+		//fixme get qc block
+		cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+		return
+	}
+
+	increasing := func() uint64 {
+		return cbft.state.ViewNumber() + 1
+	}
+	cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
+}

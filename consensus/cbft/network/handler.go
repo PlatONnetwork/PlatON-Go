@@ -479,6 +479,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		go p2p.SendItems(p.ReadWriter(), protocols.PongMsg, pingTime[0])
 		p.Log().Trace("Respond to ping message done")
 
+		return nil	
 	case msg.Code == protocols.PongMsg:
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
@@ -512,6 +513,13 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			}
 		}
 		return nil
+		case msg.Code == protocols.ViewChangeQuorumCertMsg:
+		var request protocols.ViewChangeQuorumCert
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+		return nil	
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}

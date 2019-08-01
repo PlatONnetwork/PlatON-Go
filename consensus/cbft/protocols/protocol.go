@@ -17,22 +17,23 @@ import (
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
 
 const (
-	CBFTStatusMsg         = 0x00 // Protocol messages belonging to cbft
-	PrepareBlockMsg       = 0x01
-	PrepareVoteMsg        = 0x02
-	ViewChangeMsg         = 0x03
-	GetPrepareBlockMsg    = 0x04
-	GetBlockQuorumCertMsg = 0x05
-	BlockQuorumCertMsg    = 0x06
-	GetPrepareVoteMsg     = 0x07
-	PrepareVotesMsg       = 0x08
-	GetQCBlockListMsg     = 0x09
-	QCBlockListMsg        = 0x0a
-	GetLatestStatusMsg    = 0x0b
-	LatestStatusMsg       = 0x0c
-	PrepareBlockHashMsg   = 0x0d
-	PingMsg               = 0x0e
-	PongMsg               = 0x0f
+	CBFTStatusMsg           = 0x00 // Protocol messages belonging to cbft
+	PrepareBlockMsg         = 0x01
+	PrepareVoteMsg          = 0x02
+	ViewChangeMsg           = 0x03
+	GetPrepareBlockMsg      = 0x04
+	GetBlockQuorumCertMsg   = 0x05
+	BlockQuorumCertMsg      = 0x06
+	GetPrepareVoteMsg       = 0x07
+	PrepareVotesMsg         = 0x08
+	GetQCBlockListMsg       = 0x09
+	QCBlockListMsg          = 0x0a
+	GetLatestStatusMsg      = 0x0b
+	LatestStatusMsg         = 0x0c
+	PrepareBlockHashMsg     = 0x0d
+	PingMsg                 = 0x0e
+	PongMsg                 = 0x0f
+	ViewChangeQuorumCertMsg = 0x10
 )
 
 // A is used to convert specific message types according to the message body.
@@ -73,6 +74,8 @@ func MessageType(msg interface{}) uint64 {
 		return PingMsg
 	case *Pong:
 		return PongMsg
+	case *ViewChangeQuorumCert:
+		return ViewChangeQuorumCertMsg
 	default:
 	}
 	panic(fmt.Sprintf("unknown message type [%v}", reflect.TypeOf(msg)))
@@ -507,4 +510,28 @@ func (s *LatestStatus) MsgHash() common.Hash {
 
 func (s *LatestStatus) BHash() common.Hash {
 	return common.Hash{}
+}
+
+type ViewChangeQuorumCert struct {
+	ViewChangeQC *ctypes.ViewChangeQC `json:"viewchange_qc"` // viewChange aggregate signature
+}
+
+func (v *ViewChangeQuorumCert) String() string {
+	epoch, viewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	return fmt.Sprintf("{Epoch:%d,VN:%d,Hash:%s,Number:%d}",
+		epoch, viewNumber, hash.TerminalString(), number)
+}
+
+func (v *ViewChangeQuorumCert) MsgHash() common.Hash {
+	epoch, viewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	return utils.BuildHash(ViewChangeQuorumCertMsg, utils.MergeBytes(
+		common.Uint64ToBytes(epoch),
+		common.Uint64ToBytes(viewNumber),
+		hash.Bytes(),
+		common.Uint64ToBytes(number)))
+}
+
+func (v *ViewChangeQuorumCert) BHash() common.Hash {
+	_, _, hash, _ := v.ViewChangeQC.MaxBlock()
+	return hash
 }
