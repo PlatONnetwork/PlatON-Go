@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	baseMs       = uint64(10 * time.Second)
 	exponentBase = float64(1.5)
 	maxExponent  = 2
 )
@@ -20,10 +19,10 @@ type viewTimer struct {
 	timeInterval viewTimeInterval
 }
 
-func newViewTimer() *viewTimer {
+func newViewTimer(period uint64) *viewTimer {
 	timer := time.NewTimer(0)
 	timer.Stop()
-	return &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: baseMs, exponentBase: exponentBase, maxExponent: maxExponent}}
+	return &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: period * uint64(time.Millisecond), exponentBase: exponentBase, maxExponent: maxExponent}}
 }
 
 func (t *viewTimer) setupTimer(viewInterval uint64) {
