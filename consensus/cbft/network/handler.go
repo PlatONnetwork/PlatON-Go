@@ -615,7 +615,7 @@ func (h *EngineManager) synchronize() {
 			}
 			// Initi.al situation.
 			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
-				log.Debug("missingViewNodes get done", "missingNodes", formatNodes(missingViewNodes))
+				log.Debug("Will send GetViewChange", "missingNodes", formatNodes(missingViewNodes))
 				// send GetViewChange to missing node.
 				for _, v := range missingViewNodes {
 					h.Send(v.TerminalString(), msg)
