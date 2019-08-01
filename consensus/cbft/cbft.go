@@ -107,7 +107,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
-		state:              cstate.NewViewState(),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -131,7 +130,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.Option.NodeID)
 
-	cbft.state = cstate.NewViewState()
+	cbft.state = cstate.NewViewState(cbft.config.Sys.Period)
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
@@ -152,7 +151,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, 3, block, qc, nil)
+		cbft.changeView(cbft.config.Sys.Epoch, 0, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
