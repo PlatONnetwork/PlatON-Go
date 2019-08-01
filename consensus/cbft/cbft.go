@@ -709,7 +709,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
-	if cbft.isLoading() && !cbft.isStart() {
+	if cbft.isLoading() && !cbft.isStart() && !cbft.running() {
 		return false, nil
 	}
 
@@ -732,6 +732,11 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		cbft.log.Trace("Should seal timeout")
 		return
 	default:
+	}
+
+	if !cbft.running() {
+		result <- errors.New("cbft is not running")
+		return
 	}
 
 	if cbft.state.IsDeadline() {
