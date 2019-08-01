@@ -45,7 +45,7 @@ func buildSubmitVersionInput() string {
 	input = append(input, common.MustRlpEncode("versionUrl"))
 	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(uint64(21480)))
-	input = append(input, common.MustRlpEncode(uint64(22480)))
+	input = append(input, common.MustRlpEncode(uint64(22500)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -62,7 +62,7 @@ func buildSubmitParamInput() string {
 	input = append(input, common.MustRlpEncode(""))
 	input = append(input, common.MustRlpEncode("newValue"))
 
-	input = append(input, common.MustRlpEncode(uint64(21480)))
+	input = append(input, common.MustRlpEncode(uint64(21500)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
