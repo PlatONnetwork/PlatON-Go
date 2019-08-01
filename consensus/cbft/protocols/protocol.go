@@ -225,11 +225,17 @@ func (vc *ViewChange) NodeIndex() uint32 {
 }
 
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
+	blockEpoch, blockView := uint64(0), uint64(0)
+	if vc.PrepareQC != nil {
+		blockEpoch, blockView = vc.PrepareQC.Epoch, vc.ViewNumber
+	}
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		vc.Epoch,
 		vc.ViewNumber,
 		vc.BlockHash,
 		vc.BlockNumber,
+		blockEpoch,
+		blockView,
 	})
 
 	if err != nil {

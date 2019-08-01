@@ -107,7 +107,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
-		state:              cstate.NewViewState(),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -131,7 +130,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.Option.NodeID)
 
-	cbft.state = cstate.NewViewState()
+	cbft.state = cstate.NewViewState(cbft.config.Sys.Period)
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
@@ -517,10 +516,10 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	cbft.findQCBlock()
-
 	// write sendPrepareBlock info to wal
 	cbft.bridge.SendPrepareBlock(prepareBlock)
+
+	cbft.findQCBlock()
 
 	cbft.network.Broadcast(prepareBlock)
 
@@ -1068,13 +1067,19 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		}
 
 		if vc, ok := qcs[v.BlockHash]; !ok {
+			blockEpoch, blockView := uint64(0), uint64(0)
+			if v.PrepareQC != nil {
+				blockEpoch, blockView = v.PrepareQC.Epoch, v.PrepareQC.ViewNumber
+			}
 			qc := &ViewChangeQC{
 				cert: &ctypes.ViewChangeQuorumCert{
-					Epoch:        v.Epoch,
-					ViewNumber:   v.ViewNumber,
-					BlockHash:    v.BlockHash,
-					BlockNumber:  v.BlockNumber,
-					ValidatorSet: utils.NewBitArray(total),
+					Epoch:           v.Epoch,
+					ViewNumber:      v.ViewNumber,
+					BlockHash:       v.BlockHash,
+					BlockNumber:     v.BlockNumber,
+					BlockEpoch:      blockEpoch,
+					BlockViewNumber: blockView,
+					ValidatorSet:    utils.NewBitArray(total),
 				},
 				aggSig: &aggSig,
 				ba:     utils.NewBitArray(total),
@@ -1109,10 +1114,28 @@ func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
 }
 
 func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+	// check signature number
+	threshold := cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
+	signsTotal := viewChangeQC.Len()
+	if signsTotal < threshold {
+		return fmt.Errorf("viewchange has small number of signature total:%d, threshold:%d", signsTotal, threshold)
+	}
+
 	var err error
-	for _, vc := range viewChangeQC.QCs {
+	epoch := uint64(0)
+	viewNumber := uint64(0)
+	for i, vc := range viewChangeQC.QCs {
+		// Check if it is the same view
+		if i == 0 {
+			epoch = vc.Epoch
+			viewNumber = vc.ViewNumber
+		} else if epoch != vc.Epoch || viewNumber != vc.ViewNumber {
+			err = fmt.Errorf("has multiple view messages")
+			break
+		}
 		var cb []byte
 		if cb, err = vc.CannibalizeBytes(); err != nil {
+			err = fmt.Errorf("get cannibalize bytes failed")
 			break
 		}
 

@@ -2,6 +2,8 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"math/big"
 	"time"
 
@@ -73,8 +75,8 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 
 	sysConfig := &params.CbftConfig{
 		Epoch:        1,
-		Period:       10,
-		Amount:       10,
+		Period:       period,
+		Amount:       amount,
 		InitialNodes: []params.CbftNode{},
 	}
 
@@ -168,4 +170,36 @@ func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftN
 		txpool: txpool,
 		agency: agency,
 	}
+}
+
+func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []discover.NodeID) {
+	nodeids := make([]discover.NodeID, 0)
+	engines := make([]*network.EngineManager, 0)
+	for _, c := range cbfts {
+		engines = append(engines, c.engine.network)
+		nodeids = append(nodeids, c.engine.config.Option.NodeID)
+	}
+	return engines, nodeids
+}
+
+func Mock4NodePipe(start bool) []*TestCBFT {
+	pk, sk, cbftnodes := GenerateCbftNode(4)
+	nodes := make([]*TestCBFT, 0)
+	for i := 0; i < 4; i++ {
+		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+
+		nodes = append(nodes, node)
+		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		nodes[i].Start()
+	}
+
+	netHandler, nodeids := NewEngineManager(nodes)
+
+	network.EnhanceEngineManager(nodeids, netHandler)
+	if start {
+		for i := 0; i < 4; i++ {
+			netHandler[i].Testing()
+		}
+	}
+	return nodes
 }

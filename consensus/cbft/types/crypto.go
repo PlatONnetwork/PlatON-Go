@@ -76,16 +76,18 @@ func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
 }
 
 func (q QuorumCert) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
 }
 
 type ViewChangeQuorumCert struct {
-	Epoch        uint64          `json:"epoch"`
-	ViewNumber   uint64          `json:"view_number"`
-	BlockHash    common.Hash     `json:"block_hash"`
-	BlockNumber  uint64          `json:"block_number"`
-	Signature    Signature       `json:"signature"`
-	ValidatorSet *utils.BitArray `json:"validator_set"`
+	Epoch           uint64          `json:"epoch"`
+	ViewNumber      uint64          `json:"view_number"`
+	BlockHash       common.Hash     `json:"block_hash"`
+	BlockNumber     uint64          `json:"block_number"`
+	BlockEpoch      uint64          `json:"block_epoch"`
+	BlockViewNumber uint64          `json:"block_view_number"`
+	Signature       Signature       `json:"signature"`
+	ValidatorSet    *utils.BitArray `json:"validator_set"`
 }
 
 func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
@@ -94,30 +96,49 @@ func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
 		q.ViewNumber,
 		q.BlockHash,
 		q.BlockNumber,
+		q.BlockEpoch,
+		q.BlockViewNumber,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return crypto.Keccak256(buf), nil
 }
+
+func (q ViewChangeQuorumCert) Len() int {
+	length := 0
+	for i := uint32(0); i < q.ValidatorSet.Bits; i++ {
+		if q.ValidatorSet.GetIndex(i) {
+			length++
+		}
+	}
+	return length
+}
+
 func (q ViewChangeQuorumCert) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockEpoch:%d,BlockViewNumber:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockEpoch, q.BlockViewNumber)
+}
+
+func (q *ViewChangeQuorumCert) Copy() *ViewChangeQuorumCert {
+	return &ViewChangeQuorumCert{
+		Epoch:        q.Epoch,
+		ViewNumber:   q.ViewNumber,
+		BlockHash:    q.BlockHash,
+		BlockNumber:  q.BlockNumber,
+		Signature:    q.Signature,
+		ValidatorSet: q.ValidatorSet.Copy(),
+	}
 }
 
 type ViewChangeQC struct {
 	QCs []*ViewChangeQuorumCert
 }
 
-func (v ViewChangeQC) Verify() error {
-	//todo implement verify
-	return nil
-}
-
 func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
 	if len(v.QCs) == 0 {
 		return 0, 0, common.Hash{}, 0
 	}
-	epoch, view, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
+	epoch, view, hash, number := v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
 	for _, qc := range v.QCs {
 		if view < qc.ViewNumber {
@@ -127,6 +148,14 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
 		}
 	}
 	return epoch, view, hash, number
+}
+
+func (v ViewChangeQC) Len() int {
+	length := 0
+	for _, qc := range v.QCs {
+		length += qc.Len()
+	}
+	return length
 }
 
 func (v ViewChangeQC) String() string {
