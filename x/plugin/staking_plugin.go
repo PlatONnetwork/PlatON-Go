@@ -1846,7 +1846,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	currLen := len(curr.Arr)
 
 	slashCans := make(staking.SlashCandidate, 0)
-	slashAddrQueue := make([]common.Address, 0)
+	slashAddrQueue := make([]discover.NodeID, 0)
 
 	for _, v := range curr.Arr {
 
@@ -1859,9 +1859,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		}
 
 		if staking.Is_LowRatio(can.Status) || staking.Is_DuplicateSign(can.Status) {
-			addr, _ := xutil.NodeId2Addr(v.NodeId)
-			slashCans[addr] = can
-			slashAddrQueue = append(slashAddrQueue, addr)
+			//addr, _ := xutil.NodeId2Addr(v.NodeId)
+			slashCans[v.NodeId] = can
+			slashAddrQueue = append(slashAddrQueue, v.NodeId)
 
 			if staking.Is_Invalid(can.Status) {
 				invalidLen++
@@ -1973,27 +1973,29 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	// todo test
 	if len(slashAddrQueue) != 0 {
-		log.Debug("Election Slashing addr", "blockNumber", blockNumber,
+		log.Debug("Election Slashing nodeId", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex())
-		xcom.PrintObject("Election Slashing addr", slashAddrQueue)
+		xcom.PrintObject("Election Slashing nodeId", slashAddrQueue)
 	}
 
 	// update candidate status
 	// Must sort
-	for _, addr := range slashAddrQueue {
-		can := slashCans[addr]
+	for _, nodeId := range slashAddrQueue {
+		can := slashCans[nodeId]
 		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
 
 			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
 
 			// TODO test
-			log.Debug("Election slashed addr", "addr", addr.Hex())
-			xcom.PrintObject("Election slashed addr", can)
+			log.Debug("Election slashed nodeId, clean lowratio", "nodeId", nodeId.String())
+			xcom.PrintObject("Election slashed nodeId, clean lowratio", can)
+
+			addr, _ := xutil.NodeId2Addr(nodeId)
 
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
-					"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 				return err
 			}
 		}
@@ -2001,7 +2003,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	// todo test
 	if len(slashAddrQueue) != 0 {
-		log.Debug("Election slashed addr Done ...")
+		log.Debug("Election slashed nodeId Done, the slashAddrQueue len is zero ...")
 	}
 
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
@@ -2153,6 +2155,13 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the ramain is not zero, remain:%s", remain)
 	}
 
+	// If the status has been modified before, this time it will not be modified.
+	if staking.Is_Invalid_LowRatio_NotEnough(can.Status) || staking.Is_Invalid_DuplicateSign(can.Status) {
+		log.Info("Call SlashCandidates end, the can status has been modified",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
+		return nil
+	}
+
 	// sub Shares to effect power
 	can.Shares = new(big.Int).Sub(can.Shares, amount)
 
@@ -2175,7 +2184,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
 	}
 
-	if !needDelete {
+	// the can status is valid and do not need delete
+	// update the can power
+	if !needDelete && !staking.Is_Invalid(can.Status) {
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		sk.db.SetCanPowerStore(blockHash, addr, can)
 	} else {
@@ -2224,6 +2235,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
+	log.Info("Call SlashCandidates end ...")
 	return nil
 }
 

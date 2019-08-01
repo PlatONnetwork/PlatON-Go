@@ -106,7 +106,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 				if isSlash && rate > 0 {
 					slashAmount := calcSlashAmount(validator, rate)
-					log.Info("Call Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()),
+					log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()),
 						"nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount, "isDelete", isDelete, "rate", rate, "slashAmount", slashAmount)
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
 					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, isDelete, staking.LowRatio, common.ZeroAddr); nil != err {

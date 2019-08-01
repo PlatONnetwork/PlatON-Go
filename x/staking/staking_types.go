@@ -69,7 +69,7 @@ func Is_DuplicateSign(status uint32) bool {
 	return status&DuplicateSign == DuplicateSign
 }
 
-func Is_DuplicateSign_Invalid(status uint32) bool {
+func Is_Invalid_DuplicateSign(status uint32) bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
@@ -188,8 +188,7 @@ func (val *Validator) GetStakingTxIndex() (uint32, error) {
 
 type ValidatorQueue []*Validator
 
-//type SlashMark map[discover.NodeID]struct{}
-type SlashCandidate map[common.Address]*Candidate
+type SlashCandidate map[discover.NodeID]*Candidate
 
 func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
 	compare func(slashs SlashCandidate, c, can *Validator) int) {
@@ -292,8 +291,8 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	_, leftOk := slashs[left.NodeAddress]
-	_, rightOk := slashs[right.NodeAddress]
+	_, leftOk := slashs[left.NodeId]
+	_, rightOk := slashs[right.NodeId]
 
 	if leftOk && !rightOk {
 		return -1
@@ -395,8 +394,8 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	lCan, lOK := slashs[left.NodeAddress]
-	rCan, rOK := slashs[right.NodeAddress]
+	lCan, lOK := slashs[left.NodeId]
+	rCan, rOK := slashs[right.NodeId]
 
 	/**
 	Start Compare
