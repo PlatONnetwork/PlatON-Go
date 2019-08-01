@@ -2051,7 +2051,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 
 	// todo test
-	if len(slashAddrQueue) != 0 {
+	if len(slashAddrQueue) == 0 {
 		log.Debug("Election slashed nodeId Done, the slashAddrQueue len is zero ...")
 	}
 

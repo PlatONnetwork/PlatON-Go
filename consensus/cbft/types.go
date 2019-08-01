@@ -1239,7 +1239,7 @@ func (bm *BlockExtMap) fixChain(blockExt *BlockExt) {
 		return
 	}
 
-	if blockExt.prepareVotes.Len() >= bm.threshold {
+	if blockExt.prepareVotes.IsMaj23() {
 		log.Debug("Block is confirmed", "hash", blockExt.block.Hash(), "number", blockExt.number)
 		blockExt.isConfirmed = true
 		blockMinedTimer.UpdateSince(common.MillisToTime(blockExt.rcvTime))
@@ -1313,7 +1313,7 @@ func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uin
 	hash = bm.head.block.Hash()
 	number = bm.head.number
 
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.IsMaj23() && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
 		blockExts = append(blockExts, be)
 		hash = be.block.Hash()
 		number = be.number
@@ -1435,7 +1435,7 @@ func (bm *BlockExtMap) RemoveBlock(block *BlockExt) {
 
 func (bm *BlockExtMap) FindHighestConfirmed(hash common.Hash, number uint64) *BlockExt {
 	var highest *BlockExt
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.IsMaj23() && be.isExecuted; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
@@ -1447,7 +1447,7 @@ func (bm *BlockExtMap) FindHighestConfirmedWithHeader() *BlockExt {
 	var highest *BlockExt
 	hash := bm.head.block.Hash()
 	number := bm.head.block.NumberU64()
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.IsMaj23() && be.isExecuted; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
