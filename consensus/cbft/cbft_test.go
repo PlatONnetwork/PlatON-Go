@@ -137,8 +137,8 @@ func testViewChangeQC(t *testing.T, cnode []*Cbft) {
 
 func TestNode(t *testing.T) {
 	pk, sk, nodes := GenerateCbftNode(4)
-	node := MockNode(pk[0], sk[0], nodes, 10000, 10)
-	node2 := MockNode(pk[1], sk[1], nodes, 10000, 10)
+	node := MockNode(pk[0], sk[0], nodes, 5000, 10)
+	node2 := MockNode(pk[1], sk[1], nodes, 5000, 10)
 	assert.Nil(t, node.Start())
 	assert.Nil(t, node2.Start())
 

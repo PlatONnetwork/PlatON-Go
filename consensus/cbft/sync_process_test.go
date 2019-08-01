@@ -55,7 +55,7 @@ func TestFetch(t *testing.T) {
 				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
 				assert.NotNil(t, pb)
 				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(1000 * time.Millisecond)
 				index, finish := nodes[j].engine.state.Executing()
 				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
