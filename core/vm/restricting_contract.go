@@ -58,7 +58,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	}
 
 	if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
-		if _, ok := err.(*common.SysError); ok {
+		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
 			event, _ := json.Marshal(res)
 			rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
