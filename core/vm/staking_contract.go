@@ -537,7 +537,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return event, nil
 	}
 
-	// todo the delegate caller is candidate stake addr ?? How do that ??
+	// todo the delegate caller is candidate stake addr ?? How do that ?? Do not allow !!
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canOld.StakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
