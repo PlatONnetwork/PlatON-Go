@@ -155,7 +155,7 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 	}
 
 	if r.viewState.ViewNumber() < vote.ViewNumber {
-		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), vote.ViewNumber))
+		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), vote.ViewNumber))
 	}
 
 	if r.viewState.IsDeadline() {
@@ -199,14 +199,14 @@ func (r *baseSafetyRules) changeEpochViewChangeRules(viewChange *protocols.ViewC
 }
 
 func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert) SafetyError {
-	if r.viewState.Epoch() > qc.Epoch || r.viewState.ViewNumber() > qc.ViewNumber {
-		return newError(fmt.Sprintf("epoch or viewNumber too low(local:%s, msg:{Epoch:%d,ViewNumber:%d})", r.viewState.ViewString(), qc.Epoch, qc.ViewNumber))
-	}
+	//if r.viewState.Epoch() > qc.Epoch || r.viewState.ViewNumber() > qc.ViewNumber {
+	//	return newError(fmt.Sprintf("epoch or viewNumber too low(local:%s, msg:{Epoch:%d,ViewNumber:%d})", r.viewState.ViewString(), qc.Epoch, qc.ViewNumber))
+	//}
 
-	if b := r.blockTree.FindBlockByHash(qc.BlockHash); b == nil {
+	if b := r.blockTree.FindBlockByHash(block.ParentHash()); b == nil {
 		return newError(fmt.Sprintf("not find parent qc block"))
 	}
-	if r.viewState.Epoch() > qc.Epoch || r.viewState.ViewNumber() > qc.ViewNumber {
+	if r.viewState.Epoch() < qc.Epoch || r.viewState.ViewNumber() < qc.ViewNumber {
 		return newViewError("need change view")
 	}
 	return nil

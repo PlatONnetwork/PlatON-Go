@@ -624,10 +624,18 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 func (cbft *Cbft) Status() string {
+	type Status struct {
+		Tree  *ctypes.BlockTree `json:"block_tree"`
+		State *cstate.ViewState `json:"state"`
+	}
 	status := make(chan string, 1)
 	cbft.asyncCallCh <- func() {
-		if s, err := json.Marshal(cbft.state); err == nil {
-			status <- string(s)
+		s := &Status{
+			Tree:  cbft.blockTree,
+			State: cbft.state,
+		}
+		if t, err := json.Marshal(s); err == nil {
+			status <- string(t)
 		} else {
 			status <- ""
 		}
