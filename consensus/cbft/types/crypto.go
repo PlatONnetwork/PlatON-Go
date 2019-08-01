@@ -76,7 +76,7 @@ func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
 }
 
 func (q QuorumCert) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
 }
 
 type ViewChangeQuorumCert struct {
@@ -100,17 +100,34 @@ func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
 	}
 	return crypto.Keccak256(buf), nil
 }
+
+func (q ViewChangeQuorumCert) Len() int {
+	length := 0
+	for i := uint32(0); i < q.ValidatorSet.Bits; i++ {
+		if q.ValidatorSet.GetIndex(i) {
+			length++
+		}
+	}
+	return length
+}
+
 func (q ViewChangeQuorumCert) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber)
+}
+
+func (q *ViewChangeQuorumCert) Copy() *ViewChangeQuorumCert {
+	return &ViewChangeQuorumCert{
+		Epoch:        q.Epoch,
+		ViewNumber:   q.ViewNumber,
+		BlockHash:    q.BlockHash,
+		BlockNumber:  q.BlockNumber,
+		Signature:    q.Signature,
+		ValidatorSet: q.ValidatorSet.Copy(),
+	}
 }
 
 type ViewChangeQC struct {
 	QCs []*ViewChangeQuorumCert
-}
-
-func (v ViewChangeQC) Verify() error {
-	//todo implement verify
-	return nil
 }
 
 func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
@@ -120,13 +137,19 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
 	epoch, view, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
 	for _, qc := range v.QCs {
-		if view < qc.ViewNumber {
-			epoch, view, hash, number = qc.Epoch, qc.ViewNumber, qc.BlockHash, qc.BlockNumber
-		} else if view == qc.ViewNumber && number < qc.BlockNumber {
+		if number < qc.BlockNumber {
 			hash, number = qc.BlockHash, qc.BlockNumber
 		}
 	}
 	return epoch, view, hash, number
+}
+
+func (v ViewChangeQC) Len() int {
+	length := 0
+	for _, qc := range v.QCs {
+		length += qc.Len()
+	}
+	return length
 }
 
 func (v ViewChangeQC) String() string {
