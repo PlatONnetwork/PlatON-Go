@@ -3,11 +3,12 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"gopkg.in/urfave/cli.v1"
-	"io/ioutil"
-	"time"
 )
 
 var (
@@ -80,13 +81,15 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 
 	// Get transaction receipt according to result
 	ch := make(chan string, 1)
-	go GetTransactionReceipt(resp.Result, ch)
+	exit := make(chan string, 1)
+	go GetTransactionReceipt(resp.Result, ch, exit)
 
 	// Getting receipt
 	select {
 	case address := <-ch:
 		fmt.Printf("contract address: %s\n", address)
 	case <-time.After(time.Second * 200):
+		exit <- "exit"
 		fmt.Printf("get contract receipt timeout...more than 200 second.\n")
 	}
 	return err
@@ -258,12 +261,15 @@ func getContractByAddress(addr string) bool {
 /*
   Loop call to get transactionReceipt... until 200s timeout
 */
-func GetTransactionReceipt(txHash string, ch chan string) {
+func GetTransactionReceipt(txHash string, ch chan string, exit chan string) {
 	var receipt = Receipt{}
 	var contractAddr string
 	for {
-		res, _ := Send([]string{txHash}, "platon_getTransactionReceipt")
-		e := json.Unmarshal([]byte(res), &receipt)
+		res, e := Send([]string{txHash}, "platon_getTransactionReceipt")
+		if e != nil {
+			panic(fmt.Sprintf("send http post to get transaction receipt error！\n %s", e.Error()))
+		}
+		e = json.Unmarshal([]byte(res), &receipt)
 		if e != nil {
 			panic(fmt.Sprintf("parse get receipt result error ! \n %s", e.Error()))
 		}
@@ -271,6 +277,11 @@ func GetTransactionReceipt(txHash string, ch chan string) {
 		if contractAddr != "" {
 			ch <- contractAddr
 			break
+		}
+		select {
+		case <-exit:
+			break
+		default:
 		}
 	}
 }
