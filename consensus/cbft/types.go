@@ -1302,7 +1302,7 @@ func (bm *BlockExtMap) Total() int {
 
 func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uint64) []*BlockExt {
 	base := bm.findBlock(hash, number)
-	if base == nil || base.prepareVotes.Len() < bm.threshold {
+	if base == nil || !base.prepareVotes.IsMaj23() {
 		log.Debug("GetSubChainWithTwoThirdVotes - base is nil or the len of prepareVotes in the baseBlock less than bm.threshold")
 		return nil
 	}
@@ -1348,7 +1348,7 @@ func (bm *BlockExtMap) GetWithoutTwoThirdVotes(highest uint64) []*HashNumberBits
 		blocks := bm.blocks[i]
 		if blocks != nil {
 			for h, b := range blocks {
-				if b.prepareVotes.Len() < bm.threshold {
+				if !b.prepareVotes.IsMaj23() {
 					wb = append(wb, &HashNumberBits{hash: h, number: b.number, bits: b.prepareVotes.voteBits})
 				}
 			}

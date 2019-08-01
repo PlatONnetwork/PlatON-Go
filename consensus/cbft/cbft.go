@@ -563,7 +563,7 @@ func (cbft *Cbft) OnConfirmedPrepareBlock(peerID discover.NodeID, pb *confirmedP
 	if ext == nil || ext.block == nil {
 		cbft.handler.Send(peerID, &getPrepareBlock{Hash: pb.Hash, Number: pb.Number})
 	}
-	if ext != nil && ext.prepareVotes.Len() < cbft.getThreshold() {
+	if ext != nil && !ext.prepareVotes.IsMaj23() {
 		sub := pb.VoteBits.Sub(ext.prepareVotes.voteBits)
 		if !sub.IsEmpty() {
 			cbft.handler.Send(peerID, &getPrepareVote{Hash: pb.Hash, Number: pb.Number, VoteBits: sub})
