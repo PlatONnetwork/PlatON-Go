@@ -1069,13 +1069,19 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		}
 
 		if vc, ok := qcs[v.BlockHash]; !ok {
+			blockEpoch, blockView := uint64(0), uint64(0)
+			if v.PrepareQC != nil {
+				blockEpoch, blockView = v.PrepareQC.Epoch, v.PrepareQC.ViewNumber
+			}
 			qc := &ViewChangeQC{
 				cert: &ctypes.ViewChangeQuorumCert{
-					Epoch:        v.Epoch,
-					ViewNumber:   v.ViewNumber,
-					BlockHash:    v.BlockHash,
-					BlockNumber:  v.BlockNumber,
-					ValidatorSet: utils.NewBitArray(total),
+					Epoch:           v.Epoch,
+					ViewNumber:      v.ViewNumber,
+					BlockHash:       v.BlockHash,
+					BlockNumber:     v.BlockNumber,
+					BlockEpoch:      blockEpoch,
+					BlockViewNumber: blockView,
+					ValidatorSet:    utils.NewBitArray(total),
 				},
 				aggSig: &aggSig,
 				ba:     utils.NewBitArray(total),

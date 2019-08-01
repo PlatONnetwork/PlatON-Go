@@ -80,12 +80,14 @@ func (q QuorumCert) String() string {
 }
 
 type ViewChangeQuorumCert struct {
-	Epoch        uint64          `json:"epoch"`
-	ViewNumber   uint64          `json:"view_number"`
-	BlockHash    common.Hash     `json:"block_hash"`
-	BlockNumber  uint64          `json:"block_number"`
-	Signature    Signature       `json:"signature"`
-	ValidatorSet *utils.BitArray `json:"validator_set"`
+	Epoch           uint64          `json:"epoch"`
+	ViewNumber      uint64          `json:"view_number"`
+	BlockHash       common.Hash     `json:"block_hash"`
+	BlockNumber     uint64          `json:"block_number"`
+	BlockEpoch      uint64          `json:"block_epoch"`
+	BlockViewNumber uint64          `json:"block_view_number"`
+	Signature       Signature       `json:"signature"`
+	ValidatorSet    *utils.BitArray `json:"validator_set"`
 }
 
 func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
@@ -94,6 +96,8 @@ func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
 		q.ViewNumber,
 		q.BlockHash,
 		q.BlockNumber,
+		q.BlockEpoch,
+		q.BlockViewNumber,
 	})
 	if err != nil {
 		return nil, err
@@ -112,7 +116,7 @@ func (q ViewChangeQuorumCert) Len() int {
 }
 
 func (q ViewChangeQuorumCert) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockEpoch:%d,BlockViewNumber:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockEpoch, q.BlockViewNumber)
 }
 
 func (q *ViewChangeQuorumCert) Copy() *ViewChangeQuorumCert {
@@ -134,10 +138,12 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
 	if len(v.QCs) == 0 {
 		return 0, 0, common.Hash{}, 0
 	}
-	epoch, view, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
+	epoch, view, hash, number := v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
 	for _, qc := range v.QCs {
-		if number < qc.BlockNumber {
+		if view < qc.ViewNumber {
+			epoch, view, hash, number = qc.Epoch, qc.ViewNumber, qc.BlockHash, qc.BlockNumber
+		} else if view == qc.ViewNumber && number < qc.BlockNumber {
 			hash, number = qc.BlockHash, qc.BlockNumber
 		}
 	}
