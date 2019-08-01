@@ -1,7 +1,10 @@
 package staking
 
 import (
+	"encoding/hex"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -111,6 +114,10 @@ func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Addres
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
 	} else {
+
+		// todo test
+		log.Debug("SetCandidateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(val))
+
 		return db.put(blockHash, key, val)
 	}
 }
@@ -122,11 +129,15 @@ func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Addres
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+	// todo test
+	log.Debug("SetCanPowerStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(addr.Bytes()))
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+	// todo test
+	log.Debug("DelCanPowerStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
 	return db.del(blockHash, key)
 }
 
