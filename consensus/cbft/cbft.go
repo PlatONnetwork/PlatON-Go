@@ -1111,10 +1111,28 @@ func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
 }
 
 func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+	// check signature number
+	threshold := cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
+	signsTotal := viewChangeQC.Len()
+	if signsTotal < threshold {
+		return fmt.Errorf("viewchange has small number of signature total:%d, threshold:%d", signsTotal, threshold)
+	}
+
 	var err error
-	for _, vc := range viewChangeQC.QCs {
+	epoch := uint64(0)
+	viewNumber := uint64(0)
+	for i, vc := range viewChangeQC.QCs {
+		// Check if it is the same view
+		if i == 0 {
+			epoch = vc.Epoch
+			viewNumber = vc.ViewNumber
+		} else if epoch != vc.Epoch || viewNumber != vc.ViewNumber {
+			err = fmt.Errorf("has multiple view messages")
+			break
+		}
 		var cb []byte
 		if cb, err = vc.CannibalizeBytes(); err != nil {
+			err = fmt.Errorf("get cannibalize bytes failed")
 			break
 		}
 
