@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -152,12 +153,6 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 		cbft.insertQCBlock(block, qc)
 		cbft.log.Debug("Insert QC block success", "hash", qc.BlockHash, "number", qc.BlockNumber)
 
-		// Update validator
-		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-			if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
-				cbft.state.ResetView(cbft.state.Epoch()+1, state.DefaultViewNumber)
-			}
-		}
 	}
 
 	return nil
@@ -173,6 +168,14 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.SetHighestQCBlock(block)
 	cbft.tryCommitNewBlock(lock, commit)
 	cbft.tryChangeView()
+
+	// Update validator
+	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+			cbft.state.ResetView(cbft.state.Epoch()+1, state.DefaultViewNumber)
+			cbft.log.Debug("Update validator success", "number", block.NumberU64(), "epoch", cbft.state.Epoch())
+		}
+	}
 }
 
 func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
@@ -327,24 +330,14 @@ func (cbft *Cbft) findQCBlock() {
 		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
-	updated := false
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
 		cbft.insertQCBlock(block, qc)
 		cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
-		// Update validators
-		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-			updated = true
-			if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
-				cbft.state.ResetView(cbft.state.Epoch()+1, state.DefaultViewNumber)
-			}
-		}
 	}
 
-	if !updated {
-		cbft.tryChangeView()
-	}
+	cbft.tryChangeView()
 }
 
 // Try commit a new block
@@ -409,6 +402,8 @@ func (cbft *Cbft) tryChangeView() {
 		}
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 	}
+
+
 }
 
 // change view
