@@ -16,12 +16,16 @@ type Evidence interface {
 
 type Evidences []Evidence
 
+func (e Evidences) Len() int {
+	return len(e)
+}
+
 type EvidencePool interface {
 	//Deserialization of evidence
 	UnmarshalEvidence(data []byte) (Evidences, error)
 	//Get current evidences
 	Evidences() Evidences
 	//Clear all evidences
-	Clear(viewNumber uint64)
+	Clear(epoch uint64, viewNumber uint64)
 	Close()
 }

@@ -3,6 +3,8 @@ package evidence
 import (
 	"math/big"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 )
@@ -16,14 +18,14 @@ type NumberOrderPrepareBlock []*protocols.PrepareBlock
 type NumberOrderPrepareVote []*protocols.PrepareVote
 type NumberOrderViewChange []*protocols.ViewChange
 
-type Identity [IdentityLength]byte
+type Identity string
 
 type PrepareBlockEvidence map[Identity]NumberOrderPrepareBlock
 type PrepareVoteEvidence map[Identity]NumberOrderPrepareVote
 type ViewChangeEvidence map[Identity]NumberOrderViewChange
 
 // Bytes gets the string representation of the underlying identity.
-func (id Identity) Bytes() []byte { return id[:] }
+func (id Identity) Bytes() []byte { return []byte(id) }
 
 func (e PrepareBlockEvidence) Add(pb *protocols.PrepareBlock, id Identity) error {
 	var l NumberOrderPrepareBlock
@@ -36,13 +38,24 @@ func (e PrepareBlockEvidence) Add(pb *protocols.PrepareBlock, id Identity) error
 	return err
 }
 
-func (e PrepareBlockEvidence) Clear(viewNumber uint64) {
-	for k, v := range e {
-		v.Remove(viewNumber)
-		if v.Len() == 0 {
-			delete(e, k)
+func (pbe PrepareBlockEvidence) Clear(epoch uint64, viewNumber uint64) {
+	for k, _ := range pbe {
+		s := strings.Split(string(k), "|")
+		e, _ := strconv.ParseUint(s[0], 10, 64)
+		v, _ := strconv.ParseUint(s[1], 10, 64)
+
+		if e < epoch || e == epoch && v <= viewNumber {
+			delete(pbe, k)
 		}
 	}
+}
+
+func (pbe PrepareBlockEvidence) Size() int {
+	size := 0
+	for _, v := range pbe {
+		size = size + v.Len()
+	}
+	return size
 }
 
 func (opb *NumberOrderPrepareBlock) Add(pb *protocols.PrepareBlock) error {
@@ -76,22 +89,22 @@ func (opb NumberOrderPrepareBlock) find(epoch uint64, viewNumber uint64, blockNu
 	return nil
 }
 
-func (opb *NumberOrderPrepareBlock) Remove(viewNumber uint64) {
-	i := 0
-
-	for i < len(*opb) {
-		if (*opb)[i].ViewNumber > viewNumber {
-			break
-		}
-		(*opb)[i] = nil
-		i++
-	}
-	if i == len(*opb) {
-		*opb = (*opb)[:0]
-	} else {
-		*opb = append((*opb)[:0], (*opb)[i:]...)
-	}
-}
+//func (opb *NumberOrderPrepareBlock) Remove(viewNumber uint64) {
+//	i := 0
+//
+//	for i < len(*opb) {
+//		if (*opb)[i].ViewNumber > viewNumber {
+//			break
+//		}
+//		(*opb)[i] = nil
+//		i++
+//	}
+//	if i == len(*opb) {
+//		*opb = (*opb)[:0]
+//	} else {
+//		*opb = append((*opb)[:0], (*opb)[i:]...)
+//	}
+//}
 
 func (opb NumberOrderPrepareBlock) Len() int {
 	return len(opb)
@@ -116,31 +129,42 @@ func (e PrepareVoteEvidence) Add(pv *protocols.PrepareVote, id Identity) error {
 	return err
 }
 
-func (e PrepareVoteEvidence) Clear(viewNumber uint64) {
-	for k, v := range e {
-		v.Remove(viewNumber)
-		if v.Len() == 0 {
-			delete(e, k)
+func (pve PrepareVoteEvidence) Clear(epoch uint64, viewNumber uint64) {
+	for k, _ := range pve {
+		s := strings.Split(string(k), "|")
+		e, _ := strconv.ParseUint(s[0], 10, 64)
+		v, _ := strconv.ParseUint(s[1], 10, 64)
+
+		if e < epoch || e == epoch && v <= viewNumber {
+			delete(pve, k)
 		}
 	}
 }
 
-func (opb *NumberOrderPrepareVote) Remove(viewNumber uint64) {
-	i := 0
-
-	for i < len(*opb) {
-		if (*opb)[i].ViewNumber > viewNumber {
-			break
-		}
-		(*opb)[i] = nil
-		i++
+func (pve PrepareVoteEvidence) Size() int {
+	size := 0
+	for _, v := range pve {
+		size = size + v.Len()
 	}
-	if i == len(*opb) {
-		*opb = (*opb)[:0]
-	} else {
-		*opb = append((*opb)[:0], (*opb)[i:]...)
-	}
+	return size
 }
+
+//func (opb *NumberOrderPrepareVote) Remove(viewNumber uint64) {
+//	i := 0
+//
+//	for i < len(*opb) {
+//		if (*opb)[i].ViewNumber > viewNumber {
+//			break
+//		}
+//		(*opb)[i] = nil
+//		i++
+//	}
+//	if i == len(*opb) {
+//		*opb = (*opb)[:0]
+//	} else {
+//		*opb = append((*opb)[:0], (*opb)[i:]...)
+//	}
+//}
 
 func (opv *NumberOrderPrepareVote) Add(pv *protocols.PrepareVote) error {
 	if ev := opv.find(pv.Epoch, pv.ViewNumber, pv.BlockNumber); ev != nil {
@@ -196,31 +220,42 @@ func (e ViewChangeEvidence) Add(vc *protocols.ViewChange, id Identity) error {
 	return err
 }
 
-func (e ViewChangeEvidence) Clear(viewNumber uint64) {
-	for k, v := range e {
-		v.Remove(viewNumber)
-		if v.Len() == 0 {
-			delete(e, k)
+func (vce ViewChangeEvidence) Clear(epoch uint64, viewNumber uint64) {
+	for k, _ := range vce {
+		s := strings.Split(string(k), "|")
+		e, _ := strconv.ParseUint(s[0], 10, 64)
+		v, _ := strconv.ParseUint(s[1], 10, 64)
+
+		if e < epoch || e == epoch && v <= viewNumber {
+			delete(vce, k)
 		}
 	}
 }
 
-func (opb *NumberOrderViewChange) Remove(viewNumber uint64) {
-	i := 0
-
-	for i < len(*opb) {
-		if (*opb)[i].ViewNumber > viewNumber {
-			break
-		}
-		(*opb)[i] = nil
-		i++
+func (vce ViewChangeEvidence) Size() int {
+	size := 0
+	for _, v := range vce {
+		size = size + v.Len()
 	}
-	if i == len(*opb) {
-		*opb = (*opb)[:0]
-	} else {
-		*opb = append((*opb)[:0], (*opb)[i:]...)
-	}
+	return size
 }
+
+//func (opb *NumberOrderViewChange) Remove(viewNumber uint64) {
+//	i := 0
+//
+//	for i < len(*opb) {
+//		if (*opb)[i].ViewNumber > viewNumber {
+//			break
+//		}
+//		(*opb)[i] = nil
+//		i++
+//	}
+//	if i == len(*opb) {
+//		*opb = (*opb)[:0]
+//	} else {
+//		*opb = append((*opb)[:0], (*opb)[i:]...)
+//	}
+//}
 
 func (ovc *NumberOrderViewChange) Add(vc *protocols.ViewChange) error {
 	if ev := ovc.find(vc.Epoch, vc.ViewNumber, vc.BlockNumber); ev != nil {

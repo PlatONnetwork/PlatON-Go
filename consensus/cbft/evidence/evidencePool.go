@@ -50,7 +50,7 @@ func (pool emptyEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidence
 	return nil, nil
 }
 
-func (pool emptyEvidencePool) Clear(viewNumber uint64) {
+func (pool emptyEvidencePool) Clear(epoch uint64, viewNumber uint64) {
 }
 
 func (pool emptyEvidencePool) Close() {
@@ -89,10 +89,7 @@ func NewBaseEvidencePool(path string) (*baseEvidencePool, error) {
 }
 
 func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock) (err error) {
-	var id Identity
-	if id, err = verify(pb); err != nil {
-		return err
-	}
+	id := verify(pb)
 	if err := pool.pb.Add(pb, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareBlockEvidence); ok {
 			if err := pool.commit(evidence, id); err != nil {
@@ -105,10 +102,7 @@ func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock) (err er
 }
 
 func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote) (err error) {
-	var id Identity
-	if id, err = verify(pv); err != nil {
-		return err
-	}
+	id := verify(pv)
 	if err := pool.pv.Add(pv, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareVoteEvidence); ok {
 			if err := pool.commit(evidence, id); err != nil {
@@ -121,10 +115,7 @@ func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote) (err erro
 }
 
 func (pool baseEvidencePool) AddViewChange(vc *protocols.ViewChange) (err error) {
-	var id Identity
-	if id, err = verify(vc); err != nil {
-		return err
-	}
+	id := verify(vc)
 	if err := pool.vc.Add(vc, id); err != nil {
 		if evidence, ok := err.(*DuplicateViewChangeEvidence); ok {
 			if err := pool.commit(evidence, id); err != nil {
@@ -166,7 +157,7 @@ func (pool baseEvidencePool) Evidences() consensus.Evidences {
 
 func (pool baseEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 	var ed EvidenceData
-	if err := json.Unmarshal(data, &ed); err == nil {
+	if err := json.Unmarshal(data, &ed); err != nil {
 		return nil, err
 	}
 	evds := make(consensus.Evidences, 0)
@@ -182,19 +173,18 @@ func (pool baseEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences
 	return evds, nil
 }
 
-func (pool baseEvidencePool) Clear(viewNumber uint64) {
-	pool.pb.Clear(viewNumber)
-	pool.pv.Clear(viewNumber)
-	pool.vc.Clear(viewNumber)
+func (pool baseEvidencePool) Clear(epoch uint64, viewNumber uint64) {
+	pool.pb.Clear(epoch, viewNumber)
+	pool.pv.Clear(epoch, viewNumber)
+	pool.vc.Clear(epoch, viewNumber)
 }
 
 func (pool baseEvidencePool) Close() {
 	pool.db.Close()
 }
 
-func verify(msg types.ConsensusMsg) (Identity, error) {
-	// TODO
-	return Identity{}, nil
+func verify(msg types.ConsensusMsg) Identity {
+	return Identity(msg.IdentityMsg())
 }
 
 func encodeKey(e consensus.Evidence, id Identity) []byte {

@@ -169,7 +169,7 @@ func NewEvidenceData() *EvidenceData {
 		DC: make([]*DuplicateViewChangeEvidence, 0),
 	}
 }
-func ClassifyEvidence(evds []consensus.Evidence) *EvidenceData {
+func ClassifyEvidence(evds consensus.Evidences) *EvidenceData {
 	ed := NewEvidenceData()
 	for _, e := range evds {
 		switch e.(type) {
