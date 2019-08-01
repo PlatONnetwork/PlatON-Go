@@ -373,7 +373,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		difference := vp.ActiveBlock - vp.EndVotingBlock
 
 		remainder := difference % xutil.ConsensusSize()
-		if remainder != 0 {
+		if remainder != 20 {
 			log.Warn("active-block should be multi-consensus-rounds greater than end-voting-block.")
 			return common.NewBizError("active-block invalid.")
 		} else {
