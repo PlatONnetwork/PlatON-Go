@@ -269,7 +269,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil || block.NumberU64() == 0 {
 			p.ParentQC = qc
 			hadSend.Push(p)
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(p.BlockNum(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
 

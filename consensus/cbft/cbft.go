@@ -955,7 +955,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	}
 
 	// Get validator of signer
-	vnode, err := cbft.validatorPool.GetValidatorByIndex(cbft.state.HighestQCBlock().NumberU64(), msg.NodeIndex())
+	vnode, err := cbft.validatorPool.GetValidatorByIndex(msg.BlockNum(), msg.NodeIndex())
 
 	if err != nil {
 		return nil, errors.Wrap(err, "get validator failed")
