@@ -26,10 +26,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
+	inner   = flag.String("inner", "", "dump given platon inner contract data")
 	hexMode = flag.String("hex", "", "dump given hex data")
 	noASCII = flag.Bool("noascii", false, "don't print ASCII strings readably")
 	single  = flag.Bool("single", false, "print only the first element, discard the rest")
@@ -48,8 +50,20 @@ If the filename is omitted, data is read from stdin.`)
 func main() {
 	flag.Parse()
 
+	// parse platon inner contract data
+	if *inner != "" {
+		rlpByte, err := hexutil.Decode(*inner)
+		if nil != err {
+			die(err)
+			return
+		}
+		fmt.Println("inner contract data: \n", string(rlpByte))
+		fmt.Println()
+	}
+
 	var r io.Reader
 	switch {
+
 	case *hexMode != "":
 		data, err := hex.DecodeString(strings.TrimPrefix(*hexMode, "0x"))
 		if err != nil {
