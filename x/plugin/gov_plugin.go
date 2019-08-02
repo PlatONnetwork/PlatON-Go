@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -635,7 +637,14 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
-				log.Debug("tx sender is a verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+				nodeAddress, _ := xutil.NodeId2Addr(verifier.NodeId)
+				candiate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
+				if err != nil {
+					return common.NewBizError("cannot get verifier's detail info.")
+				} else if staking.Is_Invalid(candiate.Status) {
+					return common.NewBizError("verifier's status is invalid.")
+				}
+				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
 				return common.NewBizError("tx sender should be node's staking address.")

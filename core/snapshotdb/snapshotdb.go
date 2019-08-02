@@ -243,7 +243,11 @@ func initDB() error {
 	}
 	dbInstance.corn = cron.New()
 	if err := dbInstance.corn.AddFunc("@every 1s", dbInstance.schedule); err != nil {
-		logger.Error("new db fail", "err", err)
+		logger.Error("set db corn compaction fail", "err", err)
+		return err
+	}
+	if err := dbInstance.corn.AddFunc("@every 3s", dbInstance.metrics); err != nil {
+		logger.Error("set db corn metrics fail", "err", err)
 		return err
 	}
 	dbInstance.corn.Start()
@@ -385,6 +389,7 @@ func (s *snapshotDB) Compaction() error {
 				batch.Put(itr.Key(), itr.Value())
 			}
 		}
+		itr.Release()
 	}
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		logger.Error("write to baseDB fail", "err", err)

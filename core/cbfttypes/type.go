@@ -65,10 +65,6 @@ type AddValidatorEvent struct {
 	NodeID discover.NodeID
 }
 
-type RemoveValidatorEvent struct {
-	NodeID discover.NodeID
-}
-
 type UpdateValidatorEvent struct{}
 
 type ValidateNode struct {

@@ -37,7 +37,7 @@ func Test_CleanSnapshotDB(t *testing.T) {
 }
 
 func watching(eventMux *event.TypeMux, t *testing.T) {
-	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -58,16 +58,6 @@ func watching(eventMux *event.TypeMux, t *testing.T) {
 
 				str, _ := json.Marshal(addEv)
 				t.Log("P2P Received the add validator is:", string(str))
-
-			case cbfttypes.RemoveValidatorEvent:
-				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
-				if !ok {
-					t.Error("Received remove validator event type error")
-					continue
-				}
-
-				str, _ := json.Marshal(removeEv)
-				t.Log("P2P Received the remove validator is:", string(str))
 			default:
 				t.Error("Received unexcepted event")
 			}
