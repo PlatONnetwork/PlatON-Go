@@ -382,7 +382,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		}
 		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)
 		if err != nil {
-			cbft.log.Error("last view change is not equal msg.viewNumber", "err", err)
+			cbft.log.Error("Last view change is not equal msg.viewNumber", "err", err)
 			return err
 		}
 		cbft.network.Send(id, &protocols.ViewChangeQuorumCert{

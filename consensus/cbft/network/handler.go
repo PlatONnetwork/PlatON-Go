@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"time"
@@ -28,10 +29,10 @@ const (
 	// Maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
 
-	QCBnMonitorInterval     = 4 // Qc block synchronization detection interval
-	LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
-	CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval  = 10
+	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
+	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
+	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+	SyncViewChangeInterval = 10
 
 	//
 	TypeForQCBn     = 1
@@ -552,49 +553,34 @@ func (h *EngineManager) synchronize() {
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
 		qcBn, _ := h.engine.HighestQCBlockBn()
-		highPeers := h.peers.PeersWithHighestQCBn(qcBn)
-		biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
-		if biggestPeer != nil {
-			log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-			// todo: Build a message and then send a message
-			msg := &protocols.GetLatestStatus{
-				BlockNumber: qcBn,
-				LogicType:   TypeForQCBn,
-			}
-			h.Send(biggestPeer.PeerID(), msg)
-		}
+		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
+		h.PartBroadcast(&protocols.GetLatestStatus{
+			BlockNumber: qcBn,
+			LogicType:   TypeForQCBn,
+		})
 	}
 
 	// Logic used to synchronize locked.
 	syncLockedBnFunc := func() {
 		lockedBn, _ := h.engine.HighestLockBlockBn()
-		highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
-		biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
-		if biggestPeer != nil {
-			log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-			// todo: Build a message and then send a message
-			msg := &protocols.GetLatestStatus{
-				BlockNumber: lockedBn,
-				LogicType:   TypeForLockedBn,
-			}
-			h.Send(biggestPeer.PeerID(), msg)
+		log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn)
+		msg := &protocols.GetLatestStatus{
+			BlockNumber: lockedBn,
+			LogicType:   TypeForLockedBn,
 		}
+		h.PartBroadcast(msg)
 	}
 
 	// Logic used to synchronize commit.
 	syncCommitBnFunc := func() {
 		commitBn, _ := h.engine.HighestCommitBlockBn()
-		highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
-		biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
-		if biggestPeer != nil {
-			log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-			// todo: Build a message and then send a message
-			msg := &protocols.GetLatestStatus{
-				BlockNumber: commitBn,
-				LogicType:   TypeForCommitBn,
-			}
-			h.Send(biggestPeer.PeerID(), msg)
+		log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn)
+		// todo: Build a message and then send a message
+		msg := &protocols.GetLatestStatus{
+			BlockNumber: commitBn,
+			LogicType:   TypeForCommitBn,
 		}
+		h.PartBroadcast(msg)
 	}
 
 	// Update if it is the same state within 5 seconds
@@ -606,9 +592,10 @@ func (h *EngineManager) synchronize() {
 	for {
 		select {
 		case <-blockNumberTicker.C:
-			syncQCBnFunc()
-			syncLockedBnFunc()
-			syncCommitBnFunc()
+			// Sent at random.
+			randomSend(syncQCBnFunc)
+			randomSend(syncLockedBnFunc)
+			randomSend(syncCommitBnFunc)
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
@@ -638,6 +625,13 @@ func (h *EngineManager) synchronize() {
 			return
 		}
 	}
+}
+
+// Randomly sent during the timer period.
+func randomSend(exec func()) {
+	time.AfterFunc(time.Duration(int64(rand.Intn(QCBnMonitorInterval))), func() {
+		exec()
+	})
 }
 
 // Select a node from the list of nodes that is larger than the specified value.
