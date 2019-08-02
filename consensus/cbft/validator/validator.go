@@ -248,6 +248,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 
 	// Only updated once
 	if blockNumber <= vp.switchPoint {
+		log.Debug("Already update validator before", "blockNumber", blockNumber, "switchPoint", vp.switchPoint)
 		return errors.New("already updated before")
 	}
 
@@ -255,6 +256,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 
 	nds, err := vp.agency.GetValidator(nextRound(blockNumber))
 	if err != nil {
+		log.Error("Get validator error", "blockNumber", blockNumber, "err", err)
 		return err
 	}
 	vp.prevValidators = vp.currentValidators

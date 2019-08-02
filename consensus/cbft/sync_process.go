@@ -44,6 +44,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
+					parent = block
 				}
 
 				// Update the results to the CBFT state machine

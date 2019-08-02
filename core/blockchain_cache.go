@@ -3,12 +3,13 @@ package core
 import (
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"sync"
 )
 
 var (
@@ -212,6 +213,8 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 
 	//to execute
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
+	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
+		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "err", err)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		sealHash := block.Header().SealHash()
