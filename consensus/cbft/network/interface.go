@@ -2,6 +2,7 @@ package network
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -33,4 +34,7 @@ type Cbft interface {
 
 	// Return the highest commit block number of the current node.
 	HighestCommitBlockBn() (uint64, common.Hash)
+
+	// Returns the node ID of the missing vote.
+	MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error)
 }
