@@ -92,9 +92,6 @@ type Ppos_1105 struct {
 // submitText
 type Ppos_2000 struct {
 	Verifier       discover.NodeID
-	GithubID       string
-	Topic          string
-	Desc           string
 	Url            string
 	EndVotingBlock uint64
 }
@@ -102,9 +99,6 @@ type Ppos_2000 struct {
 // submitVersion
 type Ppos_2001 struct {
 	Verifier       discover.NodeID
-	GithubID       string
-	Topic          string
-	Desc           string
 	Url            string
 	NewVersion     uint32
 	EndVotingBlock uint64
@@ -114,9 +108,6 @@ type Ppos_2001 struct {
 // submitParam
 type Ppos_2002 struct {
 	Verifier       discover.NodeID
-	GithubID       string
-	Topic          string
-	Desc           string
 	Url            string
 	ParamName      string
 	CurrentValue   string
