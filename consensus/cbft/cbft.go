@@ -1157,7 +1157,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		}
 	}
 
-	log.Debug("missing nodes on MissingViewChangeNodes", "count", len(consensusNodes))
+	log.Debug("missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(consensusNodes))
 	// Synchronize only when there are missing votes for half of the nodes.
 	if len(consensusNodes) < consensusNodesLen/2 {
 		return nil, nil, fmt.Errorf("within the safety value")
@@ -1177,6 +1177,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 			consensusNodes = append(consensusNodes[:i], consensusNodes[i+1:]...)
 		}
 	}
+	log.Debug("missing nodes exits in the peers", "nodes", network.FormatNodes(consensusNodes))
 	nodeIndexes := make([]uint32, 0, len(consensusNodes))
 	for _, v := range consensusNodes {
 		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
