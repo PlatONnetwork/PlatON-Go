@@ -46,8 +46,8 @@ var (
 )
 
 const (
-	FreeOrigin            = 0
-	RestrictingPlanOrigin = 1
+	FreeOrigin            = uint16(0)
+	RestrictingPlanOrigin = uint16(1)
 
 	PreviousRound = uint(0)
 	CurrentRound  = uint(1)
@@ -155,25 +155,6 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 		}
 	}
 
-	if xutil.IsSwitch(block.NumberU64()) {
-		pre, err := sk.getPreValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
-		if nil != err {
-			log.Error("Failed to Query Previous Round validators on stakingPlugin Confirmed When Switch block",
-				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
-			return err
-		}
-		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
-		if nil != err {
-			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Switch block",
-				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
-			return err
-		}
-		result := distinct(pre.Arr, current.Arr)
-		if len(result) > 0 {
-			sk.removeConsensusNode(result)
-			log.Debug("stakingPlugin removeConsensusNode success", "blockNumber", block.NumberU64(), "size", len(result))
-		}
-	}
 	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
 	return nil
 }
@@ -195,12 +176,6 @@ func distinct(list, target staking.ValidatorQueue) staking.ValidatorQueue {
 func (sk *StakingPlugin) addConsensusNode(nodes staking.ValidatorQueue) {
 	for _, node := range nodes {
 		sk.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: node.NodeId})
-	}
-}
-
-func (sk *StakingPlugin) removeConsensusNode(nodes staking.ValidatorQueue) {
-	for _, node := range nodes {
-		sk.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: node.NodeId})
 	}
 }
 
