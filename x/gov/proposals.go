@@ -100,7 +100,7 @@ type Proposal interface {
 	GetProposalID() common.Hash
 
 	//SetGithubID(githubID string)
-	GetGithubID() string
+	//GetGithubID() string
 
 	//SetTopic(topic string)
 	//GetTopic() string
@@ -132,8 +132,8 @@ type Proposal interface {
 }
 
 type TextProposal struct {
-	ProposalID   common.Hash
-	GithubID     string
+	ProposalID common.Hash
+	//GithubID     string
 	ProposalType ProposalType
 	//Topic          string
 	//Desc           string
@@ -156,9 +156,9 @@ func (tp TextProposal) GetProposalID() common.Hash {
 	tp.GithubID = githubID
 }*/
 
-func (tp TextProposal) GetGithubID() string {
+/*func (tp TextProposal) GetGithubID() string {
 	return tp.GithubID
-}
+}*/
 
 /*func (tp *TextProposal) SetProposalType(proposalType ProposalType) {
 	tp.ProposalType = proposalType
@@ -228,7 +228,7 @@ func (tp TextProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 	if tp.ProposalType != Text {
 		return common.NewBizError("Proposal Type error.")
 	}
-	return verifyBasic(tp.ProposalID, tp.Proposer, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
+	return verifyBasic(tp.ProposalID, tp.Proposer, tp.Url, tp.EndVotingBlock, submitBlock, state)
 	//return verifyBasic(tp.ProposalID, tp.Proposer, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
 }
 
@@ -239,7 +239,7 @@ func (tp TextProposal) String() string {
   Type:               	%x
   Proposer:            	%x
   SubmitBlock:        	%d
-  EndVotingBlock:   	%d`, tp.ProposalID, tp.GithubID, tp.ProposalType, tp.Proposer, tp.SubmitBlock, tp.EndVotingBlock)
+  EndVotingBlock:   	%d`, tp.ProposalID, tp.ProposalType, tp.Proposer, tp.SubmitBlock, tp.EndVotingBlock)
 }
 
 type VersionProposal struct {
@@ -359,7 +359,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return common.NewBizError("Proposal Type error.")
 	}
 
-	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.GithubID, vp.Url, vp.EndVotingBlock, submitBlock, state); err != nil {
+	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.Url, vp.EndVotingBlock, submitBlock, state); err != nil {
 		return err
 	}
 
@@ -475,7 +475,7 @@ func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return common.NewBizError("Proposal Type error.")
 	}
 
-	if err := verifyBasic(pp.ProposalID, pp.Proposer, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state); err != nil {
+	if err := verifyBasic(pp.ProposalID, pp.Proposer, pp.Url, pp.EndVotingBlock, submitBlock, state); err != nil {
 		return err
 	}
 
@@ -500,7 +500,7 @@ func (pp ParamProposal) String() string {
 		pp.ProposalID, pp.GithubID, pp.Topic, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
 }
 
-func verifyBasic(proposalID common.Hash, proposer discover.NodeID, githubID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
+func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
 	if len(proposalID) > 0 {
 		p, err := GovDBInstance().GetProposal(proposalID, state)
 		if err != nil {

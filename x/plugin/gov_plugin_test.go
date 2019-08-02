@@ -59,8 +59,8 @@ func setup(t *testing.T) func() {
 
 func submitText(t *testing.T, pid common.Hash) {
 	vp := gov.TextProposal{
-		ProposalID:   pid,
-		GithubID:     "githubID",
+		ProposalID: pid,
+		//GithubID:     "githubID",
 		ProposalType: gov.Text,
 		//Topic:          "textTopic",
 		//Desc:           "textDesc",
@@ -213,8 +213,8 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID:   txHashArr[0],
-		GithubID:     "githubID",
+		ProposalID: txHashArr[0],
+		//GithubID:     "githubID",
 		ProposalType: gov.Text,
 		//Topic:          "textTopic",
 		//Desc:           "textDesc",
@@ -239,8 +239,8 @@ func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID:   txHashArr[0],
-		GithubID:     "githubID",
+		ProposalID: txHashArr[0],
+		//GithubID:     "githubID",
 		ProposalType: gov.Text,
 		//Topic:          "textTopic",
 		//Desc:           "textDesc",
