@@ -151,7 +151,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	atomic.StoreInt32(&cbft.loading, 1)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, 0, block, qc, nil)
+		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
@@ -578,20 +578,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return nil
 	}
 
-	// Check if the inserted block's parent is highest locked block or highest qc block.
-	// The correct block can link chain.
-	if block.ParentHash() != cbft.state.HighestLockBlock().Hash() &&
-		block.ParentHash() != cbft.state.HighestQCBlock().Hash() {
-		cbft.log.Warn("Not found the inserted block's parent block",
-			"nubmer", block.Number(), "hash", block.Hash(),
-			"parentHash", block.ParentHash(),
-			"lockedNumber", cbft.state.HighestLockBlock().Number(),
-			"lockedHash", cbft.state.HighestLockBlock().Hash(),
-			"qcNumber", cbft.state.HighestQCBlock().Number(),
-			"qcHash", cbft.state.HighestQCBlock().Hash())
-		return errors.New("orphan block")
-	}
-
 	// Verifies block
 	_, qc, err := ctypes.DecodeExtra(block.ExtraData())
 	if err != nil {
@@ -604,9 +590,16 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return err
 	}
 
-	parent := cbft.state.HighestQCBlock()
-	if block.ParentHash() == cbft.state.HighestLockBlock().Hash() {
-		parent = cbft.state.HighestQCBlock()
+	parent := cbft.GetBlock(block.ParentHash(), block.NumberU64()-1)
+	if parent == nil {
+		cbft.log.Warn("Not found the inserted block's parent block",
+			"number", block.Number(), "hash", block.Hash(),
+			"parentHash", block.ParentHash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash(),
+			"qcNumber", cbft.state.HighestQCBlock().Number(),
+			"qcHash", cbft.state.HighestQCBlock().Hash())
+		return errors.New("orphan block")
 	}
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
@@ -723,7 +716,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
-	if cbft.isLoading() && !cbft.isStart() {
+	if cbft.isLoading() && !cbft.isStart() && !cbft.running() {
 		return false, nil
 	}
 
@@ -746,6 +739,11 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		cbft.log.Trace("Should seal timeout")
 		return
 	default:
+	}
+
+	if !cbft.running() {
+		result <- errors.New("cbft is not running")
+		return
 	}
 
 	if cbft.state.IsDeadline() {
@@ -956,7 +954,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	}
 
 	// Get validator of signer
-	vnode, err := cbft.validatorPool.GetValidatorByIndex(cbft.state.HighestQCBlock().NumberU64(), msg.NodeIndex())
+	vnode, err := cbft.validatorPool.GetValidatorByIndex(msg.BlockNum(), msg.NodeIndex())
 
 	if err != nil {
 		return nil, errors.Wrap(err, "get validator failed")

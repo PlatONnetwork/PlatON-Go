@@ -5,9 +5,10 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"math/big"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -95,7 +96,7 @@ type Validators struct {
 }
 
 func (vn *ValidateNode) String() string {
-	return fmt.Sprintf("{Index:%d Address:%s}", vn.Index, vn.Address.String())
+	return fmt.Sprintf("{Index:%d Address:%s BlsPubKey:%s}", vn.Index, vn.Address.String(), fmt.Sprintf("%x", vn.BlsPubKey.Serialize()))
 }
 
 func (vn *ValidateNode) Verify(data, sign []byte) bool {
