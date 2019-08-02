@@ -25,9 +25,6 @@ func buildSubmitTextInput() string {
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
-	input = append(input, common.MustRlpEncode("githubID"))
-	input = append(input, common.MustRlpEncode("textTopic"))
-	input = append(input, common.MustRlpEncode("textDesc"))
 	input = append(input, common.MustRlpEncode("textUrl"))
 	input = append(input, common.MustRlpEncode(uint64(21480)))
 
@@ -39,9 +36,6 @@ func buildSubmitVersionInput() string {
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
-	input = append(input, common.MustRlpEncode("githubID"))
-	input = append(input, common.MustRlpEncode("versionTopic"))
-	input = append(input, common.MustRlpEncode("versionDesc"))
 	input = append(input, common.MustRlpEncode("versionUrl"))
 	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(uint64(21480)))
@@ -54,9 +48,6 @@ func buildSubmitParamInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2002))) // func type code
-	input = append(input, common.MustRlpEncode("githubID"))
-	input = append(input, common.MustRlpEncode("paramTopic"))
-	input = append(input, common.MustRlpEncode("paramDesc"))
 	input = append(input, common.MustRlpEncode("paramUrl"))
 	input = append(input, common.MustRlpEncode("param1"))
 	input = append(input, common.MustRlpEncode(""))
