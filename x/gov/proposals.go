@@ -103,10 +103,10 @@ type Proposal interface {
 	GetGithubID() string
 
 	//SetTopic(topic string)
-	GetTopic() string
+	//GetTopic() string
 
 	//SetDesc(desc string)
-	GetDesc() string
+	//GetDesc() string
 
 	//SetProposalType(proposalType ProposalType)
 	GetProposalType() ProposalType
@@ -132,11 +132,11 @@ type Proposal interface {
 }
 
 type TextProposal struct {
-	ProposalID     common.Hash
-	GithubID       string
-	ProposalType   ProposalType
-	Topic          string
-	Desc           string
+	ProposalID   common.Hash
+	GithubID     string
+	ProposalType ProposalType
+	//Topic          string
+	//Desc           string
 	Url            string
 	SubmitBlock    uint64
 	EndVotingBlock uint64
@@ -172,17 +172,17 @@ func (tp TextProposal) GetProposalType() ProposalType {
 	tp.Topic = topic
 }*/
 
-func (tp TextProposal) GetTopic() string {
+/*func (tp TextProposal) GetTopic() string {
 	return tp.Topic
 }
-
+*/
 /*func (tp *TextProposal) SetDesc(desc string) {
 	tp.Desc = desc
 }
 */
-func (tp TextProposal) GetDesc() string {
+/*func (tp TextProposal) GetDesc() string {
 	return tp.Desc
-}
+}*/
 
 /*func (tp *TextProposal) SetUrl(url string) {
 	tp.Url = url
@@ -228,7 +228,8 @@ func (tp TextProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 	if tp.ProposalType != Text {
 		return common.NewBizError("Proposal Type error.")
 	}
-	return verifyBasic(tp.ProposalID, tp.Proposer, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
+	return verifyBasic(tp.ProposalID, tp.Proposer, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
+	//return verifyBasic(tp.ProposalID, tp.Proposer, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
 }
 
 func (tp TextProposal) String() string {
@@ -238,7 +239,7 @@ func (tp TextProposal) String() string {
   Type:               	%x
   Proposer:            	%x
   SubmitBlock:        	%d
-  EndVotingBlock:   	%d`, tp.ProposalID, tp.GithubID, tp.Topic, tp.ProposalType, tp.Proposer, tp.SubmitBlock, tp.EndVotingBlock)
+  EndVotingBlock:   	%d`, tp.ProposalID, tp.GithubID, tp.ProposalType, tp.Proposer, tp.SubmitBlock, tp.EndVotingBlock)
 }
 
 type VersionProposal struct {
@@ -358,7 +359,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return common.NewBizError("Proposal Type error.")
 	}
 
-	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.Topic, vp.Desc, vp.GithubID, vp.Url, vp.EndVotingBlock, submitBlock, state); err != nil {
+	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.GithubID, vp.Url, vp.EndVotingBlock, submitBlock, state); err != nil {
 		return err
 	}
 
@@ -474,7 +475,7 @@ func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return common.NewBizError("Proposal Type error.")
 	}
 
-	if err := verifyBasic(pp.ProposalID, pp.Proposer, pp.Topic, pp.Desc, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state); err != nil {
+	if err := verifyBasic(pp.ProposalID, pp.Proposer, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state); err != nil {
 		return err
 	}
 
@@ -499,7 +500,7 @@ func (pp ParamProposal) String() string {
 		pp.ProposalID, pp.GithubID, pp.Topic, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
 }
 
-func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, githubID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
+func verifyBasic(proposalID common.Hash, proposer discover.NodeID, githubID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
 	if len(proposalID) > 0 {
 		p, err := GovDBInstance().GetProposal(proposalID, state)
 		if err != nil {
@@ -516,12 +517,12 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, 
 		return common.NewBizError("Proposer is empty.")
 	}
 
-	if len(topic) == 0 || len(topic) > 128 {
+	/*if len(topic) == 0 || len(topic) > 128 {
 		return common.NewBizError("Topic is empty or the size is bigger than 128.")
 	}
 	if len(desc) > 512 {
 		return common.NewBizError("description's size is bigger than 512.")
-	}
+	}*/
 	/*if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
 		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
 		return false, err
