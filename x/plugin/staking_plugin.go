@@ -2608,6 +2608,21 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		can.Shares = common.Big0
 		can.Status |= staking.Invalided
 
+		// TODO test
+		pposHash := sk.db.GetLastKVHash(blockHash)
+		log.Debug("SlashCandidates pposHash, Method Before SubAccountStakeRc", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+		// todo test
+		xcom.PrintObject("SlashCandidates, Method Before SubAccountStakeRc, can", can)
+
+		// need to sub account rc
+		if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
+			log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashType,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			return err
+		}
+
 		validators, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to SlashCandidates: Query Verifier List is failed", "slashType", slashType,
