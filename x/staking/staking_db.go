@@ -32,10 +32,18 @@ func (db *StakingDB) getFromCommitted(key []byte) ([]byte, error) {
 }
 
 func (db *StakingDB) put(blockHash common.Hash, key, value []byte) error {
+
+	//// todo test
+	//log.Debug("put", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(value))
+
 	return db.db.Put(blockHash, key, value)
 }
 
 func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
+
+	//// todo test
+	//log.Debug("del", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+
 	return db.db.Del(blockHash, key)
 }
 
@@ -124,20 +132,28 @@ func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Addres
 
 func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Address) error {
 	key := CandidateKeyByAddr(addr)
+
+	// todo test
+	log.Debug("DelCandidateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+
 	return db.del(blockHash, key)
 }
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+
 	// todo test
 	log.Debug("SetCanPowerStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(addr.Bytes()))
+
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+
 	// todo test
 	log.Debug("DelCanPowerStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+
 	return db.del(blockHash, key)
 }
 
@@ -156,10 +172,16 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ad
 
 	v++
 
+	// todo test
+	log.Debug("AddUnStakeItemStore 1 ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
 	}
 	item_key := GetUnStakeItemKey(epoch, v)
+
+	// todo test
+	log.Debug("AddUnStakeItemStore 2 ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(addr.Bytes()))
 
 	return db.put(blockHash, item_key, addr.Bytes())
 }
@@ -185,11 +207,18 @@ func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uin
 
 func (db *StakingDB) DelUnStakeCountStore(blockHash common.Hash, epoch uint64) error {
 	count_key := GetUnStakeCountKey(epoch)
+	// todo test
+	log.Debug("DelUnStakeCountStore", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key))
+
 	return db.del(blockHash, count_key)
 }
 
 func (db *StakingDB) DelUnStakeItemStore(blockHash common.Hash, epoch, index uint64) error {
 	item_key := GetUnStakeItemKey(epoch, index)
+
+	// todo test
+	log.Debug("DelUnStakeItemStore", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key))
+
 	return db.del(blockHash, item_key)
 }
 
@@ -245,6 +274,10 @@ func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Addr
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("SetDelegateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(delByte))
+
 	return db.put(blockHash, key, delByte)
 }
 
@@ -254,17 +287,29 @@ func (db *StakingDB) SetDelegateStoreBySuffix(blockHash common.Hash, suffix []by
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("SetDelegateStoreBySuffix", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(delByte))
+
 	return db.put(blockHash, key, delByte)
 }
 
 func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
 	stakeBlockNumber uint64) error {
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+
+	// todo test
+	log.Debug("DelDelegateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+
 	return db.del(blockHash, key)
 }
 
 func (db *StakingDB) DelDelegateStoreBySuffix(blockHash common.Hash, suffix []byte) error {
 	key := GetDelegateKeyBySuffix(suffix)
+
+	// todo test
+	log.Debug("DelDelegateStoreBySuffix", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+
 	return db.del(blockHash, key)
 }
 
@@ -284,6 +329,9 @@ func (db *StakingDB) AddUnDelegateItemStore(blockHash common.Hash, delAddr commo
 
 	v++
 
+	// todo test
+	log.Debug("AddUnDelegateItemStore 1 ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
 	}
@@ -300,6 +348,10 @@ func (db *StakingDB) AddUnDelegateItemStore(blockHash common.Hash, delAddr commo
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("AddUnDelegateItemStore 2 ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(item))
+
 	return db.put(blockHash, item_key, item)
 }
 
@@ -336,6 +388,10 @@ func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrInde
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("SetEpochValIndex", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochIndexKey()), "val", hex.EncodeToString(value))
+
 	return db.put(blockHash, GetEpochIndexKey(), value)
 }
 
@@ -369,6 +425,10 @@ func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, v
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("SetEpochValList", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)), "val", hex.EncodeToString(value))
+
 	return db.put(blockHash, GetEpochValArrKey(start, end), value)
 }
 
@@ -399,6 +459,10 @@ func (db *StakingDB) GetEpochValListByBlockHash(blockHash common.Hash, start, en
 }
 
 func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, end uint64) error {
+
+	// todo test
+	log.Debug("DelEpochValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)))
+
 	return db.del(blockHash, GetEpochValArrKey(start, end))
 }
 
@@ -407,6 +471,10 @@ func (db *StakingDB) SetRoundValIndex(blockHash common.Hash, indexArr ValArrInde
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("SetRoundValIndex", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundIndexKey()), "val", hex.EncodeToString(value))
+
 	return db.put(blockHash, GetRoundIndexKey(), value)
 }
 
@@ -440,6 +508,10 @@ func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, v
 	if nil != err {
 		return err
 	}
+
+	// todo test
+	log.Debug("SetRoundValList", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundValArrKey(start, end)), "val", hex.EncodeToString(value))
+
 	return db.put(blockHash, GetRoundValArrKey(start, end), value)
 }
 
@@ -470,6 +542,10 @@ func (db *StakingDB) GetRoundValListByBlockHash(blockHash common.Hash, start, en
 }
 
 func (db *StakingDB) DelRoundValListByBlockHash(blockHash common.Hash, start, end uint64) error {
+
+	// todo test
+	log.Debug("DelRoundValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundValArrKey(start, end)))
+
 	return db.del(blockHash, GetRoundValArrKey(start, end))
 }
 
@@ -500,6 +576,9 @@ func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Addres
 
 	v++
 
+	// todo test
+	log.Debug("AddAccountStakeRc", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+
 	return db.put(blockHash, key, common.Uint64ToBytes(v))
 }
 
@@ -517,10 +596,18 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	v--
 
 	if v == 0 {
+
+		// todo test
+		log.Debug("SubAccountStakeRc, del", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+
 		return db.del(blockHash, key)
 	} else if v < 0 {
 		return common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
 	} else {
+
+		// todo test
+		log.Debug("SubAccountStakeRc,  put", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+
 		return db.put(blockHash, key, common.Uint64ToBytes(v))
 	}
 }
