@@ -234,8 +234,6 @@ func (tp TextProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 
 func (tp TextProposal) String() string {
 	return fmt.Sprintf(`Proposal %x: 
-  GithubID:            	%s
-  Topic:              	%s
   Type:               	%x
   Proposer:            	%x
   SubmitBlock:        	%d
@@ -243,11 +241,11 @@ func (tp TextProposal) String() string {
 }
 
 type VersionProposal struct {
-	ProposalID     common.Hash
-	GithubID       string
-	ProposalType   ProposalType
-	Topic          string
-	Desc           string
+	ProposalID common.Hash
+	//GithubID       string
+	ProposalType ProposalType
+	//Topic          string
+	//Desc           string
 	Url            string
 	SubmitBlock    uint64
 	EndVotingBlock uint64
@@ -269,9 +267,9 @@ func (vp VersionProposal) GetProposalID() common.Hash {
 	vp.GithubID = githubID
 }*/
 
-func (vp VersionProposal) GetGithubID() string {
+/*func (vp VersionProposal) GetGithubID() string {
 	return vp.GithubID
-}
+}*/
 
 /*func (vp VersionProposal) SetProposalType(proposalType ProposalType) {
 	vp.ProposalType = proposalType
@@ -285,18 +283,18 @@ func (vp VersionProposal) GetProposalType() ProposalType {
 	vp.Topic = topic
 }*/
 
-func (vp VersionProposal) GetTopic() string {
+/*func (vp VersionProposal) GetTopic() string {
 	return vp.Topic
-}
+}*/
 
 /*func (tp *TextProposal) SetDesc(desc string) {
 	vp.Desc = desc
 }
 */
-func (vp VersionProposal) GetDesc() string {
+/*func (vp VersionProposal) GetDesc() string {
 	return vp.Desc
 }
-
+*/
 /*func (vp VersionProposal) SetUrl(url string) {
 	vp.Url = url
 }*/
@@ -390,23 +388,21 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 
 func (vp VersionProposal) String() string {
 	return fmt.Sprintf(`Proposal %x: 
-  GithubID:            	%s
-  Topic:              	%s
   Type:               	%x
   Proposer:            	%x
   SubmitBlock:        	%d
   EndVotingBlock:   	%d
   ActiveBlock:   		%d
   NewVersion:   		%d`,
-		vp.ProposalID, vp.GithubID, vp.Topic, vp.ProposalType, vp.Proposer, vp.SubmitBlock, vp.EndVotingBlock, vp.ActiveBlock, vp.NewVersion)
+		vp.ProposalID, vp.ProposalType, vp.Proposer, vp.SubmitBlock, vp.EndVotingBlock, vp.ActiveBlock, vp.NewVersion)
 }
 
 type ParamProposal struct {
-	ProposalID     common.Hash
-	GithubID       string
-	ProposalType   ProposalType
-	Topic          string
-	Desc           string
+	ProposalID common.Hash
+	//GithubID       string
+	ProposalType ProposalType
+	//Topic          string
+	//Desc           string
 	Url            string
 	SubmitBlock    uint64
 	EndVotingBlock uint64
@@ -421,21 +417,22 @@ type ParamProposal struct {
 func (pp ParamProposal) GetProposalID() common.Hash {
 	return pp.ProposalID
 }
-func (pp ParamProposal) GetGithubID() string {
+
+/*func (pp ParamProposal) GetGithubID() string {
 	return pp.GithubID
 }
-
+*/
 func (pp ParamProposal) GetProposalType() ProposalType {
 	return pp.ProposalType
 }
 
-func (pp ParamProposal) GetTopic() string {
+/*func (pp ParamProposal) GetTopic() string {
 	return pp.Topic
 }
 
 func (pp ParamProposal) GetDesc() string {
 	return pp.Desc
-}
+}*/
 
 func (pp ParamProposal) GetUrl() string {
 	return pp.Url
@@ -489,15 +486,13 @@ func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 
 func (pp ParamProposal) String() string {
 	return fmt.Sprintf(`Proposal %x: 
-  GithubID:            	%s
-  Topic:              	%s
   Type:               	%x
   Proposer:            	%x
   SubmitBlock:        	%d
   ParamName:        	%s
   CurrentValue:        	%s
   NewValue:   			%s`,
-		pp.ProposalID, pp.GithubID, pp.Topic, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
+		pp.ProposalID, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
 }
 
 func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
