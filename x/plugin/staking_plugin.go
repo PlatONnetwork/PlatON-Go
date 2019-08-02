@@ -46,8 +46,8 @@ var (
 )
 
 const (
-	FreeOrigin            = 0
-	RestrictingPlanOrigin = 1
+	FreeOrigin            = uint16(0)
+	RestrictingPlanOrigin = uint16(1)
 
 	PreviousRound = uint(0)
 	CurrentRound  = uint(1)
