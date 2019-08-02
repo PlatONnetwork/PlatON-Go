@@ -174,6 +174,7 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 // of the GetPrepareVote message. It will synchronously return a
 // PrepareVotes message to the sender.
 func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
+	cbft.log.Debug("Received message on OnGetPrepareVote", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	// Get all the received PrepareVote of the block according to the index
 	// position of the block in the view.
 	prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
@@ -200,6 +201,7 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 
 // OnPrepareVotes handling response from GetPrepareVote response.
 func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
+	cbft.log.Debug("Received message on OnPrepareVotes", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, vote := range msg.Votes {
 		if err := cbft.OnPrepareVote(id, vote); err != nil {
 			cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
@@ -216,7 +218,7 @@ func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 // and if the blockNumber of local node is larger then reply LatestStatus message,
 // the message contains the status information of the local node.
 func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) error {
-	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash().TerminalString())
+	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash(), "message", msg.String())
 	// Define a function that performs the send action.
 	launcher := func(bType uint64, targetId string, blockNumber uint64, blockHash common.Hash) error {
 		p, err := cbft.network.GetPeer(targetId)
@@ -275,7 +277,7 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 
 // OnLatestStatus is used to process LatestStatus messages that received from peer.
 func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
-	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash().TerminalString())
+	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	switch msg.LogicType {
 	case network.TypeForQCBn:
 		localQCBn := cbft.state.HighestQCBlock().NumberU64()
@@ -325,7 +327,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 // block information exists locally. If not, send a network request to get
 // the block data.
 func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash) error {
-	cbft.log.Debug("Received message on OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash())
+	cbft.log.Debug("Received message on OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	block := cbft.blockTree.FindBlockByHash(msg.BlockHash)
 	if block == nil {
 		cbft.network.Send(id, &protocols.GetPrepareBlock{
@@ -335,4 +337,79 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 		})
 	}
 	return nil
+}
+
+// OnGetViewChange responds to nodes that require viewChange.
+//
+// The Epoch and viewNumber of viewChange must be consistent
+// with the state of the current node.
+func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error {
+	cbft.log.Debug("Received message on OnGetViewChange", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	localEpoch, localViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
+	if msg.Epoch != localEpoch {
+		cbft.log.Error("Epoch not equal, get view change failed", "reqEpoch", msg.Epoch, "localEpoch", localEpoch)
+		return fmt.Errorf("epoch not equal")
+	}
+	if msg.ViewNumber != localViewNumber && msg.ViewNumber+1 != localViewNumber {
+		cbft.log.Error("ViewNumber not equal and not less than 1, get view change failed", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
+		return fmt.Errorf("viewNumer not equal")
+	}
+	if msg.ViewNumber == localViewNumber {
+		// Get the viewChange belong to local node.
+		node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+		if err != nil {
+			cbft.log.Error("Get validator error, get view change failed", "err", err)
+			return fmt.Errorf("get validator failed")
+		}
+		viewChanges := cbft.state.AllViewChange()
+		if v, ok := viewChanges[uint32(node.Index)]; ok {
+			cbft.network.Send(id, v)
+			// Return if it contains missing.
+			for _, nodeIndex := range msg.NodeIndexes {
+				if v2, exists := viewChanges[nodeIndex]; exists {
+					cbft.network.Send(id, v2)
+				}
+			}
+		} else {
+			cbft.log.Warn("No ViewChange found in current node")
+		}
+	}
+	// Return view QC in the case of less than 1.
+	if msg.ViewNumber+1 == localViewNumber {
+		lastViewChangeQC := cbft.state.LastViewChangeQC()
+		if lastViewChangeQC == nil {
+			cbft.log.Error("Not found lastViewChangeQC")
+			return nil
+		}
+		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)
+		if err != nil {
+			cbft.log.Error("last view change is not equal msg.viewNumber", "err", err)
+			return err
+		}
+		cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
+			ViewChangeQC: lastViewChangeQC,
+		})
+	}
+
+	return nil
+}
+
+func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
+	cbft.log.Debug("Received message on OnViewChangeQuorumCert", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	viewChangeQC := msg.ViewChangeQC
+	epoch, viewNumber, _, number := viewChangeQC.MaxBlock()
+	if cbft.state.Epoch() != epoch || cbft.state.ViewNumber() != viewNumber {
+		return
+	}
+	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+	if block.NumberU64() != 0 && (number > qc.BlockNumber) {
+		//fixme get qc block
+		cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+		return
+	}
+
+	increasing := func() uint64 {
+		return cbft.state.ViewNumber() + 1
+	}
+	cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 }
