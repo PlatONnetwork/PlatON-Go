@@ -4540,7 +4540,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < 101; i++ {
+	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
 		nodeId := discover.PubkeyID(&privKey.PublicKey)
 		addr := crypto.PubkeyToAddress(privKey.PublicKey)
@@ -4560,15 +4560,15 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 			ValidatorTerm: 1,
 		}
 		vqList = append(vqList, v)
-		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
+		preNonces = append(preNonces, crypto.Keccak256(common.Int64ToBytes(time.Now().UnixNano() + int64(i)))[:])
 		time.Sleep(time.Microsecond * 10)
 	}
-	for _, v := range vqList {
-		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight)
+	for index, v := range vqList {
+		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight, "nonce", hex.EncodeToString(preNonces[index]))
 	}
 	result, err := plugin.StakingInstance().ProbabilityElection(vqList, currentNonce, preNonces)
 	if nil != err {
-		t.Error("Failed to ProbabilityElection, err:", err)
+		t.Fatal("Failed to ProbabilityElection, err:", err)
 		return
 	}
 	t.Log("election success", result)

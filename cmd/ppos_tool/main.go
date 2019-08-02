@@ -92,9 +92,6 @@ type Ppos_1105 struct {
 // submitText
 type Ppos_2000 struct {
 	Verifier       discover.NodeID
-	GithubID       string
-	Topic          string
-	Desc           string
 	Url            string
 	EndVotingBlock uint64
 }
@@ -102,9 +99,6 @@ type Ppos_2000 struct {
 // submitVersion
 type Ppos_2001 struct {
 	Verifier       discover.NodeID
-	GithubID       string
-	Topic          string
-	Desc           string
 	Url            string
 	NewVersion     uint32
 	EndVotingBlock uint64
@@ -114,9 +108,6 @@ type Ppos_2001 struct {
 // submitParam
 type Ppos_2002 struct {
 	Verifier       discover.NodeID
-	GithubID       string
-	Topic          string
-	Desc           string
 	Url            string
 	ParamName      string
 	CurrentValue   string
@@ -200,7 +191,7 @@ type decDataConfig struct {
 	P2000 Ppos_2000
 	P2001 Ppos_2001
 	P2002 Ppos_2002
-	P2003 Ppos_2003
+	P2003 []Ppos_2003
 	P2004 Ppos_2004
 	P2100 Ppos_2100
 	P2101 Ppos_2101
@@ -337,32 +328,32 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2000:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2000.Verifier)
-			githubID, _ := rlp.EncodeToBytes(cfg.P2000.GithubID)
-			topic, _ := rlp.EncodeToBytes(cfg.P2000.Topic)
-			desc, _ := rlp.EncodeToBytes(cfg.P2000.Desc)
+			/*			githubID, _ := rlp.EncodeToBytes(cfg.P2000.GithubID)
+						topic, _ := rlp.EncodeToBytes(cfg.P2000.Topic)
+						desc, _ := rlp.EncodeToBytes(cfg.P2000.Desc)*/
 			url, _ := rlp.EncodeToBytes(cfg.P2000.Url)
 			endVotingBlock, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingBlock)
 			params = append(params, verifier)
-			params = append(params, githubID)
-			params = append(params, topic)
-			params = append(params, desc)
+			/*			params = append(params, githubID)
+						params = append(params, topic)
+						params = append(params, desc)*/
 			params = append(params, url)
 			params = append(params, endVotingBlock)
 		}
 	case 2001:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2001.Verifier)
-			githubID, _ := rlp.EncodeToBytes(cfg.P2001.GithubID)
-			topic, _ := rlp.EncodeToBytes(cfg.P2001.Topic)
-			desc, _ := rlp.EncodeToBytes(cfg.P2001.Desc)
+			/*			githubID, _ := rlp.EncodeToBytes(cfg.P2001.GithubID)
+						topic, _ := rlp.EncodeToBytes(cfg.P2001.Topic)
+						desc, _ := rlp.EncodeToBytes(cfg.P2001.Desc)*/
 			url, _ := rlp.EncodeToBytes(cfg.P2001.Url)
 			newVersion, _ := rlp.EncodeToBytes(cfg.P2001.NewVersion)
 			endVotingBlock, _ := rlp.EncodeToBytes(cfg.P2001.EndVotingBlock)
 			activeBlock, _ := rlp.EncodeToBytes(cfg.P2001.ActiveBlock)
 			params = append(params, verifier)
-			params = append(params, githubID)
-			params = append(params, topic)
-			params = append(params, desc)
+			/*			params = append(params, githubID)
+						params = append(params, topic)
+						params = append(params, desc)*/
 			params = append(params, url)
 			params = append(params, newVersion)
 			params = append(params, endVotingBlock)
@@ -371,9 +362,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2002:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2002.Verifier)
-			githubID, _ := rlp.EncodeToBytes(cfg.P2002.GithubID)
-			topic, _ := rlp.EncodeToBytes(cfg.P2002.Topic)
-			desc, _ := rlp.EncodeToBytes(cfg.P2002.Desc)
+			/*			githubID, _ := rlp.EncodeToBytes(cfg.P2002.GithubID)
+						topic, _ := rlp.EncodeToBytes(cfg.P2002.Topic)
+						desc, _ := rlp.EncodeToBytes(cfg.P2002.Desc)*/
 			url, _ := rlp.EncodeToBytes(cfg.P2002.Url)
 			paramName, _ := rlp.EncodeToBytes(cfg.P2002.ParamName)
 
@@ -382,9 +373,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 
 			endVotingBlock, _ := rlp.EncodeToBytes(cfg.P2002.EndVotingBlock)
 			params = append(params, verifier)
-			params = append(params, githubID)
-			params = append(params, topic)
-			params = append(params, desc)
+			/*			params = append(params, githubID)
+						params = append(params, topic)
+						params = append(params, desc)*/
 			params = append(params, url)
 			params = append(params, paramName)
 			params = append(params, currentValue)
@@ -393,15 +384,30 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		}
 	case 2003:
 		{
-			verifier, _ := rlp.EncodeToBytes(cfg.P2003.Verifier)
-			proposalID, _ := rlp.EncodeToBytes(cfg.P2003.ProposalID.Bytes())
-			op, _ := rlp.EncodeToBytes(cfg.P2003.Op)
-			programVersion, _ := rlp.EncodeToBytes(cfg.P2003.ProgramVersion)
-			params = append(params, verifier)
-			params = append(params, proposalID)
-			params = append(params, op)
-			params = append(params, programVersion)
+			for i := 0; i < len(cfg.P2003); i++ {
+				params = make([][]byte, 0)
+
+				verifier, _ := rlp.EncodeToBytes(cfg.P2003[i].Verifier)
+				proposalID, _ := rlp.EncodeToBytes(cfg.P2003[i].ProposalID.Bytes())
+				op, _ := rlp.EncodeToBytes(cfg.P2003[i].Op)
+				programVersion, _ := rlp.EncodeToBytes(cfg.P2003[i].ProgramVersion)
+				params = append(params, verifier)
+				params = append(params, proposalID)
+				params = append(params, op)
+				params = append(params, programVersion)
+
+				buf := new(bytes.Buffer)
+				err := rlp.Encode(buf, params)
+				if err != nil {
+					panic(fmt.Errorf("%d encode rlp data fail: %v", funcType, err))
+				} else {
+					rlpData = hexutil.Encode(buf.Bytes())
+					fmt.Printf("RLP = %s\n", rlpData)
+				}
+			}
+			return ""
 		}
+
 	case 2004:
 		{
 			activeNode, _ := rlp.EncodeToBytes(cfg.P2004.ActiveNode)
