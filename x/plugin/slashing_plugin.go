@@ -287,12 +287,12 @@ func (sp *SlashingPlugin) executeSlash(evidence consensus.Evidence, blockHash co
 			return common.NewBizError(errDuplicateSignVerify.Error())
 		}
 
-		slash_amount := calcSlashAmount(candidate, xcom.DuplicateSignLowSlash())
+		slashAmount := calcSlashAmount(candidate, xcom.DuplicateSignLowSlash())
 
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()),
-			"nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "slashAmount", slash_amount, "reporter", caller.Hex())
+			"nodeId", candidate.NodeId.String(), "slashAmount", slashAmount, "reporter", caller.Hex())
 
-		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slash_amount, true, staking.DuplicateSign, caller); nil != err {
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, true, staking.DuplicateSign, caller); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return err
 		}
@@ -365,6 +365,9 @@ func calcSlashAmount(candidate *staking.Candidate, rate uint32) *big.Int {
 	sumAmount.Add(candidate.Released, candidate.ReleasedHes)
 	sumAmount.Add(sumAmount, candidate.RestrictingPlan)
 	sumAmount.Add(sumAmount, candidate.RestrictingPlanHes)
-	sumAmount.Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
-	return sumAmount.Div(sumAmount, new(big.Int).SetUint64(100))
+	if sumAmount.Cmp(common.Big0) > 0 {
+		sumAmount.Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
+		return sumAmount.Div(sumAmount, new(big.Int).SetUint64(100))
+	}
+	return common.Big0
 }
