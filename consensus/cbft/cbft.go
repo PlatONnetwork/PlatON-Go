@@ -1178,7 +1178,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 			}
 		}
 	}
-	log.Debug("missing nodes exits in the peers", "nodes", network.FormatNodes(target))
+	log.Debug("missing nodes exists in the peers", "nodes", network.FormatNodes(target))
 	nodeIndexes := make([]uint32, 0, len(target))
 	for _, v := range target {
 		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
