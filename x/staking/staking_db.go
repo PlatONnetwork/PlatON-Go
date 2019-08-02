@@ -581,7 +581,7 @@ func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Addres
 	v++
 
 	// todo test
-	log.Debug("AddAccountStakeRc", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+	log.Debug("AddAccountStakeRc", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", common.Uint64ToBytes(v))
 
 	return db.put(blockHash, key, common.Uint64ToBytes(v))
 }
@@ -614,7 +614,7 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	} else {
 
 		// todo test
-		log.Debug("SubAccountStakeRc, put", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+		log.Debug("SubAccountStakeRc, put", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", common.Uint64ToBytes(v))
 
 		return db.put(blockHash, key, common.Uint64ToBytes(v))
 	}
