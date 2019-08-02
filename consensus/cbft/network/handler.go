@@ -31,6 +31,7 @@ const (
 	QCBnMonitorInterval     = 4 // Qc block synchronization detection interval
 	LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+	SyncViewChangeInterval  = 10
 
 	//
 	TypeForQCBn     = 1
@@ -116,9 +117,9 @@ func (h *EngineManager) Send(peerID string, msg types.Message) {
 	msgPkg := types.NewMsgPackage(peerID, msg, types.NoneMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("Send message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
+		log.Trace("Send message to sendQueue", "msgHash", msg.MsgHash(), "BHash", msg.BHash(), "msg", msg.String())
 	default:
-		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 	}
 	// todo: Whether to consider the problem of blocking
 }
@@ -130,9 +131,9 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	msgPkg := types.NewMsgPackage("", msg, types.FullMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("Broadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
+		log.Trace("Broadcast message to sendQueue", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
 	default:
-		log.Error("Broadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Error("Broadcast message failed, message queue blocking", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 	}
 }
 
@@ -174,7 +175,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 				continue
 			}
 			if peer.ContainsMessageHash(msgHash) {
-				log.Warn("Needn't to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+				log.Trace("Needn't to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 				return fmt.Errorf("contain message and not formard, msgHash:%s", msgHash.TerminalString())
 			}
 		}
@@ -470,6 +471,14 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 		return nil
 
+	case msg.Code == protocols.GetViewChangeMsg:
+		var request protocols.GetViewChange
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+		return nil
+
 	case msg.Code == protocols.PingMsg:
 		var pingTime protocols.Ping
 		if err := msg.Decode(&pingTime); err != nil {
@@ -479,6 +488,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		go p2p.SendItems(p.ReadWriter(), protocols.PongMsg, pingTime[0])
 		p.Log().Trace("Respond to ping message done")
 
+		return nil
 	case msg.Code == protocols.PongMsg:
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
@@ -512,6 +522,13 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			}
 		}
 		return nil
+	case msg.Code == protocols.ViewChangeQuorumCertMsg:
+		var request protocols.ViewChangeQuorumCert
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+		return nil
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -529,51 +546,93 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // 3. Synchronous blocks with inconsistent commit block height.
 func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
-	qcTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
-	lockedTicker := time.NewTicker(LockedBnMonitorInterval * time.Second)
-	commitTicker := time.NewTicker(CommitBnMonitorInterval * time.Second)
+	blockNumberTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
+	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
+
+	// Logic used to synchronize QC.
+	syncQCBnFunc := func() {
+		qcBn, _ := h.engine.HighestQCBlockBn()
+		highPeers := h.peers.PeersWithHighestQCBn(qcBn)
+		biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
+		if biggestPeer != nil {
+			log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+			// todo: Build a message and then send a message
+			msg := &protocols.GetLatestStatus{
+				BlockNumber: qcBn,
+				LogicType:   TypeForQCBn,
+			}
+			h.Send(biggestPeer.PeerID(), msg)
+		}
+	}
+
+	// Logic used to synchronize locked.
+	syncLockedBnFunc := func() {
+		lockedBn, _ := h.engine.HighestLockBlockBn()
+		highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
+		biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
+		if biggestPeer != nil {
+			log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+			// todo: Build a message and then send a message
+			msg := &protocols.GetLatestStatus{
+				BlockNumber: lockedBn,
+				LogicType:   TypeForLockedBn,
+			}
+			h.Send(biggestPeer.PeerID(), msg)
+		}
+	}
+
+	// Logic used to synchronize commit.
+	syncCommitBnFunc := func() {
+		commitBn, _ := h.engine.HighestCommitBlockBn()
+		highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
+		biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
+		if biggestPeer != nil {
+			log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+			// todo: Build a message and then send a message
+			msg := &protocols.GetLatestStatus{
+				BlockNumber: commitBn,
+				LogicType:   TypeForCommitBn,
+			}
+			h.Send(biggestPeer.PeerID(), msg)
+		}
+	}
+
+	// Update if it is the same state within 5 seconds
+	var (
+		lastEpoch      uint64 = 0
+		lastViewNumber uint64 = 0
+	)
 
 	for {
 		select {
-		case <-qcTicker.C:
-			qcBn, _ := h.engine.HighestQCBlockBn()
-			highPeers := h.peers.PeersWithHighestQCBn(qcBn)
-			biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
-			if biggestPeer != nil {
-				log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-				// todo: Build a message and then send a message
-				msg := &protocols.GetLatestStatus{
-					BlockNumber: qcBn,
-					LogicType:   TypeForQCBn,
-				}
-				h.Send(biggestPeer.PeerID(), msg)
+		case <-blockNumberTicker.C:
+			syncQCBnFunc()
+			syncLockedBnFunc()
+			syncCommitBnFunc()
+
+		case <-viewTicker.C:
+			// If the local viewChange has insufficient votes,
+			// the GetViewChange message is sent from the missing node.
+			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
+			if err != nil {
+				log.Error("Get consensus nodes failed", err)
+				break
 			}
-		case <-lockedTicker.C:
-			lockedBn, _ := h.engine.HighestLockBlockBn()
-			highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
-			biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
-			if biggestPeer != nil {
-				log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-				// todo: Build a message and then send a message
-				msg := &protocols.GetLatestStatus{
-					BlockNumber: lockedBn,
-					LogicType:   TypeForLockedBn,
-				}
-				h.Send(biggestPeer.PeerID(), msg)
+			if msg.Epoch == 0 && msg.ViewNumber == 0 {
+				break
 			}
-		case <-commitTicker.C:
-			commitBn, _ := h.engine.HighestCommitBlockBn()
-			highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
-			biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
-			if biggestPeer != nil {
-				log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-				// todo: Build a message and then send a message
-				msg := &protocols.GetLatestStatus{
-					BlockNumber: commitBn,
-					LogicType:   TypeForCommitBn,
+			// Initi.al situation.
+			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
+				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
+				// send GetViewChange to missing node.
+				for _, v := range missingViewNodes {
+					h.Send(v.TerminalString(), msg)
 				}
-				h.Send(biggestPeer.PeerID(), msg)
+			} else {
+				log.Debug("Waiting for the next round")
 			}
+			lastEpoch, lastViewNumber = msg.Epoch, msg.ViewNumber
+
 		case <-h.quitSend:
 			log.Error("synchronize quit")
 			return

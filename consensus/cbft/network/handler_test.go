@@ -71,6 +71,12 @@ func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
 func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return s.localPeer.CommitBn(), common.Hash{}
 }
+func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
+	return []discover.NodeID{s.consensusNodes[0]}, &protocols.GetViewChange{
+		Epoch:      1,
+		ViewNumber: 1,
+	}, nil
+}
 
 // Create a new EngineManager.
 func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {

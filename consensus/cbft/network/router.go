@@ -108,7 +108,7 @@ func (r *router) Gossip(m *types.MsgPackage) {
 func (h *router) SendMessage(m *types.MsgPackage) {
 	if peer, err := h.get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
-			"msgHash", m.Message().MsgHash().TerminalString(), "BHash", m.Message().BHash().TerminalString())
+			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash())
 		if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
 			log.Error("Send Peer error")
 			h.unregister(m.PeerID())
@@ -185,7 +185,7 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 	// all consensus nodes + a number of k non-consensus nodes
 	cNodes, err := r.consensusNodes()
-	log.Debug("consensusNodes in kMixingRandomNodes", "cNodes", len(cNodes), "ids", formatNodes(cNodes))
+	log.Debug("consensusNodes in kMixingRandomNodes", "cNodes", len(cNodes), "ids", FormatNodes(cNodes))
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func formatPeers(peers []*peer) string {
 }
 
 // formatNodes is used to print the information about peerID.
-func formatNodes(ids []discover.NodeID) string {
+func FormatNodes(ids []discover.NodeID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {
 		bf.WriteString(id.TerminalString())
