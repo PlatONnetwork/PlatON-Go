@@ -416,7 +416,8 @@ func (api *PublicDebugAPI) Metrics(raw bool) (map[string]interface{}, error) {
 						"95": ps[4],
 					},
 				}
-
+			case metrics.Gauge:
+				root[name] = metric.Value()
 			default:
 				root[name] = "Unknown metric type"
 			}
@@ -466,7 +467,8 @@ func (api *PublicDebugAPI) Metrics(raw bool) (map[string]interface{}, error) {
 						"95": time.Duration(ps[4]).String(),
 					},
 				}
-
+			case metrics.Gauge:
+				root[name] = metric.Value()
 			default:
 				root[name] = "Unknown metric type"
 			}

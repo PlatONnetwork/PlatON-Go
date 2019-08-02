@@ -19,6 +19,8 @@ package ethdb
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -51,6 +53,7 @@ type LDBDatabase struct {
 	writeDelayMeter  metrics.Meter // Meter for measuring the write delay duration due to database compaction
 	diskReadMeter    metrics.Meter // Meter for measuring the effective amount of data read
 	diskWriteMeter   metrics.Meter // Meter for measuring the effective amount of data written
+	diskSizeGauge    metrics.Gauge
 
 	quitLock sync.Mutex      // Mutex protecting the quit channel access
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
@@ -162,15 +165,33 @@ func (db *LDBDatabase) Meter(prefix string) {
 	db.compWriteMeter = metrics.NewRegisteredMeter(prefix+"compact/output", nil)
 	db.diskReadMeter = metrics.NewRegisteredMeter(prefix+"disk/read", nil)
 	db.diskWriteMeter = metrics.NewRegisteredMeter(prefix+"disk/write", nil)
+	db.diskSizeGauge = metrics.NewRegisteredGauge(prefix+"disk/size", nil)
+
 	db.writeDelayMeter = metrics.NewRegisteredMeter(prefix+"compact/writedelay/duration", nil)
 	db.writeDelayNMeter = metrics.NewRegisteredMeter(prefix+"compact/writedelay/counter", nil)
-
 	// Create a quit channel for the periodic collector and run it
 	db.quitLock.Lock()
 	db.quitChan = make(chan chan error)
 	db.quitLock.Unlock()
 
 	go db.meter(3 * time.Second)
+}
+
+func walkDir(dir string) int64 {
+	entries, err := ioutil.ReadDir(dir)
+	if err != nil {
+		log.Error("[ethdb] read dir fail", "err", err)
+		return 0
+	}
+	var dirSize int64
+	for _, f := range entries {
+		if f.IsDir() {
+			dirSize = walkDir(path.Join(dir, f.Name())) + dirSize
+		} else {
+			dirSize = f.Size() + dirSize
+		}
+	}
+	return dirSize
 }
 
 // meter periodically retrieves internal leveldb counters and reports them to
@@ -214,6 +235,7 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 
 	// Iterate ad infinitum and collect the stats
 	for i := 1; errc == nil && merr == nil; i++ {
+
 		// Retrieve the database stats
 		stats, err := db.db.GetProperty("leveldb.stats")
 		if err != nil {
@@ -331,6 +353,10 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 		}
 		if db.diskWriteMeter != nil {
 			db.diskWriteMeter.Mark(int64((nWrite - iostats[1]) * 1024 * 1024))
+		}
+		if db.diskSizeGauge != nil {
+			size := walkDir(db.Path())
+			db.diskSizeGauge.Update(size)
 		}
 		iostats[0], iostats[1] = nRead, nWrite
 
