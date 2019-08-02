@@ -49,7 +49,7 @@ func setup(t *testing.T) func() {
 
 	// init data
 	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
-	activeBlock = uint64(xutil.CalcBlocksEachEpoch() - 20 + xutil.ConsensusSize()*5)
+	activeBlock = uint64(xutil.CalcBlocksEachEpoch() + xutil.ConsensusSize()*5)
 
 	return func() {
 		t.Log("tear down()......")
