@@ -400,7 +400,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 					panic(fmt.Errorf("%d encode rlp data fail: %v", funcType, err))
 				} else {
 					rlpData = hexutil.Encode(buf.Bytes())
-					fmt.Printf("RLP = %s\n", funcType, rlpData)
+					fmt.Printf("RLP = %s\n", rlpData)
 				}
 			}
 			return ""
