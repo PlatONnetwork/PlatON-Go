@@ -605,9 +605,6 @@ func (h *EngineManager) synchronize() {
 				log.Error("Get consensus nodes failed", err)
 				break
 			}
-			if msg.Epoch == 0 && msg.ViewNumber == 0 {
-				break
-			}
 			// Initi.al situation.
 			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
 				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
