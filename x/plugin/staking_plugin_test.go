@@ -4568,7 +4568,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	}
 	result, err := plugin.StakingInstance().ProbabilityElection(vqList, currentNonce, preNonces)
 	if nil != err {
-		t.Error("Failed to ProbabilityElection, err:", err)
+		t.Fatal("Failed to ProbabilityElection, err:", err)
 		return
 	}
 	t.Log("election success", result)
