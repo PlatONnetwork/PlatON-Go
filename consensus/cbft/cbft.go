@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/pingcap/failpoint"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	errors "github.com/pkg/errors"
 
@@ -87,6 +89,7 @@ type Cbft struct {
 	wal                wal.Wal
 	bridge             Bridge
 	loading            int32
+	startTime          int64
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -107,6 +110,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
+		startTime:          time.Now().UnixNano() / 1e6,
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -515,6 +519,13 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		return
 	}
+
+	// add failpoint
+	failpoint.Inject("mock-sealBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-sealBlock-panic")
+		}
+	})
 
 	// write sendPrepareBlock info to wal
 	cbft.bridge.SendPrepareBlock(prepareBlock)
@@ -1146,4 +1157,9 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
+}
+
+func (cbft *Cbft) shouldFailPoint() bool {
+	now := time.Now().UnixNano() / 1e6
+	return now-cbft.startTime >= 120000
 }

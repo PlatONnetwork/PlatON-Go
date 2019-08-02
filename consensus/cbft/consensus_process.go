@@ -3,6 +3,8 @@ package cbft
 import (
 	"fmt"
 
+	"github.com/pingcap/failpoint"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -39,6 +41,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		}
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-OnPrepareBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-OnPrepareBlock-panic")
+		}
+	})
+
 	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
@@ -72,6 +81,13 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
 
+	// add failpoint
+	failpoint.Inject("mock-OnPrepareVote-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-OnPrepareVote-panic")
+		}
+	})
+
 	cbft.findQCBlock()
 	return nil
 }
@@ -91,6 +107,13 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 		return err
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-OnViewChange-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-OnViewChange-panic")
+		}
+	})
+
 	cbft.state.AddViewChange(uint32(node.Index), msg)
 	cbft.log.Debug("Receive new viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
 	// It is possible to achieve viewchangeQC every time you add viewchange
@@ -107,6 +130,13 @@ func (cbft *Cbft) OnViewTimeout() {
 	}
 	hash, number := cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64()
 	_, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+
+	// add failpoint
+	failpoint.Inject("mock-OnViewTimeout-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-OnViewTimeout-panic")
+		}
+	})
 
 	viewChange := &protocols.ViewChange{
 		Epoch:          cbft.state.Epoch(),
@@ -402,7 +432,6 @@ func (cbft *Cbft) tryChangeView() {
 		}
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 	}
-
 
 }
 
