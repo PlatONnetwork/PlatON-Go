@@ -92,9 +92,9 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 	}
 
 	p := gov.TextProposal{
-		GithubID:       githubID,
-		Topic:          topic,
-		Desc:           desc,
+		///GithubID: githubID,
+		//Topic:          topic,
+		//Desc:           desc,
 		Url:            url,
 		ProposalType:   gov.Text,
 		EndVotingBlock: endVotingBlock,

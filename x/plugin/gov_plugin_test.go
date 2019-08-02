@@ -49,7 +49,7 @@ func setup(t *testing.T) func() {
 
 	// init data
 	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
-	activeBlock = uint64(xutil.CalcBlocksEachEpoch() - 20 + xutil.ConsensusSize()*5)
+	activeBlock = uint64(xutil.CalcBlocksEachEpoch() + xutil.ConsensusSize()*5)
 
 	return func() {
 		t.Log("tear down()......")
@@ -59,11 +59,11 @@ func setup(t *testing.T) func() {
 
 func submitText(t *testing.T, pid common.Hash) {
 	vp := gov.TextProposal{
-		ProposalID:     pid,
-		GithubID:       "githubID",
-		ProposalType:   gov.Text,
-		Topic:          "textTopic",
-		Desc:           "textDesc",
+		ProposalID: pid,
+		//GithubID:     "githubID",
+		ProposalType: gov.Text,
+		//Topic:          "textTopic",
+		//Desc:           "textDesc",
 		Url:            "textUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -213,11 +213,11 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Text,
-		Topic:          "textTopic",
-		Desc:           "textDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:     "githubID",
+		ProposalType: gov.Text,
+		//Topic:          "textTopic",
+		//Desc:           "textDesc",
 		Url:            "textUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -239,11 +239,11 @@ func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Text,
-		Topic:          "textTopic",
-		Desc:           "textDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:     "githubID",
+		ProposalType: gov.Text,
+		//Topic:          "textTopic",
+		//Desc:           "textDesc",
 		Url:            "textUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
