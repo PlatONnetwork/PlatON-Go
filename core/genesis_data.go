@@ -115,6 +115,12 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 
 	}
 
+	// store the account staking Reference Count
+	err := snapdb.PutBaseDB(staking.GetAccountStakeRcKey(vm.PlatONFoundationAddress), common.Uint64ToBytes(uint64(length)))
+	if nil != err {
+		return fmt.Errorf("Failed to Store Staking Account Reference Count. addr: %s, error:%s", vm.PlatONFoundationAddress.Hex(), err.Error())
+	}
+
 	validatorArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
 		return fmt.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())

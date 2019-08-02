@@ -2549,6 +2549,21 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	if staking.Is_Invalid_LowRatio_NotEnough(can.Status) || staking.Is_Invalid_DuplicateSign(can.Status) {
 		log.Info("Call SlashCandidates end, the can status has been modified",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
+
+		// TODO test
+		pposHash = sk.db.GetLastKVHash(blockHash)
+		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+		// todo test
+		xcom.PrintObject("SlashCandidates, Method Before SetCandidateStore, can", can)
+
+		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			return err
+		}
+
 		return nil
 	}
 

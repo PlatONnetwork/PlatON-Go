@@ -563,6 +563,7 @@ func (db *StakingDB) IteratorDelegateByBlockHashWithAddr(blockHash common.Hash, 
 	return db.ranking(blockHash, prefix, ranges)
 }
 
+// add the account staking Reference Count
 func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Address) error {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -574,6 +575,9 @@ func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Addres
 		v = common.BytesToUint64(val)
 	}
 
+	// todo test
+	log.Debug("AddAccountStakeRc, query rc", "blockHash", blockHash.Hex(), "addr", addr.String(), "rc", v)
+
 	v++
 
 	// todo test
@@ -582,6 +586,7 @@ func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Addres
 	return db.put(blockHash, key, common.Uint64ToBytes(v))
 }
 
+// sub the account staking Reference Count
 func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Address) error {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -592,6 +597,9 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	case nil == err && len(val) != 0:
 		v = common.BytesToUint64(val)
 	}
+
+	// todo test
+	log.Debug("SubAccountStakeRc, query rc", "blockHash", blockHash.Hex(), "addr", addr.String(), "rc", v)
 
 	v--
 
@@ -612,6 +620,7 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	}
 }
 
+// check the account staking Reference Count
 func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Address) (bool, error) {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -624,6 +633,10 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 	case nil == err && len(val) != 0:
 		v = common.BytesToUint64(val)
 	}
+
+	// todo test
+	log.Debug("HasAccountStakeRc, query rc", "blockHash", blockHash.Hex(), "addr", addr.String(), "rc", v)
+
 	if v == 0 {
 		return false, nil
 	} else if v > 0 {
