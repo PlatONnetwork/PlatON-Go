@@ -59,6 +59,7 @@ func main() {
 		}
 		fmt.Println("inner contract data: \n", string(rlpByte))
 		fmt.Println()
+		return
 	}
 
 	var r io.Reader
