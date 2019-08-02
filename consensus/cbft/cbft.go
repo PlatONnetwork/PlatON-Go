@@ -205,7 +205,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString(), "msg", msg.String())
+		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -218,7 +218,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString(), "msg", msg.String())
+		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -359,6 +359,12 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 
 		case *protocols.PrepareBlockHash:
 			cbft.OnPrepareBlockHash(id, msg)
+
+		case *protocols.GetViewChange:
+			cbft.OnGetViewChange(id, msg)
+
+		case *protocols.ViewChangeQuorumCert:
+			cbft.OnViewChangeQuorumCert(id, msg)
 
 		}
 	}
@@ -515,6 +521,8 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		return
 	}
+
+	cbft.txPool.Reset(block)
 
 	// write sendPrepareBlock info to wal
 	cbft.bridge.SendPrepareBlock(prepareBlock)
@@ -1146,4 +1154,66 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
+}
+
+// Returns the node ID of the missing vote.
+func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
+	allViewChange := cbft.state.AllViewChange()
+	nodeIds := make([]discover.NodeID, 0, len(allViewChange))
+	qcBlockBn := cbft.state.HighestQCBlock().NumberU64()
+	for k, _ := range allViewChange {
+		nodeId := cbft.validatorPool.GetNodeIDByIndex(qcBlockBn, int(k))
+		nodeIds = append(nodeIds, nodeId)
+	}
+	// all consensus
+	consensusNodes, err := cbft.ConsensusNodes()
+	if err != nil {
+		return nil, nil, err
+	}
+	consensusNodesLen := len(consensusNodes)
+	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
+	for _, cv := range consensusNodes {
+		isExists := false
+		for _, v := range nodeIds {
+			if cv == v {
+				isExists = true
+				break
+			}
+		}
+		if !isExists {
+			missingNodes = append(missingNodes, cv)
+		}
+	}
+
+	log.Debug("missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
+	// Synchronize only when there are missing votes for half of the nodes.
+	if len(missingNodes) < consensusNodesLen/2 {
+		return nil, nil, fmt.Errorf("within the safety value")
+	}
+	// The node of missingNodes must be in the list of neighbor nodes.
+	peers, err := cbft.network.Peers()
+	target := missingNodes[:0]
+	for _, node := range missingNodes {
+		for _, peer := range peers {
+			if peer.ID() == node {
+				target = append(target, node)
+				break
+			}
+		}
+	}
+	log.Debug("missing nodes exists in the peers", "nodes", network.FormatNodes(target))
+	nodeIndexes := make([]uint32, 0, len(target))
+	for _, v := range target {
+		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
+		if err != nil {
+			continue
+		}
+		nodeIndexes = append(nodeIndexes, uint32(index))
+	}
+	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
+	return target, &protocols.GetViewChange{
+		Epoch:       cbft.state.Epoch(),
+		ViewNumber:  cbft.state.ViewNumber(),
+		NodeIndexes: nodeIndexes,
+	}, nil
 }

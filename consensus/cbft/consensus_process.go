@@ -149,7 +149,6 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 				return err
 			}
 		}
-
 		cbft.insertQCBlock(block, qc)
 		cbft.log.Debug("Insert QC block success", "hash", qc.BlockHash, "number", qc.BlockNumber)
 
@@ -164,6 +163,8 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
+	cbft.txPool.Reset(block)
+
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
 	cbft.tryCommitNewBlock(lock, commit)
@@ -402,7 +403,6 @@ func (cbft *Cbft) tryChangeView() {
 		}
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 	}
-
 
 }
 
