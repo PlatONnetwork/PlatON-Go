@@ -1164,22 +1164,18 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 	}
 	// The node of missingNodes must be in the list of neighbor nodes.
 	peers, err := cbft.network.Peers()
-	for i, node := range consensusNodes {
-		isContain := false
+	target := consensusNodes[:0]
+	for _, node := range consensusNodes {
 		for _, peer := range peers {
 			if peer.ID() == node {
-				isContain = true
+				target = append(target, node)
 				break
 			}
 		}
-		// [1,2,3] -> [1,3]
-		if !isContain {
-			consensusNodes = append(consensusNodes[:i], consensusNodes[i+1:]...)
-		}
 	}
-	log.Debug("missing nodes exits in the peers", "nodes", network.FormatNodes(consensusNodes))
-	nodeIndexes := make([]uint32, 0, len(consensusNodes))
-	for _, v := range consensusNodes {
+	log.Debug("missing nodes exits in the peers", "nodes", network.FormatNodes(target))
+	nodeIndexes := make([]uint32, 0, len(target))
+	for _, v := range target {
 		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
 		if err != nil {
 			continue
@@ -1187,7 +1183,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		nodeIndexes = append(nodeIndexes, uint32(index))
 	}
 	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
-	return consensusNodes, &protocols.GetViewChange{
+	return target, &protocols.GetViewChange{
 		Epoch:       cbft.state.Epoch(),
 		ViewNumber:  cbft.state.ViewNumber(),
 		NodeIndexes: nodeIndexes,

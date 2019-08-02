@@ -340,3 +340,13 @@ func (s *mockCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVi
 		ViewNumber: 1,
 	}, nil
 }
+
+func TestTT(t *testing.T) {
+	arr := []uint32{1, 2, 3, 4, 5}
+	fmt.Println(arr)
+	target := arr[:0]
+	for _, item := range arr {
+		target = append(target, item)
+	}
+	fmt.Println(target)
+}
