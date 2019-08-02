@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewViewState(t *testing.T) {
-	viewState := NewViewState()
+	viewState := NewViewState(BaseMs)
 	viewState.ResetView(1, 1)
 	viewState.SetViewTimer(1)
 
@@ -43,8 +43,12 @@ func TestPrepareVoteQueue(t *testing.T) {
 	assert.Len(t, queue.Peek(), 0)
 }
 
+var (
+	BaseMs = uint64(10000)
+)
+
 func TestViewVotes(t *testing.T) {
-	viewState := NewViewState()
+	viewState := NewViewState(BaseMs)
 	votes := viewState.viewVotes
 	prepareVotes := []*protocols.PrepareVote{
 		&protocols.PrepareVote{BlockIndex: uint32(0)},
@@ -65,7 +69,7 @@ func TestViewVotes(t *testing.T) {
 }
 
 func TestNewViewQC(t *testing.T) {
-	viewState := NewViewState()
+	viewState := NewViewState(BaseMs)
 	viewQCs := viewState.viewQCs
 
 	for i := uint32(0); i < 10; i++ {
@@ -96,7 +100,7 @@ func newBlock(number uint64) *types.Block {
 	return block
 }
 func TestNewViewBlock(t *testing.T) {
-	viewState := NewViewState()
+	viewState := NewViewState(BaseMs)
 	for i := uint64(0); i < 10; i++ {
 		viewState.AddQCBlock(newBlock(i), &ctypes.QuorumCert{BlockNumber: i, BlockIndex: uint32(i)})
 	}

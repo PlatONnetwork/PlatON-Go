@@ -12,11 +12,11 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 )
 
 const (
@@ -41,7 +41,7 @@ type NodeList []*ValidateNode
 func (nl *NodeList) String() string {
 	s := ""
 	for _, v := range *nl {
-		s = s + fmt.Sprintf("{Index: %d NodeID: %s Address: %s},", v.Index, v.NodeID, v.Address.String())
+		s = s + fmt.Sprintf("{Index: %d NodeID: %s Address: %s blsPubKey: %s},", v.Index, v.NodeID, v.Address.String(), fmt.Sprintf("%x", v.BlsPubKey.Serialize()))
 	}
 	return s
 }

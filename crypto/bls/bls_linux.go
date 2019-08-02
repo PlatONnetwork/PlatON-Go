@@ -19,6 +19,7 @@ import (
 	"unsafe"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Init --
@@ -275,6 +276,18 @@ func (pub *PublicKey) Set(mpk []PublicKey, id *ID) error {
 func (pub *PublicKey) Recover(pubVec []PublicKey, idVec []ID) error {
 	// #nosec
 	return G2LagrangeInterpolation(&pub.v, *(*[]Fr)(unsafe.Pointer(&idVec)), *(*[]G2)(unsafe.Pointer(&pubVec)))
+}
+
+func (pub *PublicKey) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, pub.Serialize())
+}
+
+func (pub *PublicKey) DecodeRLP(s *rlp.Stream) error {
+	buf, err := s.Bytes()
+	if err != nil {
+		return err
+	}
+	return pub.Deserialize(buf)
 }
 
 // Sign  --

@@ -15,6 +15,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+const DefaultViewNumber = 0
+
 type PrepareVoteQueue struct {
 	Votes []*protocols.PrepareVote `json:"votes"`
 }
@@ -388,10 +390,10 @@ type ViewState struct {
 	viewTimer *viewTimer
 }
 
-func NewViewState() *ViewState {
+func NewViewState(period uint64) *ViewState {
 	return &ViewState{
 		view:      newView(),
-		viewTimer: newViewTimer(),
+		viewTimer: newViewTimer(period),
 	}
 }
 

@@ -1227,6 +1227,13 @@ func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 	nextBaseBlock := w.engine.NextBaseBlock()
 	nextBlockTime := w.commitWorkEnv.nextBlockTime.Load().(time.Time)
 
+	blockTime := w.engine.(consensus.Bft).CalcNextBlockTime(common.MillisToTime(nextBaseBlock.Time().Int64()))
+	if nextBlockTime.Before(blockTime) && time.Now().Before(blockTime) {
+		log.Debug("Invalid nextBlockTime, recalc it", "nextBlockTime", nextBlockTime.Format("2006-01-02 15:04:05.999"), "blockTime", blockTime.Format("2006-01-02 15:04:05.999"))
+		w.commitWorkEnv.nextBlockTime.Store(blockTime)
+		return false, nil
+	}
+
 	status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
 	shouldCommit := nextBlockTime.Before(time.Now()) && status == commitStatusIdle
 	log.Trace("Check should commit", "shouldCommit", shouldCommit, "status", status, "timestamp", timestamp, "nextBlockTime", nextBlockTime)

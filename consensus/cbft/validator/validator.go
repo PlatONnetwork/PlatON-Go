@@ -184,11 +184,13 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 	validators.Nodes = make(cbfttypes.ValidateNodeMap, len(vds.ValidateNodes))
 	for _, node := range vds.ValidateNodes {
 		pubkey, _ := node.NodeID.Pubkey()
+		blsPubKey := node.BlsPubKey
 		validators.Nodes[node.NodeID] = &cbfttypes.ValidateNode{
-			Index:   int(node.Index),
-			Address: node.Address,
-			PubKey:  pubkey,
-			NodeID:  node.NodeID,
+			Index:     int(node.Index),
+			Address:   node.Address,
+			PubKey:    pubkey,
+			NodeID:    node.NodeID,
+			BlsPubKey: &blsPubKey,
 		}
 	}
 	validators.ValidBlockNumber = vds.ValidBlockNumber
@@ -258,6 +260,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 	vp.prevValidators = vp.currentValidators
 	vp.currentValidators = nds
 	vp.switchPoint = blockNumber
+	log.Debug("Update validator", "validators", nds.String())
 
 	isValidatorAfter := vp.isValidator(blockNumber, vp.nodeID)
 

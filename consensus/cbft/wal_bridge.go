@@ -175,6 +175,9 @@ func (cbft *Cbft) addQCState(qc *protocols.State) error {
 		chainState = cs
 		return nil
 	})
+	if chainState == nil || chainState.Commit == nil || chainState.Lock == nil || len(chainState.QC) <= 0 {
+		return nil
+	}
 	lock := chainState.Lock
 	// check continuous block chain
 	if !cbft.contiguousChainBlock(lock.Block, qc.Block) {
@@ -329,7 +332,7 @@ func (cbft *Cbft) contiguousChainBlock(p *types.Block, s *types.Block) bool {
 // executeBlock call blockCacheWriter to execute block.
 func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	if parent == nil {
-		parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
+		parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
 		if parent == nil {
 			return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
 		}
