@@ -705,11 +705,15 @@ func (cbft *Cbft) OnHighestPrepareBlock(peerID discover.NodeID, msg *highestPrep
 
 	for _, prepare := range msg.UnconfirmedBlock {
 		cbft.log.Debug("Sync Highest Block", "number", prepare.Block.NumberU64())
-		cbft.OnNewPrepareBlock(peerID, prepare, false)
+		if err := cbft.OnNewPrepareBlock(peerID, prepare, false); nil != err {
+			cbft.log.Warn("New Prepare Block failed", err)
+		}
 	}
 	for _, votes := range msg.Votes {
 		cbft.log.Debug("Sync Highest Block", "number", votes.Number)
-		cbft.OnPrepareVotes(peerID, votes)
+		if err := cbft.OnPrepareVotes(peerID, votes); nil != err {
+			cbft.log.Warn("Handle PrepareVotes failed", err)
+		}
 	}
 	atomic.StoreInt32(&cbft.running, 1)
 	return nil
@@ -1356,7 +1360,9 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			blockConfirmedMeter.Mark(1)
 			blockConfirmedTimer.UpdateSince(time.Unix(int64(ext.timestamp), 0))
 			cbft.flushReadyBlock()
-			cbft.updateValidator()
+			if err := cbft.updateValidator(); err != nil {
+				cbft.log.Warn("updateValidator fail:", err)
+			}
 		}
 		if !hadSend {
 			cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
@@ -1405,7 +1411,9 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 			}
 
 			if bs.block.isConfirmed {
-				cbft.updateValidator()
+				if err := cbft.updateValidator(); err != nil {
+					cbft.log.Warn("updateValidator fail:", err)
+				}
 			}
 			cbft.log.Debug("Execute block success", "block", bs.block.String())
 		}
@@ -2309,10 +2317,10 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 	errCh <- nil
 }
 
-func (cbft *Cbft) updateValidator() {
+func (cbft *Cbft) updateValidator() error {
 	hc := cbft.getHighestConfirmed()
 	if hc.number != cbft.agency.GetLastNumber(hc.number) {
-		return
+		return errors.New("Highest Confirmed blocknumber is not equal last blocknumber!")
 	}
 
 	// Check if we are a consensus node before updated.
@@ -2321,11 +2329,11 @@ func (cbft *Cbft) updateValidator() {
 	newVds, err := cbft.agency.GetValidator(hc.number + 1)
 	if err != nil {
 		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
-		return
+		return errors.New("Get validators fail!")
 	}
 	if newVds.Len() <= 0 {
 		cbft.log.Error("Empty validators")
-		return
+		return errors.New("Empty validators!")
 	}
 	oldVds := cbft.getValidators()
 	cbft.validators.Store(newVds)
@@ -2357,20 +2365,6 @@ func (cbft *Cbft) updateValidator() {
 					cbft.log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
 				}
 			}
-
-			oldNodeList := oldVds.NodeList()
-			for _, nodeID := range oldNodeList {
-				if node, _ := cbft.getValidators().NodeIndex(nodeID); node == nil {
-					cbft.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
-					cbft.log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
-				}
-			}
-		} else {
-			oldNodeList := oldVds.NodeList()
-			for _, nodeID := range oldNodeList {
-				cbft.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
-				cbft.log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
-			}
 		}
 	} else {
 		// We are become a consensus node, that adding all
@@ -2391,6 +2385,7 @@ func (cbft *Cbft) updateValidator() {
 
 		// We are still not a consensus node, just update validator list.
 	}
+	return nil
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
