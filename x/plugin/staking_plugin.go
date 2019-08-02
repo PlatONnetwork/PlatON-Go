@@ -1693,6 +1693,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		count++
 
+		// todo test
+		log.Debug("ElectNextVerifierList: iter", "key", hex.EncodeToString(iter.Key()))
+
 		addrSuffix := iter.Value()
 		var can *staking.Candidate
 
