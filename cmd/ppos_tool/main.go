@@ -385,8 +385,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2003:
 		{
 			for i := 0; i < len(cfg.P2003); i++ {
-				params = make([][]byte, 0)
-
 				verifier, _ := rlp.EncodeToBytes(cfg.P2003[i].Verifier)
 				proposalID, _ := rlp.EncodeToBytes(cfg.P2003[i].ProposalID.Bytes())
 				op, _ := rlp.EncodeToBytes(cfg.P2003[i].Op)
@@ -404,6 +402,10 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 					rlpData = hexutil.Encode(buf.Bytes())
 					fmt.Printf("RLP = %s\n", rlpData)
 				}
+
+				params = make([][]byte, 0)
+				fnType, _ := rlp.EncodeToBytes(funcType)
+				params = append(params, fnType)
 			}
 			return ""
 		}
