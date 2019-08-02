@@ -355,14 +355,20 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	}
 	if msg.ViewNumber == localViewNumber {
 		// Get the viewChange belong to local node.
-		node, err := cbft.validatorPool.GetValidatorByNodeID(msg.BlockNumber, cbft.config.Option.NodeID)
+		node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 		if err != nil {
 			cbft.log.Error("Get validator error, get view change failed", "err", err)
 			return fmt.Errorf("get validator failed")
 		}
-		if v, ok := cbft.state.AllViewChange()[uint32(node.Index)]; ok {
-			//todo: broadcast or responsive?
+		viewChanges := cbft.state.AllViewChange()
+		if v, ok := viewChanges[uint32(node.Index)]; ok {
 			cbft.network.Send(id, v)
+			// Return if it contains missing.
+			for _, nodeIndex := range msg.NodeIndexes {
+				if v2, exists := viewChanges[nodeIndex]; exists {
+					cbft.network.Send(id, v2)
+				}
+			}
 		} else {
 			cbft.log.Warn("No ViewChange found in current node")
 		}

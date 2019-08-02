@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -392,7 +393,6 @@ func (cbft *Cbft) tryChangeView() {
 	if viewChangeQC() {
 		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
-		cbft.network.Broadcast(&protocols.ViewChangeQuorumCert{ViewChangeQC: viewChangeQC})
 		_, _, _, number := viewChangeQC.MaxBlock()
 		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
 		if block.NumberU64() != 0 && (number > qc.BlockNumber) {

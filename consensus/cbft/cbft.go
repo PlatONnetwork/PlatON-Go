@@ -1147,28 +1147,48 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 	if err != nil {
 		return nil, nil, err
 	}
-	// get difference set.
-	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
-	for _, cv := range consensusNodes {
-		isExists := false
+	consensusNodesLen := len(consensusNodes)
+	for i, cv := range consensusNodes {
 		for _, v := range nodeIds {
 			if cv == v {
-				isExists = true
+				// Remove node from consensusNodes when nodeId exists.
+				consensusNodes = append(consensusNodes[:i], consensusNodes[i+1:]...)
+			}
+		}
+	}
+
+	log.Debug("missing nodes on MissingViewChangeNodes", "count", len(consensusNodes))
+	// Synchronize only when there are missing votes for half of the nodes.
+	if len(consensusNodes) < consensusNodesLen/2 {
+		return nil, nil, fmt.Errorf("within the safety value")
+	}
+	// The node of missingNodes must be in the list of neighbor nodes.
+	peers, err := cbft.network.Peers()
+	for i, node := range consensusNodes {
+		isContain := false
+		for _, peer := range peers {
+			if peer.ID() == node {
+				isContain = true
 				break
 			}
 		}
-		if !isExists {
-			missingNodes = append(missingNodes, cv)
+		// [1,2,3] -> [1,3]
+		if !isContain {
+			consensusNodes = append(consensusNodes[:i], consensusNodes[i+1:]...)
 		}
 	}
-	log.Debug("missing nodes on MissingViewChangeNodes", "count", len(missingNodes))
-	// Synchronize only when there are missing votes for half of the nodes.
-	if len(missingNodes) < len(consensusNodes)/2 {
-		return nil, nil, fmt.Errorf("within the safety value")
+	nodeIndexes := make([]uint32, 0, len(consensusNodes))
+	for _, v := range consensusNodes {
+		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
+		if err != nil {
+			continue
+		}
+		nodeIndexes = append(nodeIndexes, uint32(index))
 	}
-	return missingNodes, &protocols.GetViewChange{
+	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
+	return consensusNodes, &protocols.GetViewChange{
 		Epoch:       cbft.state.Epoch(),
 		ViewNumber:  cbft.state.ViewNumber(),
-		BlockNumber: cbft.state.HighestQCBlock().NumberU64(),
+		NodeIndexes: nodeIndexes,
 	}, nil
 }
