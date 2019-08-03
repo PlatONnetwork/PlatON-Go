@@ -3,6 +3,8 @@ package plugin_test
 import (
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -48,7 +50,7 @@ func setup(t *testing.T) func() {
 	govDB = gov.GovDBInstance()
 
 	// init data
-	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
+	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - xcom.ElectionDistance())
 	activeBlock = uint64(xutil.CalcBlocksEachEpoch() + xutil.ConsensusSize()*5)
 
 	return func() {
