@@ -119,7 +119,7 @@ type Ppos_2002 struct {
 type Ppos_2003 struct {
 	Verifier       discover.NodeID
 	ProposalID     common.Hash
-	Op             uint8
+	Option         uint8
 	ProgramVersion uint32
 }
 
@@ -387,7 +387,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			for i := 0; i < len(cfg.P2003); i++ {
 				verifier, _ := rlp.EncodeToBytes(cfg.P2003[i].Verifier)
 				proposalID, _ := rlp.EncodeToBytes(cfg.P2003[i].ProposalID.Bytes())
-				op, _ := rlp.EncodeToBytes(cfg.P2003[i].Op)
+				op, _ := rlp.EncodeToBytes(cfg.P2003[i].Option)
 				programVersion, _ := rlp.EncodeToBytes(cfg.P2003[i].ProgramVersion)
 				params = append(params, verifier)
 				params = append(params, proposalID)
