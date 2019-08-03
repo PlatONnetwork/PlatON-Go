@@ -282,7 +282,7 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 // vote for a proposal
 func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, programVersion uint32, state xcom.StateDB) error {
 	log.Debug("call Vote", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "voteInfo", vote)
-	if len(vote.ProposalID) == 0 || len(vote.VoteNodeID) == 0 || vote.VoteOption == 0 {
+	if vote.ProposalID == common.ZeroHash || vote.VoteOption == 0 {
 		return common.NewBizError("empty parameter detected.")
 	}
 
@@ -296,7 +296,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	}
 
 	//check caller and voter
-	if err := govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()); err != nil {
+	if err := govPlugin.checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}
 
@@ -402,11 +402,18 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 		if declaredVersion>>8 == activeVersion>>8 {
 			//the declared version equals the current active version, notify staking immediately
 			log.Debug("declared version equals active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
-			stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+				log.Error("notify staking of declared node ID failed", "err", err)
+				return common.NewBizError("notify staking of declared node ID failed")
+			}
+
 		} else if declaredVersion>>8 == votingVP.GetNewVersion()>>8 {
 			//the declared version equals the new version, will notify staking when the proposal is passed
 			log.Debug("declared version equals the new version.", "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
-			govPlugin.govDB.AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID)
+			if err := govPlugin.govDB.AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
+				log.Error("add declared node ID to active node list failed", "err", err)
+				return common.NewBizError("add declared node ID to active node list failed ")
+			}
 		} else {
 			log.Error("declared version neither equals active version nor new version.", "activeVersion", activeVersion, "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
 			return common.NewBizError("declared version neither equals active version nor new version.")
@@ -415,13 +422,16 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 		preActiveVersion := govPlugin.govDB.GetPreActiveVersion(state)
 		if declaredVersion>>8 == activeVersion>>8 || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
 			//the declared version is the current active version, notify staking immediately
-			stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
+			//stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+				log.Error("notify staking of declared node ID failed", "err", err)
+				return common.NewBizError("notify staking of declared node ID failed")
+			}
 		} else {
 			log.Error("there's no version proposal at voting stage, declared version should be active or pre-active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
 			return common.NewBizError("there's no version proposal at voting stage, declared version should be active version.")
 		}
 	}
-
 	return nil
 }
 
