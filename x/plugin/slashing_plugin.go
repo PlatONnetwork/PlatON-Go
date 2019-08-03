@@ -102,6 +102,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					}
 				} else {
 					isSlash = true
+					isDelete = true
 					rate = xcom.PackAmountHighSlashRate()
 				}
 				if isSlash && rate > 0 {
