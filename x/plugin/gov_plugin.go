@@ -53,6 +53,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	if xutil.IsSettlementPeriod(blockNumber) {
 		log.Debug("settlement block", "blockNumber", blockNumber, "blockHash", blockHash)
 		verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
+		log.Debug("settlement block", "verifierCount", len(verifierList))
 		if err != nil {
 			return err
 		}
@@ -166,8 +167,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			}
 
 			//check if all validators are active
-			for _, val := range currentValidatorList {
-				if inNodeList(val, activeList) {
+			for _, validator := range currentValidatorList {
+				if xcom.InNodeIDList(validator, activeList) {
 					updatedNodes++
 				}
 			}
@@ -342,7 +343,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return err
 	}
 
-	if inNodeList(vote.VoteNodeID, verifierList) {
+	if xcom.InNodeIDList(vote.VoteNodeID, verifierList) {
 		log.Error("node has voted this proposal", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
 		return common.NewBizError("node has voted this proposal.")
 	}
@@ -393,7 +394,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 			log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
 			return err
 		} else {
-			if inNodeList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
+			if xcom.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
 				log.Error("declared version should be same as proposal's version",
 					"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
 				return common.NewBizError("declared version should be same as proposal's version")
@@ -525,8 +526,8 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 	yeas := voteCnt //`voteOption` can be ignored in version proposal, set voteCount to passCount as default.
 
 	status := gov.Voting
-	supportRate := float64(yeas) * 100 / float64(verifiersCnt)
-	log.Debug("version proposal's supportRate", "supportRate", supportRate)
+	supportRate := float64(yeas) / float64(verifiersCnt)
+	log.Debug("version proposal's supportRate", "supportRate", supportRate, "voteCount", voteCnt, "verifierCount", verifiersCnt)
 
 	if supportRate > xcom.SupportRateThreshold() {
 		status = gov.PreActive
@@ -568,6 +569,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 		Status:        status,
 	}
 
+	log.Debug("version proposal tally result", "tallyResult", tallyResult)
 	if err := govPlugin.govDB.SetTallyResult(*tallyResult, state); err != nil {
 		log.Error("save tally result failed", "tallyResult", tallyResult)
 		return false, err
@@ -627,6 +629,8 @@ func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.
 		log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
 		return false, err
 	}
+
+	log.Debug("proposal tally result", "tallyResult", tallyResult)
 
 	if err := govPlugin.govDB.SetTallyResult(*tallyResult, state); err != nil {
 		log.Error("save tally result failed", "tallyResult", tallyResult)
@@ -751,13 +755,4 @@ func (govPlugin *GovPlugin) updateParam(proposal gov.ParamProposal, blockHash co
 		return err
 	}
 	return nil
-}
-
-func inNodeList(proposer discover.NodeID, vList []discover.NodeID) bool {
-	for _, v := range vList {
-		if proposer == v {
-			return true
-		}
-	}
-	return false
 }

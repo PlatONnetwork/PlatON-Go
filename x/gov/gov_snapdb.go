@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type GovSnapshotDB struct {
@@ -146,21 +147,25 @@ func (self *GovSnapshotDB) deleteActiveNodeList(blockHash common.Hash, proposalI
 	return self.del(blockHash, KeyActiveNodes(proposalId))
 }
 
-func (self *GovSnapshotDB) addTotalVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
+func (self *GovSnapshotDB) addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
 	value, err := self.get(blockHash, KeyAccuVerifier(proposalId))
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
-	var verifiers []discover.NodeID
+	var accuVerifiers []discover.NodeID
 
 	if value != nil {
-		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
+		if err := rlp.DecodeBytes(value, &accuVerifiers); err != nil {
 			return err
 		}
 	}
-	verifiers = append(verifiers, nodes...)
-
-	return self.put(blockHash, KeyAccuVerifier(proposalId), verifiers)
+	for _, nodeID := range nodes {
+		if !xcom.InNodeIDList(nodeID, accuVerifiers) {
+			accuVerifiers = append(accuVerifiers, nodeID)
+		}
+	}
+	log.Debug("accumulated verifiers", "proposalID", proposalId, "total", len(accuVerifiers))
+	return self.put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)
 }
 
 func (self *GovSnapshotDB) getAccuVerifiersLength(blockHash common.Hash, proposalId common.Hash) (uint16, error) {

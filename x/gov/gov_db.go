@@ -358,7 +358,7 @@ func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalI
 // Add the node that has made a new version declare or vote during voting period
 func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) error {
 	if err := self.snapdb.addActiveNode(blockHash, nodeID, proposalID); err != nil {
-		log.Error("add declared node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("add active node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -368,7 +368,7 @@ func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, 
 func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
 	nodes, err := self.snapdb.getActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("get declared node list from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return nil, common.NewSysError(err.Error())
 	}
 	return nodes, nil
@@ -378,7 +378,7 @@ func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Ha
 func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 	err := self.snapdb.deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("clear declared node list from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("clear active nodes in snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -386,8 +386,8 @@ func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Has
 
 // All verifiers who can vote accumulatively in the settlement cycle
 func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
-	if err := self.snapdb.addTotalVerifiers(blockHash, proposalID, verifierList); err != nil {
-		log.Error("add total verifier to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+	if err := self.snapdb.addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
+		log.Error("save accumulated verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -396,7 +396,7 @@ func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, 
 // Get the total number of all voting verifiers
 func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.Hash) (uint16, error) {
 	if l, err := self.snapdb.getAccuVerifiersLength(blockHash, proposalID); err != nil {
-		log.Error("add total verifier to  snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("get accumulated verifiers count failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return 0, common.NewSysError(err.Error())
 	} else {
 		return l, nil
