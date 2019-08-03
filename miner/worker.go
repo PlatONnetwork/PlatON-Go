@@ -1170,12 +1170,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
-	if w.isRunning() { /*
-			if w.coinbase == (common.Address{}) {
-				log.Error("Refusing to mine without etherbase")
-				return
-			}*/
-		core.GetReactorInstance().SetWorkerCoinBase(header, w.config.Cbft.NodeID /*w.config.Cbft.PrivateKey*/)
+	if w.isRunning() {
+		core.GetReactorInstance().SetWorkerCoinBase(header, w.config.Cbft.NodeID)
 	}
 
 	log.Info("cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
@@ -1191,9 +1187,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 
-	// TODO begin()
+	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
-		log.Error("Failed GetReactorInstance BeginBlocker", "err", err)
+		log.Error("Failed GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return
 	}
 
@@ -1201,7 +1197,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
-			w.commit(nil, false, tstart)
+			if err := w.commit(nil, false, tstart); nil != err {
+				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+			}
 		}
 	}
 
@@ -1229,7 +1227,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Short circuit if The Current Block is Special Block
 	if xutil.IsSpecialBlock(header.Number.Uint64()) {
 		if _, ok := w.engine.(consensus.Bft); ok {
-			w.commit(nil, true, tstart)
+			if err := w.commit(nil, true, tstart); nil != err {
+				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+			}
 		} else {
 			w.updateSnapshot()
 		}
@@ -1243,7 +1243,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		//	return
 		//}
 		if _, ok := w.engine.(consensus.Bft); ok {
-			w.commit(nil, true, tstart)
+			if err := w.commit(nil, true, tstart); nil != err {
+				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+			}
 		} else {
 			w.updateSnapshot()
 		}
@@ -1296,7 +1298,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
 	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
-	w.commit(w.fullTaskHook, true, tstart)
+	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
+		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+	}
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1331,8 +1335,10 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
 		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
 
-	// TODO end()
+	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
+		log.Error("Failed GetReactorInstance EndBlocker on worker", "blockNumber",
+			w.current.header.Number.Uint64(), "err", err)
 		return err
 	}
 

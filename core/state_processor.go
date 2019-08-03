@@ -65,8 +65,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	)
 
 	if bcr != nil {
-		// TODO begin()
+		// BeginBlocker()
 		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
+			log.Error("Failed to call BeginBlocker on StateProcessor", "blockNumber", block.Number(),
+				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
 	}
@@ -88,8 +90,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		block.Number().Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", statedb))
 
 	if bcr != nil {
-		// TODO end ()
+		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
+			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
+				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
 	}
