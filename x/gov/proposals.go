@@ -369,7 +369,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		log.Warn("active-block should greater than end-voting-block")
 		return common.NewBizError("active-block invalid.")
 	} else {
-		difference := vp.ActiveBlock - (vp.EndVotingBlock + 20)
+		difference := vp.ActiveBlock - (vp.EndVotingBlock + xcom.ElectionDistance())
 
 		remainder := difference % xutil.ConsensusSize()
 		if remainder != 0 {
@@ -527,8 +527,8 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, e
 		return false, err
 	}*/
 
-	if (endVotingBlock+20)%xutil.ConsensusSize() != 0 {
-		log.Warn("proposal's end-voting-block should be a particular block that less 20 than a certain consensus round")
+	if (endVotingBlock+xcom.ElectionDistance())%xutil.ConsensusSize() != 0 {
+		log.Warn("proposal's end-voting-block should be a particular block that less than a certain consensus round")
 		return common.NewBizError("end-voting-block invalid.")
 	}
 
