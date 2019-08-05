@@ -106,9 +106,9 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					rate = xcom.PackAmountHighSlashRate()
 				}
 				if isSlash && rate > 0 {
-					slashAmount := calcSlashAmount(validator, rate)
+					slashAmount, sumAmount := calcSlashAmount(validator, rate)
 					log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()),
-						"nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount, "isDelete", isDelete, "rate", rate, "slashAmount", slashAmount)
+						"nodeId", hex.EncodeToString(nodeId.Bytes()), "packAmount", amount, "isDelete", isDelete, "sumAmount", sumAmount, "rate", rate, "slashAmount", slashAmount)
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
 					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, isDelete, staking.LowRatio, common.ZeroAddr); nil != err {
 						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "err", err)
@@ -287,12 +287,9 @@ func (sp *SlashingPlugin) executeSlash(evidence consensus.Evidence, blockHash co
 			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 			return common.NewBizError(errDuplicateSignVerify.Error())
 		}
-
-		slashAmount := calcSlashAmount(candidate, xcom.DuplicateSignLowSlash())
-
+		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignLowSlash())
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()),
-			"nodeId", candidate.NodeId.String(), "slashAmount", slashAmount, "reporter", caller.Hex())
-
+			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignLowSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, true, staking.DuplicateSign, caller); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return err
@@ -361,14 +358,14 @@ func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	return discover.PubkeyID(pk), nil
 }
 
-func calcSlashAmount(candidate *staking.Candidate, rate uint32) *big.Int {
+func calcSlashAmount(candidate *staking.Candidate, rate uint32) (*big.Int, *big.Int) {
 	sumAmount := new(big.Int)
 	sumAmount.Add(candidate.Released, candidate.ReleasedHes)
 	sumAmount.Add(sumAmount, candidate.RestrictingPlan)
 	sumAmount.Add(sumAmount, candidate.RestrictingPlanHes)
 	if sumAmount.Cmp(common.Big0) > 0 {
-		sumAmount.Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
-		return sumAmount.Div(sumAmount, new(big.Int).SetUint64(100))
+		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
+		return amount.Div(amount, new(big.Int).SetUint64(100)), sumAmount
 	}
-	return common.Big0
+	return common.Big0, common.Big0
 }
