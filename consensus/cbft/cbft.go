@@ -536,7 +536,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.txPool.Reset(block)
 
 	// write sendPrepareBlock info to wal
-	cbft.bridge.SendPrepareBlock(prepareBlock)
+	if !cbft.isLoading() {
+		cbft.bridge.SendPrepareBlock(prepareBlock)
+	}
 
 	cbft.findQCBlock()
 

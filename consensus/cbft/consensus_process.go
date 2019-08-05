@@ -153,7 +153,9 @@ func (cbft *Cbft) OnViewTimeout() {
 	}
 
 	// write sendViewChange info to wal
-	cbft.bridge.SendViewChange(viewChange)
+	if !cbft.isLoading() {
+		cbft.bridge.SendViewChange(viewChange)
+	}
 
 	cbft.state.AddViewChange(uint32(node.Index), viewChange)
 	cbft.log.Debug("Local add viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
@@ -305,7 +307,9 @@ func (cbft *Cbft) trySendPrepareVote() {
 			pending.Pop()
 
 			// write sendPrepareVote info to wal
-			cbft.bridge.SendPrepareVote(block, p)
+			if !cbft.isLoading() {
+				cbft.bridge.SendPrepareVote(block, p)
+			}
 
 			cbft.network.Broadcast(p)
 		} else {
