@@ -56,11 +56,13 @@ func (s *fakeCbft) Config() *types.Config {
 		},
 	}
 }
-func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) {
+func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveMessage, type: %T", msg.Msg))
+	return nil
 }
-func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) {
+func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveSyncMsg, type: %T", msg.Msg))
+	return nil
 }
 func (s *fakeCbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return s.localPeer.QCBn(), common.Hash{}

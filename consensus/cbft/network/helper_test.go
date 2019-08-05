@@ -319,11 +319,13 @@ func (s *mockCbft) ConsensusNodes() ([]discover.NodeID, error) {
 func (s *mockCbft) Config() *types2.Config {
 	return nil
 }
-func (s *mockCbft) ReceiveMessage(msg *types2.MsgInfo) {
+func (s *mockCbft) ReceiveMessage(msg *types2.MsgInfo) error {
 	log.Debug("ReceiveMessage", "from", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg))
+	return nil
 }
-func (s *mockCbft) ReceiveSyncMsg(msg *types2.MsgInfo) {
+func (s *mockCbft) ReceiveSyncMsg(msg *types2.MsgInfo) error {
 	log.Debug("ReceiveSyncMsg", "from", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg))
+	return nil
 }
 func (s *mockCbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return 0, common.Hash{}

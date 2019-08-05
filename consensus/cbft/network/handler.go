@@ -369,8 +369,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 		// Message transfer to cbft message queue.
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PrepareVoteMsg:
 		var request protocols.PrepareVote
@@ -378,8 +377,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.ViewChangeMsg:
 		var request protocols.ViewChange
@@ -387,24 +385,21 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetPrepareBlockMsg:
 		var request protocols.GetPrepareBlock
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetBlockQuorumCertMsg:
 		var request protocols.GetBlockQuorumCert
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.BlockQuorumCertMsg:
 		var request protocols.BlockQuorumCert
@@ -412,24 +407,21 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetQCBlockListMsg:
 		var request protocols.GetQCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetPrepareVoteMsg:
 		var request protocols.GetPrepareVote
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PrepareBlockHashMsg:
 		var request protocols.PrepareBlockHash
@@ -437,48 +429,42 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PrepareVotesMsg:
 		var request protocols.PrepareVotes
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.QCBlockListMsg:
 		var request protocols.QCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetLatestStatusMsg:
 		var request protocols.GetLatestStatus
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.LatestStatusMsg:
 		var request protocols.LatestStatus
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetViewChangeMsg:
 		var request protocols.GetViewChange
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PingMsg:
 		var pingTime protocols.Ping
@@ -528,8 +514,8 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -608,10 +594,8 @@ func (h *EngineManager) synchronize() {
 			// Initi.al situation.
 			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
 				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
-				// send GetViewChange to missing node.
-				for _, v := range missingViewNodes {
-					h.Send(v.TerminalString(), msg)
-				}
+				// Only broadcasts without forwarding.
+				h.Broadcast(msg)
 			} else {
 				log.Debug("Waiting for the next round")
 			}

@@ -203,11 +203,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 // Entrance: The messages related to the consensus are entered from here.
 // The message sent from the peer node is sent to the CBFT message queue and
 // there is a loop that will distribute the incoming message.
-func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
+func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	err := cbft.recordMessage(msg)
 	if err != nil {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
-		return
+		return err
 	}
 	select {
 	case cbft.peerMsgCh <- msg:
@@ -215,6 +215,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
+	return nil
 }
 
 // recordMessage records the number of messages sent by each node,
@@ -251,11 +252,11 @@ func (cbft *Cbft) forgetMessage(peerId string) error {
 //
 // Possible message types are:
 //  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
-func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
+func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	err := cbft.recordMessage(msg)
 	if err != nil {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
-		return
+		return err
 	}
 	select {
 	case cbft.syncMsgCh <- msg:
@@ -263,6 +264,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
+	return nil
 }
 
 // LoadWal tries to recover consensus state and view msg from the wal.
