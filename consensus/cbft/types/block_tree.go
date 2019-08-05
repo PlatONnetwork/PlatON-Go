@@ -47,7 +47,7 @@ func (b *blockExt) MarshalJSON() ([]byte, error) {
 		Children:    make([]common.Hash, 0),
 	}
 	if b.Parent != nil {
-		ext.ParentHash = b.Block.Hash()
+		ext.ParentHash = b.Parent.Block.Hash()
 	}
 
 	for h, _ := range b.Children {
