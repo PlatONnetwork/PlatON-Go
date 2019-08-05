@@ -775,6 +775,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- err
 		return
 	}
+
 	if currentProposer != uint64(validator.Index) {
 		result <- errors.New("current node not the proposer")
 		return
@@ -782,6 +783,14 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 	if cbft.state.NumViewBlocks() >= cbft.config.Sys.Amount {
 		result <- errors.New("produce block over limit")
+		return
+	}
+
+	qcBlock := cbft.state.HighestQCBlock()
+	_, qc := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+	if cbft.validatorPool.EqualSwitchPoint(currentExecutedBlockNumber) && qc != nil && qc.Epoch == cbft.state.Epoch() {
+		cbft.log.Debug("New epoch, waiting for view's timeout", "executed", currentExecutedBlockNumber, "index", validator.Index)
+		result <- errors.New("current node not the proposer")
 		return
 	}
 
