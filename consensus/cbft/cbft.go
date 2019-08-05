@@ -120,7 +120,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 
 // Returns the ID value of the current node
 func (cbft *Cbft) NodeId() discover.NodeID {
-	return discover.NodeID{}
+	return cbft.config.Option.NodeID
 }
 
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
