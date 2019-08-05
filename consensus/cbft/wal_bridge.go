@@ -332,9 +332,10 @@ func (cbft *Cbft) contiguousChainBlock(p *types.Block, s *types.Block) bool {
 // executeBlock call blockCacheWriter to execute block.
 func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	if parent == nil {
-		parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
-		if parent == nil {
-			return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
+		if parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); parent == nil {
+			if parent = cbft.state.HighestExecutedBlock(); parent == nil {
+				return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
+			}
 		}
 	}
 	if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
