@@ -59,10 +59,11 @@ func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Heade
 
 // EndBlock invoke releaseRestricting
 func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-
 	expect := GetLatestEpoch(state) + 1
 	expectBlock := GetBlockNumberByEpoch(expect)
+
 	if expectBlock != head.Number.Uint64() {
+		log.Debug("not expected block number", "expectEpoch", expect, "expectBlock", expectBlock, "currBlock", head.Number.Uint64())
 		return nil
 	}
 
@@ -167,7 +168,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 			// step4: save restricting amount at target epoch
 			releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
-
 			state.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 			epochList = append(epochList, epoch)

@@ -284,6 +284,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 		return err
 	}
 	// Store genesis last Epoch
+	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
 	plugin.SetLatestEpoch(statedb, uint64(0))
 	return nil
 }
