@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"time"
@@ -28,10 +29,10 @@ const (
 	// Maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
 
-	QCBnMonitorInterval     = 4 // Qc block synchronization detection interval
-	LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
-	CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval  = 10
+	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
+	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
+	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+	SyncViewChangeInterval = 10
 
 	//
 	TypeForQCBn     = 1
@@ -372,8 +373,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 		// Message transfer to cbft message queue.
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PrepareVoteMsg:
 		var request protocols.PrepareVote
@@ -381,8 +381,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.ViewChangeMsg:
 		var request protocols.ViewChange
@@ -390,24 +389,21 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveMessage(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetPrepareBlockMsg:
 		var request protocols.GetPrepareBlock
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetBlockQuorumCertMsg:
 		var request protocols.GetBlockQuorumCert
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.BlockQuorumCertMsg:
 		var request protocols.BlockQuorumCert
@@ -415,24 +411,21 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetQCBlockListMsg:
 		var request protocols.GetQCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetPrepareVoteMsg:
 		var request protocols.GetPrepareVote
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PrepareBlockHashMsg:
 		var request protocols.PrepareBlockHash
@@ -440,48 +433,42 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PrepareVotesMsg:
 		var request protocols.PrepareVotes
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.QCBlockListMsg:
 		var request protocols.QCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetLatestStatusMsg:
 		var request protocols.GetLatestStatus
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.LatestStatusMsg:
 		var request protocols.LatestStatus
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.GetViewChangeMsg:
 		var request protocols.GetViewChange
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	case msg.Code == protocols.PingMsg:
 		var pingTime protocols.Ping
@@ -531,8 +518,8 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
-		return nil
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -556,49 +543,34 @@ func (h *EngineManager) synchronize() {
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
 		qcBn, _ := h.engine.HighestQCBlockBn()
-		highPeers := h.peers.PeersWithHighestQCBn(qcBn)
-		biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
-		if biggestPeer != nil {
-			log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-			// todo: Build a message and then send a message
-			msg := &protocols.GetLatestStatus{
-				BlockNumber: qcBn,
-				LogicType:   TypeForQCBn,
-			}
-			h.Send(biggestPeer.PeerID(), msg)
-		}
+		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
+		h.PartBroadcast(&protocols.GetLatestStatus{
+			BlockNumber: qcBn,
+			LogicType:   TypeForQCBn,
+		})
 	}
 
 	// Logic used to synchronize locked.
 	syncLockedBnFunc := func() {
 		lockedBn, _ := h.engine.HighestLockBlockBn()
-		highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
-		biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
-		if biggestPeer != nil {
-			log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-			// todo: Build a message and then send a message
-			msg := &protocols.GetLatestStatus{
-				BlockNumber: lockedBn,
-				LogicType:   TypeForLockedBn,
-			}
-			h.Send(biggestPeer.PeerID(), msg)
+		log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn)
+		msg := &protocols.GetLatestStatus{
+			BlockNumber: lockedBn,
+			LogicType:   TypeForLockedBn,
 		}
+		h.PartBroadcast(msg)
 	}
 
 	// Logic used to synchronize commit.
 	syncCommitBnFunc := func() {
 		commitBn, _ := h.engine.HighestCommitBlockBn()
-		highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
-		biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
-		if biggestPeer != nil {
-			log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
-			// todo: Build a message and then send a message
-			msg := &protocols.GetLatestStatus{
-				BlockNumber: commitBn,
-				LogicType:   TypeForCommitBn,
-			}
-			h.Send(biggestPeer.PeerID(), msg)
+		log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn)
+		// todo: Build a message and then send a message
+		msg := &protocols.GetLatestStatus{
+			BlockNumber: commitBn,
+			LogicType:   TypeForCommitBn,
 		}
+		h.PartBroadcast(msg)
 	}
 
 	// Update if it is the same state within 5 seconds
@@ -610,28 +582,24 @@ func (h *EngineManager) synchronize() {
 	for {
 		select {
 		case <-blockNumberTicker.C:
-			syncQCBnFunc()
-			syncLockedBnFunc()
-			syncCommitBnFunc()
+			// Sent at random.
+			randomSend(syncQCBnFunc)
+			randomSend(syncLockedBnFunc)
+			randomSend(syncCommitBnFunc)
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
 			// the GetViewChange message is sent from the missing node.
 			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
 			if err != nil {
-				log.Error("Get consensus nodes failed", err)
-				break
-			}
-			if msg.Epoch == 0 && msg.ViewNumber == 0 {
+				log.Error("Get consensus nodes failed", "err", err)
 				break
 			}
 			// Initi.al situation.
 			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
 				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
-				// send GetViewChange to missing node.
-				for _, v := range missingViewNodes {
-					h.Send(v.TerminalString(), msg)
-				}
+				// Only broadcasts without forwarding.
+				h.Broadcast(msg)
 			} else {
 				log.Debug("Waiting for the next round")
 			}
@@ -642,6 +610,13 @@ func (h *EngineManager) synchronize() {
 			return
 		}
 	}
+}
+
+// Randomly sent during the timer period.
+func randomSend(exec func()) {
+	time.AfterFunc(time.Duration(int64(rand.Intn(QCBnMonitorInterval))), func() {
+		exec()
+	})
 }
 
 // Select a node from the list of nodes that is larger than the specified value.
