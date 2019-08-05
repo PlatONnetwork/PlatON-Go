@@ -34,10 +34,20 @@ func (bs *BlockSignature) Copy() *BlockSignature {
 	}
 }
 
+type UpdateChainState func(qc *types.Block, lock *types.Block, commit *types.Block)
+
+type ChainStateResult struct {
+	QC       *types.Block
+	Lock     *types.Block
+	Commit   *types.Block
+	Callback UpdateChainState
+}
+
 type CbftResult struct {
-	Block     *types.Block
-	ExtraData []byte
-	SyncState chan error
+	Block            *types.Block
+	ExtraData        []byte
+	SyncState        chan error
+	ChainStateResult *ChainStateResult
 }
 
 type ProducerState struct {

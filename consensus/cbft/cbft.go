@@ -213,6 +213,13 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
 	}
+
+	// add failpoint
+	failpoint.Inject("mock-ReceiveMessage-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-ReceiveMessage-panic")
+		}
+	})
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
@@ -228,6 +235,12 @@ func (cbft *Cbft) recordMessage(msg *ctypes.MsgInfo) error {
 	cbft.queuesLock.Lock()
 	defer cbft.queuesLock.Unlock()
 	count := cbft.queues[msg.PeerID] + 1
+	// add failpoint
+	failpoint.Inject("mock-recordMessage-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-recordMessage-panic")
+		}
+	})
 	if int64(count) > cbft.config.Option.MaxQueuesLimit {
 		log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
 		// Need further confirmation.
@@ -345,6 +358,12 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 	var err error
 
+	// add failpoint
+	failpoint.Inject("mock-handleConsensusMsg-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-handleConsensusMsg-panic")
+		}
+	})
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
 		err = cbft.OnPrepareBlock(id, msg)
@@ -467,6 +486,12 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 	if len(header.Extra) < 32 {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
+	// add failpoint
+	failpoint.Inject("mock-Prepare-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-Prepare-panic")
+		}
+	})
 	header.Extra = header.Extra[:32]
 
 	//init header.Extra[32: 32+65]
@@ -647,6 +672,12 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to decode block extra data")
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-InsertChain-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-InsertChain-panic")
+		}
+	})
 	if err := cbft.verifyPrepareQC(qc); err != nil {
 		cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
 		return err
@@ -925,7 +956,7 @@ func (cbft *Cbft) threshold(num int) int {
 	return num - (num-1)/3
 }
 
-func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
+func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert, chainStateResult *cbfttypes.ChainStateResult) {
 	extra, err := ctypes.EncodeExtra(byte(cbftVersion), qc)
 	if err != nil {
 		cbft.log.Error("Encode extra error", "nubmer", block.Number(), "hash", block.Hash(), "cbftVersion", cbftVersion)
@@ -934,9 +965,10 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 
 	cbft.log.Debug("Send consensus result to worker", "number", block.Number(), "hash", block.Hash())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:     block,
-		ExtraData: extra,
-		SyncState: nil,
+		Block:            block,
+		ExtraData:        extra,
+		SyncState:        nil,
+		ChainStateResult: chainStateResult,
 	})
 }
 

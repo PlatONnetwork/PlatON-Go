@@ -176,6 +176,12 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 	if len(blocks) != len(qcs) {
 		return fmt.Errorf("block")
 	}
+	// add failpoint
+	failpoint.Inject("mock-OnInsertQCBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-OnInsertQCBlock-panic")
+		}
+	})
 	//todo insert tree, update view
 	for i := 0; i < len(blocks); i++ {
 		block, qc := blocks[i], qcs[i]
@@ -203,6 +209,13 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		cbft.state.AddQC(qc)
 	}
 	cbft.txPool.Reset(block)
+
+	// add failpoint
+	failpoint.Inject("mock-insertQCBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-insertQCBlock-panic")
+		}
+	})
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
@@ -239,6 +252,13 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			return false
 		}
 
+		// add failpoint
+		failpoint.Inject("mock-insertPrepareQC-panic", func() {
+			if cbft.shouldFailPoint() {
+				panic("mock-insertPrepareQC-panic")
+			}
+		})
+
 		if block != nil && hasExecuted() {
 			cbft.insertQCBlock(block, qc)
 		}
@@ -253,6 +273,12 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 		return
 	}
 	index, finish := cbft.state.Executing()
+	// add failpoint
+	failpoint.Inject("mock-onAsyncExecuteStatus-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-onAsyncExecuteStatus-panic")
+		}
+	})
 	if !finish {
 		block := cbft.state.ViewBlockByIndex(index)
 		if block != nil {
@@ -287,6 +313,13 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 		BlockIndex:     index,
 		ValidatorIndex: uint32(node.Index),
 	}
+
+	// add failpoint
+	failpoint.Inject("mock-signBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-signBlock-panic")
+		}
+	})
 
 	if err := cbft.signMsgByBls(prepareVote); err != nil {
 		return err
@@ -425,10 +458,10 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	// Incremental commit block
 	if oldCommit.NumberU64()+1 == commit.NumberU64() {
 		_, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		cbft.commitBlock(commit, qc)
+		cbft.commitBlock(commit, qc, &cbfttypes.ChainStateResult{highestqc, lock, commit, cbft.bridge.UpdateChainState})
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
-		cbft.bridge.UpdateChainState(highestqc, lock, commit)
+		//cbft.bridge.UpdateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
 	} else {

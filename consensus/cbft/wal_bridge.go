@@ -200,7 +200,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	isParent := cbft.contiguousChainBlock(rootBlock, commit.Block)
 
 	if !isCurrent && !isParent {
-		return fmt.Errorf("recovery chain state errror,non contiguous chain block state, curNum:%d, curHash:%s, commitNum:%d, commitHash:%s", rootBlock.NumberU64(), rootBlock.Hash(), commit.Block.NumberU64(), commit.Block.Hash())
+		return fmt.Errorf("recovery chain state errror,non contiguous chain block state, curNum:%d, curHash:%s, commitNum:%d, commitHash:%s", rootBlock.NumberU64(), rootBlock.Hash().String(), commit.Block.NumberU64(), commit.Block.Hash().String())
 	}
 	if isParent {
 		// recovery commit state
@@ -334,12 +334,12 @@ func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	if parent == nil {
 		if parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); parent == nil {
 			if parent = cbft.state.HighestExecutedBlock(); parent == nil {
-				return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
+				return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash().String())
 			}
 		}
 	}
 	if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
-		return fmt.Errorf("execute block failed, blockNum:%d, blockHash:%s, parentNum:%d, parentHash:%s, err:%s", block.NumberU64(), block.Hash(), parent.NumberU64(), parent.Hash(), err.Error())
+		return fmt.Errorf("execute block failed, blockNum:%d, blockHash:%s, parentNum:%d, parentHash:%s, err:%s", block.NumberU64(), block.Hash().String(), parent.NumberU64(), parent.Hash().String(), err.Error())
 	}
 	return nil
 }
