@@ -188,7 +188,6 @@ func testExecuteBlock(t *testing.T) {
 		assert.Nil(t, node.Start())
 
 		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
 	}
 
 	result := make(chan *types.Block, 1)
@@ -216,7 +215,6 @@ func testExecuteBlock(t *testing.T) {
 				}
 				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
 				assert.NotNil(t, pb)
-				fmt.Println("block:", uint32(i))
 				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 				time.Sleep(50 * time.Millisecond)
 				index, finish := nodes[j].engine.state.Executing()

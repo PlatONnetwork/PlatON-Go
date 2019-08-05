@@ -90,6 +90,11 @@ type Cbft struct {
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues map[string]int // Per peer message counts to prevent memory exhaustion.
+
+	//test
+	insertBlockQCHook func(block *types.Block, qc *ctypes.QuorumCert)
+
+	executeFinishHook func(index uint32)
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -330,7 +335,6 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
-
 	if !cbft.fetcher.MatchTask(id, msg) {
 		switch msg := msg.(type) {
 		case *protocols.GetPrepareBlock:

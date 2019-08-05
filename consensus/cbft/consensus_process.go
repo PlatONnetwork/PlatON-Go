@@ -160,6 +160,10 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.log.Debug("Insert QC block", "qc", qc.String())
+	if cbft.insertBlockQCHook != nil {
+		// test hook
+		cbft.insertBlockQCHook(block, qc)
+	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
@@ -218,6 +222,9 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 		block := cbft.state.ViewBlockByIndex(index)
 		if block != nil {
 			if block.Hash() == s.Hash {
+				if cbft.executeFinishHook != nil {
+					cbft.executeFinishHook(index)
+				}
 				cbft.state.SetExecuting(index, true)
 				if err := cbft.signBlock(block.Hash(), block.NumberU64(), index); err != nil {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
