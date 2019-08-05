@@ -595,7 +595,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 		// build release amount record
 		releaseAmount := big.NewInt(int64(1E18))
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
-		stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, releaseAmount.Bytes())
 
 		// build release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
@@ -618,7 +618,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(account, restrictingKey, bUser)
+	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
 	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
@@ -635,7 +635,7 @@ func buildDBStakingRestrictingFunds(t *testing.T, stateDB xcom.StateDB) {
 	// build release amount record
 	releaseAmount := big.NewInt(int64(2E18))
 	releaseAmountKey := restricting.GetReleaseAmountKey(1, account)
-	stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+	stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, releaseAmount.Bytes())
 
 	// build release epoch record
 	releaseEpochKey := restricting.GetReleaseEpochKey(1)
@@ -657,7 +657,7 @@ func buildDBStakingRestrictingFunds(t *testing.T, stateDB xcom.StateDB) {
 
 	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(account, restrictingKey, bUser)
+	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(1E18)))
 }
