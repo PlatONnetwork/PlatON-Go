@@ -42,11 +42,12 @@ const (
 
 // Responsible for processing the messages in the network.
 type EngineManager struct {
-	engine    Cbft
-	router    *router
-	peers     *PeerSet
-	sendQueue chan *types.MsgPackage
-	quitSend  chan struct{}
+	engine        Cbft
+	router        *router
+	peers         *PeerSet
+	sendQueue     chan *types.MsgPackage
+	quitSend      chan struct{}
+	sendQueueHook func(*types.MsgPackage)
 }
 
 // Create a new handler and do some initialization.
@@ -81,6 +82,9 @@ func (h *EngineManager) sendLoop() {
 	for {
 		select {
 		case m := <-h.sendQueue:
+			if h.sendQueueHook != nil {
+				h.sendQueueHook(m)
+			}
 			// todo: Need to add to the processing judgment of wal
 			if len(m.PeerID()) == 0 {
 				h.broadcast(m)

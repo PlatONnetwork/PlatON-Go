@@ -227,7 +227,7 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, nodeID discov
 	// FIXME: Check `GetValidator` return error
 	if agency.GetLastNumber(blockNumber) == blockNumber {
 		pool.prevValidators, _ = agency.GetValidator(blockNumber)
-		pool.currentValidators, _ = agency.GetValidator(nextRound(blockNumber))
+		pool.currentValidators, _ = agency.GetValidator(NextRound(blockNumber))
 	} else {
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
@@ -248,13 +248,15 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 
 	// Only updated once
 	if blockNumber <= vp.switchPoint {
+		log.Debug("Already update validator before", "blockNumber", blockNumber, "switchPoint", vp.switchPoint)
 		return errors.New("already updated before")
 	}
 
 	isValidatorBefore := vp.isValidator(blockNumber, vp.nodeID)
 
-	nds, err := vp.agency.GetValidator(nextRound(blockNumber))
+	nds, err := vp.agency.GetValidator(NextRound(blockNumber))
 	if err != nil {
+		log.Error("Get validator error", "blockNumber", blockNumber, "err", err)
 		return err
 	}
 	vp.prevValidators = vp.currentValidators
@@ -511,6 +513,6 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 	return sig.Verify(&pub, string(msg))
 }
 
-func nextRound(blockNumber uint64) uint64 {
+func NextRound(blockNumber uint64) uint64 {
 	return blockNumber + 1
 }

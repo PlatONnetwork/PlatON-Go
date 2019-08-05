@@ -1,6 +1,7 @@
 package network
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"math/rand"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -71,4 +72,8 @@ func EnhanceEngineManager(ids []discover.NodeID, handlers []*EngineManager) {
 	handlers[3].peers.Register(peer1_1_4)
 	handlers[3].peers.Register(peer3_3_4)
 	handlers[3].peers.Register(peer2_2_4)
+}
+
+func SetSendQueueHook(engine *EngineManager, hook func(msg *types.MsgPackage)) {
+	engine.sendQueueHook = hook
 }

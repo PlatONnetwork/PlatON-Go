@@ -95,7 +95,7 @@ func testBaseSafetyRules_PrepareBlockRules(t *testing.T, viewState *state.ViewSt
 		{newError(""), true, false, newPrepareBlock(Epoch+1, ViewNumber, qcBlock, 1)},
 		{newError(""), true, false, newPrepareBlock(Epoch, ViewNumber+1, qcBlock, 1)},
 		{newError(""), true, false, newPrepareBlock(Epoch, ViewNumber+1, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()), 0)},
-		{newError(""), true, false, newPrepareBlock(Epoch+1, ViewNumber, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()+1), 0)},
+		{newError(""), false, true, newPrepareBlock(Epoch+1, ViewNumber, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()+1), 0)},
 	}
 	for i, c := range tests {
 		if c.err == nil {

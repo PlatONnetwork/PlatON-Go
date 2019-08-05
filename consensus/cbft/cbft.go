@@ -90,12 +90,18 @@ type Cbft struct {
 	loading            int32
 
 	// Record the number of peer requests for obtaining cbft information.
+
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
 	queuesLock sync.RWMutex
 
 	// Delay time of each node
 	netLatencyMap  map[string]*list.List
 	netLatencyLock sync.RWMutex
+
+	//test
+	insertBlockQCHook func(block *types.Block, qc *ctypes.QuorumCert)
+
+	executeFinishHook func(index uint32)
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -127,7 +133,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 
 // Returns the ID value of the current node
 func (cbft *Cbft) NodeId() discover.NodeID {
-	return discover.NodeID{}
+	return cbft.config.Option.NodeID
 }
 
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
@@ -364,7 +370,6 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
-
 	if !cbft.fetcher.MatchTask(id, msg) {
 		switch msg := msg.(type) {
 		case *protocols.GetPrepareBlock:
@@ -516,7 +521,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestExecutedBlock().NumberU64(), cbft.config.Option.NodeID)
+	me, _ := cbft.validatorPool.GetValidatorByNodeID(validator.NextRound(cbft.state.HighestExecutedBlock().NumberU64()), cbft.config.Option.NodeID)
 
 	prepareBlock := &protocols.PrepareBlock{
 		Epoch:         cbft.state.Epoch(),
@@ -768,6 +773,7 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	}
 	select {
 	case err := <-result:
+
 		return err == nil, err
 	case <-time.After(2 * time.Millisecond):
 		result <- errors.New("timeout")
@@ -794,14 +800,15 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Option.NodeID) {
+	nextRoundNum := validator.NextRound(currentExecutedBlockNumber)
+	if !cbft.validatorPool.IsValidator(nextRoundNum, cbft.config.Option.NodeID) {
 		result <- errors.New("current node not a validator")
 		return
 	}
 
-	numValidators := cbft.validatorPool.Len(currentExecutedBlockNumber)
+	numValidators := cbft.validatorPool.Len(nextRoundNum)
 	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, err := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.Option.NodeID)
+	validator, err := cbft.validatorPool.GetValidatorByNodeID(nextRoundNum, cbft.config.Option.NodeID)
 	if err != nil {
 		cbft.log.Error("Should seal fail", "err", err)
 		result <- err
