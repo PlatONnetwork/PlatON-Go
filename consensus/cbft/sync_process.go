@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"container/list"
 	"fmt"
 	"math/big"
 
@@ -487,4 +488,77 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		ViewNumber:  cbft.state.ViewNumber(),
 		NodeIndexes: nodeIndexes,
 	}, nil
+}
+
+// OnPong is used to receive the average delay time.
+func (cbft *Cbft) OnPong(nodeID string, netLatency int64) error {
+	cbft.log.Trace("OnPong", "nodeID", nodeID, "netLatency", netLatency)
+	cbft.netLatencyLock.Lock()
+	defer cbft.netLatencyLock.Unlock()
+	latencyList, exist := cbft.netLatencyMap[nodeID]
+	if !exist {
+		cbft.netLatencyMap[nodeID] = list.New()
+		cbft.netLatencyMap[nodeID].PushBack(netLatency)
+	} else {
+		if latencyList.Len() > 5 {
+			e := latencyList.Front()
+			cbft.netLatencyMap[nodeID].Remove(e)
+		}
+		cbft.netLatencyMap[nodeID].PushBack(netLatency)
+	}
+	return nil
+}
+
+// AvgLatency returns the average delay time of the specified node.
+//
+// The average is the average delay between the current
+// node and all consensus nodes.
+func (cbft *Cbft) AvgLatency() int64 {
+	cbft.netLatencyLock.Lock()
+	defer cbft.netLatencyLock.Unlock()
+	// The intersection of peerSets and consensusNodes.
+	cNodes, _ := cbft.ConsensusNodes()
+	peers, _ := cbft.network.Peers()
+	target := make([]string, 0, len(peers))
+	for _, pNode := range peers {
+		for _, cNode := range cNodes {
+			if pNode.PeerID() == cNode.TerminalString() {
+				target = append(target, pNode.PeerID())
+			}
+		}
+	}
+	var (
+		avgSum int64 = 0
+		result int64 = 0
+	)
+	for _, v := range target {
+		if latencyList, exist := cbft.netLatencyMap[v]; exist {
+			avg := calAverage(latencyList)
+			avgSum += avg
+		}
+	}
+	if avgSum != 0 {
+		result = avgSum / int64(len(target))
+	} else {
+		result = protocols.DEFAULT_AVG_LATENCY
+	}
+	cbft.log.Debug("Get avg latency", "avg", result)
+	return result
+}
+
+func calAverage(latencyList *list.List) int64 {
+	var (
+		sum    int64 = 0
+		counts int64 = 0
+	)
+	for e := latencyList.Front(); e != nil; e = e.Next() {
+		if latency, ok := e.Value.(int64); ok {
+			counts++
+			sum += latency
+		}
+	}
+	if counts > 0 {
+		return sum / counts
+	}
+	return 0
 }

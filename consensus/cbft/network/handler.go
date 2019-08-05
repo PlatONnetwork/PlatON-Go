@@ -503,6 +503,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 					// todo: need confirm
 					// Record the latency in metrics and output it. unit: second.
 					log.Trace("latency", "time", latency)
+					h.engine.OnPong(p.id, latency)
 					propPeerLatencyMeter.Mark(latency)
 					break
 				}

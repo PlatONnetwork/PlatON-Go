@@ -2,13 +2,14 @@ package cbft
 
 import (
 	"bytes"
+	"container/list"
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	errors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 
 	"reflect"
 	"sync"
@@ -91,6 +92,10 @@ type Cbft struct {
 	// Record the number of peer requests for obtaining cbft information.
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
 	queuesLock sync.RWMutex
+
+	// Delay time of each node
+	netLatencyMap  map[string]*list.List
+	netLatencyLock sync.RWMutex
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -108,6 +113,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
+		netLatencyMap:      make(map[string]*list.List),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -211,7 +217,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	}
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
+		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -860,11 +866,6 @@ func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, header *types.Header) boo
 
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
-}
-
-func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
-	//panic("need to be improved")
-	return nil
 }
 
 func (cbft *Cbft) Config() *ctypes.Config {

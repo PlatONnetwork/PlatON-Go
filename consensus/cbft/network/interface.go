@@ -37,4 +37,7 @@ type Cbft interface {
 
 	// Returns the node ID of the missing vote.
 	MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error)
+
+	// OnPong records net delay time.
+	OnPong(nodeID string, netLatency int64) error
 }
