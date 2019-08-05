@@ -2609,7 +2609,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		}
 
 		// remove the val from epoch validators,
-		// becouse the candidate status is invalid after slashed
+		// because the candidate status is invalid after slashed
 		orginLen := len(validators.Arr)
 		for i := 0; i < len(validators.Arr); i++ {
 
