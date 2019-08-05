@@ -26,7 +26,7 @@ type commonConfig struct {
 
 type stakingConfig struct {
 	StakeThreshold               *big.Int // The Staking minimum threshold allowed
-	DelegateThreshold            *big.Int // The delegate minimum threshold allowed
+	MinimumThreshold             *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
 	EpochValidatorNum            uint64   // The epoch (billing cycle) validators count
 	ShiftValidatorNum            uint64   // The number of elections and replacements for each of the consensus rounds
 	HesitateRatio                uint64   // Each hesitation period is a multiple of the epoch
@@ -83,35 +83,35 @@ const (
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
 	var (
-		success                bool
-		stakeThresholdCount    string
-		delegateThresholdCount string
-		stakeThreshold         *big.Int
-		delegateThreshold      *big.Int
+		success               bool
+		stakeThresholdCount   string
+		minimumThresholdCount string
+		stakeThreshold        *big.Int
+		minimumThreshold      *big.Int
 	)
 
 	switch netId {
 	case DefaultMainNet, DefaultDeveloperNet:
 		stakeThresholdCount = "10000000000000000000000000" // 1000W von
-		delegateThresholdCount = "10000000000000000000"    // 10 von
+		minimumThresholdCount = "10000000000000000000"     // 10 von
 	case DefaultAlphaTestNet:
 		stakeThresholdCount = "10000000000000000000000000"
-		delegateThresholdCount = "10000000000000000000"
+		minimumThresholdCount = "10000000000000000000"
 	case DefaultBetaTestNet:
 		stakeThresholdCount = "10000000000000000000000000"
-		delegateThresholdCount = "10000000000000000000"
+		minimumThresholdCount = "10000000000000000000"
 	case DefaultInnerTestNet:
 		stakeThresholdCount = "10000000000000000000000000"
-		delegateThresholdCount = "10000000000000000000"
+		minimumThresholdCount = "10000000000000000000"
 	case DefaultInnerDevNet:
 		stakeThresholdCount = "10000000000000000000000000"
-		delegateThresholdCount = "10000000000000000000"
+		minimumThresholdCount = "10000000000000000000"
 	}
 
 	if stakeThreshold, success = new(big.Int).SetString(stakeThresholdCount, 10); !success {
 		return nil
 	}
-	if delegateThreshold, success = new(big.Int).SetString(delegateThresholdCount, 10); !success {
+	if minimumThreshold, success = new(big.Int).SetString(minimumThresholdCount, 10); !success {
 		return nil
 	}
 
@@ -126,7 +126,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
-				DelegateThreshold:            delegateThreshold,
+				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(101),
 				ShiftValidatorNum:            uint64(8),
 				HesitateRatio:                uint64(1),
@@ -160,7 +160,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
-				DelegateThreshold:            delegateThreshold,
+				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
 				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
@@ -194,7 +194,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
-				DelegateThreshold:            delegateThreshold,
+				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
 				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
@@ -228,7 +228,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
-				DelegateThreshold:            delegateThreshold,
+				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(51),
 				ShiftValidatorNum:            uint64(3),
 				HesitateRatio:                uint64(1),
@@ -262,7 +262,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
-				DelegateThreshold:            delegateThreshold,
+				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
 				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
@@ -297,7 +297,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
-				DelegateThreshold:            delegateThreshold,
+				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
 				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
@@ -348,8 +348,8 @@ func StakeThreshold() *big.Int {
 	return ec.Staking.StakeThreshold
 }
 
-func DelegateThreshold() *big.Int {
-	return ec.Staking.DelegateThreshold
+func MinimumThreshold() *big.Int {
+	return ec.Staking.MinimumThreshold
 }
 
 func EpochValidatorNum() uint64 {

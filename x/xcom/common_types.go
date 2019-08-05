@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -65,6 +67,8 @@ type StateDB interface {
 	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
+
+	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
 // inner contract event data
@@ -144,4 +148,13 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 	log.Debug(s + " == " + string(objs))
+}
+
+func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
+	for _, v := range nodeIDList {
+		if nodeID == v {
+			return true
+		}
+	}
+	return false
 }

@@ -7,6 +7,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -48,19 +52,17 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 		pri = sk
 	}
 
-	nodeId_A := discover.PubkeyID(&pri.PublicKey)
-	addr_A, _ := xutil.NodeId2Addr(nodeId_A)
+	nodeIdA := discover.PubkeyID(&pri.PublicKey)
+	addrA, _ := xutil.NodeId2Addr(nodeIdA)
 
-	nodeId_B := nodeIdArr[1]
-	addr_B, _ := xutil.NodeId2Addr(nodeId_B)
+	nodeIdB := nodeIdArr[1]
+	addrB, _ := xutil.NodeId2Addr(nodeIdB)
 
-	nodeId_C := nodeIdArr[2]
-	addr_C, _ := xutil.NodeId2Addr(nodeId_C)
-
-	//canArr := make(staking.CandidateQueue, 0)
+	nodeIdC := nodeIdArr[2]
+	addrC, _ := xutil.NodeId2Addr(nodeIdC)
 
 	c1 := &staking.Candidate{
-		NodeId:             nodeId_A,
+		NodeId:             nodeIdA,
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
@@ -82,7 +84,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	}
 
 	c2 := &staking.Candidate{
-		NodeId:             nodeId_B,
+		NodeId:             nodeIdB,
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(3),
@@ -104,7 +106,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	}
 
 	c3 := &staking.Candidate{
-		NodeId:             nodeId_C,
+		NodeId:             nodeIdC,
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[3],
 		StakingTxIndex:     uint32(4),
@@ -125,38 +127,34 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 		},
 	}
 
-	//canArr = append(canArr, c1)
-	//canArr = append(canArr, c2)
-	//canArr = append(canArr, c3)
+	stakingDB.SetCanPowerStore(blockHash, addrA, c1)
+	stakingDB.SetCanPowerStore(blockHash, addrB, c2)
+	stakingDB.SetCanPowerStore(blockHash, addrC, c3)
 
-	stakingDB.SetCanPowerStore(blockHash, addr_A, c1)
-	stakingDB.SetCanPowerStore(blockHash, addr_B, c2)
-	stakingDB.SetCanPowerStore(blockHash, addr_C, c3)
+	stakingDB.SetCandidateStore(blockHash, addrA, c1)
+	stakingDB.SetCandidateStore(blockHash, addrB, c2)
+	stakingDB.SetCandidateStore(blockHash, addrC, c3)
 
-	stakingDB.SetCandidateStore(blockHash, addr_A, c1)
-	stakingDB.SetCandidateStore(blockHash, addr_B, c2)
-	stakingDB.SetCandidateStore(blockHash, addr_C, c3)
-
-	fmt.Println("addr_A", hex.EncodeToString(addr_A.Bytes()), "addr_B", hex.EncodeToString(addr_B.Bytes()), "addr_C", hex.EncodeToString(addr_C.Bytes()))
+	log.Info("addr_A", hex.EncodeToString(addrA.Bytes()), "addr_B", hex.EncodeToString(addrB.Bytes()), "addr_C", hex.EncodeToString(addrC.Bytes()))
 
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		NodeAddress:   addr_A,
+		NodeAddress:   addrA,
 		NodeId:        c1.NodeId,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v2 := &staking.Validator{
-		NodeAddress:   addr_B,
+		NodeAddress:   addrB,
 		NodeId:        c2.NodeId,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v3 := &staking.Validator{
-		NodeAddress:   addr_C,
+		NodeAddress:   addrC,
 		NodeId:        c3.NodeId,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
 		ValidatorTerm: 0,
@@ -166,15 +164,28 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	queue = append(queue, v2)
 	queue = append(queue, v3)
 
-	val_Arr := &staking.Validator_array{
+	epochArr := &staking.Validator_array{
 		Start: 1,
-		End:   22000,
+		End:   uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
-	setVerifierList(blockHash, val_Arr)
-	setRoundValList(blockHash, val_Arr)
-	setRoundValList(blockHash, val_Arr)
+	preArr := &staking.Validator_array{
+		Start: 0,
+		End:   xutil.ConsensusSize(),
+		Arr:   queue,
+	}
+
+	curArr := &staking.Validator_array{
+		Start: xutil.ConsensusSize() + 1,
+		End:   xutil.ConsensusSize() * 2,
+		Arr:   queue,
+	}
+
+	setVerifierList(blockHash, epochArr)
+	setRoundValList(blockHash, preArr)
+	setRoundValList(blockHash, curArr)
+	stateDb.AddBalance(vm.StakingContractAddr, new(big.Int).SetUint64(18446744073709551615))
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
@@ -183,8 +194,11 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	pri, phash := confirmBlock(t, 478)
-	blockNumber := new(big.Int).SetInt64(479)
+	startNumber := xutil.ConsensusSize()
+	startNumber += xutil.ConsensusSize() - xcom.ElectionDistance() - 2
+	pri, phash := confirmBlock(t, int(startNumber))
+	startNumber++
+	blockNumber := new(big.Int).SetInt64(int64(startNumber))
 	if err := snapshotdb.Instance().NewBlock(blockNumber, phash, common.ZeroHash); err != nil {
 		t.Fatal(err)
 	}
@@ -197,8 +211,9 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	if err := snapshotdb.Instance().Commit(phash); err != nil {
 		t.Fatal(err)
 	}
+	startNumber++
 	header := &types.Header{
-		Number: new(big.Int).SetUint64(480),
+		Number: new(big.Int).SetUint64(uint64(startNumber)),
 		Extra:  make([]byte, 97),
 	}
 	if err := snapshotdb.Instance().NewBlock(header.Number, phash, common.ZeroHash); nil != err {
@@ -214,7 +229,8 @@ func TestSlashingPlugin_Confirmed(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	confirmBlock(t, 251)
+	startNumber := xutil.ConsensusSize() + 1
+	confirmBlock(t, int(startNumber))
 	result, err := si.GetPreNodeAmount()
 	if nil != err {
 		t.Fatal(err)
@@ -240,7 +256,7 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
 		blockNum := big.NewInt(int64(i + 1))
-		if i == 7 {
+		if i == int(xcom.PackAmountAbnormal()) {
 			sk = pri2
 		}
 		header := &types.Header{

@@ -3,6 +3,8 @@ package plugin_test
 import (
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -48,8 +50,8 @@ func setup(t *testing.T) func() {
 	govDB = gov.GovDBInstance()
 
 	// init data
-	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
-	activeBlock = uint64(xutil.CalcBlocksEachEpoch() - 20 + xutil.ConsensusSize()*5)
+	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - xcom.ElectionDistance())
+	activeBlock = uint64(xutil.CalcBlocksEachEpoch() + xutil.ConsensusSize()*5)
 
 	return func() {
 		t.Log("tear down()......")
@@ -59,11 +61,11 @@ func setup(t *testing.T) func() {
 
 func submitText(t *testing.T, pid common.Hash) {
 	vp := gov.TextProposal{
-		ProposalID:     pid,
-		GithubID:       "githubID",
-		ProposalType:   gov.Text,
-		Topic:          "textTopic",
-		Desc:           "textDesc",
+		ProposalID: pid,
+		//GithubID:     "githubID",
+		ProposalType: gov.Text,
+		//Topic:          "textTopic",
+		//Desc:           "textDesc",
 		Url:            "textUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -81,11 +83,11 @@ func submitText(t *testing.T, pid common.Hash) {
 
 func submitVersion(t *testing.T, pid common.Hash) {
 	vp := gov.VersionProposal{
-		ProposalID:     pid,
-		GithubID:       "githubID",
-		ProposalType:   gov.Version,
-		Topic:          "versionTopic",
-		Desc:           "versionDesc",
+		ProposalID: pid,
+		//GithubID:       "githubID",
+		ProposalType: gov.Version,
+		//Topic:          "versionTopic",
+		//Desc:           "versionDesc",
 		Url:            "versionUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -105,11 +107,11 @@ func submitVersion(t *testing.T, pid common.Hash) {
 
 func submitParam(t *testing.T, pid common.Hash) {
 	pp := gov.ParamProposal{
-		ProposalID:     pid,
-		GithubID:       "githubID",
-		ProposalType:   gov.Param,
-		Topic:          "paramTopic",
-		Desc:           "paramDesc",
+		ProposalID: pid,
+		//GithubID:       "githubID",
+		ProposalType: gov.Param,
+		//Topic:          "paramTopic",
+		//Desc:           "paramDesc",
 		Url:            "paramUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -193,15 +195,31 @@ func TestGovPlugin_SubmitText(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_GetProposal(t *testing.T) {
+	defer setup(t)()
+	submitText(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	buildBlockNoCommit(2)
+
+	p, err := govPlugin.GetProposal(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatalf("Get proposal error: %s", err)
+	} else {
+		t.Logf("Get proposal success: %x", p.GetProposalID())
+	}
+}
+
 func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Text,
-		Topic:          "textTopic",
-		Desc:           "textDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:     "githubID",
+		ProposalType: gov.Text,
+		//Topic:          "textTopic",
+		//Desc:           "textDesc",
 		Url:            "textUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -223,11 +241,11 @@ func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Text,
-		Topic:          "textTopic",
-		Desc:           "textDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:     "githubID",
+		ProposalType: gov.Text,
+		//Topic:          "textTopic",
+		//Desc:           "textDesc",
 		Url:            "textUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
@@ -266,11 +284,11 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.VersionProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Version,
-		Topic:          "versionTopic",
-		Desc:           "versionDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:       "githubID",
+		ProposalType: gov.Version,
+		//Topic:          "versionTopic",
+		//Desc:           "versionDesc",
 		Url:            "versionUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
@@ -293,11 +311,11 @@ func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.VersionProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Version,
-		Topic:          "versionTopic",
-		Desc:           "versionDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:       "githubID",
+		ProposalType: gov.Version,
+		//Topic:          "versionTopic",
+		//Desc:           "versionDesc",
 		Url:            "versionUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -337,11 +355,11 @@ func TestGovPlugin_SubmitParam_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	pp := gov.ParamProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Param,
-		Topic:          "paramTopic",
-		Desc:           "paramDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:       "githubID",
+		ProposalType: gov.Param,
+		//Topic:          "paramTopic",
+		//Desc:           "paramDesc",
 		Url:            "paramUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
@@ -366,11 +384,11 @@ func TestGovPlugin_SubmitParam_unsupportedParameter(t *testing.T) {
 	defer setup(t)()
 
 	pp := gov.ParamProposal{
-		ProposalID:     txHashArr[0],
-		GithubID:       "githubID",
-		ProposalType:   gov.Param,
-		Topic:          "paramTopic",
-		Desc:           "paramDesc",
+		ProposalID: txHashArr[0],
+		//GithubID:       "githubID",
+		ProposalType: gov.Param,
+		//Topic:          "paramTopic",
+		//Desc:           "paramDesc",
 		Url:            "paramUrl",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
@@ -675,7 +693,7 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
+func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	defer setup(t)()
 
@@ -741,7 +759,31 @@ func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_versionProposalSuccess(t *testing.T) {
+func TestGovPlugin_GetPreActiveVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	buildBlockNoCommit(2)
+
+	ver := govPlugin.GetPreActiveVersion(evm.StateDB)
+	t.Logf("Get pre-active version: %d", ver)
+}
+
+func TestGovPlugin_GetActiveVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+	buildBlockNoCommit(2)
+
+	ver := govPlugin.GetActiveVersion(evm.StateDB)
+	t.Logf("Get active version: %d", ver)
+}
+
+func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	defer setup(t)()
 
@@ -801,7 +843,7 @@ func TestGovPlugin_versionProposalSuccess(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_Param(t *testing.T) {
+func TestGovPlugin_SetGetParam(t *testing.T) {
 	defer setup(t)()
 
 	paraMap := make(map[string]string)

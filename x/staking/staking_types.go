@@ -25,10 +25,6 @@ const (
 
 const SWeightItem = 4
 
-func Is_Valid(status uint32) bool {
-	return status&Valided == Valided
-}
-
 func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
 }
@@ -73,7 +69,7 @@ func Is_DuplicateSign(status uint32) bool {
 	return status&DuplicateSign == DuplicateSign
 }
 
-func Is_DuplicateSign_Invalid(status uint32) bool {
+func Is_Invalid_DuplicateSign(status uint32) bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
@@ -192,8 +188,7 @@ func (val *Validator) GetStakingTxIndex() (uint32, error) {
 
 type ValidatorQueue []*Validator
 
-//type SlashMark map[discover.NodeID]struct{}
-type SlashCandidate map[common.Address]*Candidate
+type SlashCandidate map[discover.NodeID]*Candidate
 
 func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
 	compare func(slashs SlashCandidate, c, can *Validator) int) {
@@ -296,8 +291,8 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	_, leftOk := slashs[left.NodeAddress]
-	_, rightOk := slashs[right.NodeAddress]
+	_, leftOk := slashs[left.NodeId]
+	_, rightOk := slashs[right.NodeId]
 
 	if leftOk && !rightOk {
 		return -1
@@ -325,12 +320,13 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // it is slashed and is sorted to the front.
 //
 // The priorities just like that:
-// DuplicateSign > ProgramVersion > LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+// DuplicateSign > Status Invalid (usually lowratio and balance no enough) > ProgramVersion || LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
 //
 // DuplicateSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// Invalid Status: From invalid to valid
 // ProgramVersion: From small to big
-// validaotorTerm: From big to small
 // LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// validaotorTerm: From big to small
 // Shares： From small to bigLowPackageRatio
 // BlockNumber: From big to small
 // TxIndex: From big to small
@@ -343,7 +339,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 
 	// some funcs
 
-	// 7. TxIndex
+	// Compare TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
 		rightTxIndex, _ := r.GetStakingTxIndex()
@@ -357,7 +353,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	// 6. BlockNumber
+	// Compare BlockNumber
 	compareBlockNumberFunc := func(l, r *Validator) int {
 		leftNum, _ := l.GetStakingBlockNumber()
 		rightNum, _ := r.GetStakingBlockNumber()
@@ -371,7 +367,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	// 5. Shares
+	// Compare Shares
 	compareSharesFunc := func(l, r *Validator) int {
 		leftShares, _ := l.GetShares()
 		rightShares, _ := r.GetShares()
@@ -386,7 +382,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	// 4. Term
+	// Compare Term
 	compareTermFunc := func(l, r *Validator) int {
 		switch {
 		case l.ValidatorTerm < r.ValidatorTerm:
@@ -398,70 +394,61 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	lCan, lOK := slashs[left.NodeAddress]
-	rCan, rOK := slashs[right.NodeAddress]
+	lCan, lOK := slashs[left.NodeId]
+	rCan, rOK := slashs[right.NodeId]
 
-	// 1. Duplicate Sign
-	if lOK && Is_DuplicateSign(lCan.Status) { // left is duplicateSign
-		if !rOK || (rOK && !Is_DuplicateSign(rCan.Status)) { // right is not duplicateSign
-			return 1
-		} else {
+	/**
+	Start Compare
+	*/
 
-			// When both duplicateSign
-			/*lversion, _ := left.GetProgramVersion()
-			rversion, _ := right.GetProgramVersion()
-			switch {
-			case lversion > rversion:
-				return -1
-			case lversion < rversion:
-				return 1
-			default:
-				return compareSharesFunc(left, right)
-			}*/
-			return compareSharesFunc(left, right)
-		}
-	} else { // left is not duplicateSign
-
-		if rOK && Is_DuplicateSign(rCan.Status) { // right is duplicateSign
+	// 1. has slashed ?
+	switch {
+	case !lOK && rOK: // left has not slashed AND right has slashed
+		return -1
+	case !lOK && !rOK: // both has not slashed
+		// 2. ProgramVersion
+		lversion, _ := left.GetProgramVersion()
+		rversion, _ := right.GetProgramVersion()
+		switch {
+		case lversion > rversion:
 			return -1
-		} else { // When both no duplicateSign
+		case lversion < rversion:
+			return 1
+		default:
+			return compareTermFunc(left, right)
+		}
+	case lOK && !rOK: // left has slashed AND right has not slashed
+		return 1
+	default: // both  has slashed
 
-			// 2. ProgramVersion
-			lversion, _ := left.GetProgramVersion()
-			rversion, _ := right.GetProgramVersion()
+		// 2. Duplicate Sign
+		if Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status) { // left DuplicateSign, right is not duplicateSign
+			return 1
+		} else if Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // both DuplicateSign
+			return compareSharesFunc(left, right)
+		} else if !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // left is not duplicateSign, right DuplicateSign
+			return -1
+		} else { // both no duplicateSign
+
+			// 3. status is invalid
 			switch {
-			case lversion > rversion:
-				return -1
-			case lversion < rversion:
+			// left.Status(xxxxx1) && right.Status(xxxxx0)
+			case Is_Invalid(lCan.Status) && !Is_Invalid(rCan.Status):
 				return 1
+			// left.Status(xxxxx0) && right.Status(xxxxx1)
+			case !Is_Invalid(lCan.Status) && Is_Invalid(rCan.Status):
+				return -1
+			// When both valid OR both Invalid
 			default:
 
-				// 3. LowPackageRatio
-				if lOK && Is_LowRatio(lCan.Status) { // left is LowRatio
-					if !rOK { // right is not LowRatio
-						return 1
-					} else { // When both LowRatio
-
-						switch {
-						case Is_Invalid(lCan.Status) && Is_Valid(rCan.Status):
-							return 1
-						case Is_Valid(lCan.Status) && Is_Invalid(rCan.Status):
-							return -1
-						default: // When both valid OR both Invalid
-							return compareTermFunc(left, right)
-						}
-
-					}
-
-				} else { // left is not LowRatio
-
-					if rOK && Is_LowRatio(rCan.Status) { // right is LowRatio
-						return -1
-					} else { // When both no LowRatio
-						return compareTermFunc(left, right)
-					}
+				// 4. LowPackageRatio
+				if Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status) { // left is LowRatio AND right is not LowRatio
+					return 1
+				} else if !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status) { // left is not LowRatio AND right is LowRatio
+					return -1
+				} else { // both is LowRatio OR both no LowRatio
+					return compareTermFunc(left, right)
 				}
-
 			}
 		}
 	}

@@ -28,7 +28,7 @@ var (
 // showRestrictingAccountInfo prints restricting info of restricting account in stateDB
 func showRestrictingAccountInfo(t *testing.T, state xcom.StateDB, account common.Address) {
 	restrictingKey := restricting.GetRestrictingKey(account)
-	bAccInfo := state.GetState(account, restrictingKey)
+	bAccInfo := state.GetState(vm.RestrictingContractAddr, restrictingKey)
 
 	if len(bAccInfo) == 0 {
 		t.Logf("Restricting account not found, account: %v", account.String())
@@ -75,7 +75,7 @@ func showReleaseEpoch(t *testing.T, state xcom.StateDB, epoch uint64) {
 // showReleaseAmount prints release amount of the restricting account at target epoch
 func showReleaseAmount(t *testing.T, state xcom.StateDB, account common.Address, epoch uint64) {
 	releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
-	bAmount := state.GetState(account, releaseAmountKey)
+	bAmount := state.GetState(vm.RestrictingContractAddr, releaseAmountKey)
 
 	amount := new(big.Int)
 	if len(bAmount) == 0 {
@@ -148,7 +148,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		for _, epoch := range info.ReleaseList {
 			// store epoch
@@ -162,9 +162,9 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(1, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(1E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(1E18).Bytes())
 		releaseAmountKey = restricting.GetReleaseAmountKey(2, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(2E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(2E18).Bytes())
 
 		stateDb.AddBalance(vm.RestrictingContractAddr, big.NewInt(1E18))
 
@@ -227,7 +227,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		for _, epoch := range info.ReleaseList {
 			// store epoch
@@ -241,9 +241,9 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(1, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(2E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(2E18).Bytes())
 		releaseAmountKey = restricting.GetReleaseAmountKey(2, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(1E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(1E18).Bytes())
 
 		stateDb.AddBalance(vm.RestrictingContractAddr, big.NewInt(2E18))
 
@@ -305,7 +305,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		for _, epoch := range info.ReleaseList {
 			// store epoch
@@ -319,9 +319,9 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(1, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(4E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(4E18).Bytes())
 		releaseAmountKey = restricting.GetReleaseAmountKey(2, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(1E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(1E18).Bytes())
 
 		stateDb.AddBalance(vm.RestrictingContractAddr, big.NewInt(2E18))
 
@@ -383,7 +383,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		for _, epoch := range info.ReleaseList {
 			// store epoch
@@ -397,9 +397,9 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(2, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(2E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(2E18).Bytes())
 		releaseAmountKey = restricting.GetReleaseAmountKey(3, restrictingAcc)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, big.NewInt(1E18).Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, big.NewInt(1E18).Bytes())
 
 		// do EndBlock
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
@@ -579,7 +579,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 		testData := "this is test data"
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, []byte(testData))
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
 		var plans = make([]restricting.RestrictingPlan, 1)
 		plans[0].Epoch = 1
@@ -858,7 +858,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 
 		testData := "this is test data"
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, []byte(testData))
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
 		err = plugin.RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
 
@@ -958,7 +958,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 
 		testData := "this is test data"
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, []byte(testData))
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
 		err := plugin.RestrictingInstance().ReturnLockFunds(addrArr[0], lockFunds, stateDb)
 
@@ -998,7 +998,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		// store epoch
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
@@ -1011,7 +1011,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
 		amount := big.NewInt(2E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 		stateDb.AddBalance(vm.RestrictingContractAddr, big.NewInt(1E18))
@@ -1069,7 +1069,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		// store epoch
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
@@ -1082,7 +1082,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
 		amount := big.NewInt(3E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
@@ -1139,7 +1139,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		// store epoch
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
@@ -1152,7 +1152,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
 		amount := big.NewInt(3E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(3E18))
 
@@ -1223,7 +1223,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 
 		testData := "this is test data"
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, []byte(testData))
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
 		err := plugin.RestrictingInstance().SlashingNotify(restrictingAcc, lockFunds, stateDb)
 
@@ -1263,7 +1263,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		// store epoch
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
@@ -1276,7 +1276,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
 		amount := big.NewInt(3E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
@@ -1336,7 +1336,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		// store epoch
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
@@ -1349,7 +1349,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
 		amount := big.NewInt(3E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
@@ -1409,7 +1409,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 
 		// store restricting info
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(restrictingAcc, restrictingKey, bInfo)
+		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bInfo)
 
 		// store epoch
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(5))
@@ -1422,7 +1422,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		// store release amount
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(5), restrictingAcc)
 		amount := big.NewInt(3E18)
-		stateDb.SetState(restrictingAcc, releaseAmountKey, amount.Bytes())
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, amount.Bytes())
 
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
@@ -1528,6 +1528,29 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			}
 			t.Log("=====================")
 			t.Log("case2 pass")
+		}
+	}
+
+	// case3: get genesis restricting info
+	{
+		stateDb, _, _ := newChainState()
+		result, err := plugin.RestrictingInstance().GetRestrictingInfo(vm.RewardManagerPoolAddr, stateDb)
+
+		// show expected result
+		t.Logf("expected result is [123 34 98 97 108 97 110 99 101 34 58 50 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 44 34 100 101 98 116 34 58 48 44 34 115 121 109 98 111 108 34 58 102 97 108 115 101 44 34 69 110 116 114 121 34 58 91 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 51 49 53 51 54 48 48 48 44 34 97 109 111 117 110 116 34 58 49 56 51 55 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 44 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 54 51 48 55 50 48 48 48 44 34 97 109 111 117 110 116 34 58 54 49 50 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 93 125]")
+		t.Logf("actually result is %v", result)
+
+		var res restricting.Result
+		if err != nil {
+			t.Error(err.Error())
+		} else {
+			if err := json.Unmarshal(result, &res); err != nil {
+				t.Error(err.Error())
+			} else {
+				t.Log(res)
+				t.Log("=====================")
+				t.Log("case3 pass")
+			}
 		}
 	}
 }

@@ -37,7 +37,7 @@ func Test_CleanSnapshotDB(t *testing.T) {
 }
 
 func watching(eventMux *event.TypeMux, t *testing.T) {
-	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -58,16 +58,6 @@ func watching(eventMux *event.TypeMux, t *testing.T) {
 
 				str, _ := json.Marshal(addEv)
 				t.Log("P2P Received the add validator is:", string(str))
-
-			case cbfttypes.RemoveValidatorEvent:
-				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
-				if !ok {
-					t.Error("Received remove validator event type error")
-					continue
-				}
-
-				str, _ := json.Marshal(removeEv)
-				t.Log("P2P Received the remove validator is:", string(str))
 			default:
 				t.Error("Received unexcepted event")
 			}
@@ -196,6 +186,9 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	parentHash := genesis.Hash()
 
+	validatorNumLimit := 1000
+	validatorNum := 0
+
 	// TODO Must be 22k+, don't change this number
 	for i := 0; i < 22222; i++ {
 
@@ -290,6 +283,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 				stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
 				stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
+				validatorNum++
 
 				v := &staking.Validator{
 					NodeAddress: canAddr,
@@ -319,8 +313,10 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			//end := curr.End + xutil.ConsensusSize()
 
 			// add Current Validators And Epoch Validators
+			t.Log("Store Curr Epoch VerifierList", "len", len(epoch_Arr.Arr))
 			setVerifierList(curr_Hash, epoch_Arr)
 			//stakingDB.SetPreValidatorList(blockHash, val_Arr)
+			t.Log("Store CuRR Round Validator", "len", len(epoch_Arr.Arr))
 			setRoundValList(curr_Hash, curr_Arr)
 
 		} else {
@@ -380,8 +376,11 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 			canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
-			stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
-			stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
+			if validatorNumLimit != validatorNum {
+				stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
+				stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
+				validatorNum++
+			}
 
 		}
 
@@ -4538,7 +4537,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < 101; i++ {
+	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
 		nodeId := discover.PubkeyID(&privKey.PublicKey)
 		addr := crypto.PubkeyToAddress(privKey.PublicKey)
@@ -4558,15 +4557,15 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 			ValidatorTerm: 1,
 		}
 		vqList = append(vqList, v)
-		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
+		preNonces = append(preNonces, crypto.Keccak256(common.Int64ToBytes(time.Now().UnixNano() + int64(i)))[:])
 		time.Sleep(time.Microsecond * 10)
 	}
-	for _, v := range vqList {
-		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight)
+	for index, v := range vqList {
+		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight, "nonce", hex.EncodeToString(preNonces[index]))
 	}
 	result, err := plugin.StakingInstance().ProbabilityElection(vqList, currentNonce, preNonces)
 	if nil != err {
-		t.Error("Failed to ProbabilityElection, err:", err)
+		t.Fatal("Failed to ProbabilityElection, err:", err)
 		return
 	}
 	t.Log("election success", result)
@@ -4683,6 +4682,11 @@ func Test_IteratorCandidate(t *testing.T) {
 	stakingDB := staking.NewStakingDB()
 
 	iter := stakingDB.IteratorCandidatePowerByBlockHash(blockHash2, 0)
+	if err := iter.Error(); nil != err {
+		t.Error("Get iter err", err)
+		return
+	}
+	defer iter.Release()
 
 	queue := make(staking.CandidateQueue, 0)
 
@@ -4705,49 +4709,49 @@ func Test_IteratorCandidate(t *testing.T) {
 	t.Log("Candidate queue length:", len(queue))
 }
 
-func Test_Iterator(t *testing.T) {
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		t.Error("newBlock err", err)
-		return
-	}
-
-	initProgramVersion := uint32(1<<16 | 0<<8 | 0) // 65536
-
-	for i := 0; i < 1000; i++ {
-
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
-
-		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
-		weight := mrand.Intn(1000000000)
-
-		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-
-		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProgramVersion)
-		val := fmt.Sprint(initProgramVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
-		sndb.Put(blockHash, key, []byte(val))
-	}
-
-	// iter
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to interator, err: %v", err)
-		return
-	}
-	defer iter.Release()
-	for iter.Valid(); iter.Next(); {
-		t.Log("Value:=", string(iter.Value()))
-	}
-
-}
+//func Test_Iterator(t *testing.T) {
+//
+//	sndb := snapshotdb.Instance()
+//	defer func() {
+//		sndb.Clear()
+//	}()
+//
+//	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+//		t.Error("newBlock err", err)
+//		return
+//	}
+//
+//	initProgramVersion := uint32(1<<16 | 0<<8 | 0) // 65536
+//
+//	for i := 0; i < 1000; i++ {
+//
+//		var index int
+//		if i >= len(balanceStr) {
+//			index = i % (len(balanceStr) - 1)
+//		}
+//
+//		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+//
+//		mrand.Seed(time.Now().UnixNano())
+//
+//		weight := mrand.Intn(1000000000)
+//
+//		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+//
+//		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProgramVersion)
+//		val := fmt.Sprint(initProgramVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
+//		sndb.Put(blockHash, key, []byte(val))
+//	}
+//
+//	// iter
+//	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+//	if err := iter.Error(); nil != err {
+//		t.Errorf("Failed to interator, err: %v", err)
+//		return
+//	}
+//	defer iter.Release()
+//	for iter.Valid(); iter.Next(); {
+//		t.Log("Value:=", string(iter.Value()))
+//	}
+//
+//}

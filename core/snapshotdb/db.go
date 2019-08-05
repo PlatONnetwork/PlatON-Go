@@ -2,6 +2,7 @@ package snapshotdb
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -292,6 +293,8 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if block.readOnly {
 		return errors.New("can't put read only block")
 	}
+	// TODO test
+	logger.Debug("old pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
 
 	jData := journalData{
 		Key:   key,
@@ -309,5 +312,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		return err
 	}
 	block.kvHash = jData.Hash
+	// TODO test
+	logger.Debug("new pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
 	return nil
 }

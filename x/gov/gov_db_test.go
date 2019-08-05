@@ -293,10 +293,10 @@ func commitBlock(snapdb snapshotdb.DB, blockhash common.Hash) error {
 func getTxtProposal() gov.TextProposal {
 	return gov.TextProposal{
 		common.Hash{0x01},
-		"p#01",
+		//"p#01",
 		gov.Text,
-		"up,up,up....",
-		"This is an example...",
+		//"up,up,up....",
+		//"This is an example...",
 		"em。。。。",
 		uint64(1000),
 		uint64(10000000),
@@ -308,10 +308,7 @@ func getTxtProposal() gov.TextProposal {
 func getVerProposal(proposalId common.Hash) gov.VersionProposal {
 	return gov.VersionProposal{
 		proposalId,
-		"p#01",
 		gov.Version,
-		"up,up,up....",
-		"This is an example...",
 		"em。。。。",
 		uint64(1000),
 		uint64(10000000),

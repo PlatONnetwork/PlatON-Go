@@ -17,12 +17,15 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"encoding/json"
+	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -62,8 +65,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	)
 
 	if bcr != nil {
-		// TODO begin()
+		// BeginBlocker()
 		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
+			log.Error("Failed to call BeginBlocker on StateProcessor", "blockNumber", block.Number(),
+				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
 	}
@@ -71,7 +76,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
+		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
@@ -79,11 +84,24 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 
+	// todo test
+	root := statedb.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, On StateProcessor", "blockNumber",
+		block.Number().Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", statedb))
+
 	if bcr != nil {
-		// TODO end ()
+		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
+			log.Error("Failed to call EndBlocker on StateProcessor", "blockNumber", block.Number(),
+				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
+	}
+
+	// TODO test
+	for _, r := range receipts {
+		rbyte, _ := json.Marshal(r.Logs)
+		log.Info("Print receipt log on StateProcessor, Before finalize", "blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "log", string(rbyte))
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
@@ -96,14 +114,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
 	msg, err := tx.AsMessage(types.NewEIP155Signer(config.ChainID))
 
 	if err != nil {
 		return nil, 0, err
 	}
 	// Create a new context to be used in the EVM environment
-	context := NewEVMContext(msg, header, bc, author)
+	context := NewEVMContext(msg, header, bc)
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
@@ -113,9 +131,19 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		return nil, 0, err
 	}
 	// Update the state with pending changes
+	//var root []byte
+	//root = statedb.IntermediateRoot(true).Bytes()
+	//*usedGas += gas
+
+	stateRoot := statedb.IntermediateRoot(true)
+
 	var root []byte
-	root = statedb.IntermediateRoot(true).Bytes()
+	root = stateRoot.Bytes()
 	*usedGas += gas
+
+	// todo test
+	log.Debug("Exec tx, stateDB info", "blockNumber", header.Number.Uint64(), "gasUse", gas,
+		"totalGasUse", *usedGas, "failed", failed, "root", stateRoot.Hex(), "pointer", fmt.Sprintf("%p", statedb))
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.

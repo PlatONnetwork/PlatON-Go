@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	AmountIllegalErrStr      = "This amount is illege"
+	AmountIllegalErrStr      = "This amount is too low"
 	CanAlreadyExistsErrStr   = "This candidate is already exists"
 	CanNotExistErrStr        = "This candidate is not exist"
 	CreateCanErrStr          = "Create candidate failed"
@@ -184,6 +184,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	canNew.ProgramVersion = currVersion
 
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
+
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
@@ -324,7 +325,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if !xutil.CheckMinimumThreshold(amount) {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
@@ -481,8 +482,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
-		res := xcom.Result{false, "", AmountIllegalErrStr}
+	if !xutil.CheckMinimumThreshold(amount) {
+		res := xcom.Result{false, "", DelegateVonTooLowStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
@@ -536,7 +537,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return event, nil
 	}
 
-	// todo the delegate caller is candidate stake addr ?? How do that ??
+	// todo the delegate caller is candidate stake addr ?? How do that ?? Do not allow !!
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canOld.StakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -546,13 +547,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if nil == del {
 
-		// First delegate
-		if !xutil.CheckDelegateThreshold(amount) {
-			res := xcom.Result{false, "", DelegateVonTooLowStr}
-			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
-			return event, nil
-		}
 		// build delegate
 		del = new(staking.Delegation)
 
@@ -601,7 +595,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return nil, ErrOutOfGas
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if !xutil.CheckMinimumThreshold(amount) {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")
@@ -660,14 +654,17 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		return data, nil
 	}
 
-	jsonByte, err := json.Marshal(arr)
+	arrByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
+	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getVerifierList", "verArr", string(arrByte))
 	return data, nil
 }
 
@@ -692,6 +689,9 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	arrByte, _ := json.Marshal(arr)
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getValidatorList", "valArr", string(arrByte))
 	return data, nil
 }
 
@@ -713,14 +713,17 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 		return data, nil
 	}
 
-	jsonByte, err := json.Marshal(arr)
+	arrByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
+	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getCandidateList", "canArr", string(arrByte))
 	return data, nil
 }
 
@@ -750,6 +753,9 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getRelatedListByDelAddr", "relateArr", string(jsonByte))
 	return data, nil
 }
 
@@ -780,6 +786,9 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getDelegateInfo", "delinfo", string(jsonByte))
 	return data, nil
 }
 
@@ -816,6 +825,8 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
+	// todo test
+	log.Debug("getCandidateInfo", "caninfo", string(jsonByte))
 	return data, nil
 
 }
@@ -828,6 +839,6 @@ func (stkc *StakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txH
 
 func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Info("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
+	log.Warn("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
 }
