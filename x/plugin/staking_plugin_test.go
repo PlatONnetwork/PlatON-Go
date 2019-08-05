@@ -186,6 +186,9 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	parentHash := genesis.Hash()
 
+	validatorNumLimit := 1000
+	validatorNum := 0
+
 	// TODO Must be 22k+, don't change this number
 	for i := 0; i < 22222; i++ {
 
@@ -280,6 +283,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 				stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
 				stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
+				validatorNum++
 
 				v := &staking.Validator{
 					NodeAddress: canAddr,
@@ -372,8 +376,11 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 			canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
-			stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
-			stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
+			if validatorNumLimit != validatorNum {
+				stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
+				stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
+				validatorNum++
+			}
 
 		}
 
@@ -4675,6 +4682,11 @@ func Test_IteratorCandidate(t *testing.T) {
 	stakingDB := staking.NewStakingDB()
 
 	iter := stakingDB.IteratorCandidatePowerByBlockHash(blockHash2, 0)
+	if err := iter.Error(); nil != err {
+		t.Error("Get iter err", err)
+		return
+	}
+	defer iter.Release()
 
 	queue := make(staking.CandidateQueue, 0)
 
@@ -4697,49 +4709,49 @@ func Test_IteratorCandidate(t *testing.T) {
 	t.Log("Candidate queue length:", len(queue))
 }
 
-func Test_Iterator(t *testing.T) {
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		t.Error("newBlock err", err)
-		return
-	}
-
-	initProgramVersion := uint32(1<<16 | 0<<8 | 0) // 65536
-
-	for i := 0; i < 1000; i++ {
-
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
-
-		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
-		weight := mrand.Intn(1000000000)
-
-		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-
-		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProgramVersion)
-		val := fmt.Sprint(initProgramVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
-		sndb.Put(blockHash, key, []byte(val))
-	}
-
-	// iter
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to interator, err: %v", err)
-		return
-	}
-	defer iter.Release()
-	for iter.Valid(); iter.Next(); {
-		t.Log("Value:=", string(iter.Value()))
-	}
-
-}
+//func Test_Iterator(t *testing.T) {
+//
+//	sndb := snapshotdb.Instance()
+//	defer func() {
+//		sndb.Clear()
+//	}()
+//
+//	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+//		t.Error("newBlock err", err)
+//		return
+//	}
+//
+//	initProgramVersion := uint32(1<<16 | 0<<8 | 0) // 65536
+//
+//	for i := 0; i < 1000; i++ {
+//
+//		var index int
+//		if i >= len(balanceStr) {
+//			index = i % (len(balanceStr) - 1)
+//		}
+//
+//		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+//
+//		mrand.Seed(time.Now().UnixNano())
+//
+//		weight := mrand.Intn(1000000000)
+//
+//		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+//
+//		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProgramVersion)
+//		val := fmt.Sprint(initProgramVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
+//		sndb.Put(blockHash, key, []byte(val))
+//	}
+//
+//	// iter
+//	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+//	if err := iter.Error(); nil != err {
+//		t.Errorf("Failed to interator, err: %v", err)
+//		return
+//	}
+//	defer iter.Release()
+//	for iter.Valid(); iter.Next(); {
+//		t.Log("Value:=", string(iter.Value()))
+//	}
+//
+//}

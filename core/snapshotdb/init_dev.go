@@ -4,12 +4,12 @@ package snapshotdb
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/robfig/cron"
 	"math/rand"
 	"os"
 	"path"
 	"time"
+
+	"github.com/robfig/cron"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	logger.Info("begin test")
 	dbpath = path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
 }
