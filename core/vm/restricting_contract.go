@@ -92,7 +92,7 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	if err != nil {
 		res.Status = false
 		res.Data = ""
-		res.ErrMsg = "create restricting plan:" + err.Error()
+		res.ErrMsg = "get restricting info:" + err.Error()
 	} else {
 		res.Status = true
 		res.Data = string(result)
