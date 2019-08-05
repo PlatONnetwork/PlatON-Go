@@ -89,7 +89,8 @@ type Cbft struct {
 	loading            int32
 
 	// Record the number of peer requests for obtaining cbft information.
-	queues map[string]int // Per peer message counts to prevent memory exhaustion.
+	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
+	queuesLock sync.RWMutex
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -203,6 +204,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 // The message sent from the peer node is sent to the CBFT message queue and
 // there is a loop that will distribute the incoming message.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
+	err := cbft.recordMessage(msg)
+	if err != nil {
+		cbft.log.Error("ReceiveMessage failed", "err", err)
+		return
+	}
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
@@ -211,11 +217,46 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
 	}
 }
 
+// recordMessage records the number of messages sent by each node,
+// mainly to prevent Dos attacks
+func (cbft *Cbft) recordMessage(msg *ctypes.MsgInfo) error {
+	cbft.queuesLock.Lock()
+	defer cbft.queuesLock.Unlock()
+	count := cbft.queues[msg.PeerID] + 1
+	if int64(count) > cbft.config.Option.MaxQueuesLimit {
+		log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
+		// Need further confirmation.
+		// todo: Is the program exiting or dropping the message here?
+		return fmt.Errorf("execeed max queues limit")
+	}
+	cbft.queues[msg.PeerID] = count
+	return nil
+}
+
+// forgetMessage clears the record after the message processing is completed.
+func (cbft *Cbft) forgetMessage(peerId string) error {
+	cbft.queuesLock.Lock()
+	defer cbft.queuesLock.Unlock()
+	// After the message is processed, the counter is decremented by one.
+	// If it is reduced to 0, the mapping relationship of the corresponding
+	// node will be deleted.
+	cbft.queues[peerId]--
+	if cbft.queues[peerId] == 0 {
+		delete(cbft.queues, peerId)
+	}
+	return nil
+}
+
 // ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
 //
 // Possible message types are:
 //  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) {
+	err := cbft.recordMessage(msg)
+	if err != nil {
+		cbft.log.Error("ReceiveMessage failed", "err", err)
+		return
+	}
 	select {
 	case cbft.syncMsgCh <- msg:
 		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String())
@@ -259,33 +300,18 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
-
-			// Prevent Dos attacks and limit the number of messages sent by each node.
-			count := cbft.queues[msg.PeerID] + 1
-			if int64(count) > cbft.config.Option.MaxQueuesLimit {
-				log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
-				// Need further confirmation.
-				// todo: Is the program exiting or dropping the message here?
-				break
-			}
-			cbft.queues[msg.PeerID] = count
-
 			// Forward the message before processing the message.
 			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 
 			cbft.handleConsensusMsg(msg)
-			// After the message is processed, the counter is decremented by one.
-			// If it is reduced to 0, the mapping relationship of the corresponding
-			// node will be deleted.
-			cbft.queues[msg.PeerID]--
-			if cbft.queues[msg.PeerID] == 0 {
-				delete(cbft.queues, msg.PeerID)
-			}
+			cbft.forgetMessage(msg.PeerID)
 
 		case msg := <-cbft.syncMsgCh:
 			// Forward the message before processing the message.
 			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 			cbft.handleSyncMsg(msg)
+			//
+			cbft.forgetMessage(msg.PeerID)
 
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
@@ -1183,7 +1209,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		}
 	}
 
-	log.Debug("missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
+	log.Debug("Missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
 	// Synchronize only when there are missing votes for half of the nodes.
 	if len(missingNodes) < consensusNodesLen/2 {
 		return nil, nil, fmt.Errorf("within the safety value")
@@ -1199,7 +1225,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 			}
 		}
 	}
-	log.Debug("missing nodes exists in the peers", "nodes", network.FormatNodes(target))
+	log.Debug("Missing nodes exists in the peers", "nodes", network.FormatNodes(target))
 	nodeIndexes := make([]uint32, 0, len(target))
 	for _, v := range target {
 		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)

@@ -602,7 +602,7 @@ func (h *EngineManager) synchronize() {
 			// the GetViewChange message is sent from the missing node.
 			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
 			if err != nil {
-				log.Error("Get consensus nodes failed", err)
+				log.Error("Get consensus nodes failed", "err", err)
 				break
 			}
 			// Initi.al situation.
