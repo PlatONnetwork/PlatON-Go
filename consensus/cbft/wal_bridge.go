@@ -245,7 +245,7 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 
 // tryWalChangeView tries to change view.
 func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
-	if epoch != cbft.state.Epoch() || viewNumber != cbft.state.ViewNumber() {
+	if epoch > cbft.state.Epoch() || epoch == cbft.state.Epoch() && viewNumber > cbft.state.ViewNumber() {
 		cbft.changeView(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 }
@@ -285,13 +285,13 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				return err
 			}
 
-			cbft.state.AddPrepareBlock(m.Prepare)
 			cbft.signMsgByBls(m.Prepare)
+			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
+			cbft.state.AddPrepareBlock(m.Prepare)
 			//cbft.OnPrepareBlock("", m.Prepare)
-			cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
+			//cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
 			//cbft.findQCBlock()
 			//cbft.state.SetHighestExecutedBlock(block)
-			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 		}
 
 	case *protocols.SendPrepareVote:
@@ -314,11 +314,11 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				Block:      block,
 				BlockIndex: m.Vote.BlockIndex,
 			})
+			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.BlockNum(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
 			//cbft.state.SetHighestExecutedBlock(block)
-			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 		}
 	}
 	return nil
@@ -332,9 +332,10 @@ func (cbft *Cbft) contiguousChainBlock(p *types.Block, s *types.Block) bool {
 // executeBlock call blockCacheWriter to execute block.
 func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	if parent == nil {
-		parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
-		if parent == nil {
-			return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
+		if parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); parent == nil {
+			if parent = cbft.state.HighestExecutedBlock(); parent == nil {
+				return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
+			}
 		}
 	}
 	if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/pingcap/failpoint"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	errors "github.com/pkg/errors"
 
@@ -87,6 +89,7 @@ type Cbft struct {
 	wal                wal.Wal
 	bridge             Bridge
 	loading            int32
+	startTime          int64
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -108,6 +111,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
+		startTime:          time.Now().UnixNano() / 1e6,
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -475,6 +479,12 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
 	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(true)
+	// add failpoint
+	failpoint.Inject("mock-Finalize-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-Finalize-panic")
+		}
+	})
 	return types.NewBlock(header, txs, receipts), nil
 }
 
@@ -484,6 +494,13 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 	if block.NumberU64() == 0 {
 		return errors.New("unknown block")
 	}
+
+	// add failpoint
+	failpoint.Inject("mock-seal-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-seal-panic")
+		}
+	})
 
 	sign, err := cbft.signFn(header.SealHash().Bytes())
 	if err != nil {
@@ -550,10 +567,19 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-sealBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-sealBlock-panic")
+		}
+	})
+
 	cbft.txPool.Reset(block)
 
 	// write sendPrepareBlock info to wal
-	cbft.bridge.SendPrepareBlock(prepareBlock)
+	if !cbft.isLoading() {
+		cbft.bridge.SendPrepareBlock(prepareBlock)
+	}
 
 	cbft.findQCBlock()
 
@@ -777,6 +803,13 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
+
+	// add failpoint
+	failpoint.Inject("mock-onShouldSeal-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-onShouldSeal-panic")
+		}
+	})
 
 	if !cbft.running() {
 		result <- errors.New("cbft is not running")
@@ -1184,6 +1217,11 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
+}
+
+func (cbft *Cbft) shouldFailPoint() bool {
+	now := time.Now().UnixNano() / 1e6
+	return now-cbft.startTime >= 120000
 }
 
 // Returns the node ID of the missing vote.
