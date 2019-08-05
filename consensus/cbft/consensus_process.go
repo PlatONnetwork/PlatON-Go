@@ -56,6 +56,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.state.AddPrepareBlock(msg)
 	cbft.prepareBlockFetchRules(id, msg)
 
+	// add failpoint
+	failpoint.Inject("mock-OnPrepareBlockAf-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-OnPrepareBlockAf-panic")
+		}
+	})
+
 	cbft.findExecutableBlock()
 	return nil
 }
@@ -338,6 +345,12 @@ func (cbft *Cbft) findExecutableBlock() {
 		}
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-findExecutableBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-findExecutableBlock-panic")
+		}
+	})
 	if finish {
 		block := cbft.state.ViewBlockByIndex(blockIndex + 1)
 		if block != nil {
@@ -372,6 +385,12 @@ func (cbft *Cbft) findQCBlock() {
 		cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-findQCBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-findQCBlock-panic")
+		}
+	})
 	cbft.tryChangeView()
 }
 
@@ -384,6 +403,12 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	highestqc := cbft.state.HighestQCBlock()
 	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 
+	// add failpoint
+	failpoint.Inject("mock-tryCommitNewBlock-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-tryCommitNewBlock-panic")
+		}
+	})
 	// Incremental commit block
 	if oldCommit.NumberU64()+1 == commit.NumberU64() {
 		_, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
@@ -411,6 +436,12 @@ func (cbft *Cbft) tryChangeView() {
 		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount
 	}
 
+	// add failpoint
+	failpoint.Inject("mock-tryChangeView-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-tryChangeView-panic")
+		}
+	})
 	if enough() {
 		cbft.log.Debug("Produce enough blocks, change view", "view", cbft.state.ViewString())
 		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, nil)
@@ -452,6 +483,12 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
+	// add failpoint
+	failpoint.Inject("mock-changeView-panic", func() {
+		if cbft.shouldFailPoint() {
+			panic("mock-changeView-panic")
+		}
+	})
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {
 		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)

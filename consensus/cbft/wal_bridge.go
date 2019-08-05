@@ -245,7 +245,7 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 
 // tryWalChangeView tries to change view.
 func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
-	if epoch != cbft.state.Epoch() || viewNumber != cbft.state.ViewNumber() {
+	if epoch > cbft.state.Epoch() || epoch == cbft.state.Epoch() && viewNumber > cbft.state.ViewNumber() {
 		cbft.changeView(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 }
@@ -285,13 +285,13 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				return err
 			}
 
-			cbft.state.AddPrepareBlock(m.Prepare)
 			cbft.signMsgByBls(m.Prepare)
+			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
+			cbft.state.AddPrepareBlock(m.Prepare)
 			//cbft.OnPrepareBlock("", m.Prepare)
-			cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
+			//cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
 			//cbft.findQCBlock()
 			//cbft.state.SetHighestExecutedBlock(block)
-			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 		}
 
 	case *protocols.SendPrepareVote:
@@ -314,11 +314,11 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				Block:      block,
 				BlockIndex: m.Vote.BlockIndex,
 			})
+			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.BlockNum(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
 			//cbft.state.SetHighestExecutedBlock(block)
-			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 		}
 	}
 	return nil
