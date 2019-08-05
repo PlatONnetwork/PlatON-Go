@@ -220,12 +220,25 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 
 func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 	if qc != nil {
+		block := cbft.state.ViewBlockByIndex(qc.BlockIndex)
+
+		linked := func(blockNumber uint64) bool {
+			if block != nil {
+				parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
+				return parent != nil && cbft.state.HighestQCBlock().NumberU64()+1 == blockNumber
+			}
+			return false
+		}
 		hasExecuted := func() bool {
-			return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) &&
-				cbft.state.HighestQCBlock().NumberU64()+1 == qc.BlockNumber
+			if cbft.validatorPool.IsValidator(qc.BlockNumber, cbft.config.Option.NodeID) {
+				return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) && linked(qc.BlockNumber)
+			} else if cbft.validatorPool.IsCandidateNode(cbft.config.Option.NodeID) {
+				blockIndex, finish := cbft.state.Executing()
+				return blockIndex != math.MaxUint32 && (qc.BlockIndex < blockIndex || (qc.BlockIndex == blockIndex && finish)) && linked(qc.BlockNumber)
+			}
+			return false
 		}
 
-		block := cbft.state.ViewBlockByIndex(qc.BlockIndex)
 		if block != nil && hasExecuted() {
 			cbft.insertQCBlock(block, qc)
 		}
