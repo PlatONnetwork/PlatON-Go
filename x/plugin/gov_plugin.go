@@ -652,10 +652,10 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
 				nodeAddress, _ := xutil.NodeId2Addr(verifier.NodeId)
-				candiate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
+				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
 				if err != nil {
 					return common.NewBizError("cannot get verifier's detail info.")
-				} else if staking.Is_Invalid(candiate.Status) {
+				} else if staking.Is_Invalid(candidate.Status) {
 					return common.NewBizError("verifier's status is invalid.")
 				}
 				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
