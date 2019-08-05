@@ -496,7 +496,8 @@ func (pp ParamProposal) String() string {
 }
 
 func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
-	if len(proposalID) > 0 {
+	log.Debug("verify proposal basic parameters", "proposalID", proposalID, "proposer", proposer, "url", url, "endVotingBlock", endVotingBlock, "submitBlock", submitBlock)
+	if proposalID != common.ZeroHash {
 		p, err := GovDBInstance().GetProposal(proposalID, state)
 		if err != nil {
 			return err
@@ -508,9 +509,9 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, e
 		return common.NewBizError("ProposalID is empty.")
 	}
 
-	if len(proposer) == 0 {
+	/*if len(proposer) == 0 {
 		return common.NewBizError("Proposer is empty.")
-	}
+	}*/
 
 	/*if len(topic) == 0 || len(topic) > 128 {
 		return common.NewBizError("Topic is empty or the size is bigger than 128.")
@@ -527,8 +528,10 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, e
 		return false, err
 	}*/
 
-	if (endVotingBlock+xcom.ElectionDistance())%xutil.ConsensusSize() != 0 {
-		log.Warn("proposal's end-voting-block should be a particular block that less than a certain consensus round")
+	electionDistance := xcom.ElectionDistance()
+	consensusSize := xutil.ConsensusSize()
+	if (endVotingBlock+electionDistance)%consensusSize != 0 {
+		log.Error("proposal's end-voting-block should be a particular block that less than a certain consensus round", "endVotingBlock", endVotingBlock, "electionDistance", electionDistance, "consensusSize", consensusSize)
 		return common.NewBizError("end-voting-block invalid.")
 	}
 
@@ -536,12 +539,12 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, e
 	endVotingRound := xutil.CalculateRound(endVotingBlock)
 
 	if endVotingRound <= submitRound {
-		log.Warn("end-voting-block's consensus round should be greater than submit-block's")
+		log.Error("end-voting-block's consensus round should be greater than submit-block's")
 		return common.NewBizError("end-voting-block invalid.")
 	}
 
 	if endVotingRound > (submitRound + xutil.MaxVotingConsensusRounds()) {
-		log.Warn("proposal's end-voting-block is too greater than the max consensus rounds")
+		log.Error("proposal's end-voting-block is too greater than the max consensus rounds")
 		return common.NewBizError("end-voting-block invalid.")
 	}
 
