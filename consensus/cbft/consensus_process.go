@@ -169,14 +169,6 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.SetHighestQCBlock(block)
 	cbft.tryCommitNewBlock(lock, commit)
 	cbft.tryChangeView()
-
-	// Update validator
-	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
-			cbft.state.ResetView(cbft.state.Epoch()+1, state.DefaultViewNumber)
-			cbft.log.Debug("Update validator success", "number", block.NumberU64(), "epoch", cbft.state.Epoch())
-		}
-	}
 }
 
 func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
@@ -388,11 +380,23 @@ func (cbft *Cbft) tryChangeView() {
 
 	enough := func() bool {
 		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount
+	}()
+
+	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+			cbft.log.Debug("Update validator success", "number", block.NumberU64())
+		}
 	}
 
-	if enough() {
+	if enough {
 		cbft.log.Debug("Produce enough blocks, change view", "view", cbft.state.ViewString())
-		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, nil)
+		// If current has produce enough blocks, then change view immediately.
+		// Otherwise, waiting for view's timeout.
+		if cbft.validatorPool.EqualSwitchPoint(block.NumberU64()) {
+			cbft.changeView(cbft.state.Epoch()+1, state.DefaultViewNumber, block, qc, nil)
+		} else {
+			cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, nil)
+		}
 		return
 	}
 
@@ -405,7 +409,6 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	if viewChangeQC() {
-		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
 		_, _, _, number := viewChangeQC.MaxBlock()
 		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
@@ -414,9 +417,14 @@ func (cbft *Cbft) tryChangeView() {
 			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
 			return
 		}
-		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
+		if cbft.validatorPool.EqualSwitchPoint(number) {
+			// Validator already switch, new epoch
+			cbft.changeView(cbft.state.Epoch()+1, state.DefaultViewNumber, block, qc, viewChangeQC)
+		} else {
+			cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
+		}
+		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", cbft.state.ViewNumber())
 	}
-
 }
 
 // change view

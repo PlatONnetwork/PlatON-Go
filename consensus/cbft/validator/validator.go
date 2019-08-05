@@ -141,22 +141,11 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 			lastBlockNumber = baseNum + blocksPerRound
 		}
 	}
-	log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)
+	//log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)
 	return lastBlockNumber
 }
 
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators, err error) {
-	//var lastBlockNumber uint64
-	/*
-		defer func() {
-			log.Trace("Get validator",
-				"lastBlockNumber", lastBlockNumber,
-				"blocksPerNode", ia.blocksPerNode,
-				"blockNumber", blockNumber,
-				"validators", v,
-				"error", err)
-		}()*/
-
 	if blockNumber <= ia.defaultBlocksPerRound {
 		return ia.defaultValidators, nil
 	}
@@ -174,6 +163,9 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 		return ia.defaultValidators, nil
 	}
 	b := state.GetState(cvm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
+	if len(b) == 0 {
+		return ia.defaultValidators, nil
+	}
 	var vds vm.Validators
 	err = rlp.DecodeBytes(b, &vds)
 	if err != nil {
@@ -238,7 +230,16 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, nodeID discov
 
 // ShouldSwitch check if should switch validators at the moment.
 func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
+	if blockNumber <= vp.switchPoint {
+		return false
+	}
 	return blockNumber == vp.agency.GetLastNumber(blockNumber)
+}
+
+// EqualSwitchPoint returns boolean which representment the switch point
+// equal the inputs number.
+func (vp *ValidatorPool) EqualSwitchPoint(number uint64) bool {
+	return vp.switchPoint == number
 }
 
 // Update switch validators.
