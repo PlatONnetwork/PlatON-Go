@@ -239,7 +239,7 @@ func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
 // EqualSwitchPoint returns boolean which representment the switch point
 // equal the inputs number.
 func (vp *ValidatorPool) EqualSwitchPoint(number uint64) bool {
-	return vp.switchPoint == number
+	return vp.switchPoint > 0 && vp.switchPoint == number
 }
 
 // Update switch validators.
