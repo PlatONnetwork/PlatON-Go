@@ -21,10 +21,10 @@ type Cbft interface {
 	// Entrance: The messages related to the consensus are entered from here.
 	// The message sent from the peer node is sent to the CBFT message queue and
 	// there is a loop that will distribute the incoming message.
-	ReceiveMessage(msg *types.MsgInfo)
+	ReceiveMessage(msg *types.MsgInfo) error
 
 	// ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
-	ReceiveSyncMsg(msg *types.MsgInfo)
+	ReceiveSyncMsg(msg *types.MsgInfo) error
 
 	// Return the highest QC block number of the current node.
 	HighestQCBlockBn() (uint64, common.Hash)
@@ -37,4 +37,7 @@ type Cbft interface {
 
 	// Returns the node ID of the missing vote.
 	MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error)
+
+	// OnPong records net delay time.
+	OnPong(nodeID string, netLatency int64) error
 }

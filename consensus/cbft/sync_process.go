@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"container/list"
 	"fmt"
 	"math/big"
 
@@ -10,6 +11,8 @@ import (
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -44,6 +47,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
+					parent = block
 				}
 
 				// Update the results to the CBFT state machine
@@ -240,10 +244,14 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	}
 	//
 	if msg.LogicType == network.TypeForQCBn {
-		localQCNum := cbft.state.HighestQCBlock().NumberU64()
+		localQCNum, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
+		if localQCNum == msg.BlockNumber {
+			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+			return nil
+		}
 		if localQCNum < msg.BlockNumber {
 			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			return launcher(msg.LogicType, id, localQCNum, cbft.state.HighestQCBlock().Hash())
+			return launcher(msg.LogicType, id, localQCNum, localQCHash)
 		} else {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, LogicType: msg.LogicType})
@@ -251,10 +259,14 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	}
 	//
 	if msg.LogicType == network.TypeForLockedBn {
-		localLockedNum := cbft.state.HighestLockBlock().NumberU64()
+		localLockedNum, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
+		if localLockedNum == msg.BlockNumber {
+			cbft.log.Debug("Local lockedBn is equal the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
+			return nil
+		}
 		if localLockedNum < msg.BlockNumber {
 			cbft.log.Debug("Local lockedBn is larger than the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
-			return launcher(msg.LogicType, id, localLockedNum, cbft.state.HighestLockBlock().Hash())
+			return launcher(msg.LogicType, id, localLockedNum, localLockedHash)
 		} else {
 			cbft.log.Debug("Local lockedBn is less than the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localLockedNum, LogicType: msg.LogicType})
@@ -262,10 +274,14 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	}
 	//
 	if msg.LogicType == network.TypeForCommitBn {
-		localCommitNum := cbft.state.HighestCommitBlock().NumberU64()
+		localCommitNum, localCommitHash := cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
+		if localCommitNum == msg.BlockNumber {
+			cbft.log.Debug("Local commitBn is equal the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
+			return nil
+		}
 		if localCommitNum < msg.BlockNumber {
 			cbft.log.Debug("Local commitBn is larger than the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
-			return launcher(msg.LogicType, id, localCommitNum, cbft.state.HighestCommitBlock().Hash())
+			return launcher(msg.LogicType, id, localCommitNum, localCommitHash)
 		} else {
 			cbft.log.Debug("Local commitBn is less than the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localCommitNum, LogicType: msg.LogicType})
@@ -279,7 +295,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	switch msg.LogicType {
 	case network.TypeForQCBn:
-		localQCBn := cbft.state.HighestQCBlock().NumberU64()
+		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 		if localQCBn < msg.BlockNumber {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -288,11 +304,11 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, cbft.state.HighestQCBlock().Hash(), localQCBn)
+			cbft.fetchBlock(id, localQCHash, localQCBn)
 		}
 
 	case network.TypeForLockedBn:
-		localLockedBn := cbft.state.HighestLockBlock().NumberU64()
+		localLockedBn, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 		if localLockedBn < msg.BlockNumber {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -301,11 +317,11 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetLockedBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalLockedBn is lower than sender's", "localBn", localLockedBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, cbft.state.HighestLockBlock().Hash(), localLockedBn)
+			cbft.fetchBlock(id, localLockedHash, localLockedBn)
 		}
 
 	case network.TypeForCommitBn:
-		localCommitBn := cbft.state.HighestCommitBlock().NumberU64()
+		localCommitBn, localCommitHash := cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 		if localCommitBn < msg.BlockNumber {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -314,7 +330,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetCommitdBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalCommitBn is lower than sender's", "localBn", localCommitBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, cbft.state.HighestCommitBlock().Hash(), localCommitBn)
+			cbft.fetchBlock(id, localCommitHash, localCommitBn)
 		}
 	}
 	return nil
@@ -382,7 +398,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		}
 		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)
 		if err != nil {
-			cbft.log.Error("last view change is not equal msg.viewNumber", "err", err)
+			cbft.log.Error("Last view change is not equal msg.viewNumber", "err", err)
 			return err
 		}
 		cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
@@ -411,4 +427,139 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 		return cbft.state.ViewNumber() + 1
 	}
 	cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
+}
+
+// Returns the node ID of the missing vote.
+func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
+	allViewChange := cbft.state.AllViewChange()
+	nodeIds := make([]discover.NodeID, 0, len(allViewChange))
+	qcBlockBn := cbft.state.HighestQCBlock().NumberU64()
+	for k, _ := range allViewChange {
+		nodeId := cbft.validatorPool.GetNodeIDByIndex(qcBlockBn, int(k))
+		nodeIds = append(nodeIds, nodeId)
+	}
+	// all consensus
+	consensusNodes, err := cbft.ConsensusNodes()
+	if err != nil {
+		return nil, nil, err
+	}
+	//consensusNodesLen := len(consensusNodes)
+	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
+	for _, cv := range consensusNodes {
+		isExists := false
+		for _, v := range nodeIds {
+			if cv == v {
+				isExists = true
+				break
+			}
+		}
+		if !isExists {
+			missingNodes = append(missingNodes, cv)
+		}
+	}
+
+	log.Debug("Missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
+	// Synchronize only when there are missing votes for half of the nodes.
+	/*if len(missingNodes) < consensusNodesLen/2 {
+		return nil, nil, fmt.Errorf("within the safety value")
+	}*/
+	// The node of missingNodes must be in the list of neighbor nodes.
+	peers, err := cbft.network.Peers()
+	target := missingNodes[:0]
+	for _, node := range missingNodes {
+		for _, peer := range peers {
+			if peer.ID() == node {
+				target = append(target, node)
+				break
+			}
+		}
+	}
+	log.Debug("Missing nodes exists in the peers", "nodes", network.FormatNodes(target))
+	nodeIndexes := make([]uint32, 0, len(target))
+	for _, v := range target {
+		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
+		if err != nil {
+			continue
+		}
+		nodeIndexes = append(nodeIndexes, uint32(index))
+	}
+	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
+	return target, &protocols.GetViewChange{
+		Epoch:       cbft.state.Epoch(),
+		ViewNumber:  cbft.state.ViewNumber(),
+		NodeIndexes: nodeIndexes,
+	}, nil
+}
+
+// OnPong is used to receive the average delay time.
+func (cbft *Cbft) OnPong(nodeID string, netLatency int64) error {
+	cbft.log.Trace("OnPong", "nodeID", nodeID, "netLatency", netLatency)
+	cbft.netLatencyLock.Lock()
+	defer cbft.netLatencyLock.Unlock()
+	latencyList, exist := cbft.netLatencyMap[nodeID]
+	if !exist {
+		cbft.netLatencyMap[nodeID] = list.New()
+		cbft.netLatencyMap[nodeID].PushBack(netLatency)
+	} else {
+		if latencyList.Len() > 5 {
+			e := latencyList.Front()
+			cbft.netLatencyMap[nodeID].Remove(e)
+		}
+		cbft.netLatencyMap[nodeID].PushBack(netLatency)
+	}
+	return nil
+}
+
+// AvgLatency returns the average delay time of the specified node.
+//
+// The average is the average delay between the current
+// node and all consensus nodes.
+func (cbft *Cbft) AvgLatency() int64 {
+	cbft.netLatencyLock.Lock()
+	defer cbft.netLatencyLock.Unlock()
+	// The intersection of peerSets and consensusNodes.
+	cNodes, _ := cbft.ConsensusNodes()
+	peers, _ := cbft.network.Peers()
+	target := make([]string, 0, len(peers))
+	for _, pNode := range peers {
+		for _, cNode := range cNodes {
+			if pNode.PeerID() == cNode.TerminalString() {
+				target = append(target, pNode.PeerID())
+			}
+		}
+	}
+	var (
+		avgSum int64 = 0
+		result int64 = 0
+	)
+	for _, v := range target {
+		if latencyList, exist := cbft.netLatencyMap[v]; exist {
+			avg := calAverage(latencyList)
+			avgSum += avg
+		}
+	}
+	if avgSum != 0 {
+		result = avgSum / int64(len(target))
+	} else {
+		result = protocols.DEFAULT_AVG_LATENCY
+	}
+	cbft.log.Debug("Get avg latency", "avg", result)
+	return result
+}
+
+func calAverage(latencyList *list.List) int64 {
+	var (
+		sum    int64 = 0
+		counts int64 = 0
+	)
+	for e := latencyList.Front(); e != nil; e = e.Next() {
+		if latency, ok := e.Value.(int64); ok {
+			counts++
+			sum += latency
+		}
+	}
+	if counts > 0 {
+		return sum / counts
+	}
+	return 0
 }

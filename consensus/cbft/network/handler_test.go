@@ -56,11 +56,13 @@ func (s *fakeCbft) Config() *types.Config {
 		},
 	}
 }
-func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) {
+func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveMessage, type: %T", msg.Msg))
+	return nil
 }
-func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) {
+func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveSyncMsg, type: %T", msg.Msg))
+	return nil
 }
 func (s *fakeCbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return s.localPeer.QCBn(), common.Hash{}
@@ -76,6 +78,9 @@ func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVi
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
+}
+func (cbft *fakeCbft) OnPong(nodeID string, netLatency int64) error {
+	return nil
 }
 
 // Create a new EngineManager.

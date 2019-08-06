@@ -89,36 +89,53 @@ type baseSafetyRules struct {
 // 2.Synchronization greater than local viewNumber
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) SafetyError {
+	isQCChild := func() bool {
+		return block.Block.NumberU64() == r.viewState.HighestQCBlock().NumberU64()+1 &&
+			r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
+	}
+	acceptViewChangeQC := func() bool {
+		if block.ViewChangeQC == nil {
+			return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
+		} else {
+			_, _, hash, number := block.ViewChangeQC.MaxBlock()
+			return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
+		}
+	}
+
+	isFirstBlock := func() bool {
+		return block.BlockIndex == 0
+	}
+
+	changeEpochBlockRules := func(block *protocols.PrepareBlock) SafetyError {
+		if r.viewState.Epoch() > block.Epoch {
+			return newError(fmt.Sprintf("epoch too low(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+		}
+
+		if isFirstBlock() && acceptViewChangeQC() && isQCChild() {
+			return newViewError("new epoch, need change view")
+		}
+
+		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+
+	}
+
 	if r.viewState.Epoch() != block.Epoch {
-		return r.changeEpochBlockRules(block)
+		return changeEpochBlockRules(block)
 	}
 	if r.viewState.ViewNumber() > block.ViewNumber {
 		return newError(fmt.Sprintf("viewNumber too low(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
 	}
 
 	if r.viewState.ViewNumber() < block.ViewNumber {
-		isQCChild := func() bool {
-			return block.Block.NumberU64() == r.viewState.HighestQCBlock().NumberU64()+1 &&
-				r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
-		}
+
 		isLockChild := func() bool {
 			return block.Block.ParentHash() == r.viewState.HighestLockBlock().Hash()
 		}
-		isFirstBlock := func() bool {
-			return block.BlockIndex == 0
-		}
+
 		isNextView := func() bool {
 			return r.viewState.ViewNumber()+1 == block.ViewNumber
 		}
 
-		acceptViewChangeQC := func() bool {
-			if block.ViewChangeQC == nil {
-				return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
-			} else {
-				_, _, hash, number := block.ViewChangeQC.MaxBlock()
-				return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
-			}
-		}
 		if isNextView() && isFirstBlock() && (isQCChild() || isLockChild()) && acceptViewChangeQC() {
 			return newViewError("need change view")
 		}
@@ -126,20 +143,14 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
 	}
 
+	if block.BlockIndex >= r.config.Sys.Amount {
+		return newError(fmt.Sprintf("blockIndex higher than amount(index:%d, amount:%d)", block.BlockIndex, r.config.Sys.Amount))
+	}
+
 	if r.viewState.IsDeadline() {
 		return newError(fmt.Sprintf("view's deadline is expire(over:%s)", time.Since(r.viewState.Deadline())))
 	}
 	return nil
-}
-
-func (r *baseSafetyRules) changeEpochBlockRules(block *protocols.PrepareBlock) SafetyError {
-	if r.viewState.Epoch() > block.Epoch {
-		return newError(fmt.Sprintf("epoch too low(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
-	}
-	if block.Block.ParentHash() != r.viewState.HighestQCBlock().Hash() {
-		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
-	}
-	return newViewError("new epoch, need change view")
 }
 
 // PrepareVote rules

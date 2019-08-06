@@ -190,6 +190,10 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.log.Debug("Insert QC block", "qc", qc.String())
+	if cbft.insertBlockQCHook != nil {
+		// test hook
+		cbft.insertBlockQCHook(block, qc)
+	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
@@ -211,12 +215,25 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 
 func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 	if qc != nil {
+		block := cbft.state.ViewBlockByIndex(qc.BlockIndex)
+
+		linked := func(blockNumber uint64) bool {
+			if block != nil {
+				parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
+				return parent != nil && cbft.state.HighestQCBlock().NumberU64()+1 == blockNumber
+			}
+			return false
+		}
 		hasExecuted := func() bool {
-			return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) &&
-				cbft.state.HighestQCBlock().NumberU64()+1 == qc.BlockNumber
+			if cbft.validatorPool.IsValidator(qc.BlockNumber, cbft.config.Option.NodeID) {
+				return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) && linked(qc.BlockNumber)
+			} else if cbft.validatorPool.IsCandidateNode(cbft.config.Option.NodeID) {
+				blockIndex, finish := cbft.state.Executing()
+				return blockIndex != math.MaxUint32 && (qc.BlockIndex < blockIndex || (qc.BlockIndex == blockIndex && finish)) && linked(qc.BlockNumber)
+			}
+			return false
 		}
 
-		block := cbft.state.ViewBlockByIndex(qc.BlockIndex)
 		if block != nil && hasExecuted() {
 			cbft.insertQCBlock(block, qc)
 		}
@@ -235,6 +252,9 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 		block := cbft.state.ViewBlockByIndex(index)
 		if block != nil {
 			if block.Hash() == s.Hash {
+				if cbft.executeFinishHook != nil {
+					cbft.executeFinishHook(index)
+				}
 				cbft.state.SetExecuting(index, true)
 				if err := cbft.signBlock(block.Hash(), block.NumberU64(), index); err != nil {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)

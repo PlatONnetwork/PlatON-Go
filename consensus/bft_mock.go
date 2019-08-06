@@ -1,7 +1,9 @@
 package consensus
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -13,6 +15,42 @@ import (
 )
 
 type BftMock struct {
+}
+
+func (bm *BftMock) InsertChain(block *types.Block) error {
+	panic("implement me")
+}
+
+func (bm *BftMock) FastSyncCommitHead(block *types.Block) error {
+	panic("implement me")
+}
+
+func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error {
+	panic("implement me")
+}
+
+func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
+	panic("implement me")
+}
+
+func (bm *BftMock) CalcNextBlockTime(timePoint time.Time) time.Time {
+	panic("implement me")
+}
+
+func (bm *BftMock) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
+	panic("implement me")
+}
+
+func (bm *BftMock) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
+	panic("implement me")
+}
+
+func (bm *BftMock) Evidences() string {
+	panic("implement me")
+}
+
+func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+	panic("implement me")
 }
 
 // Author retrieves the Ethereum address of the account that minted the given
@@ -158,10 +196,6 @@ func (bm *BftMock) NextBaseBlock() *types.Block {
 	return nil
 }
 
-func (bm *BftMock) InsertChain(block *types.Block, errCh chan error) {
-
-}
-
 func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
 	return true
 }
@@ -175,10 +209,6 @@ func (bm *BftMock) Status() string {
 }
 
 func (bm *BftMock) CurrentBlock() *types.Block {
-	return nil
-}
-
-func (bm *BftMock) FastSyncCommitHead() <-chan error {
 	return nil
 }
 
