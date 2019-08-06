@@ -430,6 +430,40 @@ func TestCbft_OnLatestStatus(t *testing.T) {
 	}
 }
 
+func TestCbft_OnGetViewChange(t *testing.T) {
+	engine, cNodes := buildSingleCbft()
+	// use case.
+	testCases := []struct {
+		viewNumber     uint64
+		reqEpoch       uint64
+		reqViewNumber  uint64
+		reqNodeIndexes []uint32
+	}{
+		{0, 0, 1, []uint32{0, 2}},
+		{1, 0, 1, []uint32{0, 2}},
+		{1, 0, 2, []uint32{0, 2}},
+	}
+	// init view change.
+	engine.state.AddViewChange(0, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	engine.state.AddViewChange(1, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	engine.state.AddViewChange(2, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	engine.state.AddViewChange(3, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	for _, v := range testCases {
+		message := &protocols.GetViewChange{
+			Epoch:       v.reqEpoch,
+			ViewNumber:  v.reqViewNumber,
+			NodeIndexes: v.reqNodeIndexes,
+		}
+		// Setting viewNumber.
+		engine.state.ResetView(0, v.viewNumber)
+		err := engine.OnGetViewChange(peer.PeerID(), message)
+		if v.viewNumber == 0 {
+			assert.NotNil(t, err)
+		}
+	}
+}
+
 func TestCbft_MissingViewChangeNodes(t *testing.T) {
 	engine, cNodes := buildSingleCbft()
 	nodes, message, err := engine.MissingViewChangeNodes()
