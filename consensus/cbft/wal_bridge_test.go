@@ -139,7 +139,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	assert.Equal(t, lock.Hash().String(), qcs[1].Block.ParentHash().String())
 }
 
-func testRecordCbftMsg(t *testing.T) {
+func TestRecordCbftMsg(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", "wal")
 	defer os.RemoveAll(tempDir)
 

@@ -709,18 +709,16 @@ func (cbft *Cbft) Status() string {
 	return <-status
 }
 
-func (cbft *Cbft) GetPrepareQC(number uint64) string {
+func (cbft *Cbft) GetPrepareQC(number uint64) *ctypes.QuorumCert {
 	cbft.log.Debug("get prepare QC")
 	if header := cbft.blockChain.GetHeaderByNumber(number); header != nil {
 		if block := cbft.blockChain.GetBlock(header.Hash(), number); block != nil {
 			if _, qc, err := ctypes.DecodeExtra(block.ExtraData()); err == nil {
-				if buf, err := json.Marshal(qc); err == nil {
-					return string(buf)
-				}
+				return qc
 			}
 		}
 	}
-	return ""
+	return &ctypes.QuorumCert{}
 }
 
 // GetBlockByHash get the specified block by hash.
