@@ -99,9 +99,9 @@ type Cbft struct {
 	netLatencyLock sync.RWMutex
 
 	//test
-	insertBlockQCHook func(block *types.Block, qc *ctypes.QuorumCert)
-
-	executeFinishHook func(index uint32)
+	insertBlockQCHook  func(block *types.Block, qc *ctypes.QuorumCert)
+	executeFinishHook  func(index uint32)
+	consensusNodesMock func() ([]discover.NodeID, error)
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -758,6 +758,9 @@ func (cbft *Cbft) Close() error {
 }
 
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
+	if cbft.consensusNodesMock != nil {
+		return cbft.consensusNodesMock()
+	}
 	return cbft.validatorPool.ValidatorList(cbft.state.HighestQCBlock().NumberU64()), nil
 }
 

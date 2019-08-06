@@ -264,7 +264,7 @@ func Test_InitializePeers(t *testing.T) {
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
 	// Randomly generated ID.
-	nodeIds := randomID()
+	nodeIds := RandomID()
 
 	// init cbft
 	cbft1 := &mockCbft{nodeIds, nodeIds[0]}
