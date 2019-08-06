@@ -474,3 +474,74 @@ func newUpdateValidatorTx(t *testing.T, parent *types.Block, header *types.Heade
 	assert.Nil(t, err)
 	return tx, receipt, statedb
 }
+
+func TestCalc(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(1)
+	node := MockNode(pk[0], sk[0], cbftnodes, 5000, 10)
+	assert.Nil(t, node.Start())
+
+	now := time.Now()
+	interval := 500 * time.Millisecond
+	blockTime := node.engine.CalcBlockDeadline(now)
+	assert.Equal(t, blockTime, now.Add(interval))
+
+	nextBlockTime := node.engine.CalcNextBlockTime(now)
+	assert.Equal(t, common.Millis(nextBlockTime), common.Millis(time.Now().Add(interval-time.Since(now))))
+
+	time.Sleep(4600 * time.Millisecond)
+	old := now
+	now = time.Now()
+	blockTime = node.engine.CalcBlockDeadline(now)
+	assert.Equal(t, blockTime, node.engine.state.Deadline())
+
+	nextBlockTime = node.engine.CalcNextBlockTime(old)
+	assert.Equal(t, common.Millis(nextBlockTime), common.Millis(time.Now()))
+}
+
+func TestShouldSeal(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(5)
+	node := MockNode(pk[0], sk[0], cbftnodes[:4], 3000, 10)
+	should, _ := node.engine.ShouldSeal(time.Now())
+	assert.False(t, should)
+
+	assert.Nil(t, node.Start())
+
+	should, err := node.engine.ShouldSeal(time.Now())
+	assert.Nil(t, err)
+	assert.True(t, should)
+
+	node5 := MockNode(pk[4], sk[4], cbftnodes[:4], 3000, 10)
+	assert.Nil(t, node5.Start())
+
+	should, err = node5.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "current node not a validator")
+	assert.False(t, should)
+
+	node1 := MockNode(pk[1], sk[1], cbftnodes[:4], 3000, 10)
+	assert.Nil(t, node1.Start())
+
+	should, err = node1.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "current node not the proposer")
+	assert.False(t, should)
+
+	parent := node.cache.Genesis()
+	for i := 0; i < 10; i++ {
+		pb := &protocols.PrepareBlock{
+			Epoch:         0,
+			ViewNumber:    0,
+			Block:         NewBlock(parent.Hash(), parent.NumberU64()),
+			BlockIndex:    uint32(i),
+			ProposalIndex: 0,
+		}
+		parent = pb.Block
+		node.engine.state.AddPrepareBlock(pb)
+	}
+	should, err = node.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "produce block over limit")
+	assert.False(t, should)
+
+	time.Sleep(4 * time.Second)
+	should, err = node.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "view timeout")
+	assert.False(t, should)
+}
