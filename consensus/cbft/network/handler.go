@@ -551,29 +551,6 @@ func (h *EngineManager) synchronize() {
 		})
 	}
 
-	// Logic used to synchronize locked.
-	syncLockedBnFunc := func() {
-		lockedBn, _ := h.engine.HighestLockBlockBn()
-		log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn)
-		msg := &protocols.GetLatestStatus{
-			BlockNumber: lockedBn,
-			LogicType:   TypeForLockedBn,
-		}
-		h.PartBroadcast(msg)
-	}
-
-	// Logic used to synchronize commit.
-	syncCommitBnFunc := func() {
-		commitBn, _ := h.engine.HighestCommitBlockBn()
-		log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn)
-		// todo: Build a message and then send a message
-		msg := &protocols.GetLatestStatus{
-			BlockNumber: commitBn,
-			LogicType:   TypeForCommitBn,
-		}
-		h.PartBroadcast(msg)
-	}
-
 	// Update if it is the same state within 5 seconds
 	var (
 		lastEpoch      uint64 = 0
@@ -585,8 +562,6 @@ func (h *EngineManager) synchronize() {
 		case <-blockNumberTicker.C:
 			// Sent at random.
 			randomSend(syncQCBnFunc)
-			randomSend(syncLockedBnFunc)
-			randomSend(syncCommitBnFunc)
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
@@ -615,7 +590,14 @@ func (h *EngineManager) synchronize() {
 
 // Randomly sent during the timer period.
 func randomSend(exec func()) {
-	time.AfterFunc(time.Duration(int64(rand.Intn(QCBnMonitorInterval))), func() {
+	sleepTime := rand.Intn(QCBnMonitorInterval)
+	for {
+		if sleepTime > QCBnMonitorInterval/2 {
+			break
+		}
+		sleepTime *= 2
+	}
+	time.AfterFunc(time.Duration(int64(sleepTime)), func() {
 		exec()
 	})
 }
