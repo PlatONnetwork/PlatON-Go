@@ -417,7 +417,7 @@ func (cbft *Cbft) tryChangeView() {
 			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
 			return
 		}
-		if cbft.validatorPool.EqualSwitchPoint(number) {
+		if cbft.validatorPool.EqualSwitchPoint(number) && qc.Epoch == cbft.state.Epoch() {
 			// Validator already switch, new epoch
 			cbft.changeView(cbft.state.Epoch()+1, state.DefaultViewNumber, block, qc, viewChangeQC)
 		} else {
