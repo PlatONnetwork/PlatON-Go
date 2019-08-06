@@ -32,7 +32,7 @@ const (
 	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
 	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval = 10
+	SyncViewChangeInterval = 15
 
 	//
 	TypeForQCBn     = 1
@@ -42,11 +42,12 @@ const (
 
 // Responsible for processing the messages in the network.
 type EngineManager struct {
-	engine    Cbft
-	router    *router
-	peers     *PeerSet
-	sendQueue chan *types.MsgPackage
-	quitSend  chan struct{}
+	engine        Cbft
+	router        *router
+	peers         *PeerSet
+	sendQueue     chan *types.MsgPackage
+	quitSend      chan struct{}
+	sendQueueHook func(*types.MsgPackage)
 }
 
 // Create a new handler and do some initialization.
@@ -81,6 +82,9 @@ func (h *EngineManager) sendLoop() {
 	for {
 		select {
 		case m := <-h.sendQueue:
+			if h.sendQueueHook != nil {
+				h.sendQueueHook(m)
+			}
 			// todo: Need to add to the processing judgment of wal
 			if len(m.PeerID()) == 0 {
 				h.broadcast(m)
@@ -503,6 +507,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 					// todo: need confirm
 					// Record the latency in metrics and output it. unit: second.
 					log.Trace("latency", "time", latency)
+					h.engine.OnPong(p.id, latency)
 					propPeerLatencyMeter.Mark(latency)
 					break
 				}

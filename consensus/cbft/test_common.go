@@ -2,7 +2,6 @@ package cbft
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -82,9 +81,10 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	}
 
 	optConfig := &ctypes.OptionsConfig{
-		NodePriKey: pk,
-		NodeID:     discover.PubkeyID(&pk.PublicKey),
-		BlsPriKey:  sk,
+		NodePriKey:     pk,
+		NodeID:         discover.PubkeyID(&pk.PublicKey),
+		BlsPriKey:      sk,
+		MaxQueuesLimit: 1000,
 	}
 
 	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
@@ -187,10 +187,10 @@ func Mock4NodePipe(start bool) []*TestCBFT {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node := MockNode(pk[i], sk[i], cbftnodes, 20000, 10)
 
 		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
 		nodes[i].Start()
 	}
 

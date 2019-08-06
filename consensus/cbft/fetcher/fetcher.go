@@ -10,6 +10,10 @@ var (
 	arriveTimeout = 500 * time.Millisecond
 )
 
+func SetArriveTimeout(duration time.Duration) {
+	arriveTimeout = duration
+}
+
 type MatchFunc func(types.Message) bool
 type ExecutorFunc func(types.Message)
 type ExpireFunc func()

@@ -342,6 +342,9 @@ func (s *mockCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVi
 		ViewNumber: 1,
 	}, nil
 }
+func (cbft *mockCbft) OnPong(nodeID string, netLatency int64) error {
+	return nil
+}
 
 func TestTT(t *testing.T) {
 	arr := []uint32{1, 2, 3, 4, 5}

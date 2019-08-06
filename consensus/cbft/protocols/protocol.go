@@ -16,6 +16,9 @@ import (
 // Maximum cap on the size of a cbft protocol message
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
 
+// Default average delay time (in milliseconds).
+const DEFAULT_AVG_LATENCY = 500
+
 const (
 	CBFTStatusMsg           = 0x00 // Protocol messages belonging to cbft
 	PrepareBlockMsg         = 0x01
