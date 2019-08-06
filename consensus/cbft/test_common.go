@@ -40,7 +40,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        big.NewInt(time.Now().UnixNano()),
 		Extra:       make([]byte, 77),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x936fc1c230a4a6d65cece52afadcf64b3f622f31faef4fa87c7c0335eaf67c2f")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}

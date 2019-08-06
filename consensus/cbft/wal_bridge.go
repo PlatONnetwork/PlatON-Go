@@ -68,14 +68,53 @@ func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
 // lockChainState or commitChainState may be nil, if it is nil, we only append qc to the qcChain array
 func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
 	if lockState == nil || commitState == nil {
-		if err := b.cbft.addQCState(qcState); err != nil {
+		if err := b.addQCState(qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
 	} else {
-		if err := b.cbft.newChainState(commitState, lockState, qcState); err != nil {
+		if err := b.newChainState(commitState, lockState, qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
 	}
+}
+
+// newChainState tries to update consensus state to wal
+// Need to do continuous block check before writing.
+func (b *baseBridge) newChainState(commit *protocols.State, lock *protocols.State, qc *protocols.State) error {
+	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || qc == nil || qc.Block == nil {
+		return errNonContiguous
+	}
+	// check continuous block chain
+	if !contiguousChainBlock(commit.Block, lock.Block) || !contiguousChainBlock(lock.Block, qc.Block) {
+		return errNonContiguous
+	}
+	chainState := &protocols.ChainState{
+		Commit: commit,
+		Lock:   lock,
+		QC:     []*protocols.State{qc},
+	}
+	return b.cbft.wal.UpdateChainState(chainState)
+}
+
+// addQCState tries to add consensus qc state to wal
+// Need to do continuous block check before writing.
+func (b *baseBridge) addQCState(qc *protocols.State) error {
+	var chainState *protocols.ChainState
+	// load current consensus state
+	b.cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
+		chainState = cs
+		return nil
+	})
+	if chainState == nil || chainState.Commit == nil || chainState.Lock == nil || len(chainState.QC) <= 0 {
+		return nil
+	}
+	lock := chainState.Lock
+	// check continuous block chain
+	if !contiguousChainBlock(lock.Block, qc.Block) {
+		return errNonContiguous
+	}
+	chainState.QC = append(chainState.QC, qc)
+	return b.cbft.wal.UpdateChainState(chainState)
 }
 
 // ConfirmViewChange tries to update ConfirmedViewChange consensus msg to wal.
@@ -132,45 +171,6 @@ func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepare
 	}
 }
 
-// newChainState tries to update consensus state to wal
-// Need to do continuous block check before writing.
-func (cbft *Cbft) newChainState(commit *protocols.State, lock *protocols.State, qc *protocols.State) error {
-	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || qc == nil || qc.Block == nil {
-		return errNonContiguous
-	}
-	// check continuous block chain
-	if !cbft.contiguousChainBlock(commit.Block, lock.Block) || !cbft.contiguousChainBlock(lock.Block, qc.Block) {
-		return errNonContiguous
-	}
-	chainState := &protocols.ChainState{
-		Commit: commit,
-		Lock:   lock,
-		QC:     []*protocols.State{qc},
-	}
-	return cbft.wal.UpdateChainState(chainState)
-}
-
-// addQCState tries to add consensus qc state to wal
-// Need to do continuous block check before writing.
-func (cbft *Cbft) addQCState(qc *protocols.State) error {
-	var chainState *protocols.ChainState
-	// load current consensus state
-	cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
-		chainState = cs
-		return nil
-	})
-	if chainState == nil || chainState.Commit == nil || chainState.Lock == nil || len(chainState.QC) <= 0 {
-		return nil
-	}
-	lock := chainState.Lock
-	// check continuous block chain
-	if !cbft.contiguousChainBlock(lock.Block, qc.Block) {
-		return errNonContiguous
-	}
-	chainState.QC = append(chainState.QC, qc)
-	return cbft.wal.UpdateChainState(chainState)
-}
-
 // recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
 // need to do some necessary checks based on the latest blockchain block.
 // execute commit/lock/qcs block and load the corresponding state to cbft consensus.
@@ -181,7 +181,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	rootBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
 
 	isCurrent := rootBlock.NumberU64() == commit.Block.NumberU64() && rootBlock.Hash() == commit.Block.Hash()
-	isParent := cbft.contiguousChainBlock(rootBlock, commit.Block)
+	isParent := contiguousChainBlock(rootBlock, commit.Block)
 
 	if !isCurrent && !isParent {
 		return fmt.Errorf("recovery chain state errror,non contiguous chain block state, curNum:%d, curHash:%s, commitNum:%d, commitHash:%s", rootBlock.NumberU64(), rootBlock.Hash().String(), commit.Block.NumberU64(), commit.Block.Hash().String())
@@ -309,7 +309,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 }
 
 // contiguousChainBlock check if the two incoming blocks are continuous.
-func (cbft *Cbft) contiguousChainBlock(p *types.Block, s *types.Block) bool {
+func contiguousChainBlock(p *types.Block, s *types.Block) bool {
 	return p.NumberU64() == s.NumberU64()-1 && p.Hash() == s.ParentHash()
 }
 

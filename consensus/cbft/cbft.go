@@ -85,11 +85,12 @@ type Cbft struct {
 	blockTree *ctypes.BlockTree
 
 	// wal
-	nodeServiceContext *node.ServiceContext
-	wal                wal.Wal
-	bridge             Bridge
-	loading            int32
-	startTime          int64
+	nodeServiceContext   *node.ServiceContext
+	wal                  wal.Wal
+	bridge               Bridge
+	loading              int32
+	startTime            int64
+	updateChainStateHook cbfttypes.UpdateChainStateFn
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -967,24 +968,18 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 
 	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+	if cbft.updateChainStateHook != nil {
+		cbft.updateChainStateHook(&protocols.State{qcBlock, qcQC}, &protocols.State{lockBlock, lockQC}, &protocols.State{commitBlock, commitQC})
+	}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:     commitBlock,
 		ExtraData: extra,
 		SyncState: nil,
 		ChainStateResult: &cbfttypes.ChainStateResult{
-			QCState: &protocols.State{
-				Block:      qcBlock,
-				QuorumCert: qcQC,
-			},
-			LockState: &protocols.State{
-				Block:      lockBlock,
-				QuorumCert: lockQC,
-			},
-			CommitState: &protocols.State{
-				Block:      commitBlock,
-				QuorumCert: commitQC,
-			},
-			Callback: cbft.bridge.UpdateChainState,
+			QCState:     &protocols.State{qcBlock, qcQC},
+			LockState:   &protocols.State{lockBlock, lockQC},
+			CommitState: &protocols.State{commitBlock, commitQC},
+			Callback:    cbft.bridge.UpdateChainState,
 		},
 	})
 }

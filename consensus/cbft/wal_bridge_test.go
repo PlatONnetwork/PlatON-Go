@@ -6,6 +6,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -27,8 +30,9 @@ func TestUpdateChainState(t *testing.T) {
 
 		node.engine.wal, _ = wal.NewWal(nil, tempDir)
 		node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
+		node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
 		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		fmt.Println(i, node.engine.config.Option.NodeID.String())
 	}
 
 	result := make(chan *types.Block, 1)
@@ -76,8 +80,8 @@ func TestUpdateChainState(t *testing.T) {
 	qcBlock, qcQC := restartNode.engine.state.ViewBlockAndQC(2)
 	assert.Equal(t, qc.NumberU64(), qcBlock.NumberU64())
 	assert.Equal(t, qc.NumberU64(), qcQC.BlockNumber)
-	assert.Equal(t, qc.Hash().TerminalString(), qcBlock.Hash().TerminalString())
-	assert.Equal(t, qc.Hash().TerminalString(), qcQC.BlockHash.TerminalString())
+	assert.Equal(t, qc.Hash().String(), qcBlock.Hash().String())
+	assert.Equal(t, qc.Hash().String(), qcQC.BlockHash.String())
 
 	// check blockTree
 	commitBlock, commitQC = restartNode.engine.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
@@ -126,9 +130,9 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	qcs := chainState.QC
 	assert.Equal(t, 2, len(qcs))
 
-	assert.Equal(t, qc.Hash().TerminalString(), qcs[0].Block.Hash().TerminalString())
-	assert.Equal(t, appendQC.Hash().TerminalString(), qcs[1].Block.Hash().TerminalString())
-	assert.Equal(t, lock.Hash().TerminalString(), qcs[1].Block.ParentHash().TerminalString())
+	assert.Equal(t, qc.Hash().String(), qcs[0].Block.Hash().String())
+	assert.Equal(t, appendQC.Hash().String(), qcs[1].Block.Hash().String())
+	assert.Equal(t, lock.Hash().String(), qcs[1].Block.ParentHash().String())
 }
 
 func TestRecordCbftMsg(t *testing.T) {
@@ -146,96 +150,36 @@ func TestRecordCbftMsg(t *testing.T) {
 			node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
 		}
 		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		fmt.Println(i, node.engine.config.Option.NodeID.String())
 	}
 
 	result := make(chan *types.Block, 1)
 	parent := nodes[0].chain.Genesis()
-	// test changeView, when i=10 it will change view and ConfirmViewChange
-	for i := 0; i < 19; i++ {
+
+	epoch := nodes[0].engine.state.Epoch()
+	viewNumber := nodes[0].engine.state.ViewNumber()
+	nodes[0].engine.bridge.ConfirmViewChange(epoch, viewNumber, parent, &ctypes.QuorumCert{Signature: ctypes.BytesToSignature(utils.Rand32Bytes(32)), ValidatorSet: utils.NewBitArray(110)}, nil)
+	for i := 0; i < 10; i++ {
 		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 
-		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
 		case b := <-result:
 			assert.NotNil(t, b)
-			for j := 1; j < 3; j++ {
-				if b.NumberU64() <= 10 {
-					msg := &protocols.PrepareVote{
-						Epoch:          nodes[0].engine.state.Epoch(),
-						ViewNumber:     nodes[0].engine.state.ViewNumber(),
-						BlockIndex:     uint32(i),
-						BlockHash:      b.Hash(),
-						BlockNumber:    b.NumberU64(),
-						ValidatorIndex: uint32(j),
-						ParentQC:       qc,
-					}
-					assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-					assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
-				}
-			}
 			parent = b
 		}
 	}
 
 	// test recoveryMsg
-	assert.Nil(t, nodes[0].engine.wal.Load(nodes[0].engine.recoveryMsg))
+	restartNode := MockNode(pk[0], sk[0], cbftnodes, 10000, 10)
+	assert.Nil(t, restartNode.Start())
+	restartNode.engine.wal = nodes[0].engine.wal
+	restartNode.engine.bridge, _ = NewBridge(restartNode.engine.nodeServiceContext, restartNode.engine)
 
-	block := nodes[0].engine.state.ViewBlockByIndex(8)
+	assert.Nil(t, restartNode.engine.wal.Load(restartNode.engine.recoveryMsg))
+
+	block := restartNode.engine.state.ViewBlockByIndex(9)
 	assert.Equal(t, parent.NumberU64(), block.NumberU64())
-	assert.Equal(t, parent.Hash().TerminalString(), block.Hash().TerminalString())
-
-	assert.True(t, nodes[0].engine.state.HadSendPrepareVote().Had(8))
-
-	assert.Equal(t, 1, nodes[0].engine.state.PrepareVoteLenByIndex(8))
+	assert.Equal(t, parent.Hash().String(), block.Hash().String())
 }
-
-//func TestRecordCbftMsg(t *testing.T) {
-//	tempDir, _ := ioutil.TempDir("", "wal")
-//	defer os.RemoveAll(tempDir)
-//
-//	pk, sk, cbftnodes := GenerateCbftNode(1)
-//	nodes := make([]*TestCBFT, 0)
-//	for i := 0; i < 1; i++ {
-//		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
-//		assert.Nil(t, node.Start())
-//
-//		node.engine.wal, _ = wal.NewWal(nil, tempDir)
-//		node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
-//		nodes = append(nodes, node)
-//		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
-//	}
-//
-//	result := make(chan *types.Block, 1)
-//	parent := nodes[0].chain.Genesis()
-//	var pointBlock *types.Block
-//	// test changeView, when i=10 it will change view and ConfirmViewChange
-//	for i := 0; i < 19; i++ {
-//		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
-//		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-//		nodes[0].engine.OnSeal(block, result, nil)
-//
-//		select {
-//		case b := <-result:
-//			assert.NotNil(t, b)
-//			if block.NumberU64() == 10 {
-//				pointBlock = block
-//			}
-//			parent = b
-//		}
-//	}
-//
-//	// test recoveryMsg
-//	nodes[0].engine.state.SetHighestQCBlock(pointBlock)
-//	assert.Nil(t, nodes[0].engine.wal.Load(nodes[0].engine.recoveryMsg))
-//
-//	block := nodes[0].engine.state.ViewBlockByIndex(8)
-//	assert.Equal(t, parent.NumberU64(), block.NumberU64())
-//	assert.Equal(t, parent.Hash().TerminalString(), block.Hash().TerminalString())
-//
-//	assert.True(t, nodes[0].engine.state.HadSendPrepareVote().Had(8))
-//
-//	assert.Equal(t, 1, nodes[0].engine.state.PrepareVoteLenByIndex(8))
-//}
