@@ -2129,7 +2129,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	blockNumber := header.Number.Uint64()
 
 	// the validators of Current Epoch
-	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartIrr)
+	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to call Election: No found current epoch validators", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -2137,7 +2137,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 
 	// the validators of Current Round
-	curr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartIrr)
+	curr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to Election: No found the current round validators", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -3139,6 +3139,11 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 
 	var targetIndex *staking.ValArrIndex
 
+	var preTargetNumber uint64
+	if blockNumber > xutil.ConsensusSize() {
+		preTargetNumber = blockNumber - xutil.ConsensusSize()
+	}
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
@@ -3146,8 +3151,8 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 		}
 
 		for i, index := range indexs {
-			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
-				targetIndex = indexs[i-1]
+			if index.Start <= preTargetNumber && index.End >= preTargetNumber {
+				targetIndex = indexs[i]
 				break
 			}
 		}
@@ -3158,8 +3163,8 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 		}
 
 		for i, index := range indexs {
-			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
-				targetIndex = indexs[i-1]
+			if index.Start <= preTargetNumber && index.End >= preTargetNumber {
+				targetIndex = indexs[i]
 				break
 			}
 		}
