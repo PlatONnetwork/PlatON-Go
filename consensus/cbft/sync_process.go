@@ -244,14 +244,14 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	}
 	//
 	if msg.LogicType == network.TypeForQCBn {
-		localQCNum := cbft.state.HighestQCBlock().NumberU64()
+		localQCNum, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 		if localQCNum == msg.BlockNumber {
 			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
 			return nil
 		}
 		if localQCNum < msg.BlockNumber {
 			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			return launcher(msg.LogicType, id, localQCNum, cbft.state.HighestQCBlock().Hash())
+			return launcher(msg.LogicType, id, localQCNum, localQCHash)
 		} else {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, LogicType: msg.LogicType})
@@ -259,14 +259,14 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	}
 	//
 	if msg.LogicType == network.TypeForLockedBn {
-		localLockedNum := cbft.state.HighestLockBlock().NumberU64()
+		localLockedNum, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 		if localLockedNum == msg.BlockNumber {
 			cbft.log.Debug("Local lockedBn is equal the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
 			return nil
 		}
 		if localLockedNum < msg.BlockNumber {
 			cbft.log.Debug("Local lockedBn is larger than the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
-			return launcher(msg.LogicType, id, localLockedNum, cbft.state.HighestLockBlock().Hash())
+			return launcher(msg.LogicType, id, localLockedNum, localLockedHash)
 		} else {
 			cbft.log.Debug("Local lockedBn is less than the sender's lockedBn", "remoteBn", msg.BlockNumber, "localBn", localLockedNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localLockedNum, LogicType: msg.LogicType})
@@ -274,14 +274,14 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	}
 	//
 	if msg.LogicType == network.TypeForCommitBn {
-		localCommitNum := cbft.state.HighestCommitBlock().NumberU64()
+		localCommitNum, localCommitHash := cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 		if localCommitNum == msg.BlockNumber {
 			cbft.log.Debug("Local commitBn is equal the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
 			return nil
 		}
 		if localCommitNum < msg.BlockNumber {
 			cbft.log.Debug("Local commitBn is larger than the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
-			return launcher(msg.LogicType, id, localCommitNum, cbft.state.HighestCommitBlock().Hash())
+			return launcher(msg.LogicType, id, localCommitNum, localCommitHash)
 		} else {
 			cbft.log.Debug("Local commitBn is less than the sender's commitBn", "remoteBn", msg.BlockNumber, "localBn", localCommitNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localCommitNum, LogicType: msg.LogicType})
@@ -295,7 +295,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	switch msg.LogicType {
 	case network.TypeForQCBn:
-		localQCBn := cbft.state.HighestQCBlock().NumberU64()
+		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 		if localQCBn < msg.BlockNumber {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -304,11 +304,11 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, cbft.state.HighestQCBlock().Hash(), localQCBn)
+			cbft.fetchBlock(id, localQCHash, localQCBn)
 		}
 
 	case network.TypeForLockedBn:
-		localLockedBn := cbft.state.HighestLockBlock().NumberU64()
+		localLockedBn, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 		if localLockedBn < msg.BlockNumber {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -317,11 +317,11 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetLockedBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalLockedBn is lower than sender's", "localBn", localLockedBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, cbft.state.HighestLockBlock().Hash(), localLockedBn)
+			cbft.fetchBlock(id, localLockedHash, localLockedBn)
 		}
 
 	case network.TypeForCommitBn:
-		localCommitBn := cbft.state.HighestCommitBlock().NumberU64()
+		localCommitBn, localCommitHash := cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 		if localCommitBn < msg.BlockNumber {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -330,7 +330,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetCommitdBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalCommitBn is lower than sender's", "localBn", localCommitBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, cbft.state.HighestCommitBlock().Hash(), localCommitBn)
+			cbft.fetchBlock(id, localCommitHash, localCommitBn)
 		}
 	}
 	return nil
