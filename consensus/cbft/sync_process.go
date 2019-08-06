@@ -443,7 +443,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 	if err != nil {
 		return nil, nil, err
 	}
-	consensusNodesLen := len(consensusNodes)
+	//consensusNodesLen := len(consensusNodes)
 	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
 	for _, cv := range consensusNodes {
 		isExists := false
@@ -460,9 +460,9 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 
 	log.Debug("Missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
 	// Synchronize only when there are missing votes for half of the nodes.
-	if len(missingNodes) < consensusNodesLen/2 {
+	/*if len(missingNodes) < consensusNodesLen/2 {
 		return nil, nil, fmt.Errorf("within the safety value")
-	}
+	}*/
 	// The node of missingNodes must be in the list of neighbor nodes.
 	peers, err := cbft.network.Peers()
 	target := missingNodes[:0]
