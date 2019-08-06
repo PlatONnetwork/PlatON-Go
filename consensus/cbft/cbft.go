@@ -2,13 +2,14 @@ package cbft
 
 import (
 	"bytes"
+	"container/list"
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	errors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 
 	"reflect"
 	"sync"
@@ -93,6 +94,10 @@ type Cbft struct {
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
 	queuesLock sync.RWMutex
 
+	// Delay time of each node
+	netLatencyMap  map[string]*list.List
+	netLatencyLock sync.RWMutex
+
 	//test
 	insertBlockQCHook func(block *types.Block, qc *ctypes.QuorumCert)
 
@@ -114,6 +119,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
+		netLatencyMap:      make(map[string]*list.List),
 	}
 
 	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
@@ -217,7 +223,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	}
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
+		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -869,11 +875,6 @@ func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
 
-func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
-	//panic("need to be improved")
-	return nil
-}
-
 func (cbft *Cbft) Config() *ctypes.Config {
 	return &cbft.config
 }
@@ -1189,66 +1190,4 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
-}
-
-// Returns the node ID of the missing vote.
-func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
-	allViewChange := cbft.state.AllViewChange()
-	nodeIds := make([]discover.NodeID, 0, len(allViewChange))
-	qcBlockBn := cbft.state.HighestQCBlock().NumberU64()
-	for k, _ := range allViewChange {
-		nodeId := cbft.validatorPool.GetNodeIDByIndex(qcBlockBn, int(k))
-		nodeIds = append(nodeIds, nodeId)
-	}
-	// all consensus
-	consensusNodes, err := cbft.ConsensusNodes()
-	if err != nil {
-		return nil, nil, err
-	}
-	consensusNodesLen := len(consensusNodes)
-	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
-	for _, cv := range consensusNodes {
-		isExists := false
-		for _, v := range nodeIds {
-			if cv == v {
-				isExists = true
-				break
-			}
-		}
-		if !isExists {
-			missingNodes = append(missingNodes, cv)
-		}
-	}
-
-	log.Debug("Missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
-	// Synchronize only when there are missing votes for half of the nodes.
-	if len(missingNodes) < consensusNodesLen/2 {
-		return nil, nil, fmt.Errorf("within the safety value")
-	}
-	// The node of missingNodes must be in the list of neighbor nodes.
-	peers, err := cbft.network.Peers()
-	target := missingNodes[:0]
-	for _, node := range missingNodes {
-		for _, peer := range peers {
-			if peer.ID() == node {
-				target = append(target, node)
-				break
-			}
-		}
-	}
-	log.Debug("Missing nodes exists in the peers", "nodes", network.FormatNodes(target))
-	nodeIndexes := make([]uint32, 0, len(target))
-	for _, v := range target {
-		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
-		if err != nil {
-			continue
-		}
-		nodeIndexes = append(nodeIndexes, uint32(index))
-	}
-	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
-	return target, &protocols.GetViewChange{
-		Epoch:       cbft.state.Epoch(),
-		ViewNumber:  cbft.state.ViewNumber(),
-		NodeIndexes: nodeIndexes,
-	}, nil
 }
