@@ -507,7 +507,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 }
 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
-	// TODO: check is turn to seal block
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
@@ -515,7 +514,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, _ := cbft.validatorPool.GetValidatorByNodeID(validator.NextRound(cbft.state.HighestExecutedBlock().NumberU64()), cbft.config.Option.NodeID)
+	nextRoundNum := validator.NextRound(cbft.state.HighestExecutedBlock().NumberU64())
+	me, err := cbft.validatorPool.GetValidatorByNodeID(nextRoundNum, cbft.NodeId())
+	if err != nil {
+		cbft.log.Warn("Can not got the validator, seal fail", "number", nextRoundNum, "nodeID", cbft.NodeId())
+		return
+	}
+	numValidators := cbft.validatorPool.Len(nextRoundNum)
+	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
+	if currentProposer != uint64(me.Index) {
+		cbft.log.Warn("You are not the current proposer", "index", me.Index, "currentProposer", currentProposer)
+		return
+	}
 
 	prepareBlock := &protocols.PrepareBlock{
 		Epoch:         cbft.state.Epoch(),
@@ -757,7 +767,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
-	if cbft.isLoading() && !cbft.isStart() && !cbft.running() {
+	if cbft.isLoading() || !cbft.isStart() || !cbft.running() {
 		return false, nil
 	}
 
@@ -767,9 +777,8 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	}
 	select {
 	case err := <-result:
-
 		return err == nil, err
-	case <-time.After(2 * time.Millisecond):
+	case <-time.After(5 * time.Millisecond):
 		result <- errors.New("timeout")
 		return false, errors.New("CBFT engine busy")
 	}
