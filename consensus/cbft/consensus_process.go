@@ -458,14 +458,15 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	// Incremental commit block
 	if oldCommit.NumberU64()+1 == commit.NumberU64() {
 		_, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		cbft.commitBlock(commit, qc, &cbfttypes.ChainStateResult{highestqc, lock, commit, cbft.bridge.UpdateChainState})
+		cbft.commitBlock(commit, qc, lock, highestqc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
 		//cbft.bridge.UpdateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
 	} else {
-		cbft.bridge.UpdateChainState(highestqc, nil, nil)
+		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
+		cbft.bridge.UpdateChainState(&protocols.State{qcBlock, qcQC}, nil, nil)
 	}
 }
 

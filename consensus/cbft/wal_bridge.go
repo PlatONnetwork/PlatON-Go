@@ -21,7 +21,7 @@ var (
 // Bridge encapsulates functions required to update consensus state and consensus msg.
 // As a bridge layer for cbft and wal.
 type Bridge interface {
-	UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block)
+	UpdateChainState(qcState, lockState, commitState *protocols.State)
 	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC)
 	SendViewChange(view *protocols.ViewChange)
 	SendPrepareBlock(pb *protocols.PrepareBlock)
@@ -32,7 +32,7 @@ type Bridge interface {
 type emptyBridge struct {
 }
 
-func (b *emptyBridge) UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+func (b *emptyBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
 }
 
 func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
@@ -66,28 +66,12 @@ func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
 // UpdateChainState tries to update consensus state to wal
 // If the write fails, the process will stop
 // lockChainState or commitChainState may be nil, if it is nil, we only append qc to the qcChain array
-func (b *baseBridge) UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
-	qcBlock, qcQC := b.cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
-	var qcState, lockState, commitState *protocols.State
-	qcState = &protocols.State{
-		Block:      qcBlock,
-		QuorumCert: qcQC,
-	}
-	if lock == nil || commit == nil {
+func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
+	if lockState == nil || commitState == nil {
 		if err := b.cbft.addQCState(qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
 	} else {
-		lockBlock, lockQC := b.cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
-		commitBlock, commitQC := b.cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		lockState = &protocols.State{
-			Block:      lockBlock,
-			QuorumCert: lockQC,
-		}
-		commitState = &protocols.State{
-			Block:      commitBlock,
-			QuorumCert: commitQC,
-		}
 		if err := b.cbft.newChainState(commitState, lockState, qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}

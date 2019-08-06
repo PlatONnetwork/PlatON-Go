@@ -3,9 +3,10 @@ package cbft
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"

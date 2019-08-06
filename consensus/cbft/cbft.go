@@ -956,19 +956,36 @@ func (cbft *Cbft) threshold(num int) int {
 	return num - (num-1)/3
 }
 
-func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert, chainStateResult *cbfttypes.ChainStateResult) {
-	extra, err := ctypes.EncodeExtra(byte(cbftVersion), qc)
+func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumCert, lockBlock *types.Block, qcBlock *types.Block) {
+	extra, err := ctypes.EncodeExtra(byte(cbftVersion), commitQC)
 	if err != nil {
-		cbft.log.Error("Encode extra error", "nubmer", block.Number(), "hash", block.Hash(), "cbftVersion", cbftVersion)
+		cbft.log.Error("Encode extra error", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
 		return
 	}
 
-	cbft.log.Debug("Send consensus result to worker", "number", block.Number(), "hash", block.Hash())
+	cbft.log.Debug("Send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
+
+	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
+	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:            block,
-		ExtraData:        extra,
-		SyncState:        nil,
-		ChainStateResult: chainStateResult,
+		Block:     commitBlock,
+		ExtraData: extra,
+		SyncState: nil,
+		ChainStateResult: &cbfttypes.ChainStateResult{
+			QCState: &protocols.State{
+				Block:      qcBlock,
+				QuorumCert: qcQC,
+			},
+			LockState: &protocols.State{
+				Block:      lockBlock,
+				QuorumCert: lockQC,
+			},
+			CommitState: &protocols.State{
+				Block:      commitBlock,
+				QuorumCert: commitQC,
+			},
+			Callback: cbft.bridge.UpdateChainState,
+		},
 	})
 }
 
