@@ -112,7 +112,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		}
 
 		if isFirstBlock() && acceptViewChangeQC() && isQCChild() {
-			newViewError("new epoch, need change view")
+			return newViewError("new epoch, need change view")
 		}
 
 		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))

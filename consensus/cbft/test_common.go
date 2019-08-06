@@ -2,7 +2,6 @@ package cbft
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"math/big"
 	"time"
@@ -39,7 +38,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        big.NewInt(time.Now().UnixNano()),
 		Extra:       make([]byte, 77),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x936fc1c230a4a6d65cece52afadcf64b3f622f31faef4fa87c7c0335eaf67c2f")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -186,10 +185,10 @@ func Mock4NodePipe(start bool) []*TestCBFT {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node := MockNode(pk[i], sk[i], cbftnodes, 20000, 10)
 
 		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
+		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
 		nodes[i].Start()
 	}
 
