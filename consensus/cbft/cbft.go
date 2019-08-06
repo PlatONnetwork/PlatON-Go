@@ -609,6 +609,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   NewPublicConsensusAPI(cbft),
 			Public:    true,
 		},
+		{
+			Namespace: "platon",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
 	}
 }
 
@@ -701,6 +707,20 @@ func (cbft *Cbft) Status() string {
 		}
 	}
 	return <-status
+}
+
+func (cbft *Cbft) GetPrepareQC(number uint64) string {
+	cbft.log.Debug("get prepare QC")
+	if header := cbft.blockChain.GetHeaderByNumber(number); header != nil {
+		if block := cbft.blockChain.GetBlock(header.Hash(), number); block != nil {
+			if _, qc, err := ctypes.DecodeExtra(block.ExtraData()); err == nil {
+				if buf, err := json.Marshal(qc); err == nil {
+					return string(buf)
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // GetBlockByHash get the specified block by hash.

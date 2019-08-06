@@ -6,6 +6,7 @@ package cbft
 type CbftAPI interface {
 	Status() string
 	Evidences() string
+	GetPrepareQC(number uint64) string
 }
 
 type PublicConsensusAPI struct {
@@ -23,4 +24,8 @@ func (s *PublicConsensusAPI) ConsensusStatus() string {
 
 func (s *PublicConsensusAPI) Evidences() string {
 	return s.engine.Evidences()
+}
+
+func (s *PublicConsensusAPI) GetPrepareQC(number uint64) string {
+	return s.engine.GetPrepareQC(number)
 }
