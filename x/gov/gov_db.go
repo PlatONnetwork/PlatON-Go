@@ -2,7 +2,6 @@ package gov
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -15,7 +14,7 @@ var (
 	ValueDelimiter = []byte(":")
 )
 
-var dbOnce sync.Once
+//var dbOnce sync.Once
 var govDB *GovDB
 
 type GovDB struct {
@@ -36,15 +35,6 @@ func GovDBInstance() *GovDB {
 func (self *GovDB) Reset() {
 	govDB = nil
 	self.snapdb.reset()
-}
-
-func tobytes(data interface{}) []byte {
-	if bytes, err := json.Marshal(data); err != nil {
-		return bytes
-	} else {
-		log.Error("govdb, marshal value to bytes error..")
-		panic(err)
-	}
 }
 
 func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
@@ -302,16 +292,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
-
 	voting = remove(voting, proposalID)
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
@@ -326,23 +307,8 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 }
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
-
-	pre, err := self.snapdb.getPreActiveProposalID(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	//pre = remove(pre, proposalID)
-	pre = common.Hash{}
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
-	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), pre)
+	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
+	err := self.snapdb.put(blockHash, KeyPreActiveProposals(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
