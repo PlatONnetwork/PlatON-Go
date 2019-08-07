@@ -1275,6 +1275,9 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 			progressed, throttled, running := false, false, inFlight()
 			idles, total := idle()
 
+			// TODO test
+			log.Debug("fetchParts update", "idles", len(idles), "total", total)
+
 			for _, peer := range idles {
 				// Short circuit if throttling activated
 				if throttle() {
