@@ -100,9 +100,9 @@ type Cbft struct {
 	netLatencyLock sync.RWMutex
 
 	//test
-	insertBlockQCHook func(block *types.Block, qc *ctypes.QuorumCert)
-
-	executeFinishHook func(index uint32)
+	insertBlockQCHook  func(block *types.Block, qc *ctypes.QuorumCert)
+	executeFinishHook  func(index uint32)
+	consensusNodesMock func() ([]discover.NodeID, error)
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -336,12 +336,6 @@ func (cbft *Cbft) receiveLoop() {
 
 		case <-cbft.state.ViewTimeout():
 			cbft.OnViewTimeout()
-		default:
-		}
-
-		// read-only channel
-		select {
-		default:
 		}
 	}
 }
@@ -573,12 +567,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.findQCBlock()
 
 	cbft.network.Broadcast(prepareBlock)
-
+	// Record the number of blocks.
+	minedCounter.Inc(1)
+	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
+	if preBlock != nil {
+		blockMinedTimer.UpdateSince(time.Unix(preBlock.Time().Int64(), 0))
+	}
 	go func() {
 		select {
 		case <-stop:
 			return
 		case results <- block:
+			blockProduceMeter.Mark(1)
 		default:
 			cbft.log.Warn("Sealing result channel is not ready by miner", "sealHash", block.Header().SealHash())
 		}
@@ -762,6 +762,9 @@ func (cbft *Cbft) Close() error {
 }
 
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
+	if cbft.consensusNodesMock != nil {
+		return cbft.consensusNodesMock()
+	}
 	return cbft.validatorPool.ValidatorList(cbft.state.HighestQCBlock().NumberU64()), nil
 }
 
@@ -777,7 +780,9 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	}
 	select {
 	case err := <-result:
-
+		if err == nil {
+			masterCounter.Inc(1)
+		}
 		return err == nil, err
 	case <-time.After(2 * time.Millisecond):
 		result <- errors.New("timeout")
@@ -827,7 +832,8 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- errors.New("produce block over limit")
 		return
 	}
-
+	proposerIndexGauage.Update(int64(currentProposer))
+	validatorCountGauage.Update(int64(numValidators))
 	result <- nil
 }
 
