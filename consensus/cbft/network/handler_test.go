@@ -79,6 +79,9 @@ func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVi
 		ViewNumber: 1,
 	}, nil
 }
+func (cbft *fakeCbft) OnPong(nodeID string, netLatency int64) error {
+	return nil
+}
 
 // Create a new EngineManager.
 func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {

@@ -32,7 +32,7 @@ const (
 	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
 	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval = 10
+	SyncViewChangeInterval = 15
 
 	//
 	TypeForQCBn     = 1
@@ -507,6 +507,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 					// todo: need confirm
 					// Record the latency in metrics and output it. unit: second.
 					log.Trace("latency", "time", latency)
+					h.engine.OnPong(p.id, latency)
 					propPeerLatencyMeter.Mark(latency)
 					break
 				}
