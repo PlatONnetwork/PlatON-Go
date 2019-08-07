@@ -3,6 +3,7 @@ package network
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"reflect"
 	"sync"
@@ -130,18 +131,15 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, 
 	defer r.lock.RUnlock()
 
 	// todo: Test the anchor point, please pay attention to let go.
-	return r.peers()
-
-	/*
-		switch msgType {
-		case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
-			protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
-			return r.kMixingRandomNodes(condition)
-		case protocols.PrepareBlockHashMsg,protocols.GetLatestStatusMsg,protocols.GetViewChangeMsg::
-			return r.kConsensusRandomNodes(false, condition)
-		}
-		return nil, fmt.Errorf("does not match the type of the specified message")
-	*/
+	//return r.peers()
+	switch msgType {
+	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
+		protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
+		return r.kMixingRandomNodes(condition)
+	case protocols.PrepareBlockHashMsg, protocols.GetLatestStatusMsg, protocols.GetViewChangeMsg:
+		return r.kConsensusRandomNodes(false, condition)
+	}
+	return nil, fmt.Errorf("does not match the type of the specified message")
 }
 
 // Randomly return a list of consensus nodes that exist in the PeerSet.
