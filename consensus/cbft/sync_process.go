@@ -3,8 +3,11 @@ package cbft
 import (
 	"container/list"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"math/big"
+	"sort"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -43,11 +46,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
-
+					start := time.Now()
 					if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
+					blockExecutedTimer.UpdateSince(start)
 					parent = block
 				}
 
@@ -462,10 +466,6 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 	}
 
 	log.Debug("Missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
-	// Synchronize only when there are missing votes for half of the nodes.
-	/*if len(missingNodes) < consensusNodesLen/2 {
-		return nil, nil, fmt.Errorf("within the safety value")
-	}*/
 	// The node of missingNodes must be in the list of neighbor nodes.
 	peers, err := cbft.network.Peers()
 	target := missingNodes[:0]
@@ -517,7 +517,8 @@ func (cbft *Cbft) OnPong(nodeID string, netLatency int64) error {
 //
 // The average is the average delay between the current
 // node and all consensus nodes.
-func (cbft *Cbft) AvgLatency() int64 {
+// Return value unit: milliseconds.
+func (cbft *Cbft) AvgLatency() time.Duration {
 	cbft.netLatencyLock.Lock()
 	defer cbft.netLatencyLock.Unlock()
 	// The intersection of peerSets and consensusNodes.
@@ -532,22 +533,34 @@ func (cbft *Cbft) AvgLatency() int64 {
 		}
 	}
 	var (
-		avgSum int64 = 0
-		result int64 = 0
+		avgSum     int64 = 0
+		result     int64 = 0
+		validCount int64 = 0
 	)
+	// Take 2/3 nodes from the target.
+	var pair utils.KeyValuePairList
 	for _, v := range target {
 		if latencyList, exist := cbft.netLatencyMap[v]; exist {
 			avg := calAverage(latencyList)
-			avgSum += avg
+			pair.Push(utils.KeyValuePair{Key: v, Value: avg})
 		}
 	}
-	if avgSum != 0 {
-		result = avgSum / int64(len(target))
-	} else {
-		result = protocols.DEFAULT_AVG_LATENCY
+	sort.Sort(pair)
+	validCount = int64(pair.Len() * 2 / 3)
+	if validCount == 0 {
+		validCount = 1
 	}
+	for _, v := range pair[:validCount] {
+		avgSum += v.Value
+	}
+
+	result = avgSum / validCount
 	cbft.log.Debug("Get avg latency", "avg", result)
-	return result
+	return time.Duration(result) * time.Millisecond
+}
+
+func (cbft *Cbft) DefaultAvgLatency() time.Duration {
+	return time.Duration(protocols.DefaultAvgLatency) * time.Millisecond
 }
 
 func calAverage(latencyList *list.List) int64 {

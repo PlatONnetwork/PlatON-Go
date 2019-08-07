@@ -1,15 +1,17 @@
 package network
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"fmt"
 	"math/rand"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // ============================ simulation network ============================
-func randomID() []discover.NodeID {
+func RandomID() []discover.NodeID {
 	ids := make([]discover.NodeID, 0)
 	for i := 0; i < 4; i++ {
 		var id discover.NodeID
@@ -76,4 +78,23 @@ func EnhanceEngineManager(ids []discover.NodeID, handlers []*EngineManager) {
 
 func SetSendQueueHook(engine *EngineManager, hook func(msg *types.MsgPackage)) {
 	engine.sendQueueHook = hook
+}
+
+// Populate the peer for the specified Handle.
+func FillEngineManager(ids []discover.NodeID, handler *EngineManager) {
+	write, read := p2p.MsgPipe()
+	for _, v := range ids {
+		peer := NewPeer(CbftProtocolVersion, p2p.NewPeer(v, v.TerminalString(), nil), write)
+		handler.peers.Register(peer)
+	}
+	go func() {
+		for {
+			msg, err := read.ReadMsg()
+			if err != nil {
+				break
+			}
+			fmt.Printf("code: %d \n", msg.Code)
+			msg.Discard()
+		}
+	}()
 }

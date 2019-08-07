@@ -484,6 +484,9 @@ func (ps *PeerSet) printPeers() {
 		select {
 		case <-outTimer.C:
 			peers := ps.Peers()
+			if peers != nil {
+				neighborPeerGauage.Update(int64(len(peers)))
+			}
 			var bf bytes.Buffer
 			for idx, peer := range peers {
 				bf.WriteString(peer.id)

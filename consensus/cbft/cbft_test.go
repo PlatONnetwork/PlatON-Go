@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"runtime"
 	"testing"
 	"time"
 
@@ -50,9 +51,10 @@ func TestBls(t *testing.T) {
 	owner := sk[0]
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
-
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+		if runtime.GOOS != "windows" {
+			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+		}
 	}
 
 	agency := validator.NewStaticAgency(nodes)
@@ -77,7 +79,9 @@ func TestAgg(t *testing.T) {
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+		if runtime.GOOS != "windows" {
+			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+		}
 	}
 
 	agency := validator.NewStaticAgency(nodes[0:num])

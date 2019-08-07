@@ -2,6 +2,11 @@ package cbft
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -10,8 +15,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -334,5 +337,180 @@ func TestCbft_OnGetPrepareVote(t *testing.T) {
 
 		t.Error("timeout")
 	case <-done:
+	}
+}
+
+func TestCbft_OnGetLatestStatus(t *testing.T) {
+	engine, cNodes := buildSingleCbft()
+	// use case.
+	testCases := []struct {
+		blockBn uint64
+		reqBn   uint64
+		reqType uint64
+	}{
+		{1, 1, network.TypeForQCBn},
+		{1, 2, network.TypeForQCBn},
+		{2, 1, network.TypeForQCBn},
+		{1, 1, network.TypeForLockedBn},
+		{1, 2, network.TypeForLockedBn},
+		{2, 1, network.TypeForLockedBn},
+		{1, 1, network.TypeForCommitBn},
+		{1, 2, network.TypeForCommitBn},
+		{2, 1, network.TypeForCommitBn},
+	}
+	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	for _, v := range testCases {
+		message := &protocols.GetLatestStatus{
+			BlockNumber: v.reqBn,
+			LogicType:   v.reqType,
+		}
+		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		err := engine.OnGetLatestStatus(peer.PeerID(), message)
+		assert.Nil(t, err)
+		if v.blockBn < v.reqBn {
+			switch v.reqType {
+			case network.TypeForQCBn:
+				assert.Equal(t, v.blockBn, engine.state.HighestQCBlock().NumberU64())
+				assert.Equal(t, v.reqBn, peer.QCBn())
+			case network.TypeForLockedBn:
+				assert.Equal(t, v.blockBn, engine.state.HighestLockBlock().NumberU64())
+				assert.Equal(t, v.reqBn, peer.LockedBn())
+			case network.TypeForCommitBn:
+				assert.Equal(t, v.blockBn, engine.state.HighestCommitBlock().NumberU64())
+				assert.Equal(t, v.reqBn, peer.CommitBn())
+			}
+		}
+	}
+}
+
+func TestCbft_OnLatestStatus(t *testing.T) {
+	engine, cNodes := buildSingleCbft()
+	// use case.
+	testCases := []struct {
+		blockBn uint64
+		rspBn   uint64
+		rspType uint64
+	}{
+		{1, 1, network.TypeForQCBn},
+		{1, 2, network.TypeForQCBn},
+		{2, 1, network.TypeForQCBn},
+		{1, 1, network.TypeForLockedBn},
+		{1, 2, network.TypeForLockedBn},
+		{2, 1, network.TypeForLockedBn},
+		{1, 1, network.TypeForCommitBn},
+		{1, 2, network.TypeForCommitBn},
+		{2, 1, network.TypeForCommitBn},
+	}
+	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	for _, v := range testCases {
+		message := &protocols.LatestStatus{
+			BlockNumber: v.rspBn,
+			LogicType:   v.rspType,
+		}
+		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		err := engine.OnLatestStatus(peer.PeerID(), message)
+		assert.Nil(t, err)
+		if v.blockBn < v.rspBn {
+			switch v.rspType {
+			case network.TypeForQCBn:
+				assert.Equal(t, v.blockBn, engine.state.HighestQCBlock().NumberU64())
+				assert.Equal(t, v.rspBn, peer.QCBn())
+			case network.TypeForLockedBn:
+				assert.Equal(t, v.blockBn, engine.state.HighestLockBlock().NumberU64())
+				assert.Equal(t, v.rspBn, peer.LockedBn())
+			case network.TypeForCommitBn:
+				assert.Equal(t, v.blockBn, engine.state.HighestCommitBlock().NumberU64())
+				assert.Equal(t, v.rspBn, peer.CommitBn())
+			}
+		}
+	}
+}
+
+func TestCbft_OnGetViewChange(t *testing.T) {
+	engine, cNodes := buildSingleCbft()
+	// use case.
+	testCases := []struct {
+		viewNumber     uint64
+		reqEpoch       uint64
+		reqViewNumber  uint64
+		reqNodeIndexes []uint32
+	}{
+		{0, 0, 1, []uint32{0, 2}},
+		{1, 0, 1, []uint32{0, 2}},
+		{1, 0, 2, []uint32{0, 2}},
+	}
+	// init view change.
+	engine.state.AddViewChange(0, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	engine.state.AddViewChange(1, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	engine.state.AddViewChange(2, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	engine.state.AddViewChange(3, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	for _, v := range testCases {
+		message := &protocols.GetViewChange{
+			Epoch:       v.reqEpoch,
+			ViewNumber:  v.reqViewNumber,
+			NodeIndexes: v.reqNodeIndexes,
+		}
+		// Setting viewNumber.
+		engine.state.ResetView(0, v.viewNumber)
+		err := engine.OnGetViewChange(peer.PeerID(), message)
+		if v.viewNumber == 0 {
+			assert.NotNil(t, err)
+		}
+	}
+}
+
+func TestCbft_MissingViewChangeNodes(t *testing.T) {
+	engine, cNodes := buildSingleCbft()
+	nodes, message, err := engine.MissingViewChangeNodes()
+	assert.Equal(t, len(cNodes), len(nodes))
+	assert.Nil(t, err)
+	assert.NotNil(t, message)
+}
+
+func buildSingleCbft() (*Cbft, []discover.NodeID) {
+	// Init mock node.
+	pk, sk, cbftnodes := GenerateCbftNode(1)
+	node := MockNode(pk[0], sk[0], cbftnodes, 1000000, 10)
+	node.Start()
+	//node.engine.network.Close()
+	// Add a node to the Handler.
+	cNodes := network.RandomID()
+	node.engine.consensusNodesMock = func() ([]discover.NodeID, error) {
+		return cNodes, nil
+	}
+	network.FillEngineManager(cNodes, node.engine.network)
+	return node.engine, cNodes
+}
+
+func TestCbft_OnPong(t *testing.T) {
+	running := func(value int64) time.Duration {
+		engine, cNodes := buildSingleCbft()
+		for _, v := range cNodes {
+			curTime := time.Now().UnixNano()
+			tInt64 := curTime - value*1000000 // Suppose there is a 200 millisecond delay.
+			latency := (curTime - tInt64) / 2 / 1000000
+			engine.OnPong(v.TerminalString(), latency)
+		}
+		avg := engine.AvgLatency()
+		return avg
+	}
+
+	// Simulation calls the OnPong method.
+	testCases := []struct {
+		value  int64
+		expect int64
+	}{
+		{value: 200, expect: 100},
+		{value: 300, expect: 150},
+		{value: 400, expect: 200},
+	}
+	for i := 0; i < len(testCases); i++ {
+		value := running(testCases[i].value)
+		assert.Equal(t, testCases[i].expect*1000000, int64(value))
 	}
 }
