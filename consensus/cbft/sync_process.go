@@ -3,6 +3,7 @@ package cbft
 import (
 	"container/list"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -359,17 +360,19 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 // The Epoch and viewNumber of viewChange must be consistent
 // with the state of the current node.
 func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error {
-	cbft.log.Debug("Received message on OnGetViewChange", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	cbft.log.Debug("Received message on OnGetViewChange", "from", id, "msgHash", msg.MsgHash(), "message", msg.String(), "local", cbft.state.ViewString())
+
 	localEpoch, localViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
-	if msg.Epoch != localEpoch {
-		cbft.log.Error("Epoch not equal, get view change failed", "reqEpoch", msg.Epoch, "localEpoch", localEpoch)
-		return fmt.Errorf("epoch not equal")
+
+	isEqualLocalView := func() bool {
+		return msg.ViewNumber == localViewNumber && msg.Epoch == localEpoch
 	}
-	if msg.ViewNumber != localViewNumber && msg.ViewNumber+1 != localViewNumber {
-		cbft.log.Error("ViewNumber not equal and not less than 1, get view change failed", "reqViewNumber", msg.ViewNumber, "localViewNumber", localViewNumber)
-		return fmt.Errorf("viewNumer not equal")
+
+	isNextView := func() bool {
+		return msg.ViewNumber+1 == localViewNumber || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
 	}
-	if msg.ViewNumber == localViewNumber {
+
+	if isEqualLocalView() {
 		// Get the viewChange belong to local node.
 		node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 		if err != nil {
@@ -390,7 +393,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		}
 	}
 	// Return view QC in the case of less than 1.
-	if msg.ViewNumber+1 == localViewNumber {
+	if isNextView() {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
 			cbft.log.Error("Not found lastViewChangeQC")

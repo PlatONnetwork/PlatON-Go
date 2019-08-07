@@ -84,10 +84,11 @@ type Cbft struct {
 	blockTree *ctypes.BlockTree
 
 	// wal
-	nodeServiceContext *node.ServiceContext
-	wal                wal.Wal
-	bridge             Bridge
-	loading            int32
+	nodeServiceContext   *node.ServiceContext
+	wal                  wal.Wal
+	bridge               Bridge
+	loading              int32
+	updateChainStateHook cbfttypes.UpdateChainStateFn
 
 	// Record the number of peer requests for obtaining cbft information.
 
@@ -162,7 +163,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
-	atomic.StoreInt32(&cbft.loading, 1)
+	utils.SetTrue(&cbft.loading)
 	if isGenesis() {
 		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
@@ -192,7 +193,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
-	atomic.StoreInt32(&cbft.loading, 0)
+	utils.SetFalse(&cbft.loading)
 
 	// init handler and router to process message.
 	// cbft -> handler -> router.
@@ -219,6 +220,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
 	}
+
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
@@ -566,7 +568,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.txPool.Reset(block)
 
 	// write sendPrepareBlock info to wal
-	cbft.bridge.SendPrepareBlock(prepareBlock)
+	if !cbft.isLoading() {
+		cbft.bridge.SendPrepareBlock(prepareBlock)
+	}
 
 	cbft.findQCBlock()
 
@@ -922,18 +926,28 @@ func (cbft *Cbft) threshold(num int) int {
 	return num - (num-1)/3
 }
 
-func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
-	extra, err := ctypes.EncodeExtra(byte(cbftVersion), qc)
+func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumCert, lockBlock *types.Block, qcBlock *types.Block) {
+	extra, err := ctypes.EncodeExtra(byte(cbftVersion), commitQC)
 	if err != nil {
-		cbft.log.Error("Encode extra error", "nubmer", block.Number(), "hash", block.Hash(), "cbftVersion", cbftVersion)
+		cbft.log.Error("Encode extra error", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
 		return
 	}
 
-	cbft.log.Debug("Send consensus result to worker", "number", block.Number(), "hash", block.Hash())
+	cbft.log.Debug("Send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
+
+	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
+	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+	if cbft.updateChainStateHook != nil {
+		cbft.updateChainStateHook(&protocols.State{qcBlock, qcQC}, &protocols.State{lockBlock, lockQC}, &protocols.State{commitBlock, commitQC})
+	}
+	qcState := &protocols.State{qcBlock, qcQC}
+	lockState := &protocols.State{lockBlock, lockQC}
+	commitState := &protocols.State{commitBlock, commitQC}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:     block,
-		ExtraData: extra,
-		SyncState: nil,
+		Block:              commitBlock,
+		ExtraData:          extra,
+		SyncState:          nil,
+		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },
 	})
 }
 
@@ -995,7 +1009,7 @@ func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
 }
 
 func (cbft *Cbft) isLoading() bool {
-	return atomic.LoadInt32(&cbft.loading) == 1
+	return utils.True(&cbft.loading)
 }
 
 func (cbft *Cbft) isStart() bool {

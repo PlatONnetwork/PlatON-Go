@@ -39,9 +39,9 @@ func (cs *ChainState) String() string {
 		return ""
 	}
 	return fmt.Sprintf("[commitNum:%d, commitHash:%s, lockNum:%d, lockHash:%s, qcNum:%d, qcHash:%s]",
-		cs.Commit.Block.NumberU64(), cs.Commit.Block.Hash(),
-		cs.Lock.Block.NumberU64(), cs.Lock.Block.Hash(),
-		cs.QC[0].Block.NumberU64(), cs.QC[0].Block.Hash())
+		cs.Commit.Block.NumberU64(), cs.Commit.Block.Hash().String(),
+		cs.Lock.Block.NumberU64(), cs.Lock.Block.Hash().String(),
+		cs.QC[0].Block.NumberU64(), cs.QC[0].Block.Hash().String())
 }
 
 type WalMsg interface {
