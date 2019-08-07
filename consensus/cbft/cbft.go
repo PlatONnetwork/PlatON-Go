@@ -1362,7 +1362,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			blockConfirmedTimer.UpdateSince(time.Unix(int64(ext.timestamp), 0))
 			cbft.flushReadyBlock()
 			if err := cbft.updateValidator(); err != nil {
-				cbft.log.Warn("updateValidator fail:", err)
+				cbft.log.Warn("updateValidator fail:", "err", err, "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			}
 		}
 		if !hadSend {
@@ -1413,7 +1413,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			if bs.block.isConfirmed {
 				if err := cbft.updateValidator(); err != nil {
-					cbft.log.Warn("updateValidator fail:", err)
+					cbft.log.Warn("updateValidator fail:", "err", err, "block", bs.block.String())
 				}
 			}
 			cbft.log.Debug("Execute block success", "block", bs.block.String())
@@ -1991,7 +1991,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		}
 
 		if cbft.getValidators().Len() > 1 && prev.number > 0 && prev.prepareVotes.Votes()[0].Timestamp != prev.view.Timestamp {
-			panic(fmt.Sprintf("timestamp not equal view:%s, vote:%s",prev.prepareVotes.Votes()[0].String(), prev.view.String()))
+			panic(fmt.Sprintf("timestamp not equal view:%s, vote:%s", prev.prepareVotes.Votes()[0].String(), prev.view.String()))
 		}
 
 		if ext.view == nil {
@@ -2009,7 +2009,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		extra, err := cbft.encodeExtra(ext.BlockExtra())
 		if err != nil {
 			cbft.log.Error("Encode ExtraData failed", "err", err, "view", ext.view.String())
-			panic(fmt.Sprintf("encode extra data failed err:%s, ext:%s, view:%s",err.Error(), ext.String(), ext.view.String()))
+			panic(fmt.Sprintf("encode extra data failed err:%s, ext:%s, view:%s", err.Error(), ext.String(), ext.view.String()))
 		}
 
 		cbftResult := cbfttypes.CbftResult{
