@@ -850,8 +850,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 
-	rtt := time.Duration(cbft.AvgLatency()*2) * time.Millisecond
-	// FIXME: default avg latency
+	rtt := cbft.avgRTT()
 	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
 		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", cbft.state.Deadline().Sub(time.Now()), "rtt", rtt)
 		result <- errors.New("not enough time to propagated block, stopped sealing")
@@ -865,8 +864,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
-	rtt := time.Duration(2*cbft.AvgLatency()) * time.Millisecond
-	// FIXME: get default latency
+	rtt := cbft.avgRTT()
 	executeTime := (produceInterval - rtt) / 2
 	cbft.log.Debug("Calc block deadline", "timePoint", timePoint, "stateDeadline", cbft.state.Deadline(), "produceInterval", produceInterval, "rtt", rtt, "executeTime", executeTime)
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
@@ -877,8 +875,7 @@ func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
-	rtt := time.Duration(cbft.AvgLatency()*2) * time.Millisecond
-	// FIXME: get default latency
+	rtt := cbft.avgRTT()
 	executeTime := (produceInterval - rtt) / 2
 	cbft.log.Debug("Calc next block time",
 		"blockTime", blockTime, "now", time.Now(), "produceInterval", produceInterval,
@@ -1242,4 +1239,12 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
+}
+
+func (cbft *Cbft) avgRTT() time.Duration {
+	rtt := cbft.AvgLatency() * 2
+	if rtt == 0 {
+		rtt = cbft.DefaultAvgLatency() * 2
+	}
+	return rtt
 }
