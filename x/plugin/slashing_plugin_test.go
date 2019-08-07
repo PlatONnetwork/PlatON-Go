@@ -171,7 +171,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	}
 
 	preArr := &staking.Validator_array{
-		Start: 0,
+		Start: 1,
 		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
@@ -185,7 +185,11 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	setVerifierList(blockHash, epochArr)
 	setRoundValList(blockHash, preArr)
 	setRoundValList(blockHash, curArr)
-	stateDb.AddBalance(vm.StakingContractAddr, new(big.Int).SetUint64(18446744073709551615))
+	balance, ok := new(big.Int).SetString("9999999999999999999999999999999999999999999999999", 10)
+	if !ok {
+		panic("set balance fail")
+	}
+	stateDb.AddBalance(vm.StakingContractAddr, balance)
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
