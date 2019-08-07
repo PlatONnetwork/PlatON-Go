@@ -2968,6 +2968,7 @@ func (sk *StakingPlugin) IsCandidateNode(nodeID discover.NodeID) bool {
 		}
 	}
 label:
+	log.Info("Call IsCandidateNode, the nodeId is not a Epoch validaotor", "nodeId", nodeID.String())
 	return isCandidate
 }
 
