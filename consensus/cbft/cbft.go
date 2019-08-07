@@ -88,7 +88,6 @@ type Cbft struct {
 	wal                  wal.Wal
 	bridge               Bridge
 	loading              int32
-	startTime            int64
 	updateChainStateHook cbfttypes.UpdateChainStateFn
 
 	// Record the number of peer requests for obtaining cbft information.
@@ -121,7 +120,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
-		startTime:          time.Now().UnixNano() / 1e6,
 		netLatencyMap:      make(map[string]*list.List),
 	}
 
