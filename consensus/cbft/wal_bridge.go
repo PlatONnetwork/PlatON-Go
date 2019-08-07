@@ -21,7 +21,7 @@ var (
 // Bridge encapsulates functions required to update consensus state and consensus msg.
 // As a bridge layer for cbft and wal.
 type Bridge interface {
-	UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block)
+	UpdateChainState(qcState, lockState, commitState *protocols.State)
 	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC)
 	SendViewChange(view *protocols.ViewChange)
 	SendPrepareBlock(pb *protocols.PrepareBlock)
@@ -32,7 +32,7 @@ type Bridge interface {
 type emptyBridge struct {
 }
 
-func (b *emptyBridge) UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
+func (b *emptyBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
 }
 
 func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
@@ -66,32 +66,55 @@ func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
 // UpdateChainState tries to update consensus state to wal
 // If the write fails, the process will stop
 // lockChainState or commitChainState may be nil, if it is nil, we only append qc to the qcChain array
-func (b *baseBridge) UpdateChainState(qc *types.Block, lock *types.Block, commit *types.Block) {
-	qcBlock, qcQC := b.cbft.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
-	var qcState, lockState, commitState *protocols.State
-	qcState = &protocols.State{
-		Block:      qcBlock,
-		QuorumCert: qcQC,
-	}
-	if lock == nil || commit == nil {
-		if err := b.cbft.addQCState(qcState); err != nil {
+func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
+	if lockState == nil || commitState == nil {
+		if err := b.addQCState(qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
 	} else {
-		lockBlock, lockQC := b.cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
-		commitBlock, commitQC := b.cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		lockState = &protocols.State{
-			Block:      lockBlock,
-			QuorumCert: lockQC,
-		}
-		commitState = &protocols.State{
-			Block:      commitBlock,
-			QuorumCert: commitQC,
-		}
-		if err := b.cbft.newChainState(commitState, lockState, qcState); err != nil {
+		if err := b.newChainState(commitState, lockState, qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
 	}
+}
+
+// newChainState tries to update consensus state to wal
+// Need to do continuous block check before writing.
+func (b *baseBridge) newChainState(commit *protocols.State, lock *protocols.State, qc *protocols.State) error {
+	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || qc == nil || qc.Block == nil {
+		return errNonContiguous
+	}
+	// check continuous block chain
+	if !contiguousChainBlock(commit.Block, lock.Block) || !contiguousChainBlock(lock.Block, qc.Block) {
+		return errNonContiguous
+	}
+	chainState := &protocols.ChainState{
+		Commit: commit,
+		Lock:   lock,
+		QC:     []*protocols.State{qc},
+	}
+	return b.cbft.wal.UpdateChainState(chainState)
+}
+
+// addQCState tries to add consensus qc state to wal
+// Need to do continuous block check before writing.
+func (b *baseBridge) addQCState(qc *protocols.State) error {
+	var chainState *protocols.ChainState
+	// load current consensus state
+	b.cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
+		chainState = cs
+		return nil
+	})
+	if chainState == nil || chainState.Commit == nil || chainState.Lock == nil || len(chainState.QC) <= 0 {
+		return nil
+	}
+	lock := chainState.Lock
+	// check continuous block chain
+	if !contiguousChainBlock(lock.Block, qc.Block) {
+		return errNonContiguous
+	}
+	chainState.QC = append(chainState.QC, qc)
+	return b.cbft.wal.UpdateChainState(chainState)
 }
 
 // ConfirmViewChange tries to update ConfirmedViewChange consensus msg to wal.
@@ -148,45 +171,6 @@ func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepare
 	}
 }
 
-// newChainState tries to update consensus state to wal
-// Need to do continuous block check before writing.
-func (cbft *Cbft) newChainState(commit *protocols.State, lock *protocols.State, qc *protocols.State) error {
-	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || qc == nil || qc.Block == nil {
-		return errNonContiguous
-	}
-	// check continuous block chain
-	if !cbft.contiguousChainBlock(commit.Block, lock.Block) || !cbft.contiguousChainBlock(lock.Block, qc.Block) {
-		return errNonContiguous
-	}
-	chainState := &protocols.ChainState{
-		Commit: commit,
-		Lock:   lock,
-		QC:     []*protocols.State{qc},
-	}
-	return cbft.wal.UpdateChainState(chainState)
-}
-
-// addQCState tries to add consensus qc state to wal
-// Need to do continuous block check before writing.
-func (cbft *Cbft) addQCState(qc *protocols.State) error {
-	var chainState *protocols.ChainState
-	// load current consensus state
-	cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
-		chainState = cs
-		return nil
-	})
-	if chainState == nil || chainState.Commit == nil || chainState.Lock == nil || len(chainState.QC) <= 0 {
-		return nil
-	}
-	lock := chainState.Lock
-	// check continuous block chain
-	if !cbft.contiguousChainBlock(lock.Block, qc.Block) {
-		return errNonContiguous
-	}
-	chainState.QC = append(chainState.QC, qc)
-	return cbft.wal.UpdateChainState(chainState)
-}
-
 // recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
 // need to do some necessary checks based on the latest blockchain block.
 // execute commit/lock/qcs block and load the corresponding state to cbft consensus.
@@ -197,10 +181,10 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	rootBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
 
 	isCurrent := rootBlock.NumberU64() == commit.Block.NumberU64() && rootBlock.Hash() == commit.Block.Hash()
-	isParent := cbft.contiguousChainBlock(rootBlock, commit.Block)
+	isParent := contiguousChainBlock(rootBlock, commit.Block)
 
 	if !isCurrent && !isParent {
-		return fmt.Errorf("recovery chain state errror,non contiguous chain block state, curNum:%d, curHash:%s, commitNum:%d, commitHash:%s", rootBlock.NumberU64(), rootBlock.Hash(), commit.Block.NumberU64(), commit.Block.Hash())
+		return fmt.Errorf("recovery chain state errror,non contiguous chain block state, curNum:%d, curHash:%s, commitNum:%d, commitHash:%s", rootBlock.NumberU64(), rootBlock.Hash().String(), commit.Block.NumberU64(), commit.Block.Hash().String())
 	}
 	if isParent {
 		// recovery commit state
@@ -245,7 +229,7 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 
 // tryWalChangeView tries to change view.
 func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
-	if epoch != cbft.state.Epoch() || viewNumber != cbft.state.ViewNumber() {
+	if epoch > cbft.state.Epoch() || epoch == cbft.state.Epoch() && viewNumber > cbft.state.ViewNumber() {
 		cbft.changeView(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 }
@@ -285,13 +269,13 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				return err
 			}
 
-			cbft.state.AddPrepareBlock(m.Prepare)
 			cbft.signMsgByBls(m.Prepare)
+			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
+			cbft.state.AddPrepareBlock(m.Prepare)
 			//cbft.OnPrepareBlock("", m.Prepare)
-			cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
+			//cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
 			//cbft.findQCBlock()
 			//cbft.state.SetHighestExecutedBlock(block)
-			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 		}
 
 	case *protocols.SendPrepareVote:
@@ -314,31 +298,32 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				Block:      block,
 				BlockIndex: m.Vote.BlockIndex,
 			})
+			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.BlockNum(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
 			//cbft.state.SetHighestExecutedBlock(block)
-			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 		}
 	}
 	return nil
 }
 
 // contiguousChainBlock check if the two incoming blocks are continuous.
-func (cbft *Cbft) contiguousChainBlock(p *types.Block, s *types.Block) bool {
+func contiguousChainBlock(p *types.Block, s *types.Block) bool {
 	return p.NumberU64() == s.NumberU64()-1 && p.Hash() == s.ParentHash()
 }
 
 // executeBlock call blockCacheWriter to execute block.
 func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
 	if parent == nil {
-		parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
-		if parent == nil {
-			return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash())
+		if parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); parent == nil {
+			if parent = cbft.state.HighestExecutedBlock(); parent == nil {
+				return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash().String())
+			}
 		}
 	}
 	if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
-		return fmt.Errorf("execute block failed, blockNum:%d, blockHash:%s, parentNum:%d, parentHash:%s, err:%s", block.NumberU64(), block.Hash(), parent.NumberU64(), parent.Hash(), err.Error())
+		return fmt.Errorf("execute block failed, blockNum:%d, blockHash:%s, parentNum:%d, parentHash:%s, err:%s", block.NumberU64(), block.Hash().String(), parent.NumberU64(), parent.Hash().String(), err.Error())
 	}
 	return nil
 }

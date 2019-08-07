@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -34,10 +36,20 @@ func (bs *BlockSignature) Copy() *BlockSignature {
 	}
 }
 
+type UpdateChainStateFn func(qcState, lockState, commitState *protocols.State)
+
+type ChainStateResult struct {
+	QCState     *protocols.State
+	LockState   *protocols.State
+	CommitState *protocols.State
+	Callback    UpdateChainStateFn
+}
+
 type CbftResult struct {
-	Block     *types.Block
-	ExtraData []byte
-	SyncState chan error
+	Block              *types.Block
+	ExtraData          []byte
+	SyncState          chan error
+	ChainStateUpdateCB func()
 }
 
 type ProducerState struct {
