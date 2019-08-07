@@ -545,11 +545,12 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 		}
 	}
 	ascPair := utils.SortMap(targetMap)
-	if ascPair.Len() > 1 {
-		validCount = int64(ascPair.Len() * 2 / 3)
-		for _, v := range ascPair[:validCount] {
-			avgSum += v.Value
-		}
+	validCount = int64(ascPair.Len() * 2 / 3)
+	if validCount == 0 {
+		validCount = 1
+	}
+	for _, v := range ascPair[:validCount] {
+		avgSum += v.Value
 	}
 
 	if avgSum != 0 && validCount != 0 {
