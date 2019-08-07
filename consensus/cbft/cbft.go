@@ -930,7 +930,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 }
 
 func (cbft *Cbft) sealBlockProcess(sealedBlock *types.Block) *BlockExt {
-	log.Debug("sealBlockProcess", "number", sealedBlock.NumberU64(), "hash", sealedBlock.Hash())
+	log.Debug("sealBlockProcess", "number", sealedBlock.NumberU64(), "hash", sealedBlock.Hash(), "view", cbft.viewChange.String())
 	current := NewBlockExt(sealedBlock, sealedBlock.NumberU64(), cbft.nodeLength())
 	//this block is produced by local node, so need not execute in cbft.
 	current.view = cbft.viewChange
@@ -1260,6 +1260,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			cbft.clearPending()
 			cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 		}
+		cbft.log.Debug("New Block ext", "view", cbft.viewChange.String())
 		ext.view = cbft.viewChange
 		ext.viewChangeVotes = request.ViewChangeVotes
 	}
@@ -1361,7 +1362,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			blockConfirmedTimer.UpdateSince(time.Unix(int64(ext.timestamp), 0))
 			cbft.flushReadyBlock()
 			if err := cbft.updateValidator(); err != nil {
-				cbft.log.Warn("updateValidator fail:", err)
+				cbft.log.Warn("updateValidator fail:", "err", err, "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			}
 		}
 		if !hadSend {
@@ -1412,7 +1413,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			if bs.block.isConfirmed {
 				if err := cbft.updateValidator(); err != nil {
-					cbft.log.Warn("updateValidator fail:", err)
+					cbft.log.Warn("updateValidator fail:", "err", err, "block", bs.block.String())
 				}
 			}
 			cbft.log.Debug("Execute block success", "block", bs.block.String())
@@ -1983,18 +1984,19 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 	for _, ext := range blocksToStore {
 		if cbft.getValidators().Len() > 1 && prev.number > 0 && prev.view == nil {
-			panic("previous viewChange is NIL")
+			panic("previous viewChange is nil")
 		}
 		if cbft.getValidators().Len() > 1 && prev.number > 0 && len(prev.viewChangeVotes) == 0 {
 			panic("empty viewChangeVotes")
 		}
 
 		if cbft.getValidators().Len() > 1 && prev.number > 0 && prev.prepareVotes.Votes()[0].Timestamp != prev.view.Timestamp {
-			panic("timestamp not equal")
+			panic(fmt.Sprintf("timestamp not equal view:%s, vote:%s", prev.prepareVotes.Votes()[0].String(), prev.view.String()))
 		}
 
 		if ext.view == nil {
 			if prev.view != nil {
+				cbft.log.Error("Set ext view", "ext", ext.String(), "prev", prev.String(), "view", prev.view.String())
 				ext.view = prev.view
 				ext.viewChangeVotes = prev.viewChangeVotes
 			}
@@ -2006,8 +2008,8 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 		extra, err := cbft.encodeExtra(ext.BlockExtra())
 		if err != nil {
-			cbft.log.Error("Encode ExtraData failed", "err", err)
-			continue
+			cbft.log.Error("Encode ExtraData failed", "err", err, "view", ext.view.String())
+			panic(fmt.Sprintf("encode extra data failed err:%s, ext:%s, view:%s", err.Error(), ext.String(), ext.view.String()))
 		}
 
 		cbftResult := cbfttypes.CbftResult{

@@ -39,14 +39,18 @@ func (self *GovSnapshotDB) del(blockHash common.Hash, key []byte) error {
 }
 
 func (self *GovSnapshotDB) addProposalByKey(blockHash common.Hash, key []byte, proposalId common.Hash) error {
-	hashes, err := self.getProposalIDListByKey(blockHash, key)
+	proposalIDList, err := self.getProposalIDListByKey(blockHash, key)
 	if err != nil {
 		return err
 	}
 
-	hashes = append(hashes, proposalId)
-
-	return self.put(blockHash, key, hashes)
+	for _, pID := range proposalIDList {
+		if pID == proposalId {
+			return nil
+		}
+	}
+	proposalIDList = append(proposalIDList, proposalId)
+	return self.put(blockHash, key, proposalIDList)
 }
 
 func (self *GovSnapshotDB) getVotingIDList(blockHash common.Hash) ([]common.Hash, error) {
@@ -92,27 +96,27 @@ func (self *GovSnapshotDB) getProposalIDListByKey(blockHash common.Hash, key []b
 func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 	var total []common.Hash
 
-	hashes, err := self.getVotingIDList(blockHash)
+	proposalIDList, err := self.getVotingIDList(blockHash)
 	if err != nil {
 		log.Error("list voting proposal IDs failed", "blockHash", blockHash)
 		return nil, err
-	} else if len(hashes) > 0 {
-		total = append(total, hashes...)
+	} else if len(proposalIDList) > 0 {
+		total = append(total, proposalIDList...)
 	}
 
-	hash, err := self.getPreActiveProposalID(blockHash)
+	proposalID, err := self.getPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("list pre-active proposal IDs failed", "blockHash", blockHash)
 		return nil, err
-	} else if len(hash) > 0 {
-		total = append(total, hash)
+	} else if proposalID != common.ZeroHash {
+		total = append(total, proposalID)
 	}
-	hashes, err = self.getEndIDList(blockHash)
+	proposalIDList, err = self.getEndIDList(blockHash)
 	if err != nil {
 		log.Error("list end proposal IDs failed", "blockHash", blockHash)
 		return nil, err
-	} else if len(hashes) > 0 {
-		total = append(total, hashes...)
+	} else if len(proposalIDList) > 0 {
+		total = append(total, proposalIDList...)
 	}
 
 	return total, nil
