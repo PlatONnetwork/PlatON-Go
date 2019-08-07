@@ -207,7 +207,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		"nodeId", can.NodeId.String())
 
 	// todo test
-	xcom.PrintObject("CreateCandidate, Method Start can", can)
+	//xcom.PrintObject("CreateCandidate, Method Start can", can)
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -243,7 +243,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("CreateCandidate, Method Before SetCandidateStore", can)
+	//xcom.PrintObject("CreateCandidate, Method Before SetCandidateStore", can)
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate info is failed",
@@ -257,7 +257,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("CreateCandidate, Method Before SetCanPowerStore", can)
+	//xcom.PrintObject("CreateCandidate, Method Before SetCanPowerStore", can)
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate power is failed",
@@ -271,7 +271,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("CreateCandidate, Method Before AddAccountStakeRc", can)
+	//xcom.PrintObject("CreateCandidate, Method Before AddAccountStakeRc", can)
 
 	// add the account staking Reference Count
 	if err := sk.db.AddAccountStakeRc(blockHash, can.StakingAddress); nil != err {
@@ -295,19 +295,28 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 
 	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
 
-	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
-		panic("the balance is invalid of stakingContracr Account")
-	}
-
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err {
 		return err
 	}
 
+	amount := common.Big0
+	if typ == FreeOrigin {
+		amount = can.ReleasedHes
+	} else {
+		amount = can.RestrictingPlanHes
+	}
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(amount) < 0 {
+		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+			"contract_balance", contract_balance, "rollback amount", amount)
+		panic("the balance is invalid of stakingContracr Account")
+	}
+
 	// todo test
-	xcom.PrintObject("RollBackStaking, Method Start can", can)
+	//xcom.PrintObject("RollBackStaking, Method Start can", can)
 
 	if blockNumber.Uint64() != can.StakingBlockNum {
 		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking ...", ParamsErr)
@@ -337,7 +346,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("RollBackStaking, Method Before DelCandidateStore", can)
+	//xcom.PrintObject("RollBackStaking, Method Before DelCandidateStore", can)
 
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate info is failed",
@@ -351,7 +360,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("RollBackStaking, Method Before DelCanPowerStore", can)
+	//xcom.PrintObject("RollBackStaking, Method Before DelCanPowerStore", can)
 
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate power failed",
@@ -365,7 +374,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("RollBackStaking, Method Before SubAccountStakeRc", can)
+	//xcom.PrintObject("RollBackStaking, Method Before SubAccountStakeRc", can)
 
 	// sub the account staking Reference Count
 	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
@@ -402,7 +411,7 @@ func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.I
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("EditCandidate, Method Before SetCandidateStore", can)
+	//xcom.PrintObject("EditCandidate, Method Before SetCandidateStore", can)
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to EditCandidate on stakingPlugin: Store Candidate info is failed",
@@ -429,7 +438,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		"epoch", epoch, "nodeId", can.NodeId.String(), "typ", typ, "amount", amount)
 
 	// todo test
-	xcom.PrintObject("IncreaseStaking, Method Start can", can)
+	//xcom.PrintObject("IncreaseStaking, Method Start can", can)
 
 	lazyCalcStakeAmount(epoch, can)
 
@@ -468,7 +477,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("IncreaseStaking, Method Before DelCanPowerStore", can)
+	//xcom.PrintObject("IncreaseStaking, Method Before DelCanPowerStore", can)
 
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -485,7 +494,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("IncreaseStaking, Method Before SetCanPowerStore", can)
+	//xcom.PrintObject("IncreaseStaking, Method Before SetCanPowerStore", can)
 
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
@@ -500,7 +509,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("IncreaseStaking, Method Before SetCandidateStore", can)
+	//xcom.PrintObject("IncreaseStaking, Method Before SetCandidateStore", can)
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Store Candidate info is failed",
@@ -535,7 +544,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("WithdrewStaking, Method Before DelCanPowerStore", can)
+	//xcom.PrintObject("WithdrewStaking, Method Before DelCanPowerStore", can)
 
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -558,7 +567,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("WithdrewStaking, Method Before SetCandidateStore", can)
+		//xcom.PrintObject("WithdrewStaking, Method Before SetCandidateStore", can)
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Store Candidate info is failed",
@@ -573,7 +582,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("WithdrewStaking, Method Before DelCandidateStore", can)
+		//xcom.PrintObject("WithdrewStaking, Method Before DelCandidateStore", can)
 
 		// Clean candidate info
 		if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
@@ -589,7 +598,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("WithdrewStaking, Method Before SubAccountStakeRc", can)
+	//xcom.PrintObject("WithdrewStaking, Method Before SubAccountStakeRc", can)
 
 	// sub the account staking Reference Count
 	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
@@ -610,9 +619,13 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	total := calCanTotalAmount(can)
+
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(total) < 0 {
+		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contract_balance",
+			contract_balance, "withdrewStake amount", total)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -638,17 +651,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		//can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
 		can.RestrictingPlanHes = common.Big0
 	}
-	//addItem := false
-	//
-	//if can.Released.Cmp(common.Big0) > 0 {
-	//	can.Shares = new(big.Int).Sub(can.Shares, can.Released)
-	//	addItem = true
-	//}
-	//
-	//if can.RestrictingPlan.Cmp(common.Big0) > 0 {
-	//	can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlan)
-	//	addItem = true
-	//}
+
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 
 		// TODO test
@@ -657,7 +660,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("WithdrewStaking, Method Before AddUnStakeItemStore", can)
+		//xcom.PrintObject("WithdrewStaking, Method Before AddUnStakeItemStore", can)
 
 		if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
@@ -750,13 +753,16 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	lazyCalcStakeAmount(epoch, can)
+
+	total := calCanTotalAmount(can)
+
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(total) < 0 {
+		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account",
+			"blockHash", blockHash.Hex(), "contract_balance", contract_balance, "handle unstake amount", total)
 		panic("the balance is invalid of stakingContracr Account")
 	}
-
-	lazyCalcStakeAmount(epoch, can)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
@@ -804,7 +810,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("handleUnStake, Method Before DelCandidateStore", can)
+	//xcom.PrintObject("handleUnStake, Method Before DelCandidateStore", can)
 
 	// delete can info
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
@@ -930,7 +936,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("Delegate, Method Before SetDelegateStore, del", del)
+	//xcom.PrintObject("Delegate, Method Before SetDelegateStore, del", del)
 
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
@@ -945,7 +951,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("Delegate, Method Before DelCanPowerStore, can", can)
+	//xcom.PrintObject("Delegate, Method Before DelCanPowerStore, can", can)
 
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -963,7 +969,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("Delegate, Method Before SetCanPowerStore, can", can)
+	//xcom.PrintObject("Delegate, Method Before SetCanPowerStore, can", can)
 
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -978,7 +984,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("Delegate, Method Before SetCandidateStore, can", can)
+	//xcom.PrintObject("Delegate, Method Before SetCandidateStore, can", can)
 
 	// update can info about Shares
 	if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
@@ -1001,11 +1007,13 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	log.Debug("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount)
 	// todo test
-	xcom.PrintObject("Call WithdrewDelegate, the delegate info", del)
+	//xcom.PrintObject("Call WithdrewDelegate, the delegate info", del)
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(amount) < 0 {
+		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"contract_balance", contract_balance, "withdrew del amount", amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -1166,7 +1174,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("WithdrewDelegate, Method Before DelDelegateStore, del", del)
+			//xcom.PrintObject("WithdrewDelegate, Method Before DelDelegateStore, del", del)
 
 			// clean delegate
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
@@ -1190,7 +1198,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("WithdrewDelegate, Method Before SetDelegateStore, del", del)
+			//xcom.PrintObject("WithdrewDelegate, Method Before SetDelegateStore, del", del)
 
 			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Store detegate is failed",
@@ -1271,7 +1279,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("WithdrewDelegate, Method Before AddUnDelegateItemStore, del", del)
+			//xcom.PrintObject("WithdrewDelegate, Method Before AddUnDelegateItemStore, del", del)
 
 			// add a UnDelegateItem
 			sk.db.AddUnDelegateItemStore(blockHash, delAddr, nodeId, epoch, stakingBlockNum, remain)
@@ -1296,7 +1304,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("WithdrewDelegate, Method Before SetDelegateStore, del", del)
+			//xcom.PrintObject("WithdrewDelegate, Method Before SetDelegateStore, del", del)
 
 			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin: Store delegate info is failed", "blockNumber",
@@ -1312,7 +1320,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("WithdrewDelegate, Method Before DelDelegateStore, del", del)
+			//xcom.PrintObject("WithdrewDelegate, Method Before DelDelegateStore, del", del)
 
 			// Clean delegate info
 			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
@@ -1329,7 +1337,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("WithdrewDelegate, Method Before DelCanPowerStore, can", can)
+		//xcom.PrintObject("WithdrewDelegate, Method Before DelCanPowerStore, can", can)
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete candidate old power is failed", "blockNumber",
@@ -1351,7 +1359,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("WithdrewDelegate, Method Before SetCandidateStore, can", can)
+		//xcom.PrintObject("WithdrewDelegate, Method Before SetCandidateStore, can", can)
 
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate info is failed", "blockNumber",
@@ -1366,7 +1374,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("WithdrewDelegate, Method Before SetCanPowerStore, can", can)
+		//xcom.PrintObject("WithdrewDelegate, Method Before SetCanPowerStore, can", can)
 
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Store candidate old power is failed", "blockNumber",
@@ -1438,7 +1446,8 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
 	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account",
+			"blockHash", blockHash.Hex(), "contract_balance", contract_balance)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -1510,7 +1519,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("handleUnDelegate, Method Before DelDelegateStoreBySuffix, del", del)
+		//xcom.PrintObject("handleUnDelegate, Method Before DelDelegateStoreBySuffix, del", del)
 
 		// clean the delegate
 		if err := sk.db.DelDelegateStoreBySuffix(blockHash, unDel.KeySuffix); nil != err {
@@ -1600,7 +1609,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("handleUnDelegate, Method Before SetDelegateStoreBySuffix, del", del)
+		//xcom.PrintObject("handleUnDelegate, Method Before SetDelegateStoreBySuffix, del", del)
 
 		if err := sk.db.SetDelegateStoreBySuffix(blockHash, unDel.KeySuffix, del); nil != err {
 			log.Error("Failed to handleUnDelegate on stakingPlugin: Store delegate info is failed",
@@ -1717,7 +1726,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("ElectNextVerifierList, Method Before setVerifierList, arr", new_verifierArr)
+	//xcom.PrintObject("ElectNextVerifierList, Method Before setVerifierList, arr", new_verifierArr)
 
 	err = sk.setVerifierList(blockHash, new_verifierArr)
 	if nil != err {
@@ -2129,7 +2138,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	blockNumber := header.Number.Uint64()
 
 	// the validators of Current Epoch
-	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartIrr)
+	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to call Election: No found current epoch validators", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -2137,7 +2146,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 
 	// the validators of Current Round
-	curr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartIrr)
+	curr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to Election: No found the current round validators", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -2310,7 +2319,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("Election, Method Before setRoundValList, arr", next)
+	//xcom.PrintObject("Election, Method Before setRoundValList, arr", next)
 
 	if err := sk.setRoundValList(blockHash, next); nil != err {
 		log.Error("Failed to SetNextValidatorList on Election", "blockNumber", blockNumber,
@@ -2346,7 +2355,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("Election, Method Before SetCandidateStore, can", can)
+			//xcom.PrintObject("Election, Method Before SetCandidateStore, can", can)
 
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
@@ -2381,8 +2390,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		"reporter", caller.Hex())
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to SlashCandidates: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(amount) < 0 {
+		log.Error("Failed to SlashCandidates: the balance is invalid of stakingContracr Account", "contract_balance",
+			contract_balance, "slash amount", amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -2404,15 +2414,16 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	lazyCalcStakeAmount(epoch, can)
 
-	aboutRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
-	aboutRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
-	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
+	/**
+	Balance that can only be effective for Slash
+	*/
+	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
 
 	if total.Cmp(amount) < 0 {
 		log.Error("Failed to SlashCandidates: the candidate total staking amount is not enough",
 			"candidate total amount", total, "slashing amount", amount, "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-		return common.BizErrorf("Failed to SlashCandidates: the candidate total staking amount is not enough"+
+		return common.BizErrorf("Failed to SlashCandidates: the candidate total effective staking amount is not enough"+
 			", candidate total amount:%s, slashing amount: %s", total, amount)
 	}
 
@@ -2422,7 +2433,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("SlashCandidates, Method Before DelCanPowerStore, can", can)
+	//xcom.PrintObject("SlashCandidates, Method Before DelCanPowerStore, can", can)
 
 	// clean the candidate power, first
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -2441,6 +2452,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		if remain.Cmp(balance) >= 0 {
 
 			state.SubBalance(vm.StakingContractAddr, balance)
+
 			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, balance)
 			} else {
@@ -2460,7 +2472,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			balanceTmp = common.Big0
 
 		} else {
+
 			state.SubBalance(vm.StakingContractAddr, remain)
+
 			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, balance)
 			} else {
@@ -2483,23 +2497,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return remainTmp, balanceTmp, nil
 	}
 
-	if can.ReleasedHes.Cmp(common.Big0) > 0 {
-
-		val, rval, err := slashFunc("ReleasedHes", remain, can.ReleasedHes, false)
-		if nil != err {
-			return err
-		}
-		remain, can.ReleasedHes = val, rval
-
-	}
-
-	if remain.Cmp(common.Big0) > 0 && can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc("RestrictingPlanHes", remain, can.RestrictingPlanHes, true)
-		if nil != err {
-			return err
-		}
-		remain, can.RestrictingPlanHes = val, rval
-	}
+	/**
+	Balance that can only be effective for Slash
+	*/
 
 	if remain.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
 		val, rval, err := slashFunc("Released", remain, can.Released, false)
@@ -2532,9 +2532,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		pposHash = sk.db.GetLastKVHash(blockHash)
 		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
-
-		// todo test
-		xcom.PrintObject("SlashCandidates, Method Before SetCandidateStore, can", can)
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
@@ -2576,11 +2573,24 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		log.Debug("SlashCandidates pposHash, Method Before SetCanPowerStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-		// todo test
-		xcom.PrintObject("SlashCandidates, Method Before SetCanPowerStore, can", can)
-
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
-		sk.db.SetCanPowerStore(blockHash, addr, can)
+		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashType,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			return err
+		}
+
+		// TODO test
+		pposHash = sk.db.GetLastKVHash(blockHash)
+		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+			return err
+		}
+
 	} else {
 		//because of deleted candidate info ,clean Shares
 		can.Shares = common.Big0
@@ -2592,13 +2602,71 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("SlashCandidates, Method Before SubAccountStakeRc, can", can)
+		//xcom.PrintObject("SlashCandidates, Method Before SubAccountStakeRc, can", can)
 
 		// need to sub account rc
 		if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 			log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
+		}
+
+		// withdrew Stake if candidate status is invalid
+		if can.ReleasedHes.Cmp(common.Big0) > 0 {
+
+			state.AddBalance(can.StakingAddress, can.ReleasedHes)
+			state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
+			can.ReleasedHes = common.Big0
+		}
+		if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
+
+			err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
+			if nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			}
+
+			//can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
+			can.RestrictingPlanHes = common.Big0
+		}
+
+		if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
+
+			// TODO test
+			pposHash := sk.db.GetLastKVHash(blockHash)
+			log.Debug("SlashCandidates, Method Before AddUnStakeItemStore", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+			if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			}
+
+			// TODO test
+			pposHash = sk.db.GetLastKVHash(blockHash)
+			log.Debug("SlashCandidates, Method Before SetCandidateStore", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: Store Candidate info is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			}
+		} else {
+
+			// TODO test
+			pposHash := sk.db.GetLastKVHash(blockHash)
+			log.Debug("SlashCandidates, Method Before DelCandidateStore", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+			// Clean candidate info
+			if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: Delete Candidate info is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			}
 		}
 
 		validators, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
@@ -2635,7 +2703,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// todo test
-			xcom.PrintObject("SlashCandidates, Method Before setVerifierList, validators", validators)
+			//xcom.PrintObject("SlashCandidates, Method Before setVerifierList, validators", validators)
 
 			if err := sk.setVerifierList(blockHash, validators); nil != err {
 				log.Error("Failed to SlashCandidates: Store Verifier List is failed", "slashType", slashType,
@@ -2643,20 +2711,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				return err
 			}
 		}
-	}
-
-	// TODO test
-	pposHash = sk.db.GetLastKVHash(blockHash)
-	log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
-
-	// todo test
-	xcom.PrintObject("SlashCandidates, Method Before SetCandidateStore, can", can)
-
-	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
-		log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return err
 	}
 
 	// TODO test
@@ -2712,7 +2766,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("ProposalPassedNotify, Method Before DelCanPowerStore, can", can)
+		//xcom.PrintObject("ProposalPassedNotify, Method Before DelCanPowerStore, can", can)
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 			log.Error("Call ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
@@ -2728,7 +2782,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("ProposalPassedNotify, Method Before SetCanPowerStore, can", can)
+		//xcom.PrintObject("ProposalPassedNotify, Method Before SetCanPowerStore, can", can)
 
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Call ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
@@ -2742,7 +2796,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// todo test
-		xcom.PrintObject("ProposalPassedNotify, Method Before SetCandidateStore, can", can)
+		//xcom.PrintObject("ProposalPassedNotify, Method Before SetCandidateStore, can", can)
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Call ProposalPassedNotify: Store Candidate info is failed", "blockNumber", blockNumber,
@@ -2770,7 +2824,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("ProposalPassedNotify, Method Before setVerifierList, epochValidators", epochValidators)
+	//xcom.PrintObject("ProposalPassedNotify, Method Before setVerifierList, epochValidators", epochValidators)
 
 	// update epoch validators
 	if err := sk.setVerifierList(blockHash, epochValidators); nil != err {
@@ -2815,7 +2869,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("DeclarePromoteNotify, Method Before DelCanPowerStore, can", can)
+	//xcom.PrintObject("DeclarePromoteNotify, Method Before DelCanPowerStore, can", can)
 
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Call DeclarePromoteNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
@@ -2831,7 +2885,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("DeclarePromoteNotify, Method Before SetCanPowerStore, can", can)
+	//xcom.PrintObject("DeclarePromoteNotify, Method Before SetCanPowerStore, can", can)
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Call DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
@@ -2845,7 +2899,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 	// todo test
-	xcom.PrintObject("DeclarePromoteNotify, Method Before SetCandidateStore, can", can)
+	//xcom.PrintObject("DeclarePromoteNotify, Method Before SetCandidateStore, can", can)
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Call DeclarePromoteNotify: Store Candidate info is failed", "blockNumber", blockNumber,
@@ -3139,6 +3193,11 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 
 	var targetIndex *staking.ValArrIndex
 
+	var preTargetNumber uint64
+	if blockNumber > xutil.ConsensusSize() {
+		preTargetNumber = blockNumber - xutil.ConsensusSize()
+	}
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
@@ -3146,8 +3205,8 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 		}
 
 		for i, index := range indexs {
-			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
-				targetIndex = indexs[i-1]
+			if index.Start <= preTargetNumber && index.End >= preTargetNumber {
+				targetIndex = indexs[i]
 				break
 			}
 		}
@@ -3158,8 +3217,8 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 		}
 
 		for i, index := range indexs {
-			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
-				targetIndex = indexs[i-1]
+			if index.Start <= preTargetNumber && index.End >= preTargetNumber {
+				targetIndex = indexs[i]
 				break
 			}
 		}
@@ -3485,4 +3544,10 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 
 func (sk *StakingPlugin) HasStake(blockHash common.Hash, addr common.Address) (bool, error) {
 	return sk.db.HasAccountStakeRc(blockHash, addr)
+}
+
+func calCanTotalAmount(can *staking.Candidate) *big.Int {
+	remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
+	remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+	return new(big.Int).Add(remainRelease, remainRestrictingPlan)
 }

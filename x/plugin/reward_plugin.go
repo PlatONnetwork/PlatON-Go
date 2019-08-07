@@ -61,7 +61,9 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			return err
 		}
 		// set current to latest epoch
-		SetLatestEpoch(state, xutil.CalculateEpoch(blockNumber))
+		currEpoch := xutil.CalculateEpoch(blockNumber)
+		log.Info("Set latest epoch at settlement block", "blockNumber", blockNumber, "epoch", currEpoch)
+		SetLatestEpoch(state, currEpoch)
 	}
 
 	if err := rmp.rewardNewBlock(head, newBlockReward, state); err != nil {

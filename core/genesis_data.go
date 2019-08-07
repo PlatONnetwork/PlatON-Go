@@ -215,11 +215,11 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		case i == 0:
 			allowance := new(big.Int).Mul(issue, big.NewInt(15))
 			allowance = allowance.Div(allowance, big.NewInt(1000))
-			stateDb.SetState(account, releaseAmountKey, allowance.Bytes())
+			stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
 		case i == 1:
 			allowance := new(big.Int).Mul(issue, big.NewInt(5))
 			allowance = allowance.Div(allowance, big.NewInt(1000))
-			stateDb.SetState(account, releaseAmountKey, allowance.Bytes())
+			stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
 		}
 
 		// store release epoch record
@@ -243,7 +243,7 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 
 	// store restricting account info
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDb.SetState(account, restrictingKey, bRestrictInfo)
+	stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
 
 	return nil
 }
@@ -284,6 +284,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 		return err
 	}
 	// Store genesis last Epoch
+	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
 	plugin.SetLatestEpoch(statedb, uint64(0))
 	return nil
 }

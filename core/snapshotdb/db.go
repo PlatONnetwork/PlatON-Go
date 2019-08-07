@@ -9,8 +9,6 @@ import (
 	"math/big"
 	"path"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
@@ -296,7 +294,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		return errors.New("can't put read only block")
 	}
 	// TODO test
-	log.Debug("old pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
+	logger.Debug("old pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
 
 	jData := journalData{
 		Key:   key,
@@ -315,6 +313,6 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	}
 	block.kvHash = jData.Hash
 	// TODO test
-	log.Debug("new pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
+	logger.Debug("new pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
 	return nil
 }

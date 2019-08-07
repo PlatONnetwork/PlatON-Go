@@ -477,29 +477,31 @@ func (s *snapshotDB) rUnLock() {
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 	s.rLock()
 	defer s.rUnLock()
-	blocks := make([]*blockData, 0)
+	//blocks := make([]*blockData, 0)
 	for {
 		if block, ok := s.unCommit.blocks[hash]; ok {
 			if hash == block.ParentHash {
 				return nil, errors.New("getFromRecognized loop error")
 			}
-			blocks = append(blocks, block)
-			hash = block.ParentHash
+			v, err := block.data.Get(key)
+			if err == nil {
+				if v == nil || len(v) == 0 {
+					return v, ErrNotFound
+				}
+				return v, nil
+			}
+			if err == memdb.ErrNotFound {
+				hash = block.ParentHash
+				continue
+			}
+			return nil, err
 		} else {
 			break
 		}
 	}
 	if len(s.committed) > 0 {
 		for i := len(s.committed) - 1; i >= 0; i-- {
-			if s.committed[i].BlockHash == hash {
-				blocks = append(blocks, s.committed[i])
-				hash = s.committed[i].ParentHash
-			}
-		}
-	}
-	if len(blocks) != 0 {
-		for _, block := range blocks {
-			v, err := block.data.Get(key)
+			v, err := s.committed[i].data.Get(key)
 			if err == nil {
 				if v == nil || len(v) == 0 {
 					return v, ErrNotFound
@@ -675,7 +677,7 @@ func (s *snapshotDB) Clear() error {
 // the key range that satisfy the given prefix
 // the hash means from  unRecognized or recognized
 // return iterates ,iterates over a DB's key/value pairs in key order.
-// The iterator must be released after use, by calling Release method.
+// The iterator must be released after use, by calling Release method.t
 // Also read Iterator documentation of the leveldb/iterator package.
 func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iterator.Iterator {
 	s.rLock()
