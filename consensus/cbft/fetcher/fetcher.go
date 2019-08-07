@@ -85,7 +85,7 @@ func (f *Fetcher) Len() int {
 }
 
 func (f *Fetcher) loop() {
-	fetchTimer := time.NewTimer(100*time.Millisecond)
+	fetchTimer := time.NewTimer(0)
 	for {
 		select {
 		case task := <-f.newTask:
