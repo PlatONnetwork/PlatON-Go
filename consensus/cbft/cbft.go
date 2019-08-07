@@ -163,7 +163,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
-	atomic.StoreInt32(&cbft.loading, 1)
+	utils.SetTrue(&cbft.loading)
 	if isGenesis() {
 		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
@@ -193,7 +193,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
-	atomic.StoreInt32(&cbft.loading, 0)
+	utils.SetFalse(&cbft.loading)
 
 	// init handler and router to process message.
 	// cbft -> handler -> router.
@@ -916,16 +916,14 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 	if cbft.updateChainStateHook != nil {
 		cbft.updateChainStateHook(&protocols.State{qcBlock, qcQC}, &protocols.State{lockBlock, lockQC}, &protocols.State{commitBlock, commitQC})
 	}
+	qcState := &protocols.State{qcBlock, qcQC}
+	lockState := &protocols.State{lockBlock, lockQC}
+	commitState := &protocols.State{commitBlock, commitQC}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:     commitBlock,
-		ExtraData: extra,
-		SyncState: nil,
-		ChainStateResult: &cbfttypes.ChainStateResult{
-			QCState:     &protocols.State{qcBlock, qcQC},
-			LockState:   &protocols.State{lockBlock, lockQC},
-			CommitState: &protocols.State{commitBlock, commitQC},
-			Callback:    cbft.bridge.UpdateChainState,
-		},
+		Block:              commitBlock,
+		ExtraData:          extra,
+		SyncState:          nil,
+		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },
 	})
 }
 
@@ -987,7 +985,7 @@ func (cbft *Cbft) signMsgByBls(msg ctypes.ConsensusMsg) error {
 }
 
 func (cbft *Cbft) isLoading() bool {
-	return atomic.LoadInt32(&cbft.loading) == 1
+	return utils.True(&cbft.loading)
 }
 
 func (cbft *Cbft) isStart() bool {

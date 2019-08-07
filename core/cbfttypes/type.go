@@ -46,10 +46,10 @@ type ChainStateResult struct {
 }
 
 type CbftResult struct {
-	Block            *types.Block
-	ExtraData        []byte
-	SyncState        chan error
-	ChainStateResult *ChainStateResult
+	Block              *types.Block
+	ExtraData          []byte
+	SyncState          chan error
+	ChainStateUpdateCB func()
 }
 
 type ProducerState struct {
