@@ -569,12 +569,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.findQCBlock()
 
 	cbft.network.Broadcast(prepareBlock)
-
+	// Record the number of blocks.
+	minedCounter.Inc(1)
+	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
+	if preBlock != nil {
+		blockMinedTimer.UpdateSince(time.Unix(preBlock.Time().Int64(), 0))
+	}
 	go func() {
 		select {
 		case <-stop:
 			return
 		case results <- block:
+			blockProduceMeter.Mark(1)
 		default:
 			cbft.log.Warn("Sealing result channel is not ready by miner", "sealHash", block.Header().SealHash())
 		}
@@ -776,7 +782,9 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	}
 	select {
 	case err := <-result:
-
+		if err == nil {
+			masterCounter.Inc(1)
+		}
 		return err == nil, err
 	case <-time.After(2 * time.Millisecond):
 		result <- errors.New("timeout")
@@ -826,7 +834,8 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- errors.New("produce block over limit")
 		return
 	}
-
+	proposerIndexGauage.Update(int64(currentProposer))
+	validatorCountGauage.Update(int64(numValidators))
 	result <- nil
 }
 

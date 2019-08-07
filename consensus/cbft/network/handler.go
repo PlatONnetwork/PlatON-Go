@@ -180,6 +180,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 				continue
 			}
 			if peer.ContainsMessageHash(msgHash) {
+				messageRepeatMeter.Mark(1)
 				log.Trace("Needn't to broadcast", "type", reflect.TypeOf(msg), "hash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 				return fmt.Errorf("contain message and not formard, msgHash:%s", msgHash.TerminalString())
 			}
@@ -210,7 +211,11 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 	switch msgType {
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg,
 		protocols.BlockQuorumCertMsg, protocols.PrepareBlockHashMsg:
-		return forward()
+		err := forward()
+		if err != nil {
+			messageGossipMeter.Mark(1)
+		}
+		return err
 	default:
 		log.Warn("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 	}

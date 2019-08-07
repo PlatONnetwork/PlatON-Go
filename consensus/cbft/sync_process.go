@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -42,11 +43,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
-
+					start := time.Now()
 					if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
+					blockExecutedTimer.UpdateSince(start)
 					parent = block
 				}
 
@@ -390,7 +392,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		}
 	}
 	// Return view QC in the case of less than 1.
-	if msg.ViewNumber+1 == localViewNumber {
+	if msg.ViewNumber+1 == localViewNumber || msg.Epoch+1 == localEpoch {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
 			cbft.log.Error("Not found lastViewChangeQC")
@@ -510,7 +512,8 @@ func (cbft *Cbft) OnPong(nodeID string, netLatency int64) error {
 //
 // The average is the average delay between the current
 // node and all consensus nodes.
-func (cbft *Cbft) AvgLatency() int64 {
+// Return value unit: milliseconds.
+func (cbft *Cbft) AvgLatency() time.Duration {
 	cbft.netLatencyLock.Lock()
 	defer cbft.netLatencyLock.Unlock()
 	// The intersection of peerSets and consensusNodes.
@@ -537,10 +540,14 @@ func (cbft *Cbft) AvgLatency() int64 {
 	if avgSum != 0 {
 		result = avgSum / int64(len(target))
 	} else {
-		result = protocols.DEFAULT_AVG_LATENCY
+		result = protocols.DefaultAvgLatency
 	}
 	cbft.log.Debug("Get avg latency", "avg", result)
-	return result
+	return time.Duration(result)
+}
+
+func (cbft *Cbft) DefaultAvgLatency() time.Duration {
+	return time.Duration(protocols.DefaultAvgLatency)
 }
 
 func calAverage(latencyList *list.List) int64 {

@@ -84,29 +84,10 @@ var (
 	miscOutPacketsMeter = metrics.NewRegisteredMeter("cbft/misc/out/packets", nil)
 	miscOutTrafficMeter = metrics.NewRegisteredMeter("cbft/misc/out/traffic", nil)
 
-	// for the consensus of cbft
-	blockMinedTimer               = metrics.NewRegisteredTimer("cbft/blocks/mined", nil)
-	blockExecuteTimer             = metrics.NewRegisteredTimer("cbft/blocks/execute", nil)
-	blockConfirmedTimer           = metrics.NewRegisteredTimer("cbft/blocks/confirmed", nil)
-	viewChangeTimer               = metrics.NewRegisteredTimer("cbft/views/change", nil)
-	viewChangeConfirmedTimer      = metrics.NewRegisteredTimer("cbft/views/confirm", nil)
-	viewChangeVoteFulfillTimer    = metrics.NewRegisteredTimer("cbft/views/count/fulfill", nil)
-	messageGossipMeter            = metrics.NewRegisteredMeter("cbft/meter/message/gossip", nil)
-	messageRepeatMeter            = metrics.NewRegisteredMeter("cbft/meter/message/repeat", nil)
-	blockMinedMeter               = metrics.NewRegisteredMeter("cbft/meter/blocks/mined", nil)
-	blockVerifyFailMeter          = metrics.NewRegisteredMeter("cbft/meter/blocks/verify/fail", nil)
-	signatureVerifyFailMeter      = metrics.NewRegisteredMeter("cbft/meter/signature/verify/fail", nil)
-	viewChangeVoteVerifyFailMeter = metrics.NewRegisteredMeter("cbft/meter/view_change_votes/verify/fail", nil)
-	blockConfirmedMeter           = metrics.NewRegisteredMeter("cbft/meter/blocks/confirmed", nil)
-	viewChangeTimeoutMeter        = metrics.NewRegisteredMeter("cbft/meter/view/view_changes/timeout", nil)
-	viewChangeVoteTimeoutMeter    = metrics.NewRegisteredMeter("cbft/meter/view/view_change_votes/timeout", nil)
+	messageGossipMeter = metrics.NewRegisteredMeter("cbft/meter/message/gossip", nil)
+	messageRepeatMeter = metrics.NewRegisteredMeter("cbft/meter/message/repeat", nil)
 
-	viewChangeCounter    = metrics.NewRegisteredCounter("cbft/counter/view_changes/count", nil)
-	consensusJoinCounter = metrics.NewRegisteredCounter("cbft/counter/consensus/join", nil) //
-
-	blockHighNumConfirmedGauage = metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/confirmed", nil)
-	blockHighNumLogicGauage     = metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/logic", nil)
-	viewChangeGauage            = metrics.NewRegisteredGauge("cbft/gauage/views/viewchange", nil)
+	neighborPeerGauage = metrics.NewRegisteredGauge("cbft/gauage/peer/value", nil)
 )
 
 // meteredMsgReadWriter is a wrapper around a p2p.MsgReadWriter, capable of

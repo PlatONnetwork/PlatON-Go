@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -19,6 +20,7 @@ import (
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
+		blockCheckFailureMeter.Mark(1)
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 			return err
@@ -40,6 +42,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	}
 
 	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
+		signatureCheckFailureMeter.Mark(1)
 		return err
 	}
 
@@ -260,6 +263,8 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 		return err
 	}
 	cbft.state.PendingPrepareVote().Push(prepareVote)
+	// Record the number of participating consensus
+	consensusCounter.Inc(1)
 
 	cbft.trySendPrepareVote()
 	return nil
@@ -356,6 +361,8 @@ func (cbft *Cbft) findQCBlock() {
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
 		cbft.insertQCBlock(block, qc)
 		cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
+		// metrics
+		blockQCCollectedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
 	}
 
 	cbft.tryChangeView()
@@ -379,6 +386,12 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		cbft.bridge.UpdateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
+		// metrics
+		blockNumberGauage.Update(int64(commit.NumberU64()))
+		highestQCNumberGauage.Update(int64(highestqc.NumberU64()))
+		highestLockedNumberGauage.Update(int64(lock.NumberU64()))
+		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
+		blockConfirmedMeter.Mark(1)
 	} else {
 		cbft.bridge.UpdateChainState(highestqc, nil, nil)
 	}
@@ -438,6 +451,12 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
+
+	// metrics.
+	viewNumberGauage.Update(int64(viewNumber))
+	epochNumberGauage.Update(int64(epoch))
+	viewChangedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
+
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {
 		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
