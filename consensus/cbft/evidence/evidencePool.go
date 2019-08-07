@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -184,7 +185,16 @@ func (pool baseEvidencePool) Close() {
 }
 
 func verify(msg types.ConsensusMsg) Identity {
-	return Identity(msg.IdentityMsg())
+	msgId := ""
+	switch m := msg.(type) {
+	case *protocols.PrepareBlock:
+		msgId = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ProposalIndex)
+	case *protocols.PrepareVote:
+		msgId = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ValidatorIndex)
+	case *protocols.ViewChange:
+		msgId = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ValidatorIndex)
+	}
+	return Identity(msgId)
 }
 
 func encodeKey(e consensus.Evidence, id Identity) []byte {
