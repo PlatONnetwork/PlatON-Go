@@ -511,6 +511,6 @@ func TestCbft_OnPong(t *testing.T) {
 	}
 	for i := 0; i < len(testCases); i++ {
 		value := running(testCases[i].value)
-		assert.Equal(t, testCases[i].expect, int64(value))
+		assert.Equal(t, testCases[i].expect*1000000, int64(value))
 	}
 }

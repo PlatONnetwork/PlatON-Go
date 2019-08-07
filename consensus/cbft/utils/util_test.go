@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -118,4 +119,26 @@ func Test_SortMap(t *testing.T) {
 	t.Log(result[:3])
 	assert.Equal(t, "a", result[0].Key)
 	assert.Equal(t, int64(1), result[0].Value)
+}
+
+func Test_Push(t *testing.T) {
+	testCase := []struct {
+		key   string
+		value int64
+	}{
+		{"a", 1},
+		{"c", 3},
+		{"b", 2},
+		{"d", 5},
+		{"e", 2},
+	}
+	var pair KeyValuePairList
+	for _, v := range testCase {
+		pair.Push(KeyValuePair{v.key, v.value})
+	}
+	sort.Sort(pair)
+	t.Log(pair)
+	t.Log(pair[:3])
+	assert.Equal(t, "a", pair[0].Key)
+	assert.Equal(t, int64(1), pair[0].Value)
 }

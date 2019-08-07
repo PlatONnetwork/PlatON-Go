@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
@@ -537,33 +538,29 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 		validCount int64 = 0
 	)
 	// Take 2/3 nodes from the target.
-	targetMap := make(map[string]int64, 0)
+	var pair utils.KeyValuePairList
 	for _, v := range target {
 		if latencyList, exist := cbft.netLatencyMap[v]; exist {
 			avg := calAverage(latencyList)
-			targetMap[v] = avg
+			pair.Push(utils.KeyValuePair{Key: v, Value: avg})
 		}
 	}
-	ascPair := utils.SortMap(targetMap)
-	validCount = int64(ascPair.Len() * 2 / 3)
+	sort.Sort(pair)
+	validCount = int64(pair.Len() * 2 / 3)
 	if validCount == 0 {
 		validCount = 1
 	}
-	for _, v := range ascPair[:validCount] {
+	for _, v := range pair[:validCount] {
 		avgSum += v.Value
 	}
 
-	if avgSum != 0 && validCount != 0 {
-		result = avgSum / validCount
-	} else {
-		result = protocols.DefaultAvgLatency
-	}
+	result = avgSum / validCount
 	cbft.log.Debug("Get avg latency", "avg", result)
-	return time.Duration(result)
+	return time.Duration(result) * time.Millisecond
 }
 
 func (cbft *Cbft) DefaultAvgLatency() time.Duration {
-	return time.Duration(protocols.DefaultAvgLatency)
+	return time.Duration(protocols.DefaultAvgLatency) * time.Millisecond
 }
 
 func calAverage(latencyList *list.List) int64 {
