@@ -198,10 +198,6 @@ func encodeKey(e consensus.Evidence, id Identity) []byte {
 		buf.WriteByte(viewDualPrefix)
 	}
 
-	// blockNumber
-	num := [8]byte{}
-	binary.BigEndian.PutUint64(num[:], e.BlockNumber())
-	buf.Write(num[:])
 	// epoch
 	epoch := [8]byte{}
 	binary.BigEndian.PutUint64(epoch[:], e.Epoch())
@@ -210,6 +206,10 @@ func encodeKey(e consensus.Evidence, id Identity) []byte {
 	viewNum := [8]byte{}
 	binary.BigEndian.PutUint64(viewNum[:], e.ViewNumber())
 	buf.Write(viewNum[:])
+	// blockNumber
+	num := [8]byte{}
+	binary.BigEndian.PutUint64(num[:], e.BlockNumber())
+	buf.Write(num[:])
 	// node identity
 	buf.Write(id.Bytes())
 	// Evidence hash

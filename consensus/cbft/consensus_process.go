@@ -3,6 +3,8 @@ package cbft
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -43,6 +45,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		return err
 	}
 
+	if err := cbft.evPool.AddPrepareBlock(msg); err != nil {
+		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
+			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
+			return err
+		}
+	}
+
 	// The new block is notified by the PrepareBlockHash to the nodes in the network.
 	cbft.state.AddPrepareBlock(msg)
 	cbft.prepareBlockFetchRules(id, msg)
@@ -67,6 +76,13 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 		return err
 	}
 
+	if err := cbft.evPool.AddPrepareVote(msg); err != nil {
+		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
+			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
+			return err
+		}
+	}
+
 	cbft.insertPrepareQC(msg.ParentQC)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
@@ -88,6 +104,13 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
+	}
+
+	if err := cbft.evPool.AddViewChange(msg); err != nil {
+		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
+			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
+			return err
+		}
 	}
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)
@@ -447,6 +470,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 	cbft.clearInvalidBlocks(block)
+	cbft.evPool.Clear(epoch, viewNumber)
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
 	cbft.log.Debug(fmt.Sprintf("Current view deadline:%v", cbft.state.Deadline()))
 }
