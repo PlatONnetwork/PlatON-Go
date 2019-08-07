@@ -74,10 +74,10 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, pool.pv.Size(), 250)
 	assert.Equal(t, pool.vc.Size(), 25)
 
-	pool.Clear(epoch, 25)
-	assert.Equal(t, pool.pb.Size(), 0)
-	assert.Equal(t, pool.pv.Size(), 0)
-	assert.Equal(t, pool.vc.Size(), 0)
+	pool.Clear(epoch, 15)
+	assert.Equal(t, pool.pb.Size(), 100)
+	assert.Equal(t, pool.pv.Size(), 100)
+	assert.Equal(t, pool.vc.Size(), 10)
 }
 
 func TestDuplicatePrepareBlockEvidence(t *testing.T) {

@@ -121,10 +121,6 @@ func (pb *PrepareBlock) NodeIndex() uint32 {
 	return pb.ProposalIndex
 }
 
-func (pb *PrepareBlock) IdentityMsg() string {
-	return fmt.Sprintf("%d|%d|%d", pb.Epoch, pb.ViewNumber, pb.ProposalIndex)
-}
-
 func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		pb.Epoch,
@@ -181,10 +177,6 @@ func (pv *PrepareVote) NodeIndex() uint32 {
 	return pv.ValidatorIndex
 }
 
-func (pv *PrepareVote) IdentityMsg() string {
-	return fmt.Sprintf("%d|%d|%d", pv.Epoch, pv.ViewNumber, pv.ValidatorIndex)
-}
-
 func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		pv.Epoch,
@@ -239,10 +231,6 @@ func (vc *ViewChange) BlockNum() uint64 {
 
 func (vc *ViewChange) NodeIndex() uint32 {
 	return vc.ValidatorIndex
-}
-
-func (vc *ViewChange) IdentityMsg() string {
-	return fmt.Sprintf("%d|%d|%d", vc.Epoch, vc.ViewNumber, vc.ValidatorIndex)
 }
 
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {

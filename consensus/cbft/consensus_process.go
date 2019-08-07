@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -46,10 +48,16 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		return err
 	}
 
+	if err := cbft.evPool.AddPrepareBlock(msg); err != nil {
+		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
+			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
+			return err
+		}
+	}
+
 	// The new block is notified by the PrepareBlockHash to the nodes in the network.
 	cbft.state.AddPrepareBlock(msg)
 	cbft.prepareBlockFetchRules(id, msg)
-
 	cbft.findExecutableBlock()
 	return nil
 }
@@ -69,6 +77,13 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
+	}
+
+	if err := cbft.evPool.AddPrepareVote(msg); err != nil {
+		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
+			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
+			return err
+		}
 	}
 
 	cbft.insertPrepareQC(msg.ParentQC)
@@ -92,6 +107,13 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
+	}
+
+	if err := cbft.evPool.AddViewChange(msg); err != nil {
+		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
+			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
+			return err
+		}
 	}
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)
@@ -126,7 +148,9 @@ func (cbft *Cbft) OnViewTimeout() {
 	}
 
 	// write sendViewChange info to wal
-	cbft.bridge.SendViewChange(viewChange)
+	if !cbft.isLoading() {
+		cbft.bridge.SendViewChange(viewChange)
+	}
 
 	cbft.state.AddViewChange(uint32(node.Index), viewChange)
 	cbft.log.Debug("Local add viewchange", "index", node.Index, "total", cbft.state.ViewChangeLen())
@@ -300,7 +324,9 @@ func (cbft *Cbft) trySendPrepareVote() {
 			pending.Pop()
 
 			// write sendPrepareVote info to wal
-			cbft.bridge.SendPrepareVote(block, p)
+			if !cbft.isLoading() {
+				cbft.bridge.SendPrepareVote(block, p)
+			}
 
 			cbft.network.Broadcast(p)
 		} else {
@@ -380,10 +406,10 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 	// Incremental commit block
 	if oldCommit.NumberU64()+1 == commit.NumberU64() {
 		_, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		cbft.commitBlock(commit, qc)
+		cbft.commitBlock(commit, qc, lock, highestqc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
-		cbft.bridge.UpdateChainState(highestqc, lock, commit)
+		//cbft.bridge.UpdateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
 		// metrics
@@ -393,7 +419,8 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
 		blockConfirmedMeter.Mark(1)
 	} else {
-		cbft.bridge.UpdateChainState(highestqc, nil, nil)
+		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
+		cbft.bridge.UpdateChainState(&protocols.State{qcBlock, qcQC}, nil, nil)
 	}
 }
 
@@ -462,6 +489,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
 	}
 	cbft.clearInvalidBlocks(block)
+	cbft.evPool.Clear(epoch, viewNumber)
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
 	cbft.log.Debug(fmt.Sprintf("Current view deadline:%v", cbft.state.Deadline()))
 }
