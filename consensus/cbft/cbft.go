@@ -200,8 +200,6 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	go cbft.receiveLoop()
 
-	cbft.fetcher.Start()
-
 	// Start the handler to process the message.
 	go cbft.network.Start()
 
@@ -334,12 +332,6 @@ func (cbft *Cbft) receiveLoop() {
 
 		case <-cbft.state.ViewTimeout():
 			cbft.OnViewTimeout()
-		default:
-		}
-
-		// read-only channel
-		select {
-		default:
 		}
 	}
 }
@@ -842,29 +834,43 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 
+	rtt := time.Duration(cbft.AvgLatency()*2) * time.Millisecond
+	// FIXME: default avg latency
+	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
+		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", cbft.state.Deadline().Sub(time.Now()), "rtt", rtt)
+		result <- errors.New("not enough time to propagated block, stopped sealing")
+		return
+	}
+
 	result <- nil
 }
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
-	cbft.log.Debug("Calc block deadline", "timePoint", timePoint, "stateDeadline", cbft.state.Deadline(), "produceInterval", produceInterval)
+	rtt := time.Duration(2*cbft.AvgLatency()) * time.Millisecond
+	// FIXME: get default latency
+	executeTime := (produceInterval - rtt) / 2
+	cbft.log.Debug("Calc block deadline", "timePoint", timePoint, "stateDeadline", cbft.state.Deadline(), "produceInterval", produceInterval, "rtt", rtt, "executeTime", executeTime)
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
-		return timePoint.Add(produceInterval)
+		return timePoint.Add(produceInterval - rtt - executeTime)
 	}
 	return cbft.state.Deadline()
 }
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
+	rtt := time.Duration(cbft.AvgLatency()*2) * time.Millisecond
+	// FIXME: get default latency
+	executeTime := (produceInterval - rtt) / 2
 	cbft.log.Debug("Calc next block time",
 		"blockTime", blockTime, "now", time.Now(), "produceInterval", produceInterval,
 		"period", cbft.config.Sys.Period, "amount", cbft.config.Sys.Amount,
-		"interval", time.Since(blockTime))
+		"interval", time.Since(blockTime), "rtt", rtt, "executeTime", executeTime)
 	if time.Since(blockTime) < produceInterval {
-		// TODO: add network latency
-		return time.Now().Add(produceInterval - time.Since(blockTime))
+		return blockTime.Add(executeTime + rtt)
 	}
-	return time.Now()
+	// Commit new block immediately.
+	return blockTime.Add(produceInterval)
 }
 
 func (cbft *Cbft) IsConsensusNode() bool {

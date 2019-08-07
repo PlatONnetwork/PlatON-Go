@@ -483,10 +483,10 @@ func TestCalc(t *testing.T) {
 	now := time.Now()
 	interval := 500 * time.Millisecond
 	blockTime := node.engine.CalcBlockDeadline(now)
-	assert.Equal(t, blockTime, now.Add(interval))
+	assert.Equal(t, blockTime, now.Add(interval-200*time.Millisecond-150*time.Millisecond))
 
 	nextBlockTime := node.engine.CalcNextBlockTime(now)
-	assert.Equal(t, common.Millis(nextBlockTime), common.Millis(time.Now().Add(interval-time.Since(now))))
+	assert.Equal(t, nextBlockTime, now.Add(200*time.Millisecond+150*time.Millisecond))
 
 	time.Sleep(4600 * time.Millisecond)
 	old := now
@@ -495,7 +495,7 @@ func TestCalc(t *testing.T) {
 	assert.Equal(t, blockTime, node.engine.state.Deadline())
 
 	nextBlockTime = node.engine.CalcNextBlockTime(old)
-	assert.Equal(t, common.Millis(nextBlockTime), common.Millis(time.Now()))
+	assert.Equal(t, nextBlockTime, old.Add(500*time.Millisecond))
 }
 
 func TestShouldSeal(t *testing.T) {
