@@ -97,3 +97,25 @@ func Test_MergeBytes(t *testing.T) {
 		}
 	}
 }
+
+func Test_SortMap(t *testing.T) {
+	testCase := []struct {
+		key   string
+		value int64
+	}{
+		{"a", 1},
+		{"c", 3},
+		{"b", 2},
+		{"d", 5},
+		{"e", 2},
+	}
+	m := make(map[string]int64, len(testCase))
+	for _, v := range testCase {
+		m[v.key] = v.value
+	}
+	result := SortMap(m)
+	t.Log(result)
+	t.Log(result[:3])
+	assert.Equal(t, "a", result[0].Key)
+	assert.Equal(t, int64(1), result[0].Value)
+}

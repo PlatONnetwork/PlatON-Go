@@ -488,7 +488,7 @@ func buildSingleCbft() (*Cbft, []discover.NodeID) {
 }
 
 func TestCbft_OnPong(t *testing.T) {
-	running := func(value int64) int64 {
+	running := func(value int64) time.Duration {
 		engine, cNodes := buildSingleCbft()
 		for _, v := range cNodes {
 			curTime := time.Now().UnixNano()
@@ -511,6 +511,6 @@ func TestCbft_OnPong(t *testing.T) {
 	}
 	for i := 0; i < len(testCases); i++ {
 		value := running(testCases[i].value)
-		assert.Equal(t, testCases[i].expect, value)
+		assert.Equal(t, testCases[i].expect, int64(value))
 	}
 }

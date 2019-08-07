@@ -528,17 +528,28 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 		}
 	}
 	var (
-		avgSum int64 = 0
-		result int64 = 0
+		avgSum     int64 = 0
+		result     int64 = 0
+		validCount int64 = 0
 	)
+	// Take 2/3 nodes from the target.
+	targetMap := make(map[string]int64, 0)
 	for _, v := range target {
 		if latencyList, exist := cbft.netLatencyMap[v]; exist {
 			avg := calAverage(latencyList)
-			avgSum += avg
+			targetMap[v] = avg
 		}
 	}
-	if avgSum != 0 {
-		result = avgSum / int64(len(target))
+	ascPair := utils.SortMap(targetMap)
+	if ascPair.Len() > 1 {
+		validCount = int64(ascPair.Len() * 2 / 3)
+		for _, v := range ascPair[:validCount] {
+			avgSum += v.Value
+		}
+	}
+
+	if avgSum != 0 && validCount != 0 {
+		result = avgSum / validCount
 	} else {
 		result = protocols.DefaultAvgLatency
 	}

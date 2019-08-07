@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"math/rand"
+	"sort"
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -61,4 +62,39 @@ func SetFalse(atm *int32) {
 
 func SetTrue(atm *int32) {
 	atomic.StoreInt32(atm, 1)
+}
+
+type KeyValuePair struct {
+	Key   string
+	Value int64
+}
+
+// A slice of Pairs that implements sort.Interface to sort by Value.
+type KeyValuePairList []KeyValuePair
+
+func (p KeyValuePairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p KeyValuePairList) Len() int           { return len(p) }
+func (p KeyValuePairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+
+func (h *KeyValuePairList) Push(x interface{}) {
+	*h = append(*h, x.(KeyValuePair))
+}
+
+func (h *KeyValuePairList) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+func SortMap(m map[string]int64) KeyValuePairList {
+	p := make(KeyValuePairList, len(m))
+	i := 0
+	for k, v := range m {
+		p[i] = KeyValuePair{k, v}
+		i += 1
+	}
+	sort.Sort(p)
+	return p
 }
