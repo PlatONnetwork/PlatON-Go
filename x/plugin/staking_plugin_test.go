@@ -2047,9 +2047,9 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
-			Released:           common.Big0,
+			Released:           balance,
 			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
+			RestrictingPlan:    balance,
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
