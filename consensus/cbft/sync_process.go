@@ -546,6 +546,9 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 		}
 	}
 	sort.Sort(pair)
+	if pair.Len() == 0 {
+		return time.Duration(0)
+	}
 	validCount = int64(pair.Len() * 2 / 3)
 	if validCount == 0 {
 		validCount = 1
