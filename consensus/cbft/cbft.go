@@ -336,12 +336,6 @@ func (cbft *Cbft) receiveLoop() {
 
 		case <-cbft.state.ViewTimeout():
 			cbft.OnViewTimeout()
-		default:
-		}
-
-		// read-only channel
-		select {
-		default:
 		}
 	}
 }

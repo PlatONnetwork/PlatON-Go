@@ -28,6 +28,19 @@ type blockExt struct {
 	Children map[common.Hash]*blockExt
 }
 
+func (b *blockExt) clearParent() {
+	if b.Parent != nil {
+		b.Parent.Children = nil
+		b.Parent = nil
+	}
+}
+
+func (b *blockExt) clearChildren() {
+	if b.Children != nil {
+		b.Children = nil
+	}
+}
+
 func (b *blockExt) MarshalJSON() ([]byte, error) {
 	type BlockExt struct {
 		ViewNumber  uint64        `json:"view_number"`
@@ -113,6 +126,7 @@ func (b *BlockTree) PruneBlock(hash common.Hash, number uint64, clearFn func(*ty
 	}
 	if extMap, ok := b.blocks[number]; ok {
 		for h, ext := range extMap {
+			ext.clearParent()
 			if h != hash {
 				delete(extMap, h)
 				b.pruneBranch(ext, clearFn)
@@ -169,10 +183,12 @@ func (b *BlockTree) pruneBranch(ext *blockExt, clearFn func(*types.Block)) {
 			if clearFn != nil {
 				clearFn(e.Block)
 			}
+			e.clearParent()
 			delete(extMap, h)
 			b.pruneBranch(e, clearFn)
 		}
 	}
+	ext.clearChildren()
 }
 
 func (b *BlockTree) insertBlock(ext *blockExt) (*types.Block, *types.Block) {
