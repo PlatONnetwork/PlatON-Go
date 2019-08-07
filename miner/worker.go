@@ -17,11 +17,16 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -124,12 +129,12 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	EmptyBlock string
-	config     *params.ChainConfig
+	EmptyBlock   string
+	config       *params.ChainConfig
 	miningConfig *core.MiningConfig
-	engine     consensus.Engine
-	eth        Backend
-	chain      *core.BlockChain
+	engine       consensus.Engine
+	eth          Backend
+	chain        *core.BlockChain
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -192,7 +197,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:             config,
-		miningConfig:		miningConfig,
+		miningConfig:       miningConfig,
 		engine:             engine,
 		eth:                eth,
 		mux:                mux,
@@ -577,8 +582,6 @@ func (w *worker) mainLoop() {
 				hash     = block.Hash()
 			)
 
-			//core.GetReactorInstance().PrepareResult(block)
-
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
@@ -872,11 +875,12 @@ func (w *worker) updateSnapshot() {
 	w.snapshotState = w.current.state.Copy()
 }
 
-func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
+func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
 	if err != nil {
+		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "err", err)
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
 	}
@@ -885,7 +889,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	return receipt.Logs, nil
 }
-func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64, blockDeadline time.Time) (bool, bool) {
+func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (bool, bool) {
 	// Short circuit if current is nil
 	timeout := false
 
@@ -953,7 +957,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
-		logs, err := w.commitTransaction(tx, coinbase)
+		logs, err := w.commitTransaction(tx)
 
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1008,7 +1012,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	return false, timeout
 }
 
-func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
+func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64) bool {
 	// Short circuit if current is nil
 	if w.current == nil {
 		return true
@@ -1072,7 +1076,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
-		logs, err := w.commitTransaction(tx, coinbase)
+		logs, err := w.commitTransaction(tx)
 
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1166,12 +1170,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
-	if w.isRunning() { /*
-			if w.coinbase == (common.Address{}) {
-				log.Error("Refusing to mine without etherbase")
-				return
-			}*/
-		header.Coinbase = w.coinbase
+	if w.isRunning() {
+		core.GetReactorInstance().SetWorkerCoinBase(header, w.config.Cbft.NodeID)
 	}
 
 	log.Info("cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
@@ -1186,16 +1186,20 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-	/*// TODO begin()
-	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
+
+	// BeginBlocker()
+	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
+		log.Error("Failed GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return
-	}*/
+	}
 
 	if !noempty && "on" == w.EmptyBlock {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
-			w.commit(nil, false, tstart)
+			if err := w.commit(nil, false, tstart); nil != err {
+				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+			}
 		}
 	}
 
@@ -1220,14 +1224,28 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
+	// Short circuit if The Current Block is Special Block
+	if xutil.IsSpecialBlock(header.Number.Uint64()) {
+		if _, ok := w.engine.(consensus.Bft); ok {
+			if err := w.commit(nil, true, tstart); nil != err {
+				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+			}
+		} else {
+			w.updateSnapshot()
+		}
+		return
+	}
+
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
-		// No empty block
-		if "off" == w.EmptyBlock {
-			return
-		}
+		//// No empty block
+		//if "off" == w.EmptyBlock {
+		//	return
+		//}
 		if _, ok := w.engine.(consensus.Bft); ok {
-			w.commit(nil, true, tstart)
+			if err := w.commit(nil, true, tstart); nil != err {
+				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+			}
 		} else {
 			w.updateSnapshot()
 		}
@@ -1260,7 +1278,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if ok, timeout := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp, blockDeadline); ok {
+		if ok, timeout := w.commitTransactionsWithHeader(header, txs, interrupt, timestamp, blockDeadline); ok {
 			return
 		} else {
 			localTimeout = timeout
@@ -1273,34 +1291,62 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if ok, _ := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp, blockDeadline); ok {
+		if ok, _ := w.commitTransactionsWithHeader(header, txs, interrupt, timestamp, blockDeadline); ok {
 			return
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
 	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
-	w.commit(w.fullTaskHook, true, tstart)
+	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
+		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
+	}
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(interval func(), update bool, start time.Time) error {
-	if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
-		return nil
+	//if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
+	//	return nil
+	//}
+
+	// TODO test
+	for _, r := range w.current.receipts {
+		rbyte, _ := json.Marshal(r.Logs)
+		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
 	}
+
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
+
+	// todo test
+	root := w.current.state.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))
+
 	s := w.current.state.Copy()
 
-	/*// TODO end()
-	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
+	// todo test
+	root = s.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
+
+	// EndBlocker()
+	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
+		log.Error("Failed GetReactorInstance EndBlocker on worker", "blockNumber",
+			w.current.header.Number.Uint64(), "err", err)
 		return err
-	}*/
+	}
+
+	// TODO test
+	for _, r := range receipts {
+		rbyte, _ := json.Marshal(r.Logs)
+		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
+	}
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {

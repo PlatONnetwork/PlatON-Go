@@ -3,12 +3,14 @@ package snapshotdb
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
 	"math/rand"
 	"os"
+	"sort"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func TestRecover(t *testing.T) {
@@ -23,7 +25,7 @@ func TestRecover(t *testing.T) {
 		parenthash                                           common.Hash
 		baseDBArr, commitArr, recognizedArr, unrecognizedArr []kv
 		base, high                                           int64
-		commit, recognized, unrecognized                     blockData
+		commit, recognized, unrecognized                     *blockData
 	)
 	{
 		commitHash := recognizedHash
@@ -67,7 +69,12 @@ func TestRecover(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		recognized = dbInstance.recognized[generateHash("recognizedHash4")]
+
+		rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
+		if !ok {
+			t.Error("not found recognizedHash4")
+		}
+		recognized = rg
 		parenthash = commitHash
 	}
 	{
@@ -82,7 +89,7 @@ func TestRecover(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		unrecognized = *dbInstance.unRecognized
+		unrecognized = dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()]
 	}
 	base = dbInstance.current.BaseNum.Int64()
 	high = dbInstance.current.HighestNum.Int64()
@@ -137,14 +144,19 @@ func TestRecover(t *testing.T) {
 			return
 		}
 	}
-	oldarr := []blockData{
+	oldarr := []*blockData{
 		unrecognized,
 		recognized,
 		commit,
 	}
-	newarr := []blockData{
-		*dbInstance.unRecognized,
-		dbInstance.recognized[generateHash("recognizedHash4")],
+	rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
+	if !ok {
+		t.Error("recognizedHash4 not found")
+	}
+	rg2 := rg
+	newarr := []*blockData{
+		dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()],
+		rg2,
 		dbInstance.committed[0],
 	}
 
@@ -293,33 +305,60 @@ func TestRMOldRecognizedBlockData(t *testing.T) {
 	if err := dbInstance.rmOldRecognizedBlockData(); err != nil {
 		t.Error(err)
 	}
-	if len(dbInstance.recognized) != 0 {
+	if len(dbInstance.unCommit.blocks) != 0 {
 		t.Error("not rm old data")
 	}
 }
 
-type kv struct {
-	key   []byte
-	value []byte
-}
-
-func randomString2() []byte {
+func randomString2(s string) []byte {
 	b := new(bytes.Buffer)
+	if s != "" {
+		b.Write([]byte(s))
+	}
 	for i := 0; i < 4; i++ {
 		b.WriteByte(' ' + byte(rand.Int()))
 	}
 	return b.Bytes()
 }
 
-func generatekv(n int) []kv {
-	rand.Seed(time.Now().UnixNano())
-	kvs := make([]kv, n)
-	for i := 0; i < n; i++ {
-		kvs[i] = kv{
-			key:   randomString2(),
-			value: randomString2(),
+func (k kvs) compareWithkvs(s kvs) error {
+	if len(k) != len(s) {
+		return fmt.Errorf("kv length not compare,want %d have %d", len(k), len(s))
+	}
+	for i := 0; i < len(k); i++ {
+		if bytes.Compare(k[i].key, s[i].key) != 0 {
+			return fmt.Errorf("key not compare,want %v have %v", k[i].key, s[i].key)
+		}
+		if bytes.Compare(k[i].value, s[i].value) != 0 {
+			return fmt.Errorf("value not compare,want %v have %v", k[i].value, s[i].value)
 		}
 	}
+	return nil
+}
+
+func generatekv(n int) kvs {
+	rand.Seed(time.Now().UnixNano())
+	kvs := make(kvs, n)
+	for i := 0; i < n; i++ {
+		kvs[i] = kv{
+			key:   randomString2(""),
+			value: randomString2(""),
+		}
+	}
+	sort.Sort(kvs)
+	return kvs
+}
+
+func generatekvWithPrefix(n int, p string) kvs {
+	rand.Seed(time.Now().UnixNano())
+	kvs := make(kvs, n)
+	for i := 0; i < n; i++ {
+		kvs[i] = kv{
+			key:   randomString2(p),
+			value: randomString2(p),
+		}
+	}
+	sort.Sort(kvs)
 	return kvs
 }
 
@@ -415,7 +454,7 @@ func TestCheckHashChain(t *testing.T) {
 			if !ok {
 				t.Error("should be ok")
 			}
-			if location != hashLocationRecognized {
+			if location != hashLocationUnCommitted {
 				t.Error("should be locate Recognized", location)
 			}
 		}
@@ -439,7 +478,7 @@ func TestCheckHashChain(t *testing.T) {
 		if !ok {
 			t.Error("should be ok")
 		}
-		if location != hashLocationUnRecognized {
+		if location != hashLocationUnCommitted {
 			t.Error("should be locate Recognized", location)
 		}
 	})

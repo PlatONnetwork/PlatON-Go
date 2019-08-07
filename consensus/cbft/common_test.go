@@ -20,6 +20,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	mapset "github.com/deckarep/golang-set"
 )
 

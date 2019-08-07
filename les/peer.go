@@ -426,15 +426,11 @@ func (p *peer) Handshake(head common.Hash, headNum uint64, genesis common.Hash, 
 
 	var rGenesis, rHash common.Hash
 	var rVersion, rNetwork, rNum uint64
-	var rTd *big.Int
 
 	if err := recv.get("protocolVersion", &rVersion); err != nil {
 		return err
 	}
 	if err := recv.get("networkId", &rNetwork); err != nil {
-		return err
-	}
-	if err := recv.get("headTd", &rTd); err != nil {
 		return err
 	}
 	if err := recv.get("headHash", &rHash); err != nil {

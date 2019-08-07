@@ -1,18 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2015 The PlatON-Go Authors
+// This file is part of the PlatON-Go library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-PlatON library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The PlatON-Go library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 package eth
 
@@ -20,13 +20,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math"
 	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -102,8 +105,8 @@ type ProtocolManager struct {
 	engine consensus.Engine
 }
 
-// NewProtocolManager returns a new Ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
-// with the Ethereum network.
+// NewProtocolManager returns a new PlatON sub protocol manager. The PlatON sub protocol manages peers capable
+// with the PlatON network.
 func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ethdb.Database) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
@@ -166,7 +169,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, downloader.NewBlockChainWrapper(blockchain, engine), nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, downloader.NewBlockChainWrapper(blockchain, engine), nil, manager.removePeer)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
@@ -200,9 +203,9 @@ func (pm *ProtocolManager) removePeer(id string) {
 	if peer == nil {
 		return
 	}
-	log.Debug("Removing Ethereum peer", "peer", id)
+	log.Debug("Removing PlatON peer", "peer", id)
 
-	// Unregister the peer from the downloader and Ethereum peer set
+	// Unregister the peer from the downloader and PlatON peer set
 	pm.downloader.UnregisterPeer(id)
 	if err := pm.peers.Unregister(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
@@ -236,7 +239,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 }
 
 func (pm *ProtocolManager) Stop() {
-	log.Info("Stopping Ethereum protocol")
+	log.Info("Stopping PlatON protocol")
 
 	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
 	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
@@ -257,7 +260,7 @@ func (pm *ProtocolManager) Stop() {
 	// Wait for all peer handler goroutines and the loops to come down.
 	pm.wg.Wait()
 
-	log.Info("Ethereum protocol stopped")
+	log.Info("PlatON protocol stopped")
 }
 
 func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -271,16 +274,16 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted && !p.Peer.Info().Network.Consensus {
 		return p2p.DiscTooManyPeers
 	}
-	p.Log().Debug("Ethereum peer connected", "name", p.Name())
+	p.Log().Debug("PlatON peer connected", "name", p.Name())
 
-	// Execute the Ethereum handshake
+	// Execute the PlatON handshake
 	var (
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
 		hash    = head.Hash()
 	)
 	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash(), pm); err != nil {
-		p.Log().Debug("Ethereum handshake failed", "err", err)
+		p.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
 	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
@@ -288,7 +291,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 	// Register the peer locally
 	if err := pm.peers.Register(p); err != nil {
-		p.Log().Error("Ethereum peer registration failed", "err", err)
+		p.Log().Error("PlatON peer registration failed", "err", err)
 		return err
 	}
 	defer pm.removePeer(p.id)
@@ -304,7 +307,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	// main loop. handle incoming messages.
 	for {
 		if err := pm.handleMsg(p); err != nil {
-			p.Log().Error("Ethereum message handling failed", "err", err)
+			p.Log().Error("PlatON message handling failed", "err", err)
 			return err
 		}
 	}
@@ -417,7 +420,103 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 		}
 		return p.SendBlockHeaders(headers)
+	case p.version >= eth63 && msg.Code == GetOriginAndPivotMsg:
+		p.Log().Info("[GetOriginAndPivotMsg]Received a broadcast message")
+		var query uint64
+		if err := msg.Decode(&query); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		oHead := pm.blockchain.GetHeaderByNumber(query)
+		pivot, err := snapshotdb.Instance().BaseNum()
+		if err != nil {
+			p.Log().Error("GetOriginAndPivot get snapshotdb baseNum fail", "err", err)
+			return errors.New("GetOriginAndPivot get snapshotdb baseNum fail")
+		}
+		if pivot == nil {
+			p.Log().Error("[GetOriginAndPivot] pivot should not be nil")
+			return errors.New("[GetOriginAndPivot] pivot should not be nil")
+		}
+		pHead := pm.blockchain.GetHeaderByNumber(pivot.Uint64())
 
+		data := make([]*types.Header, 0)
+		data = append(data, oHead, pHead)
+		if err := p.SendOriginAndPivot(data); err != nil {
+			p.Log().Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
+			return err
+		}
+	case p.version >= eth63 && msg.Code == OriginAndPivotMsg:
+		p.Log().Debug("[OriginAndPivotMsg]Received a broadcast message")
+		var data []*types.Header
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverOriginAndPivot(p.id, data); err != nil {
+			p.Log().Error("Failed to deliver ppos storage data", "err", err)
+			return err
+		}
+	case p.version >= eth63 && msg.Code == GetPPOSStorageMsg:
+		p.Log().Info("[GetPPOSStorageMsg]Received a broadcast message", "id", common.CurrentGoRoutineID())
+		var query []interface{}
+		if err := msg.Decode(&query); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		f := func(num *big.Int, iter iterator.Iterator) error {
+			var ps PPOSStorage
+			var count int
+			ps.KVs = make([]downloader.PPOSStorageKV, 0)
+			if num == nil {
+				return errors.New("num should not be nil")
+			}
+			ps.Pivot = pm.blockchain.GetHeaderByNumber(num.Uint64())
+			ps.Latest = pm.blockchain.CurrentHeader()
+			if err := p.SendPPOSStorage(ps); err != nil {
+				p.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+				return err
+			}
+			var bytes int
+			for iter.Next() {
+				bytes = bytes + len(iter.Key()) + len(iter.Value())
+				if count >= downloader.PPOSStorageKVSizeFetch || bytes > softResponseLimit {
+					if err := p.SendPPOSStorage(ps); err != nil {
+						p.Log().Error("[GetPPOSStorageMsg]send ppos message fail", "error", err, "kvnum", ps.KVNum)
+						return err
+					}
+					count = 0
+					ps.KVs = make([]downloader.PPOSStorageKV, 0)
+					bytes = 0
+				}
+				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
+				copy(k, iter.Key())
+				copy(v, iter.Value())
+				ps.KVs = append(ps.KVs, [2][]byte{
+					k, v,
+				})
+				ps.KVNum++
+				count++
+			}
+			ps.Last = true
+			if err := p.SendPPOSStorage(ps); err != nil {
+				p.Log().Error("[GetPPOSStorageMsg]send last ppos message fail", "error", err)
+				return err
+			}
+			return nil
+		}
+
+		if err := snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
+			p.Log().Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		}
+
+	case p.version >= eth63 && msg.Code == PPOSStorageMsg:
+		p.Log().Debug("Received a broadcast message[PposStorageMsg]")
+		var data PPOSStorage
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.KVs, data.Last, data.KVNum); err != nil {
+			p.Log().Error("Failed to deliver ppos storage data", "err", err)
+		}
 	case msg.Code == BlockHeadersMsg:
 		// A batch of headers arrived to one of our previous requests
 		var headers []*types.Header
@@ -841,10 +940,10 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 	}
 }
 
-// NodeInfo represents a short summary of the Ethereum sub-protocol metadata
+// NodeInfo represents a short summary of the PlatON sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network uint64              `json:"network"` // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Network uint64              `json:"network"` // PlatON network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
 	Genesis common.Hash         `json:"genesis"` // SHA3 hash of the host's genesis block
 	Config  *params.ChainConfig `json:"config"`  // Chain configuration for the fork rules
 	Head    common.Hash         `json:"head"`    // SHA3 hash of the host's best owned block

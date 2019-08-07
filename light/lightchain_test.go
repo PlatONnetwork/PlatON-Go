@@ -18,9 +18,10 @@ package light
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -28,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // So we can deterministically seed different blockchains
@@ -71,7 +73,7 @@ func newCanonical(n int) (ethdb.Database, *LightChain, error) {
 func newTestLightChain() *LightChain {
 	db := ethdb.NewMemDatabase()
 	gspec := &core.Genesis{
-		Config:     params.TestChainConfig,
+		Config: params.TestChainConfig,
 	}
 	gspec.MustCommit(db)
 	lc, err := NewLightChain(&dummyOdr{db: db}, gspec.Config, cbft.NewFaker())
@@ -111,10 +113,10 @@ func testHeaderChainImport(chain []*types.Header, lightchain *LightChain) error 
 			return err
 		}
 		// Manually insert the header into the database, but don't reorganize (allows subsequent testing)
-		lightchain.mu.Lock()
+		lightchain.chainmu.Lock()
 
 		rawdb.WriteHeader(lightchain.chainDb, header)
-		lightchain.mu.Unlock()
+		lightchain.chainmu.Unlock()
 	}
 	return nil
 }
