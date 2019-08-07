@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/pingcap/failpoint"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
 
@@ -227,12 +225,6 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		return err
 	}
 
-	// add failpoint
-	failpoint.Inject("mock-ReceiveMessage-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-ReceiveMessage-panic")
-		}
-	})
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
@@ -248,12 +240,6 @@ func (cbft *Cbft) recordMessage(msg *ctypes.MsgInfo) error {
 	cbft.queuesLock.Lock()
 	defer cbft.queuesLock.Unlock()
 	count := cbft.queues[msg.PeerID] + 1
-	// add failpoint
-	failpoint.Inject("mock-recordMessage-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-recordMessage-panic")
-		}
-	})
 	if int64(count) > cbft.config.Option.MaxQueuesLimit {
 		log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
 		// Need further confirmation.
@@ -371,12 +357,6 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	msg, id := info.Msg, info.PeerID
 	var err error
 
-	// add failpoint
-	failpoint.Inject("mock-handleConsensusMsg-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-handleConsensusMsg-panic")
-		}
-	})
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
 		err = cbft.OnPrepareBlock(id, msg)
@@ -498,12 +478,6 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 	if len(header.Extra) < 32 {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
-	// add failpoint
-	failpoint.Inject("mock-Prepare-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-Prepare-panic")
-		}
-	})
 	header.Extra = header.Extra[:32]
 
 	//init header.Extra[32: 32+65]
@@ -516,12 +490,6 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
 	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(true)
-	// add failpoint
-	failpoint.Inject("mock-Finalize-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-Finalize-panic")
-		}
-	})
 	return types.NewBlock(header, txs, receipts), nil
 }
 
@@ -531,13 +499,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 	if block.NumberU64() == 0 {
 		return errors.New("unknown block")
 	}
-
-	// add failpoint
-	failpoint.Inject("mock-seal-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-seal-panic")
-		}
-	})
 
 	sign, err := cbft.signFn(header.SealHash().Bytes())
 	if err != nil {
@@ -603,13 +564,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		return
 	}
-
-	// add failpoint
-	failpoint.Inject("mock-sealBlock-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-sealBlock-panic")
-		}
-	})
 
 	cbft.txPool.Reset(block)
 
@@ -684,12 +638,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to decode block extra data")
 	}
 
-	// add failpoint
-	failpoint.Inject("mock-InsertChain-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-InsertChain-panic")
-		}
-	})
 	if err := cbft.verifyPrepareQC(qc); err != nil {
 		cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
 		return err
@@ -846,13 +794,6 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	default:
 	}
-
-	// add failpoint
-	failpoint.Inject("mock-onShouldSeal-panic", func() {
-		if cbft.shouldFailPoint() {
-			panic("mock-onShouldSeal-panic")
-		}
-	})
 
 	if !cbft.running() {
 		result <- errors.New("cbft is not running")
@@ -1267,9 +1208,4 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
-}
-
-func (cbft *Cbft) shouldFailPoint() bool {
-	now := time.Now().UnixNano() / 1e6
-	return now-cbft.startTime >= 120000
 }
