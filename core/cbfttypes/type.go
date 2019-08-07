@@ -38,13 +38,6 @@ func (bs *BlockSignature) Copy() *BlockSignature {
 
 type UpdateChainStateFn func(qcState, lockState, commitState *protocols.State)
 
-type ChainStateResult struct {
-	QCState     *protocols.State
-	LockState   *protocols.State
-	CommitState *protocols.State
-	Callback    UpdateChainStateFn
-}
-
 type CbftResult struct {
 	Block              *types.Block
 	ExtraData          []byte
