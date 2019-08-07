@@ -108,7 +108,7 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 	if err != nil {
 		log.Error("list pre-active proposal IDs failed", "blockHash", blockHash)
 		return nil, err
-	} else if proposalID == common.ZeroHash {
+	} else if proposalID != common.ZeroHash {
 		total = append(total, proposalID)
 	}
 	proposalIDList, err = self.getEndIDList(blockHash)
