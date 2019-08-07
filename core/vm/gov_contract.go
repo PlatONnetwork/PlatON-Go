@@ -159,7 +159,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 		//Topic:          topic,
 		//Desc:           desc,
 		Url:            url,
-		ProposalType:   gov.Version,
+		ProposalType:   gov.Param,
 		EndVotingBlock: endVotingBlock,
 		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
 		ProposalID:     gc.Evm.StateDB.TxHash(),

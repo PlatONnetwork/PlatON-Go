@@ -11,10 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-var (
-	GovParamMap = map[string]interface{}{"param1": nil, "param2": nil, "param3": nil}
-)
-
 type ProposalType uint8
 
 const (
@@ -91,8 +87,8 @@ type VoteValue struct {
 }
 
 type ParamValue struct {
-	Name  string      `json:"Name"`
-	Value interface{} `json:"Value"`
+	Name  string `json:"Name"`
+	Value string `json:"Value"`
 }
 
 type Proposal interface {
@@ -141,7 +137,7 @@ type TextProposal struct {
 	SubmitBlock    uint64
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
-	Result         TallyResult
+	Result         TallyResult `json:"-"`
 }
 
 /*func (tp *TextProposal) SetProposalID(proposalID common.Hash) {
@@ -250,7 +246,7 @@ type VersionProposal struct {
 	SubmitBlock    uint64
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
-	Result         TallyResult
+	Result         TallyResult `json:"-"`
 	NewVersion     uint32
 	ActiveBlock    uint64
 }
@@ -407,7 +403,7 @@ type ParamProposal struct {
 	SubmitBlock    uint64
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
-	Result         TallyResult
+	Result         TallyResult `json:"-"`
 
 	ParamName    string
 	CurrentValue string
@@ -476,12 +472,18 @@ func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return err
 	}
 
-	if _, exist := GovParamMap[pp.ParamName]; !exist {
-		return common.NewBizError("unsupported parameter.")
+	paramValueList, err := GovDBInstance().ListParam(state)
+
+	if err != nil {
+		return err
 	}
 
-	return nil
-
+	for _, paramValue := range paramValueList {
+		if paramValue.Name == pp.ParamName {
+			return nil
+		}
+	}
+	return common.NewBizError("unsupported parameter.")
 }
 
 func (pp ParamProposal) String() string {

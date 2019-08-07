@@ -336,6 +336,18 @@ func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
 
 func TestGovPlugin_SubmitParam(t *testing.T) {
 	defer setup(t)()
+
+	paramValueList := []*gov.ParamValue{}
+	param1 := &gov.ParamValue{Name: "param1", Value: "12"}
+	param2 := &gov.ParamValue{Name: "param2", Value: "stringValue"}
+	param3 := &gov.ParamValue{Name: "param3", Value: "12.5"}
+	paramValueList = append(paramValueList, param1, param2, param3)
+
+	if err := govPlugin.SetParam(paramValueList, evm.StateDB); err != nil {
+		t.Errorf("set param failed, %s", err.Error())
+		return
+	}
+
 	submitParam(t, txHashArr[0])
 
 	sndb.Commit(lastBlockHash)
@@ -846,12 +858,13 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 func TestGovPlugin_SetGetParam(t *testing.T) {
 	defer setup(t)()
 
-	paraMap := make(map[string]string)
-	paraMap["param1"] = "12"
-	paraMap["param2"] = "stringValue"
-	paraMap["param3"] = "12.5"
+	paramValueList := []*gov.ParamValue{}
+	param1 := &gov.ParamValue{Name: "param1", Value: "12"}
+	param2 := &gov.ParamValue{Name: "param2", Value: "stringValue"}
+	param3 := &gov.ParamValue{Name: "param3", Value: "12.5"}
+	paramValueList = append(paramValueList, param1, param2, param3)
 
-	if err := govPlugin.SetParam(paraMap, evm.StateDB); err != nil {
+	if err := govPlugin.SetParam(paramValueList, evm.StateDB); err != nil {
 		t.Errorf("set param failed, %s", err.Error())
 		return
 	}
@@ -866,8 +879,10 @@ func TestGovPlugin_SetGetParam(t *testing.T) {
 	value, err := govPlugin.GetParamValue("param3", evm.StateDB)
 	if err != nil {
 		t.Fatalf("get param failed, %s", err)
-	} else {
+	} else if value == "12.5" {
 		t.Logf("param name: %s, value: %s", "param3", value)
+	} else {
+		t.Fatalf("get param value error, %s", value)
 	}
 
 }
@@ -875,12 +890,13 @@ func TestGovPlugin_SetGetParam(t *testing.T) {
 func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 	defer setup(t)()
 
-	paraMap := make(map[string]string)
-	paraMap["param1"] = "12"
-	paraMap["param2"] = "stringValue"
-	paraMap["param3"] = "12.5"
+	paramValueList := []*gov.ParamValue{}
+	param1 := &gov.ParamValue{Name: "param1", Value: "12"}
+	param2 := &gov.ParamValue{Name: "param2", Value: "stringValue"}
+	param3 := &gov.ParamValue{Name: "param3", Value: "12.5"}
+	paramValueList = append(paramValueList, param1, param2, param3)
 
-	if err := govPlugin.SetParam(paraMap, evm.StateDB); err != nil {
+	if err := govPlugin.SetParam(paramValueList, evm.StateDB); err != nil {
 		t.Fatalf("set param failed, %s", err)
 	}
 	submitParam(t, txHashArr[0])
@@ -931,8 +947,10 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 		value, err := govPlugin.GetParamValue("param3", evm.StateDB)
 		if err != nil {
 			t.Fatalf("cannot find the param value, %s", err.Error())
-		} else {
+		} else if value == "0.85" {
 			t.Logf("the param value, %s", value)
+		} else {
+			t.Fatalf("the param value error, %s", value)
 		}
 
 	} else {

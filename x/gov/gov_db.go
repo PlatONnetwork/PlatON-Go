@@ -403,50 +403,58 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	}
 }
 
-func (self *GovDB) SetParam(paramMap map[string]string, state xcom.StateDB) error {
-	if len(paramMap) > 0 {
-		paraListBytes, _ := json.Marshal(paramMap)
-		state.SetState(vm.GovContractAddr, KeyParams(), paraListBytes)
+func (self *GovDB) SetParam(paramValues []*ParamValue, state xcom.StateDB) error {
+	if len(paramValues) > 0 {
+		paramValuesBytes, _ := json.Marshal(paramValues)
+		state.SetState(vm.GovContractAddr, KeyParams(), paramValuesBytes)
 	}
 	return nil
 }
 
 func (self *GovDB) GetParam(name string, state xcom.StateDB) (string, error) {
-	paramMap, err := self.ListParam(state)
+	paramValues, err := self.ListParam(state)
 	if err != nil {
 		return "", err
 	}
-	return paramMap[name], nil
+	for _, paramValue := range paramValues {
+		if paramValue.Name == name {
+			return paramValue.Value, nil
+		}
+	}
+	return "", nil
 }
 
 func (self *GovDB) UpdateParam(name string, oldValue, newValue string, state xcom.StateDB) error {
-	paramMap, err := self.ListParam(state)
+	paramValues, err := self.ListParam(state)
 	if err != nil {
 		return err
 	}
 
-	if oldV, exist := paramMap[name]; exist {
-		if oldV == oldValue {
-			paramMap[name] = newValue
-			err = self.SetParam(paramMap, state)
-			if err != nil {
-				return err
+	for _, paramValue := range paramValues {
+		if paramValue.Name == name {
+			if paramValue.Value == oldValue {
+				paramValue.Value = newValue
+				err = self.SetParam(paramValues, state)
+				if err != nil {
+					return err
+				}
+				break
+			} else {
+				log.Warn("cannot update parameter's value cause mismatching current value.")
 			}
-		} else {
-			log.Warn("cannot update parameter's value cause mismatching current value.")
 		}
 	}
 	return nil
 }
 
-func (self *GovDB) ListParam(state xcom.StateDB) (map[string]string, error) {
+func (self *GovDB) ListParam(state xcom.StateDB) ([]*ParamValue, error) {
 	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
 	if len(paraListBytes) > 0 {
-		var paraMap map[string]string
-		if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
+		var paraValue []*ParamValue
+		if err := json.Unmarshal(paraListBytes, &paraValue); err != nil {
 			return nil, common.NewSysError(err.Error())
 		}
-		return paraMap, nil
+		return paraValue, nil
 	} else {
 		return nil, nil
 	}
