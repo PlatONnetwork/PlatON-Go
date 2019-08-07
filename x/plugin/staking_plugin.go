@@ -651,17 +651,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		//can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
 		can.RestrictingPlanHes = common.Big0
 	}
-	//addItem := false
-	//
-	//if can.Released.Cmp(common.Big0) > 0 {
-	//	can.Shares = new(big.Int).Sub(can.Shares, can.Released)
-	//	addItem = true
-	//}
-	//
-	//if can.RestrictingPlan.Cmp(common.Big0) > 0 {
-	//	can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlan)
-	//	addItem = true
-	//}
+
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 
 		// TODO test
@@ -2543,9 +2533,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-		// todo test
-		//xcom.PrintObject("SlashCandidates, Method Before SetCandidateStore, can", can)
-
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
@@ -2586,9 +2573,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		log.Debug("SlashCandidates pposHash, Method Before SetCanPowerStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-		// todo test
-		//xcom.PrintObject("SlashCandidates, Method Before SetCanPowerStore, can", can)
-
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashType,
@@ -2600,9 +2584,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		pposHash = sk.db.GetLastKVHash(blockHash)
 		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
-
-		// todo test
-		//xcom.PrintObject("SlashCandidates, Method Before SetCandidateStore, can", can)
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
@@ -2654,11 +2635,19 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 			// TODO test
 			pposHash := sk.db.GetLastKVHash(blockHash)
-			log.Debug("SlashCandidates, Method Before SetCandidateStore", "blockNumber", blockNumber,
+			log.Debug("SlashCandidates, Method Before AddUnStakeItemStore", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-			// todo test
-			//xcom.PrintObject("SlashCandidates, Method Before SetCandidateStore", can)
+			if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+				log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			}
+
+			// TODO test
+			pposHash = sk.db.GetLastKVHash(blockHash)
+			log.Debug("SlashCandidates, Method Before SetCandidateStore", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: Store Candidate info is failed",
@@ -2671,9 +2660,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			pposHash := sk.db.GetLastKVHash(blockHash)
 			log.Debug("SlashCandidates, Method Before DelCandidateStore", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
-
-			// todo test
-			//xcom.PrintObject("SlashCandidates, Method Before DelCandidateStore", can)
 
 			// Clean candidate info
 			if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
