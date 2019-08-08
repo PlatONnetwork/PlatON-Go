@@ -32,7 +32,7 @@ const (
 	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
 	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval = 15
+	SyncViewChangeInterval = 10
 
 	//
 	TypeForQCBn     = 1
@@ -543,15 +543,16 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // 3. Synchronous blocks with inconsistent commit block height.
 func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
-	blockNumberTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
+	blockNumberTimer := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
-		qcBn, _ := h.engine.HighestQCBlockBn()
+		qcBn, qcHash := h.engine.HighestQCBlockBn()
 		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
 		h.PartBroadcast(&protocols.GetLatestStatus{
 			BlockNumber: qcBn,
+			BlockHash:   qcHash,
 			LogicType:   TypeForQCBn,
 		})
 	}
@@ -564,9 +565,16 @@ func (h *EngineManager) synchronize() {
 
 	for {
 		select {
-		case <-blockNumberTicker.C:
+		case <-blockNumberTimer.C:
 			// Sent at random.
-			randomSend(syncQCBnFunc)
+			syncQCBnFunc()
+			var resetTime time.Duration
+			rd := rand.Intn(10)
+			if rd == 0 || rd < QCBnMonitorInterval/2 {
+				rd = (rd + 1) * 2
+			}
+			resetTime = time.Duration(rd) * time.Second
+			blockNumberTimer.Reset(resetTime)
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
@@ -591,20 +599,6 @@ func (h *EngineManager) synchronize() {
 			return
 		}
 	}
-}
-
-// Randomly sent during the timer period.
-func randomSend(exec func()) {
-	sleepTime := rand.Intn(QCBnMonitorInterval)
-	for {
-		if sleepTime > QCBnMonitorInterval/2 {
-			break
-		}
-		sleepTime *= 2
-	}
-	time.AfterFunc(time.Duration(int64(sleepTime)), func() {
-		exec()
-	})
 }
 
 // Select a node from the list of nodes that is larger than the specified value.
