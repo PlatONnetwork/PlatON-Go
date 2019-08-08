@@ -19,11 +19,13 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
+// matchFunc returns the result of the message type match.
 func matchFunc(msg ctypes.Message) bool {
 	_, ok := msg.(*protocols.QCBlockList)
 	return ok
 }
 
+// executorFunc returns an execution function for executing the block.
 func executorFunc(cbft *Cbft, parent *types.Block) func(msg ctypes.Message) {
 	return func(msg ctypes.Message) {
 		defer func() {
@@ -55,6 +57,8 @@ func executorFunc(cbft *Cbft, parent *types.Block) func(msg ctypes.Message) {
 	}
 }
 
+// expireFunc returns an anonymous function that
+// is used to perform the logic at failure.
 func expireFunc(cbft *Cbft) func() {
 	return func() {
 		cbft.log.Debug("Fetch timeout, close fetching in fetchBlockByBnAndHash")
@@ -62,6 +66,8 @@ func expireFunc(cbft *Cbft) func() {
 	}
 }
 
+// fetchBlockByBnAndHash is used to download data based
+// on the specified block hash and height
 func (cbft *Cbft) fetchBlockByBnAndHash(peerID string, blockHash common.Hash, blockNumber uint64) {
 	if cbft.fetcher.Len() == 0 && cbft.state.HighestLockBlock().NumberU64() == blockNumber {
 		cbft.log.Debug("Fetch block by blockHash and blockNumber", "blockHsh", blockHash, "blockNumber", blockNumber)
@@ -73,7 +79,8 @@ func (cbft *Cbft) fetchBlockByBnAndHash(peerID string, blockHash common.Hash, bl
 	}
 }
 
-// Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
+// Get the block from the specified connection, get the block into the fetcher,
+// and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	if cbft.fetcher.Len() == 0 && cbft.state.HighestQCBlock().NumberU64() < number {
 		cbft.log.Debug("Fetch block", "fetch", fmt.Sprintf("hash:%s,number:%d", hash.TerminalString(), number), "highestQCBlock", cbft.state.HighestQCBlock().NumberU64())
