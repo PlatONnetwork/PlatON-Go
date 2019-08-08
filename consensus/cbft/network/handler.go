@@ -32,7 +32,7 @@ const (
 	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
 	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
 	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
-	SyncViewChangeInterval = 15
+	SyncViewChangeInterval = 10
 
 	//
 	TypeForQCBn     = 1
@@ -543,7 +543,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // 3. Synchronous blocks with inconsistent commit block height.
 func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
-	blockNumberTicker := time.NewTimer(QCBnMonitorInterval * time.Second)
+	blockNumberTimer := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
 
 	// Logic used to synchronize QC.
@@ -565,7 +565,7 @@ func (h *EngineManager) synchronize() {
 
 	for {
 		select {
-		case <-blockNumberTicker.C:
+		case <-blockNumberTimer.C:
 			// Sent at random.
 			syncQCBnFunc()
 			var resetTime time.Duration
@@ -574,10 +574,7 @@ func (h *EngineManager) synchronize() {
 				rd = (rd + 1) * 2
 			}
 			resetTime = time.Duration(rd) * time.Second
-			if !blockNumberTicker.Stop() {
-				<-blockNumberTicker.C
-			}
-			blockNumberTicker.Reset(resetTime)
+			blockNumberTimer.Reset(resetTime)
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
