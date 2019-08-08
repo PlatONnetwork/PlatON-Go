@@ -476,12 +476,12 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return
 	}
 
-		if cbft.validatorPool.EqualSwitchPoint(number) && qc.Epoch == cbft.state.Epoch() {
-			// Validator already switch, new epoch
-			cbft.changeView(cbft.state.Epoch()+1, state.DefaultViewNumber, block, qc, viewChangeQC)
-		} else {
-			cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
-		}
+	if cbft.validatorPool.EqualSwitchPoint(number) && qc.Epoch == cbft.state.Epoch() {
+		// Validator already switch, new epoch
+		cbft.changeView(cbft.state.Epoch()+1, state.DefaultViewNumber, block, qc, viewChangeQC)
+	} else {
+		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
+	}
 }
 
 // change view
