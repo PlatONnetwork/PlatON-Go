@@ -37,8 +37,8 @@ var (
 var (
 	AccountVonNotEnough        = common.NewBizError("The von of account is not enough")
 	DelegateVonNotEnough       = common.NewBizError("The von of delegate is not enough")
-	WithdrewDelegateVonCalcErr = common.NewBizError("withdrew delegate von calculate err")
-	ParamsErr                  = common.NewBizError("the fn params err")
+	WithdrewDelegateVonCalcErr = common.NewBizError("Withdrew delegate von calculate err")
+	ParamsErr                  = common.NewBizError("The fn params err")
 	BlockNumberDisordered      = common.NewBizError("The blockNumber is disordered")
 	VonAmountNotRight          = common.NewBizError("The amount of von is not right")
 	CandidateNotExist          = common.NewBizError("The candidate is not exist")
@@ -644,7 +644,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "stakingAddr", can.StakingAddress.Hex(), "err", err)
 			return err
 		}
 
@@ -783,7 +783,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 			err := rt.ReturnLockFunds(can.StakingAddress, balance, state)
 			if nil != err {
 				log.Error("Failed to HandleUnCandidateItem on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-					title, balance, "blockHash", blockHash.Hex(), "err", err)
+					title, balance, "blockHash", blockHash.Hex(), "stakingAddr", can.StakingAddress.Hex(), "err", err)
 				return common.Big0, err
 			}
 			return common.Big0, nil
@@ -1074,7 +1074,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 			if remainTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
 
-				err := rt.ReturnLockFunds(can.StakingAddress, restrictingPlanTmp, state)
+				err := rt.ReturnLockFunds(delAddr, restrictingPlanTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1088,7 +1088,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			} else if remainTmp.Cmp(restrictingPlanTmp) < 0 {
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 
-				err := rt.ReturnLockFunds(can.StakingAddress, remainTmp, state)
+				err := rt.ReturnLockFunds(delAddr, remainTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1492,7 +1492,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 				err := rt.ReturnLockFunds(delAddr, balance, state)
 				if nil != err {
 					log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-						title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "err", err)
+						title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "err", err)
 					return common.Big0, err
 				}
 				return common.Big0, nil
@@ -1507,7 +1507,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 			del.RestrictingPlanHes = balance
 		}
 
-		if balance, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlan); nil != err {
+		if balance, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan); nil != err {
 			return err
 		} else {
 			del.RestrictingPlan = balance
@@ -1554,6 +1554,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		del.Released, remain = noHes, rm
 
 		refundRestrictingPlanFn := func(title string, balance, remain *big.Int) (*big.Int, *big.Int, error) {
+
 			if remain.Cmp(common.Big0) > 0 {
 
 				if remain.Cmp(balance) >= 0 {
@@ -1561,7 +1562,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					err := rt.ReturnLockFunds(delAddr, balance, state)
 					if nil != err {
 						log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
-							title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "err", err)
+							title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "err", err)
 						return common.Big0, common.Big0, err
 					}
 					return common.Big0, new(big.Int).Sub(remain, balance), nil
@@ -1570,7 +1571,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					err := rt.ReturnLockFunds(delAddr, remain, state)
 					if nil != err {
 						log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
-							"remain", remain, "blockHash", blockHash.Hex(), "epoch", epoch, "err", err)
+							"remain", remain, "blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "err", err)
 						return common.Big0, common.Big0, err
 					}
 
@@ -3199,11 +3200,15 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 		preTargetNumber = blockNumber - xutil.ConsensusSize()
 	}
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= preTargetNumber && index.End >= preTargetNumber {
@@ -3217,6 +3222,8 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= preTargetNumber && index.End >= preTargetNumber {
 				targetIndex = indexs[i]
@@ -3228,6 +3235,7 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 	if nil == targetIndex {
 		log.Error("No Found previous validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3266,11 +3274,15 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
@@ -3284,6 +3296,8 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
 				targetIndex = indexs[i]
@@ -3295,6 +3309,7 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found current validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3333,11 +3348,15 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && i < len(indexs)-1 {
@@ -3351,6 +3370,8 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && i < len(indexs)-1 {
 				targetIndex = indexs[i+1]
@@ -3362,6 +3383,7 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found next validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3440,11 +3462,15 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetEpochValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
@@ -3458,6 +3484,8 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
 				targetIndex = indexs[i]
@@ -3469,6 +3497,7 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 	if nil == targetIndex {
 		log.Error("No Found epoch validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 

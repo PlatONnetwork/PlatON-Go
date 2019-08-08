@@ -2330,7 +2330,7 @@ func (cbft *Cbft) updateValidator() error {
 
 	newVds, err := cbft.agency.GetValidator(hc.number + 1)
 	if err != nil {
-		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
+		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash(), "err", err)
 		return errors.New("Get validators fail!")
 	}
 	if newVds.Len() <= 0 {

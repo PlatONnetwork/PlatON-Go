@@ -327,9 +327,10 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // ProgramVersion: From small to big
 // LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // validaotorTerm: From big to small
-// Shares： From small to bigLowPackageRatio
+// Shares： From small to big
 // BlockNumber: From big to small
 // TxIndex: From big to small
+//
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -345,9 +346,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		rightTxIndex, _ := r.GetStakingTxIndex()
 		switch {
 		case leftTxIndex > rightTxIndex:
-			return -1
-		case leftTxIndex < rightTxIndex:
 			return 1
+		case leftTxIndex < rightTxIndex:
+			return -1
 		default:
 			return 0
 		}
@@ -359,9 +360,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		rightNum, _ := r.GetStakingBlockNumber()
 		switch {
 		case leftNum > rightNum:
-			return -1
-		case leftNum < rightNum:
 			return 1
+		case leftNum < rightNum:
+			return -1
 		default:
 			return compareTxIndexFunc(l, r)
 		}
@@ -374,9 +375,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 
 		switch {
 		case leftShares.Cmp(rightShares) < 0:
-			return -1
-		case leftShares.Cmp(rightShares) > 0:
 			return 1
+		case leftShares.Cmp(rightShares) > 0:
+			return -1
 		default:
 			return compareBlockNumberFunc(l, r)
 		}
