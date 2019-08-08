@@ -511,9 +511,9 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, e
 		return common.NewBizError("ProposalID is empty.")
 	}
 
-	/*if len(proposer) == 0 {
+	if proposer == discover.ZeroNodeID {
 		return common.NewBizError("Proposer is empty.")
-	}*/
+	}
 
 	/*if len(topic) == 0 || len(topic) > 128 {
 		return common.NewBizError("Topic is empty or the size is bigger than 128.")
