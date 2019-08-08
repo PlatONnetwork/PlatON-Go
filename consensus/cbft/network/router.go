@@ -78,7 +78,7 @@ func (r *router) Gossip(m *types.MsgPackage) {
 	// pick target nodes by type.
 	peers, err := r.filteredPeers(msgType, msgHash)
 	if err != nil {
-		log.Error("filteredPeers failed and stop to send", "msgType", msgType, "msgHash", msgHash)
+		log.Error("filteredPeers failed and stop to send", "msgType", msgType, "msgHash", msgHash, "err", err)
 		return
 	}
 	// determine the number of target nodes based on different transmission modes.
