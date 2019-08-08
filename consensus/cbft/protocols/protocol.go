@@ -514,7 +514,7 @@ type LatestStatus struct {
 }
 
 func (s *LatestStatus) String() string {
-	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash, s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash.TerminalString(), s.LogicType)
 }
 
 func (s *LatestStatus) MsgHash() common.Hash {

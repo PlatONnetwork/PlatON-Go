@@ -568,12 +568,11 @@ func (h *EngineManager) synchronize() {
 		case <-blockNumberTimer.C:
 			// Sent at random.
 			syncQCBnFunc()
-			var resetTime time.Duration
 			rd := rand.Intn(10)
 			if rd == 0 || rd < QCBnMonitorInterval/2 {
 				rd = (rd + 1) * 2
 			}
-			resetTime = time.Duration(rd) * time.Second
+			resetTime := time.Duration(rd) * time.Second
 			blockNumberTimer.Reset(resetTime)
 
 		case <-viewTicker.C:
