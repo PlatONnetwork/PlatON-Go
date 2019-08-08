@@ -40,6 +40,7 @@ const (
 	StakeVonTooLowStr        = "Staking deposit too low"
 	StakingAddrNoSomeErrStr  = "Address must be the same as initiated staking"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
+	WithdrewDelegateErrStr   = "Withdrew delegate failed"
 )
 
 const (
@@ -619,7 +620,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	err = stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", WithdrewCanErrStr + ": " + err.Error()}
+			res := xcom.Result{false, "", WithdrewDelegateErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")
 			return event, nil
