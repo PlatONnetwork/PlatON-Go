@@ -543,15 +543,16 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // 3. Synchronous blocks with inconsistent commit block height.
 func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
-	blockNumberTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
+	blockNumberTicker := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
-		qcBn, _ := h.engine.HighestQCBlockBn()
+		qcBn, qcHash := h.engine.HighestQCBlockBn()
 		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
 		h.PartBroadcast(&protocols.GetLatestStatus{
 			BlockNumber: qcBn,
+			BlockHash:   qcHash,
 			LogicType:   TypeForQCBn,
 		})
 	}
@@ -566,7 +567,17 @@ func (h *EngineManager) synchronize() {
 		select {
 		case <-blockNumberTicker.C:
 			// Sent at random.
-			randomSend(syncQCBnFunc)
+			syncQCBnFunc()
+			var resetTime time.Duration
+			rd := rand.Intn(10)
+			if rd == 0 || rd < QCBnMonitorInterval/2 {
+				rd = (rd + 1) * 2
+			}
+			resetTime = time.Duration(rd) * time.Second
+			if !blockNumberTicker.Stop() {
+				<-blockNumberTicker.C
+			}
+			blockNumberTicker.Reset(resetTime)
 
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
@@ -591,20 +602,6 @@ func (h *EngineManager) synchronize() {
 			return
 		}
 	}
-}
-
-// Randomly sent during the timer period.
-func randomSend(exec func()) {
-	sleepTime := rand.Intn(QCBnMonitorInterval)
-	for {
-		if sleepTime > QCBnMonitorInterval/2 {
-			break
-		}
-		sleepTime *= 2
-	}
-	time.AfterFunc(time.Duration(int64(sleepTime)), func() {
-		exec()
-	})
 }
 
 // Select a node from the list of nodes that is larger than the specified value.

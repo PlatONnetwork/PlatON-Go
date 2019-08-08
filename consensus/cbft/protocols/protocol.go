@@ -489,11 +489,12 @@ func (s *QCBlockList) BHash() common.Hash {
 // State synchronization for nodes.
 type GetLatestStatus struct {
 	BlockNumber uint64 // Block height sent by the requester
+	BlockHash   common.Hash
 	LogicType   uint64 // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
 }
 
 func (s *GetLatestStatus) String() string {
-	return fmt.Sprintf("{BlockNumber:%d,LogicType:%d}", s.BlockNumber, s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash.TerminalString(), s.LogicType)
 }
 
 func (s *GetLatestStatus) MsgHash() common.Hash {
@@ -508,11 +509,12 @@ func (s *GetLatestStatus) BHash() common.Hash {
 // Response message to GetLatestStatus request.
 type LatestStatus struct {
 	BlockNumber uint64 // Block height sent by responder.
+	BlockHash   common.Hash
 	LogicType   uint64 // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
 }
 
 func (s *LatestStatus) String() string {
-	return fmt.Sprintf("{BlockNumber:%d,LogicType:%d}", s.BlockNumber, s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash, s.LogicType)
 }
 
 func (s *LatestStatus) MsgHash() common.Hash {

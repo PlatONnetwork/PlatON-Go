@@ -23,6 +23,53 @@ const (
 	MAX_QC_BLOCK = 3
 )
 
+func (cbft *Cbft) fetchBlockByBnAndHash(peerID string, blockHash common.Hash, blockNumber uint64) {
+	if cbft.fetcher.Len() == 0 && cbft.state.HighestLockBlock().NumberU64() == blockNumber {
+		cbft.log.Debug("Fetch block by blockHash and blockNumber", "blockHsh", blockHash, "blockNumber", blockNumber)
+		parentBlock := cbft.blockTree.FindBlockByHash(blockHash)
+		matchFunc := func(msg ctypes.Message) bool {
+			_, ok := msg.(*protocols.QCBlockList)
+			return ok
+		}
+		executorFunc := func(msg ctypes.Message) {
+			defer func() {
+				cbft.log.Debug("Close fetching in fetchBlockByBnAndHash")
+				utils.SetFalse(&cbft.fetching)
+			}()
+			if blockList, ok := msg.(*protocols.QCBlockList); ok {
+				// Execution block
+				for i, block := range blockList.Blocks {
+					if err := cbft.verifyPrepareQC(blockList.QC[i]); err != nil {
+						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+						return
+					}
+					start := time.Now()
+					if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
+						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+						return
+					}
+					blockExecutedTimer.UpdateSince(start)
+					parentBlock = block
+				}
+				// Update the results to the CBFT state machine
+				cbft.asyncCallCh <- func() {
+					if err := cbft.OnInsertQCBlock(blockList.Blocks, blockList.QC); err != nil {
+						cbft.log.Error("Insert block failed", "error", err)
+					}
+				}
+			}
+		}
+		expire := func() {
+			cbft.log.Debug("Fetch timeout, close fetching in fetchBlockByBnAndHash")
+			utils.SetFalse(&cbft.fetching)
+		}
+		cbft.log.Debug("Start fetching in fetchBlockByBnAndHash")
+		utils.SetTrue(&cbft.fetching)
+		cbft.fetcher.AddTask(peerID, matchFunc, executorFunc, expire)
+		cbft.network.Send(peerID, &protocols.GetQCBlockList{BlockHash: blockHash, BlockNumber: blockNumber})
+	}
+}
+
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	if cbft.fetcher.Len() == 0 && cbft.state.HighestQCBlock().NumberU64() < number {
@@ -244,25 +291,26 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 		default:
 		}
 		// Synchronize block data with fetchBlock.
-		cbft.fetchBlock(targetId, blockHash, blockNumber)
+		cbft.fetchBlockByBnAndHash(targetId, blockHash, blockNumber)
 		return nil
 	}
 	//
 	if msg.LogicType == network.TypeForQCBn {
 		localQCNum, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
-		if localQCNum == msg.BlockNumber {
-			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+		if localQCNum == msg.BlockNumber && localQCHash == msg.BlockHash {
+			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum, "remoteHash", msg.BlockHash, "localHash", localQCHash)
 			return nil
 		}
-		if localQCNum < msg.BlockNumber {
+		if localQCNum < msg.BlockNumber || (localQCNum == msg.BlockNumber && localQCHash != msg.BlockHash) {
 			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			return launcher(msg.LogicType, id, localQCNum, localQCHash)
+			localLockedNum, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
+			return launcher(msg.LogicType, id, localLockedNum, localLockedHash)
 		} else {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, LogicType: msg.LogicType})
+			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LogicType: msg.LogicType})
 		}
 	}
-	//
+	// Deprecated
 	if msg.LogicType == network.TypeForLockedBn {
 		localLockedNum, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 		if localLockedNum == msg.BlockNumber {
@@ -277,7 +325,7 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localLockedNum, LogicType: msg.LogicType})
 		}
 	}
-	//
+	// Deprecated
 	if msg.LogicType == network.TypeForCommitBn {
 		localCommitNum, localCommitHash := cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 		if localCommitNum == msg.BlockNumber {
@@ -301,7 +349,8 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	switch msg.LogicType {
 	case network.TypeForQCBn:
 		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
-		if localQCBn < msg.BlockNumber {
+		localLockedBn, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
+		if localQCBn < msg.BlockNumber || (localQCBn == msg.BlockNumber && localQCHash != msg.BlockHash) {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
 				cbft.log.Error("GetPeer failed", "err", err)
@@ -309,7 +358,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, localQCHash, localQCBn)
+			cbft.fetchBlockByBnAndHash(id, localLockedHash, localLockedBn)
 		}
 
 	case network.TypeForLockedBn:
