@@ -453,16 +453,25 @@ func (cbft *Cbft) tryChangeView() {
 	if viewChangeQC() {
 		cbft.log.Debug("Receive Enough viewChange, change view", "newEpoch", cbft.state.Epoch(), "newView", increasing())
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
-		_, _, _, number := viewChangeQC.MaxBlock()
-		block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
-		if block.NumberU64() != 0 && (number > qc.BlockNumber) {
-			//fixme get qc block
-			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
-			return
-		}
-		cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
+		cbft.tryChangeViewByViewChange(viewChangeQC)
 	}
 
+}
+
+func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
+	increasing := func() uint64 {
+		return cbft.state.ViewNumber() + 1
+	}
+
+	_, _, hash, number := viewChangeQC.MaxBlock()
+	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+	_, hc := cbft.blockTree.FindBlockAndQC(hash, number)
+	if block.NumberU64() != 0 && (number > qc.BlockNumber) && hc == nil {
+		//fixme get qc block
+		cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+		return
+	}
+	cbft.changeView(cbft.state.Epoch(), increasing(), block, qc, viewChangeQC)
 }
 
 // change view
