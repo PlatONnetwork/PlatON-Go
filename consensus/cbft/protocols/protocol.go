@@ -100,8 +100,8 @@ type PrepareBlock struct {
 }
 
 func (pb *PrepareBlock) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d}",
-		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d,ProposalIndex:%d}",
+		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex, pb.ProposalIndex)
 }
 
 func (pb *PrepareBlock) MsgHash() common.Hash {
@@ -156,8 +156,8 @@ type PrepareVote struct {
 }
 
 func (pv *PrepareVote) String() string {
-	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d}",
-		pv.Epoch, pv.ViewNumber, pv.BlockHash.TerminalString(), pv.BlockNumber, pv.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d,ValidatorIndex:%d}",
+		pv.Epoch, pv.ViewNumber, pv.BlockHash.TerminalString(), pv.BlockNumber, pv.BlockIndex, pv.ValidatorIndex)
 }
 
 func (pv *PrepareVote) MsgHash() common.Hash {
@@ -212,8 +212,8 @@ type ViewChange struct {
 }
 
 func (vc *ViewChange) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%vc,BlockNumber:%d}",
-		vc.Epoch, vc.ViewNumber, vc.BlockHash.TerminalString(), vc.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%vc,BlockNumber:%d,ValidatorIndex:%d}",
+		vc.Epoch, vc.ViewNumber, vc.BlockHash.TerminalString(), vc.BlockNumber, vc.ValidatorIndex)
 }
 
 func (vc *ViewChange) MsgHash() common.Hash {
@@ -236,7 +236,7 @@ func (vc *ViewChange) NodeIndex() uint32 {
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
 	blockEpoch, blockView := uint64(0), uint64(0)
 	if vc.PrepareQC != nil {
-		blockEpoch, blockView = vc.PrepareQC.Epoch, vc.ViewNumber
+		blockEpoch, blockView = vc.PrepareQC.Epoch, vc.PrepareQC.ViewNumber
 	}
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		vc.Epoch,

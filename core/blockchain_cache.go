@@ -226,3 +226,35 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	}
 	return nil
 }
+
+func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
+	sealHash := block.Header().SealHash()
+	state := bcc.ReadStateDB(sealHash)
+	receipts := bcc.ReadReceipts(sealHash)
+
+	if state == nil {
+		log.Error("Write Block error, state is nil", "number", block.NumberU64(), "hash", block.Hash())
+		return fmt.Errorf("write Block error, state is nil, number:%d, hash:%s", block.NumberU64(), block.Hash().String())
+	} else if len(block.Transactions()) > 0 && len(receipts) == 0 {
+		log.Error("Write Block error, block has transactions but receipts is nil", "number", block.NumberU64(), "hash", block.Hash())
+		return fmt.Errorf("write Block error, block has transactions but receipts is nil, number:%d, hash:%s", block.NumberU64(), block.Hash().String())
+	}
+
+	// Different block could share same sealhash, deep copy here to prevent write-write conflict.
+	var _receipts = make([]*types.Receipt, len(receipts))
+	for i, receipt := range receipts {
+		_receipts[i] = new(types.Receipt)
+		*_receipts[i] = *receipt
+	}
+	// Commit block and state to database.
+	//block.SetExtraData(extraData)
+	log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
+	_, err := bcc.WriteBlockWithState(block, _receipts, state)
+	if err != nil {
+		log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
+		return fmt.Errorf("Failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
+	}
+
+	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time())
+	return nil
+}
