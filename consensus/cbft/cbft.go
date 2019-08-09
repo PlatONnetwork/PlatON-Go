@@ -1245,8 +1245,9 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 }
 
 func (cbft *Cbft) avgRTT() time.Duration {
+	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
 	rtt := cbft.AvgLatency() * 2
-	if rtt == 0 {
+	if rtt == 0 || rtt >= produceInterval {
 		rtt = cbft.DefaultAvgLatency() * 2
 	}
 	return rtt
