@@ -627,6 +627,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 }
 
+// todo
 func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -762,5 +763,9 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	} else {
 		t.Log(string(res))
 	}
+
+}
+
+func Test_CreateStake_by_WrongVersionSign(t *testing.T) {
 
 }
