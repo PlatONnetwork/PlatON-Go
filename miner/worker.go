@@ -1001,7 +1001,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	defer func() {
 		if engine, ok := w.engine.(consensus.Bft); ok {
 			w.commitWorkEnv.nextBlockTime.Store(engine.CalcNextBlockTime(common.MillisToTime(timestamp)))
-			log.Debug("Next block time", "time", w.commitWorkEnv.nextBlockTime.Load().(time.Time))
+			log.Debug("Next block time", "time", w.commitWorkEnv.nextBlockTime.Load().(time.Time).Format("2006-01-02 15:04:05.999"))
 		}
 	}()
 

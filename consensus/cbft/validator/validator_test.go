@@ -483,8 +483,8 @@ func TestValidatorPoolVerify(t *testing.T) {
 	m := "test sig"
 
 	sig0 := sec0.Sign(m)
-	assert.True(t, vp.Verify(0, 0, []byte(m), sig0.Serialize()))
-	assert.False(t, vp.Verify(0, 1, []byte(m), sig0.Serialize()))
+	assert.Nil(t, vp.Verify(0, 0, []byte(m), sig0.Serialize()))
+	assert.NotNil(t, vp.Verify(0, 1, []byte(m), sig0.Serialize()))
 
 	sig1 := sec1.Sign(m)
 	sig0.Add(sig1)
