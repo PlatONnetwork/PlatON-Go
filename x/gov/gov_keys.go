@@ -2,6 +2,7 @@ package gov
 
 import (
 	"bytes"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
@@ -15,12 +16,11 @@ var (
 	keyPrefixPreActiveProposal = []byte("PreActiveProposal")
 	keyPrefixPreActiveVersion  = []byte("PreActiveVersion")
 	keyPrefixActiveVersion     = []byte("ActiveVersion")
-	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
+	keyPrefixParams            = []byte("Params")
 )
 
-// 提案的key
 func KeyProposal(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixProposal,
@@ -29,7 +29,6 @@ func KeyProposal(proposalID common.Hash) []byte {
 
 }
 
-// 投票的key
 func KeyVote(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixVote,
@@ -37,7 +36,6 @@ func KeyVote(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-// 投票结果的key
 func KeyTallyResult(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixTallyResult,
@@ -45,40 +43,26 @@ func KeyTallyResult(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-// 正在投票的提案列表的key
 func KeyVotingProposals() []byte {
 	return keyPrefixVotingProposals
 }
 
-// 预生效提案ID的key
 func KeyPreActiveProposals() []byte {
 	return keyPrefixPreActiveProposal
 }
 
-// 所有操作均结束的提案列表的key
 func KeyEndProposals() []byte {
 	return keyPrefixEndProposals
 }
 
-// 生效版本的key
 func KeyActiveVersion() []byte {
 	return keyPrefixActiveVersion
 }
 
-// 预生效版本的key
 func KeyPreActiveVersion() []byte {
 	return keyPrefixPreActiveVersion
 }
 
-// 生成已投票的验证人列表key
-func KeyVotedVerifiers(proposalID common.Hash) []byte {
-	return bytes.Join([][]byte{
-		keyPrefixVotedVerifiers,
-		proposalID.Bytes(),
-	}, KeyDelimiter)
-}
-
-// 已升级节点列表的key
 func KeyActiveNodes(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixActiveNodes,
@@ -86,10 +70,13 @@ func KeyActiveNodes(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-// 提案投票期内累积的不同验证人的key
 func KeyAccuVerifier(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixAccuVerifiers,
 		proposalID.Bytes(),
 	}, KeyDelimiter)
+}
+
+func KeyParams() []byte {
+	return keyPrefixParams
 }

@@ -18,8 +18,9 @@ package les
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -106,7 +107,7 @@ func (b *LesApiBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 
 func (b *LesApiBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
 	state.SetBalance(msg.From(), math.MaxBig256)
-	context := core.NewEVMContext(msg, header, b.eth.blockchain, nil)
+	context := core.NewEVMContext(msg, header, b.eth.blockchain)
 	return vm.NewEVM(context, state, b.eth.chainConfig, vmCfg), state.Error, nil
 }
 

@@ -2,7 +2,6 @@ package snapshotdb
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io"
 	"log"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // fileStorage is a file-system backed storage.
@@ -285,7 +286,7 @@ func openFile(path string, readOnly bool) (storage, error) {
 		}
 	} else if os.IsNotExist(err) && !readOnly {
 		if err := os.MkdirAll(path, 0755); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("mkdir fail:%v", err)
 		}
 	} else {
 		return nil, err
@@ -293,7 +294,7 @@ func openFile(path string, readOnly bool) (storage, error) {
 
 	flock, err := newFileLock(filepath.Join(path, "LOCK"), readOnly)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("newFileLock fail:%v", err)
 	}
 
 	defer func() {
@@ -309,7 +310,7 @@ func openFile(path string, readOnly bool) (storage, error) {
 	if !readOnly {
 		logw, err = os.OpenFile(filepath.Join(path, "LOG"), os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("open log file fail:%v", err)
 		}
 		logSize, err = logw.Seek(io.SeekStart, io.SeekEnd)
 		if err != nil {
@@ -344,7 +345,7 @@ func fsParseName(name string) (fd fileDesc, ok bool) {
 		if strings.Contains(name, ".log") {
 			_, p := path.Split(name)
 			arr := strings.Split(p, "-")
-			i, err := strconv.ParseInt(arr[0], 10, 64)
+			i, err := strconv.ParseUint(arr[0], 10, 64)
 			if err != nil {
 				log.Printf("invalid name %s,can't, parse to int,%v", name, err)
 				return fd, false

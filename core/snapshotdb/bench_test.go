@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"math/rand"
 	"os"
@@ -186,6 +187,7 @@ func (p *dbBench) fill() {
 }
 
 func BenchmarkDBPutUnrecognized(b *testing.B) {
+	logger.SetHandler(log.DiscardHandler())
 	p := openDBBench(b)
 	p.populate(b.N)
 	p.putsUnrecognized()
@@ -193,6 +195,7 @@ func BenchmarkDBPutUnrecognized(b *testing.B) {
 }
 
 func BenchmarkDBPutRecognized(b *testing.B) {
+	logger.SetHandler(log.DiscardHandler())
 	p := openDBBench(b)
 	p.populate(b.N)
 	p.putsRecognized()
