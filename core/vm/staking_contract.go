@@ -39,6 +39,7 @@ const (
 	QueryDelErrSTr           = "Query delegate info failed"
 	StakeVonTooLowStr        = "Staking deposit too low"
 	StakingAddrNoSomeErrStr  = "Address must be the same as initiated staking"
+	DescriptionLenErrStr     = "The Description length is wrong"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
 	WithdrewDelegateErrStr   = "Withdrew delegate failed"
 )
@@ -104,12 +105,29 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
 		"programVersion", programVersion)
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
 	}
 
 	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
+	}
+
+	// check Description length
+	desc := &staking.Description{
+		NodeName:   nodeName,
+		ExternalId: externalId,
+		Website:    website,
+		Details:    details,
+	}
+	if err := desc.CheckLength(); nil != err {
+		res := xcom.Result{false, "", DescriptionLenErrStr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
@@ -174,12 +192,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
 
-		Description: staking.Description{
-			NodeName:   nodeName,
-			ExternalId: externalId,
-			Website:    website,
-			Details:    details,
-		},
+		Description: *desc,
 	}
 
 	canNew.ProgramVersion = currVersion
@@ -241,6 +254,9 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		"nodeId", nodeId.String(), "externalId", externalId, "nodeName", nodeName,
 		"website", website, "details", details)
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
 	}
@@ -282,10 +298,24 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	canOld.BenefitAddress = benefitAddress
 
-	canOld.NodeName = nodeName
-	canOld.ExternalId = externalId
-	canOld.Website = website
-	canOld.Details = details
+	// check Description length
+	desc := &staking.Description{
+		NodeName:   nodeName,
+		ExternalId: externalId,
+		Website:    website,
+		Details:    details,
+	}
+	if err := desc.CheckLength(); nil != err {
+		res := xcom.Result{false, "", DescriptionLenErrStr + ": " + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editCandidate")
+		return event, nil
+	}
+
+	canOld.ExternalId = desc.ExternalId
+	canOld.NodeName = desc.NodeName
+	canOld.Website = desc.Website
+	canOld.Details = desc.Details
 
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canOld)
 
@@ -321,6 +351,9 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	log.Info("Call increaseStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "typ", typ, "amount", amount)
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.IncStakeGas) {
 		return nil, ErrOutOfGas
@@ -403,6 +436,9 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	log.Info("Call withdrewStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
 		return nil, ErrOutOfGas
 	}
@@ -478,6 +514,9 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	log.Info("Call delegate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "typ", typ,
 		"nodeId", nodeId.String(), "amount", amount)
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.DelegateGas) {
 		return nil, ErrOutOfGas
@@ -592,6 +631,9 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
 		return nil, ErrOutOfGas
 	}
@@ -665,7 +707,9 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	data, _ := json.Marshal(res)
 
 	// todo test
-	log.Debug("getVerifierList", "verArr", string(arrByte))
+	log.Debug("getVerifierList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "verArr", string(arrByte))
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 	return data, nil
 }
 
@@ -692,7 +736,9 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	data, _ := json.Marshal(res)
 
 	// todo test
-	log.Debug("getValidatorList", "valArr", string(arrByte))
+	log.Debug("getValidatorList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "valArr", string(arrByte))
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 	return data, nil
 }
 
@@ -724,13 +770,16 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	data, _ := json.Marshal(res)
 
 	// todo test
-	log.Debug("getCandidateList", "canArr", string(arrByte))
+	log.Debug("getCandidateList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canArr", string(arrByte))
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 	return data, nil
 }
 
 // todo Maybe will implement
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
+	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
@@ -756,7 +805,9 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	data, _ := json.Marshal(res)
 
 	// todo test
-	log.Debug("getRelatedListByDelAddr", "relateArr", string(jsonByte))
+	log.Debug("getRelatedListByDelAddr", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "relateArr", string(jsonByte))
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 	return data, nil
 }
 
@@ -789,7 +840,9 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	data, _ := json.Marshal(res)
 
 	// todo test
-	log.Debug("getDelegateInfo", "delinfo", string(jsonByte))
+	log.Debug("getDelegateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delinfo", string(jsonByte))
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 	return data, nil
 }
 
@@ -827,7 +880,9 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	data, _ := json.Marshal(res)
 
 	// todo test
-	log.Debug("getCandidateInfo", "caninfo", string(jsonByte))
+	log.Debug("getCandidateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "caninfo", string(jsonByte))
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 	return data, nil
 
 }

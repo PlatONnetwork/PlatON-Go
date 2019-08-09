@@ -360,21 +360,21 @@ func build_staking_data(genesisHash common.Hash) {
 	setRoundValList(blockHash, curr_Arr)
 }
 
-func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
-	account := addrArr[0]
-
-	const Epochs = 5
+func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.Int, epochs int, stateDB xcom.StateDB) {
+	//account := addrArr[0]
+	fmt.Println("buildDbRestrictingPlan, store addr", account.Hex())
+	//const Epochs = 5
 	var list = make([]uint64, 0)
 
-	for epoch := 1; epoch <= Epochs; epoch++ {
+	for epoch := 1; epoch <= epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
-		// build release amount record
-		releaseAmount := big.NewInt(int64(1E18))
+		// build release amount record 1eth
+		releaseAmount := balance
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
-		stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, releaseAmount.Bytes())
 
 		// build release epoch list record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
@@ -385,7 +385,7 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.Balance = big.NewInt(int64(5E18))
+	user.Balance = new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
 	user.Debt = big.NewInt(0)
 	user.DebtSymbol = false
 	user.ReleaseList = list
@@ -397,10 +397,12 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 
 	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(account, restrictingKey, bUser)
+	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
 	stateDB.AddBalance(sender, sender_balance)
-	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
+
+	von, _ := new(big.Int).SetString("100000000000000000000000000", 10)
+	stateDB.AddBalance(cvm.RestrictingContractAddr, von)
 }
 
 func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
