@@ -19,7 +19,6 @@ package miner
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sync"
 	"sync/atomic"
