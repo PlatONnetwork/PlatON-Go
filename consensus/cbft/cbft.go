@@ -1042,8 +1042,8 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	}
 
 	// Verify consensus msg signature
-	if !cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()) {
-		return nil, fmt.Errorf("signature verification failed")
+	if err := cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()); err != nil {
+		return nil, err
 	}
 
 	// Get validator of signer
@@ -1200,8 +1200,8 @@ func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
 	if cb, err = qc.CannibalizeBytes(); err != nil {
 		return err
 	}
-	if !cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
-		return fmt.Errorf("verify prepare qc failed")
+	if err = cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()); err != nil {
+		return fmt.Errorf("verify prepare qc failed: %v", err)
 	}
 	return err
 }
@@ -1232,8 +1232,8 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 			break
 		}
 
-		if !cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
-			err = fmt.Errorf("verify viewchange qc failed")
+		if err = cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()); err != nil {
+			err = fmt.Errorf("verify viewchange qc failed: %v", err)
 			break
 		}
 	}

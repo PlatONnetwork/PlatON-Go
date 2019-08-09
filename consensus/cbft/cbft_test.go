@@ -71,7 +71,7 @@ func TestBls(t *testing.T) {
 	pb := &protocols.PrepareVote{}
 	cbft.signMsgByBls(pb)
 	msg, _ := pb.CannibalizeBytes()
-	assert.True(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
+	assert.Nil(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
 }
 func TestAgg(t *testing.T) {
 	num := 4

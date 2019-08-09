@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -452,10 +453,10 @@ func (vp *ValidatorPool) Len(blockNumber uint64) int {
 }
 
 // Verify verifies signature using the specified validator's bls public key.
-func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, signature []byte) bool {
+func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, signature []byte) error {
 	validator, err := vp.GetValidatorByIndex(blockNumber, validatorIndex)
 	if err != nil {
-		return false
+		return err
 	}
 	return validator.Verify(msg, signature)
 }
@@ -487,7 +488,7 @@ func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uin
 	return sig.Verify(&pub, string(msg))
 }
 
-func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArray, msg, signature []byte) bool {
+func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArray, msg, signature []byte) error {
 	vp.lock.RLock()
 	validators := vp.currentValidators
 	if blockNumber <= vp.switchPoint {
@@ -496,7 +497,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 
 	nodeList, err := validators.NodeListByBitArray(vSet)
 	if err != nil || len(nodeList) == 0 {
-		return false
+		return fmt.Errorf("not found validators: %v", err)
 	}
 	vp.lock.RUnlock()
 
@@ -509,9 +510,12 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 	var sig bls.Sign
 	err = sig.Deserialize(signature)
 	if err != nil {
-		return false
+		return err
 	}
-	return sig.Verify(&pub, string(msg))
+	if !sig.Verify(&pub, string(msg)) {
+		return errors.New("bls verifies signature fail")
+	}
+	return nil
 }
 
 func NextRound(blockNumber uint64) uint64 {
