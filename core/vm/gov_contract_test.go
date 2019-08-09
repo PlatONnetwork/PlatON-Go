@@ -40,7 +40,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode("versionUrl"))
 	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*10))
+	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*10+1))
 
 	return common.MustRlpEncode(input)
 }
