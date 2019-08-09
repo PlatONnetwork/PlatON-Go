@@ -71,7 +71,7 @@ func TestBls(t *testing.T) {
 	pb := &protocols.PrepareVote{}
 	cbft.signMsgByBls(pb)
 	msg, _ := pb.CannibalizeBytes()
-	assert.True(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
+	assert.Nil(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
 }
 func TestAgg(t *testing.T) {
 	num := 4
@@ -479,6 +479,76 @@ func newUpdateValidatorTx(t *testing.T, parent *types.Block, header *types.Heade
 	return tx, receipt, statedb
 }
 
+func TestCalc(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(1)
+	node := MockNode(pk[0], sk[0], cbftnodes, 5000, 10)
+	assert.Nil(t, node.Start())
+
+	now := time.Now()
+	interval := 500 * time.Millisecond
+	blockTime := node.engine.CalcBlockDeadline(now)
+	assert.Equal(t, blockTime, now.Add(interval-200*time.Millisecond-150*time.Millisecond))
+
+	nextBlockTime := node.engine.CalcNextBlockTime(now)
+	assert.Equal(t, nextBlockTime, now.Add(200*time.Millisecond+150*time.Millisecond))
+
+	time.Sleep(4600 * time.Millisecond)
+	old := now
+	now = time.Now()
+	blockTime = node.engine.CalcBlockDeadline(now)
+	assert.Equal(t, blockTime, node.engine.state.Deadline())
+
+	nextBlockTime = node.engine.CalcNextBlockTime(old)
+	assert.Equal(t, nextBlockTime, old.Add(500*time.Millisecond))
+}
+
+func TestShouldSeal(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(5)
+	node := MockNode(pk[0], sk[0], cbftnodes[:4], 3000, 10)
+	should, _ := node.engine.ShouldSeal(time.Now())
+	assert.False(t, should)
+
+	assert.Nil(t, node.Start())
+
+	should, err := node.engine.ShouldSeal(time.Now())
+	assert.Nil(t, err)
+	assert.True(t, should)
+
+	node5 := MockNode(pk[4], sk[4], cbftnodes[:4], 3000, 10)
+	assert.Nil(t, node5.Start())
+
+	should, err = node5.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "current node not a validator")
+	assert.False(t, should)
+
+	node1 := MockNode(pk[1], sk[1], cbftnodes[:4], 3000, 10)
+	assert.Nil(t, node1.Start())
+
+	should, err = node1.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "current node not the proposer")
+	assert.False(t, should)
+
+	parent := node.cache.Genesis()
+	for i := 0; i < 10; i++ {
+		pb := &protocols.PrepareBlock{
+			Epoch:         0,
+			ViewNumber:    0,
+			Block:         NewBlock(parent.Hash(), parent.NumberU64()),
+			BlockIndex:    uint32(i),
+			ProposalIndex: 0,
+		}
+		parent = pb.Block
+		node.engine.state.AddPrepareBlock(pb)
+	}
+	should, err = node.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "produce block over limit")
+	assert.False(t, should)
+
+	time.Sleep(4 * time.Second)
+	should, err = node.engine.ShouldSeal(time.Now())
+	assert.Equal(t, err.Error(), "view timeout")
+	assert.False(t, should)
+}
 func TestInsertChain(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)

@@ -104,14 +104,17 @@ func (vn *ValidateNode) String() string {
 	return fmt.Sprintf("{Index:%d Address:%s BlsPubKey:%s}", vn.Index, vn.Address.String(), fmt.Sprintf("%x", vn.BlsPubKey.Serialize()))
 }
 
-func (vn *ValidateNode) Verify(data, sign []byte) bool {
+func (vn *ValidateNode) Verify(data, sign []byte) error {
 	var sig bls.Sign
 	err := sig.Deserialize(sign)
 	if err != nil {
-		return false
+		return err
 	}
 
-	return sig.Verify(vn.BlsPubKey, string(data))
+	if !sig.Verify(vn.BlsPubKey, string(data)) {
+		return errors.New("bls verifies signature fail")
+	}
+	return nil
 }
 
 func (vnm ValidateNodeMap) String() string {
