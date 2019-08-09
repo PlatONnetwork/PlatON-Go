@@ -150,6 +150,11 @@ func PrintObject(s string, obj interface{}) {
 	log.Debug(s + " == " + string(objs))
 }
 
+func PrintObjForErr(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	log.Error(s + " == " + string(objs))
+}
+
 func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
