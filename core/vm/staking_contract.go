@@ -134,7 +134,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	curr_version := plugin.GovPluginInstance().GetActiveVersion(state)
+	curr_version := plugin.GovPluginInstance().GetCurrentActiveVersion(state)
 	currVersion := xutil.CalcVersion(curr_version)
 	inputVersion := xutil.CalcVersion(programVersion)
 
@@ -212,10 +212,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		}
 	}
 
+	programVersionSign := common.VersionSign{}
+
 	if isDeclareVersion {
 		// Declare new Version
 		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
-			programVersion, blockHash, blockNumber.Uint64(), state)
+			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)

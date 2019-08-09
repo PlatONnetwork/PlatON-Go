@@ -697,3 +697,70 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	}
 
 }
+
+func Test_CreateStake_by_FlowDescLen(t *testing.T) {
+
+	state, genesis, _ := newChainState()
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	contract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:      newEvm(blockNumber, blockHash, state),
+	}
+
+	index := 1
+
+	state.Prepare(txHashArr[index], blockHash, index+1)
+
+	var params [][]byte
+	params = make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	typ, _ := rlp.EncodeToBytes(uint16(0))
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	externalId, _ := rlp.EncodeToBytes("sssxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxsfsfsfsfsfsfsfsfsfsfsfsfsfADADADADADs")
+	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China adadadadafsafsdfsdfsdfsdfsdfsdADADADADADADADAf")
+	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".networkdadadadasdwdqwdqwdADADADADADADADADADAqwdqwdqwdqwdqwdQWDQwdQWD.com")
+	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super nodeFFFAADADDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
+	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+
+	params = append(params, fnType)
+	params = append(params, typ)
+	params = append(params, benefitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+	params = append(params, amount)
+	params = append(params, programVersion)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf("createStaking encode rlp data fail: %v", err)
+	} else {
+		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+	if nil != err {
+		t.Error(err)
+	} else {
+		t.Log(string(res))
+	}
+
+}
