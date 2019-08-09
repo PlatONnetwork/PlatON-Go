@@ -52,8 +52,8 @@ func setup(t *testing.T) func() {
 	govDB = gov.GovDBInstance()
 
 	// init data
-	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - xcom.ElectionDistance())
-	activeBlock = uint64(xutil.CalcBlocksEachEpoch() + xutil.ConsensusSize()*5)
+	endVotingBlock = uint64(xutil.ConsensusSize()*5 - xcom.ElectionDistance())
+	activeBlock = uint64(endVotingBlock + xutil.ConsensusSize()*5 + 1)
 
 	return func() {
 		t.Log("tear down()......")
