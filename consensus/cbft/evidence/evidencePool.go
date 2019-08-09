@@ -47,7 +47,7 @@ func (pool emptyEvidencePool) Evidences() consensus.Evidences {
 	return nil
 }
 
-func (pool emptyEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+func (pool emptyEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
 	return nil, nil
 }
 
@@ -156,9 +156,9 @@ func (pool baseEvidencePool) Evidences() consensus.Evidences {
 	return evds
 }
 
-func (pool baseEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+func (pool baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
 	var ed EvidenceData
-	if err := json.Unmarshal(data, &ed); err != nil {
+	if err := json.Unmarshal([]byte(data), &ed); err != nil {
 		return nil, err
 	}
 	evds := make(consensus.Evidences, 0)

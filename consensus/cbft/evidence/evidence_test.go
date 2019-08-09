@@ -177,7 +177,7 @@ func TestJson(t *testing.T) {
 		return
 	}
 
-	evidences, err := pool.UnmarshalEvidence([]byte(b2))
+	evidences, err := pool.UnmarshalEvidence(string(b2))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, evidences.Len())
 }

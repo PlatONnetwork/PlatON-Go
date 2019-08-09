@@ -12,6 +12,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 )
 
+const (
+	DuplicatePrepareBlockType = 1
+	DuplicatePrepareVoteType  = 2
+	DuplicateViewChangeType   = 3
+)
+
 //Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicatePrepareBlockEvidence struct {
 	PrepareA *protocols.PrepareBlock
@@ -58,6 +64,38 @@ func (d DuplicatePrepareBlockEvidence) Equal(ev consensus.Evidence) bool {
 func (d DuplicatePrepareBlockEvidence) Error() string {
 	return fmt.Sprintf("DuplicatePrepareBlockEvidence epoch:%d, viewNumber:%d, blockNumber:%d blockHashA:%s, blockHashB:%s",
 		d.PrepareA.Epoch, d.PrepareA.ViewNumber, d.PrepareA.Block.NumberU64(), d.PrepareA.Block.Hash().String(), d.PrepareB.Block.Hash().String())
+}
+
+func (d DuplicatePrepareBlockEvidence) Validate() error {
+	if d.PrepareA.Epoch != d.PrepareB.Epoch {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence Epoch is different, PrepareA:%d, PrepareB:%d", d.PrepareA.Epoch, d.PrepareB.Epoch)
+	}
+	if d.PrepareA.ViewNumber != d.PrepareB.ViewNumber {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence ViewNumber is different, PrepareA:%d, PrepareB:%d", d.PrepareA.ViewNumber, d.PrepareB.ViewNumber)
+	}
+	if d.PrepareA.BlockNum() != d.PrepareB.BlockNum() {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockNumber is different, PrepareA:%d, PrepareB:%d", d.PrepareA.BlockNum(), d.PrepareB.BlockNum())
+	}
+	if d.PrepareA.BHash() == d.PrepareB.BHash() {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockHash is equal, PrepareA:%s, PrepareB:%s", d.PrepareA.BHash(), d.PrepareB.BHash())
+	}
+
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	return nil
+}
+
+func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
+	return DuplicatePrepareBlockType
 }
 
 //Evidence A.Number == B.Number but A.Hash != B.Hash
@@ -108,6 +146,32 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 		d.VoteA.Epoch, d.VoteA.ViewNumber, d.VoteA.BlockNumber, d.VoteA.BlockHash.String(), d.VoteB.BlockHash.String())
 }
 
+func (d DuplicatePrepareVoteEvidence) Validate() error {
+	if d.VoteA.Number != d.VoteB.Number {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNum is different, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+	if d.VoteA.Hash == d.VoteB.Hash {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	return nil
+}
+
+func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
+	return DuplicatePrepareVoteType
+}
+
 //Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicateViewChangeEvidence struct {
 	ViewA *protocols.ViewChange
@@ -156,6 +220,32 @@ func (d DuplicateViewChangeEvidence) Error() string {
 		d.ViewA.Epoch, d.ViewA.ViewNumber, d.ViewA.BlockNumber, d.ViewA.BlockHash.String(), d.ViewB.BlockHash.String())
 }
 
+func (d DuplicateViewChangeEvidence) Validate() error {
+	if d.VoteA.Number != d.VoteB.Number {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNum is different, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+	if d.VoteA.Hash == d.VoteB.Hash {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	return nil
+}
+
+func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {
+	return DuplicateViewChangeType
+}
+
 type EvidenceData struct {
 	DP []*DuplicatePrepareBlockEvidence `json:"duplicate_prepare"`
 	DV []*DuplicatePrepareVoteEvidence  `json:"duplicate_vote"`
@@ -169,6 +259,7 @@ func NewEvidenceData() *EvidenceData {
 		DC: make([]*DuplicateViewChangeEvidence, 0),
 	}
 }
+
 func ClassifyEvidence(evds consensus.Evidences) *EvidenceData {
 	ed := NewEvidenceData()
 	for _, e := range evds {
