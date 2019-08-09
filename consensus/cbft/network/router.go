@@ -130,7 +130,7 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, 
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
-	// todo: Test the anchor point, please pay attention to let go.
+	// Test the anchor point, please pay attention to let go.
 	//return r.peers()
 	switch msgType {
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,

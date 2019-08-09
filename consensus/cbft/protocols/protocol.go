@@ -44,7 +44,6 @@ const (
 // The program is forcibly terminated if there is an unmatched message type and
 // all types must exist in the match list.
 func MessageType(msg interface{}) uint64 {
-	// todo: need to process depending on mmessageType.
 	switch msg.(type) {
 	case *CbftStatusData:
 		return CBFTStatusMsg
@@ -307,7 +306,6 @@ func (s *GetPrepareBlock) BHash() common.Hash {
 }
 
 // Protocol message for obtaining an aggregated signature.
-// todo: Need to determine the attribute field - ParentQC.
 type GetBlockQuorumCert struct {
 	BlockHash   common.Hash `json:"block_hash"`   // The hash of the block to be acquired.
 	BlockNumber uint64      `json:"block_number"` // The number of the block to be acquired.
