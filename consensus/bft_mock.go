@@ -54,6 +54,10 @@ func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 	panic("implement me")
 }
 
+func (bm *BftMock) NodeID() discover.NodeID {
+	panic("Not support")
+}
+
 // Author retrieves the Ethereum address of the account that minted the given
 // block, which may be different from the header's coinbase if a consensus
 // engine is based on signatures.

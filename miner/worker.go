@@ -1042,7 +1042,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if w.isRunning() {
 		//todo: Notes, need update.
 		//todo: Merge confirmation.
-		core.GetReactorInstance().SetWorkerCoinBase(header, discover.NodeID{})
+		if b, ok := w.engine.(consensus.Bft); ok {
+			core.GetReactorInstance().SetWorkerCoinBase(header, b.NodeID())
+		}
 	}
 
 	log.Info("cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))

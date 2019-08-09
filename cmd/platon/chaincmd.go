@@ -236,7 +236,9 @@ func importChain(ctx *cli.Context) error {
 	defer chainDb.Close()
 	if c, ok := chain.Engine().(*cbft.Cbft); ok {
 		blockChainCache := core.NewBlockChainCache(chain)
-		var agency consensus.Agency //cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
+		//todo: Merge confirmation.
+		var agency consensus.Agency
+		//cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
 		// init worker
 		bc := &FakeBackend{bc: chain}
 

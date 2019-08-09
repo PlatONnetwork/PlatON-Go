@@ -1212,3 +1212,7 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 
 	return err
 }
+
+func (cbft *Cbft) NodeID() discover.NodeID {
+	return cbft.config.Option.NodeID
+}

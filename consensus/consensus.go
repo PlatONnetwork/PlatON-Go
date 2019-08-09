@@ -176,4 +176,7 @@ type Bft interface {
 	UnmarshalEvidence(data []byte) (consensus.Evidences, error)
 
 	TracingSwitch(flag int8)
+
+	// NodeID is temporary.
+	NodeID() discover.NodeID
 }
