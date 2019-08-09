@@ -1530,7 +1530,13 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		return errMissingSignature
 	}
 
-	if err := cbft.agency.VerifyHeader(header); err != nil {
+	state, err := cbft.blockChain.State()
+
+	if err != nil {
+		cbft.log.Error("Verify header error, cannot make state based on parent", "blockNumber", header.Number, "parentHash", header.ParentHash, "err", err)
+	}
+
+	if err := cbft.agency.VerifyHeader(header, state); err != nil {
 		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "seal", seal, "err", err)
 		return err
 	}

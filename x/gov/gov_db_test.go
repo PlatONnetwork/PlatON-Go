@@ -169,12 +169,12 @@ func TestGovDB_SetActiveVersion(t *testing.T) {
 	db, statedb := getGovDB()
 	version := uint32(32)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := db.SetActiveVersion(version, statedb); err != nil {
-		t.Fatalf("set pre-active version error...%s", err)
+	if err := db.AddActiveVersion(version, 10000, statedb); err != nil {
+		t.Fatalf("add active version error...%s", err)
 	}
-	vget := db.GetActiveVersion(statedb)
+	vget := db.GetCurrentActiveVersion(statedb)
 	if vget != version {
-		t.Fatalf("get pre-active version error,expect version:%d,get version:%d", version, vget)
+		t.Fatalf("get current active version error,expect version:%d,get version:%d", version, vget)
 	}
 }
 

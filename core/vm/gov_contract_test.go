@@ -66,7 +66,12 @@ func buildVoteInput(nodeIdx, txIdx int) []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
 	input = append(input, common.MustRlpEncode(txHashArr[txIdx]))
 	input = append(input, common.MustRlpEncode(uint8(1)))
-	input = append(input, common.MustRlpEncode(uint32(2<<16|0<<8|0)))
+	ver := uint32(2<<16 | 0<<8 | 0)
+	verBytes := common.Uint32ToBytes(ver)
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[nodeIdx])
+	sign, _ := chandler.Sign(verBytes)
+	input = append(input, common.MustRlpEncode(sign))
 
 	return common.MustRlpEncode(input)
 }
@@ -74,10 +79,17 @@ func buildVoteInput(nodeIdx, txIdx int) []byte {
 func buildDeclareInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2004)))         // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0]))         // param 1 ...
-	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
+	input = append(input, common.MustRlpEncode(uint16(2004))) // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 
+	ver := uint32(1<<16 | 1<<8 | 1)
+	verBytes := common.Uint32ToBytes(ver)
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[0])
+	sign, _ := chandler.Sign(verBytes)
+
+	input = append(input, common.MustRlpEncode(ver)) //new version : 1.1.1
+	input = append(input, common.MustRlpEncode(sign))
 	return common.MustRlpEncode(input)
 }
 

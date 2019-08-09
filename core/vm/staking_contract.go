@@ -115,7 +115,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	curr_version := plugin.GovPluginInstance().GetActiveVersion(state)
+	curr_version := plugin.GovPluginInstance().GetCurrentActiveVersion(state)
 	currVersion := xutil.CalcVersion(curr_version)
 	inputVersion := xutil.CalcVersion(programVersion)
 
