@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -602,4 +603,39 @@ func TestInsertChain(t *testing.T) {
 	for _, b := range hasQCBlock {
 		assert.Nil(t, nodes[1].engine.InsertChain(b))
 	}
+}
+
+func TestViewChangeCannibalizeBytes(t *testing.T) {
+	v := &protocols.ViewChange{
+		Epoch:          0,
+		ViewNumber:     1,
+		BlockHash:      common.HexToHash("0x8ad5dee5aee35b5231ccc19eb2152eb06226031fce7a6ead4f934dc488a1be4c"),
+		BlockNumber:    7,
+		ValidatorIndex: 2,
+		PrepareQC: &ctypes.QuorumCert{
+			Epoch:      0,
+			ViewNumber: 0,
+		},
+	}
+	vq := ctypes.ViewChangeQuorumCert{
+		Epoch:           0,
+		ViewNumber:      1,
+		BlockHash:       common.HexToHash("0x8ad5dee5aee35b5231ccc19eb2152eb06226031fce7a6ead4f934dc488a1be4c"),
+		BlockNumber:     7,
+		BlockEpoch:      0,
+		BlockViewNumber: 0,
+	}
+
+	vc, err := v.CannibalizeBytes()
+	assert.Nil(t, err)
+	vqc, err := vq.CannibalizeBytes()
+	assert.Nil(t, err)
+
+	assert.True(t, bytes.Equal(vc, vqc))
+
+	vq.BlockViewNumber = 1
+	vqc, err = vq.CannibalizeBytes()
+	assert.Nil(t, err)
+
+	assert.False(t, bytes.Equal(vc, vqc))
 }
