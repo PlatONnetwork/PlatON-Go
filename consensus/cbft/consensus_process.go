@@ -409,7 +409,6 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		cbft.commitBlock(commit, qc, lock, highestqc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
-		//cbft.bridge.UpdateChainState(highestqc, lock, commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
 		cbft.blockTree.NewRoot(commit)
 		// metrics
