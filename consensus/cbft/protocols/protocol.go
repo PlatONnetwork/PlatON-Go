@@ -236,7 +236,7 @@ func (vc *ViewChange) NodeIndex() uint32 {
 func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
 	blockEpoch, blockView := uint64(0), uint64(0)
 	if vc.PrepareQC != nil {
-		blockEpoch, blockView = vc.PrepareQC.Epoch, vc.ViewNumber
+		blockEpoch, blockView = vc.PrepareQC.Epoch, vc.PrepareQC.ViewNumber
 	}
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		vc.Epoch,
