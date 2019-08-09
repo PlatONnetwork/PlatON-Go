@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -1204,7 +1205,8 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 		}
 
 		if !cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
-			err = fmt.Errorf("verify viewchange qc failed")
+			err = fmt.Errorf("verify viewchange qc failed:number:%d,validators:%s,msg:%s, signature:%s",
+				vc.BlockNumber, vc.ValidatorSet.String(), hexutil.Encode(cb), vc.Signature.String())
 			break
 		}
 	}
