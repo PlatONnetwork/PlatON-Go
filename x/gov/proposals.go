@@ -340,16 +340,15 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		log.Error("active-block should greater than end-voting-block")
 		return common.NewBizError("active-block invalid.")
 	} else {
-		difference := vp.ActiveBlock - (vp.EndVotingBlock + xcom.ElectionDistance())
-
-		remainder := difference % xutil.ConsensusSize()
-		if remainder != 0 {
-			log.Error("active-block should be multi-consensus-rounds greater than end-voting-block.")
+		remainder := vp.ActiveBlock % xutil.ConsensusSize()
+		if remainder != 1 {
+			log.Error("active-block should be the first block of a consensus round.")
 			return common.NewBizError("active-block invalid.")
 		} else {
+			difference := vp.ActiveBlock - (vp.EndVotingBlock + xcom.ElectionDistance())
 			quotient := difference / xutil.ConsensusSize()
-			if quotient <= 4 || quotient > 10 {
-				log.Error("active-block should be (4,10] consensus-rounds greater than end-voting-block.")
+			if quotient <= 4 || quotient >= 10 {
+				log.Error("active-block should be (4,10) consensus-rounds greater than end-voting-block.")
 				return common.NewBizError("active-block invalid.")
 			}
 		}

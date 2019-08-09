@@ -286,7 +286,7 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -333,7 +333,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
-	err := self.snapdb.put(blockHash, KeyPreActiveProposals(), common.Hash{})
+	err := self.snapdb.put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}

@@ -232,7 +232,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
-	eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
+	//extra data for each block will be set by GovPlugin.BeginBlock()
+	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
 	//set crypto handler as a common handler for reactor

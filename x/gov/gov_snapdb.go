@@ -59,7 +59,7 @@ func (self *GovSnapshotDB) getVotingIDList(blockHash common.Hash) ([]common.Hash
 
 func (self *GovSnapshotDB) getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
-	bytes, err := self.get(blockHash, KeyPreActiveProposals())
+	bytes, err := self.get(blockHash, KeyPreActiveProposal())
 
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return common.Hash{}, err

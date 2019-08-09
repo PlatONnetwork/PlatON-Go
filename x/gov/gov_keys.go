@@ -47,7 +47,7 @@ func KeyVotingProposals() []byte {
 	return keyPrefixVotingProposals
 }
 
-func KeyPreActiveProposals() []byte {
+func KeyPreActiveProposal() []byte {
 	return keyPrefixPreActiveProposal
 }
 
