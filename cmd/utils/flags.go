@@ -28,6 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -1220,26 +1224,36 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	// Override any default configs for hard coded networks.
 	switch {
+
+	// Alpha Test NetWork
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 103
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+
+	// Beta Test NetWork
 	case ctx.GlobalBool(BetanetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 104
 		}
 		cfg.Genesis = core.DefaultBetanetGenesisBlock()
+
+	// PlatON Inner Test NetWork
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 203
 		}
 		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
+
+	// PlatON Inner Dev NetWork
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 204
 		}
 		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
+
+	// Ethereum's original Dev configuration
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1307,7 +1321,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 		})
 	}
 	if err != nil {
-		Fatalf("Failed to register the Ethereum service: %v", err)
+		Fatalf("Failed to register the PlatON-Go service: %v", err)
 	}
 }
 
@@ -1340,7 +1354,7 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 
 		return ethstats.New(url, ethServ, lesServ)
 	}); err != nil {
-		Fatalf("Failed to register the Ethereum Stats service: %v", err)
+		Fatalf("Failed to register the PlatON-Go Stats service: %v", err)
 	}
 }
 
@@ -1409,21 +1423,21 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
-
+	engine = cbft.NewFaker()
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
-		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit: 	 										 eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:  											 eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:  											 eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit: 	 											 eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:	 											 eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize: 										 eth.DefaultConfig.DefaultTxsCacheSize,
-		DefaultBroadcastInterval: 									 eth.DefaultConfig.DefaultBroadcastInterval,
+		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1433,6 +1447,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}
+
 	return chain, chainDb
 }
 
@@ -1448,22 +1463,22 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 	var engine consensus.Engine
 	if config.Cbft != nil {
 		sc := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
-		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux());
+		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux())
 	}
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
-		TrieNodeLimit: eth.DefaultConfig.TrieCache,
-		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit: eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit: 	eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:	eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize: eth.DefaultConfig.DefaultTxsCacheSize,
+		Disabled:                 ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
 		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
@@ -1515,5 +1530,36 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 			}
 		}
 		return action(ctx)
+	}
+}
+
+func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
+	var networkId int8
+
+	// Override any default Economic configs for hard coded networks.
+	switch {
+	case ctx.GlobalBool(TestnetFlag.Name):
+		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net
+
+	case ctx.GlobalBool(BetanetFlag.Name):
+		networkId = xcom.DefaultBetaTestNet // Beta Test Net
+
+	case ctx.GlobalBool(InnerTestnetFlag.Name):
+		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net
+
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net
+
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration
+
+	default:
+		networkId = xcom.DefaultMainNet // main net
+	}
+
+	if model := xcom.GetEc(networkId); model == nil {
+		panic("get economic model failed")
+	} else {
+		return model
 	}
 }

@@ -4,15 +4,16 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"gopkg.in/urfave/cli.v1"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 var (
@@ -101,7 +102,10 @@ func SendTransaction(from, to, value string) (string, error) {
 	tx.GasPrice = config.GasPrice
 
 	if !strings.HasPrefix(value, "0x") {
-		intValue, _ := strconv.ParseInt(value, 10, 64)
+		intValue, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("transfer value to int error.%s", err))
+		}
 		value = hexutil.EncodeBig(big.NewInt(intValue))
 	}
 	tx.Value = value
@@ -120,11 +124,15 @@ func SendRawTransaction(from, to, value string, pkFile string) (string, error) {
 		parsePkFile(pkFile)
 	}
 	var v int64
+	var err error
 	if strings.HasPrefix(value, "0x") {
 		bigValue, _ := hexutil.DecodeBig(value)
 		v = bigValue.Int64()
 	} else {
-		v, _ = strconv.ParseInt(value, 10, 64)
+		v, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("transfer value to int error.%s", err))
+		}
 	}
 
 	acc, ok := accountPool[from]

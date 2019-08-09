@@ -3,9 +3,10 @@ package snapshotdb
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func sortFds(fds []fileDesc) {
@@ -30,7 +31,7 @@ func (f fileDescs) Swap(i, j int) {
 
 type fileDesc struct {
 	Type      fileType
-	Num       int64
+	Num       uint64
 	BlockHash common.Hash
 }
 

@@ -559,3 +559,4 @@ func (api *PublicWhisperAPI) NewMessageFilter(req Criteria) (string, error) {
 
 	return id, nil
 }
+
