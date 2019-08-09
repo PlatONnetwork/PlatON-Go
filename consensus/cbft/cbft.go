@@ -1528,10 +1528,39 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	return nil
 }
 
+func (cbft *Cbft) checkGasUse(ext, parent *types.Header) error {
+	// Verify that the gas limit is <= 2^63-1
+	maxLimit := uint64(0x7fffffffffffffff)
+	if ext.GasLimit > maxLimit {
+		return errors.New(fmt.Sprintf("invalid gasLimit: have %v, max %v", ext.GasLimit, maxLimit))
+	}
+	// Verify that the gasUsed is <= gasLimit
+	if ext.GasUsed > ext.GasLimit {
+		return errors.New(fmt.Sprintf("invalid gasUsed: have %d, gasLimit %d", ext.GasUsed, ext.GasLimit))
+	}
+
+	// Verify that the gas limit remains within allowed bounds
+	diff := int64(parent.GasLimit) - int64(ext.GasLimit)
+	if diff < 0 {
+		diff *= -1
+	}
+	limit := parent.GasLimit / params.GasLimitBoundDivisor
+
+	if uint64(diff) >= limit || ext.GasLimit < params.MinGasLimit {
+		return errors.New(fmt.Sprintf("invalid gas limit: have %d, want %d += %d", ext.GasLimit, parent.GasLimit, limit))
+	}
+	return nil
+}
+
 // execute executes the block's transactions based on its parent
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	cbft.log.Debug("execute block based on parent", "block", ext.String(), "parent", parent.String())
+
+	if err := cbft.checkGasUse(ext.block.Header(), parent.block.Header()); err != nil {
+		return err
+	}
+
 	state, err := cbft.blockChainCache.MakeStateDB(parent.block)
 	if err != nil {
 		cbft.log.Error("execute block error, cannot make state based on parent", "err", err, "block", ext.String(), "parent", parent.String(), "err", err)
