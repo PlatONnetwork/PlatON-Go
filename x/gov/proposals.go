@@ -66,31 +66,6 @@ func ParseVoteOption(option uint8) VoteOption {
 	return Abstention
 }
 
-type TallyResult struct {
-	ProposalID    common.Hash    `json:"proposalID"`
-	Yeas          uint16         `json:"yeas"`
-	Nays          uint16         `json:"nays"`
-	Abstentions   uint16         `json:"abstentions"`
-	AccuVerifiers uint16         `json:"accuVerifiers"`
-	Status        ProposalStatus `json:"status"`
-}
-
-type Vote struct {
-	ProposalID common.Hash     `json:"proposalID"`
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
-}
-
-type VoteValue struct {
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
-}
-
-type ParamValue struct {
-	Name  string `json:"Name"`
-	Value string `json:"Value"`
-}
-
 type Proposal interface {
 	//SetProposalID(proposalID common.Hash)
 	GetProposalID() common.Hash
@@ -357,7 +332,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return err
 	}
 
-	if vp.NewVersion>>8 <= uint32(GovDBInstance().GetActiveVersion(state))>>8 {
+	if vp.NewVersion>>8 <= uint32(GovDBInstance().GetCurrentActiveVersion(state))>>8 {
 		return common.NewBizError("New version should larger than current version.")
 	}
 

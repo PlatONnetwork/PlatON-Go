@@ -7,6 +7,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/go-errors/errors"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -26,6 +30,7 @@ import (
 
 type BlockChainReactor struct {
 	vh            *xcom.VrfHandler
+	chandler      *xcom.CryptoHandler
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
@@ -143,10 +148,17 @@ func (bcr *BlockChainReactor) SetVRF_handler(vher *xcom.VrfHandler) {
 	bcr.vh = vher
 }
 
+func (bcr *BlockChainReactor) SetCrypto_handler(ch *xcom.CryptoHandler) {
+	bcr.chandler = ch
+}
+
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	//if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 	if nil != bcr.vh {
 		bcr.vh.SetPrivateKey(privateKey)
+	}
+	if nil != bcr.chandler {
+		bcr.chandler.SetPrivateKey(privateKey)
 	}
 }
 
@@ -373,10 +385,17 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 	return nil
 }
 
-func (bcr *BlockChainReactor) VerifyHeader(header *types.Header) error {
-
-	// TODO header.Extra
-
+func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
+	if len(header.Extra) >= 4 {
+		activeVersion := plugin.GovPluginInstance().GetActiveVersion(header.Number.Uint64(), stateDB)
+		avBytes := header.Extra[0:4]
+		avInHeader := byteutil.BytesToUint32(avBytes)
+		if activeVersion == avInHeader {
+			return nil
+		} else {
+			return errors.New("header version error")
+		}
+	}
 	return nil
 }
 

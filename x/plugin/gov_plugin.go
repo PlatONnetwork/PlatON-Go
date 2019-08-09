@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -197,7 +199,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					return err
 				}
 
-				if err = govPlugin.govDB.SetActiveVersion(versionProposal.NewVersion, state); err != nil {
+				if err = govPlugin.govDB.AddActiveVersion(versionProposal.NewVersion, blockNumber, state); err != nil {
 					log.Error("save active version to stateDB failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)
 					return err
 				}
@@ -212,22 +214,75 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 func (govPlugin *GovPlugin) GetPreActiveVersion(state xcom.StateDB) uint32 {
 	if nil == govPlugin {
 		log.Error("The gov instance is nil on GetPreActiveVersion")
+		return 0
 	}
 	if nil == govPlugin.govDB {
 		log.Error("The govDB instance is nil on GetPreActiveVersion")
+		return 0
 	}
 	return govPlugin.govDB.GetPreActiveVersion(state)
 }
 
 // should not be a nil value
-func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
+func (govPlugin *GovPlugin) GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	if nil == govPlugin {
-		log.Error("The gov instance is nil on GetActiveVersion")
+		log.Error("The gov instance is nil on GetCurrentActiveVersion")
+		return 0
 	}
 	if nil == govPlugin.govDB {
-		log.Error("The govDB instance is nil on GetActiveVersion")
+		log.Error("The govDB instance is nil on GetCurrentActiveVersion")
+		return 0
 	}
-	return govPlugin.govDB.GetActiveVersion(state)
+
+	return govPlugin.govDB.GetCurrentActiveVersion(state)
+}
+
+func (govPlugin *GovPlugin) GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
+	if nil == govPlugin {
+		log.Error("The gov instance is nil on GetCurrentActiveVersion")
+		return 0
+	}
+	if nil == govPlugin.govDB {
+		log.Error("The govDB instance is nil on GetCurrentActiveVersion")
+		return 0
+	}
+
+	avList, err := govPlugin.govDB.ListActiveVersion(state)
+	if err != nil {
+		log.Error("List active version error", "err", err)
+		return 0
+	}
+
+	for _, av := range avList {
+		if blockNumber >= av.ActiveBlock {
+			return av.ActiveVersion
+		}
+	}
+	return 0
+}
+
+func (govPlugin *GovPlugin) GetProgramVersion(state xcom.StateDB) (*gov.ProgramVersionValue, error) {
+	if nil == govPlugin {
+		log.Error("The gov instance is nil on GetProgramVersion")
+		return nil, common.NewSysError("GovPlugin instance is nil")
+	}
+	if nil == govPlugin.govDB {
+		log.Error("The govDB instance is nil on GetProgramVersion")
+		return nil, common.NewSysError("GovDB instance is nil")
+	}
+
+	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	programVersionBytes := common.Uint32ToBytes(programVersion)
+
+	sig, err := xcom.GetCryptoHandler().Sign(programVersionBytes)
+	if err != nil {
+		log.Error("sign version data error")
+		return nil, err
+	}
+
+	value := &gov.ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: common.BytesToVersionSign(sig)}
+
+	return value, nil
 }
 
 // submit a proposal
@@ -281,10 +336,14 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 }
 
 // vote for a proposal
-func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, programVersion uint32, state xcom.StateDB) error {
-	log.Debug("call Vote", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "voteInfo", vote)
+func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, state xcom.StateDB) error {
+	log.Debug("call Vote", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign, "voteInfo", vote)
 	if vote.ProposalID == common.ZeroHash || vote.VoteOption == 0 {
 		return common.NewBizError("empty parameter detected.")
+	}
+
+	if !xcom.GetCryptoHandler().SignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), vote.VoteNodeID) {
+		return common.NewBizError("version sign error.")
 	}
 
 	proposal, err := govPlugin.govDB.GetProposal(vote.ProposalID, state)
@@ -366,19 +425,24 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 }
 
 // node declares it's version
-func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
-	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion)
+func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 	//check caller is a Verifier or Candidate
 	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}*/
+
+	if !xcom.GetCryptoHandler().SignedByNodeID(common.Uint32ToBytes(declaredVersion), programVersionSign.Bytes(), declaredNodeID) {
+		return common.NewBizError("version sign error.")
+	}
+
 	if err := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
 	}
 
-	activeVersion := uint32(govPlugin.govDB.GetActiveVersion(state))
+	activeVersion := uint32(govPlugin.GetCurrentActiveVersion(state))
 	if activeVersion <= 0 {
-		return common.NewBizError("wrong active version.")
+		return common.NewBizError("wrong current active version.")
 	}
 
 	votingVP, err := govPlugin.findVotingVersionProposal(blockHash, blockNumber, state)

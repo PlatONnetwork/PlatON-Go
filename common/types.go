@@ -33,19 +33,20 @@ import (
 // Lengths of hashes and addresses in bytes.
 const (
 	// HashLength is the expected length of the hash
-	HashLength = 32
+	HashLength        = 32
+	VersionSignLength = 64
 	// AddressLength is the expected length of the address
 	AddressLength          = 20
 	BlockConfirmSignLength = 65
-	ExtraSeal = 65
+	ExtraSeal              = 65
 )
 
 var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
 
-	ZeroHash 		  = HexToHash(Hash{}.String())
-	ZeroAddr          = HexToAddress(Address{}.String())
+	ZeroHash = HexToHash(Hash{}.String())
+	ZeroAddr = HexToAddress(Address{}.String())
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
@@ -408,4 +409,40 @@ func NewBlockConfirmSign(signSlice []byte) *BlockConfirmSign {
 	var sign BlockConfirmSign
 	copy(sign[:], signSlice[:])
 	return &sign
+}
+
+type VersionSign [VersionSignLength]byte
+
+func BytesToVersionSign(b []byte) VersionSign {
+	var h VersionSign
+	h.SetBytes(b)
+	return h
+}
+
+func (s VersionSign) Bytes() []byte { return s[:] }
+
+func (s VersionSign) Hex() string { return hexutil.Encode(s[:]) }
+
+func (s VersionSign) HexWithNoPrefix() string {
+	hex := hexutil.Encode(s[:])
+	return strings.TrimPrefix(hex, "0x")
+}
+
+func (s VersionSign) TerminalString() string {
+	return fmt.Sprintf("%x…%x", s[:3], s[61:])
+}
+
+func (s VersionSign) String() string {
+	return s.Hex()
+}
+
+func (s VersionSign) Format(st fmt.State, c rune) {
+	fmt.Fprintf(st, "%"+string(c), s[:])
+}
+
+func (s *VersionSign) SetBytes(b []byte) {
+	if len(b) > len(s) {
+		b = b[len(b)-VersionSignLength:]
+	}
+	copy(s[VersionSignLength-len(b):], b)
 }
