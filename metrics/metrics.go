@@ -55,7 +55,11 @@ func CollectProcessMetrics(refresh time.Duration) {
 	memAllocs := GetOrRegisterMeter("system/memory/allocs", DefaultRegistry)
 	memFrees := GetOrRegisterMeter("system/memory/frees", DefaultRegistry)
 	memInuse := GetOrRegisterMeter("system/memory/inuse", DefaultRegistry)
+	memStackInuse := GetOrRegisterMeter("system/memory/stackinuse", DefaultRegistry)
 	memPauses := GetOrRegisterMeter("system/memory/pauses", DefaultRegistry)
+	memGCCPUFraction := GetOrRegisterMeter("system/memory/gccpufraction", DefaultRegistry)
+
+	pprofGoroutines := GetOrRegisterGauge("system/pprof/goroutine", DefaultRegistry)
 
 	var diskReads, diskReadBytes, diskWrites, diskWriteBytes Meter
 	var diskReadBytesCounter, diskWriteBytesCounter Counter
@@ -79,6 +83,10 @@ func CollectProcessMetrics(refresh time.Duration) {
 		memFrees.Mark(int64(memstats[location1].Frees - memstats[location2].Frees))
 		memInuse.Mark(int64(memstats[location1].Alloc - memstats[location2].Alloc))
 		memPauses.Mark(int64(memstats[location1].PauseTotalNs - memstats[location2].PauseTotalNs))
+		memGCCPUFraction.Mark(int64(memstats[location1].GCCPUFraction - memstats[location2].GCCPUFraction))
+		memStackInuse.Mark(int64(memstats[location1].StackInuse - memstats[location2].StackInuse))
+
+		pprofGoroutines.Update(int64(runtime.NumGoroutine()))
 
 		if ReadDiskStats(diskstats[location1]) == nil {
 			diskReads.Mark(diskstats[location1].ReadCount - diskstats[location2].ReadCount)

@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 )
 
@@ -89,11 +90,22 @@ func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
 }
 
+func Bytes2Hex0x(d []byte) string {
+	return hexutil.Encode(d)
+}
+
+
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
 func Hex2Bytes(str string) []byte {
 	h, _ := hex.DecodeString(str)
 	return h
 }
+
+func Hex0x2Bytes(str string) []byte {
+	h, _ := hexutil.Decode(str)
+	return h
+}
+
 
 // Hex2BytesFixed returns bytes of a specified fixed length flen.
 func Hex2BytesFixed(str string, flen int) []byte {
@@ -228,3 +240,13 @@ func Uint64ToBytes(val uint64) []byte {
 	return buf[:]
 }
 
+func Uint16ToBytes(val uint16) []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, val)
+	return buf[:]
+}
+
+func BytesToUint16(b []byte) uint16 {
+	b = append(make([]byte, 2-len(b)), b...)
+	return binary.BigEndian.Uint16(b)
+}

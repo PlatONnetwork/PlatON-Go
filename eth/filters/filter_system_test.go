@@ -19,14 +19,15 @@ package filters
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
@@ -36,6 +37,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type testBackend struct {

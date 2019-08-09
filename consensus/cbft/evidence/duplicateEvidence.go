@@ -3,6 +3,7 @@ package evidence
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
@@ -60,6 +61,21 @@ func (d DuplicatePrepareBlockEvidence) Error() string {
 		d.PrepareA.Epoch, d.PrepareA.ViewNumber, d.PrepareA.Block.NumberU64(), d.PrepareA.Block.Hash().String(), d.PrepareB.Block.Hash().String())
 }
 
+func (d DuplicatePrepareBlockEvidence) Address() common.Address {
+	// todo: need to complete.
+	return common.Address{}
+}
+
+func (d DuplicatePrepareBlockEvidence) Validate() error {
+	// todo: need to complete.
+	return nil
+}
+
+func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
+	// todo: need to complete.
+	return 0
+}
+
 //Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicatePrepareVoteEvidence struct {
 	VoteA *protocols.PrepareVote
@@ -108,6 +124,21 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 		d.VoteA.Epoch, d.VoteA.ViewNumber, d.VoteA.BlockNumber, d.VoteA.BlockHash.String(), d.VoteB.BlockHash.String())
 }
 
+func (d DuplicatePrepareVoteEvidence) Address() common.Address {
+	// todo: need to complete.
+	return common.Address{}
+}
+
+func (d DuplicatePrepareVoteEvidence) Validate() error {
+	// todo: need to complete.
+	return nil
+}
+
+func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
+	// todo: need to complete.
+	return 0
+}
+
 //Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicateViewChangeEvidence struct {
 	ViewA *protocols.ViewChange
@@ -154,6 +185,21 @@ func (d DuplicateViewChangeEvidence) Equal(ev consensus.Evidence) bool {
 func (d DuplicateViewChangeEvidence) Error() string {
 	return fmt.Sprintf("DuplicateViewChangeEvidence epoch:%d, viewNumber:%d, blockNumber:%d blockHashA:%s, blockHashB:%s",
 		d.ViewA.Epoch, d.ViewA.ViewNumber, d.ViewA.BlockNumber, d.ViewA.BlockHash.String(), d.ViewB.BlockHash.String())
+}
+
+func (d DuplicateViewChangeEvidence) Address() common.Address {
+	// todo: need to complete.
+	return common.Address{}
+}
+
+func (d DuplicateViewChangeEvidence) Validate() error {
+	// todo: need to complete.
+	return nil
+}
+
+func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {
+	// todo: need to complete.
+	return 0
 }
 
 type EvidenceData struct {

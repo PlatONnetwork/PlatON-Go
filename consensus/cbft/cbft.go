@@ -660,7 +660,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to executed block")
 	}
 	// FIXME: needed update highest exection block?
-
 	result := make(chan error, 1)
 	cbft.asyncCallCh <- func() {
 		result <- cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{qc})

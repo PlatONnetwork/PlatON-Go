@@ -276,7 +276,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 	}
 
 	if valueKey != emptyStorage && len(value) == 0 {
-		log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		//log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
 		return []byte{}
 	}
 	if len(value) == 0 && valueKey == emptyStorage {

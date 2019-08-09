@@ -2,11 +2,13 @@
 package byteutil
 
 import (
-	"encoding/binary"
+	"encoding/hex"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 )
 
 var Bytes2X_CMD = map[string]interface{}{
@@ -29,6 +31,8 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[]common.Hash":     BytesToHashArr,
 	"common.Address":    BytesToAddress,
 	"[]common.Address":  BytesToAddressArr,
+
+	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 }
 
 func BytesToString(curByte []byte) string {
@@ -107,13 +111,13 @@ func BytesToUint32(b []byte) uint32 {
 }
 
 func BytesToUint64(b []byte) uint64 {
-	b = append(make([]byte, 8-len(b)), b...)
-	return binary.BigEndian.Uint64(b)
-	//var x uint64
-	//if err := rlp.DecodeBytes(b, &x); nil != err {
-	//	panic("BytesToUint64:" + err.Error())
-	//}
-	//return x
+	/*b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)*/
+	var x uint64
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint64:" + err.Error())
+	}
+	return x
 }
 
 func BytesToBigInt(curByte []byte) *big.Int {
@@ -204,4 +208,16 @@ func BytesToAddressArr(curByte []byte) []common.Address {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return addrArr
+}
+
+func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
+	var planArr []restricting.RestrictingPlan
+	if err := rlp.DecodeBytes(curByte, &planArr); nil != err {
+		panic("BytesToAddressArr:" + err.Error())
+	}
+	return planArr
+}
+
+func PrintNodeID(nodeID discover.NodeID) string {
+	return hex.EncodeToString(nodeID.Bytes()[:8])
 }

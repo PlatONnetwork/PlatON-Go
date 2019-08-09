@@ -15,6 +15,7 @@ import (
 )
 
 type BftMock struct {
+	Blocks []*types.Block
 }
 
 func (bm *BftMock) InsertChain(block *types.Block) error {
@@ -72,7 +73,14 @@ func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bo
 // a results channel to retrieve the async verifications (the order is that of
 // the input slice).
 func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	return nil, nil
+	results := make(chan error, len(headers))
+	c := make(chan<- struct{})
+	go func() {
+		for range headers {
+			results <- nil
+		}
+	}()
+	return c, results
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
@@ -209,7 +217,11 @@ func (bm *BftMock) Status() string {
 }
 
 func (bm *BftMock) CurrentBlock() *types.Block {
-	return nil
+	if len(bm.Blocks) == 0 {
+		h := types.Header{Number: big.NewInt(0)}
+		return types.NewBlockWithHeader(&h)
+	}
+	return bm.Blocks[len(bm.Blocks)-1]
 }
 
 func (bm *BftMock) TracingSwitch(flag int8) {

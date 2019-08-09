@@ -2,19 +2,19 @@ package gov
 
 import (
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"sync"
 )
 
 var (
 	ValueDelimiter = []byte(":")
 )
 
-var dbOnce sync.Once
+//var dbOnce sync.Once
 var govDB *GovDB
 
 type GovDB struct {
@@ -26,6 +26,7 @@ func GovDBInstance() *GovDB {
 	//	govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	//})
 	if govDB == nil {
+		log.Info("Init GovDB ........")
 		govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	}
 	return govDB
@@ -34,15 +35,6 @@ func GovDBInstance() *GovDB {
 func (self *GovDB) Reset() {
 	govDB = nil
 	self.snapdb.reset()
-}
-
-func tobytes(data interface{}) []byte {
-	if bytes, err := json.Marshal(data); err != nil {
-		return bytes
-	} else {
-		log.Error("govdb, marshal value to bytes error..")
-		panic(err)
-	}
 }
 
 func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
@@ -69,13 +61,21 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if pType == byte(Text) {
 		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to text proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
 	} else if pType == byte(Version) {
 		var proposal VersionProposal
-		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to version proposal")
+			return nil, common.NewSysError(e.Error())
+		}
+		p = proposal
+	} else if pType == byte(Param) {
+		var proposal ParamProposal
+		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to param proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
@@ -224,16 +224,12 @@ func (self *GovDB) ListEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 }
 
 func (self *GovDB) GetPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) (common.Hash, error) {
-	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
+	value, err := govDB.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		//log.Error("Get pre-active proposal ID error")
-		return common.Hash{}, common.NewSysError(err.Error())
+		return common.ZeroHash, common.NewSysError(err.Error())
 	}
-	if len(value) > 0 {
-		return value[0], nil
-	} else {
-		return common.Hash{}, nil
-	}
+	return value, nil
 }
 
 func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
@@ -245,7 +241,7 @@ func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.
 	return nil
 }
 
-func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
+func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash) error {
 
 	voting, err := self.snapdb.getVotingIDList(blockHash)
 	if err != nil {
@@ -253,19 +249,19 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 	}
 	voting = remove(voting, proposalID)
 
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
+	/*pre, err := self.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	pre = append(pre, proposalID)
+	pre = append(pre, proposalID)*/
 
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -296,16 +292,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
-
 	voting = remove(voting, proposalID)
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
@@ -320,22 +307,8 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 }
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
-
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	pre = remove(pre, proposalID)
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
+	err := self.snapdb.put(blockHash, KeyPreActiveProposals(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -351,7 +324,7 @@ func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalI
 // Add the node that has made a new version declare or vote during voting period
 func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) error {
 	if err := self.snapdb.addActiveNode(blockHash, nodeID, proposalID); err != nil {
-		log.Error("add declared node to snapshot db error,", err)
+		log.Error("add active node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -361,7 +334,7 @@ func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, 
 func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
 	nodes, err := self.snapdb.getActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("get declared node list from snapshot db error,", err)
+		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return nil, common.NewSysError(err.Error())
 	}
 	return nodes, nil
@@ -371,16 +344,7 @@ func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Ha
 func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 	err := self.snapdb.deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("delete declared node list from snapshot db error,", err)
-		return common.NewSysError(err.Error())
-	}
-	return nil
-}
-
-// Add the voted verifier record
-func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) error {
-	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
-		log.Error("add voted node to snapshot db error,", err)
+		log.Error("clear active nodes in snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -388,8 +352,8 @@ func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Has
 
 // All verifiers who can vote accumulatively in the settlement cycle
 func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
-	if err := self.snapdb.addTotalVerifiers(blockHash, proposalID, verifierList); err != nil {
-		log.Error("add total verifier to snapshot db error,", err)
+	if err := self.snapdb.addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
+		log.Error("save accumulated verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -398,9 +362,66 @@ func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, 
 // Get the total number of all voting verifiers
 func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.Hash) (uint16, error) {
 	if l, err := self.snapdb.getAccuVerifiersLength(blockHash, proposalID); err != nil {
-		log.Error("add total verifier to  snapshot db error,", err)
+		log.Error("get accumulated verifiers count failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return 0, common.NewSysError(err.Error())
 	} else {
 		return l, nil
+	}
+}
+
+func (self *GovDB) SetParam(paramValues []*ParamValue, state xcom.StateDB) error {
+	if len(paramValues) > 0 {
+		paramValuesBytes, _ := json.Marshal(paramValues)
+		state.SetState(vm.GovContractAddr, KeyParams(), paramValuesBytes)
+	}
+	return nil
+}
+
+func (self *GovDB) GetParam(name string, state xcom.StateDB) (string, error) {
+	paramValues, err := self.ListParam(state)
+	if err != nil {
+		return "", err
+	}
+	for _, paramValue := range paramValues {
+		if paramValue.Name == name {
+			return paramValue.Value, nil
+		}
+	}
+	return "", nil
+}
+
+func (self *GovDB) UpdateParam(name string, oldValue, newValue string, state xcom.StateDB) error {
+	paramValues, err := self.ListParam(state)
+	if err != nil {
+		return err
+	}
+
+	for _, paramValue := range paramValues {
+		if paramValue.Name == name {
+			if paramValue.Value == oldValue {
+				paramValue.Value = newValue
+				err = self.SetParam(paramValues, state)
+				if err != nil {
+					return err
+				}
+				break
+			} else {
+				log.Warn("cannot update parameter's value cause mismatching current value.")
+			}
+		}
+	}
+	return nil
+}
+
+func (self *GovDB) ListParam(state xcom.StateDB) ([]*ParamValue, error) {
+	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
+	if len(paraListBytes) > 0 {
+		var paraValue []*ParamValue
+		if err := json.Unmarshal(paraListBytes, &paraValue); err != nil {
+			return nil, common.NewSysError(err.Error())
+		}
+		return paraValue, nil
+	} else {
+		return nil, nil
 	}
 }

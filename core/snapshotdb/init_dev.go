@@ -3,10 +3,13 @@
 package snapshotdb
 
 import (
-	"flag"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"fmt"
+	"math/rand"
 	"os"
 	"path"
+	"time"
+
+	"github.com/robfig/cron"
 )
 
 const (
@@ -18,12 +21,31 @@ const (
 )
 
 func init() {
-	t := flag.Lookup("test.bench")
-	if t.Value.String() == "" {
-		logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	} else {
-		logger.SetHandler(log.DiscardHandler())
-	}
+	rand.Seed(time.Now().UnixNano())
+	//logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	logger.Info("begin test")
-	dbpath = path.Join(os.TempDir(), DBPath)
+	dbpath = path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
+}
+
+// New  create a new snapshotDB
+func New() (DB, error) {
+	p := path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
+	logger.Info("begin newDB", "path", p)
+	s, err := openFile(p, false)
+	if err != nil {
+		logger.Error(fmt.Sprint("open db file fail:", err))
+		return nil, err
+	}
+	db, err := newDB(s)
+	if err != nil {
+		logger.Error(fmt.Sprint("new db fail:", err))
+		return nil, err
+	}
+	db.corn = cron.New()
+	if err := db.corn.AddFunc("@every 1s", dbInstance.schedule); err != nil {
+		logger.Error(fmt.Sprint("new db fail", err))
+		return nil, err
+	}
+	db.corn.Start()
+	return db, nil
 }

@@ -73,3 +73,26 @@ type statePack struct {
 func (p *statePack) PeerId() string { return p.peerID }
 func (p *statePack) Items() int     { return len(p.states) }
 func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
+
+// pposStoragePack is a batch of ppos storage returned by a peer.
+type pposStoragePack struct {
+	peerID string
+	latest *types.Header
+	pivot  *types.Header
+	kvs    []PPOSStorageKV
+	last   bool
+	kvNum  uint64
+}
+
+type PPOSStorageKV [2][]byte
+
+func (p *pposStoragePack) PeerId() string { return p.peerID }
+func (p *pposStoragePack) Items() int     { return len(p.kvs) }
+func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)) }
+func (p *pposStoragePack) KVs() [][2][]byte {
+	var kv [][2][]byte
+	for _, value := range p.kvs {
+		kv = append(kv, value)
+	}
+	return kv
+}

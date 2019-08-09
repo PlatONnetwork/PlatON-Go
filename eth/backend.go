@@ -35,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -128,20 +127,18 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 {
+	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 || config.MinerGasPrice.Cmp(DefaultConfig.MinerGasPrice) <= 0 {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", DefaultConfig.MinerGasPrice)
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
 	// Assemble the Ethereum object
 	chainDb, err := CreateDB(ctx, config, "chaindata")
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
+	// set snapshotdb path
+	//snapshotdb.SetDBPath(ctx)
 
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
@@ -567,11 +564,24 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	close(s.shutdownChan)
+	core.GetReactorInstance().Close()
 	return nil
 }
 
-// TODO RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, db snapshotdb.DB) {
-	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance(db))
+// RegisterPlugin one by one
+func handlePlugin(reactor *core.BlockChainReactor) {
+	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
+	//todo: Merge confirmation.
+	//xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
+	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
+	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
+
+	reactor.SetPluginEventMux()
+
+	// set rule order
+	reactor.SetBeginRule([]int{xcom.SlashingRule})
+	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
+
 }
