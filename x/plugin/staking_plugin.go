@@ -307,8 +307,11 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	amount := common.Big0
 	if typ == FreeOrigin {
 		amount = can.ReleasedHes
-	} else {
+	} else if typ == RestrictingPlanOrigin {
 		amount = can.RestrictingPlanHes
+	} else {
+		// this is never be
+		return nil
 	}
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
@@ -343,7 +346,8 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 	} else {
-		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(), typ, FreeOrigin, RestrictingPlanOrigin)
+		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
 	// TODO test
@@ -941,7 +945,8 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
 	} else {
-		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(), typ, FreeOrigin, RestrictingPlanOrigin)
+		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
 	del.DelegateEpoch = uint32(epoch)
