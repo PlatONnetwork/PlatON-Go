@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -141,22 +142,11 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 			lastBlockNumber = baseNum + blocksPerRound
 		}
 	}
-	log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)
+	//log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)
 	return lastBlockNumber
 }
 
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators, err error) {
-	//var lastBlockNumber uint64
-	/*
-		defer func() {
-			log.Trace("Get validator",
-				"lastBlockNumber", lastBlockNumber,
-				"blocksPerNode", ia.blocksPerNode,
-				"blockNumber", blockNumber,
-				"validators", v,
-				"error", err)
-		}()*/
-
 	if blockNumber <= ia.defaultBlocksPerRound {
 		return ia.defaultValidators, nil
 	}
@@ -174,6 +164,9 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 		return ia.defaultValidators, nil
 	}
 	b := state.GetState(cvm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
+	if len(b) == 0 {
+		return ia.defaultValidators, nil
+	}
 	var vds vm.Validators
 	err = rlp.DecodeBytes(b, &vds)
 	if err != nil {
@@ -238,7 +231,16 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, nodeID discov
 
 // ShouldSwitch check if should switch validators at the moment.
 func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
+	if blockNumber <= vp.switchPoint {
+		return false
+	}
 	return blockNumber == vp.agency.GetLastNumber(blockNumber)
+}
+
+// EqualSwitchPoint returns boolean which representment the switch point
+// equal the inputs number.
+func (vp *ValidatorPool) EqualSwitchPoint(number uint64) bool {
+	return vp.switchPoint > 0 && vp.switchPoint == number
 }
 
 // Update switch validators.
@@ -451,10 +453,10 @@ func (vp *ValidatorPool) Len(blockNumber uint64) int {
 }
 
 // Verify verifies signature using the specified validator's bls public key.
-func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, signature []byte) bool {
+func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, signature []byte) error {
 	validator, err := vp.GetValidatorByIndex(blockNumber, validatorIndex)
 	if err != nil {
-		return false
+		return err
 	}
 	return validator.Verify(msg, signature)
 }
@@ -486,7 +488,7 @@ func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uin
 	return sig.Verify(&pub, string(msg))
 }
 
-func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArray, msg, signature []byte) bool {
+func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArray, msg, signature []byte) error {
 	vp.lock.RLock()
 	validators := vp.currentValidators
 	if blockNumber <= vp.switchPoint {
@@ -495,7 +497,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 
 	nodeList, err := validators.NodeListByBitArray(vSet)
 	if err != nil || len(nodeList) == 0 {
-		return false
+		return fmt.Errorf("not found validators: %v", err)
 	}
 	vp.lock.RUnlock()
 
@@ -508,9 +510,12 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 	var sig bls.Sign
 	err = sig.Deserialize(signature)
 	if err != nil {
-		return false
+		return err
 	}
-	return sig.Verify(&pub, string(msg))
+	if !sig.Verify(&pub, string(msg)) {
+		return errors.New("bls verifies signature fail")
+	}
+	return nil
 }
 
 func NextRound(blockNumber uint64) uint64 {

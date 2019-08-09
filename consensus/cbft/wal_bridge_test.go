@@ -100,6 +100,10 @@ func TestUpdateChainState(t *testing.T) {
 	highestQCBlockNumber, _ := restartNode.engine.HighestQCBlockBn()
 	assert.Equal(t, qc.NumberU64(), highestQCBlockNumber)
 
+	// check blockChain currentHeader
+	assert.Equal(t, commit.Hash(), restartNode.engine.blockChain.CurrentHeader().Hash())
+	assert.Equal(t, commit.NumberU64(), restartNode.engine.blockChain.CurrentHeader().Number.Uint64())
+
 	// test addQCState
 	testAddQCState(t, lock, qc, restartNode)
 }
