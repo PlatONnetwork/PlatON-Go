@@ -235,6 +235,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
+	reactor := core.NewBlockChainReactor(config.CbftConfig.NodePriKey, eth.EventMux())
+
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 
 		var agency consensus.Agency
@@ -243,30 +245,25 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		// - inner (via inner contract)
 		// - ppos
 		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 			agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-		} else if chainConfig.Cbft.ValidatorMode == "inner" {
+			reactor.Start(common.STATIC_VALIDATOR_MODE)
+		} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
 			blocksPerNode := int(chainConfig.Cbft.Amount)
 			offset := blocksPerNode * 2
 			agency = validator.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			reactor.Start(common.INNER_VALIDATOR_MODE)
+		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
+			reactor.Start(common.PPOS_VALIDATOR_MODE)
+			reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			handlePlugin(reactor)
+			agency = reactor
 		}
-		//} else if chainConfig.Cbft.ValidatorMode == "ppos" {
-		// TODO init reactor
-		//reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-		//xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-		//handlePlugin(reactor, snapshotdb.Instance())
-		//agency = reactor
-		//}
-		// TODO test vrf
-		/*reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-		xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-		handlePlugin(reactor, snapshotdb.Instance())*/
 
 		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
 			log.Error("Init cbft consensus engine fail", "error", err)
 			return nil, errors.New("Failed to init cbft consensus engine")
 		}
-
 	}
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
