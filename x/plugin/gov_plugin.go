@@ -369,6 +369,9 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 
 	if proposal.GetProposalType() == gov.Version {
 		if vp, ok := proposal.(gov.VersionProposal); ok {
+			//reset vote option as gov.Yes for version proposal
+			vote.VoteOption = gov.Yes
+
 			if vp.GetNewVersion() != programVersion {
 				log.Error("cannot vote for version proposal until node upgrade to a new version", "newVersion", vp.GetNewVersion(), "programVersion", programVersion)
 				return common.NewBizError("node have not upgraded to a new version")
