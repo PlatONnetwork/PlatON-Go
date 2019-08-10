@@ -343,7 +343,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return common.NewBizError("empty parameter detected.")
 	}
 
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), vote.VoteNodeID) {
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
 		return common.NewBizError("version sign error.")
 	}
 
@@ -433,7 +433,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 		return err
 	}*/
 
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(declaredVersion), programVersionSign.Bytes(), declaredNodeID) {
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
 		return common.NewBizError("version sign error.")
 	}
 
@@ -454,25 +454,26 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 
 	//there is a voting version proposal
 	if votingVP != nil {
-		nodeList, err := govPlugin.govDB.ListVotedVerifier(votingVP.ProposalID, state)
-		if err != nil {
-			log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
-			return err
-		} else {
-			if xcom.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
-				log.Error("declared version should be same as proposal's version",
-					"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
-				return common.NewBizError("declared version should be same as proposal's version")
-			}
-		}
-		if declaredVersion>>8 == activeVersion>>8 {
-			//the declared version equals the current active version, notify staking immediately
-			log.Debug("declared version equals active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-				log.Error("notify staking of declared node ID failed", "err", err)
-				return common.NewBizError("notify staking of declared node ID failed")
-			}
 
+		if declaredVersion>>8 == activeVersion>>8 {
+			nodeList, err := govPlugin.govDB.ListVotedVerifier(votingVP.ProposalID, state)
+			if err != nil {
+				log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
+				return err
+			} else {
+				if xcom.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
+					log.Error("declared version should be same as proposal's version",
+						"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
+					return common.NewBizError("declared version should be same as proposal's version")
+				} else {
+					//the declared version equals the current active version, notify staking immediately
+					log.Debug("declared version equals active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+					if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+						log.Error("notify staking of declared node ID failed", "err", err)
+						return common.NewBizError("notify staking of declared node ID failed")
+					}
+				}
+			}
 		} else if declaredVersion>>8 == votingVP.GetNewVersion()>>8 {
 			//the declared version equals the new version, will notify staking when the proposal is passed
 			log.Debug("declared version equals the new version.", "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)

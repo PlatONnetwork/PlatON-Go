@@ -53,7 +53,7 @@ func setup(t *testing.T) func() {
 
 	// init data
 	endVotingBlock = uint64(xutil.ConsensusSize()*5 - xcom.ElectionDistance())
-	activeBlock = uint64(endVotingBlock + xutil.ConsensusSize()*5 + 1)
+	activeBlock = uint64(xutil.ConsensusSize()*10 + 1)
 
 	return func() {
 		t.Log("tear down()......")
@@ -148,7 +148,7 @@ func allVote(t *testing.T, pid common.Hash) {
 
 		chandler.SetPrivateKey(priKeyArr[i])
 		versionSign := common.VersionSign{}
-		versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+		versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, promoteVersion, versionSign, evm.StateDB)
 		if err != nil {
@@ -170,7 +170,7 @@ func halfVote(t *testing.T, pid common.Hash) {
 
 		chandler.SetPrivateKey(priKeyArr[i])
 		versionSign := common.VersionSign{}
-		versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+		versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, promoteVersion, versionSign, evm.StateDB)
 		if err != nil {
@@ -455,7 +455,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 	chandler := xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 	err := govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, evm.StateDB)
 	if err != nil {
@@ -472,7 +472,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 	chandler = xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign = common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 	err = govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, evm.StateDB)
 	if err != nil {
@@ -512,7 +512,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 	chandler := xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 	err := govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, evm.StateDB)
 	if err != nil {
@@ -551,7 +551,7 @@ func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 	chandler := xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 	err := govPlugin.Vote(anotherSender, v, lastBlockHash, 2, initProgramVersion, versionSign, evm.StateDB)
 	if err != nil && err.Error() == "tx sender is not a verifier, or mismatch the verifier's nodeID" {
@@ -577,7 +577,7 @@ func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
 	chandler := xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 	err := govPlugin.DeclareVersion(sender, nodeIdArr[nodeIdx], promoteVersion, versionSign, lastBlockHash, 2, evm.StateDB)
 	if err != nil {
@@ -592,6 +592,32 @@ func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_DeclareVersion_wrongSign(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	wrongVersion := uint32(1<<16 | 1<<8 | 1)
+
+	nodeIdx := 0
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[nodeIdx])
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(chandler.MustSign(wrongVersion))
+
+	err := govPlugin.DeclareVersion(sender, nodeIdArr[nodeIdx], promoteVersion, versionSign, lastBlockHash, 2, evm.StateDB)
+
+	if err != nil && (err.Error() == "version sign error." || err.Error() == "declared version neither equals active version nor new version.") {
+		t.Log("system has detected an incorrect version declaration.", err)
+	} else {
+		t.Fatal("system has not detected an incorrect version declaration.", err)
+	}
+}
+
 func TestGovPlugin_DeclareVersion_wrongVersion(t *testing.T) {
 	defer setup(t)()
 	submitVersion(t, txHashArr[0])
@@ -601,15 +627,80 @@ func TestGovPlugin_DeclareVersion_wrongVersion(t *testing.T) {
 
 	buildBlockNoCommit(2)
 
+	wrongVersion := uint32(1<<16 | 1<<8 | 1)
+
 	nodeIdx := 0
 	chandler := xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(wrongVersion))
 
-	err := govPlugin.DeclareVersion(sender, nodeIdArr[nodeIdx], uint32(1<<16|2<<8|1), versionSign, lastBlockHash, 2, evm.StateDB)
+	err := govPlugin.DeclareVersion(sender, nodeIdArr[nodeIdx], wrongVersion, versionSign, lastBlockHash, 2, evm.StateDB)
 
-	if err != nil && err.Error() == "declared version neither equals active version nor new version." {
+	if err != nil && (err.Error() == "version sign error." || err.Error() == "declared version neither equals active version nor new version.") {
+		t.Log("system has detected an incorrect version declaration.", err)
+	} else {
+		t.Fatal("system has not detected an incorrect version declaration.", err)
+	}
+}
+
+func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	nodeIdx := 3
+	v := gov.Vote{
+		txHashArr[0],
+		nodeIdArr[nodeIdx],
+		gov.Yes,
+	}
+
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[nodeIdx])
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
+
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}
+
+	nodeIdx = 1
+	v = gov.Vote{
+		txHashArr[0],
+		nodeIdArr[nodeIdx],
+		gov.Yes,
+	}
+
+	chandler = xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[nodeIdx])
+	versionSign = common.VersionSign{}
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
+
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}
+
+	votedValue, err := govDB.ListVoteValue(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	} else {
+		t.Log("voted count:", len(votedValue))
+	}
+
+	//declare
+	versionSign = common.VersionSign{}
+	versionSign.SetBytes(chandler.MustSign(initProgramVersion))
+
+	err = govPlugin.DeclareVersion(sender, nodeIdArr[nodeIdx], initProgramVersion, versionSign, lastBlockHash, 2, evm.StateDB)
+
+	if err != nil && (err.Error() == "version sign error." || err.Error() == "declared version should be same as proposal's version") {
 		t.Log("system has detected an incorrect version declaration.", err)
 	} else {
 		t.Fatal("system has not detected an incorrect version declaration.", err)
@@ -629,7 +720,7 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 	chandler := xcom.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(chandler.MustSign(promoteVersionBytes))
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
 	err := govPlugin.DeclareVersion(anotherSender, nodeIdArr[nodeIdx], promoteVersion, versionSign, lastBlockHash, 2, evm.StateDB)
 	if err != nil && (err.Error() == "tx sender is not candidate." || err.Error() == "tx sender should be node's staking address.") {
@@ -854,26 +945,14 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	defer setup(t)()
 
+	//submit version proposal
 	submitVersion(t, txHashArr[0])
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction() //flush to LevelDB
 
 	buildBlockNoCommit(2)
+	//voting
 	allVote(t, txHashArr[0])
-
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
-
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
-
-	beginBlock(t)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -886,6 +965,8 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
 	build_staking_data_more(endVotingBlock)
+
+	//tally result
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -898,8 +979,8 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 
 	//buildBlockNoCommit(23480)
 	build_staking_data_more(uint64(activeBlock))
-
-	endBlock(t)
+	//active
+	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 
 	activeVersion := govPlugin.GetCurrentActiveVersion(evm.StateDB)
