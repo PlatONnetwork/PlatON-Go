@@ -1,7 +1,10 @@
 package xcom
 
 import (
+	"encoding/hex"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -20,13 +23,14 @@ func initChandlerHandler() {
 func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 	initChandlerHandler()
 	version := uint32(2<<16 | 0<<8 | 0)
-	sig, err := chandler.Sign(version)
+	sig := chandler.MustSign(version)
 
-	if err != nil {
-		t.Fatal("Sign error")
-	} else {
-		if !chandler.IsSignedByNodeID(version, sig, nodeID) {
-			t.Fatal("verify sign error")
-		}
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(sig)
+
+	t.Log("...", "version", version, "sig", hex.EncodeToString(sig))
+
+	if !chandler.IsSignedByNodeID(version, versionSign.Bytes(), nodeID) {
+		t.Fatal("verify sign error")
 	}
 }

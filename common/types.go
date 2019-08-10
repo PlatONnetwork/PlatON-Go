@@ -34,7 +34,7 @@ import (
 const (
 	// HashLength is the expected length of the hash
 	HashLength        = 32
-	VersionSignLength = 64
+	VersionSignLength = 65
 	// AddressLength is the expected length of the address
 	AddressLength          = 20
 	BlockConfirmSignLength = 65
@@ -445,4 +445,43 @@ func (s *VersionSign) SetBytes(b []byte) {
 		b = b[len(b)-VersionSignLength:]
 	}
 	copy(s[VersionSignLength-len(b):], b)
+}
+
+// MarshalText implements the encoding.TextMarshaler interface.
+func (s VersionSign) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(s[:])), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (s *VersionSign) UnmarshalText(text []byte) error {
+	id, err := HexSign(string(text))
+	if err != nil {
+		return err
+	}
+	*s = id
+	return nil
+}
+
+// HexID converts a hex string to a NodeID.
+// The string may be prefixed with 0x.
+func HexSign(in string) (VersionSign, error) {
+	var vs VersionSign
+	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))
+	if err != nil {
+		return vs, err
+	} else if len(b) != len(vs) {
+		return vs, fmt.Errorf("wrong length, want %d hex chars", len(vs)*2)
+	}
+	copy(vs[:], b)
+	return vs, nil
+}
+
+// MustHexID converts a hex string to a NodeID.
+// It panics if the string is not a valid NodeID.
+func MustHexSign(in string) VersionSign {
+	vs, err := HexSign(in)
+	if err != nil {
+		panic(err)
+	}
+	return vs
 }
