@@ -88,7 +88,8 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
+	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32,
+	programVersionSign common.VersionSign) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
@@ -211,8 +212,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			return nil, err
 		}
 	}
-
-	programVersionSign := common.VersionSign{}
 
 	if isDeclareVersion {
 		// Declare new Version
