@@ -465,22 +465,29 @@ func (cbft *Cbft) OnPong(nodeID string, netLatency int64) error {
 
 // BlockExists is used to query whether the specified block exists in this node.
 func (cbft *Cbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
-	if (blockHash == common.Hash{}) {
-		return fmt.Errorf("invalid blockHash")
+	result := make(chan error, 1)
+	cbft.asyncCallCh <- func() {
+		if (blockHash == common.Hash{}) {
+			result <- fmt.Errorf("invalid blockHash")
+			return
+		}
+		block := cbft.blockTree.FindBlockByHash(blockHash)
+		if block == nil {
+			block = cbft.blockChain.GetBlock(blockHash, blockNumber)
+		}
+		if block == nil {
+			result <- fmt.Errorf("not found block by hash:%s, number:%d", blockHash.TerminalString(), blockNumber)
+			return
+		}
+		if block.Hash() != blockHash || blockNumber != block.NumberU64() {
+			result <- fmt.Errorf("not match from block, hash:%s, number:%d, queriedHash:%s, queriedNumber:%d",
+				blockHash.TerminalString(), blockNumber,
+				block.Hash().TerminalString(), block.NumberU64())
+			return
+		}
+		result <- nil
 	}
-	block := cbft.blockTree.FindBlockByHash(blockHash)
-	if block == nil {
-		block = cbft.blockChain.GetBlock(blockHash, blockNumber)
-	}
-	if block == nil {
-		return fmt.Errorf("not found block by hash:%s, number:%d", blockHash.TerminalString(), blockNumber)
-	}
-	if block.Hash() != blockHash || blockNumber != block.NumberU64() {
-		return fmt.Errorf("not match from block, hash:%s, number:%d, queriedHash:%s, queriedNumber:%d",
-			blockHash.TerminalString(), blockNumber,
-			block.Hash().TerminalString(), block.NumberU64())
-	}
-	return nil
+	return <-result
 }
 
 // AvgLatency returns the average delay time of the specified node.
