@@ -3,6 +3,7 @@ package xcom
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
@@ -62,6 +63,8 @@ func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, no
 		return false
 	}
 	id := discover.PubkeyID(pubKey)
+
+	fmt.Println("id", id.String(), "\n", "nodeID", nodeID.String())
 	if id == nodeID {
 		return true
 	}
