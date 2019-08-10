@@ -52,7 +52,7 @@ func (chandler *CryptoHandler) MustSign(data []byte) []byte {
 	return sig
 }
 
-func (chandler *CryptoHandler) SignedByNodeID(data []byte, sig []byte, nodeID discover.NodeID) bool {
+func (chandler *CryptoHandler) ValidateSign(data []byte, sig []byte, nodeID discover.NodeID) bool {
 	pubKey, err := crypto.SigToPub(data, sig)
 	if err != nil {
 		log.Error("Check if the signature is signed by a node", "err", err)

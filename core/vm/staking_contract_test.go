@@ -3,6 +3,7 @@ package vm_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	_ "fmt"
 	"math/big"
 	"testing"
@@ -42,6 +43,11 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+
+	fmt.Println("len =======", len(initProgramVersionBytes))
+
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	xcom.GetCryptoHandler().MustSign(initProgramVersionBytes)
 
 	params = append(params, fnType)
 	params = append(params, typ)
