@@ -343,7 +343,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return common.NewBizError("empty parameter detected.")
 	}
 
-	if !xcom.GetCryptoHandler().ValidateSign(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), vote.VoteNodeID) {
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), vote.VoteNodeID) {
 		return common.NewBizError("version sign error.")
 	}
 
@@ -433,7 +433,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 		return err
 	}*/
 
-	if !xcom.GetCryptoHandler().ValidateSign(common.Uint32ToBytes(declaredVersion), programVersionSign.Bytes(), declaredNodeID) {
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(declaredVersion), programVersionSign.Bytes(), declaredNodeID) {
 		return common.NewBizError("version sign error.")
 	}
 

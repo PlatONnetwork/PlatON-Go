@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -34,11 +37,11 @@ func (chandler *CryptoHandler) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	chandler.privateKey = privateKey
 }
 
-func (chandler *CryptoHandler) Sign(data []byte) ([]byte, error) {
+func (chandler *CryptoHandler) Sign(data interface{}) ([]byte, error) {
 	if chandler == nil || chandler.privateKey == nil {
 		return nil, common.NewSysError("PrivateKey missed")
 	}
-	return crypto.Sign(data, chandler.privateKey)
+	return crypto.Sign(RlpHash(data).Bytes(), chandler.privateKey)
 }
 
 func (chandler *CryptoHandler) MustSign(data []byte) []byte {
@@ -52,8 +55,8 @@ func (chandler *CryptoHandler) MustSign(data []byte) []byte {
 	return sig
 }
 
-func (chandler *CryptoHandler) ValidateSign(data []byte, sig []byte, nodeID discover.NodeID) bool {
-	pubKey, err := crypto.SigToPub(data, sig)
+func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeID discover.NodeID) bool {
+	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), sig)
 	if err != nil {
 		log.Error("Check if the signature is signed by a node", "err", err)
 		return false
@@ -64,4 +67,11 @@ func (chandler *CryptoHandler) ValidateSign(data []byte, sig []byte, nodeID disc
 	}
 	log.Error("the signature is not signed by the node", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
 	return false
+}
+
+func RlpHash(x interface{}) (h common.Hash) {
+	hw := sha3.NewKeccak256()
+	rlp.Encode(hw, x)
+	hw.Sum(h[:0])
+	return h
 }
