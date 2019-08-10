@@ -36,7 +36,7 @@ type Cbft interface {
 	HighestCommitBlockBn() (uint64, common.Hash)
 
 	// Returns the node ID of the missing vote.
-	MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error)
+	MissingViewChangeNodes() (*protocols.GetViewChange, error)
 
 	// OnPong records net delay time.
 	OnPong(nodeID string, netLatency int64) error

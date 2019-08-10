@@ -579,16 +579,15 @@ func (h *EngineManager) synchronize() {
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
 			// the GetViewChange message is sent from the missing node.
-			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
+			msg, err := h.engine.MissingViewChangeNodes()
 			if err != nil {
-				log.Error("Get consensus nodes failed", "err", err)
+				log.Debug("Get consensus nodes failed", "err", err)
 				break
 			}
 			// Initi.al situation.
 			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
-				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
 				// Only broadcasts without forwarding.
-				h.Broadcast(msg)
+				h.PartBroadcast(msg)
 			} else {
 				log.Debug("Waiting for the next round")
 			}

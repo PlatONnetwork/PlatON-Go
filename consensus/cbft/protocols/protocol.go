@@ -528,13 +528,13 @@ func (s *LatestStatus) BHash() common.Hash {
 
 // Used to actively request to get viewChange.
 type GetViewChange struct {
-	Epoch       uint64   `json:"epoch"`
-	ViewNumber  uint64   `json:"view_number"`
-	NodeIndexes []uint32 `json:"node_indexes"`
+	Epoch          uint64          `json:"epoch"`
+	ViewNumber     uint64          `json:"view_number"`
+	ViewChangeBits *utils.BitArray `json:"node_indexes"`
 }
 
 func (s *GetViewChange) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,NodeIndexesLen:%d}", s.Epoch, s.ViewNumber, len(s.NodeIndexes))
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,NodeIndexesLen:%s}", s.Epoch, s.ViewNumber, s.ViewChangeBits.String())
 }
 
 func (s *GetViewChange) MsgHash() common.Hash {

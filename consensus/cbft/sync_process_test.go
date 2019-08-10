@@ -461,10 +461,15 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.GetViewChange{
-			Epoch:       v.reqEpoch,
-			ViewNumber:  v.reqViewNumber,
-			NodeIndexes: v.reqNodeIndexes,
+			Epoch:      v.reqEpoch,
+			ViewNumber: v.reqViewNumber,
 		}
+		bit := utils.NewBitArray(4)
+		for _, i := range v.reqNodeIndexes {
+			bit.SetIndex(i, true)
+		}
+		message.ViewChangeBits = bit
+
 		// Setting viewNumber.
 		engine.state.ResetView(0, v.viewNumber)
 		err := engine.OnGetViewChange(peer.PeerID(), message)
@@ -475,9 +480,9 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 }
 
 func TestCbft_MissingViewChangeNodes(t *testing.T) {
-	engine, cNodes := buildSingleCbft()
-	nodes, message, err := engine.MissingViewChangeNodes()
-	assert.Equal(t, len(cNodes), len(nodes))
+	engine, _ := buildSingleCbft()
+	message, err := engine.MissingViewChangeNodes()
+	assert.True(t, message.ViewChangeBits.GetIndex(0))
 	assert.Nil(t, err)
 	assert.NotNil(t, message)
 }
