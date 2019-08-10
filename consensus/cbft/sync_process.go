@@ -267,8 +267,7 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 		}
 		if localQCNum < msg.BlockNumber || (localQCNum == msg.BlockNumber && localQCHash != msg.BlockHash) {
 			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			localLockedNum, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
-			return launcher(msg.LogicType, id, localLockedNum, localLockedHash)
+			return launcher(msg.LogicType, id, localQCNum, localQCHash)
 		} else {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LogicType: msg.LogicType})
@@ -283,7 +282,6 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	switch msg.LogicType {
 	case network.TypeForQCBn:
 		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
-		localLockedBn, localLockedHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 		if localQCBn < msg.BlockNumber || (localQCBn == msg.BlockNumber && localQCHash != msg.BlockHash) {
 			p, err := cbft.network.GetPeer(id)
 			if err != nil {
@@ -292,7 +290,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, localLockedHash, localLockedBn)
+			cbft.fetchBlock(id, localQCHash, localQCBn)
 		}
 	}
 	return nil

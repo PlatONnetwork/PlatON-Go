@@ -217,7 +217,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 		}
 		return err
 	default:
-		log.Warn("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Trace("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
 	return nil
 }
