@@ -3,6 +3,9 @@ package vm_test
 import (
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -293,4 +296,15 @@ func runGovContract(contract *vm.GovContract, buf []byte, t *testing.T) {
 	} else {
 		t.Log(string(res))
 	}
+}
+
+func Test_ResetVoteOption(t *testing.T) {
+	v := gov.Vote{}
+	v.ProposalID = common.ZeroHash
+	v.VoteNodeID = discover.NodeID{}
+	v.VoteOption = gov.Abstention
+	t.Log(v)
+
+	v.VoteOption = gov.Yes
+	t.Log(v)
 }
