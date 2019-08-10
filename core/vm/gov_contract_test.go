@@ -14,12 +14,11 @@ import (
 )
 
 var (
-	snapdb         snapshotdb.DB
-	govPlugin      *plugin.GovPlugin
-	gc             *vm.GovContract
-	promoteVersion = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
-	versionSign    common.VersionSign
-	chandler       *xcom.CryptoHandler
+	snapdb      snapshotdb.DB
+	govPlugin   *plugin.GovPlugin
+	gc          *vm.GovContract
+	versionSign common.VersionSign
+	chandler    *xcom.CryptoHandler
 )
 
 func init() {

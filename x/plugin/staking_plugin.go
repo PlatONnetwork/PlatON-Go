@@ -1663,6 +1663,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	}*/
 
+	// todo test
+	xcom.PrintObject("Call ElectNextVerifierList old verifier list", old_verifierArr)
+
 	if old_verifierArr.End != blockNumber {
 		log.Error("Failed to ElectNextVerifierList: this blockNumber invalid", "Old Epoch End blockNumber",
 			old_verifierArr.End, "Current blockNumber", blockNumber)
@@ -1707,8 +1710,10 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		can, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
+
 			log.Error("Failed to ElectNextVerifierList: Query Candidate info is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+				"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+
 			return err
 		}
 
@@ -1762,6 +1767,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	pposHash = sk.db.GetLastKVHash(blockHash)
 	log.Debug("ElectNextVerifierList pposHash, Method End", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	// todo test
+	xcom.PrintObject("Call ElectNextVerifierList new verifier list", new_verifierArr)
 
 	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue), "loopNum", count)
 	return nil
@@ -2230,6 +2238,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	diffQueueLen := len(diffQueue)
 	invalidLen := 0 // duplicateSign And lowRatio No enough von
 	currLen := len(curr.Arr)
+	zeroLen := 0
 
 	slashCans := make(staking.SlashCandidate, 0)
 	slashAddrQueue := make([]discover.NodeID, 0)
@@ -2301,48 +2310,246 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	var nextQueue staking.ValidatorQueue
 
-	if invalidLen > 0 && invalidLen >= diffQueueLen {
+	/**
+	****
+	****
+	Real Election Start
 
-		log.Warn("Call Election, the invalidLen large than or equal diffQueueLen", "blockNumber",
-			blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
+	It must be considered that compatibility control
+	will reduce the parameters for each election.
+	****
+	****
+	*/
 
-		nextQueue = shuffle(invalidLen, diffQueue)
-	} else {
+	unGov_ElectionFn := func(currLength, invalidLength, diffQueueLength int, diffArr staking.ValidatorQueue) (staking.ValidatorQueue, error) {
+		var shiftQueue staking.ValidatorQueue
+		var nextQueueTmp staking.ValidatorQueue
 
-		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
+		// election shift validators
+		if diffQueueLength <= int(xcom.ShiftValidatorNum()) {
 
-			log.Info("Call Election, the invalidLen less than  diffQueueLen AND diffQueueLen less than ShiftValidatorNum",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
-				"diffQueueLen", diffQueueLen, "ShiftValidatorNum", xcom.ShiftValidatorNum())
+			log.Info("Call Election, diffQueueLen less than ShiftValidatorNum",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+				"diffQueueLen", diffQueueLength, "ShiftValidatorNum", xcom.ShiftValidatorNum())
 
-			nextQueue = shuffle(diffQueueLen, diffQueue)
+			shiftQueue = diffArr
 		} else {
-			/**
-			elect ShiftValidatorNum (default is 8) validators by vrf
-			*/
-			if queue, err := sk.VrfElection(diffQueue, header.Nonce.Bytes(), header.ParentHash); nil != err {
+
+			log.Info("Call Election, VrfElection Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+				"diffQueueLen", diffQueueLength, "ShiftValidatorNum", xcom.ShiftValidatorNum())
+
+			if queue, err := sk.VrfElection(diffArr, header.Nonce.Bytes(), header.ParentHash); nil != err {
 				log.Error("Failed to VrfElection on Election",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-				return err
+				return nil, err
+			} else {
+				shiftQueue = queue
+			}
+		}
+
+		// election next validators
+		if invalidLength == 0 {
+
+			log.Info("Call Election, the invalid length is zero", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+
+			overflowSize := (currLength + len(shiftQueue)) - int(xcom.ConsValidatorNum())
+
+			if overflowSize <= 0 {
+
+				log.Info("Call Election, caculate overflow size will be zero", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
+					"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
+
+				nextQueueTmp = shuffle(zeroLen, shiftQueue)
+
 			} else {
 
-				if invalidLen >= len(queue) {
+				log.Info("Call Election, Election will overflow", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
+					"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
 
-					log.Info("Call Election, the invalidLen large than or equal vrf queue", "blockNumber",
-						blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "vrfQueueLen", len(queue))
+				nextQueueTmp = shuffle(overflowSize, shiftQueue)
 
-					nextQueue = shuffle(invalidLen, queue)
+			}
 
+		} else {
+
+			if invalidLength > len(shiftQueue) {
+
+				log.Info("Call Election, the invalid length is large than shiftQueue Size", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue))
+
+				nextQueueTmp = shuffle(invalidLength, shiftQueue)
+			} else {
+
+				overflowSize := (currLength - invalidLength + len(shiftQueue)) - int(xcom.ConsValidatorNum())
+
+				if overflowSize <= 0 {
+
+					log.Info("Call Election, caculate overflow size will be zero", "blockNumber", blockNumber,
+						"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
+						"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
+
+					nextQueueTmp = shuffle(invalidLength, shiftQueue)
 				} else {
 
-					log.Info("Call Election, the next is curr shift vrf queue", "blockNumber",
-						blockNumber, "blockHash", blockHash.Hex(), "vrfQueueLen", len(queue))
+					log.Info("Call Election, Election will overflow", "blockNumber", blockNumber,
+						"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
+						"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
 
-					nextQueue = shuffle(len(queue), queue)
+					nextQueueTmp = shuffle((invalidLength + overflowSize), shiftQueue)
 				}
 			}
 		}
 
+		log.Info("Call Election, elect next validators of no gov", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "next size", len(nextQueueTmp))
+
+		return nextQueueTmp, nil
+	}
+
+	switch {
+
+	// Normal election logic
+	// OR
+	// Maybe the last time I selected the current round,
+	// When the time it was  slashed some nodes.
+	case currLen == int(xcom.ConsValidatorNum()), currLen < int(xcom.ConsValidatorNum()):
+
+		if currLen == int(xcom.ConsValidatorNum()) {
+			log.Info("Normal election logic", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
+		} else {
+			log.Info("The Current len less than config", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
+
+		}
+
+		// In this case, the list of the next round of
+		// certifiers selected will be shortened.
+		if invalidLen > 0 && invalidLen >= diffQueueLen {
+
+			log.Warn("Call Election, the invalidLen large than or equal diffQueueLen", "blockNumber",
+				blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
+
+			nextQueue = shuffle(invalidLen, diffQueue)
+		} else {
+
+			// When "invalidLen" is equal to zero,
+			// or "invalidLen" is smaller than "diffQueueLen",
+			// the size of "diffQueueLen" is used as the substitution standard.
+
+			nextQueue, err = unGov_ElectionFn(currLen, invalidLen, diffQueueLen, diffQueue)
+			if nil != err {
+				return err
+			}
+		}
+
+	// TODO
+	// This can only happen if the "ValidatorCount" parameter is governed,
+	// resulting in a smaller value.
+	case currLen > int(xcom.ConsValidatorNum()):
+
+		log.Warn("Maybe the config was governed: the currLen large than config",
+			"currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
+
+		//
+		var shiftQueue staking.ValidatorQueue
+
+		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
+
+			log.Info("Call Election, diffQueueLen less than ShiftValidatorNum, When current validators large than config",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+				"diffQueueLen", diffQueueLen, "ShiftValidatorNum", xcom.ShiftValidatorNum())
+
+			shiftQueue = diffQueue
+		} else {
+
+			if queue, err := sk.VrfElection(diffQueue, header.Nonce.Bytes(), header.ParentHash); nil != err {
+				log.Error("Failed to VrfElection on Election, When current validators large than config",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				return err
+			} else {
+				shiftQueue = queue
+			}
+		}
+
+		// In this case, the list of the next round of
+		// certifiers selected will be shortened.
+		if invalidLen > 0 && invalidLen >= diffQueueLen {
+
+			overflowSize := (currLen - invalidLen + len(shiftQueue)) - int(xcom.ConsValidatorNum())
+
+			if overflowSize <= 0 {
+
+				log.Warn("Call Election, caculate overflow size will be zero, the invalidLen large than or equal diffQueueLen",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
+
+				nextQueue = shuffle(invalidLen, shiftQueue)
+			} else {
+
+				log.Warn("Call Election, Election will overflow, the invalidLen large than or equal diffQueueLen", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
+
+				nextQueue = shuffle((invalidLen + overflowSize), shiftQueue)
+			}
+
+		} else {
+
+			// When "invalidLen" is equal to zero,
+			// or "invalidLen" is smaller than "diffQueueLen",
+			// we need to recalculate the number of validators replaced this time.
+
+			if invalidLen == 0 {
+
+				log.Info("Call Election, the invalid length is zero： Maybe the config was governed", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+
+				overflowSize := (currLen + len(shiftQueue)) - int(xcom.ConsValidatorNum())
+				nextQueue = shuffle((overflowSize + len(shiftQueue)), shiftQueue)
+			} else {
+
+				overflowSize := (currLen - invalidLen + len(shiftQueue)) - int(xcom.ConsValidatorNum())
+
+				if invalidLen > len(shiftQueue) {
+
+					if overflowSize <= 0 {
+
+						log.Info("Call Election, caculate overflow size will be zero: invalid large than shiftQueue Size",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
+							"caculate overflow size", overflowSize)
+
+						nextQueue = shuffle(invalidLen, shiftQueue)
+					} else {
+
+						log.Info("Call Election, Election will overflow: invalid large than shiftQueue Size",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
+							"caculate overflow size", overflowSize)
+
+						nextQueue = shuffle((invalidLen + overflowSize), shiftQueue)
+					}
+
+				} else {
+
+					if overflowSize <= 0 {
+
+						log.Info("Call Election, caculate overflow size will be zero: invalid less than shiftQueue Size",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
+							"caculate overflow size", overflowSize)
+
+						nextQueue = shuffle(len(shiftQueue), shiftQueue)
+					} else {
+
+						log.Info("Call Election, Election will overflow: invalid less than shiftQueue Size",
+							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
+							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
+							"caculate overflow size", overflowSize)
+
+						nextQueue = shuffle((len(shiftQueue) + overflowSize), shiftQueue)
+					}
+				}
+			}
+		}
 	}
 
 	next := &staking.Validator_array{

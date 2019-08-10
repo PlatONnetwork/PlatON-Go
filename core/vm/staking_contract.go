@@ -34,7 +34,8 @@ const (
 	GetCandidateListErrStr   = "Getting candidateList is failed"
 	GetDelegateRelatedErrStr = "Getting related of delegate is failed"
 	IncreaseStakingErrStr    = "IncreaseStaking failed"
-	ProgramVersionErr        = "The program version of the relates node's is too low"
+	ProgramVersionErrStr     = "The program version of the relates node's is too low"
+	ProgramVersionSignErrStr = "The program version sign is wrong"
 	QueryCanErrStr           = "Query candidate info failed"
 	QueryDelErrSTr           = "Query delegate info failed"
 	StakeVonTooLowStr        = "Staking deposit too low"
@@ -88,7 +89,8 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
+	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32,
+	programVersionSign common.VersionSign) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
@@ -103,13 +105,21 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "typ", typ,
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
-		"programVersion", programVersion)
+		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex())
 
 	// todo test
 	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
+	}
+
+	// validate programVersion sign
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), nodeId) {
+		res := xcom.Result{false, "", ProgramVersionSignErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
 	}
 
 	if !xutil.CheckStakeThreshold(amount) {
@@ -145,7 +155,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
 		err := fmt.Errorf("input Version: %s, current valid Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(curr_version))
-		res := xcom.Result{false, "", ProgramVersionErr + ": " + err.Error()}
+		res := xcom.Result{false, "", ProgramVersionErrStr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
@@ -211,8 +221,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			return nil, err
 		}
 	}
-
-	programVersionSign := common.VersionSign{}
 
 	if isDeclareVersion {
 		// Declare new Version
