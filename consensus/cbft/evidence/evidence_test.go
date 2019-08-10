@@ -8,6 +8,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -17,6 +19,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	bls.Init(bls.CurveFp254BNb)
+}
 
 func path() string {
 	name, err := ioutil.TempDir(os.TempDir(), "evidence")

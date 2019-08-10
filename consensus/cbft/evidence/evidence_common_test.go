@@ -54,11 +54,10 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 	for i := 0; i < num; i++ {
 
 		nodes[i] = &cbfttypes.ValidateNode{
-			Index:     uint32(i),
-			Address:   crypto.PubkeyToAddress(pk[i].PublicKey),
-			PubKey:    &pk[i].PublicKey,
-			NodeID:    discover.PubkeyID(&pk[i].PublicKey),
-			BlsPubKey: sk[i].GetPublicKey(),
+			Index:   uint32(i),
+			Address: crypto.PubkeyToAddress(pk[i].PublicKey),
+			PubKey:  &pk[i].PublicKey,
+			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
 		}
 		if runtime.GOOS != "windows" {
 			nodes[i].BlsPubKey = sk[i].GetPublicKey()
