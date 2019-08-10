@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"encoding/hex"
 	"encoding/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -20,6 +19,7 @@ const (
 	SubmitTextProposalErrorMsg    = "Submit a text proposal error"
 	SubmitVersionProposalErrorMsg = "Submit a version proposal error"
 	SubmitParamProposalErrorMsg   = "Submit a param proposal error"
+	SubmitCancelProposalErrorMsg  = "Submit a cancel proposal error"
 	VoteErrorMsg                  = "Vote error"
 	DeclareErrorMsg               = "Declare version error"
 	GetProposalErrorMsg           = "Find a specified proposal error"
@@ -36,6 +36,7 @@ const (
 	SubmitParamEvent       = "2002"
 	VoteEvent              = "2003"
 	DeclareEvent           = "2004"
+	CancelEvent            = "2005"
 	GetProposalEvent       = "2100"
 	GetResultEvent         = "2101"
 	ListProposalEvent      = "2102"
@@ -69,6 +70,7 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		2002: gc.submitParam,
 		2003: gc.vote,
 		2004: gc.declareVersion,
+		2005: gc.submitCancel,
 
 		// Get
 		2100: gc.getProposal,
@@ -92,7 +94,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, url string, endVotin
 		"from", from.Hex(),
 		"txHash", txHash,
 		"blockNumber", blockNumber,
-		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
+		"verifierID", verifier.TerminalString(),
 		"endVotingRounds", endVotingRounds,
 		"endVotingBlock", endVotingBlock)
 
@@ -129,7 +131,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, url string, newVe
 		"from", from.Hex(),
 		"txHash", txHash,
 		"blockNumber", blockNumber,
-		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
+		"verifierID", verifier.TerminalString(),
 		"newVersion", newVersion,
 		"endVotingRounds", endVotingRounds,
 		"endVotingBlock", endVotingBlock,
@@ -147,8 +149,8 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, url string, newVe
 		Url:            url,
 		ProposalType:   gov.Version,
 		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
-		ProposalID:     gc.Evm.StateDB.TxHash(),
+		SubmitBlock:    blockNumber,
+		ProposalID:     txHash,
 		Proposer:       verifier,
 		NewVersion:     newVersion,
 		ActiveBlock:    activeBlock,
@@ -170,7 +172,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 		"from", from.Hex(),
 		"txHash", txHash,
 		"blockNumber", blockNumber,
-		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
+		"verifierID", verifier.TerminalString(),
 		"endVotingRounds", endVotingRounds,
 		"endVotingBlock", endVotingBlock,
 		"ParamName", paramName,
@@ -199,13 +201,21 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
 }
 
+func (gc *GovContract) submitCancel(verifier discover.NodeID, url string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
+	return nil, nil
+}
+
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
+
 	log.Debug("Call vote of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64(),
-		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
+		"txHash", txHash,
+		"blockNumber", blockNumber,
+		"verifierID", verifier.TerminalString(),
 		"option", op,
 		"programVersion", programVersion,
 		"programVersionSign", programVersionSign)
@@ -221,35 +231,41 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gc.Plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), programVersion, programVersionSign, gc.Evm.StateDB)
+	err := gc.Plugin.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, gc.Evm.StateDB)
 
 	return gc.errHandler("vote", VoteEvent, err, VoteErrorMsg)
 }
 
 func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call declareVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64(),
-		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]),
+		"txHash", txHash,
+		"blockNumber", blockNumber,
+		"activeNode", activeNode.TerminalString(),
 		"programVersion", programVersion)
 
 	if !gc.Contract.UseGas(params.DeclareVersionGas) {
 		return nil, ErrOutOfGas
 	}
 
-	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
+	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, gc.Evm.StateDB)
 
 	return gc.errHandler("declareVersion", DeclareEvent, err, DeclareErrorMsg)
 }
 
 func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getProposal of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"txHash", txHash,
+		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
 	proposal, err := gc.Plugin.GetProposal(proposalID, gc.Evm.StateDB)
@@ -259,10 +275,13 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getTallyResult of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"txHash", txHash,
+		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
 	rallyResult, err := gc.Plugin.GetTallyResult(proposalID, gc.Evm.StateDB)
@@ -272,10 +291,13 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 
 func (gc *GovContract) listProposal() ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call listProposal of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64())
+		"txHash", txHash,
+		"blockNumber", blockNumber)
 
 	proposalList, err := gc.Plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
@@ -284,10 +306,13 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 
 func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getActiveVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64())
+		"txHash", txHash,
+		"blockNumber", blockNumber)
 
 	activeVersion := gc.Plugin.GetCurrentActiveVersion(gc.Evm.StateDB)
 
@@ -296,22 +321,28 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 
 func (gc *GovContract) getProgramVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getProgramVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64())
+		"txHash", txHash,
+		"blockNumber", blockNumber)
 
-	versionValue, err := gc.Plugin.GetProgramVersion(gc.Evm.StateDB)
+	versionValue, err := gc.Plugin.GetProgramVersion()
 
 	return gc.returnHandler("getProgramVersion", versionValue, err, GetProgramVersionErrorMsg)
 }
 
 func (gc *GovContract) listParam() ([]byte, error) {
 	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call listParam of GovContract",
 		"from", from.Hex(),
-		"txHash", gc.Evm.StateDB.TxHash(),
-		"blockNumber", gc.Evm.BlockNumber.Uint64())
+		"txHash", txHash,
+		"blockNumber", blockNumber)
 
 	paramList, err := gc.Plugin.ListParam(gc.Evm.StateDB)
 
