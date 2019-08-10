@@ -1,9 +1,8 @@
 package vm
 
 import (
+	"encoding/hex"
 	"encoding/json"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -19,7 +18,6 @@ const (
 	SubmitTextProposalErrorMsg    = "Submit a text proposal error"
 	SubmitVersionProposalErrorMsg = "Submit a version proposal error"
 	SubmitParamProposalErrorMsg   = "Submit a param proposal error"
-	SubmitCancelProposalErrorMsg  = "Submit a cancel proposal error"
 	VoteErrorMsg                  = "Vote error"
 	DeclareErrorMsg               = "Declare version error"
 	GetProposalErrorMsg           = "Find a specified proposal error"
@@ -36,7 +34,6 @@ const (
 	SubmitParamEvent       = "2002"
 	VoteEvent              = "2003"
 	DeclareEvent           = "2004"
-	CancelEvent            = "2005"
 	GetProposalEvent       = "2100"
 	GetResultEvent         = "2101"
 	ListProposalEvent      = "2102"
@@ -70,7 +67,6 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		2002: gc.submitParam,
 		2003: gc.vote,
 		2004: gc.declareVersion,
-		2005: gc.submitCancel,
 
 		// Get
 		2100: gc.getProposal,
@@ -82,20 +78,13 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (gc *GovContract) submitText(verifier discover.NodeID, url string, endVotingRounds uint64) ([]byte, error) {
+func (gc *GovContract) submitText(verifier discover.NodeID, url string, endVotingBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
-
-	endVotingBlock := blockNumber + xutil.ConsensusSize() - blockNumber%xutil.ConsensusSize() + endVotingRounds*xutil.ConsensusSize() - xcom.ElectionDistance()
-
 	log.Debug("Call submitText of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
-		"verifierID", verifier.TerminalString(),
-		"endVotingRounds", endVotingRounds,
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"endVotingBlock", endVotingBlock)
 
 	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
@@ -109,33 +98,23 @@ func (gc *GovContract) submitText(verifier discover.NodeID, url string, endVotin
 		Url:            url,
 		ProposalType:   gov.Text,
 		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    blockNumber,
-		ProposalID:     txHash,
+		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
+		ProposalID:     gc.Evm.StateDB.TxHash(),
 		Proposer:       verifier,
 	}
-	err := gc.Plugin.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return gc.errHandler("submitText", SubmitTextEvent, err, SubmitTextProposalErrorMsg)
 }
 
-func (gc *GovContract) submitVersion(verifier discover.NodeID, url string, newVersion uint32, endVotingRounds, activeRounds uint64) ([]byte, error) {
+func (gc *GovContract) submitVersion(verifier discover.NodeID, url string, newVersion uint32, endVotingBlock, activeBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
-
-	endVotingBlock := blockNumber + xutil.ConsensusSize() - blockNumber%xutil.ConsensusSize() + endVotingRounds*xutil.ConsensusSize() - xcom.ElectionDistance()
-	activeBlock := endVotingBlock + xcom.ElectionDistance() + activeRounds*xutil.ConsensusSize() + 1
-
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
-		"verifierID", verifier.TerminalString(),
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"newVersion", newVersion,
-		"endVotingRounds", endVotingRounds,
 		"endVotingBlock", endVotingBlock,
-		"activeRounds", activeRounds,
 		"activeBlock", activeBlock)
 
 	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
@@ -149,31 +128,23 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, url string, newVe
 		Url:            url,
 		ProposalType:   gov.Version,
 		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    blockNumber,
-		ProposalID:     txHash,
+		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
+		ProposalID:     gc.Evm.StateDB.TxHash(),
 		Proposer:       verifier,
 		NewVersion:     newVersion,
 		ActiveBlock:    activeBlock,
 	}
-	err := gc.Plugin.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
 }
 
-func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramName string, currentValue, newValue string, endVotingRounds uint64) ([]byte, error) {
+func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramName string, currentValue, newValue string, endVotingBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
-
-	endVotingBlock := blockNumber + xutil.ConsensusSize() - blockNumber%xutil.ConsensusSize() + endVotingRounds*xutil.ConsensusSize() - xcom.ElectionDistance()
-
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
-		"verifierID", verifier.TerminalString(),
-		"endVotingRounds", endVotingRounds,
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"endVotingBlock", endVotingBlock,
 		"ParamName", paramName,
 		"CurrentValue", currentValue,
@@ -190,32 +161,24 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 		Url:            url,
 		ProposalType:   gov.Param,
 		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    blockNumber,
-		ProposalID:     txHash,
+		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
+		ProposalID:     gc.Evm.StateDB.TxHash(),
 		Proposer:       verifier,
 		ParamName:      paramName,
 		CurrentValue:   currentValue,
 		NewValue:       newValue,
 	}
-	err := gc.Plugin.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
-}
-
-func (gc *GovContract) submitCancel(verifier discover.NodeID, url string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
-	return nil, nil
 }
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
-
 	log.Debug("Call vote of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
-		"verifierID", verifier.TerminalString(),
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"option", op,
 		"programVersion", programVersion,
 		"programVersionSign", programVersionSign)
@@ -231,41 +194,35 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gc.Plugin.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, gc.Evm.StateDB)
+	err := gc.Plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), programVersion, programVersionSign, gc.Evm.StateDB)
 
 	return gc.errHandler("vote", VoteEvent, err, VoteErrorMsg)
 }
 
 func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call declareVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
-		"activeNode", activeNode.TerminalString(),
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]),
 		"programVersion", programVersion)
 
 	if !gc.Contract.UseGas(params.DeclareVersionGas) {
 		return nil, ErrOutOfGas
 	}
 
-	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 
 	return gc.errHandler("declareVersion", DeclareEvent, err, DeclareErrorMsg)
 }
 
 func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getProposal of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"proposalID", proposalID)
 
 	proposal, err := gc.Plugin.GetProposal(proposalID, gc.Evm.StateDB)
@@ -275,13 +232,10 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getTallyResult of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber,
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"proposalID", proposalID)
 
 	rallyResult, err := gc.Plugin.GetTallyResult(proposalID, gc.Evm.StateDB)
@@ -291,13 +245,10 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 
 func (gc *GovContract) listProposal() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call listProposal of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber)
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
 	proposalList, err := gc.Plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
@@ -306,13 +257,10 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 
 func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getActiveVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber)
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
 	activeVersion := gc.Plugin.GetCurrentActiveVersion(gc.Evm.StateDB)
 
@@ -321,13 +269,10 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 
 func (gc *GovContract) getProgramVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call getProgramVersion of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber)
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
 	versionValue, err := gc.Plugin.GetProgramVersion()
 
@@ -336,13 +281,10 @@ func (gc *GovContract) getProgramVersion() ([]byte, error) {
 
 func (gc *GovContract) listParam() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("Call listParam of GovContract",
 		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber)
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
 	paramList, err := gc.Plugin.ListParam(gc.Evm.StateDB)
 
