@@ -431,27 +431,35 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 }
 
 // Returns the node ID of the missing vote.
-func (cbft *Cbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
-	allViewChange := cbft.state.AllViewChange()
+func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err error) {
+	result := make(chan struct{})
 
-	length := cbft.currentValidatorLen()
-	vbits := utils.NewBitArray(uint32(length))
+	cbft.asyncCallCh <- func() {
+		defer func() { result <- struct{}{} }()
+		allViewChange := cbft.state.AllViewChange()
 
-	if len(allViewChange) >= cbft.threshold(length) {
-		return nil, fmt.Errorf("no need sync viewchange")
-	}
+		length := cbft.currentValidatorLen()
+		vbits := utils.NewBitArray(uint32(length))
 
-	for i := uint32(0); i < vbits.Size(); i++ {
-		if _, ok := allViewChange[i]; !ok {
-			vbits.SetIndex(i, true)
+		if len(allViewChange) >= cbft.threshold(length) {
+			v, err = nil, fmt.Errorf("no need sync viewchange")
+			return
 		}
-	}
 
-	return &protocols.GetViewChange{
-		Epoch:          cbft.state.Epoch(),
-		ViewNumber:     cbft.state.ViewNumber(),
-		ViewChangeBits: vbits,
-	}, nil
+		for i := uint32(0); i < vbits.Size(); i++ {
+			if _, ok := allViewChange[i]; !ok {
+				vbits.SetIndex(i, true)
+			}
+		}
+
+		v, err = &protocols.GetViewChange{
+			Epoch:          cbft.state.Epoch(),
+			ViewNumber:     cbft.state.ViewNumber(),
+			ViewChangeBits: vbits,
+		}, nil
+	}
+	<-result
+	return
 }
 
 // OnPong is used to receive the average delay time.
