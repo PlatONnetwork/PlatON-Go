@@ -193,15 +193,40 @@ func (self *GovDB) GetPreActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // Set active version record
-func (self *GovDB) SetActiveVersion(activeVersion uint32, state xcom.StateDB) error {
-	state.SetState(vm.GovContractAddr, KeyActiveVersion(), common.Uint32ToBytes(activeVersion))
+func (self *GovDB) AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.StateDB) error {
+	avList, err := self.ListActiveVersion(state)
+	if err != nil {
+		return err
+	}
+	curAv := ActiveVersionValue{ActiveVersion: activeVersion, ActiveBlock: activeBlock}
+	//Insert the object into the head of the list
+	avList = append([]ActiveVersionValue{curAv}, avList...)
+
+	avListBytes, _ := json.Marshal(avList)
+	state.SetState(vm.GovContractAddr, KeyActiveVersions(), avListBytes)
 	return nil
 }
 
-// Get active version record
-func (self *GovDB) GetActiveVersion(state xcom.StateDB) uint32 {
-	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	return common.BytesToUint32(value)
+func (self *GovDB) ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
+	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
+	if len(avListBytes) == 0 {
+		return nil, nil
+	}
+	var avList []ActiveVersionValue
+	if err := json.Unmarshal(avListBytes, &avList); err != nil {
+		return nil, common.NewSysError(err.Error())
+	}
+	return avList, nil
+}
+
+// Get current active version record
+func (self *GovDB) GetCurrentActiveVersion(state xcom.StateDB) uint32 {
+	avList, err := self.ListActiveVersion(state)
+	if err != nil {
+		log.Error("Cannot find active version list")
+		return 0
+	}
+	return avList[0].ActiveVersion
 }
 
 // Get voting proposal
@@ -261,7 +286,7 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -308,7 +333,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
-	err := self.snapdb.put(blockHash, KeyPreActiveProposals(), common.Hash{})
+	err := self.snapdb.put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}

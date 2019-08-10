@@ -1,8 +1,12 @@
 package xcom
 
 import (
+	"encoding/json"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var SecondsPerYear = uint64(365 * 24 * 3600)
@@ -424,4 +428,10 @@ func DuplicateSignHighSlash() uint32 {
  ******/
 func SupportRateThreshold() float64 {
 	return ec.Gov.SupportRateThreshold
+}
+
+func PrintEc(blockNUmber *big.Int, blockHash common.Hash) {
+	ecByte, _ := json.Marshal(ec)
+	log.Debug("Current EconomicModel config", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
+	//fmt.Println("Current EconomicModel config", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
 }

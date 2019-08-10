@@ -3,8 +3,6 @@ package vm_test
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -16,10 +14,19 @@ import (
 )
 
 var (
-	snapdb    snapshotdb.DB
-	govPlugin *plugin.GovPlugin
-	gc        *vm.GovContract
+	snapdb         snapshotdb.DB
+	govPlugin      *plugin.GovPlugin
+	gc             *vm.GovContract
+	promoteVersion = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
+	versionSign    common.VersionSign
+	chandler       *xcom.CryptoHandler
 )
+
+func init() {
+	chandler = xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[0])
+	versionSign.SetBytes(chandler.MustSign(promoteVersion))
+}
 
 func buildSubmitTextInput() []byte {
 	var input [][]byte
@@ -27,7 +34,7 @@ func buildSubmitTextInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
+	input = append(input, common.MustRlpEncode(uint64(5)))
 
 	return common.MustRlpEncode(input)
 }
@@ -38,9 +45,9 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("versionUrl"))
-	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*10))
+	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
+	input = append(input, common.MustRlpEncode(uint64(5)))
+	input = append(input, common.MustRlpEncode(uint64(10)))
 
 	return common.MustRlpEncode(input)
 }
@@ -54,7 +61,7 @@ func buildSubmitParamInput() []byte {
 	input = append(input, common.MustRlpEncode("param1"))
 	input = append(input, common.MustRlpEncode(""))
 	input = append(input, common.MustRlpEncode("newValue"))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
+	input = append(input, common.MustRlpEncode(uint64(5)))
 
 	return common.MustRlpEncode(input)
 }
@@ -66,7 +73,8 @@ func buildVoteInput(nodeIdx, txIdx int) []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
 	input = append(input, common.MustRlpEncode(txHashArr[txIdx]))
 	input = append(input, common.MustRlpEncode(uint8(1)))
-	input = append(input, common.MustRlpEncode(uint32(2<<16|0<<8|0)))
+	input = append(input, common.MustRlpEncode(promoteVersion))
+	input = append(input, common.MustRlpEncode(versionSign))
 
 	return common.MustRlpEncode(input)
 }
@@ -74,10 +82,10 @@ func buildVoteInput(nodeIdx, txIdx int) []byte {
 func buildDeclareInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2004)))         // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0]))         // param 1 ...
-	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
-
+	input = append(input, common.MustRlpEncode(uint16(2004))) // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
+	input = append(input, common.MustRlpEncode(promoteVersion))
+	input = append(input, common.MustRlpEncode(versionSign))
 	return common.MustRlpEncode(input)
 }
 

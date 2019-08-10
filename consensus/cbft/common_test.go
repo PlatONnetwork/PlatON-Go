@@ -237,6 +237,7 @@ func createBlockWithRootHash(pri *ecdsa.PrivateKey, parent common.Hash, root com
 		ReceiptHash: types.EmptyRootHash,
 		TxHash:      types.EmptyRootHash,
 		Root:        root,
+		GasLimit:    params.GenesisGasLimit + 10,
 	}
 
 	sign, _ := crypto.Sign(header.SealHash().Bytes(), pri)
