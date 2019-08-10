@@ -119,9 +119,13 @@ func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*type
 	pbc.receiptsMu.Lock()
 	defer pbc.receiptsMu.Unlock()
 	obj, exist := pbc.receiptsCache[sealHash]
-	if exist && obj.blockNum == blockNum {
-		obj.receipts = append(obj.receipts, receipts...)
-	} else if !exist {
+	if exist {
+		// FIXME: removing in productive environment
+		// Only for test
+		if types.DeriveSha(types.Receipts(obj.receipts)) != types.DeriveSha(types.Receipts(receipts)) {
+			panic("invalid receipts")
+		}
+	} else {
 		pbc.receiptsCache[sealHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }

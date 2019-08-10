@@ -409,14 +409,7 @@ func (vp *ValidatorPool) validatorList(blockNumber uint64) []discover.NodeID {
 
 // VerifyHeader verify block's header.
 func (vp *ValidatorPool) VerifyHeader(header *types.Header) error {
-	recPubKey, err := crypto.Ecrecover(header.SealHash().Bytes(), header.Signature())
-	if err != nil {
-		return err
-	}
-	var nodeID discover.NodeID
-	copy(nodeID[:], recPubKey[1:])
-
-	_, err = vp.getValidatorByNodeID(header.Number.Uint64(), nodeID)
+	_, err := crypto.Ecrecover(header.SealHash().Bytes(), header.Signature())
 	if err != nil {
 		return err
 	}
