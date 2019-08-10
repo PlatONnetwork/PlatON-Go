@@ -465,6 +465,26 @@ func (cbft *Cbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
 
+// BlockExists is used to query whether the specified block exists in this node.
+func (cbft *Cbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
+	if (blockHash == common.Hash{}) {
+		return fmt.Errorf("invalid blockHash")
+	}
+	block := cbft.blockTree.FindBlockByHash(blockHash)
+	if block == nil {
+		block = cbft.blockChain.GetBlock(blockHash, blockNumber)
+	}
+	if block == nil {
+		return fmt.Errorf("not found block by hash:%s, number:%d", blockHash.TerminalString(), blockNumber)
+	}
+	if block.Hash() != blockHash || blockNumber != block.NumberU64() {
+		return fmt.Errorf("not match from block, hash:%s, number:%d, queriedHash:%s, queriedNumber:%d",
+			blockHash.TerminalString(), blockNumber,
+			block.Hash().TerminalString(), block.NumberU64())
+	}
+	return nil
+}
+
 // AvgLatency returns the average delay time of the specified node.
 //
 // The average is the average delay between the current

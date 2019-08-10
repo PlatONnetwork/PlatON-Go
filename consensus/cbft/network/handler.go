@@ -310,13 +310,17 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		// If blockNumber in the local is better than the remote
 		// then determine if there is a fork.
 		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
-			// todo: to be added
+			err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
 		}
 		if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
-			// todo: to be added
+			err = h.engine.BlockExists(remoteStatus.LockBn.Uint64(), remoteStatus.LockBlock)
 		}
 		if cbftStatus.CmtBn.Uint64() > remoteStatus.CmtBn.Uint64() {
-			// todo: to be added
+			err = h.engine.BlockExists(remoteStatus.CmtBn.Uint64(), remoteStatus.CmtBlock)
+		}
+		if err != nil {
+			p.Log().Error("CBFT handshake, verify block failed", "err", err)
+			return err
 		}
 		p.Log().Debug("CBFT consensus handshake success", "msgHash", cbftStatus.MsgHash().TerminalString())
 		return nil
