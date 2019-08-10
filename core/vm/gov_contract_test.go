@@ -6,8 +6,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -38,7 +36,7 @@ func buildSubmitTextInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
+	input = append(input, common.MustRlpEncode(uint64(5)))
 
 	return common.MustRlpEncode(input)
 }
@@ -50,8 +48,8 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("versionUrl"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*10+1))
+	input = append(input, common.MustRlpEncode(uint64(5)))
+	input = append(input, common.MustRlpEncode(uint64(10)))
 
 	return common.MustRlpEncode(input)
 }
@@ -65,7 +63,7 @@ func buildSubmitParamInput() []byte {
 	input = append(input, common.MustRlpEncode("param1"))
 	input = append(input, common.MustRlpEncode(""))
 	input = append(input, common.MustRlpEncode("newValue"))
-	input = append(input, common.MustRlpEncode(xutil.ConsensusSize()*5-xcom.ElectionDistance()))
+	input = append(input, common.MustRlpEncode(uint64(5)))
 
 	return common.MustRlpEncode(input)
 }
