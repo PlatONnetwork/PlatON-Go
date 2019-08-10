@@ -609,6 +609,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   NewPublicConsensusAPI(cbft),
 			Public:    true,
 		},
+		{
+			Namespace: "platon",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
 	}
 }
 
@@ -703,6 +709,18 @@ func (cbft *Cbft) Status() string {
 	return <-status
 }
 
+func (cbft *Cbft) GetPrepareQC(number uint64) *ctypes.QuorumCert {
+	cbft.log.Debug("get prepare QC")
+	if header := cbft.blockChain.GetHeaderByNumber(number); header != nil {
+		if block := cbft.blockChain.GetBlock(header.Hash(), number); block != nil {
+			if _, qc, err := ctypes.DecodeExtra(block.ExtraData()); err == nil {
+				return qc
+			}
+		}
+	}
+	return &ctypes.QuorumCert{}
+}
+
 // GetBlockByHash get the specified block by hash.
 func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 	result := make(chan *types.Block, 1)
@@ -742,13 +760,14 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
-		cbft.blockTree = ctypes.NewBlockTree(block, qc)
-
+		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
+
+		cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux)
 
 		result <- nil
 	}

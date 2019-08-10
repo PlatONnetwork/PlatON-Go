@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"runtime"
 	"testing"
@@ -638,4 +639,12 @@ func TestViewChangeCannibalizeBytes(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.False(t, bytes.Equal(vc, vqc))
+}
+func TestJson(t *testing.T) {
+	log.Root().SetHandler(log.StdoutHandler)
+
+	qc := ctypes.QuorumCert{}
+	if b, err := json.Marshal(&qc); err == nil {
+		log.Info(string(b))
+	}
 }

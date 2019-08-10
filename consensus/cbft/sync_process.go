@@ -19,17 +19,35 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
-// matchFunc returns the result of the message type match.
-func matchFunc(msg ctypes.Message) bool {
-	_, ok := msg.(*protocols.QCBlockList)
-	return ok
-}
+// Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
+func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
+	if cbft.fetcher.Len() != 0 {
+		cbft.log.Trace("Had fetching block")
+		return
+	}
 
-// executorFunc returns an execution function for executing the block.
-func executorFunc(cbft *Cbft, parent *types.Block) func(msg ctypes.Message) {
-	return func(msg ctypes.Message) {
+	baseBlockHash, baseBlockNumber := common.Hash{}, uint64(0)
+	var parentBlock *types.Block
+
+	if cbft.state.HighestQCBlock().NumberU64() < number {
+		parentBlock = cbft.state.HighestQCBlock()
+		baseBlockHash, baseBlockNumber = parentBlock.Hash(), parentBlock.NumberU64()
+	} else if cbft.state.HighestQCBlock().NumberU64() == number {
+		parentBlock = cbft.state.HighestLockBlock()
+		baseBlockHash, baseBlockNumber = parentBlock.Hash(), parentBlock.NumberU64()
+	} else {
+		cbft.log.Trace("No suitable block need to request")
+		return
+	}
+
+	match := func(msg ctypes.Message) bool {
+		_, ok := msg.(*protocols.QCBlockList)
+		return ok
+	}
+
+	executor := func(msg ctypes.Message) {
 		defer func() {
-			cbft.log.Debug("Close fetching in fetchBlockByBnAndHash")
+			cbft.log.Debug("Close fetching")
 			utils.SetFalse(&cbft.fetching)
 		}()
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
@@ -40,13 +58,14 @@ func executorFunc(cbft *Cbft, parent *types.Block) func(msg ctypes.Message) {
 					return
 				}
 				start := time.Now()
-				if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
+				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
 				blockExecutedTimer.UpdateSince(start)
-				parent = block
+				parentBlock = block
 			}
+
 			// Update the results to the CBFT state machine
 			cbft.asyncCallCh <- func() {
 				if err := cbft.OnInsertQCBlock(blockList.Blocks, blockList.QC); err != nil {
@@ -55,42 +74,17 @@ func executorFunc(cbft *Cbft, parent *types.Block) func(msg ctypes.Message) {
 			}
 		}
 	}
-}
 
-// expireFunc returns an anonymous function that
-// is used to perform the logic at failure.
-func expireFunc(cbft *Cbft) func() {
-	return func() {
-		cbft.log.Debug("Fetch timeout, close fetching in fetchBlockByBnAndHash")
+	expire := func() {
+		cbft.log.Debug("Fetch timeout, close fetching")
 		utils.SetFalse(&cbft.fetching)
 	}
-}
 
-// fetchBlockByBnAndHash is used to download data based
-// on the specified block hash and height
-func (cbft *Cbft) fetchBlockByBnAndHash(peerID string, blockHash common.Hash, blockNumber uint64) {
-	if cbft.fetcher.Len() == 0 && cbft.state.HighestLockBlock().NumberU64() == blockNumber {
-		cbft.log.Debug("Fetch block by blockHash and blockNumber", "blockHsh", blockHash, "blockNumber", blockNumber)
-		parentBlock := cbft.blockTree.FindBlockByHash(blockHash)
-		cbft.log.Debug("Start fetching in fetchBlockByBnAndHash")
-		utils.SetTrue(&cbft.fetching)
-		cbft.fetcher.AddTask(peerID, matchFunc, executorFunc(cbft, parentBlock), expireFunc(cbft))
-		cbft.network.Send(peerID, &protocols.GetQCBlockList{BlockHash: blockHash, BlockNumber: blockNumber})
-	}
-}
+	cbft.log.Debug("Start fetching")
 
-// Get the block from the specified connection, get the block into the fetcher,
-// and execute the block CBFT update state machine
-func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
-	if cbft.fetcher.Len() == 0 && cbft.state.HighestQCBlock().NumberU64() < number {
-		cbft.log.Debug("Fetch block", "fetch", fmt.Sprintf("hash:%s,number:%d", hash.TerminalString(), number), "highestQCBlock", cbft.state.HighestQCBlock().NumberU64())
-		parent := cbft.state.HighestQCBlock()
-		cbft.log.Debug("Start fetching")
-
-		utils.SetTrue(&cbft.fetching)
-		cbft.fetcher.AddTask(id, matchFunc, executorFunc(cbft, parent), expireFunc(cbft))
-		cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: cbft.state.HighestQCBlock().Hash(), BlockNumber: cbft.state.HighestQCBlock().NumberU64()})
-	}
+	utils.SetTrue(&cbft.fetching)
+	cbft.fetcher.AddTask(id, match, executor, expire)
+	cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: baseBlockHash, BlockNumber: baseBlockNumber})
 }
 
 // Obtain blocks that are not in the local according to the proposed block
@@ -261,7 +255,7 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 		default:
 		}
 		// Synchronize block data with fetchBlock.
-		cbft.fetchBlockByBnAndHash(targetId, blockHash, blockNumber)
+		cbft.fetchBlock(targetId, blockHash, blockNumber)
 		return nil
 	}
 	//
@@ -298,7 +292,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlockByBnAndHash(id, localLockedHash, localLockedBn)
+			cbft.fetchBlock(id, localLockedHash, localLockedBn)
 		}
 	}
 	return nil
@@ -358,6 +352,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		} else {
 			cbft.log.Warn("No ViewChange found in current node")
 		}
+		return nil
 	}
 	// Return view QC in the case of less than 1.
 	if isNextView() {
@@ -374,9 +369,10 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
 			ViewChangeQC: lastViewChangeQC,
 		})
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("request is not match local view, local:%s,msg:%s", cbft.state.ViewString(), msg.String())
 }
 
 func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
