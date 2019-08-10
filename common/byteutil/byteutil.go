@@ -35,7 +35,6 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[]common.VersionSign": BytesToVersionSignArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
-	"common.VersionSign":            BytesToVersionSign,
 }
 
 func BytesToString(curByte []byte) string {
@@ -239,12 +238,4 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 
 func PrintNodeID(nodeID discover.NodeID) string {
 	return hex.EncodeToString(nodeID.Bytes()[:8])
-}
-
-func BytesToVersionSign(curByte []byte) common.VersionSign {
-	var vs common.VersionSign
-	if err := rlp.DecodeBytes(curByte, &vs); nil != err {
-		panic("BytesToVersionSign:" + err.Error())
-	}
-	return vs
 }
