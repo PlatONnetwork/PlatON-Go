@@ -1,7 +1,11 @@
 package plugin_test
 
 import (
+	"runtime"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -1106,5 +1110,42 @@ func TestNodeID(t *testing.T) {
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
 	t.Logf("nodeID is empty, %t", nodeID == discover.ZeroNodeID)
+
+}
+
+/*func TestNodeID1(t *testing.T) {
+	var nodeID discover.NodeID
+	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
+
+	t.Error("nodeID is empty", "nodeID", nodeID)
+
+	var proposalID common.Hash
+	proposalID = [32]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
+
+	t.Error("proposalID is empty", "proposalID", proposalID)
+}*/
+
+func TestHeader(t *testing.T) {
+	extra, _ := rlp.EncodeToBytes([]interface{}{
+		uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+		"platon",
+		runtime.Version(),
+		runtime.GOOS,
+	})
+
+	t.Log("EncodeToBytes", "len", len(extra))
+
+	var data []interface{}
+	rlp.DecodeBytes(extra, &data)
+
+	t.Log("data", "len", data)
+
+	decodedBytes := data[0].([]byte)
+	decoded := common.BytesToUint32(decodedBytes)
+
+	t.Log("decoded", "plain", uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch), "decoded", decoded, "decodedLen", len(decodedBytes))
+
+	b := []byte{0x0, 0x1, 0x2, 0x3, 0x4, 0x5}
+	t.Log(b[0:3])
 
 }
