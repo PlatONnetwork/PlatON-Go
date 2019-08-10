@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/go-errors/errors"
 
@@ -386,14 +387,37 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
-	if len(header.Extra) >= 4 {
-		activeVersion := plugin.GovPluginInstance().GetActiveVersion(header.Number.Uint64(), stateDB)
-		avBytes := header.Extra[0:4]
-		avInHeader := byteutil.BytesToUint32(avBytes)
-		if activeVersion == avInHeader {
-			return nil
+	if len(header.Extra) > 0 {
+		var tobeDecoded []byte
+		tobeDecoded = header.Extra
+		if len(header.Extra) <= 32 {
+			tobeDecoded = header.Extra
 		} else {
-			return errors.New("header version error")
+			tobeDecoded = header.Extra[:32]
+		}
+
+		var extraData []interface{}
+		err := rlp.DecodeBytes(tobeDecoded, &extraData)
+		if err != nil {
+			log.Error(" rlp decode header extra error", "err", err)
+			return errors.New("rlp decode header extra error")
+		}
+		//reference to makeExtraData() in gov_plugin.go
+		if len(extraData) == 4 {
+			versionBytes := extraData[0].([]byte)
+			versionInHeader := common.BytesToUint32(versionBytes)
+
+			activeVersion := plugin.GovPluginInstance().GetActiveVersion(header.Number.Uint64(), stateDB)
+			log.Debug("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", header.Number.Uint64())
+
+			if activeVersion == versionInHeader {
+				return nil
+			} else {
+				return errors.New("header version error")
+			}
+		} else {
+			log.Error("unknown header extra data", "elementCount", len(extraData))
+			return errors.New("unknown header extra data")
 		}
 	}
 	return nil
