@@ -236,8 +236,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-	//set crypto handler as a common handler for reactor
-	reactor.SetCrypto_handler(xcom.GetCryptoHandler())
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
@@ -262,6 +260,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 				reactor.Start(common.PPOS_VALIDATOR_MODE)
 				reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+				reactor.SetCrypto_handler(xcom.GetCryptoHandler())
 				handlePlugin(reactor)
 				agency = reactor
 			}
@@ -554,8 +553,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	s.protocolManager.Start(maxPeers)
 
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
-		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
+		cbftEngine.SetPrivateKey(srvr.PrivateKey)
+		core.GetReactorInstance().SetPrivateKey(srvr.PrivateKey)
 
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			// self: s.chainConfig.Cbft.NodeID
