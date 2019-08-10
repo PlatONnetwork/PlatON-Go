@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -182,17 +184,17 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			}
 			//tally the results
 			if votingProposal.GetProposalType() == gov.Text {
-				_, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, blockNumber, state)
+				_, err := govPlugin.tallyText(votingProposal.GetProposalID(), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
 			} else if votingProposal.GetProposalType() == gov.Version {
-				err = govPlugin.tallyForVersionProposal(votingProposal.(gov.VersionProposal), blockHash, blockNumber, state)
+				err = govPlugin.tallyVersion(votingProposal.(gov.VersionProposal), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
 			} else if votingProposal.GetProposalType() == gov.Param {
-				pass, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, blockNumber, state)
+				pass, err := govPlugin.tallyParam(votingProposal.GetProposalID(), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
@@ -262,7 +264,7 @@ func (govPlugin *GovPlugin) GetActiveVersion(blockNumber uint64, state xcom.Stat
 	return 0
 }
 
-func (govPlugin *GovPlugin) GetProgramVersion(state xcom.StateDB) (*gov.ProgramVersionValue, error) {
+func (govPlugin *GovPlugin) GetProgramVersion() (*gov.ProgramVersionValue, error) {
 	if nil == govPlugin {
 		log.Error("The gov instance is nil on GetProgramVersion")
 		return nil, common.NewSysError("GovPlugin instance is nil")
@@ -273,9 +275,8 @@ func (govPlugin *GovPlugin) GetProgramVersion(state xcom.StateDB) (*gov.ProgramV
 	}
 
 	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	programVersionBytes := common.Uint32ToBytes(programVersion)
 
-	sig, err := xcom.GetCryptoHandler().Sign(programVersionBytes)
+	sig, err := xcom.GetCryptoHandler().Sign(programVersion)
 	if err != nil {
 		log.Error("sign version data error")
 		return nil, err
@@ -572,7 +573,7 @@ func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.State
 }
 
 // tally a version proposal
-func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) tallyVersion(proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 	proposalID := proposal.ProposalID
 	log.Debug("call tallyForVersionProposal", "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposal.ProposalID)
 
@@ -643,7 +644,15 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 	return nil
 }
 
-func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+func (govPlugin *GovPlugin) tallyText(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+	return govPlugin.tally(proposalID, blockHash, blockNumber, state)
+}
+
+func (govPlugin *GovPlugin) tallyParam(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+	return govPlugin.tally(proposalID, blockHash, blockNumber, state)
+}
+
+func (govPlugin *GovPlugin) tally(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
 	log.Debug("call tallyBasic", "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
 
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
@@ -831,5 +840,9 @@ func makeExtraData(state xcom.StateDB) []byte {
 		runtime.Version(),
 		runtime.GOOS,
 	})
+	if uint64(len(extra)) > params.MaximumExtraDataSize {
+		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
+		extra = nil
+	}
 	return extra
 }
