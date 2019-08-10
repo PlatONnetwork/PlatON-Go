@@ -742,13 +742,14 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
-		cbft.blockTree = ctypes.NewBlockTree(block, qc)
-
+		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
+
+		cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux)
 
 		result <- nil
 	}
