@@ -44,11 +44,11 @@ func (chandler *CryptoHandler) Sign(data interface{}) ([]byte, error) {
 	return crypto.Sign(RlpHash(data).Bytes(), chandler.privateKey)
 }
 
-func (chandler *CryptoHandler) MustSign(data []byte) []byte {
+func (chandler *CryptoHandler) MustSign(data interface{}) []byte {
 	if chandler == nil || chandler.privateKey == nil {
 		panic("Private key is missed")
 	}
-	sig, err := crypto.Sign(data, chandler.privateKey)
+	sig, err := crypto.Sign(RlpHash(data).Bytes(), chandler.privateKey)
 	if err != nil {
 		panic(err)
 	}
