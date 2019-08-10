@@ -526,7 +526,7 @@ func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVie
 		if err != nil {
 			continue
 		}
-		nodeIndexes = append(nodeIndexes, uint32(index))
+		nodeIndexes = append(nodeIndexes, index)
 	}
 	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
 	return target, &protocols.GetViewChange{

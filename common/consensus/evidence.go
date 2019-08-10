@@ -1,5 +1,7 @@
 package consensus
 
+import "github.com/PlatONnetwork/PlatON-Go/common"
+
 type EvidenceType int32
 
 type Evidence interface {
@@ -9,7 +11,7 @@ type Evidence interface {
 	Epoch() uint64
 	ViewNumber() uint64
 	Hash() []byte
-	//Address() common.Address
+	Address() common.Address
 	Validate() error
 	Type() EvidenceType
 }

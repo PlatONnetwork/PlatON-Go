@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 )
 
 const (
@@ -18,14 +18,13 @@ const (
 	DuplicateViewChangeType   = 3
 )
 
-//Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicatePrepareBlockEvidence struct {
-	PrepareA *protocols.PrepareBlock
-	PrepareB *protocols.PrepareBlock
+	PrepareA *EvidencePrepare
+	PrepareB *EvidencePrepare
 }
 
 func (d DuplicatePrepareBlockEvidence) BlockNumber() uint64 {
-	return d.PrepareA.Block.NumberU64()
+	return d.PrepareA.BlockNumber
 }
 
 func (d DuplicatePrepareBlockEvidence) Epoch() uint64 {
@@ -38,16 +37,12 @@ func (d DuplicatePrepareBlockEvidence) ViewNumber() uint64 {
 
 func (d DuplicatePrepareBlockEvidence) Hash() []byte {
 	var buf []byte
-	if ac, err := d.PrepareA.CannibalizeBytes(); err == nil {
-		if bc, err := d.PrepareB.CannibalizeBytes(); err == nil {
-			buf, err = rlp.EncodeToBytes([]interface{}{
-				ac,
-				d.PrepareA.Sign(),
-				bc,
-				d.PrepareB.Sign(),
-			})
-		}
-	}
+	buf, _ = rlp.EncodeToBytes([]interface{}{
+		d.PrepareA.Cannibalize,
+		d.PrepareA.Signature.Bytes(),
+		d.PrepareB.Cannibalize,
+		d.PrepareB.Signature.Bytes(),
+	})
 	return crypto.Keccak256(buf)
 }
 
@@ -63,7 +58,7 @@ func (d DuplicatePrepareBlockEvidence) Equal(ev consensus.Evidence) bool {
 
 func (d DuplicatePrepareBlockEvidence) Error() string {
 	return fmt.Sprintf("DuplicatePrepareBlockEvidence epoch:%d, viewNumber:%d, blockNumber:%d blockHashA:%s, blockHashB:%s",
-		d.PrepareA.Epoch, d.PrepareA.ViewNumber, d.PrepareA.Block.NumberU64(), d.PrepareA.Block.Hash().String(), d.PrepareB.Block.Hash().String())
+		d.PrepareA.Epoch, d.PrepareA.ViewNumber, d.PrepareA.BlockNumber, d.PrepareA.BlockHash.String(), d.PrepareB.BlockHash.String())
 }
 
 func (d DuplicatePrepareBlockEvidence) Validate() error {
@@ -73,35 +68,37 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 	if d.PrepareA.ViewNumber != d.PrepareB.ViewNumber {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence ViewNumber is different, PrepareA:%d, PrepareB:%d", d.PrepareA.ViewNumber, d.PrepareB.ViewNumber)
 	}
-	if d.PrepareA.BlockNum() != d.PrepareB.BlockNum() {
-		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockNumber is different, PrepareA:%d, PrepareB:%d", d.PrepareA.BlockNum(), d.PrepareB.BlockNum())
+	if d.PrepareA.BlockNumber != d.PrepareB.BlockNumber {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockNumber is different, PrepareA:%d, PrepareB:%d", d.PrepareA.BlockNumber, d.PrepareB.BlockNumber)
 	}
-	if d.PrepareA.BHash() == d.PrepareB.BHash() {
-		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockHash is equal, PrepareA:%s, PrepareB:%s", d.PrepareA.BHash(), d.PrepareB.BHash())
+	validateNodeA, validateNodeB := d.PrepareA.ValidateNode, d.PrepareB.ValidateNode
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence Validator do not match, PrepareA:%s, PrepareB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
-
-	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
-		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.PrepareA.BlockHash == d.PrepareB.BlockHash {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockHash is equal, PrepareA:%s, PrepareB:%s", d.PrepareA.BlockHash, d.PrepareB.BlockHash)
 	}
-
-	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	// Verify consensus msg signature
+	if err := validateNodeA.Verify(d.PrepareA.Cannibalize, d.PrepareA.Signature.Bytes()); err != nil {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence prepareA verify failed")
 	}
-	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	if err := validateNodeB.Verify(d.PrepareB.Cannibalize, d.PrepareB.Signature.Bytes()); err != nil {
+		return fmt.Errorf("DuplicatePrepareBlockEvidence prepareB verify failed")
 	}
 	return nil
+}
+
+func (d DuplicatePrepareBlockEvidence) Address() common.Address {
+	return d.PrepareA.ValidateNode.Address
 }
 
 func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareBlockType
 }
 
-//Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicatePrepareVoteEvidence struct {
-	VoteA *protocols.PrepareVote
-	VoteB *protocols.PrepareVote
+	VoteA *EvidenceVote
+	VoteB *EvidenceVote
 }
 
 func (d DuplicatePrepareVoteEvidence) BlockNumber() uint64 {
@@ -118,16 +115,12 @@ func (d DuplicatePrepareVoteEvidence) ViewNumber() uint64 {
 
 func (d DuplicatePrepareVoteEvidence) Hash() []byte {
 	var buf []byte
-	if ac, err := d.VoteA.CannibalizeBytes(); err == nil {
-		if bc, err := d.VoteB.CannibalizeBytes(); err == nil {
-			buf, err = rlp.EncodeToBytes([]interface{}{
-				ac,
-				d.VoteA.Sign(),
-				bc,
-				d.VoteB.Sign(),
-			})
-		}
-	}
+	buf, _ = rlp.EncodeToBytes([]interface{}{
+		d.VoteA.Cannibalize,
+		d.VoteA.Signature.Bytes(),
+		d.VoteB.Cannibalize,
+		d.VoteB.Signature.Bytes(),
+	})
 	return crypto.Keccak256(buf)
 }
 
@@ -147,35 +140,43 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 }
 
 func (d DuplicatePrepareVoteEvidence) Validate() error {
-	if d.VoteA.Number != d.VoteB.Number {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNum is different, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.VoteA.Epoch != d.VoteB.Epoch {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Epoch is different, VoteA:%d, VoteB:%d", d.VoteA.Epoch, d.VoteB.Epoch)
 	}
-	if d.VoteA.Hash == d.VoteB.Hash {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.VoteA.ViewNumber != d.VoteB.ViewNumber {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence ViewNumber is different, VoteA:%d, VoteB:%d", d.VoteA.ViewNumber, d.VoteB.ViewNumber)
 	}
-
-	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
-		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.VoteA.BlockNumber != d.VoteB.BlockNumber {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNumber is different, VoteA:%d, VoteB:%d", d.VoteA.BlockNumber, d.VoteB.BlockNumber)
 	}
-
-	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	validateNodeA, validateNodeB := d.VoteA.ValidateNode, d.VoteB.ValidateNode
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
-	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	if d.VoteA.BlockHash == d.VoteB.BlockHash {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.BlockHash, d.VoteB.BlockHash)
+	}
+	// Verify consensus msg signature
+	if err := validateNodeA.Verify(d.VoteA.Cannibalize, d.VoteA.Signature.Bytes()); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence voteA verify failed")
+	}
+	if err := validateNodeB.Verify(d.VoteB.Cannibalize, d.VoteB.Signature.Bytes()); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence voteB verify failed")
 	}
 	return nil
+}
+
+func (d DuplicatePrepareVoteEvidence) Address() common.Address {
+	return d.VoteA.ValidateNode.Address
 }
 
 func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareVoteType
 }
 
-//Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicateViewChangeEvidence struct {
-	ViewA *protocols.ViewChange
-	ViewB *protocols.ViewChange
+	ViewA *EvidenceView
+	ViewB *EvidenceView
 }
 
 func (d DuplicateViewChangeEvidence) BlockNumber() uint64 {
@@ -192,16 +193,12 @@ func (d DuplicateViewChangeEvidence) ViewNumber() uint64 {
 
 func (d DuplicateViewChangeEvidence) Hash() []byte {
 	var buf []byte
-	if ac, err := d.ViewA.CannibalizeBytes(); err == nil {
-		if bc, err := d.ViewB.CannibalizeBytes(); err == nil {
-			buf, err = rlp.EncodeToBytes([]interface{}{
-				ac,
-				d.ViewA.Sign(),
-				bc,
-				d.ViewB.Sign(),
-			})
-		}
-	}
+	buf, _ = rlp.EncodeToBytes([]interface{}{
+		d.ViewA.Cannibalize,
+		d.ViewA.Signature.Bytes(),
+		d.ViewB.Cannibalize,
+		d.ViewB.Signature.Bytes(),
+	})
 	return crypto.Keccak256(buf)
 }
 
@@ -221,25 +218,34 @@ func (d DuplicateViewChangeEvidence) Error() string {
 }
 
 func (d DuplicateViewChangeEvidence) Validate() error {
-	if d.VoteA.Number != d.VoteB.Number {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNum is different, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.ViewA.Epoch != d.ViewB.Epoch {
+		return fmt.Errorf("DuplicateViewChangeEvidence Epoch is different, ViewA:%d, ViewB:%d", d.ViewA.Epoch, d.ViewB.Epoch)
 	}
-	if d.VoteA.Hash == d.VoteB.Hash {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.ViewA.ViewNumber != d.ViewB.ViewNumber {
+		return fmt.Errorf("DuplicateViewChangeEvidence ViewNumber is different, ViewA:%d, ViewB:%d", d.ViewA.ViewNumber, d.ViewB.ViewNumber)
 	}
-
-	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
-		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	if d.ViewA.BlockNumber != d.ViewB.BlockNumber {
+		return fmt.Errorf("DuplicateViewChangeEvidence BlockNumber is different, ViewA:%d, ViewB:%d", d.ViewA.BlockNumber, d.ViewB.BlockNumber)
 	}
-
-	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	validateNodeA, validateNodeB := d.ViewA.ValidateNode, d.ViewB.ValidateNode
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address {
+		return fmt.Errorf("DuplicateViewChangeEvidence Validator do not match, ViewA:%s, ViewB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
-	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	if d.ViewA.BlockHash == d.ViewB.BlockHash {
+		return fmt.Errorf("DuplicateViewChangeEvidence BlockHash is equal, ViewA:%s, ViewB:%s", d.ViewA.BlockHash, d.ViewB.BlockHash)
+	}
+	// Verify consensus msg signature
+	if err := validateNodeA.Verify(d.ViewA.Cannibalize, d.ViewA.Signature.Bytes()); err != nil {
+		return fmt.Errorf("DuplicateViewChangeEvidence voteA verify failed")
+	}
+	if err := validateNodeB.Verify(d.ViewB.Cannibalize, d.ViewB.Signature.Bytes()); err != nil {
+		return fmt.Errorf("DuplicateViewChangeEvidence ViewB verify failed")
 	}
 	return nil
+}
+
+func (d DuplicateViewChangeEvidence) Address() common.Address {
+	return d.ViewA.ValidateNode.Address
 }
 
 func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {

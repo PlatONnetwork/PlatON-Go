@@ -38,7 +38,7 @@ func newValidators(nodes []params.CbftNode, validBlockNumber uint64) *cbfttypes.
 		blsPubKey := node.BlsPubKey
 
 		vds.Nodes[node.Node.ID] = &cbfttypes.ValidateNode{
-			Index:     i,
+			Index:     uint32(i),
 			Address:   crypto.PubkeyToAddress(*pubkey),
 			PubKey:    pubkey,
 			NodeID:    node.Node.ID,
@@ -179,7 +179,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 		pubkey, _ := node.NodeID.Pubkey()
 		blsPubKey := node.BlsPubKey
 		validators.Nodes[node.NodeID] = &cbfttypes.ValidateNode{
-			Index:     int(node.Index),
+			Index:     uint32(node.Index),
 			Address:   node.Address,
 			PubKey:    pubkey,
 			NodeID:    node.NodeID,
@@ -378,14 +378,14 @@ func (vp *ValidatorPool) getNodeIDByIndex(blockNumber uint64, index int) discove
 }
 
 // GetIndexByNodeID get the index by node id.
-func (vp *ValidatorPool) GetIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (int, error) {
+func (vp *ValidatorPool) GetIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (uint32, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
 	return vp.getIndexByNodeID(blockNumber, nodeID)
 }
 
-func (vp *ValidatorPool) getIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (int, error) {
+func (vp *ValidatorPool) getIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (uint32, error) {
 	if blockNumber <= vp.switchPoint {
 		return vp.prevValidators.Index(nodeID)
 	}

@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 )
 
 const (
@@ -14,9 +12,9 @@ const (
 	IdentityLength = 20
 )
 
-type NumberOrderPrepareBlock []*protocols.PrepareBlock
-type NumberOrderPrepareVote []*protocols.PrepareVote
-type NumberOrderViewChange []*protocols.ViewChange
+type NumberOrderPrepareBlock []*EvidencePrepare
+type NumberOrderPrepareVote []*EvidenceVote
+type NumberOrderViewChange []*EvidenceView
 
 type Identity string
 
@@ -27,7 +25,7 @@ type ViewChangeEvidence map[Identity]NumberOrderViewChange
 // Bytes gets the string representation of the underlying identity.
 func (id Identity) Bytes() []byte { return []byte(id) }
 
-func (e PrepareBlockEvidence) Add(pb *protocols.PrepareBlock, id Identity) error {
+func (e PrepareBlockEvidence) Add(pb *EvidencePrepare, id Identity) error {
 	var l NumberOrderPrepareBlock
 
 	if l = e[id]; l == nil {
@@ -58,12 +56,12 @@ func (pbe PrepareBlockEvidence) Size() int {
 	return size
 }
 
-func (opb *NumberOrderPrepareBlock) Add(pb *protocols.PrepareBlock) error {
-	if ev := opb.find(pb.Epoch, pb.ViewNumber, pb.Block.NumberU64()); ev != nil {
-		if ev.Block.Hash() != pb.Block.Hash() {
+func (opb *NumberOrderPrepareBlock) Add(pb *EvidencePrepare) error {
+	if ev := opb.find(pb.Epoch, pb.ViewNumber, pb.BlockNumber); ev != nil {
+		if ev.BlockHash != pb.BlockHash {
 			a, b := pb, ev
-			ha := new(big.Int).SetBytes(pb.Block.Hash().Bytes())
-			hb := new(big.Int).SetBytes(ev.Block.Hash().Bytes())
+			ha := new(big.Int).SetBytes(pb.BlockHash.Bytes())
+			hb := new(big.Int).SetBytes(ev.BlockHash.Bytes())
 
 			if ha.Cmp(hb) > 0 {
 				a, b = ev, pb
@@ -80,31 +78,14 @@ func (opb *NumberOrderPrepareBlock) Add(pb *protocols.PrepareBlock) error {
 	return nil
 }
 
-func (opb NumberOrderPrepareBlock) find(epoch uint64, viewNumber uint64, blockNumber uint64) *protocols.PrepareBlock {
+func (opb NumberOrderPrepareBlock) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidencePrepare {
 	for _, v := range opb {
-		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.Block.NumberU64() == blockNumber {
+		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
 			return v
 		}
 	}
 	return nil
 }
-
-//func (opb *NumberOrderPrepareBlock) Remove(viewNumber uint64) {
-//	i := 0
-//
-//	for i < len(*opb) {
-//		if (*opb)[i].ViewNumber > viewNumber {
-//			break
-//		}
-//		(*opb)[i] = nil
-//		i++
-//	}
-//	if i == len(*opb) {
-//		*opb = (*opb)[:0]
-//	} else {
-//		*opb = append((*opb)[:0], (*opb)[i:]...)
-//	}
-//}
 
 func (opb NumberOrderPrepareBlock) Len() int {
 	return len(opb)
@@ -118,7 +99,7 @@ func (opb NumberOrderPrepareBlock) Swap(i, j int) {
 	opb[i], opb[j] = opb[j], opb[i]
 }
 
-func (e PrepareVoteEvidence) Add(pv *protocols.PrepareVote, id Identity) error {
+func (e PrepareVoteEvidence) Add(pv *EvidenceVote, id Identity) error {
 	var l NumberOrderPrepareVote
 
 	if l = e[id]; l == nil {
@@ -149,24 +130,7 @@ func (pve PrepareVoteEvidence) Size() int {
 	return size
 }
 
-//func (opb *NumberOrderPrepareVote) Remove(viewNumber uint64) {
-//	i := 0
-//
-//	for i < len(*opb) {
-//		if (*opb)[i].ViewNumber > viewNumber {
-//			break
-//		}
-//		(*opb)[i] = nil
-//		i++
-//	}
-//	if i == len(*opb) {
-//		*opb = (*opb)[:0]
-//	} else {
-//		*opb = append((*opb)[:0], (*opb)[i:]...)
-//	}
-//}
-
-func (opv *NumberOrderPrepareVote) Add(pv *protocols.PrepareVote) error {
+func (opv *NumberOrderPrepareVote) Add(pv *EvidenceVote) error {
 	if ev := opv.find(pv.Epoch, pv.ViewNumber, pv.BlockNumber); ev != nil {
 		if ev.BlockHash != pv.BlockHash {
 			a, b := pv, ev
@@ -188,7 +152,7 @@ func (opv *NumberOrderPrepareVote) Add(pv *protocols.PrepareVote) error {
 	return nil
 }
 
-func (opv NumberOrderPrepareVote) find(epoch uint64, viewNumber uint64, blockNumber uint64) *protocols.PrepareVote {
+func (opv NumberOrderPrepareVote) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceVote {
 	for _, v := range opv {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
 			return v
@@ -209,7 +173,7 @@ func (opv NumberOrderPrepareVote) Swap(i, j int) {
 	opv[i], opv[j] = opv[j], opv[i]
 }
 
-func (e ViewChangeEvidence) Add(vc *protocols.ViewChange, id Identity) error {
+func (e ViewChangeEvidence) Add(vc *EvidenceView, id Identity) error {
 	var l NumberOrderViewChange
 
 	if l = e[id]; l == nil {
@@ -240,24 +204,7 @@ func (vce ViewChangeEvidence) Size() int {
 	return size
 }
 
-//func (opb *NumberOrderViewChange) Remove(viewNumber uint64) {
-//	i := 0
-//
-//	for i < len(*opb) {
-//		if (*opb)[i].ViewNumber > viewNumber {
-//			break
-//		}
-//		(*opb)[i] = nil
-//		i++
-//	}
-//	if i == len(*opb) {
-//		*opb = (*opb)[:0]
-//	} else {
-//		*opb = append((*opb)[:0], (*opb)[i:]...)
-//	}
-//}
-
-func (ovc *NumberOrderViewChange) Add(vc *protocols.ViewChange) error {
+func (ovc *NumberOrderViewChange) Add(vc *EvidenceView) error {
 	if ev := ovc.find(vc.Epoch, vc.ViewNumber, vc.BlockNumber); ev != nil {
 		if ev.BlockHash != vc.BlockHash {
 			a, b := vc, ev
@@ -279,7 +226,7 @@ func (ovc *NumberOrderViewChange) Add(vc *protocols.ViewChange) error {
 	return nil
 }
 
-func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64, blockNumber uint64) *protocols.ViewChange {
+func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceView {
 	for _, v := range ovc {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
 			return v
