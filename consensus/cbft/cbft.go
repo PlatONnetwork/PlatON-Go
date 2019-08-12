@@ -241,7 +241,7 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 
 	validators, err := cbft.agency.GetValidator(currentBlock.NumberU64())
 	if err != nil {
-		cbft.log.Error("Get validator fail", "error", err)
+		cbft.log.Error("Get validator fail", "blockNumber", currentBlock.NumberU64(), "blockHash", currentBlock.Hash().Hex(), "error", err)
 		return err
 	}
 	cbft.validators.Store(validators)
@@ -1181,7 +1181,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	err := cbft.verifyValidatorSign(request.Block.NumberU64(), request.ProposalIndex, request.ProposalAddr, request, request.Signature[:])
 	if err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
-		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash())
+		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash(), "err", err)
 		return err
 	}
 
@@ -1361,7 +1361,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			blockConfirmedTimer.UpdateSince(time.Unix(int64(ext.timestamp), 0))
 			cbft.flushReadyBlock()
 			if err := cbft.updateValidator(); err != nil {
-				cbft.log.Warn("updateValidator fail:", err)
+				cbft.log.Warn("updateValidator fail:", "err", err, "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			}
 		}
 		if !hadSend {
@@ -1412,7 +1412,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			if bs.block.isConfirmed {
 				if err := cbft.updateValidator(); err != nil {
-					cbft.log.Warn("updateValidator fail:", err)
+					cbft.log.Warn("updateValidator fail:", "err", err, "block", bs.block.String())
 				}
 			}
 			cbft.log.Debug("Execute block success", "block", bs.block.String())
@@ -2328,7 +2328,7 @@ func (cbft *Cbft) updateValidator() error {
 
 	newVds, err := cbft.agency.GetValidator(hc.number + 1)
 	if err != nil {
-		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
+		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash(), "err", err)
 		return errors.New("Get validators fail!")
 	}
 	if newVds.Len() <= 0 {
