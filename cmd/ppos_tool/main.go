@@ -191,7 +191,7 @@ type decDataConfig struct {
 	P2000 Ppos_2000
 	P2001 Ppos_2001
 	P2002 Ppos_2002
-	P2003 []Ppos_2003
+	P2003 Ppos_2003
 	P2004 Ppos_2004
 	P2100 Ppos_2100
 	P2101 Ppos_2101
@@ -384,30 +384,14 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		}
 	case 2003:
 		{
-			for i := 0; i < len(cfg.P2003); i++ {
-				verifier, _ := rlp.EncodeToBytes(cfg.P2003[i].Verifier)
-				proposalID, _ := rlp.EncodeToBytes(cfg.P2003[i].ProposalID.Bytes())
-				op, _ := rlp.EncodeToBytes(cfg.P2003[i].Option)
-				programVersion, _ := rlp.EncodeToBytes(cfg.P2003[i].ProgramVersion)
-				params = append(params, verifier)
-				params = append(params, proposalID)
-				params = append(params, op)
-				params = append(params, programVersion)
-
-				buf := new(bytes.Buffer)
-				err := rlp.Encode(buf, params)
-				if err != nil {
-					panic(fmt.Errorf("%d encode rlp data fail: %v", funcType, err))
-				} else {
-					rlpData = hexutil.Encode(buf.Bytes())
-					fmt.Printf("RLP= %s\n", rlpData)
-				}
-
-				params = make([][]byte, 0)
-				fnType, _ := rlp.EncodeToBytes(funcType)
-				params = append(params, fnType)
-			}
-			return ""
+			verifier, _ := rlp.EncodeToBytes(cfg.P2003.Verifier)
+			proposalID, _ := rlp.EncodeToBytes(cfg.P2003.ProposalID.Bytes())
+			op, _ := rlp.EncodeToBytes(cfg.P2003.Option)
+			programVersion, _ := rlp.EncodeToBytes(cfg.P2003.ProgramVersion)
+			params = append(params, verifier)
+			params = append(params, proposalID)
+			params = append(params, op)
+			params = append(params, programVersion)
 		}
 
 	case 2004:
