@@ -139,6 +139,7 @@ func (cbft *Cbft) NodeId() discover.NodeID {
 }
 
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+	cbft.log.Info("~ Start cbft consensus")
 	cbft.blockChain = chain
 	cbft.txPool = txPool
 	cbft.blockCacheWriter = blockCacheWriter
@@ -159,6 +160,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 		_, qc, err = ctypes.DecodeExtra(block.ExtraData())
 
 		if err != nil {
+			cbft.log.Error("It's not genesis", "err", err)
 			return errors.Wrap(err, fmt.Sprintf("start cbft failed"))
 		}
 	}
@@ -192,6 +194,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	// load consensus state
 	if err := cbft.LoadWal(); err != nil {
+		cbft.log.Error("Load wal failed", "err", err)
 		return err
 	}
 	utils.SetFalse(&cbft.loading)
@@ -739,6 +742,7 @@ func (cbft *Cbft) CurrentBlock() *types.Block {
 }
 
 func (cbft *Cbft) checkStart(exe func()) {
+	cbft.log.Debug("Cbft status", "start", cbft.start)
 	if utils.True(&cbft.start) {
 		exe()
 	}
