@@ -37,12 +37,15 @@ func (d DuplicatePrepareBlockEvidence) ViewNumber() uint64 {
 
 func (d DuplicatePrepareBlockEvidence) Hash() []byte {
 	var buf []byte
-	buf, _ = rlp.EncodeToBytes([]interface{}{
+	buf, err := rlp.EncodeToBytes([]interface{}{
 		d.PrepareA.Cannibalize,
 		d.PrepareA.Signature.Bytes(),
 		d.PrepareB.Cannibalize,
 		d.PrepareB.Signature.Bytes(),
 	})
+	if err != nil {
+		return nil
+	}
 	return crypto.Keccak256(buf)
 }
 
@@ -115,12 +118,15 @@ func (d DuplicatePrepareVoteEvidence) ViewNumber() uint64 {
 
 func (d DuplicatePrepareVoteEvidence) Hash() []byte {
 	var buf []byte
-	buf, _ = rlp.EncodeToBytes([]interface{}{
+	buf, err := rlp.EncodeToBytes([]interface{}{
 		d.VoteA.Cannibalize,
 		d.VoteA.Signature.Bytes(),
 		d.VoteB.Cannibalize,
 		d.VoteB.Signature.Bytes(),
 	})
+	if err != nil {
+		return nil
+	}
 	return crypto.Keccak256(buf)
 }
 
@@ -193,12 +199,15 @@ func (d DuplicateViewChangeEvidence) ViewNumber() uint64 {
 
 func (d DuplicateViewChangeEvidence) Hash() []byte {
 	var buf []byte
-	buf, _ = rlp.EncodeToBytes([]interface{}{
+	buf, err := rlp.EncodeToBytes([]interface{}{
 		d.ViewA.Cannibalize,
 		d.ViewA.Signature.Bytes(),
 		d.ViewB.Cannibalize,
 		d.ViewB.Signature.Bytes(),
 	})
+	if err != nil {
+		return nil
+	}
 	return crypto.Keccak256(buf)
 }
 
