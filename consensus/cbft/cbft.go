@@ -399,6 +399,8 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 
 		case *protocols.ViewChangeQuorumCert:
 			cbft.OnViewChangeQuorumCert(id, msg)
+		case *protocols.ViewChanges:
+			cbft.OnViewChanges(id, msg)
 
 		}
 	}
@@ -1044,11 +1046,35 @@ func (cbft *Cbft) isStart() bool {
 }
 
 func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
-	number := cbft.state.HighestQCBlock().NumberU64()
-	numValidators := cbft.validatorPool.Len(number)
-	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, _ := cbft.validatorPool.GetValidatorByIndex(number, uint32(currentProposer))
+	block := cbft.state.HighestQCBlock()
+	_, qc := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+
+	var validator *cbfttypes.ValidateNode
+	if qc == nil || cbft.state.Epoch() == qc.Epoch {
+		length := cbft.validatorPool.Len(block.NumberU64())
+		currentProposer := cbft.state.ViewNumber() % uint64(length)
+		validator, _ = cbft.validatorPool.GetValidatorByIndex(block.NumberU64(), uint32(currentProposer))
+	} else {
+		length := cbft.validatorPool.Len(block.NumberU64() + 1)
+		currentProposer := cbft.state.ViewNumber() % uint64(length)
+		validator, _ = cbft.validatorPool.GetValidatorByIndex(block.NumberU64()+1, uint32(currentProposer))
+	}
+
 	return validator
+}
+
+func (cbft *Cbft) currentValidatorLen() int {
+	block := cbft.state.HighestQCBlock()
+	_, qc := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+
+	length := 0
+	if qc == nil || cbft.state.Epoch() == qc.Epoch {
+		length = cbft.validatorPool.Len(block.NumberU64())
+	} else {
+		length = cbft.validatorPool.Len(block.NumberU64() + 1)
+	}
+
+	return length
 }
 
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {

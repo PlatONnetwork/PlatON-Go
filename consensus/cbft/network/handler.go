@@ -529,6 +529,12 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+	case msg.Code == protocols.ViewChangesMsg:
+		var request protocols.ViewChanges
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
@@ -561,12 +567,6 @@ func (h *EngineManager) synchronize() {
 		})
 	}
 
-	// Update if it is the same state within 5 seconds
-	var (
-		lastEpoch      uint64 = 0
-		lastViewNumber uint64 = 0
-	)
-
 	for {
 		select {
 		case <-blockNumberTimer.C:
@@ -582,20 +582,14 @@ func (h *EngineManager) synchronize() {
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
 			// the GetViewChange message is sent from the missing node.
-			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
+			msg, err := h.engine.MissingViewChangeNodes()
 			if err != nil {
-				log.Error("Get consensus nodes failed", "err", err)
+				log.Debug("Request missing viewchange failed", "err", err)
 				break
 			}
-			// Initi.al situation.
-			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
-				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
-				// Only broadcasts without forwarding.
-				h.Broadcast(msg)
-			} else {
-				log.Debug("Waiting for the next round")
-			}
-			lastEpoch, lastViewNumber = msg.Epoch, msg.ViewNumber
+			log.Debug("Had new viewchange sync request", "msg", msg.String())
+			// Only broadcasts without forwarding.
+			h.PartBroadcast(msg)
 
 		case <-h.quitSend:
 			log.Error("synchronize quit")
