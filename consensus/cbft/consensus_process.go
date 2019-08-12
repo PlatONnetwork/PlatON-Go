@@ -89,6 +89,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err erro
 	cbft.insertPrepareQC(msg.ParentQC)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
+	cbft.log.Debug("Add prepare vote", "blockIndex", msg.BlockIndex, "number", msg.BlockNumber, "hash", msg.BlockHash, "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
 
 	cbft.findQCBlock()
 	return nil
