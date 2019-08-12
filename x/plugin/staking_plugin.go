@@ -200,6 +200,7 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 	return sk.db.GetCandidateStoreByIrr(addr)
 }
 
+
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
 
@@ -429,6 +430,7 @@ func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.I
 
 func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, can *staking.Candidate) error {
+
 
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -1087,7 +1089,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 			} else if remainTmp.Cmp(restrictingPlanTmp) < 0 {
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
-
 				err := rt.ReturnLockFunds(delAddr, remainTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
@@ -1147,6 +1148,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return err
 		}
 		remain, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
+
 		/**
 		handle delegate on Effective period
 		*/
@@ -1475,7 +1477,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		refundReleaseFn := func(balance *big.Int) *big.Int {
 			if balance.Cmp(common.Big0) > 0 {
-
 				state.AddBalance(delAddr, balance)
 				state.SubBalance(vm.StakingContractAddr, balance)
 				return common.Big0
@@ -1567,7 +1568,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					}
 					return common.Big0, new(big.Int).Sub(remain, balance), nil
 				} else {
-
 					err := rt.ReturnLockFunds(delAddr, remain, state)
 					if nil != err {
 						log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
@@ -1847,7 +1847,6 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 	queue := make(staking.CandidateQueue, len(verifierList.Arr))
 
 	for i, v := range verifierList.Arr {
-
 		var can *staking.Candidate
 		if !isCommit {
 			c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
@@ -2063,7 +2062,6 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uin
 func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
 	var can *staking.Candidate
-
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		return false, err
@@ -2092,7 +2090,6 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr common.Address) (staking.DelRelatedQueue, error) {
 
 	//var iter iterator.Iterator
-
 	iter := sk.db.IteratorDelegateByBlockHashWithAddr(blockHash, addr, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
@@ -2396,7 +2393,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			contract_balance, "slash amount", amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
-
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -2473,7 +2469,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			balanceTmp = common.Big0
 
 		} else {
-
 			state.SubBalance(vm.StakingContractAddr, remain)
 
 			if staking.Is_DuplicateSign(uint32(slashType)) {
@@ -2974,7 +2969,6 @@ label:
 }
 
 func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
-
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
@@ -2982,7 +2976,7 @@ func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
 		pubKey, _ := v.NodeId.Pubkey()
 
 		vn := &cbfttypes.ValidateNode{
-			Index:   i,
+			Index:   uint32(i),
 			Address: v.NodeAddress,
 			PubKey:  pubKey,
 		}

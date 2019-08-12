@@ -5365,6 +5365,12 @@ var methods = function () {
         outputFormatter: utils.toDecimal
     });
 
+    var getPrepareQC = new Method({
+      name: 'getPrepareQC',
+      call: 'platon_getPrepareQC',
+      params: 1,
+    });
+
     var consensusStatus = new Method({
       name: 'consensusStatus',
       call: 'debug_consensusStatus',
@@ -5387,7 +5393,8 @@ var methods = function () {
         signTransaction,
         sendTransaction,
         sign,
-        consensusStatus
+        consensusStatus,
+        getPrepareQC
     ];
 };
 

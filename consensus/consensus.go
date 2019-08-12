@@ -20,8 +20,6 @@ package consensus
 import (
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -63,6 +61,7 @@ type TxPoolReset interface {
 type BlockCacheWriter interface {
 	Execute(block *types.Block, parent *types.Block) error
 	ClearCache(block *types.Block)
+	WriteBlock(block *types.Block) error
 }
 
 // Engine is an algorithm agnostic consensus engine.
@@ -172,8 +171,6 @@ type Bft interface {
 	IsSignedBySelf(sealHash common.Hash, header *types.Header) bool
 
 	Evidences() string
-
-	UnmarshalEvidence(data []byte) (consensus.Evidences, error)
 
 	TracingSwitch(flag int8)
 

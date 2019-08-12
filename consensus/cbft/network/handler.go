@@ -215,7 +215,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 		}
 		return err
 	default:
-		log.Warn("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Trace("Unmatched message type, need not to be forwarded", "type", reflect.TypeOf(msg), "msgHash", msgHash.TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
 	return nil
 }
@@ -306,13 +306,17 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		// If blockNumber in the local is better than the remote
 		// then determine if there is a fork.
 		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
-			// todo: to be added
+			err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
 		}
 		if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
-			// todo: to be added
+			err = h.engine.BlockExists(remoteStatus.LockBn.Uint64(), remoteStatus.LockBlock)
 		}
 		if cbftStatus.CmtBn.Uint64() > remoteStatus.CmtBn.Uint64() {
-			// todo: to be added
+			err = h.engine.BlockExists(remoteStatus.CmtBn.Uint64(), remoteStatus.CmtBlock)
+		}
+		if err != nil {
+			p.Log().Error("CBFT handshake, verify block failed", "err", err)
+			return err
 		}
 		p.Log().Debug("CBFT consensus handshake success", "msgHash", cbftStatus.MsgHash().TerminalString())
 		return nil
@@ -563,12 +567,11 @@ func (h *EngineManager) synchronize() {
 		case <-blockNumberTimer.C:
 			// Sent at random.
 			syncQCBnFunc()
-			var resetTime time.Duration
 			rd := rand.Intn(10)
 			if rd == 0 || rd < QCBnMonitorInterval/2 {
 				rd = (rd + 1) * 2
 			}
-			resetTime = time.Duration(rd) * time.Second
+			resetTime := time.Duration(rd) * time.Second
 			blockNumberTimer.Reset(resetTime)
 
 		case <-viewTicker.C:

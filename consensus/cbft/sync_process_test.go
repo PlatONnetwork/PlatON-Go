@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,19 +63,17 @@ func TestFetch(t *testing.T) {
 				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
 				assert.NotNil(t, pb)
 				execute := make(chan uint32, 1)
-				timer := time.NewTimer(500 * time.Millisecond)
 				nodes[j].engine.executeFinishHook = func(index uint32) {
 					execute <- index
 				}
 				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
 				select {
-				case <-timer.C:
-					t.Fatal("execute block timeout")
+				//case <-timer.C:
+				//	t.Fatal("execute block timeout")
 				case <-execute:
 
 				}
-				time.Sleep(50 * time.Millisecond)
 				index, finish := nodes[j].engine.state.Executing()
 				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("i:%d,index:%d,finish:%v", i, index, finish))
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
@@ -98,7 +97,19 @@ func TestFetch(t *testing.T) {
 		}
 	}
 	nodes[1].engine.fetchBlock("id", fetchBlock.Hash(), fetchBlock.NumberU64())
-	nodes[1].engine.syncMsgCh <- &types2.MsgInfo{PeerID: "id", Msg: qcBlocks}
+	timer := time.NewTimer(20 * time.Millisecond)
+
+	for {
+		select {
+		case <-timer.C:
+			if nodes[1].engine.fetcher.Len() == 1 {
+				goto SYNC
+			}
+			timer.Reset(20 * time.Millisecond)
+		}
+	}
+SYNC:
+	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
 	case <-time.NewTimer(10000 * time.Millisecond).C:
 		t.Fatal("fetch timeout")
@@ -512,5 +523,24 @@ func TestCbft_OnPong(t *testing.T) {
 	for i := 0; i < len(testCases); i++ {
 		value := running(testCases[i].value)
 		assert.Equal(t, testCases[i].expect*1000000, int64(value))
+	}
+}
+
+func TestCbft_BlockExists(t *testing.T) {
+	engine, _ := buildSingleCbft()
+	testCases := []struct {
+		number uint64
+		hash   common.Hash
+		err    string
+	}{
+		{0, common.HexToHash("0x62bc91fb3c482a1bbadc96d01ae4aaf60b182460f7a90bfe4510730d525fdf4f"), ""},
+		{0, common.BytesToHash([]byte("invalid hash")), "not found block by hash"},
+		{0, common.Hash{}, "invalid blockHash"},
+	}
+	for _, v := range testCases {
+		err := engine.BlockExists(v.number, v.hash)
+		if err != nil {
+			assert.True(t, strings.Contains(err.Error(), v.err))
+		}
 	}
 }

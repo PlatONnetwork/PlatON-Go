@@ -141,7 +141,7 @@ func (v ViewChangeQC) EqualAll(epoch uint64, viewNumber uint64) error {
 }
 
 type ViewChangeQC struct {
-	QCs []*ViewChangeQuorumCert
+	QCs []*ViewChangeQuorumCert `json:"qcs"`
 }
 
 func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
