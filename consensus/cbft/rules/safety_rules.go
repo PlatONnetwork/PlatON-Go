@@ -217,7 +217,7 @@ func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert
 	if b := r.blockTree.FindBlockByHash(block.ParentHash()); b == nil {
 		return newError(fmt.Sprintf("not find parent qc block"))
 	}
-	if r.viewState.Epoch() <= qc.Epoch && r.viewState.ViewNumber() < qc.ViewNumber {
+	if (r.viewState.Epoch() == qc.Epoch && r.viewState.ViewNumber() < qc.ViewNumber) || (r.viewState.Epoch()+1 == qc.Epoch) {
 		return newViewError("need change view")
 	}
 	return nil
