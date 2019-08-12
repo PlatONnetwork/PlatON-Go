@@ -36,9 +36,10 @@ var (
 
 var (
 	AccountVonNotEnough        = common.NewBizError("The von of account is not enough")
+	BalanceOperationTypeErr    = common.NewBizError("Balance OperationType is wrong")
 	DelegateVonNotEnough       = common.NewBizError("The von of delegate is not enough")
-	WithdrewDelegateVonCalcErr = common.NewBizError("withdrew delegate von calculate err")
-	ParamsErr                  = common.NewBizError("the fn params err")
+	WithdrewDelegateVonCalcErr = common.NewBizError("Withdrew delegate von calculate err")
+	ParamsErr                  = common.NewBizError("The fn params err")
 	BlockNumberDisordered      = common.NewBizError("The blockNumber is disordered")
 	VonAmountNotRight          = common.NewBizError("The amount of von is not right")
 	CandidateNotExist          = common.NewBizError("The candidate is not exist")
@@ -215,8 +216,8 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		origin := state.GetBalance(can.StakingAddress)
 		if origin.Cmp(amount) < 0 {
 			log.Error("Failed to CreateCandidate on stakingPlugin: the account free von is not Enough",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(),
-				"originVon", origin, "stakingVon", amount)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakeAddr", can.StakingAddress.Hex(), "originVon", origin, "stakingVon", amount)
 			return AccountVonNotEnough
 		}
 		state.SubBalance(can.StakingAddress, amount)
@@ -228,11 +229,14 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
 			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(),
-				"stakingVon", amount, "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakeAddr", can.StakingAddress.Hex(), "stakingVon", amount, "err", err)
 			return err
 		}
 		can.RestrictingPlanHes = amount
+	} else {
+		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
 	can.StakingEpoch = uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
@@ -247,7 +251,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate info is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -261,7 +265,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate power is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -276,7 +280,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	// add the account staking Reference Count
 	if err := sk.db.AddAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Staking Account Reference Count (add) is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "canAddr", addr.String(),
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "NodeID", can.NodeId.String(),
 			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
@@ -293,17 +297,29 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	addr common.Address, typ uint16) error {
 
-	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String())
-
-	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	log.Debug("Call RollBackStaking", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeAddr", addr.String())
 
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err {
 		return err
+	}
+
+	amount := common.Big0
+	if typ == FreeOrigin {
+		amount = can.ReleasedHes
+	} else if typ == RestrictingPlanOrigin {
+		amount = can.RestrictingPlanHes
+	} else {
+		// this is never be
+		return nil
+	}
+
+	contract_balance := state.GetBalance(vm.StakingContractAddr)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(amount) < 0 {
+		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account",
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeAddr", addr.String(),
+			"contract_balance", contract_balance, "rollback amount", amount)
+		panic("the balance is invalid of stakingContracr Account")
 	}
 
 	// todo test
@@ -325,10 +341,13 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to RollBackStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(),
-				"RollBack stakingVon", can.RestrictingPlanHes, "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakeAddr", can.StakingAddress.Hex(), "RollBack stakingVon", can.RestrictingPlanHes, "err", err)
 			return err
 		}
+	} else {
+		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
 	// TODO test
@@ -341,7 +360,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate info is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -355,7 +374,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate power failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "addr", addr.String(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -370,7 +389,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	// sub the account staking Reference Count
 	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Store Staking Account Reference Count (sub) is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "canAddr", addr.String(),
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
 			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
@@ -406,7 +425,8 @@ func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.I
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to EditCandidate on stakingPlugin: Store Candidate info is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"nodeId", can.NodeId.String(), "blockNumber", blockNumber.Uint64(),
+			"blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
 
@@ -426,7 +446,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
 	log.Debug("Call IncreaseStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"epoch", epoch, "nodeId", can.NodeId.String(), "typ", typ, "amount", amount)
+		"epoch", epoch, "nodeId", can.NodeId.String(), "account", can.StakingAddress.Hex(), "typ", typ, "amount", amount)
 
 	// todo test
 	//xcom.PrintObject("IncreaseStaking, Method Start can", can)
@@ -439,7 +459,8 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		origin := state.GetBalance(can.StakingAddress)
 		if origin.Cmp(amount) < 0 {
 			log.Error("Failed to IncreaseStaking on stakingPlugin: the account free von is not Enough",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "account", can.StakingAddress.Hex(),
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+				"nodeId", can.NodeId.String(), "account", can.StakingAddress.Hex(),
 				"originVon", origin, "stakingVon", can.ReleasedHes)
 			return AccountVonNotEnough
 		}
@@ -448,16 +469,20 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 
 		can.ReleasedHes = new(big.Int).Add(can.ReleasedHes, amount)
 
-	} else {
+	} else if typ == RestrictingPlanOrigin {
 
 		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
 			log.Error("Failed to IncreaseStaking on stakingPlugin: call Restricting PledgeLockFunds() is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+				"nodeId", can.NodeId.String(), "account", can.StakingAddress.Hex(), "amount", amount, "err", err)
 			return err
 		}
 
 		can.RestrictingPlanHes = new(big.Int).Add(can.RestrictingPlanHes, amount)
+	} else {
+		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
 	can.StakingEpoch = uint32(epoch)
@@ -473,7 +498,8 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Delete Candidate old power is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+			"nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -490,7 +516,8 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Store Candidate new power is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+			"nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -504,7 +531,8 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Store Candidate info is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+			"nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -540,7 +568,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate old power is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -562,7 +590,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Store Candidate info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
 	} else {
@@ -578,7 +606,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		// Clean candidate info
 		if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate info is failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
 	}
@@ -594,7 +622,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	// sub the account staking Reference Count
 	if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 		log.Error("Failed to WithdrewStaking on stakingPlugin: Store Staking Account Reference Count (sub) is failed",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "canAddr", addr.String(),
+			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
 			"staking Account", can.StakingAddress.String(), "err", err)
 		return err
 	}
@@ -610,9 +638,13 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	total := calCanTotalAmount(can)
+
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(total) < 0 {
+		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contract_balance",
+			contract_balance, "withdrewStake amount", total)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -631,24 +663,14 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
+				"stakingAddr", can.StakingAddress.Hex(), "err", err)
 			return err
 		}
 
-		//can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
 		can.RestrictingPlanHes = common.Big0
 	}
-	//addItem := false
-	//
-	//if can.Released.Cmp(common.Big0) > 0 {
-	//	can.Shares = new(big.Int).Sub(can.Shares, can.Released)
-	//	addItem = true
-	//}
-	//
-	//if can.RestrictingPlan.Cmp(common.Big0) > 0 {
-	//	can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlan)
-	//	addItem = true
-	//}
+
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 
 		// TODO test
@@ -661,7 +683,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 		if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
 	}
@@ -750,13 +772,16 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	lazyCalcStakeAmount(epoch, can)
+
+	total := calCanTotalAmount(can)
+
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(total) < 0 {
+		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account",
+			"blockHash", blockHash.Hex(), "contract_balance", contract_balance, "handle unstake amount", total)
 		panic("the balance is invalid of stakingContracr Account")
 	}
-
-	lazyCalcStakeAmount(epoch, can)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
@@ -777,7 +802,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 			err := rt.ReturnLockFunds(can.StakingAddress, balance, state)
 			if nil != err {
 				log.Error("Failed to HandleUnCandidateItem on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-					title, balance, "blockHash", blockHash.Hex(), "err", err)
+					title, balance, "blockHash", blockHash.Hex(), "stakingAddr", can.StakingAddress.Hex(), "err", err)
 				return common.Big0, err
 			}
 			return common.Big0, nil
@@ -920,6 +945,9 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
+	} else {
+		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
 	del.DelegateEpoch = uint32(epoch)
@@ -1004,8 +1032,10 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	//xcom.PrintObject("Call WithdrewDelegate, the delegate info", del)
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
-	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+	if contract_balance.Cmp(common.Big0) <= 0 || contract_balance.Cmp(amount) < 0 {
+		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"contract_balance", contract_balance, "withdrew del amount", amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -1066,7 +1096,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 			if remainTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
 
-				err := rt.ReturnLockFunds(can.StakingAddress, restrictingPlanTmp, state)
+				err := rt.ReturnLockFunds(delAddr, restrictingPlanTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1080,7 +1110,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			} else if remainTmp.Cmp(restrictingPlanTmp) < 0 {
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 
-				err := rt.ReturnLockFunds(can.StakingAddress, remainTmp, state)
+				err := rt.ReturnLockFunds(delAddr, remainTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1438,7 +1468,8 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
 	if contract_balance.Cmp(common.Big0) <= 0 {
-		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account", "contract_balance", contract_balance)
+		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account",
+			"blockHash", blockHash.Hex(), "contract_balance", contract_balance)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -1483,7 +1514,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 				err := rt.ReturnLockFunds(delAddr, balance, state)
 				if nil != err {
 					log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-						title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "err", err)
+						title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "err", err)
 					return common.Big0, err
 				}
 				return common.Big0, nil
@@ -1498,7 +1529,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 			del.RestrictingPlanHes = balance
 		}
 
-		if balance, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlan); nil != err {
+		if balance, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan); nil != err {
 			return err
 		} else {
 			del.RestrictingPlan = balance
@@ -1545,6 +1576,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		del.Released, remain = noHes, rm
 
 		refundRestrictingPlanFn := func(title string, balance, remain *big.Int) (*big.Int, *big.Int, error) {
+
 			if remain.Cmp(common.Big0) > 0 {
 
 				if remain.Cmp(balance) >= 0 {
@@ -1552,7 +1584,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					err := rt.ReturnLockFunds(delAddr, balance, state)
 					if nil != err {
 						log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
-							title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "err", err)
+							title, balance, "blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "err", err)
 						return common.Big0, common.Big0, err
 					}
 					return common.Big0, new(big.Int).Sub(remain, balance), nil
@@ -1561,7 +1593,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					err := rt.ReturnLockFunds(delAddr, remain, state)
 					if nil != err {
 						log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
-							"remain", remain, "blockHash", blockHash.Hex(), "epoch", epoch, "err", err)
+							"remain", remain, "blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "err", err)
 						return common.Big0, common.Big0, err
 					}
 
@@ -1632,6 +1664,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	}*/
 
+	// todo test
+	xcom.PrintObject("Call ElectNextVerifierList old verifier list", old_verifierArr)
+
 	if old_verifierArr.End != blockNumber {
 		log.Error("Failed to ElectNextVerifierList: this blockNumber invalid", "Old Epoch End blockNumber",
 			old_verifierArr.End, "Current blockNumber", blockNumber)
@@ -1676,8 +1711,10 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		can, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
+
 			log.Error("Failed to ElectNextVerifierList: Query Candidate info is failed", "blockNumber", blockNumber,
-				"blockHash", blockHash.Hex(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+				"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+
 			return err
 		}
 
@@ -1730,6 +1767,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	pposHash = sk.db.GetLastKVHash(blockHash)
 	log.Debug("ElectNextVerifierList pposHash, Method End", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
+
+	// todo test
+	xcom.PrintObject("Call ElectNextVerifierList new verifier list", new_verifierArr)
 
 	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue), "loopNum", count)
 	return nil
@@ -2035,7 +2075,15 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uin
 
 	queue := make(staking.CandidateQueue, 0)
 
+	count := 0
+
 	for iter.Valid(); iter.Next(); {
+
+		count++
+
+		// todo test
+		log.Debug("GetCandidateList: iter", "key", hex.EncodeToString(iter.Key()))
+
 		addrSuffix := iter.Value()
 		can, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
@@ -2046,6 +2094,9 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uin
 
 		queue = append(queue, can)
 	}
+
+	// todo test
+	log.Debug("GetCandidateList: loop count", "count", count)
 
 	return queue, nil
 }
@@ -2914,6 +2965,7 @@ func (sk *StakingPlugin) IsCandidateNode(nodeID discover.NodeID) bool {
 		}
 	}
 label:
+	log.Info("Call IsCandidateNode, the nodeId is not a Epoch validaotor", "nodeId", nodeID.String())
 	return isCandidate
 }
 
@@ -3139,11 +3191,15 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
@@ -3157,6 +3213,8 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && 0 < i {
 				targetIndex = indexs[i-1]
@@ -3168,6 +3226,7 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 	if nil == targetIndex {
 		log.Error("No Found previous validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3206,11 +3265,15 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
@@ -3224,6 +3287,8 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
 				targetIndex = indexs[i]
@@ -3235,6 +3300,7 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found current validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3273,11 +3339,15 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && i < len(indexs)-1 {
@@ -3291,6 +3361,8 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber && i < len(indexs)-1 {
 				targetIndex = indexs[i+1]
@@ -3302,6 +3374,7 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found next validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3380,11 +3453,15 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 
 	var targetIndex *staking.ValArrIndex
 
+	var indexArr staking.ValArrIndexQueue
+
 	if !isCommit {
 		indexs, err := sk.db.GetEpochValIndexByBlockHash(blockHash)
 		if nil != err && err != snapshotdb.ErrNotFound {
 			return nil, err
 		}
+
+		indexArr = indexs
 
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
@@ -3398,6 +3475,8 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 			return nil, err
 		}
 
+		indexArr = indexs
+
 		for i, index := range indexs {
 			if index.Start <= blockNumber && index.End >= blockNumber {
 				targetIndex = indexs[i]
@@ -3409,6 +3488,7 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 	if nil == targetIndex {
 		log.Error("No Found epoch validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
+		xcom.PrintObjForErr("the indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3485,4 +3565,10 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 
 func (sk *StakingPlugin) HasStake(blockHash common.Hash, addr common.Address) (bool, error) {
 	return sk.db.HasAccountStakeRc(blockHash, addr)
+}
+
+func calCanTotalAmount(can *staking.Candidate) *big.Int {
+	remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
+	remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+	return new(big.Int).Add(remainRelease, remainRestrictingPlan)
 }
