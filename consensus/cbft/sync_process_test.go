@@ -453,11 +453,7 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 		{1, 0, 1, []uint32{0, 2}},
 		{1, 0, 2, []uint32{0, 2}},
 	}
-	// init view change.
-	engine.state.AddViewChange(0, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	engine.state.AddViewChange(1, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	engine.state.AddViewChange(2, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	engine.state.AddViewChange(3, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+
 	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.GetViewChange{
@@ -470,11 +466,35 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 		}
 		message.ViewChangeBits = bit
 
-		// Setting viewNumber.
+		//// Setting viewNumber.
 		engine.state.ResetView(0, v.viewNumber)
+		// init view change.
+		engine.state.AddViewChange(0, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+		engine.state.AddViewChange(1, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+		engine.state.AddViewChange(2, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+		engine.state.AddViewChange(3, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+
+		finish := make(chan struct{}, 1)
+
+		hook := func(msg *types2.MsgPackage) {
+			switch msg.Message().(type) {
+			case *protocols.ViewChanges:
+				finish <- struct{}{}
+			}
+		}
+
+		network.SetSendQueueHook(engine.network, hook)
+
 		err := engine.OnGetViewChange(peer.PeerID(), message)
-		if v.viewNumber == 0 {
+		if v.viewNumber < v.reqViewNumber {
 			assert.NotNil(t, err)
+		} else {
+			timer := time.NewTimer(2 * time.Millisecond)
+			select {
+			case <-timer.C:
+				t.Error("get viewchange failed")
+			case <-finish:
+			}
 		}
 	}
 }
@@ -482,9 +502,9 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 func TestCbft_MissingViewChangeNodes(t *testing.T) {
 	engine, _ := buildSingleCbft()
 	message, err := engine.MissingViewChangeNodes()
-	assert.True(t, message.ViewChangeBits.GetIndex(0))
-	assert.Nil(t, err)
-	assert.NotNil(t, message)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, message)
 }
 
 func buildSingleCbft() (*Cbft, []discover.NodeID) {

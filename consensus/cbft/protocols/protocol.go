@@ -38,6 +38,7 @@ const (
 	PingMsg                 = 0x0f
 	PongMsg                 = 0x10
 	ViewChangeQuorumCertMsg = 0x11
+	ViewChangesMsg          = 0x12
 )
 
 // A is used to convert specific message types according to the message body.
@@ -82,6 +83,8 @@ func MessageType(msg interface{}) uint64 {
 		return PongMsg
 	case *ViewChangeQuorumCert:
 		return ViewChangeQuorumCertMsg
+	case *ViewChanges:
+		return ViewChangesMsg
 	default:
 	}
 	panic(fmt.Sprintf("unknown message type [%v}", reflect.TypeOf(msg)))
@@ -212,7 +215,7 @@ type ViewChange struct {
 }
 
 func (vc *ViewChange) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%vc,BlockNumber:%d,ValidatorIndex:%d}",
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%s,BlockNumber:%d,ValidatorIndex:%d}",
 		vc.Epoch, vc.ViewNumber, vc.BlockHash.TerminalString(), vc.BlockNumber, vc.ValidatorIndex)
 }
 
@@ -259,6 +262,31 @@ func (vc *ViewChange) Sign() []byte {
 
 func (vc *ViewChange) SetSign(sign []byte) {
 	vc.Signature.SetBytes(sign)
+}
+
+type ViewChanges struct {
+	VCs []*ViewChange
+}
+
+func (v ViewChanges) String() string {
+	if len(v.VCs) != 0 {
+		epoch, viewNumber := v.VCs[0].Epoch, v.VCs[0].ViewNumber
+		return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Len:%d}", epoch, viewNumber, len(v.VCs))
+	}
+	return fmt.Sprintf("{Len:%d}", len(v.VCs))
+}
+
+func (v ViewChanges) MsgHash() common.Hash {
+	if len(v.VCs) != 0 {
+		epoch, viewNumber := v.VCs[0].Epoch, v.VCs[0].ViewNumber
+		return utils.BuildHash(ViewChangesMsg, utils.MergeBytes(common.Uint64ToBytes(epoch),
+			common.Uint64ToBytes(viewNumber)))
+	}
+	return utils.BuildHash(ViewChangesMsg, common.Hash{}.Bytes())
+}
+
+func (ViewChanges) BHash() common.Hash {
+	return common.Hash{}
 }
 
 // cbftStatusData implement Message and including status information about peer.

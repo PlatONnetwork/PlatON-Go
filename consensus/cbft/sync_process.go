@@ -389,10 +389,16 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 
 	if isEqualLocalView() {
 		viewChanges := cbft.state.AllViewChange()
+
+		vcs := &protocols.ViewChanges{}
 		for k, v := range viewChanges {
 			if msg.ViewChangeBits.GetIndex(k) {
-				cbft.network.Send(id, v)
+				vcs.VCs = append(vcs.VCs, v)
 			}
+		}
+		cbft.log.Debug("Send ViewChanges", "peer", id, "len", len(vcs.VCs))
+		if len(vcs.VCs) != 0 {
+			cbft.network.Send(id, vcs)
 		}
 		return nil
 	}
@@ -430,6 +436,17 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 	}
 }
 
+func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
+	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	for _, v := range msg.VCs {
+		if err := cbft.OnViewChange(id, v); err != nil {
+			cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+			return err
+		}
+	}
+	return nil
+}
+
 // Returns the node ID of the missing vote.
 func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err error) {
 	result := make(chan struct{})
@@ -441,11 +458,11 @@ func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err erro
 		length := cbft.currentValidatorLen()
 		vbits := utils.NewBitArray(uint32(length))
 
-		if len(allViewChange) >= cbft.threshold(length) {
+		// enough qc or did not reach deadline
+		if len(allViewChange) >= cbft.threshold(length) || !cbft.state.IsDeadline() {
 			v, err = nil, fmt.Errorf("no need sync viewchange")
 			return
 		}
-
 		for i := uint32(0); i < vbits.Size(); i++ {
 			if _, ok := allViewChange[i]; !ok {
 				vbits.SetIndex(i, true)
