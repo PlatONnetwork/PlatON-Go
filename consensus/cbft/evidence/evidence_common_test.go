@@ -3,26 +3,23 @@ package evidence
 import (
 	"crypto/ecdsa"
 	"math/big"
+	"runtime"
+	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 )
-
-type NodeData struct {
-	privateKey *ecdsa.PrivateKey
-	publicKey  *ecdsa.PublicKey
-	address    common.Address
-	nodeID     discover.NodeID
-	index      int
-}
 
 func newBlock(blockNumber int64) *types.Block {
 	header := &types.Header{
@@ -37,19 +34,39 @@ func newBlock(blockNumber int64) *types.Block {
 	return block
 }
 
-func createAccount(n int) []*ecdsa.PrivateKey {
-	var pris []*ecdsa.PrivateKey
-	for i := 0; i < n; i++ {
-		pri, err := crypto.GenerateKey()
-		if err != nil {
-			panic(err)
-		}
-		pris = append(pris, pri)
+func GenerateKeys(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey) {
+	pk := make([]*ecdsa.PrivateKey, 0)
+	sk := make([]*bls.SecretKey, 0)
+
+	for i := 0; i < num; i++ {
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
+		ecdsaKey, _ := crypto.GenerateKey()
+		pk = append(pk, ecdsaKey)
+		sk = append(sk, &blsKey)
 	}
-	return pris
+	return pk, sk
 }
 
-func makePrepareBlock(epoch, viewNumber uint64, block *types.Block, blockIndex uint32, ProposalIndex uint32) *protocols.PrepareBlock {
+func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
+	pk, sk := GenerateKeys(num)
+	nodes := make([]*cbfttypes.ValidateNode, num)
+	for i := 0; i < num; i++ {
+
+		nodes[i] = &cbfttypes.ValidateNode{
+			Index:   uint32(i),
+			Address: crypto.PubkeyToAddress(pk[i].PublicKey),
+			PubKey:  &pk[i].PublicKey,
+			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
+		}
+		if runtime.GOOS != "windows" {
+			nodes[i].BlsPubKey = sk[i].GetPublicKey()
+		}
+	}
+	return nodes, sk
+}
+
+func makePrepareBlock(epoch, viewNumber uint64, block *types.Block, blockIndex uint32, ProposalIndex uint32, t *testing.T, secretKeys *bls.SecretKey) *protocols.PrepareBlock {
 	p := &protocols.PrepareBlock{
 		Epoch:         epoch,
 		ViewNumber:    viewNumber,
@@ -58,10 +75,18 @@ func makePrepareBlock(epoch, viewNumber uint64, block *types.Block, blockIndex u
 		ProposalIndex: ProposalIndex,
 	}
 
+	// bls sign
+	buf, err := p.CannibalizeBytes()
+	if err != nil {
+		t.Fatalf("%s", "prepareBlock cannibalizeBytes error")
+	}
+	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
+	t.Logf("prepareBlock signature:%s", p.Signature.String())
+
 	return p
 }
 
-func makePrepareVote(epoch, viewNumber uint64, blockHash common.Hash, blockNumber uint64, blockIndex uint32, validatorIndex uint32) *protocols.PrepareVote {
+func makePrepareVote(epoch, viewNumber uint64, blockHash common.Hash, blockNumber uint64, blockIndex uint32, validatorIndex uint32, t *testing.T, secretKeys *bls.SecretKey) *protocols.PrepareVote {
 	p := &protocols.PrepareVote{
 		Epoch:          epoch,
 		ViewNumber:     viewNumber,
@@ -71,10 +96,18 @@ func makePrepareVote(epoch, viewNumber uint64, blockHash common.Hash, blockNumbe
 		ValidatorIndex: validatorIndex,
 	}
 
+	// bls sign
+	buf, err := p.CannibalizeBytes()
+	if err != nil {
+		t.Fatalf("%s", "prepareVote cannibalizeBytes error")
+	}
+	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
+	t.Logf("prepareVote signature:%s", p.Signature.String())
+
 	return p
 }
 
-func makeViewChange(epoch, viewNumber uint64, blockHash common.Hash, blockNumber uint64, validatorIndex uint32) *protocols.ViewChange {
+func makeViewChange(epoch, viewNumber uint64, blockHash common.Hash, blockNumber uint64, validatorIndex uint32, t *testing.T, secretKeys *bls.SecretKey) *protocols.ViewChange {
 	p := &protocols.ViewChange{
 		Epoch:          epoch,
 		ViewNumber:     viewNumber,
@@ -82,6 +115,14 @@ func makeViewChange(epoch, viewNumber uint64, blockHash common.Hash, blockNumber
 		BlockNumber:    blockNumber,
 		ValidatorIndex: validatorIndex,
 	}
+
+	// bls sign
+	buf, err := p.CannibalizeBytes()
+	if err != nil {
+		t.Fatalf("%s", "viewChange cannibalizeBytes error")
+	}
+	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
+	t.Logf("viewChange signature:%s", p.Signature.String())
 
 	return p
 }

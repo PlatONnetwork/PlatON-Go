@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -204,6 +206,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 }
 
 func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Block) error {
+	log.Debug("Recover commit state", "commitNumber", commit.Block.NumberU64(), "commitHash", commit.Block.Hash(), "parentNumber", parent.NumberU64(), "parentHash", parent.Hash())
 	// recovery commit state
 	if err := cbft.executeBlock(commit.Block, parent); err != nil {
 		return err

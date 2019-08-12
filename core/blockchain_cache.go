@@ -259,6 +259,6 @@ func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 		return fmt.Errorf("Failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
 	}
 
-	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time())
+	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64())
 	return nil
 }
