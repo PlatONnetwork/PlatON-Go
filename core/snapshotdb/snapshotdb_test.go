@@ -497,6 +497,57 @@ func TestSnapshotDB_Ranking4(t *testing.T) {
 	}
 }
 
+func TestSnapshotDB_Ranking5(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	generatekvs := generatekvWithPrefix(4, "aaa")
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, generateHash("baseDBBlockhash"), generatekvs); err != nil {
+		t.Error(err)
+	}
+	if err := dbInstance.NewBlock(big.NewInt(2), generateHash("baseDBBlockhash"), generateHash("baseDBBlockhash2")); err != nil {
+		t.Error(err)
+	}
+	if err := dbInstance.Del(generateHash("baseDBBlockhash2"), generatekvs[0].key); err != nil {
+		t.Error(err)
+
+	}
+	if err := dbInstance.Commit(generateHash("baseDBBlockhash2")); err != nil {
+		t.Error(err)
+
+	}
+	var parentHash common.Hash
+	parentHash = generateHash("baseDBBlockhash2")
+	for i := 3; i < 11; i++ {
+		generatekvs := generatekvWithPrefix(1, "bbb")
+		hash := generateHash(fmt.Sprintf("baseDBBlockhash%v", i))
+		newBlockCommited(big.NewInt(int64(i)), parentHash, hash, generatekvs)
+		parentHash = hash
+	}
+
+	itr := dbInstance.Ranking(generateHash("baseDBBlockhash10"), []byte("aaa"), 20)
+	err := itr.Error()
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := make(kvs, 0)
+	for itr.Next() {
+		o = append(o, kv{itr.Key(), itr.Value()})
+	}
+	itr.Release()
+	if len(o) != 3 {
+		t.Errorf("must equql 3,have %v", len(o))
+	}
+	for i := 0; i < 3; i++ {
+		if !bytes.Equal(o[i].key, generatekvs[i+1].key) {
+			t.Errorf("not compare want %v,have %v", generatekvs[i+1].key, o[i].key)
+		}
+		if !bytes.Equal(o[i].value, generatekvs[i+1].value) {
+			t.Errorf("not compare want %v,have %v", generatekvs[i+1].value, o[i].value)
+		}
+	}
+
+}
+
 func TestSnapshotDB_Ranking3(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
