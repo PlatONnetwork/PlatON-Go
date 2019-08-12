@@ -71,4 +71,10 @@ func TestNewBlockTree(t *testing.T) {
 		assert.Nil(t, b)
 		assert.Nil(t, q)
 	}
+
+	newRoot := fork1[len(fork1)-1]
+	tree.Reset(newRoot, &QuorumCert{ViewNumber: 1})
+	assert.Equal(t, tree.root.Block.Hash(), newRoot.Hash())
+	assert.Equal(t, 1, len(tree.blocks))
+
 }

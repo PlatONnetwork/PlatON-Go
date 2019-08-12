@@ -82,6 +82,9 @@ func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetVi
 func (cbft *fakeCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
+func (cbft *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
+	return nil
+}
 
 // Create a new EngineManager.
 func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {

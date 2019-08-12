@@ -296,3 +296,24 @@ func (b *BlockTree) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(tree)
 }
+
+func (b *BlockTree) Reset(root *types.Block, qc *QuorumCert) {
+	b.root = &blockExt{
+		Block:    root,
+		RcvTime:  time.Now(),
+		QC:       qc,
+		Parent:   nil,
+		Children: make(map[common.Hash]*blockExt),
+	}
+
+	if root.NumberU64() == 0 {
+		b.root.ViewNumber = math.MaxUint64
+	} else {
+		b.root.ViewNumber = qc.ViewNumber
+	}
+
+	b.blocks = make(map[uint64]map[common.Hash]*blockExt)
+	blocks := make(map[common.Hash]*blockExt)
+	blocks[root.Hash()] = b.root
+	b.blocks[root.NumberU64()] = blocks
+}

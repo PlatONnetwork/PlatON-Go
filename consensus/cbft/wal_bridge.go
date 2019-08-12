@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -188,19 +190,54 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	}
 	if isParent {
 		// recovery commit state
-		if err := cbft.executeBlock(commit.Block, rootBlock); err != nil {
+		if err := cbft.recoveryCommitState(commit, rootBlock); err != nil {
 			return err
 		}
-		cbft.recoveryChainStateProcess(protocols.CommitState, commit)
 	}
 	// recovery lock state
-	if err := cbft.executeBlock(lock.Block, commit.Block); err != nil {
+	if err := cbft.recoveryLockState(lock, commit.Block); err != nil {
+		return err
+	}
+	// recovery qc state
+	if err := cbft.recoveryQCState(qcs, lock.Block); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Block) error {
+	log.Debug("Recover commit state", "commitNumber", commit.Block.NumberU64(), "commitHash", commit.Block.Hash(), "parentNumber", parent.NumberU64(), "parentHash", parent.Hash())
+	// recovery commit state
+	if err := cbft.executeBlock(commit.Block, parent); err != nil {
+		return err
+	}
+	// write commit block to chain
+	extra, err := ctypes.EncodeExtra(byte(cbftVersion), commit.QuorumCert)
+	if err != nil {
+		return err
+	}
+	commit.Block.SetExtraData(extra)
+	if err := cbft.blockCacheWriter.WriteBlock(commit.Block); err != nil {
+		return err
+	}
+	cbft.recoveryChainStateProcess(protocols.CommitState, commit)
+	cbft.blockTree.NewRoot(commit.Block)
+	return nil
+}
+
+func (cbft *Cbft) recoveryLockState(lock *protocols.State, parent *types.Block) error {
+	// recovery lock state
+	if err := cbft.executeBlock(lock.Block, parent); err != nil {
 		return err
 	}
 	cbft.recoveryChainStateProcess(protocols.LockState, lock)
+	return nil
+}
+
+func (cbft *Cbft) recoveryQCState(qcs []*protocols.State, parent *types.Block) error {
 	// recovery qc state
 	for _, qc := range qcs {
-		if err := cbft.executeBlock(qc.Block, lock.Block); err != nil {
+		if err := cbft.executeBlock(qc.Block, parent); err != nil {
 			return err
 		}
 		cbft.recoveryChainStateProcess(protocols.QCState, qc)

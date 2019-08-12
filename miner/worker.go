@@ -664,6 +664,8 @@ func (w *worker) resultLoop() {
 			// Commit block and state to database.
 			block.SetExtraData(cbftResult.ExtraData)
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
+			// update 3-chain state
+			cbftResult.ChainStateUpdateCB()
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
 				if cbftResult.SyncState != nil {
@@ -674,7 +676,6 @@ func (w *worker) resultLoop() {
 			}
 			//cbftResult.SyncState <- err
 			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time())
-			cbftResult.ChainStateUpdateCB()
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
@@ -1005,7 +1006,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	defer func() {
 		if engine, ok := w.engine.(consensus.Bft); ok {
 			w.commitWorkEnv.nextBlockTime.Store(engine.CalcNextBlockTime(common.MillisToTime(timestamp)))
-			log.Debug("Next block time", "time", w.commitWorkEnv.nextBlockTime.Load().(time.Time))
+			log.Debug("Next block time", "time", w.commitWorkEnv.nextBlockTime.Load().(time.Time).Format("2006-01-02 15:04:05.999"))
 		}
 	}()
 

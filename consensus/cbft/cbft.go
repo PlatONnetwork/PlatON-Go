@@ -6,8 +6,9 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
@@ -17,7 +18,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	cconsensus "github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
@@ -201,8 +201,6 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
 
 	go cbft.receiveLoop()
-
-	cbft.fetcher.Start()
 
 	// Start the handler to process the message.
 	go cbft.network.Start()
@@ -510,7 +508,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 }
 
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
-	// TODO: check is turn to seal block
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),
@@ -518,7 +515,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, _ := cbft.validatorPool.GetValidatorByNodeID(validator.NextRound(cbft.state.HighestExecutedBlock().NumberU64()), cbft.config.Option.NodeID)
+	nextRoundNum := validator.NextRound(cbft.state.HighestExecutedBlock().NumberU64())
+	me, err := cbft.validatorPool.GetValidatorByNodeID(nextRoundNum, cbft.NodeId())
+	if err != nil {
+		cbft.log.Warn("Can not got the validator, seal fail", "number", nextRoundNum, "nodeID", cbft.NodeId())
+		return
+	}
+	numValidators := cbft.validatorPool.Len(nextRoundNum)
+	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
+	if currentProposer != uint64(me.Index) {
+		cbft.log.Warn("You are not the current proposer", "index", me.Index, "currentProposer", currentProposer)
+		return
+	}
 
 	prepareBlock := &protocols.PrepareBlock{
 		Epoch:         cbft.state.Epoch(),
@@ -596,6 +604,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "debug",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
+		{
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   NewPublicConsensusAPI(cbft),
 			Public:    true,
@@ -693,6 +707,18 @@ func (cbft *Cbft) Status() string {
 	return <-status
 }
 
+func (cbft *Cbft) GetPrepareQC(number uint64) *ctypes.QuorumCert {
+	cbft.log.Debug("get prepare QC")
+	if header := cbft.blockChain.GetHeaderByNumber(number); header != nil {
+		if block := cbft.blockChain.GetBlock(header.Hash(), number); block != nil {
+			if _, qc, err := ctypes.DecodeExtra(block.ExtraData()); err == nil {
+				return qc
+			}
+		}
+	}
+	return &ctypes.QuorumCert{}
+}
+
 // GetBlockByHash get the specified block by hash.
 func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 	result := make(chan *types.Block, 1)
@@ -732,13 +758,14 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
-		cbft.blockTree = ctypes.NewBlockTree(block, qc)
-
+		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
+
+		cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux)
 
 		result <- nil
 	}
@@ -770,7 +797,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
-	if cbft.isLoading() && !cbft.isStart() && !cbft.running() {
+	if cbft.isLoading() || !cbft.isStart() || !cbft.running() {
 		return false, nil
 	}
 
@@ -784,7 +811,7 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 			masterCounter.Inc(1)
 		}
 		return err == nil, err
-	case <-time.After(2 * time.Millisecond):
+	case <-time.After(5 * time.Millisecond):
 		result <- errors.New("timeout")
 		return false, errors.New("CBFT engine busy")
 	}
@@ -823,6 +850,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- err
 		return
 	}
+
 	if currentProposer != uint64(validator.Index) {
 		result <- errors.New("current node not the proposer")
 		return
@@ -832,6 +860,22 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		result <- errors.New("produce block over limit")
 		return
 	}
+
+	qcBlock := cbft.state.HighestQCBlock()
+	_, qc := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+	if cbft.validatorPool.EqualSwitchPoint(currentExecutedBlockNumber) && qc != nil && qc.Epoch == cbft.state.Epoch() {
+		cbft.log.Debug("New epoch, waiting for view's timeout", "executed", currentExecutedBlockNumber, "index", validator.Index)
+		result <- errors.New("current node not the proposer")
+		return
+	}
+
+	rtt := cbft.avgRTT()
+	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
+		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", cbft.state.Deadline().Sub(time.Now()), "rtt", rtt)
+		result <- errors.New("not enough time to propagated block, stopped sealing")
+		return
+	}
+
 	proposerIndexGauage.Update(int64(currentProposer))
 	validatorCountGauage.Update(int64(numValidators))
 	result <- nil
@@ -839,24 +883,28 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
-	cbft.log.Debug("Calc block deadline", "timePoint", timePoint, "stateDeadline", cbft.state.Deadline(), "produceInterval", produceInterval)
+	rtt := cbft.avgRTT()
+	executeTime := (produceInterval - rtt) / 2
+	cbft.log.Debug("Calc block deadline", "timePoint", timePoint, "stateDeadline", cbft.state.Deadline(), "produceInterval", produceInterval, "rtt", rtt, "executeTime", executeTime)
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
-		return timePoint.Add(produceInterval)
+		return timePoint.Add(produceInterval - rtt - executeTime)
 	}
 	return cbft.state.Deadline()
 }
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
+	rtt := cbft.avgRTT()
+	executeTime := (produceInterval - rtt) / 2
 	cbft.log.Debug("Calc next block time",
 		"blockTime", blockTime, "now", time.Now(), "produceInterval", produceInterval,
 		"period", cbft.config.Sys.Period, "amount", cbft.config.Sys.Amount,
-		"interval", time.Since(blockTime))
+		"interval", time.Since(blockTime), "rtt", rtt, "executeTime", executeTime)
 	if time.Since(blockTime) < produceInterval {
-		// TODO: add network latency
-		return time.Now().Add(produceInterval - time.Since(blockTime))
+		return blockTime.Add(executeTime + rtt)
 	}
-	return time.Now()
+	// Commit new block immediately.
+	return blockTime.Add(produceInterval)
 }
 
 func (cbft *Cbft) IsConsensusNode() bool {
@@ -946,10 +994,6 @@ func (cbft *Cbft) Evidences() string {
 	return string(js)
 }
 
-func (cbft *Cbft) UnmarshalEvidence(data []byte) (cconsensus.Evidences, error) {
-	return cbft.evPool.UnmarshalEvidence(data)
-}
-
 // verifySelfSigned
 func (cbft *Cbft) verifySelfSigned(m []byte, sig []byte) bool {
 	recPubKey, err := crypto.Ecrecover(m, sig)
@@ -1013,8 +1057,8 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	}
 
 	// Verify consensus msg signature
-	if !cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()) {
-		return nil, fmt.Errorf("signature verification failed")
+	if err := cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()); err != nil {
+		return nil, err
 	}
 
 	// Get validator of signer
@@ -1171,8 +1215,8 @@ func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
 	if cb, err = qc.CannibalizeBytes(); err != nil {
 		return err
 	}
-	if !cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()) {
-		return fmt.Errorf("verify prepare qc failed")
+	if err = cbft.validatorPool.VerifyAggSigByBA(qc.BlockNumber, qc.ValidatorSet, cb, qc.Signature.Bytes()); err != nil {
+		return fmt.Errorf("verify prepare qc failed: %v", err)
 	}
 	return err
 }
@@ -1203,9 +1247,9 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 			break
 		}
 
-		if !cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()) {
-			err = fmt.Errorf("verify viewchange qc failed:number:%d,validators:%s,msg:%s, signature:%s",
-				vc.BlockNumber, vc.ValidatorSet.String(), hexutil.Encode(cb), vc.Signature.String())
+		if err = cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()); err != nil {
+			err = fmt.Errorf("verify viewchange qc failed:number:%d,validators:%s,msg:%s,signature:%s,err:%v",
+				vc.BlockNumber, vc.ValidatorSet.String(), hexutil.Encode(cb), vc.Signature.String(), err)
 			break
 		}
 	}
@@ -1215,4 +1259,13 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 
 func (cbft *Cbft) NodeID() discover.NodeID {
 	return cbft.config.Option.NodeID
+}
+
+func (cbft *Cbft) avgRTT() time.Duration {
+	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
+	rtt := cbft.AvgLatency() * 2
+	if rtt == 0 || rtt >= produceInterval {
+		rtt = cbft.DefaultAvgLatency() * 2
+	}
+	return rtt
 }
