@@ -97,7 +97,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if block.ViewChangeQC == nil {
 			return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
 		} else {
-			_, _, hash, number := block.ViewChangeQC.MaxBlock()
+			_, _, _, _, hash, number := block.ViewChangeQC.MaxBlock()
 			return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
 		}
 	}
