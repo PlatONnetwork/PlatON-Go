@@ -33,30 +33,30 @@ type EvidencePool interface {
 type emptyEvidencePool struct {
 }
 
-func (pool emptyEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) error {
+func (pool *emptyEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) error {
 	return nil
 }
 
-func (pool emptyEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) error {
+func (pool *emptyEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) error {
 	return nil
 }
 
-func (pool emptyEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) error {
+func (pool *emptyEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) error {
 	return nil
 }
 
-func (pool emptyEvidencePool) Evidences() consensus.Evidences {
+func (pool *emptyEvidencePool) Evidences() consensus.Evidences {
 	return nil
 }
 
-func (pool emptyEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
+func (pool *emptyEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
 	return nil, nil
 }
 
-func (pool emptyEvidencePool) Clear(epoch uint64, viewNumber uint64) {
+func (pool *emptyEvidencePool) Clear(epoch uint64, viewNumber uint64) {
 }
 
-func (pool emptyEvidencePool) Close() {
+func (pool *emptyEvidencePool) Close() {
 }
 
 type baseEvidencePool struct {
@@ -91,7 +91,7 @@ func NewBaseEvidencePool(path string) (*baseEvidencePool, error) {
 	}, nil
 }
 
-func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) (err error) {
+func (pool *baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) (err error) {
 	id := verifyIdentity(pb)
 	var evidencePrepare *EvidencePrepare
 	if evidencePrepare, err = NewEvidencePrepare(pb, node); err != nil {
@@ -108,7 +108,7 @@ func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *c
 	return nil
 }
 
-func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) (err error) {
+func (pool *baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) (err error) {
 	id := verifyIdentity(pv)
 	var evidenceVote *EvidenceVote
 	if evidenceVote, err = NewEvidenceVote(pv, node); err != nil {
@@ -125,7 +125,7 @@ func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbf
 	return nil
 }
 
-func (pool baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (err error) {
+func (pool *baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (err error) {
 	id := verifyIdentity(vc)
 	var evidenceView *EvidenceView
 	if evidenceView, err = NewEvidenceView(vc, node); err != nil {
@@ -142,7 +142,7 @@ func (pool baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbftt
 	return nil
 }
 
-func (pool baseEvidencePool) Evidences() consensus.Evidences {
+func (pool *baseEvidencePool) Evidences() consensus.Evidences {
 	var evds consensus.Evidences
 	it := pool.db.NewIterator(nil, nil)
 	for it.Next() {
@@ -189,7 +189,7 @@ func NewEvidences(data string) (consensus.Evidences, error) {
 	return res, nil
 }
 
-func (pool baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
+func (pool *baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
 	var ed EvidenceData
 	if err := json.Unmarshal([]byte(data), &ed); err != nil {
 		return nil, err
@@ -207,13 +207,13 @@ func (pool baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences
 	return evds, nil
 }
 
-func (pool baseEvidencePool) Clear(epoch uint64, viewNumber uint64) {
+func (pool *baseEvidencePool) Clear(epoch uint64, viewNumber uint64) {
 	pool.pb.Clear(epoch, viewNumber)
 	pool.pv.Clear(epoch, viewNumber)
 	pool.vc.Clear(epoch, viewNumber)
 }
 
-func (pool baseEvidencePool) Close() {
+func (pool *baseEvidencePool) Close() {
 	pool.db.Close()
 }
 
