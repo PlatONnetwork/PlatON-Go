@@ -472,10 +472,7 @@ func (cbft *Cbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 			return
 		}
 		block := cbft.blockTree.FindBlockByHash(blockHash)
-		if block == nil {
-			block = cbft.blockChain.GetBlock(blockHash, blockNumber)
-		}
-		if block == nil {
+		if block = cbft.blockChain.GetBlock(blockHash, blockNumber); block == nil {
 			result <- fmt.Errorf("not found block by hash:%s, number:%d", blockHash.TerminalString(), blockNumber)
 			return
 		}
