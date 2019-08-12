@@ -579,21 +579,23 @@ type ViewChangeQuorumCert struct {
 }
 
 func (v *ViewChangeQuorumCert) String() string {
-	epoch, viewNumber, hash, number := v.ViewChangeQC.MaxBlock()
-	return fmt.Sprintf("{Epoch:%d,VN:%d,Hash:%s,Number:%d}",
-		epoch, viewNumber, hash.TerminalString(), number)
+	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}",
+		epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number)
 }
 
 func (v *ViewChangeQuorumCert) MsgHash() common.Hash {
-	epoch, viewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
 	return utils.BuildHash(ViewChangeQuorumCertMsg, utils.MergeBytes(
 		common.Uint64ToBytes(epoch),
 		common.Uint64ToBytes(viewNumber),
+		common.Uint64ToBytes(blockEpoch),
+		common.Uint64ToBytes(blockViewNumber),
 		hash.Bytes(),
 		common.Uint64ToBytes(number)))
 }
 
 func (v *ViewChangeQuorumCert) BHash() common.Hash {
-	_, _, hash, _ := v.ViewChangeQC.MaxBlock()
+	_, _, _, _, hash, _ := v.ViewChangeQC.MaxBlock()
 	return hash
 }

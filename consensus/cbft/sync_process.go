@@ -368,7 +368,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
 	cbft.log.Debug("Received message on OnViewChangeQuorumCert", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	viewChangeQC := msg.ViewChangeQC
-	epoch, viewNumber, _, _ := viewChangeQC.MaxBlock()
+	epoch, viewNumber, _, _, _, _ := viewChangeQC.MaxBlock()
 	if cbft.state.Epoch() == epoch && cbft.state.ViewNumber() == viewNumber {
 		if err := cbft.verifyViewChangeQC(msg.ViewChangeQC); err == nil {
 			cbft.tryChangeViewByViewChange(msg.ViewChangeQC)

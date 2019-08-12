@@ -30,7 +30,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err er
 			var block *types.Block
 			var qc *ctypes.QuorumCert
 			if msg.ViewChangeQC != nil {
-				_, _, hash, number := msg.ViewChangeQC.MaxBlock()
+				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
 			} else {
 				block, qc = cbft.blockTree.FindBlockAndQC(msg.Block.ParentHash(), msg.Block.NumberU64()-1)
@@ -467,7 +467,7 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	_, _, hash, number := viewChangeQC.MaxBlock()
+	_, _, _, _, hash, number := viewChangeQC.MaxBlock()
 	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
 	_, hc := cbft.blockTree.FindBlockAndQC(hash, number)
 	if block.NumberU64() != 0 && (number > qc.BlockNumber) && hc == nil {

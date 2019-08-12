@@ -144,20 +144,20 @@ type ViewChangeQC struct {
 	QCs []*ViewChangeQuorumCert `json:"qcs"`
 }
 
-func (v ViewChangeQC) MaxBlock() (uint64, uint64, common.Hash, uint64) {
+func (v ViewChangeQC) MaxBlock() (uint64, uint64, uint64, uint64, common.Hash, uint64) {
 	if len(v.QCs) == 0 {
-		return 0, 0, common.Hash{}, 0
+		return 0, 0, 0, 0, common.Hash{}, 0
 	}
-	epoch, view, hash, number := v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
+	epoch, view, blockEpoch, blockView, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
 	for _, qc := range v.QCs {
 		if view < qc.ViewNumber {
-			epoch, view, hash, number = qc.Epoch, qc.ViewNumber, qc.BlockHash, qc.BlockNumber
+			blockEpoch, blockView, hash, number = qc.Epoch, qc.ViewNumber, qc.BlockHash, qc.BlockNumber
 		} else if view == qc.ViewNumber && number < qc.BlockNumber {
 			hash, number = qc.BlockHash, qc.BlockNumber
 		}
 	}
-	return epoch, view, hash, number
+	return epoch, view, blockEpoch, blockView, hash, number
 }
 
 func (v ViewChangeQC) Len() int {
@@ -169,6 +169,6 @@ func (v ViewChangeQC) Len() int {
 }
 
 func (v ViewChangeQC) String() string {
-	epoch, view, hash, number := v.MaxBlock()
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d}", epoch, view, hash.TerminalString(), number)
+	epoch, view, blockEpoch, blockViewNumber, hash, number := v.MaxBlock()
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}", epoch, view, blockEpoch, blockViewNumber, hash.TerminalString(), number)
 }
