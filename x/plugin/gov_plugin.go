@@ -2,12 +2,7 @@ package plugin
 
 import (
 	"errors"
-	"runtime"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -50,9 +45,6 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
-
-	//make default header extra data
-	header.Extra = makeExtraData(state)
 
 	//check if there's a pre-active version proposal that can be activated
 	preActiveVersionProposalID, err := govPlugin.govDB.GetPreActiveProposalID(blockHash, state)
@@ -836,19 +828,4 @@ func (govPlugin *GovPlugin) updateParam(proposal gov.ParamProposal, blockHash co
 		return err
 	}
 	return nil
-}
-
-func makeExtraData(state xcom.StateDB) []byte {
-	// create default extra data
-	extra, _ := rlp.EncodeToBytes([]interface{}{
-		GovPluginInstance().GetCurrentActiveVersion(state),
-		"platon",
-		runtime.Version(),
-		runtime.GOOS,
-	})
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
-		extra = nil
-	}
-	return extra
 }
