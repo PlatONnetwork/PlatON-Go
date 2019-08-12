@@ -707,12 +707,9 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	case hashLocationCommitted:
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			block := s.committed[i]
-			if block.BlockHash == hash {
+			if block.BlockHash == hash || block.BlockHash == parentHash {
 				itrs = append(itrs, block.data.NewIterator(prefix))
 				parentHash = block.ParentHash
-			} else if block.BlockHash == parentHash {
-				itrs = append(itrs, block.data.NewIterator(prefix))
-				parentHash = block.BlockHash
 			}
 		}
 	}
