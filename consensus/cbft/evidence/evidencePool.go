@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -23,23 +25,23 @@ var (
 
 type EvidencePool interface {
 	consensus.EvidencePool
-	AddPrepareBlock(pb *protocols.PrepareBlock) error
-	AddPrepareVote(pv *protocols.PrepareVote) error
-	AddViewChange(vc *protocols.ViewChange) error
+	AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) error
+	AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) error
+	AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) error
 }
 
 type emptyEvidencePool struct {
 }
 
-func (pool emptyEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock) error {
+func (pool emptyEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) error {
 	return nil
 }
 
-func (pool emptyEvidencePool) AddPrepareVote(pv *protocols.PrepareVote) error {
+func (pool emptyEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) error {
 	return nil
 }
 
-func (pool emptyEvidencePool) AddViewChange(vc *protocols.ViewChange) error {
+func (pool emptyEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) error {
 	return nil
 }
 
@@ -47,7 +49,7 @@ func (pool emptyEvidencePool) Evidences() consensus.Evidences {
 	return nil
 }
 
-func (pool emptyEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+func (pool emptyEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
 	return nil, nil
 }
 
@@ -89,9 +91,13 @@ func NewBaseEvidencePool(path string) (*baseEvidencePool, error) {
 	}, nil
 }
 
-func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock) (err error) {
-	id := verify(pb)
-	if err := pool.pb.Add(pb, id); err != nil {
+func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) (err error) {
+	id := verifyIdentity(pb)
+	var evidencePrepare *EvidencePrepare
+	if evidencePrepare, err = NewEvidencePrepare(pb, node); err != nil {
+		return fmt.Errorf("CannibalizeBytes error")
+	}
+	if err := pool.pb.Add(evidencePrepare, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareBlockEvidence); ok {
 			if err := pool.commit(evidence, id); err != nil {
 				return err
@@ -102,9 +108,13 @@ func (pool baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock) (err er
 	return nil
 }
 
-func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote) (err error) {
-	id := verify(pv)
-	if err := pool.pv.Add(pv, id); err != nil {
+func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) (err error) {
+	id := verifyIdentity(pv)
+	var evidenceVote *EvidenceVote
+	if evidenceVote, err = NewEvidenceVote(pv, node); err != nil {
+		return fmt.Errorf("CannibalizeBytes error")
+	}
+	if err := pool.pv.Add(evidenceVote, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareVoteEvidence); ok {
 			if err := pool.commit(evidence, id); err != nil {
 				return err
@@ -115,9 +125,13 @@ func (pool baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote) (err erro
 	return nil
 }
 
-func (pool baseEvidencePool) AddViewChange(vc *protocols.ViewChange) (err error) {
-	id := verify(vc)
-	if err := pool.vc.Add(vc, id); err != nil {
+func (pool baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (err error) {
+	id := verifyIdentity(vc)
+	var evidenceView *EvidenceView
+	if evidenceView, err = NewEvidenceView(vc, node); err != nil {
+		return fmt.Errorf("CannibalizeBytes error")
+	}
+	if err := pool.vc.Add(evidenceView, id); err != nil {
 		if evidence, ok := err.(*DuplicateViewChangeEvidence); ok {
 			if err := pool.commit(evidence, id); err != nil {
 				return err
@@ -137,17 +151,17 @@ func (pool baseEvidencePool) Evidences() consensus.Evidences {
 		case prepareDualPrefix:
 			var e DuplicatePrepareBlockEvidence
 			if err := rlp.DecodeBytes(it.Value(), &e); err == nil {
-				evds = append(evds, e)
+				evds = append(evds, &e)
 			}
 		case voteDualPrefix:
 			var e DuplicatePrepareVoteEvidence
 			if err := rlp.DecodeBytes(it.Value(), &e); err == nil {
-				evds = append(evds, e)
+				evds = append(evds, &e)
 			}
 		case viewDualPrefix:
 			var e DuplicateViewChangeEvidence
 			if err := rlp.DecodeBytes(it.Value(), &e); err == nil {
-				evds = append(evds, e)
+				evds = append(evds, &e)
 			}
 		}
 	}
@@ -156,9 +170,28 @@ func (pool baseEvidencePool) Evidences() consensus.Evidences {
 	return evds
 }
 
-func (pool baseEvidencePool) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+func NewEvidences(data string) (consensus.Evidences, error) {
+	var eds EvidenceData
+	if err := json.Unmarshal([]byte(data), &eds); err != nil {
+		return nil, err
+	}
+
+	var res consensus.Evidences
+	for _, e := range eds.DP {
+		res = append(res, e)
+	}
+	for _, e := range eds.DV {
+		res = append(res, e)
+	}
+	for _, e := range eds.DC {
+		res = append(res, e)
+	}
+	return res, nil
+}
+
+func (pool baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
 	var ed EvidenceData
-	if err := json.Unmarshal(data, &ed); err != nil {
+	if err := json.Unmarshal([]byte(data), &ed); err != nil {
 		return nil, err
 	}
 	evds := make(consensus.Evidences, 0)
@@ -184,7 +217,7 @@ func (pool baseEvidencePool) Close() {
 	pool.db.Close()
 }
 
-func verify(msg types.ConsensusMsg) Identity {
+func verifyIdentity(msg types.ConsensusMsg) Identity {
 	msgId := ""
 	switch m := msg.(type) {
 	case *protocols.PrepareBlock:

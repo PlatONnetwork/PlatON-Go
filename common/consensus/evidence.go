@@ -1,5 +1,7 @@
 package consensus
 
+import "github.com/PlatONnetwork/PlatON-Go/common"
+
 type EvidenceType int32
 
 type Evidence interface {
@@ -9,9 +11,9 @@ type Evidence interface {
 	Epoch() uint64
 	ViewNumber() uint64
 	Hash() []byte
-	//Address() common.Address
-	//Validate() error
-	//Type() EvidenceType
+	Address() common.Address
+	Validate() error
+	Type() EvidenceType
 }
 
 type Evidences []Evidence
@@ -22,7 +24,7 @@ func (e Evidences) Len() int {
 
 type EvidencePool interface {
 	//Deserialization of evidence
-	UnmarshalEvidence(data []byte) (Evidences, error)
+	UnmarshalEvidence(data string) (Evidences, error)
 	//Get current evidences
 	Evidences() Evidences
 	//Clear all evidences

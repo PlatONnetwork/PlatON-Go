@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	cconsensus "github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
@@ -996,10 +995,6 @@ func (cbft *Cbft) Evidences() string {
 		return ""
 	}
 	return string(js)
-}
-
-func (cbft *Cbft) UnmarshalEvidence(data []byte) (cconsensus.Evidences, error) {
-	return cbft.evPool.UnmarshalEvidence(data)
 }
 
 // verifySelfSigned

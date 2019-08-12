@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 
@@ -78,11 +79,11 @@ type RemoveValidatorEvent struct {
 type UpdateValidatorEvent struct{}
 
 type ValidateNode struct {
-	Index     int            `json:"index"`
-	Address   common.Address `json:"-"`
-	PubKey    *ecdsa.PublicKey
+	Index     uint32           `json:"index"`
+	Address   common.Address   `json:"-"`
+	PubKey    *ecdsa.PublicKey `json:"pubKey"`
 	NodeID    discover.NodeID
-	BlsPubKey *bls.PublicKey
+	BlsPubKey *bls.PublicKey `json:"blsPubKey"`
 }
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
@@ -206,11 +207,11 @@ func (vs *Validators) NodeID(idx int) discover.NodeID {
 	return vs.sortedNodes[idx].NodeID
 }
 
-func (vs *Validators) Index(nodeID discover.NodeID) (int, error) {
+func (vs *Validators) Index(nodeID discover.NodeID) (uint32, error) {
 	if node, ok := vs.Nodes[nodeID]; ok {
 		return node.Index, nil
 	}
-	return -1, errors.New("not found the specified validator")
+	return math.MaxUint32, errors.New("not found the specified validator")
 }
 
 func (vs *Validators) Len() int {

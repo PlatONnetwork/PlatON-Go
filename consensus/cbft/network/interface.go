@@ -40,4 +40,7 @@ type Cbft interface {
 
 	// OnPong records net delay time.
 	OnPong(nodeID string, netLatency int64) error
+
+	// BlockExists determines if a block exists.
+	BlockExists(blockNumber uint64, blockHash common.Hash) error
 }

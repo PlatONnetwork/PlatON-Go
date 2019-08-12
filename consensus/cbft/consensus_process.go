@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -19,7 +19,7 @@ import (
 )
 
 // Perform security rule verification，store in blockTree, Whether to start synchronization
-func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
+func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err error) {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
@@ -43,12 +43,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		}
 	}
 
-	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
+	var node *cbfttypes.ValidateNode
+	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
 		return err
 	}
 
-	if err := cbft.evPool.AddPrepareBlock(msg); err != nil {
+	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
 			return err
@@ -63,7 +64,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 }
 
 // Perform security rule verification，store in blockTree, Whether to start synchronization
-func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
+func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err error) {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
@@ -74,12 +75,11 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	cbft.prepareVoteFetchRules(id, msg)
 
 	var node *cbfttypes.ValidateNode
-	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
 
-	if err := cbft.evPool.AddPrepareVote(msg); err != nil {
+	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
 			return err
@@ -95,7 +95,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 }
 
 // Perform security rule verification, view switching
-func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
+func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) (err error) {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
@@ -104,12 +104,11 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	}
 
 	var node *cbfttypes.ValidateNode
-	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		return err
 	}
 
-	if err := cbft.evPool.AddViewChange(msg); err != nil {
+	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
 			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
 			return err
