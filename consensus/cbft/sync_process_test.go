@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -522,5 +523,24 @@ func TestCbft_OnPong(t *testing.T) {
 	for i := 0; i < len(testCases); i++ {
 		value := running(testCases[i].value)
 		assert.Equal(t, testCases[i].expect*1000000, int64(value))
+	}
+}
+
+func TestCbft_BlockExists(t *testing.T) {
+	engine, _ := buildSingleCbft()
+	testCases := []struct {
+		number uint64
+		hash   common.Hash
+		err    string
+	}{
+		{0, common.HexToHash("0x62bc91fb3c482a1bbadc96d01ae4aaf60b182460f7a90bfe4510730d525fdf4f"), ""},
+		{0, common.BytesToHash([]byte("invalid hash")), "not found block by hash"},
+		{0, common.Hash{}, "invalid blockHash"},
+	}
+	for _, v := range testCases {
+		err := engine.BlockExists(v.number, v.hash)
+		if err != nil {
+			assert.True(t, strings.Contains(err.Error(), v.err))
+		}
 	}
 }
