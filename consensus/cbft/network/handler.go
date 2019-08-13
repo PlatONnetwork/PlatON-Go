@@ -549,6 +549,7 @@ func (h *EngineManager) RemovePeer(id string) {
 	// Short circuit if the peer was already removed
 	peer, err := h.peers.Get(id)
 	if err != nil {
+		log.Error("Removing CBFT peer failed", "err", err)
 		return
 	}
 	log.Debug("Removing CBFT peer", "peer", id)
