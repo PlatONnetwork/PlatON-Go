@@ -326,35 +326,35 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	plugin.GovPluginInstance()
 	si.SetDecodeEvidenceFun(evidence.NewEvidences)
 	data := `{
-         "duplicate_prepare": [
+          "duplicate_prepare": [
           {
            "PrepareA": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x00a452c6116ac9df049016437f8a35b4e29c17d63632314f0266df2b0dcd4bef",
+            "block_hash": "0x09c94e00f687891f5de80146d906b55a249408dfd27afcad5a87bdad6fc28957",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
-             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
-             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
+             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
+             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
+             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
             },
-            "signature": "0x554a2a2f1b0d197730c707b595016b5f735ce0df0a5e9efd28a77764f295af1f"
+            "signature": "0x13eb58303156f63d8961a916694d3f659d58804ef1d783ee5c8c7fc3ca393b8a"
            },
            "PrepareB": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x3f643f315a72d54815e3b638e53a1f293834e6d9109c4c0f3e5d9c7171bf1cf2",
+            "block_hash": "0xd1fc79053b8e9fd6a7d9061b4e12a282110429bd0e643aa477083f221a8cba8c",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
-             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
-             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
+             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
+             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
+             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
             },
-            "signature": "0x9e626bd0fd19290c7ff23a605259735de216f9c26df51ddaf51f66f0aade4097"
+            "signature": "0x8de9fbb57edf75934b4caf40c95d569d03a75c762343066db737fdb2b818c313"
            }
           },
 		  {
@@ -391,30 +391,30 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "PrepareA": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x00a452c6116ac9df049016437f8a35b4e29c17d63632314f0266df2b0dcd4bef",
+            "block_hash": "0x3a9231003fcf850ff47dcf8bb13cc4a711c1c1704393bd1663568acdd2d5d761",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
-             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
-             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
+             "address": "0x0c6d62d98f6f7906b414dfed2368ab6a5ce36dca",
+             "NodeID": "4c85a9eab0f1d8bdd6f211e7a751373efd54c09fb7857d556325c064a63dd05b3590efc09f5b14194d34ab8e94e51a3160e0c685a67ea862a3c9a046e1225b44",
+             "blsPubKey": "af3a4411370ad2ec97cd8a02c9d730e9dd5e90c509294bc947a5f1de0aeedf22c5dc551481f43e40d65cf5341485c9fff087361b03ece46e99aed43b54efaf1d"
             },
-            "signature": "0x554a2a2f1b0d197730c707b595016b5f735ce0df0a5e9efd28a77764f295af1f"
+            "signature": "0xf36de5b8008fd9e697e8414bbbca6a943a448bbc69c4e7aac7ffdffd3c051288"
            },
            "PrepareB": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x3f643f315a72d54815e3b638e53a1f293834e6d9109c4c0f3e5d9c7171bf1cf2",
+            "block_hash": "0xb5efd1598ba2ad9ff3ee763fb2cf43a24f64ca56c1efdeca7aad3436a4da7240",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
-             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
-             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
+             "address": "0x0c6d62d98f6f7906b414dfed2368ab6a5ce36dca",
+             "NodeID": "4c85a9eab0f1d8bdd6f211e7a751373efd54c09fb7857d556325c064a63dd05b3590efc09f5b14194d34ab8e94e51a3160e0c685a67ea862a3c9a046e1225b44",
+             "blsPubKey": "af3a4411370ad2ec97cd8a02c9d730e9dd5e90c509294bc947a5f1de0aeedf22c5dc551481f43e40d65cf5341485c9fff087361b03ece46e99aed43b54efaf1d"
             },
-            "signature": "0x9e626bd0fd19290c7ff23a605259735de216f9c26df51ddaf51f66f0aade4000"
+            "signature": "0xaf76685de2b0cc25644d4e5c763065162ff03bc425826dd639c4ee779a200509"
            }
           }
          ],
@@ -422,13 +422,13 @@ func TestSlashingPlugin_Slash(t *testing.T) {
          "duplicate_viewchange": []
         }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	addr := common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257")
-	nodeId, err := discover.HexID("bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c")
+	addr := common.HexToAddress("0x27383a8d350139588daba349dcd6ef1d745da004")
+	nodeId, err := discover.HexID("2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270")
 	if nil != err {
 		t.Fatal(err)
 	}
 	var blsKey bls.SecretKey
-	skbyte, err := hex.DecodeString("d6ba381339988d7984393cd1892969d78eae735c588a9528c834676faf333507")
+	skbyte, err := hex.DecodeString("328146a789365c846b1da23f89bc178a32febf217fb496153efe9e34ac4fa621")
 	if nil != err {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}
