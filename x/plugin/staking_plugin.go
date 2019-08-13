@@ -2977,9 +2977,10 @@ func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
 		pubKey, _ := v.NodeId.Pubkey()
 
 		vn := &cbfttypes.ValidateNode{
-			Index:   uint32(i),
-			Address: v.NodeAddress,
-			PubKey:  pubKey,
+			Index:     uint32(i),
+			Address:   v.NodeAddress,
+			PubKey:    pubKey,
+			BlsPubKey: &v.BlsPubKey,
 		}
 
 		valMap[v.NodeId] = vn
