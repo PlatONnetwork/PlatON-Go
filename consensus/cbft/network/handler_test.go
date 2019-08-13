@@ -156,7 +156,8 @@ func Test_EngineManager_Handle(t *testing.T) {
 	// First send a status message and then to
 	// send consensus messages for processing.
 	go func() {
-		status := &protocols.CbftStatusData{1, big.NewInt(1), common.Hash{}, big.NewInt(2), common.Hash{}, big.NewInt(3), common.Hash{}}
+		status := &protocols.CbftStatusData{ProtocolVersion: 1, QCBn: big.NewInt(1), QCBlock: common.Hash{},
+			LockBn: big.NewInt(2), LockBlock: common.Hash{}, CmtBn: big.NewInt(3), CmtBlock: common.Hash{}}
 		p2p.Send(fake.localPeer.rw, protocols.CBFTStatusMsg, status)
 		t.Log("send status success.")
 		// send message that the type of consensus.
