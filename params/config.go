@@ -17,12 +17,11 @@
 package params
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -114,16 +113,6 @@ var (
 		EIP155Block: big.NewInt(2675000),
 		Cbft: &CbftConfig{
 			InitialNodes:      convertNodeUrl(initialMainNetConsensusNodes),
-			PeerMsgQueueSize:  1024,
-			EvidenceDir:       "evidenceDir",
-			MaxResetCacheSize: 512,
-			MaxQueuesLimit:    4096,
-			MaxBlockDist:      192,
-			MaxPingLatency:    5000,
-			MaxAvgLatency:     2000,
-			CbftVersion:       byte(0x01),
-			Remaining:         50 * time.Millisecond,
-			ValidatorMode:     "ppos",
 		},
 		VMInterpreter: "wasm",
 	}
@@ -144,15 +133,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes:      convertNodeUrl(initialTestnetConsensusNodes),
-			PeerMsgQueueSize:  1024,
-			EvidenceDir:       "evidenceDir",
-			MaxResetCacheSize: 512,
-			MaxQueuesLimit:    4096,
-			MaxBlockDist:      192,
-			MaxPingLatency:    5000,
-			MaxAvgLatency:     2000,
-			CbftVersion:       byte(0x01),
-			Remaining:         50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -172,15 +152,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes:      convertNodeUrl(initialInnerTestnetConsensusNodes),
-			PeerMsgQueueSize:  1024,
-			EvidenceDir:       "evidenceDir",
-			MaxResetCacheSize: 512,
-			MaxQueuesLimit:    4096,
-			MaxBlockDist:      192,
-			MaxPingLatency:    5000,
-			MaxAvgLatency:     2000,
-			CbftVersion:       byte(0x01),
-			Remaining:         50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -200,15 +171,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes:      convertNodeUrl(initialInnerDevnetConsensusNodes),
-			PeerMsgQueueSize:  1024,
-			EvidenceDir:       "evidenceDir",
-			MaxResetCacheSize: 512,
-			MaxQueuesLimit:    4096,
-			MaxBlockDist:      192,
-			MaxPingLatency:    5000,
-			MaxAvgLatency:     2000,
-			CbftVersion:       byte(0x01),
-			Remaining:         50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -229,15 +191,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes:      convertNodeUrl(initialBetanetConsensusNodes),
-			PeerMsgQueueSize:  1024,
-			EvidenceDir:       "evidenceDir",
-			MaxResetCacheSize: 512,
-			MaxQueuesLimit:    4096,
-			MaxBlockDist:      192,
-			MaxPingLatency:    5000,
-			MaxAvgLatency:     2000,
-			CbftVersion:       byte(0x01),
-			Remaining:         50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -256,18 +209,23 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			Period:            3,
-			Epoch:             30000,
-			Duration:          30,
-			PeerMsgQueueSize:  1024,
-			EvidenceDir:       "evidenceDir",
-			MaxResetCacheSize: 512,
-			MaxQueuesLimit:    4096,
-			MaxBlockDist:      192,
-			MaxPingLatency:    5000,
-			MaxAvgLatency:     2000,
-			CbftVersion:       byte(0x01),
-			Remaining:         50 * time.Millisecond,
+			Period: 3,
+			Epoch:  30000,
+			PposConfig: &PposConfig{
+				CandidateConfig: &CandidateConfig{
+					Threshold:         "1000000000000000000000000",
+					DepositLimit:      10,
+					Allowed:           512,
+					MaxChair:          10,
+					MaxCount:          100,
+					RefundBlockNumber: 512,
+				},
+				TicketConfig: &TicketConfig{
+					TicketPrice:       "100000000000000000000",
+					MaxCount:          51200,
+					ExpireBlockNumber: 1536000,
+				},
+			},
 		},
 	}
 
@@ -284,19 +242,7 @@ var (
 	// adding flags to the config to also have to set these fields.
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, &CbftConfig{
-		InitialNodes:      convertNodeUrl(initialMainNetConsensusNodes),
-		PeerMsgQueueSize:  1024,
-		EvidenceDir:       "evidenceDir",
-		MaxResetCacheSize: 512,
-		MaxQueuesLimit:    4096,
-		MaxBlockDist:      192,
-		MaxPingLatency:    5000,
-		MaxAvgLatency:     2000,
-		CbftVersion:       byte(0x01),
-		Remaining:         50 * time.Millisecond,
-		ValidatorMode:     "ppos",
-	}, ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
 
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), nil, nil, new(CbftConfig), ""}
 	TestRules              = TestChainConfig.Rules(new(big.Int))
@@ -332,29 +278,37 @@ type ChainConfig struct {
 	VMInterpreter string `json:"interpreter,omitempty"`
 }
 
-type CbftConfig struct {
-	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
-	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
-	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
-	BlockInterval    uint64  `json:"-"`
-	WalEnabled       bool    `json:"-"`
-	//mock
-	InitialNodes  []discover.Node   `json:"initialNodes,omitempty"`
-	NodeID        discover.NodeID   `json:"nodeID,omitempty"`
-	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
-	ValidatorMode string            `json:"validatorMode,omitempty"`
+type CbftNode struct {
+	Node      discover.Node `json:"node"`
+	BlsPubKey bls.PublicKey `json:"blsPubKey"`
+}
 
-	PeerMsgQueueSize  uint64
-	EvidenceDir       string
-	MaxResetCacheSize int
-	MaxQueuesLimit    int
-	MaxBlockDist      uint64
-	MaxPingLatency    int64
-	MaxAvgLatency     int64
-	CbftVersion       uint8
-	Remaining         time.Duration
+type CbftConfig struct {
+	Epoch         uint64      `json:"epoch,omitempty"`         // Epoch length to reset votes and checkpoint
+	Period        uint64      `json:"period,omitempty"`        // Number of seconds between blocks to enforce
+	Amount        uint32      `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
+	InitialNodes  []CbftNode  `json:"initialNodes,omitempty"`  //Genesis consensus node
+	ValidatorMode string      `json:"validatorMode,omitempty"` //Validator mode for easy testing
+	PposConfig    *PposConfig `json:"pposConfig,omitempty"`
+}
+
+type PposConfig struct {
+	CandidateConfig *CandidateConfig
+	TicketConfig    *TicketConfig
+}
+type CandidateConfig struct {
+	Threshold         string
+	DepositLimit      uint32
+	Allowed           uint32
+	MaxCount          uint32
+	MaxChair          uint32
+	RefundBlockNumber uint32
+}
+
+type TicketConfig struct {
+	TicketPrice       string
+	MaxCount          uint32
+	ExpireBlockNumber uint32
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -509,14 +463,14 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 	}
 }
 
-func convertNodeUrl(initialNodes []string) []discover.Node {
-	NodeList := make([]discover.Node, 0, len(initialNodes))
+func convertNodeUrl(initialNodes []string) []CbftNode {
+	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, url := range initialNodes {
 		//if nodeID, error := discover.HexID(value); error == nil {
 		//	NodeIDList = append(NodeIDList, nodeID)
 		//}
 		if node, err := discover.ParseNode(url); err == nil {
-			NodeList = append(NodeList, *node)
+			NodeList = append(NodeList, CbftNode{Node: *node})
 		}
 	}
 	return NodeList

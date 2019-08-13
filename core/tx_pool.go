@@ -26,8 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -140,11 +138,9 @@ func NewTxPoolBlockChain(chain *BlockChainCache) *TxPoolBlockChain {
 	}
 }
 func (tx *TxPoolBlockChain) CurrentBlock() *types.Block {
-	if cbft, ok := tx.chain.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestLogicalBlock(); block != nil {
-			log.Debug("get logical block as current block in cbft", "hash", block.Hash(), "number", block.NumberU64())
-			return block
-		}
+	block := tx.chain.Engine().CurrentBlock()
+	if block != nil {
+		return block
 	}
 	return tx.chain.currentBlock.Load().(*types.Block)
 }
@@ -271,7 +267,7 @@ type txExt struct {
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
 //func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
-func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoolBlockChain) *TxPool {
+func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain *BlockChainCache) *TxPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
@@ -279,7 +275,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
-		chain:       chain,
+		chain:       NewTxPoolBlockChain(chain),
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
@@ -300,7 +296,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		pool.locals.add(addr)
 	}
 	pool.priced = newTxPricedList(pool.all)
-	pool.reset(nil, chain.CurrentBlock().Header())
+	pool.reset(nil, chain.currentBlock.Load().(*types.Block).Header())
 
 	go pool.txExtBufferReadLoop()
 

@@ -21,14 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	cli "gopkg.in/urfave/cli.v1"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/dashboard"
@@ -168,7 +168,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	//if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
 	//	cfg.Eth.CbftConfig = *cbftConfig
 	//}
-	utils.SetCbft(ctx, &cfg.Eth.CbftConfig)
+	utils.SetCbft(ctx, &cfg.Eth.CbftConfig, &cfg.Node)
 
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)

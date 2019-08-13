@@ -18,10 +18,10 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -50,6 +50,18 @@ type ChainReader interface {
 
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
+}
+
+type TxPoolReset interface {
+	ForkedReset(newHeader *types.Header, rollback []*types.Block)
+	Reset(newBlock *types.Block)
+}
+
+//Execution block, you need to pass in the parent block to find the parent block state
+type BlockCacheWriter interface {
+	Execute(block *types.Block, parent *types.Block) error
+	ClearCache(block *types.Block)
+	WriteBlock(block *types.Block) error
 }
 
 // Engine is an algorithm agnostic consensus engine.
@@ -102,7 +114,7 @@ type Engine interface {
 
 	NextBaseBlock() *types.Block
 
-	InsertChain(block *types.Block, errCh chan error)
+	InsertChain(block *types.Block) error
 
 	HasBlock(hash common.Hash, number uint64) bool
 
@@ -111,7 +123,7 @@ type Engine interface {
 
 	CurrentBlock() *types.Block
 
-	FastSyncCommitHead() <-chan error
+	FastSyncCommitHead(block *types.Block) error
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
@@ -125,46 +137,43 @@ type PoW interface {
 	Hashrate() float64
 }
 
+// Agency
+type Agency interface {
+	Sign(msg interface{}) error
+	VerifySign(msg interface{}) error
+	VerifyHeader(header *types.Header) error
+	GetLastNumber(blockNumber uint64) uint64
+	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
+	IsCandidateNode(nodeID discover.NodeID) bool
+}
+
 type Bft interface {
 	Engine
+
+	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
 	ConsensusNodes() ([]discover.NodeID, error)
 
 	// Returns whether the current node is out of the block
-	ShouldSeal(curTime int64) (bool, error)
+	ShouldSeal(curTime time.Time) (bool, error)
 
-	CalcBlockDeadline(timePoint int64) (time.Time, error)
-	CalcNextBlockTime(timePoint int64) (time.Time, error)
+	CalcBlockDeadline(timePoint time.Time) time.Time
 
-	// Process the BFT signatures
-	//OnNewBlock(chain ChainReader, block *types.Block) error
-
-	// Process the BFT signatures
-	OnPong(nodeID discover.NodeID, netLatency int64) error
-	//
-	//// Send a signal if a block synced from other peer.
-	//OnBlockSynced()
-
-	CheckConsensusNode(address common.Address) bool
+	CalcNextBlockTime(timePoint time.Time) time.Time
 
 	IsConsensusNode() bool
-
-	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
-	HighestLogicalBlock() *types.Block
-
-	HighestConfirmedBlock() *types.Block
 
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
 	GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block
 
-	SetPrivateKey(privateKey *ecdsa.PrivateKey)
-
-	IsSignedBySelf(sealHash common.Hash, signature []byte) bool
+	IsSignedBySelf(sealHash common.Hash, header *types.Header) bool
 
 	Evidences() string
 
-	CommitBlockBP(block *types.Block, txs int, gasUsed uint64, elapse time.Duration)
 	TracingSwitch(flag int8)
+
+	// NodeID is temporary.
+	NodeID() discover.NodeID
 }
