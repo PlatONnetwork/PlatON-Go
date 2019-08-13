@@ -57,8 +57,9 @@ func main() {
 			die(err)
 			return
 		}
-		fmt.Println("inner contract data: \n", string(rlpByte))
+		fmt.Println("\ninner contract data: \n", string(rlpByte))
 		fmt.Println()
+		os.Exit(1)
 		return
 	}
 

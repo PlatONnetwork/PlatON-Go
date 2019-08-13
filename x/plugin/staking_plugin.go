@@ -772,6 +772,8 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash, epoch uint64,
 	addr common.Address, can *staking.Candidate) error {
 
+	log.Debug("Call handleUnStake Start", "blockHash", blockHash.Hex(), "epoch", epoch, "nodeId", can.NodeId.String())
+
 	lazyCalcStakeAmount(epoch, can)
 
 	total := calCanTotalAmount(can)
@@ -842,6 +844,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 	log.Debug("handleUnStake, Method End",
 		"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
+	log.Debug("Call handleUnStake end", "blockHash", blockHash.Hex(), "epoch", epoch, "nodeId", can.NodeId.String())
 	return nil
 }
 
