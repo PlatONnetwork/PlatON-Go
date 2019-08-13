@@ -326,37 +326,55 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	plugin.GovPluginInstance()
 	si.SetDecodeEvidenceFun(evidence.NewEvidences)
 	data := `{
-          "duplicate_prepare": [
-            {
-              "VoteA": {
-                "timestamp": 0,
-                "block_hash": "0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130407",
-                "block_number": 1,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0xa65e16b3bc4862fdd893eaaaaecf1e415cdc2c8a08e4bbb1f6b2a1f4bf4e2d0c0ec27857da86a5f3150b32bee75322073cec320e51fe0a123cc4238ee4155bf001"
-              },
-              "VoteB": {
-                "timestamp": 0,
-                "block_hash": "0x18030d1e01071b1d071a12151e100a091f060801031917161e0a0d0f02161d0e",
-                "block_number": 1,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
-              }
-            }
-          ],
-          "duplicate_viewchange": [],
-          "timestamp_viewchange": []
+         "duplicate_prepare": [
+          {
+           "PrepareA": {
+            "epoch": 1,
+            "view_number": 1,
+            "block_hash": "0x504fc256d64711833c5e9ab5968ef3ae9129af90a6f48ea6125c9a98bf0643a2",
+            "block_number": 1,
+            "block_index": 1,
+            "validate_node": {
+             "index": 0,
+             "address": "0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3",
+             "NodeID": "f58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9",
+             "blsPubKey": "cabac737d66770861eba0bc233af9a1ebdee32a21bedfed37f3ab1f8f493a9009b6d3f1a96c96da6492f2547dfc39374e6de25805db601dc66748a1aad8c740c"
+            },
+            "cannibalize": "POWEymMIHesJDiWxCp5BIhWFukqtiWKjJRnFO6dv00k=",
+            "signature": "0xa50083eb0bac47298aa7094f5babc75376f332aebdb9781b8166b813cc1dfa81"
+           },
+           "PrepareB": {
+            "epoch": 1,
+            "view_number": 1,
+            "block_hash": "0xc34c83e56b31e40f4960460c8d70fcff27a8a8b14a69205d33e70f066e5e291c",
+            "block_number": 1,
+            "block_index": 1,
+            "validate_node": {
+             "index": 0,
+             "address": "0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3",
+             "NodeID": "f58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9",
+             "blsPubKey": "cabac737d66770861eba0bc233af9a1ebdee32a21bedfed37f3ab1f8f493a9009b6d3f1a96c96da6492f2547dfc39374e6de25805db601dc66748a1aad8c740c"
+            },
+            "cannibalize": "0ubn5EnNGfC08PAxrsaU30JyKfIStQBpDecQPqV1Gsw=",
+            "signature": "0xf462d8b58b5fd6282f1da21287283baba225fdffecbea4c4cabee88f3868209b"
+           }
+          }
+         ],
+         "duplicate_vote": [],
+         "duplicate_viewchange": []
         }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
-	nodeId, err := discover.HexID("0x38e2724b366d66a5acb271dba36bc45e2161e868d961ee299f4e331927feb5e9373f35229ef7fe7e84c083b0fbf24264faef01faaf388df5f459b87638aa620b")
+	addr := common.HexToAddress("0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3")
+	nodeId, err := discover.HexID("0xf58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9")
 	if nil != err {
 		t.Fatal(err)
 	}
 	var blsKey bls.SecretKey
-	blsKey.SetByCSPRNG()
+	skbyte, err := hex.DecodeString("8f7358f97aec6eccb400f878357e0ae87c93b3d1e8f6da68fe77438b9f7ec01d")
+	if nil != err {
+		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
+	}
+	blsKey.SetLittleEndian(skbyte)
 	can := &staking.Candidate{
 		NodeId:          nodeId,
 		BlsPubKey:       *blsKey.GetPublicKey(),
@@ -397,28 +415,42 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
 	assert.Nil(t, err)
 	data = `{
-          "duplicate_prepare": [
-            {
-              "VoteA": {
-                "timestamp": 0,
-                "block_hash": "0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130407",
-                "block_number": 2,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0xa65e16b3bc4862fdd893eaaaaecf1e415cdc2c8a08e4bbb1f6b2a1f4bf4e2d0c0ec27857da86a5f3150b32bee75322073cec320e51fe0a123cc4238ee4155bf001"
-              },
-              "VoteB": {
-                "timestamp": 0,
-                "block_hash": "0x18030d1e01071b1d071a12151e100a091f060801031917161e0a0d0f02161d0e",
-                "block_number": 2,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
-              }
-            }
-          ],
-          "duplicate_viewchange": [],
-          "timestamp_viewchange": []
+         "duplicate_prepare": [
+          {
+           "PrepareA": {
+            "epoch": 1,
+            "view_number": 1,
+            "block_hash": "0x504fc256d64711833c5e9ab5968ef3ae9129af90a6f48ea6125c9a98bf0643a2",
+            "block_number": 2,
+            "block_index": 1,
+            "validate_node": {
+             "index": 0,
+             "address": "0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3",
+             "NodeID": "f58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9",
+             "blsPubKey": "cabac737d66770861eba0bc233af9a1ebdee32a21bedfed37f3ab1f8f493a9009b6d3f1a96c96da6492f2547dfc39374e6de25805db601dc66748a1aad8c740c"
+            },
+            "cannibalize": "POWEymMIHesJDiWxCp5BIhWFukqtiWKjJRnFO6dv00k=",
+            "signature": "0xa50083eb0bac47298aa7094f5babc75376f332aebdb9781b8166b813cc1dfa81"
+           },
+           "PrepareB": {
+            "epoch": 1,
+            "view_number": 1,
+            "block_hash": "0xc34c83e56b31e40f4960460c8d70fcff27a8a8b14a69205d33e70f066e5e291c",
+            "block_number": 2,
+            "block_index": 1,
+            "validate_node": {
+             "index": 0,
+             "address": "0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3",
+             "NodeID": "f58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9",
+             "blsPubKey": "cabac737d66770861eba0bc233af9a1ebdee32a21bedfed37f3ab1f8f493a9009b6d3f1a96c96da6492f2547dfc39374e6de25805db601dc66748a1aad8c740c"
+            },
+            "cannibalize": "0ubn5EnNGfC08PAxrsaU30JyKfIStQBpDecQPqV1Gsw=",
+            "signature": "0xf462d8b58b5fd6282f1da21287283baba225fdffecbea4c4cabee88f3868209b"
+           }
+          }
+         ],
+         "duplicate_vote": [],
+         "duplicate_viewchange": []
         }`
 	evidence, err = si.DecodeEvidence(data)
 	if nil != err {

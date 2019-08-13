@@ -95,7 +95,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
+	addr := common.HexToAddress("0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3")
 	nodeId, err := discover.HexID("0xf58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9")
 	if nil != err {
 		t.Fatal(err)
