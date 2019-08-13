@@ -519,6 +519,10 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 	return nil
 }
 
+func (vp *ValidatorPool) Flush(header *types.Header) error {
+	return vp.agency.Flush(header)
+}
+
 func NextRound(blockNumber uint64) uint64 {
 	return blockNumber + 1
 }
