@@ -60,6 +60,10 @@ func NewStaticAgency(nodes []params.CbftNode) consensus.Agency {
 	}
 }
 
+func (d *StaticAgency) Flush(header *types.Header) error {
+	return nil
+}
+
 func (d *StaticAgency) Sign(interface{}) error {
 	return nil
 }
@@ -102,6 +106,10 @@ func NewInnerAgency(nodes []params.CbftNode, chain *core.BlockChain, blocksPerNo
 		blockchain:            chain,
 		defaultValidators:     newValidators(nodes, 0),
 	}
+}
+
+func (ia *InnerAgency) Flush(header *types.Header) error {
+	return nil
 }
 
 func (ia *InnerAgency) Sign(interface{}) error {

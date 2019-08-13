@@ -145,6 +145,7 @@ type Agency interface {
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
+	Flush(header *types.Header) error
 }
 
 type Bft interface {
