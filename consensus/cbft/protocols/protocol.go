@@ -382,7 +382,7 @@ type GetQCBlockList struct {
 }
 
 func (s *GetQCBlockList) String() string {
-	return fmt.Sprintf("{Number:%d}", s.BlockNumber)
+	return fmt.Sprintf("{BlockkNumber:%d,BlockHash:%s}", s.BlockNumber, s.BlockHash.TerminalString())
 }
 
 func (s *GetQCBlockList) MsgHash() common.Hash {

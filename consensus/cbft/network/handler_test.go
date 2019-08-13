@@ -73,8 +73,8 @@ func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
 func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return s.localPeer.CommitBn(), common.Hash{}
 }
-func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
-	return []discover.NodeID{s.consensusNodes[0]}, &protocols.GetViewChange{
+func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
+	return &protocols.GetViewChange{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
