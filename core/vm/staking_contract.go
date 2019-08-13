@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -87,7 +89,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
+	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32, blsPubKey string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
@@ -160,8 +162,11 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	/**
 	init candidate info
 	*/
+	var blsKey bls.SecretKey
+	blsKey.SetHexString(blsPubKey)
 	canNew := &staking.Candidate{
 		NodeId:          nodeId,
+		BlsPubKey:       *blsKey.GetPublicKey(),
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),

@@ -7,12 +7,15 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -61,8 +64,11 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	nodeIdC := nodeIdArr[2]
 	addrC, _ := xutil.NodeId2Addr(nodeIdC)
 
+	var blsKey1 bls.SecretKey
+	blsKey1.SetByCSPRNG()
 	c1 := &staking.Candidate{
 		NodeId:             nodeIdA,
+		BlsPubKey:          *blsKey1.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
@@ -83,8 +89,11 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 		},
 	}
 
+	var blsKey2 bls.SecretKey
+	blsKey2.SetByCSPRNG()
 	c2 := &staking.Candidate{
 		NodeId:             nodeIdB,
+		BlsPubKey:          *blsKey2.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(3),
@@ -105,8 +114,11 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 		},
 	}
 
+	var blsKey3 bls.SecretKey
+	blsKey3.SetByCSPRNG()
 	c3 := &staking.Candidate{
 		NodeId:             nodeIdC,
+		BlsPubKey:          *blsKey3.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[3],
 		StakingTxIndex:     uint32(4),
@@ -142,6 +154,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	v1 := &staking.Validator{
 		NodeAddress:   addrA,
 		NodeId:        c1.NodeId,
+		BlsPubKey:     c1.BlsPubKey,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -149,6 +162,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	v2 := &staking.Validator{
 		NodeAddress:   addrB,
 		NodeId:        c2.NodeId,
+		BlsPubKey:     c2.BlsPubKey,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -156,6 +170,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	v3 := &staking.Validator{
 		NodeAddress:   addrC,
 		NodeId:        c3.NodeId,
+		BlsPubKey:     c3.BlsPubKey,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -309,7 +324,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 	plugin.GovPluginInstance()
-	si.SetDecodeEvidenceFun(cbft.NewEvidences)
+	si.SetDecodeEvidenceFun(evidence.NewEvidences)
 	data := `{
           "duplicate_prepare": [
             {
@@ -340,8 +355,11 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
 	can := &staking.Candidate{
 		NodeId:          nodeId,
+		BlsPubKey:       *blsKey.GetPublicKey(),
 		StakingAddress:  addr,
 		BenefitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),

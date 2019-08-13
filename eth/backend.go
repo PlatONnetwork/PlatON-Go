@@ -25,6 +25,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -566,8 +568,7 @@ func (s *Ethereum) Stop() error {
 // RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
-	//todo: Merge confirmation.
-	//xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
+	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())

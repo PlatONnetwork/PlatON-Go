@@ -5,9 +5,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -30,7 +33,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		Contract: newContract(common.Big0),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
-	plugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
+	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
 	plugin.StakingInstance()
 	plugin.GovPluginInstance()
 
@@ -100,8 +103,11 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
 	can := &staking.Candidate{
 		NodeId:          nodeId,
+		BlsPubKey:       *blsKey.GetPublicKey(),
 		StakingAddress:  addr,
 		BenefitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),

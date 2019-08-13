@@ -200,7 +200,6 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 	return sk.db.GetCandidateStoreByIrr(addr)
 }
 
-
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
 
@@ -430,7 +429,6 @@ func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.I
 
 func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, can *staking.Candidate) error {
-
 
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -1709,6 +1707,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -1780,6 +1779,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
@@ -1927,6 +1927,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
