@@ -54,7 +54,7 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	log.Debug("begin to EndBlock in reward plugin", "hash", blockHash, "blockNumber", blockNumber)
 
 	stakingReward, newBlockReward := rmp.calculateExpectReward(blockNumber, state)
-	log.Trace("show calculated data", "blockNumber", blockNumber, "stkReward", stakingReward, "nbReward", newBlockReward)
+	log.Debug("show calculated data", "blockNumber", blockNumber, "total stkReward", stakingReward, "new block Reward", newBlockReward)
 
 	if xutil.IsSettlementPeriod(blockNumber) {
 		if err := rmp.rewardStaking(head, stakingReward, state); err != nil {
@@ -115,7 +115,7 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	blockNumber := head.Number.Uint64()
 
 	log.Info("ready to reward staking", "blockNumber", blockNumber, "hash", blockHash,
-		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
+		"epoch", xutil.CalculateEpoch(blockNumber), "total reward", reward)
 
 	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
@@ -129,10 +129,12 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	log.Debug("get verifier list success", "listLen", len(list), "everyOneReward", everyValidatorReward, "list", list)
 
 	for index := 0; index < len(list); index++ {
-		addr := list[index].BenefitAddress
-		log.Trace("rewarding staking", "benefitAddress", addr.String())
+		v := list[index]
+		addr := v.BenefitAddress
 
 		if addr != vm.RewardManagerPoolAddr {
+			log.Debug("rewarding staking", "blockNumber", blockNumber, "nodeId", v.NodeId.String(),
+				"benefitAddress", addr.String(), "balance", everyValidatorReward)
 			state.SubBalance(vm.RewardManagerPoolAddr, everyValidatorReward)
 			state.AddBalance(addr, everyValidatorReward)
 		}
@@ -143,10 +145,13 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 
 // rewardNewBlock used for reward new block. it returns coinbase and error
 func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, state xcom.StateDB) error {
-	log.Debug("ready to reward new block", "blockNumber", head.Number.Uint64(), "hash", head.Hash(), "reward", reward)
 
 	rewardAddr := head.Coinbase
 	if rewardAddr != vm.RewardManagerPoolAddr {
+
+		log.Info("ready to reward new block", "blockNumber", head.Number.Uint64(), "hash", head.Hash(),
+			"receive addr", rewardAddr.String(), "reward", reward)
+
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
 		state.AddBalance(rewardAddr, reward)
 	}
@@ -158,22 +163,19 @@ func (rmp *rewardMgrPlugin) calculateExpectReward(blockNumber uint64, state xcom
 	// get expected settlement epochs and new blocks per year first
 	epochs := xutil.EpochsPerYear()
 	blocks := xutil.CalcBlocksEachYear()
-	log.Trace("epochs", "show", epochs)
-	log.Trace("blocks", "show", blocks)
+	log.Debug("[calculateExpectReward]epochs,blocks", "epochs", epochs, "blocks", blocks)
 
 	// 1/4 of total reward is used for reward create new block, the left is used for staking
 	lastYear := xutil.CalculateLastYear(blockNumber)
 	lastYearB := GetYearEndBalance(state, lastYear)
 	totalNewBlockReward := new(big.Int).Div(lastYearB, big.NewInt(RewardNewBlockRate))
 	totalStakingReward := new(big.Int).Sub(lastYearB, totalNewBlockReward)
-	log.Trace("total reward to create new block", "show", totalNewBlockReward.String())
-	log.Trace("total reward to staking", "show", totalStakingReward.String())
+	log.Debug("[calculateExpectReward]total reward to create new block and reward to staking", "totalNewBlockReward", totalNewBlockReward, "totalStakingReward", totalStakingReward)
 
-	newBlockReward := totalNewBlockReward.Div(totalNewBlockReward, big.NewInt(int64(blocks)))
-	stakingReward := totalStakingReward.Div(totalStakingReward, big.NewInt(int64(epochs)))
+	newBlockReward := new(big.Int).Div(totalNewBlockReward, big.NewInt(int64(blocks)))
+	stakingReward := new(big.Int).Div(totalStakingReward, big.NewInt(int64(epochs)))
 
-	log.Trace("reward to create new block", "show", newBlockReward)
-	log.Trace("reward to staking", "show", stakingReward)
+	log.Debug("[calculateExpectReward]reward to create new block and staking", "block", newBlockReward, "staking", stakingReward)
 
 	return stakingReward, newBlockReward
 }
