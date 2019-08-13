@@ -38,14 +38,12 @@ const (
 	PingMsg                 = 0x0f
 	PongMsg                 = 0x10
 	ViewChangeQuorumCertMsg = 0x11
-	ViewChangesMsg          = 0x12
 )
 
 // A is used to convert specific message types according to the message body.
 // The program is forcibly terminated if there is an unmatched message type and
 // all types must exist in the match list.
 func MessageType(msg interface{}) uint64 {
-	// todo: need to process depending on mmessageType.
 	switch msg.(type) {
 	case *CbftStatusData:
 		return CBFTStatusMsg
@@ -83,8 +81,6 @@ func MessageType(msg interface{}) uint64 {
 		return PongMsg
 	case *ViewChangeQuorumCert:
 		return ViewChangeQuorumCertMsg
-	case *ViewChanges:
-		return ViewChangesMsg
 	default:
 	}
 	panic(fmt.Sprintf("unknown message type [%v}", reflect.TypeOf(msg)))
@@ -216,7 +212,7 @@ type ViewChange struct {
 }
 
 func (vc *ViewChange) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%s,BlockNumber:%d,ValidatorIndex:%d}",
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockHash:%vc,BlockNumber:%d,ValidatorIndex:%d}",
 		vc.Epoch, vc.ViewNumber, vc.BlockHash.TerminalString(), vc.BlockNumber, vc.ValidatorIndex)
 }
 
@@ -265,31 +261,6 @@ func (vc *ViewChange) SetSign(sign []byte) {
 	vc.Signature.SetBytes(sign)
 }
 
-type ViewChanges struct {
-	VCs []*ViewChange
-}
-
-func (v ViewChanges) String() string {
-	if len(v.VCs) != 0 {
-		epoch, viewNumber := v.VCs[0].Epoch, v.VCs[0].ViewNumber
-		return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Len:%d}", epoch, viewNumber, len(v.VCs))
-	}
-	return fmt.Sprintf("{Len:%d}", len(v.VCs))
-}
-
-func (v ViewChanges) MsgHash() common.Hash {
-	if len(v.VCs) != 0 {
-		epoch, viewNumber := v.VCs[0].Epoch, v.VCs[0].ViewNumber
-		return utils.BuildHash(ViewChangesMsg, utils.MergeBytes(common.Uint64ToBytes(epoch),
-			common.Uint64ToBytes(viewNumber)))
-	}
-	return utils.BuildHash(ViewChangesMsg, common.Hash{}.Bytes())
-}
-
-func (ViewChanges) BHash() common.Hash {
-	return common.Hash{}
-}
-
 // cbftStatusData implement Message and including status information about peer.
 type CbftStatusData struct {
 	ProtocolVersion uint32      `json:"protocol_version"` // CBFT protocol version number.
@@ -336,7 +307,6 @@ func (s *GetPrepareBlock) BHash() common.Hash {
 }
 
 // Protocol message for obtaining an aggregated signature.
-// todo: Need to determine the attribute field - ParentQC.
 type GetBlockQuorumCert struct {
 	BlockHash   common.Hash `json:"block_hash"`   // The hash of the block to be acquired.
 	BlockNumber uint64      `json:"block_number"` // The number of the block to be acquired.
@@ -557,13 +527,13 @@ func (s *LatestStatus) BHash() common.Hash {
 
 // Used to actively request to get viewChange.
 type GetViewChange struct {
-	Epoch          uint64          `json:"epoch"`
-	ViewNumber     uint64          `json:"view_number"`
-	ViewChangeBits *utils.BitArray `json:"node_indexes"`
+	Epoch       uint64   `json:"epoch"`
+	ViewNumber  uint64   `json:"view_number"`
+	NodeIndexes []uint32 `json:"node_indexes"`
 }
 
 func (s *GetViewChange) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,NodeIndexesLen:%s}", s.Epoch, s.ViewNumber, s.ViewChangeBits.String())
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,NodeIndexesLen:%d}", s.Epoch, s.ViewNumber, len(s.NodeIndexes))
 }
 
 func (s *GetViewChange) MsgHash() common.Hash {
@@ -580,23 +550,21 @@ type ViewChangeQuorumCert struct {
 }
 
 func (v *ViewChangeQuorumCert) String() string {
-	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}",
-		epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number)
+	epoch, viewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	return fmt.Sprintf("{Epoch:%d,VN:%d,Hash:%s,Number:%d}",
+		epoch, viewNumber, hash.TerminalString(), number)
 }
 
 func (v *ViewChangeQuorumCert) MsgHash() common.Hash {
-	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	epoch, viewNumber, hash, number := v.ViewChangeQC.MaxBlock()
 	return utils.BuildHash(ViewChangeQuorumCertMsg, utils.MergeBytes(
 		common.Uint64ToBytes(epoch),
 		common.Uint64ToBytes(viewNumber),
-		common.Uint64ToBytes(blockEpoch),
-		common.Uint64ToBytes(blockViewNumber),
 		hash.Bytes(),
 		common.Uint64ToBytes(number)))
 }
 
 func (v *ViewChangeQuorumCert) BHash() common.Hash {
-	_, _, _, _, hash, _ := v.ViewChangeQC.MaxBlock()
+	_, _, hash, _ := v.ViewChangeQC.MaxBlock()
 	return hash
 }
