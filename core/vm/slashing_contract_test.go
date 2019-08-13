@@ -50,32 +50,30 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
            "PrepareA": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x504fc256d64711833c5e9ab5968ef3ae9129af90a6f48ea6125c9a98bf0643a2",
+            "block_hash": "0x00a452c6116ac9df049016437f8a35b4e29c17d63632314f0266df2b0dcd4bef",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3",
-             "NodeID": "f58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9",
-             "blsPubKey": "cabac737d66770861eba0bc233af9a1ebdee32a21bedfed37f3ab1f8f493a9009b6d3f1a96c96da6492f2547dfc39374e6de25805db601dc66748a1aad8c740c"
+             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
+             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
+             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
             },
-            "cannibalize": "POWEymMIHesJDiWxCp5BIhWFukqtiWKjJRnFO6dv00k=",
-            "signature": "0xa50083eb0bac47298aa7094f5babc75376f332aebdb9781b8166b813cc1dfa81"
+            "signature": "0x554a2a2f1b0d197730c707b595016b5f735ce0df0a5e9efd28a77764f295af1f"
            },
            "PrepareB": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0xc34c83e56b31e40f4960460c8d70fcff27a8a8b14a69205d33e70f066e5e291c",
+            "block_hash": "0x3f643f315a72d54815e3b638e53a1f293834e6d9109c4c0f3e5d9c7171bf1cf2",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3",
-             "NodeID": "f58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9",
-             "blsPubKey": "cabac737d66770861eba0bc233af9a1ebdee32a21bedfed37f3ab1f8f493a9009b6d3f1a96c96da6492f2547dfc39374e6de25805db601dc66748a1aad8c740c"
+             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
+             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
+             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
             },
-            "cannibalize": "0ubn5EnNGfC08PAxrsaU30JyKfIStQBpDecQPqV1Gsw=",
-            "signature": "0xf462d8b58b5fd6282f1da21287283baba225fdffecbea4c4cabee88f3868209b"
+            "signature": "0x9e626bd0fd19290c7ff23a605259735de216f9c26df51ddaf51f66f0aade4097"
            }
           }
          ],
@@ -95,13 +93,13 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	addr := common.HexToAddress("0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3")
-	nodeId, err := discover.HexID("0xf58de166211ed50e510f9bb0453bc6c93fa6a2f83ab5e10155fb1f52ecb3d8c1a79a406ebca6b4171a03c0a5169cde60e406852c31627924d4f2b1f7d889f7a9")
+	addr := common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257")
+	nodeId, err := discover.HexID("bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c")
 	if nil != err {
 		t.Fatal(err)
 	}
 	var blsKey bls.SecretKey
-	skbyte, err := hex.DecodeString("8f7358f97aec6eccb400f878357e0ae87c93b3d1e8f6da68fe77438b9f7ec01d")
+	skbyte, err := hex.DecodeString("d6ba381339988d7984393cd1892969d78eae735c588a9528c834676faf333507")
 	if nil != err {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}
@@ -146,7 +144,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
 	typ, _ := rlp.EncodeToBytes(uint32(1))
-	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0xb1950823ca8fcd02283e18abd28a8b7d5e1951f3"))
+	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257"))
 	blockNumber, _ := rlp.EncodeToBytes(uint16(1))
 
 	params = append(params, fnType)
