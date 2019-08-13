@@ -37,14 +37,15 @@ func (d DuplicatePrepareBlockEvidence) ViewNumber() uint64 {
 
 func (d DuplicatePrepareBlockEvidence) Hash() []byte {
 	var buf []byte
-	buf, err := rlp.EncodeToBytes([]interface{}{
-		d.PrepareA.Cannibalize,
-		d.PrepareA.Signature.Bytes(),
-		d.PrepareB.Cannibalize,
-		d.PrepareB.Signature.Bytes(),
-	})
-	if err != nil {
-		return nil
+	if ac, err := d.PrepareA.CannibalizeBytes(); err == nil {
+		if bc, err := d.PrepareB.CannibalizeBytes(); err == nil {
+			buf, err = rlp.EncodeToBytes([]interface{}{
+				ac,
+				d.PrepareA.Signature.Bytes(),
+				bc,
+				d.PrepareB.Signature.Bytes(),
+			})
+		}
 	}
 	return crypto.Keccak256(buf)
 }
@@ -82,10 +83,10 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence BlockHash is equal, PrepareA:%s, PrepareB:%s", d.PrepareA.BlockHash, d.PrepareB.BlockHash)
 	}
 	// Verify consensus msg signature
-	if err := validateNodeA.Verify(d.PrepareA.Cannibalize, d.PrepareA.Signature.Bytes()); err != nil {
+	if err := d.PrepareA.Verify(); err != nil {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence prepareA verify failed")
 	}
-	if err := validateNodeB.Verify(d.PrepareB.Cannibalize, d.PrepareB.Signature.Bytes()); err != nil {
+	if err := d.PrepareB.Verify(); err != nil {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence prepareB verify failed")
 	}
 	return nil
@@ -118,14 +119,15 @@ func (d DuplicatePrepareVoteEvidence) ViewNumber() uint64 {
 
 func (d DuplicatePrepareVoteEvidence) Hash() []byte {
 	var buf []byte
-	buf, err := rlp.EncodeToBytes([]interface{}{
-		d.VoteA.Cannibalize,
-		d.VoteA.Signature.Bytes(),
-		d.VoteB.Cannibalize,
-		d.VoteB.Signature.Bytes(),
-	})
-	if err != nil {
-		return nil
+	if ac, err := d.VoteA.CannibalizeBytes(); err == nil {
+		if bc, err := d.VoteB.CannibalizeBytes(); err == nil {
+			buf, err = rlp.EncodeToBytes([]interface{}{
+				ac,
+				d.VoteA.Signature.Bytes(),
+				bc,
+				d.VoteB.Signature.Bytes(),
+			})
+		}
 	}
 	return crypto.Keccak256(buf)
 }
@@ -163,10 +165,10 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.BlockHash, d.VoteB.BlockHash)
 	}
 	// Verify consensus msg signature
-	if err := validateNodeA.Verify(d.VoteA.Cannibalize, d.VoteA.Signature.Bytes()); err != nil {
+	if err := d.VoteA.Verify(); err != nil {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence voteA verify failed")
 	}
-	if err := validateNodeB.Verify(d.VoteB.Cannibalize, d.VoteB.Signature.Bytes()); err != nil {
+	if err := d.VoteB.Verify(); err != nil {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence voteB verify failed")
 	}
 	return nil
@@ -199,14 +201,15 @@ func (d DuplicateViewChangeEvidence) ViewNumber() uint64 {
 
 func (d DuplicateViewChangeEvidence) Hash() []byte {
 	var buf []byte
-	buf, err := rlp.EncodeToBytes([]interface{}{
-		d.ViewA.Cannibalize,
-		d.ViewA.Signature.Bytes(),
-		d.ViewB.Cannibalize,
-		d.ViewB.Signature.Bytes(),
-	})
-	if err != nil {
-		return nil
+	if ac, err := d.ViewA.CannibalizeBytes(); err == nil {
+		if bc, err := d.ViewB.CannibalizeBytes(); err == nil {
+			buf, err = rlp.EncodeToBytes([]interface{}{
+				ac,
+				d.ViewA.Signature.Bytes(),
+				bc,
+				d.ViewB.Signature.Bytes(),
+			})
+		}
 	}
 	return crypto.Keccak256(buf)
 }
@@ -244,10 +247,10 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeEvidence BlockHash is equal, ViewA:%s, ViewB:%s", d.ViewA.BlockHash, d.ViewB.BlockHash)
 	}
 	// Verify consensus msg signature
-	if err := validateNodeA.Verify(d.ViewA.Cannibalize, d.ViewA.Signature.Bytes()); err != nil {
-		return fmt.Errorf("DuplicateViewChangeEvidence voteA verify failed")
+	if err := d.ViewA.Verify(); err != nil {
+		return fmt.Errorf("DuplicateViewChangeEvidence ViewA verify failed")
 	}
-	if err := validateNodeB.Verify(d.ViewB.Cannibalize, d.ViewB.Signature.Bytes()); err != nil {
+	if err := d.ViewB.Verify(); err != nil {
 		return fmt.Errorf("DuplicateViewChangeEvidence ViewB verify failed")
 	}
 	return nil
