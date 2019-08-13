@@ -15,8 +15,6 @@ import (
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
@@ -332,23 +330,17 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	}
 
 	if isEqualLocalView() {
-		// Get the viewChange belong to local node.
-		node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
-		if err != nil {
-			cbft.log.Error("Get validator error, get view change failed", "err", err)
-			return fmt.Errorf("get validator failed")
-		}
 		viewChanges := cbft.state.AllViewChange()
-		if v, ok := viewChanges[uint32(node.Index)]; ok {
-			cbft.network.Send(id, v)
-			// Return if it contains missing.
-			for _, nodeIndex := range msg.NodeIndexes {
-				if v2, exists := viewChanges[nodeIndex]; exists {
-					cbft.network.Send(id, v2)
-				}
+
+		vcs := &protocols.ViewChanges{}
+		for k, v := range viewChanges {
+			if msg.ViewChangeBits.GetIndex(k) {
+				vcs.VCs = append(vcs.VCs, v)
 			}
-		} else {
-			cbft.log.Warn("No ViewChange found in current node")
+		}
+		cbft.log.Debug("Send ViewChanges", "peer", id, "len", len(vcs.VCs))
+		if len(vcs.VCs) != 0 {
+			cbft.network.Send(id, vcs)
 		}
 		return nil
 	}
@@ -376,7 +368,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
 	cbft.log.Debug("Received message on OnViewChangeQuorumCert", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	viewChangeQC := msg.ViewChangeQC
-	epoch, viewNumber, _, _ := viewChangeQC.MaxBlock()
+	epoch, viewNumber, _, _, _, _ := viewChangeQC.MaxBlock()
 	if cbft.state.Epoch() == epoch && cbft.state.ViewNumber() == viewNumber {
 		if err := cbft.verifyViewChangeQC(msg.ViewChangeQC); err == nil {
 			cbft.tryChangeViewByViewChange(msg.ViewChangeQC)
@@ -386,62 +378,47 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 	}
 }
 
-// Returns the node ID of the missing vote.
-func (cbft *Cbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
-	allViewChange := cbft.state.AllViewChange()
-	nodeIds := make([]discover.NodeID, 0, len(allViewChange))
-	qcBlockBn := cbft.state.HighestQCBlock().NumberU64()
-	for k, _ := range allViewChange {
-		nodeId := cbft.validatorPool.GetNodeIDByIndex(qcBlockBn, int(k))
-		nodeIds = append(nodeIds, nodeId)
-	}
-	// all consensus
-	consensusNodes, err := cbft.ConsensusNodes()
-	if err != nil {
-		return nil, nil, err
-	}
-	//consensusNodesLen := len(consensusNodes)
-	missingNodes := make([]discover.NodeID, 0, len(consensusNodes)-len(nodeIds))
-	for _, cv := range consensusNodes {
-		isExists := false
-		for _, v := range nodeIds {
-			if cv == v {
-				isExists = true
-				break
-			}
-		}
-		if !isExists {
-			missingNodes = append(missingNodes, cv)
+func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
+	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	for _, v := range msg.VCs {
+		if err := cbft.OnViewChange(id, v); err != nil {
+			cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+			return err
 		}
 	}
+	return nil
+}
 
-	log.Debug("Missing nodes on MissingViewChangeNodes", "nodes", network.FormatNodes(missingNodes))
-	// The node of missingNodes must be in the list of neighbor nodes.
-	peers, err := cbft.network.Peers()
-	target := missingNodes[:0]
-	for _, node := range missingNodes {
-		for _, peer := range peers {
-			if peer.ID() == node {
-				target = append(target, node)
-				break
+// Returns the node ID of the missing vote.
+func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err error) {
+	result := make(chan struct{})
+
+	cbft.asyncCallCh <- func() {
+		defer func() { result <- struct{}{} }()
+		allViewChange := cbft.state.AllViewChange()
+
+		length := cbft.currentValidatorLen()
+		vbits := utils.NewBitArray(uint32(length))
+
+		// enough qc or did not reach deadline
+		if len(allViewChange) >= cbft.threshold(length) || !cbft.state.IsDeadline() {
+			v, err = nil, fmt.Errorf("no need sync viewchange")
+			return
+		}
+		for i := uint32(0); i < vbits.Size(); i++ {
+			if _, ok := allViewChange[i]; !ok {
+				vbits.SetIndex(i, true)
 			}
 		}
+
+		v, err = &protocols.GetViewChange{
+			Epoch:          cbft.state.Epoch(),
+			ViewNumber:     cbft.state.ViewNumber(),
+			ViewChangeBits: vbits,
+		}, nil
 	}
-	log.Debug("Missing nodes exists in the peers", "nodes", network.FormatNodes(target))
-	nodeIndexes := make([]uint32, 0, len(target))
-	for _, v := range target {
-		index, err := cbft.validatorPool.GetIndexByNodeID(qcBlockBn, v)
-		if err != nil {
-			continue
-		}
-		nodeIndexes = append(nodeIndexes, index)
-	}
-	cbft.log.Debug("Return missing node", "nodeIndexes", nodeIndexes)
-	return target, &protocols.GetViewChange{
-		Epoch:       cbft.state.Epoch(),
-		ViewNumber:  cbft.state.ViewNumber(),
-		NodeIndexes: nodeIndexes,
-	}, nil
+	<-result
+	return
 }
 
 // OnPong is used to receive the average delay time.
