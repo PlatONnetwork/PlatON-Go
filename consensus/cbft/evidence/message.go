@@ -42,6 +42,7 @@ func (ep *EvidencePrepare) CannibalizeBytes() ([]byte, error) {
 		ep.Epoch,
 		ep.ViewNumber,
 		ep.BlockHash,
+		ep.BlockNumber,
 		ep.BlockIndex,
 		ep.ValidateNode.Index,
 	})
