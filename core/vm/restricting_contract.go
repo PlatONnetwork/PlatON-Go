@@ -56,25 +56,41 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
 		return nil, ErrOutOfGas
 	}
-
-	if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
-		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
-			event, _ := json.Marshal(res)
-			rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
-			return event, nil
-
-		} else {
-			log.Debug("AddRestrictingRecord failed to createRestrictingPlan", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "error", err)
-			return nil, err
-		}
+	//if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
+	//	if _, ok := err.(*common.BizError); ok {
+	//		res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
+	//		event, _ := json.Marshal(res)
+	//
+	//		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
+	//		return event, nil
+	//
+	//	} else {
+	//		log.Error("AddRestrictingRecord failed to createRestrictingPlan", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "error", err)
+	//		return nil, err
+	//	}
+	//}
+	//
+	//res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
+	//event, _ := json.Marshal(res)
+	//rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
+	//
+	//return event, nil
+	err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state)
+	switch err.(type) {
+	case nil:
+		res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
+		event, _ := json.Marshal(res)
+		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
+		return event, nil
+	case *common.BizError:
+		res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
+		event, _ := json.Marshal(res)
+		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
+		return event, nil
+	default:
+		log.Error("AddRestrictingRecord failed to createRestrictingPlan", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "error", err)
+		return nil, err
 	}
-
-	res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
-	event, _ := json.Marshal(res)
-	rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
-
-	return event, nil
 }
 
 // createRestrictingPlan is a PlatON precompiled contract function, used for getting restricting info.
