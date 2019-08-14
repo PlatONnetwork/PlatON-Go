@@ -27,20 +27,20 @@ func (id Identity) Bytes() []byte { return []byte(id) }
 
 // Add tries to add prepare block to PrepareBlockEvidence.
 // if the return error is DuplicatePrepareBlockEvidence instructions the prepare is duplicated
-func (e PrepareBlockEvidence) Add(pb *EvidencePrepare, id Identity) error {
+func (pbe PrepareBlockEvidence) Add(pb *EvidencePrepare, id Identity) error {
 	var l NumberOrderPrepareBlock
 
-	if l = e[id]; l == nil {
+	if l = pbe[id]; l == nil {
 		l = make(NumberOrderPrepareBlock, 0)
 	}
 	err := l.Add(pb)
-	e[id] = l
+	pbe[id] = l
 	return err
 }
 
 // Clear tries to clear stale intermediate prepare
 func (pbe PrepareBlockEvidence) Clear(epoch uint64, viewNumber uint64) {
-	for k, _ := range pbe {
+	for k := range pbe {
 		s := strings.Split(string(k), "|")
 		e, _ := strconv.ParseUint(s[0], 10, 64)
 		v, _ := strconv.ParseUint(s[1], 10, 64)
@@ -106,20 +106,20 @@ func (opb NumberOrderPrepareBlock) Swap(i, j int) {
 
 // Add tries to add prepare vote to PrepareVoteEvidence.
 // if the return error is DuplicatePrepareVoteEvidence instructions the vote is duplicated
-func (e PrepareVoteEvidence) Add(pv *EvidenceVote, id Identity) error {
+func (pve PrepareVoteEvidence) Add(pv *EvidenceVote, id Identity) error {
 	var l NumberOrderPrepareVote
 
-	if l = e[id]; l == nil {
+	if l = pve[id]; l == nil {
 		l = make(NumberOrderPrepareVote, 0)
 	}
 	err := l.Add(pv)
-	e[id] = l
+	pve[id] = l
 	return err
 }
 
 // Clear tries to clear stale intermediate vote
 func (pve PrepareVoteEvidence) Clear(epoch uint64, viewNumber uint64) {
-	for k, _ := range pve {
+	for k := range pve {
 		s := strings.Split(string(k), "|")
 		e, _ := strconv.ParseUint(s[0], 10, 64)
 		v, _ := strconv.ParseUint(s[1], 10, 64)
@@ -185,20 +185,20 @@ func (opv NumberOrderPrepareVote) Swap(i, j int) {
 
 // Add tries to add view to ViewChangeEvidence.
 // if the return error is DuplicateViewChangeEvidence instructions the view is duplicated
-func (e ViewChangeEvidence) Add(vc *EvidenceView, id Identity) error {
+func (vce ViewChangeEvidence) Add(vc *EvidenceView, id Identity) error {
 	var l NumberOrderViewChange
 
-	if l = e[id]; l == nil {
+	if l = vce[id]; l == nil {
 		l = make(NumberOrderViewChange, 0)
 	}
 	err := l.Add(vc)
-	e[id] = l
+	vce[id] = l
 	return err
 }
 
 // Clear tries to clear stale intermediate view
 func (vce ViewChangeEvidence) Clear(epoch uint64, viewNumber uint64) {
-	for k, _ := range vce {
+	for k := range vce {
 		s := strings.Split(string(k), "|")
 		e, _ := strconv.ParseUint(s[0], 10, 64)
 		v, _ := strconv.ParseUint(s[1], 10, 64)

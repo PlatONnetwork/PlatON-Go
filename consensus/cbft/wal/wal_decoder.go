@@ -36,32 +36,34 @@ func WALDecode(pack []byte, msgType uint16) (interface{}, error) {
 	switch msgType {
 	case protocols.ConfirmedViewChangeMsg:
 		var j MessageConfirmedViewChange
-		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return j.Data, nil
-		} else {
+		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
+
 		}
+		return j.Data, nil
+
 	case protocols.SendViewChangeMsg:
 		var j MessageSendViewChange
-		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return j.Data, nil
-		} else {
+		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
+
 		}
+		return j.Data, nil
+
 	case protocols.SendPrepareBlockMsg:
 		var j MessageSendPrepareBlock
-		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return j.Data, nil
-		} else {
+		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
 		}
+		return j.Data, nil
+
 	case protocols.SendPrepareVoteMsg:
 		var j MessageSendPrepareVote
-		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return j.Data, nil
-		} else {
+		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
+
 		}
+		return j.Data, nil
 	}
 	panic(fmt.Sprintf("invalid msg type %d", msgType))
 }

@@ -7,10 +7,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
+// Cbft defines the network layer to use the relevant interface
+// to the consensus layer.
 type Cbft interface {
 
 	// Returns the ID value of the current node.
-	NodeId() discover.NodeID
+	NodeID() discover.NodeID
 
 	// Return a list of all consensus nodes.
 	ConsensusNodes() ([]discover.NodeID, error)
