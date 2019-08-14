@@ -312,10 +312,6 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return common.NewBizError("empty parameter detected.")
 	}
 
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
-		return common.NewBizError("version sign error.")
-	}
-
 	proposal, err := govPlugin.govDB.GetProposal(vote.ProposalID, state)
 	if err != nil {
 		log.Error("cannot find proposal by ID", "proposalID", vote.ProposalID)
@@ -337,8 +333,15 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 
 	if proposal.GetProposalType() == gov.Version {
 		if vp, ok := proposal.(gov.VersionProposal); ok {
-			//reset vote option as gov.Yes for version proposal
-			vote.VoteOption = gov.Yes
+			//The signature should be verified when node vote for a version proposal.
+			if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
+				return common.NewBizError("version sign error.")
+			}
+
+			//vote option can only be Yes for version proposal
+			if vote.VoteOption != gov.Yes {
+				return common.NewBizError("vote option error.")
+			}
 
 			if vp.GetNewVersion() != programVersion {
 				log.Error("cannot vote for version proposal until node upgrade to a new version", "newVersion", vp.GetNewVersion(), "programVersion", programVersion)
