@@ -39,8 +39,8 @@ func TestGovDB_SetGetTxtProposal(t *testing.T) {
 	if proposalGet, e := db.GetProposal(proposal.ProposalID, statedb); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
-		if proposalGet.GetUrl() != proposal.GetUrl() {
-			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetUrl(), proposalGet.GetUrl())
+		if proposalGet.GetPIPID() != proposal.GetPIPID() {
+			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetPIPID(), proposalGet.GetPIPID())
 		}
 	}
 	db.Reset()
@@ -61,8 +61,8 @@ func TestGovDB_SetGetVerProposal(t *testing.T) {
 	if proposalGet, e := db.GetProposal(proposal.ProposalID, statedb); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
-		if proposalGet.GetUrl() != proposal.GetUrl() {
-			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetUrl(), proposalGet.GetUrl())
+		if proposalGet.GetPIPID() != proposal.GetPIPID() {
+			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetPIPID(), proposalGet.GetPIPID())
 		}
 	}
 	db.Reset()
@@ -86,7 +86,7 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	totalLen := 10
 	for i := 1; i <= totalLen; i++ {
 		proposal := getVerProposal(common.Hash{byte(i)})
-		if err := db.AddVotingProposalID(blockhash, proposal.ProposalID, statedb); err != nil {
+		if err := db.AddVotingProposalID(blockhash, proposal.ProposalID); err != nil {
 			t.Fatalf("add voting proposal failed...%s", err)
 		}
 		proposalIds = append(proposalIds, proposal.ProposalID)
@@ -118,21 +118,21 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 		}
 	}
 
-	if plist, e := db.ListEndProposalID(blockhash, statedb); e != nil {
+	if plist, e := db.ListEndProposalID(blockhash); e != nil {
 		t.Fatalf("list end propsal error,%s", e)
 	} else {
 		if len(plist) != len(proposalIdsEnd) {
 			t.Fatalf("get end proposal list error ,expect len:%d,get len: %d", len(proposalIdsEnd), len(plist))
 		}
 	}
-	if plist, e := db.ListVotingProposal(blockhash, statedb); e != nil {
+	if plist, e := db.ListVotingProposal(blockhash); e != nil {
 		t.Fatalf("list end propsal error,%s", e)
 	} else {
 		if len(plist) != len(proposalIds) {
 			t.Fatalf("get voting proposal list error ,expect len:%d,get len: %d", len(proposalIds), len(plist))
 		}
 	}
-	if p, e := db.GetPreActiveProposalID(blockhash, statedb); e != nil {
+	if p, e := db.GetPreActiveProposalID(blockhash); e != nil {
 		t.Fatalf("list end propsal error,%s", e)
 	} else {
 		if p != proposalIdsPre {
@@ -201,12 +201,12 @@ func TestGovDB_SetVote(t *testing.T) {
 	}
 
 	tallyResult := gov.TallyResult{
-		proposal.GetProposalID(),
-		uint16(len(voteList)),
-		0,
-		0,
-		1000,
-		gov.Pass,
+		ProposalID:    proposal.GetProposalID(),
+		Yeas:          uint16(len(voteList)),
+		Nays:          0,
+		Abstentions:   0,
+		AccuVerifiers: 1000,
+		Status:        gov.Pass,
 	}
 
 	if err := db.SetTallyResult(tallyResult, statedb); err != nil {

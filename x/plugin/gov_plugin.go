@@ -83,7 +83,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 			//check if all validators are active
 			for _, validator := range currentValidatorList {
-				if xcom.InNodeIDList(validator, activeList) {
+				if xutil.InNodeIDList(validator, activeList) {
 					updatedNodes++
 				}
 			}
@@ -375,7 +375,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return err
 	}
 
-	if xcom.InNodeIDList(vote.VoteNodeID, verifierList) {
+	if xutil.InNodeIDList(vote.VoteNodeID, verifierList) {
 		log.Error("node has voted this proposal", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
 		return common.NewBizError("node has voted this proposal.")
 	}
@@ -432,7 +432,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 				log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
 				return err
 			} else {
-				if xcom.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
+				if xutil.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
 					log.Error("declared version should be new version",
 						"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
 					return common.NewBizError("declared version should be same as proposal's version")
@@ -570,7 +570,7 @@ func (govPlugin *GovPlugin) tallyVersion(proposal gov.VersionProposal, blockHash
 	supportRate := float64(yeas) / float64(verifiersCnt)
 	log.Debug("version proposal's supportRate", "supportRate", supportRate, "voteCount", voteCnt, "verifierCount", verifiersCnt)
 
-	if supportRate >= xcom.SupportRateThreshold() {
+	if supportRate >= xcom.VersionProposal_SupportRate() {
 		status = gov.PreActive
 
 		if err := govPlugin.govDB.MoveVotingProposalIDToPreActive(blockHash, proposalID); err != nil {
@@ -619,11 +619,11 @@ func (govPlugin *GovPlugin) tallyVersion(proposal gov.VersionProposal, blockHash
 }
 
 func (govPlugin *GovPlugin) tallyText(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
-	return govPlugin.tally(proposalID, blockHash, blockNumber, state)
+	return govPlugin.tally(gov.Text, proposalID, blockHash, blockNumber, state)
 }
 
 func (govPlugin *GovPlugin) tallyCancel(cp gov.CancelProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
-	if pass, err := govPlugin.tally(cp.ProposalID, blockHash, blockNumber, state); err != nil {
+	if pass, err := govPlugin.tally(gov.Cancel, cp.ProposalID, blockHash, blockNumber, state); err != nil {
 		return false, err
 	} else if pass {
 		if proposal, err := govPlugin.govDB.GetExistProposal(cp.TobeCanceled, state); err != nil {
@@ -633,7 +633,7 @@ func (govPlugin *GovPlugin) tallyCancel(cp gov.CancelProposal, blockHash common.
 		}
 		if votingProposalIDList, err := govPlugin.listVotingProposalID(blockHash, blockNumber, state); err != nil {
 			return false, err
-		} else if !xcom.InHashList(cp.TobeCanceled, votingProposalIDList) {
+		} else if !xutil.InHashList(cp.TobeCanceled, votingProposalIDList) {
 			return false, common.NewBizError("Tobe canceled proposal is not at voting stage.")
 		}
 
@@ -661,7 +661,7 @@ func (govPlugin *GovPlugin) tallyCancel(cp gov.CancelProposal, blockHash common.
 	return true, nil
 }
 
-func (govPlugin *GovPlugin) tally(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+func (govPlugin *GovPlugin) tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
 	log.Debug("call tallyBasic", "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
 
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
@@ -691,12 +691,22 @@ func (govPlugin *GovPlugin) tally(proposalID common.Hash, blockHash common.Hash,
 			abstentions++
 		}
 	}
-	supportRate := float64(yeas) / float64(verifiersCnt)
+	voteRate := float64(yeas + nays + abstentions/verifiersCnt)
+	supportRate := float64(yeas / verifiersCnt)
 
-	if supportRate >= xcom.SupportRateThreshold() {
-		status = gov.Pass
-	} else {
-		status = gov.Failed
+	switch proposalType {
+	case gov.Text:
+		if voteRate > xcom.TextProposal_VoteRate() && supportRate > xcom.TextProposal_SupportRate() {
+			status = gov.Pass
+		} else {
+			status = gov.Failed
+		}
+	case gov.Cancel:
+		if voteRate > xcom.CancelProposal_VoteRate() && supportRate > xcom.CancelProposal_SupportRate() {
+			status = gov.Pass
+		} else {
+			status = gov.Failed
+		}
 	}
 
 	tallyResult := &gov.TallyResult{

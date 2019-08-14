@@ -52,7 +52,11 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
-	SupportRateThreshold float64
+	VersionProposal_SupportRate float64
+	TextProposal_VoteRate       float64
+	TextProposal_SupportRate    float64
+	CancelProposal_VoteRate     float64
+	CancelProposal_SupportRate  float64
 }
 
 // total
@@ -150,7 +154,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				SupportRateThreshold: float64(0.85),
+				VersionProposal_SupportRate: float64(0.6666),
+				TextProposal_VoteRate:       float64(0.6666),
+				TextProposal_SupportRate:    float64(0.50),
+				CancelProposal_VoteRate:     float64(0.6666),
+				CancelProposal_SupportRate:  float64(0.50),
 			},
 		}
 
@@ -184,7 +192,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				SupportRateThreshold: float64(0.85),
+				VersionProposal_SupportRate: float64(0.6666),
+				TextProposal_VoteRate:       float64(0.6666),
+				TextProposal_SupportRate:    float64(0.50),
+				CancelProposal_VoteRate:     float64(0.6666),
+				CancelProposal_SupportRate:  float64(0.50),
 			},
 		}
 
@@ -218,7 +230,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				SupportRateThreshold: float64(0.85),
+				VersionProposal_SupportRate: float64(0.6666),
+				TextProposal_VoteRate:       float64(0.6666),
+				TextProposal_SupportRate:    float64(0.50),
+				CancelProposal_VoteRate:     float64(0.6666),
+				CancelProposal_SupportRate:  float64(0.50),
 			},
 		}
 
@@ -252,7 +268,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				SupportRateThreshold: float64(0.85),
+				VersionProposal_SupportRate: float64(0.6666),
+				TextProposal_VoteRate:       float64(0.6666),
+				TextProposal_SupportRate:    float64(0.50),
+				CancelProposal_VoteRate:     float64(0.6666),
+				CancelProposal_SupportRate:  float64(0.50),
 			},
 		}
 
@@ -286,7 +306,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				SupportRateThreshold: float64(0.85),
+				VersionProposal_SupportRate: float64(0.6666),
+				TextProposal_VoteRate:       float64(0.6666),
+				TextProposal_SupportRate:    float64(0.50),
+				CancelProposal_VoteRate:     float64(0.6666),
+				CancelProposal_SupportRate:  float64(0.50),
 			},
 		}
 
@@ -321,7 +345,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				SupportRateThreshold: float64(0.85),
+				VersionProposal_SupportRate: float64(0.6666),
+				TextProposal_VoteRate:       float64(0.6666),
+				TextProposal_SupportRate:    float64(0.50),
+				CancelProposal_VoteRate:     float64(0.6666),
+				CancelProposal_SupportRate:  float64(0.50),
 			},
 		}
 	}
@@ -426,8 +454,24 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Governance config
  ******/
-func SupportRateThreshold() float64 {
-	return ec.Gov.SupportRateThreshold
+func VersionProposal_SupportRate() float64 {
+	return ec.Gov.VersionProposal_SupportRate
+}
+
+func TextProposal_VoteRate() float64 {
+	return ec.Gov.TextProposal_SupportRate
+}
+
+func TextProposal_SupportRate() float64 {
+	return ec.Gov.TextProposal_SupportRate
+}
+
+func CancelProposal_VoteRate() float64 {
+	return ec.Gov.CancelProposal_VoteRate
+}
+
+func CancelProposal_SupportRate() float64 {
+	return ec.Gov.CancelProposal_SupportRate
 }
 
 func PrintEc(blockNUmber *big.Int, blockHash common.Hash) {

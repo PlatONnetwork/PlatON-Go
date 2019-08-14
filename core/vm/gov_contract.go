@@ -357,7 +357,7 @@ func (gc *GovContract) errHandler(funcName string, event string, err error, erro
 	log.Debug("Execute GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash())
 	res := xcom.Result{true, "", ""}
 	resultBytes, _ := json.Marshal(res)
-	xcom.AddInfo(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(resultBytes), funcName, gc.Evm.StateDB.TxHash())
+	xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(resultBytes))
 	return resultBytes, nil
 }
 

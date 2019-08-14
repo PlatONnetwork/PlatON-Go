@@ -306,7 +306,7 @@ func (cp CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 			return common.NewBizError("to be canceled proposal should be version proposal")
 		} else if votingList, err := GovDBInstance().ListVotingProposal(blockHash); err != nil {
 			return err
-		} else if !xcom.InHashList(cp.TobeCanceled, votingList) {
+		} else if !xutil.InHashList(cp.TobeCanceled, votingList) {
 			return common.NewBizError("to be canceled version proposal should be at voting stage")
 		}
 	}
