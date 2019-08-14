@@ -236,7 +236,7 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 }
 
 // Create a new peer for testing, return peer and ID.
-func newPeer(version int, name string) (*peer, discover.NodeID) {
+func newTestPeer(version int, name string) (*peer, discover.NodeID) {
 	_, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer.
@@ -347,14 +347,4 @@ func (s *mockCbft) OnPong(nodeID string, netLatency int64) error {
 }
 func (s *mockCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 	return nil
-}
-
-func TestTT(t *testing.T) {
-	arr := []uint32{1, 2, 3, 4, 5}
-	fmt.Println(arr)
-	target := arr[:0]
-	for _, item := range arr {
-		target = append(target, item)
-	}
-	fmt.Println(target)
 }

@@ -243,14 +243,14 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 
 	// Verify that registration is successful.
 	checkedPeer := peers[1]
-	p, err := handle.GetPeer(checkedPeer.id)
+	p, err := handle.getPeer(checkedPeer.id)
 	if err != nil {
 		t.Error("register peer failed", err)
 	}
 	assert.Equal(t, checkedPeer.id, p.id)
 
 	// Should return an error if an empty string is passed in.
-	p, err = handle.GetPeer("")
+	p, err = handle.getPeer("")
 	assert.NotNil(t, err)
 
 	// The length of ConsensusNodes not equal to 0.

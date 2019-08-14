@@ -24,7 +24,7 @@ import (
 func Test_NewPeer(t *testing.T) {
 	version := 1
 	name := "test"
-	p, id := newPeer(version, name)
+	p, id := newTestPeer(version, name)
 	if p.version != 1 {
 		t.Fatalf("version not equal. expect:{1}, actual:{%d}", p.version)
 	}
@@ -70,8 +70,8 @@ func Test_NewPeer(t *testing.T) {
 
 func Test_PeerSet_Register(t *testing.T) {
 	ps := NewPeerSet()
-	p1, _ := newPeer(1, "ps1")
-	p2, _ := newPeer(1, "ps2")
+	p1, _ := newTestPeer(1, "ps1")
+	p2, _ := newTestPeer(1, "ps2")
 	//p3, _ := newPeer(1, "ps3")
 
 	// for the function of Register.
@@ -89,9 +89,9 @@ func Test_PeerSet_Register(t *testing.T) {
 func Test_PeerSet_Unregister(t *testing.T) {
 	// Create new peerSet and do some initialization.
 	ps := NewPeerSet()
-	p1, _ := newPeer(1, "ps1")
-	p2, _ := newPeer(1, "ps2")
-	p3, _ := newPeer(1, "ps3")
+	p1, _ := newTestPeer(1, "ps1")
+	p2, _ := newTestPeer(1, "ps2")
+	p3, _ := newTestPeer(1, "ps3")
 	ps.Register(p1)
 	ps.Register(p2)
 
@@ -127,7 +127,7 @@ func Test_PeerSet_Peers(t *testing.T) {
 	var peers []*peer
 	var ids []discover.NodeID
 	for i := 0; i < 11; i++ {
-		p, id := newPeer(1, fmt.Sprintf("%d", i))
+		p, id := newTestPeer(1, fmt.Sprintf("%d", i))
 		peers = append(peers, p)
 		// The id is oddly set to the consensus node.
 		if i%2 != 0 {

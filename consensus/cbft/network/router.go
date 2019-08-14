@@ -43,8 +43,8 @@ type router struct {
 	peers          peersFunc          // Used to get all the nodes.
 }
 
-// NewRouter creates a new router. It is mainly used for message forwarding
-func NewRouter(unregister unregisterFunc, get getByIDFunc, consensusNodes consensusNodesFunc, peers peersFunc) *router {
+// newRouter creates a new router. It is mainly used for message forwarding
+func newRouter(unregister unregisterFunc, get getByIDFunc, consensusNodes consensusNodesFunc, peers peersFunc) *router {
 	r := &router{
 		filter: func(p *peer, condition common.Hash) bool {
 			return p.ContainsMessageHash(condition)

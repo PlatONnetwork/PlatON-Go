@@ -3,7 +3,6 @@ package cbft
 import (
 	"container/list"
 	"fmt"
-	"math/big"
 	"sort"
 	"time"
 
@@ -245,19 +244,10 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash(), "message", msg.String())
 	// Define a function that performs the send action.
 	launcher := func(bType uint64, targetId string, blockNumber uint64, blockHash common.Hash) error {
-		p, err := cbft.network.GetPeer(targetId)
+		err := cbft.network.PeerSetting(targetId, bType, blockNumber)
 		if err != nil {
 			cbft.log.Error("GetPeer failed", "err", err, "peerId", targetId)
 			return err
-		}
-		switch bType {
-		case network.TypeForQCBn:
-			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
-		case network.TypeForLockedBn:
-			p.SetLockedBn(new(big.Int).SetUint64(msg.BlockNumber))
-		case network.TypeForCommitBn:
-			p.SetCommitdBn(new(big.Int).SetUint64(msg.BlockNumber))
-		default:
 		}
 		// Synchronize block data with fetchBlock.
 		cbft.fetchBlock(targetId, blockHash, blockNumber)
@@ -287,12 +277,11 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	case network.TypeForQCBn:
 		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 		if localQCBn < msg.BlockNumber || (localQCBn == msg.BlockNumber && localQCHash != msg.BlockHash) {
-			p, err := cbft.network.GetPeer(id)
+			err := cbft.network.PeerSetting(id, msg.LogicType, msg.BlockNumber)
 			if err != nil {
-				cbft.log.Error("GetPeer failed", "err", err)
+				cbft.log.Error("PeerSetting failed", "err", err)
 				return err
 			}
-			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
@@ -484,16 +473,7 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 	cbft.netLatencyLock.Lock()
 	defer cbft.netLatencyLock.Unlock()
 	// The intersection of peerSets and consensusNodes.
-	cNodes, _ := cbft.ConsensusNodes()
-	peers, _ := cbft.network.Peers()
-	target := make([]string, 0, len(peers))
-	for _, pNode := range peers {
-		for _, cNode := range cNodes {
-			if pNode.PeerID() == cNode.TerminalString() {
-				target = append(target, pNode.PeerID())
-			}
-		}
-	}
+	target, _ := cbft.network.AliveConsensusNodeIDs()
 	var (
 		avgSum     int64
 		result     int64

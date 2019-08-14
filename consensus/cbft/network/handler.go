@@ -64,7 +64,7 @@ func NewEngineManger(engine Cbft) *EngineManager {
 		quitSend:  make(chan struct{}, 0),
 	}
 	// init router
-	handler.router = NewRouter(handler.Unregister, handler.GetPeer, handler.ConsensusNodes, handler.Peers)
+	handler.router = newRouter(handler.Unregister, handler.getPeer, handler.ConsensusNodes, handler.peerList)
 	return handler
 }
 
@@ -114,8 +114,26 @@ func (h *EngineManager) sendMessage(m *types.MsgPackage) {
 	h.router.SendMessage(m)
 }
 
+// PeerSetting sets the block height of the node related type.
+func (h *EngineManager) PeerSetting(peerID string, bType uint64, blockNumber uint64) error {
+	p, err := h.peers.get(peerID)
+	if err != nil || p == nil {
+		return err
+	}
+	switch bType {
+	case TypeForQCBn:
+		p.SetQcBn(new(big.Int).SetUint64(blockNumber))
+	case TypeForLockedBn:
+		p.SetLockedBn(new(big.Int).SetUint64(blockNumber))
+	case TypeForCommitBn:
+		p.SetCommitdBn(new(big.Int).SetUint64(blockNumber))
+	default:
+	}
+	return nil
+}
+
 // GetPeer returns the peer with the specified peerID.
-func (h *EngineManager) GetPeer(peerID string) (*peer, error) {
+func (h *EngineManager) getPeer(peerID string) (*peer, error) {
 	if peerID == "" {
 		return nil, fmt.Errorf("invalid peerID parameter - %v", peerID)
 	}
@@ -174,7 +192,7 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 
 	// the logic to forward message.
 	forward := func() error {
-		peers, err := h.Peers()
+		peers, err := h.peerList()
 		if err != nil || len(peers) == 0 {
 			return fmt.Errorf("peers is none, msgHash:%s", msgHash.TerminalString())
 		}
@@ -251,8 +269,23 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 	}
 }
 
-// Peers returns all neighbor node lists.
-func (h *EngineManager) Peers() ([]*peer, error) {
+// AliveConsensusNodeIDs returns all NodeID to alive peer.
+func (h *EngineManager) AliveConsensusNodeIDs() ([]string, error) {
+	cNodes, _ := h.engine.ConsensusNodes()
+	peers := h.peers.allPeers()
+	target := make([]string, 0, len(peers))
+	for _, pNode := range peers {
+		for _, cNode := range cNodes {
+			if pNode.PeerID() == cNode.TerminalString() {
+				target = append(target, pNode.PeerID())
+			}
+		}
+	}
+	return target, nil
+}
+
+// Return all neighbor node lists.
+func (h *EngineManager) peerList() ([]*peer, error) {
 	return h.peers.allPeers(), nil
 }
 
@@ -658,7 +691,7 @@ func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 
 // Testing is only used for unit testing.
 func (h *EngineManager) Testing() {
-	peers, _ := h.Peers()
+	peers, _ := h.peerList()
 	for _, v := range peers {
 		go func(p *peer) {
 			for {
