@@ -64,7 +64,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		return nil, nil
 	}
 
-	err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state)
+	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
 	switch err.(type) {
 	case nil:
 		res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
