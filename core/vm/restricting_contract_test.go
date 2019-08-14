@@ -2,7 +2,6 @@ package vm_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -15,7 +14,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-// build input data
+// build input data for testing the create restricting plan successfully
 func buildRestrictingPlanData() ([]byte, error) {
 	var plan restricting.RestrictingPlan
 	var plans = make([]restricting.RestrictingPlan, 5)
@@ -40,6 +39,27 @@ func buildRestrictingPlanData() ([]byte, error) {
 	return rlp.EncodeToBytes(params)
 }
 
+// build input data for testing the create restricting plan failed
+func buildErrorRestrictingPlanData() ([]byte, error) {
+	var plan restricting.RestrictingPlan
+	var plans = make([]restricting.RestrictingPlan, 1)
+
+	plan.Epoch = uint64(0)
+	plan.Amount = big.NewInt(1E18)
+	plans[0] = plan
+
+	var params [][]byte
+	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4000)) // function_type
+	param1, _ := rlp.EncodeToBytes(addrArr[0].Bytes())         // restricting account
+	param2, _ := rlp.EncodeToBytes(plans)                      // restricting plan
+
+	params = append(params, param0)
+	params = append(params, param1)
+	params = append(params, param2)
+
+	return rlp.EncodeToBytes(params)
+}
+
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	contract := &vm.RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
@@ -47,19 +67,38 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 		Evm:      newEvm(blockNumber, blockHash, nil),
 	}
 
-	input, err := buildRestrictingPlanData()
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("fail to rlp encode restricting input")
-	} else {
-		fmt.Println("rlp encode restricting input: ", hexutil.Encode(input))
+	{
+		// case1: create plan success
+		input, err := buildRestrictingPlanData()
+		if err != nil {
+			t.Fatal("fail to rlp encode restricting input, error:", err.Error())
+		} else {
+			t.Log("rlp encode restricting input: ", hexutil.Encode(input))
+		}
+
+		if result, err := contract.Run(input); err != nil {
+			t.Fatal("create restricting input failed, error:", err.Error())
+		} else {
+			t.Log(string(result))
+		}
 	}
 
-	if result, err := contract.Run(input); err != nil {
-		t.Error(err.Error())
-	} else {
-		t.Log(string(result))
+	{
+		// case2: create plan failed
+		input, err := buildErrorRestrictingPlanData()
+		if err != nil {
+			t.Fatal("fail to rlp encode restricting input, error:", err.Error())
+		} else {
+			t.Log("rlp encode restricting input: ", hexutil.Encode(input))
+		}
+
+		if result, err := contract.Run(input); err != nil {
+			t.Fatal("create restricting input failed, error:", err.Error())
+		} else {
+			t.Log(string(result))
+		}
 	}
+
 }
 
 func TestRestrictingContract_getRestrictingInfo(t *testing.T) {

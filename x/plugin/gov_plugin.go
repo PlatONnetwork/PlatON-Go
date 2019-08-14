@@ -51,6 +51,10 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
+	//make default header extra data
+	header.Extra = makeExtraData(state)
+
+	//check if there's a pre-active version proposal that can be activated
 	preActiveVersionProposalID, err := govPlugin.govDB.GetPreActiveProposalID(blockHash, state)
 	if err != nil {
 		log.Error("check if there's a pre-active version proposal failed.", "blockNumber", blockNumber, "blockHash", blockHash)
@@ -126,7 +130,6 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 		}
 	}
 
-	header.Extra = makeExtraData(state)
 	return nil
 }
 

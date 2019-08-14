@@ -1,10 +1,8 @@
 package plugin_test
 
 import (
-	"runtime"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -1125,27 +1123,45 @@ func TestNodeID(t *testing.T) {
 	t.Error("proposalID is empty", "proposalID", proposalID)
 }*/
 
-func TestHeader(t *testing.T) {
-	extra, _ := rlp.EncodeToBytes([]interface{}{
-		uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-		"platon",
-		runtime.Version(),
-		runtime.GOOS,
-	})
+func Test_MakeExtraData(t *testing.T) {
+	defer setup(t)()
 
-	t.Log("EncodeToBytes", "len", len(extra))
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	t.Log(lastHeader.Extra)
+	beginBlock(t)
+	t.Log(lastHeader.Extra)
 
-	var data []interface{}
-	rlp.DecodeBytes(extra, &data)
+	if len(lastHeader.Extra) > 0 {
+		var tobeDecoded []byte
+		tobeDecoded = lastHeader.Extra
+		if len(lastHeader.Extra) <= 32 {
+			tobeDecoded = lastHeader.Extra
+		} else {
+			tobeDecoded = lastHeader.Extra[:32]
+		}
 
-	t.Log("data", "len", data)
+		var extraData []interface{}
+		err := rlp.DecodeBytes(tobeDecoded, &extraData)
+		if err != nil {
+			t.Error("rlp decode header extra error")
+		}
+		//reference to makeExtraData() in gov_plugin.go
+		if len(extraData) == 4 {
+			versionBytes := extraData[0].([]byte)
+			versionInHeader := common.BytesToUint32(versionBytes)
 
-	decodedBytes := data[0].([]byte)
-	decoded := common.BytesToUint32(decodedBytes)
-
-	t.Log("decoded", "plain", uint32(params.VersionMajor<<16|params.VersionMinor<<8|params.VersionPatch), "decoded", decoded, "decodedLen", len(decodedBytes))
-
-	b := []byte{0x0, 0x1, 0x2, 0x3, 0x4, 0x5}
-	t.Log(b[0:3])
+			activeVersion := plugin.GovPluginInstance().GetActiveVersion(lastHeader.Number.Uint64(), evm.StateDB)
+			t.Log("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", lastHeader.Number.Uint64())
+			if activeVersion == versionInHeader {
+				t.Log("OK")
+			} else {
+				t.Error("header version error")
+			}
+		} else {
+			t.Error("unknown header extra data", "elementCount", len(extraData))
+		}
+	}
 
 }
