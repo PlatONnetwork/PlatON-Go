@@ -459,7 +459,7 @@ func VersionProposal_SupportRate() float64 {
 }
 
 func TextProposal_VoteRate() float64 {
-	return ec.Gov.TextProposal_SupportRate
+	return ec.Gov.TextProposal_VoteRate
 }
 
 func TextProposal_SupportRate() float64 {
