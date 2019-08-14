@@ -53,11 +53,13 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 			for i, block := range blockList.Blocks {
 				if err := cbft.verifyPrepareQC(blockList.QC[i]); err != nil {
 					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+					cbft.network.RemovePeer(id)
 					return
 				}
 				start := time.Now()
 				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+					cbft.network.RemovePeer(id)
 					return
 				}
 				blockExecutedTimer.UpdateSince(start)
@@ -74,8 +76,9 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	}
 
 	expire := func() {
-		cbft.log.Debug("Fetch timeout, close fetching")
+		cbft.log.Debug("Fetch timeout, close fetching", "targetId", id, "baseBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 		utils.SetFalse(&cbft.fetching)
+		cbft.network.RemovePeer(id)
 	}
 
 	cbft.log.Debug("Start fetching")
@@ -153,7 +156,7 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 
 	if highestQC.NumberU64() > msg.BlockNumber+3 ||
 		(highestQC.Hash() == msg.BlockHash && highestQC.NumberU64() == msg.BlockNumber) {
-		cbft.log.Debug(fmt.Sprintf("Receive GetQCBlockList failed, local.highestQC:%s,%d, msg:%s", highestQC.Hash().String(), highestQC.NumberU64(), msg.String()))
+		cbft.log.Debug(fmt.Sprintf("Receive GetQCBlockList failed, local.highestQC:%s,%d, msg:%s", highestQC.Hash().TerminalString(), highestQC.NumberU64(), msg.String()))
 		return
 	}
 
@@ -264,10 +267,10 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 			return nil
 		}
 		if localQCNum < msg.BlockNumber || (localQCNum == msg.BlockNumber && localQCHash != msg.BlockHash) {
-			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			return launcher(msg.LogicType, id, localQCNum, localQCHash)
-		} else {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+			return launcher(msg.LogicType, id, msg.BlockNumber, msg.BlockHash)
+		} else {
+			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
 			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LogicType: msg.LogicType})
 		}
 	}
@@ -288,7 +291,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 			}
 			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, localQCHash, localQCBn)
+			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
 	}
 	return nil

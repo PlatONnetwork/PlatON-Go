@@ -1,9 +1,10 @@
 package fetcher
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
 var (
@@ -62,7 +63,6 @@ func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, exp
 	case <-f.quit:
 	case f.newTask <- &task{id: id, match: match, executor: executor, expire: expire, time: time.Now()}:
 	}
-
 }
 
 func (f *Fetcher) MatchTask(id string, message types.Message) bool {

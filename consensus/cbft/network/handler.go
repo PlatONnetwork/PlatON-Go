@@ -336,7 +336,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		p.Log().Error("Cbft peer registration failed", "err", err)
 		return err
 	}
-	defer h.peers.Unregister(peer.PeerID())
+	defer h.RemovePeer(peer.PeerID())
 
 	// start ping loop.
 	go peer.Run()
@@ -487,8 +487,8 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		// Directly respond to the response message after receiving the ping message.
 		go p2p.SendItems(p.ReadWriter(), protocols.PongMsg, pingTime[0])
 		p.Log().Trace("Respond to ping message done")
-
 		return nil
+
 	case msg.Code == protocols.PongMsg:
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
@@ -541,6 +541,26 @@ func (h *EngineManager) handleMsg(p *peer) error {
 	}
 
 	return nil
+}
+
+// RemovePeer removes and disconnects a node from
+// a neighbor node.
+func (h *EngineManager) RemovePeer(id string) {
+	// Short circuit if the peer was already removed
+	peer, err := h.peers.Get(id)
+	if err != nil {
+		log.Error("Removing CBFT peer failed", "err", err)
+		return
+	}
+	log.Debug("Removing CBFT peer", "peer", id)
+
+	if err := h.peers.Unregister(id); err != nil {
+		log.Error("CBFT Peer removal failed", "peer", id, "err", err)
+	}
+	// Hard disconnect at the networking layer
+	if peer != nil {
+		peer.Peer.Disconnect(p2p.DiscUselessPeer)
+	}
 }
 
 // Select a node with a height higher than the local node block from

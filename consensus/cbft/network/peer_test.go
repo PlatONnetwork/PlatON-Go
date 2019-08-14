@@ -218,13 +218,13 @@ func Test_Peer_Handshake(t *testing.T) {
 		wantErr error
 	}{
 		{
-			in:      &protocols.CbftStatusData{1, big.NewInt(1), common.Hash{}, big.NewInt(2), common.Hash{}, big.NewInt(3), common.Hash{}},
-			out:     &protocols.CbftStatusData{1, big.NewInt(2), common.Hash{}, big.NewInt(3), common.Hash{}, big.NewInt(4), common.Hash{}},
+			in:      &protocols.CbftStatusData{ProtocolVersion: 1, QCBn: big.NewInt(1), QCBlock: common.Hash{}, LockBn: big.NewInt(2), LockBlock: common.Hash{}, CmtBn: big.NewInt(3), CmtBlock: common.Hash{}},
+			out:     &protocols.CbftStatusData{ProtocolVersion: 1, QCBn: big.NewInt(2), QCBlock: common.Hash{}, LockBn: big.NewInt(3), LockBlock: common.Hash{}, CmtBn: big.NewInt(4), CmtBlock: common.Hash{}},
 			wantErr: nil,
 		},
 		{
-			in:      &protocols.CbftStatusData{1, big.NewInt(1), common.Hash{}, big.NewInt(2), common.Hash{}, big.NewInt(3), common.Hash{}},
-			out:     &protocols.CbftStatusData{2, big.NewInt(9), common.Hash{}, big.NewInt(8), common.Hash{}, big.NewInt(7), common.Hash{}},
+			in:      &protocols.CbftStatusData{ProtocolVersion: 1, QCBn: big.NewInt(1), QCBlock: common.Hash{}, LockBn: big.NewInt(2), LockBlock: common.Hash{}, CmtBn: big.NewInt(3), CmtBlock: common.Hash{}},
+			out:     &protocols.CbftStatusData{ProtocolVersion: 2, QCBn: big.NewInt(9), QCBlock: common.Hash{}, LockBn: big.NewInt(8), LockBlock: common.Hash{}, CmtBn: big.NewInt(7), CmtBlock: common.Hash{}},
 			wantErr: types.ErrResp(types.ErrCbftProtocolVersionMismatch, "%s", ""),
 		},
 	}

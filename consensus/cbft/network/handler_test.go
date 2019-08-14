@@ -73,8 +73,8 @@ func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
 func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return s.localPeer.CommitBn(), common.Hash{}
 }
-func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
-	return []discover.NodeID{s.consensusNodes[0]}, &protocols.GetViewChange{
+func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
+	return &protocols.GetViewChange{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
@@ -156,7 +156,8 @@ func Test_EngineManager_Handle(t *testing.T) {
 	// First send a status message and then to
 	// send consensus messages for processing.
 	go func() {
-		status := &protocols.CbftStatusData{1, big.NewInt(1), common.Hash{}, big.NewInt(2), common.Hash{}, big.NewInt(3), common.Hash{}}
+		status := &protocols.CbftStatusData{ProtocolVersion: 1, QCBn: big.NewInt(1), QCBlock: common.Hash{},
+			LockBn: big.NewInt(2), LockBlock: common.Hash{}, CmtBn: big.NewInt(3), CmtBlock: common.Hash{}}
 		p2p.Send(fake.localPeer.rw, protocols.CBFTStatusMsg, status)
 		t.Log("send status success.")
 		// send message that the type of consensus.
