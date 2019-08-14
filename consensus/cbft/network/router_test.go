@@ -72,8 +72,8 @@ func Test_Router_Gossip(t *testing.T) {
 		message types.Message
 		mode    uint64
 	}{
-		{&protocols.PrepareBlockHash{1, 1, 1, common.Hash{}, 1}, types.FullMode},
-		{&protocols.PrepareBlockHash{1, 1, 1, common.Hash{}, 1}, types.PartMode},
+		{&protocols.PrepareBlockHash{Epoch: 1, ViewNumber: 1, BlockIndex: 1, BlockHash: common.Hash{}, BlockNumber: 1}, types.FullMode},
+		{&protocols.PrepareBlockHash{Epoch: 1, ViewNumber: 1, BlockIndex: 1, BlockHash: common.Hash{}, BlockNumber: 1}, types.PartMode},
 	}
 	// Keep sending message.
 	go func() {
@@ -116,8 +116,8 @@ func Test_Router_SendMessage(t *testing.T) {
 		id      string
 		mode    uint64
 	}{
-		{&protocols.GetLatestStatus{1, common.Hash{}, TypeForQCBn}, targetPeer.id, types.FullMode},
-		{&protocols.LatestStatus{1, common.Hash{}, TypeForQCBn}, targetPeer.id, types.FullMode},
+		{&protocols.GetLatestStatus{BlockNumber: 1, BlockHash: common.Hash{}, LogicType: TypeForQCBn}, targetPeer.id, types.FullMode},
+		{&protocols.LatestStatus{BlockNumber: 1, BlockHash: common.Hash{}, LogicType: TypeForQCBn}, targetPeer.id, types.FullMode},
 	}
 	var wg sync.WaitGroup
 	wg.Add(len(testCases))

@@ -225,14 +225,23 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, nodeID discov
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
 	}
-	pool.switchPoint = blockNumber
+	// When validator mode is `static`, the `ValidatorBlockNumber` always 0,
+	// means we are using static validators. Otherwise, represent use current
+	// validators validate start from `ValidatorBlockNumber` block,
+	// so `ValidatorBlockNumber` - 1 is the switch point.
+	if pool.currentValidators.ValidBlockNumber > 0 {
+		pool.switchPoint = pool.currentValidators.ValidBlockNumber - 1
+	}
 	return pool
 }
 
 // ShouldSwitch check if should switch validators at the moment.
 func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
-	if blockNumber <= vp.switchPoint {
+	if blockNumber == 0 {
 		return false
+	}
+	if blockNumber == vp.switchPoint {
+		return true
 	}
 	return blockNumber == vp.agency.GetLastNumber(blockNumber)
 }
