@@ -12,6 +12,7 @@ type TallyResult struct {
 	Abstentions   uint16         `json:"abstentions"`
 	AccuVerifiers uint16         `json:"accuVerifiers"`
 	Status        ProposalStatus `json:"status"`
+	CanceledBy    common.Hash    `json:"canceledBy"`
 }
 
 type Vote struct {

@@ -397,6 +397,8 @@ func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.
 			tobeDecoded = header.Extra[:32]
 		}
 
+		log.Debug("verify header extra", "data", hex.EncodeToString(header.Extra))
+
 		var extraData []interface{}
 		err := rlp.DecodeBytes(tobeDecoded, &extraData)
 		if err != nil {
