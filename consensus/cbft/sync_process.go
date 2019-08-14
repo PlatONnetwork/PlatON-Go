@@ -58,7 +58,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 				start := time.Now()
 				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
-					cbft.network.RemovePeer(id)
 					return
 				}
 				blockExecutedTimer.UpdateSince(start)
@@ -77,7 +76,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	expire := func() {
 		cbft.log.Debug("Fetch timeout, close fetching", "targetId", id, "baseBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 		utils.SetFalse(&cbft.fetching)
-		cbft.network.RemovePeer(id)
 	}
 
 	cbft.log.Debug("Start fetching")
