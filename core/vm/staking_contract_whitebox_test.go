@@ -10,11 +10,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -66,6 +64,12 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -76,6 +80,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -136,6 +141,12 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -146,6 +157,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -200,9 +212,13 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	programVersion, _ := rlp.EncodeToBytes(version)
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	args = append(args, fnType)
 	args = append(args, typ)
@@ -214,6 +230,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	args = append(args, details)
 	args = append(args, amount)
 	args = append(args, programVersion)
+	args = append(args, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, args)
@@ -272,6 +289,12 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -282,6 +305,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -314,6 +338,12 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	amount2, _ := rlp.EncodeToBytes(StakeThreshold2)
 	programVersion2, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign2 := common.VersionSign{}
+	versionSign2.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign2, _ := rlp.EncodeToBytes(versionSign2)
+
 	args = append(args, fnType2)
 	args = append(args, typ2)
 	args = append(args, benefitAddress2)
@@ -324,6 +354,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	args = append(args, details2)
 	args = append(args, amount2)
 	args = append(args, programVersion2)
+	args = append(args, sign2)
 
 	buf2 := new(bytes.Buffer)
 	err = rlp.Encode(buf2, args)
@@ -388,6 +419,12 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -398,6 +435,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -452,8 +490,15 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
+
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -465,6 +510,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -527,6 +573,12 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -537,6 +589,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -599,6 +652,12 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(initBalance)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -609,6 +668,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -667,8 +727,15 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
+
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -680,6 +747,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -735,8 +803,15 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".networkdadadadasdwdqwdqwdADADADADADADADADADAqwdqwdqwdqwdqwdQWDQwdQWD.com")
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super nodeFFFAADADDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
+
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -748,6 +823,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
