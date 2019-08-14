@@ -22,7 +22,7 @@ func initChandlerHandler() {
 
 func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 	initChandlerHandler()
-	version := uint32(2<<16 | 0<<8 | 0)
+	version := uint32(1<<16 | 1<<8 | 0)
 	sig := chandler.MustSign(version)
 
 	versionSign := common.VersionSign{}

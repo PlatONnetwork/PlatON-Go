@@ -6,7 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 type GovSnapshotDB struct {
@@ -123,14 +123,18 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 }
 
 func (self *GovSnapshotDB) addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
-
 	nodes, err := self.getActiveNodeList(blockHash, proposalId)
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
-	nodes = append(nodes, node)
 
-	return self.put(blockHash, KeyActiveNodes(proposalId), nodes)
+	//distinct the nodeID
+	if xutil.InNodeIDList(node, nodes) {
+		return nil
+	} else {
+		nodes = append(nodes, node)
+		return self.put(blockHash, KeyActiveNodes(proposalId), nodes)
+	}
 }
 
 func (self *GovSnapshotDB) getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
@@ -164,7 +168,7 @@ func (self *GovSnapshotDB) addAccuVerifiers(blockHash common.Hash, proposalId co
 		}
 	}
 	for _, nodeID := range nodes {
-		if !xcom.InNodeIDList(nodeID, accuVerifiers) {
+		if !xutil.InNodeIDList(nodeID, accuVerifiers) {
 			accuVerifiers = append(accuVerifiers, nodeID)
 		}
 	}

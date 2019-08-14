@@ -154,12 +154,13 @@ func (bcr *BlockChainReactor) SetCrypto_handler(ch *xcom.CryptoHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	//if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
-	if nil != bcr.vh {
-		bcr.vh.SetPrivateKey(privateKey)
-	}
-	if nil != bcr.chandler {
-		bcr.chandler.SetPrivateKey(privateKey)
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+		if nil != bcr.vh {
+			bcr.vh.SetPrivateKey(privateKey)
+		}
+		if nil != bcr.chandler {
+			bcr.chandler.SetPrivateKey(privateKey)
+		}
 	}
 }
 
@@ -395,6 +396,8 @@ func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.
 		} else {
 			tobeDecoded = header.Extra[:32]
 		}
+
+		log.Debug("verify header extra", "data", hex.EncodeToString(header.Extra))
 
 		var extraData []interface{}
 		err := rlp.DecodeBytes(tobeDecoded, &extraData)
