@@ -27,14 +27,14 @@ var (
 )
 
 // Create a new router for testing.
-func newRouter(t *testing.T) (*router, *peer) {
+func newTestRouter(t *testing.T) (*router, *peer) {
 	// Create a peerSet for assistance.
 	ps := NewPeerSet()
 	var consensusNodes []discover.NodeID
 	writer, reader := p2p.MsgPipe()
-	var localId discover.NodeID
-	rand.Read(localId[:])
-	localPeer := NewPeer(1, p2p.NewPeer(localId, "local", nil), reader)
+	var localID discover.NodeID
+	rand.Read(localID[:])
+	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 	for i := 0; i < testingPeerCount; i++ {
 		p, id := newLinkedPeer(writer, 1, fmt.Sprintf("p%d", i))
 		ps.Register(p)
@@ -46,15 +46,15 @@ func newRouter(t *testing.T) (*router, *peer) {
 		return ps.Unregister(id)
 	}
 	getHook := func(id string) (*peer, error) {
-		return ps.Get(id)
+		return ps.get(id)
 	}
 	consensusNodesHook := func() ([]discover.NodeID, error) {
 		return consensusNodes, nil
 	}
 	peersHook := func() ([]*peer, error) {
-		return ps.Peers(), nil
+		return ps.allPeers(), nil
 	}
-	router := NewRouter(unregisterHook, getHook, consensusNodesHook, peersHook)
+	router := newRouter(unregisterHook, getHook, consensusNodesHook, peersHook)
 	peers, _ := router.peers()
 	t.Logf("peers: %s", formatPeers(peers))
 	t.Logf("consensusuPeers: %s", formatDiscoverNodeIDs(consensusNodes))
@@ -66,7 +66,7 @@ func Test_Router_Gossip(t *testing.T) {
 	// Do some work to complete the initialization.
 	// localPeer stands for local node.
 	// peers statnds for the node of remote.
-	r, localPeer := newRouter(t)
+	r, localPeer := newTestRouter(t)
 
 	testCases := []struct {
 		message types.Message
@@ -107,7 +107,7 @@ func Test_Router_Gossip(t *testing.T) {
 
 func Test_Router_SendMessage(t *testing.T) {
 	// init router and create local peer.
-	r, localPeer := newRouter(t)
+	r, localPeer := newTestRouter(t)
 	peers, _ := r.peers()
 	targetPeer := peers[0]
 
@@ -148,7 +148,7 @@ func Test_Router_SendMessage(t *testing.T) {
 
 func Test_Router_FilteredPeers(t *testing.T) {
 	// init router and preset hash.
-	r, _ := newRouter(t)
+	r, _ := newTestRouter(t)
 	peers, _ := r.peers()
 	excludePeer := peers[1]
 	excludePeer.MarkMessageHash(presetMessageHash)
@@ -192,7 +192,7 @@ func Test_Router_FilteredPeers(t *testing.T) {
 }
 
 func Test_Router_kConsensusRandomNodes(t *testing.T) {
-	r, _ := newRouter(t)
+	r, _ := newTestRouter(t)
 	peers, _ := r.peers()
 	excludePeer := peers[2]
 	excludePeer.MarkMessageHash(presetMessageHash)
@@ -211,7 +211,7 @@ func Test_Router_kConsensusRandomNodes(t *testing.T) {
 }
 
 func Test_Router_KMixingRandomNodes(t *testing.T) {
-	r, _ := newRouter(t)
+	r, _ := newTestRouter(t)
 	peers, _ := r.peers()
 	excludePeer := peers[1]
 	excludePeer.MarkMessageHash(presetMessageHash)
@@ -231,7 +231,7 @@ func Test_Router_KMixingRandomNodes(t *testing.T) {
 
 func Test_Router_RepeatedCheck(t *testing.T) {
 	// create new router and init peers.
-	r, _ := newRouter(t)
+	r, _ := newTestRouter(t)
 	peers, err := r.peers()
 	if err != nil {
 		t.Error("create router failed")
@@ -247,13 +247,13 @@ func Test_Router_RepeatedCheck(t *testing.T) {
 
 func Test_Router_FormatPeers(t *testing.T) {
 	var peers []*peer
-	var lastId string
+	var lastID string
 	for i := 0; i < 3; i++ {
-		p, _ := newPeer(1, fmt.Sprintf("p%d", i))
+		p, _ := newTestPeer(1, fmt.Sprintf("p%d", i))
 		peers = append(peers, p)
-		lastId = p.id
+		lastID = p.id
 	}
-	assert.Contains(t, formatPeers(peers), lastId)
+	assert.Contains(t, formatPeers(peers), lastID)
 	t.Log(formatPeers(peers))
 }
 

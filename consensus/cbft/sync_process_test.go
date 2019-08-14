@@ -369,7 +369,8 @@ func TestCbft_OnGetLatestStatus(t *testing.T) {
 		{1, 2, network.TypeForCommitBn},
 		{2, 1, network.TypeForCommitBn},
 	}
-	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	peerID := cNodes[0].TerminalString()
+	//peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.GetLatestStatus{
 			BlockNumber: v.reqBn,
@@ -378,19 +379,16 @@ func TestCbft_OnGetLatestStatus(t *testing.T) {
 		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		err := engine.OnGetLatestStatus(peer.PeerID(), message)
+		err := engine.OnGetLatestStatus(peerID, message)
 		assert.Nil(t, err)
 		if v.blockBn < v.reqBn {
 			switch v.reqType {
 			case network.TypeForQCBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestQCBlock().NumberU64())
-				assert.Equal(t, v.reqBn, peer.QCBn())
 			case network.TypeForLockedBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestLockBlock().NumberU64())
-				assert.Equal(t, v.reqBn, peer.LockedBn())
 			case network.TypeForCommitBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestCommitBlock().NumberU64())
-				assert.Equal(t, v.reqBn, peer.CommitBn())
 			}
 		}
 	}
@@ -414,7 +412,8 @@ func TestCbft_OnLatestStatus(t *testing.T) {
 		{1, 2, network.TypeForCommitBn},
 		{2, 1, network.TypeForCommitBn},
 	}
-	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	peerID := cNodes[0].TerminalString()
+	//peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.LatestStatus{
 			BlockNumber: v.rspBn,
@@ -423,19 +422,19 @@ func TestCbft_OnLatestStatus(t *testing.T) {
 		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		err := engine.OnLatestStatus(peer.PeerID(), message)
+		err := engine.OnLatestStatus(peerID, message)
 		assert.Nil(t, err)
 		if v.blockBn < v.rspBn {
 			switch v.rspType {
 			case network.TypeForQCBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestQCBlock().NumberU64())
-				assert.Equal(t, v.rspBn, peer.QCBn())
+				//assert.Equal(t, v.rspBn, peer.QCBn())
 			case network.TypeForLockedBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestLockBlock().NumberU64())
-				assert.Equal(t, v.rspBn, peer.LockedBn())
+				//assert.Equal(t, v.rspBn, peer.LockedBn())
 			case network.TypeForCommitBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestCommitBlock().NumberU64())
-				assert.Equal(t, v.rspBn, peer.CommitBn())
+				//assert.Equal(t, v.rspBn, peer.CommitBn())
 			}
 		}
 	}
@@ -454,8 +453,8 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 		{1, 0, 1, []uint32{0, 2}},
 		{1, 0, 2, []uint32{0, 2}},
 	}
-
-	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	peerID := cNodes[0].TerminalString()
+	//peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.GetViewChange{
 			Epoch:      v.reqEpoch,
@@ -486,7 +485,7 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 
 		network.SetSendQueueHook(engine.network, hook)
 
-		err := engine.OnGetViewChange(peer.PeerID(), message)
+		err := engine.OnGetViewChange(peerID, message)
 		if v.viewNumber < v.reqViewNumber {
 			assert.NotNil(t, err)
 		} else {

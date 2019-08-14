@@ -24,7 +24,7 @@ import (
 func Test_NewPeer(t *testing.T) {
 	version := 1
 	name := "test"
-	p, id := newPeer(version, name)
+	p, id := newTestPeer(version, name)
 	if p.version != 1 {
 		t.Fatalf("version not equal. expect:{1}, actual:{%d}", p.version)
 	}
@@ -70,8 +70,8 @@ func Test_NewPeer(t *testing.T) {
 
 func Test_PeerSet_Register(t *testing.T) {
 	ps := NewPeerSet()
-	p1, _ := newPeer(1, "ps1")
-	p2, _ := newPeer(1, "ps2")
+	p1, _ := newTestPeer(1, "ps1")
+	p2, _ := newTestPeer(1, "ps2")
 	//p3, _ := newPeer(1, "ps3")
 
 	// for the function of Register.
@@ -89,9 +89,9 @@ func Test_PeerSet_Register(t *testing.T) {
 func Test_PeerSet_Unregister(t *testing.T) {
 	// Create new peerSet and do some initialization.
 	ps := NewPeerSet()
-	p1, _ := newPeer(1, "ps1")
-	p2, _ := newPeer(1, "ps2")
-	p3, _ := newPeer(1, "ps3")
+	p1, _ := newTestPeer(1, "ps1")
+	p2, _ := newTestPeer(1, "ps2")
+	p3, _ := newTestPeer(1, "ps3")
 	ps.Register(p1)
 	ps.Register(p2)
 
@@ -99,7 +99,7 @@ func Test_PeerSet_Unregister(t *testing.T) {
 	len := ps.Len()
 	assert.Equal(t, 2, len)
 
-	rp, err := ps.Get(p1.id)
+	rp, err := ps.get(p1.id)
 	if err != nil {
 		t.Error("Get peer should not be return nil")
 	}
@@ -115,7 +115,7 @@ func Test_PeerSet_Unregister(t *testing.T) {
 	err = ps.Unregister(p3.id)
 	assert.Equal(t, err.Error(), errNotRegistered.Error())
 
-	_, err = ps.Get(p3.id)
+	_, err = ps.get(p3.id)
 	assert.Equal(t, err.Error(), errNotRegistered.Error())
 }
 
@@ -127,7 +127,7 @@ func Test_PeerSet_Peers(t *testing.T) {
 	var peers []*peer
 	var ids []discover.NodeID
 	for i := 0; i < 11; i++ {
-		p, id := newPeer(1, fmt.Sprintf("%d", i))
+		p, id := newTestPeer(1, fmt.Sprintf("%d", i))
 		peers = append(peers, p)
 		// The id is oddly set to the consensus node.
 		if i%2 != 0 {
@@ -140,28 +140,28 @@ func Test_PeerSet_Peers(t *testing.T) {
 	}
 
 	// test PeersWithoutConsensus.
-	pwoc := ps.PeersWithoutConsensus(ids)
+	pwoc := ps.peersWithoutConsensus(ids)
 	assert.Equal(t, len(peers)-len(ids), len(pwoc))
 
-	// test PeersWithConsensus
-	pwc := ps.PeersWithConsensus(ids)
+	// test peersWithConsensus
+	pwc := ps.peersWithConsensus(ids)
 	assert.Equal(t, len(ids), len(pwc))
 
 	// test peers
-	pees := ps.Peers()
+	pees := ps.allPeers()
 	assert.Equal(t, len(peers), len(pees))
 
 	// test PeersWithHighestQCBn, i(1/3/5/7/9) * 100 (i is an odd number).
 	// If qcNumber is 700, then the count of results is 1.
-	pwhqb := ps.PeersWithHighestQCBn(700)
+	pwhqb := ps.peersWithHighestQCBn(700)
 	assert.Equal(t, 1, len(pwhqb))
 
 	// If lockedNumber is 700, then the count of results is 1.
-	pwhlb := ps.PeersWithHighestLockedBn(500)
+	pwhlb := ps.peersWithHighestLockedBn(500)
 	assert.Equal(t, 2, len(pwhlb))
 
 	// If lockedNumber is 700, then the count of results is 1.
-	pwhmb := ps.PeersWithHighestCommitBn(300)
+	pwhmb := ps.peersWithHighestCommitBn(300)
 	assert.Equal(t, 3, len(pwhmb))
 
 	// Print node information.
@@ -180,8 +180,8 @@ func Test_Peer_Handshake(t *testing.T) {
 		in, out := p2p.MsgPipe()
 		var id discover.NodeID
 		rand.Read(id[:])
-		me := NewPeer(1, p2p.NewPeer(id, "me", nil), in)
-		you := NewPeer(1, p2p.NewPeer(id, "you", nil), out)
+		me := newPeer(1, p2p.NewPeer(id, "me", nil), in)
+		you := newPeer(1, p2p.NewPeer(id, "you", nil), out)
 		go func() {
 			_, err := me.Handshake(inStatus)
 			if err != nil && wantErr != nil {

@@ -45,6 +45,8 @@ import (
 
 const cbftVersion = 1
 
+// Cbft is the core structure of the consensus engine
+// and is responsible for handling consensus logic.
 type Cbft struct {
 	config           ctypes.Config
 	eventMux         *event.TypeMux
@@ -106,6 +108,7 @@ type Cbft struct {
 	consensusNodesMock func() ([]discover.NodeID, error)
 }
 
+// New returns a new CBFT.
 func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	cbft := &Cbft{
 		config:             ctypes.Config{Sys: sysConfig, Option: optConfig},
@@ -133,11 +136,12 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
-// Returns the ID value of the current node
-func (cbft *Cbft) NodeId() discover.NodeID {
+// NodeID returns the ID value of the current node
+func (cbft *Cbft) NodeID() discover.NodeID {
 	return cbft.config.Option.NodeID
 }
 
+// Start starts consensus engine.
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.blockChain = chain
 	cbft.txPool = txPool
@@ -212,7 +216,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	return nil
 }
 
-// Entrance: The messages related to the consensus are entered from here.
+// ReceiveMessage Entrance: The messages related to the consensus are entered from here.
 // The message sent from the peer node is sent to the CBFT message queue and
 // there is a loop that will distribute the incoming message.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
@@ -248,15 +252,15 @@ func (cbft *Cbft) recordMessage(msg *ctypes.MsgInfo) error {
 }
 
 // forgetMessage clears the record after the message processing is completed.
-func (cbft *Cbft) forgetMessage(peerId string) error {
+func (cbft *Cbft) forgetMessage(peerID string) error {
 	cbft.queuesLock.Lock()
 	defer cbft.queuesLock.Unlock()
 	// After the message is processed, the counter is decremented by one.
 	// If it is reduced to 0, the mapping relationship of the corresponding
 	// node will be deleted.
-	cbft.queues[peerId]--
-	if cbft.queues[peerId] == 0 {
-		delete(cbft.queues, peerId)
+	cbft.queues[peerID]--
+	if cbft.queues[peerID] == 0 {
+		delete(cbft.queues, peerID)
 	}
 	return nil
 }
@@ -307,7 +311,7 @@ func (cbft *Cbft) LoadWal() (err error) {
 	return nil
 }
 
-//Receive all consensus related messages, all processing logic in the same goroutine
+// receiveLoop receives all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
 	// channel Divided into read-only type, writable type
 	// Read-only is the channel that gets the current CBFT status.
@@ -339,7 +343,8 @@ func (cbft *Cbft) receiveLoop() {
 	}
 }
 
-//Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
+// handleConsensusMsg processes consensus messages, there are three main types of
+// messages - prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	if !cbft.running() {
 		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
@@ -406,14 +411,17 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	}
 }
 
+// running returns whether the consensus engine is running.
 func (cbft *Cbft) running() bool {
 	return utils.False(&cbft.syncing) && utils.False(&cbft.fetching)
 }
 
+// Author returns the current node's Author.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
+// VerifyHeader verify the validity of the block header.
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
 	if header.Number == nil {
 		cbft.log.Error("Verify header fail, unknown block")
@@ -431,6 +439,7 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	return nil
 }
 
+// VerifyHeaders is used to verify the validity of block headers in batch.
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	cbft.log.Trace("Verify headers", "total", len(headers))
 
@@ -486,6 +495,8 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 	return types.NewBlock(header, txs, receipts), nil
 }
 
+// Seal is used to generate a block, and block data is
+// passed to the execution channel.
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	cbft.log.Info("Seal block", "number", block.Number(), "parentHash", block.ParentHash())
 	header := block.Header()
@@ -509,6 +520,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 	return nil
 }
 
+// OnSeal is used to process the blocks that have already been generated.
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
@@ -518,9 +530,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	nextRoundNum := validator.NextRound(cbft.state.HighestExecutedBlock().NumberU64())
-	me, err := cbft.validatorPool.GetValidatorByNodeID(nextRoundNum, cbft.NodeId())
+	me, err := cbft.validatorPool.GetValidatorByNodeID(nextRoundNum, cbft.NodeID())
 	if err != nil {
-		cbft.log.Warn("Can not got the validator, seal fail", "number", nextRoundNum, "nodeID", cbft.NodeId())
+		cbft.log.Warn("Can not got the validator, seal fail", "number", nextRoundNum, "nodeID", cbft.NodeID())
 		return
 	}
 	numValidators := cbft.validatorPool.Len(nextRoundNum)
@@ -602,6 +614,7 @@ func (cbft *Cbft) SealHash(header *types.Header) common.Hash {
 	return header.SealHash()
 }
 
+// APIs returns a list of APIs provided by the consensus engine.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	return []rpc.API{
 		{
@@ -619,10 +632,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	}
 }
 
+// Protocols return consensus engine to provide protocol information.
 func (cbft *Cbft) Protocols() []p2p.Protocol {
 	return cbft.network.Protocols()
 }
 
+// NextBaseBlock is used to calculate the next block.
 func (cbft *Cbft) NextBaseBlock() *types.Block {
 	result := make(chan *types.Block, 1)
 	cbft.asyncCallCh <- func() {
@@ -633,6 +648,7 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 	return <-result
 }
 
+// InsertChain is used to insert the block into the chain.
 func (cbft *Cbft) InsertChain(block *types.Block) error {
 	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash())
 	cbft.pause()
@@ -684,12 +700,13 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 	return <-result
 }
 
-// HashBlock check if the specified block exists in block tree.
+// HasBlock check if the specified block exists in block tree.
 func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 	// Can only be invoked after startup
 	return cbft.state.HighestQCBlock().NumberU64() > number
 }
 
+// Status returns the status data of the consensus engine.
 func (cbft *Cbft) Status() string {
 	type Status struct {
 		Tree  *ctypes.BlockTree `json:"block_tree"`
@@ -710,6 +727,7 @@ func (cbft *Cbft) Status() string {
 	return <-status
 }
 
+// GetPrepareQC returns the QC data of the specified block height.
 func (cbft *Cbft) GetPrepareQC(number uint64) *ctypes.QuorumCert {
 	cbft.log.Debug("get prepare QC")
 	if header := cbft.blockChain.GetHeaderByNumber(number); header != nil {
@@ -747,6 +765,7 @@ func (cbft *Cbft) checkStart(exe func()) {
 	}
 }
 
+// FastSyncCommitHead processes logic that performs fast synchronization.
 func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 	cbft.log.Debug("Fast sync commit head", "number", block.Number(), "hash", block.Hash())
 	cbft.pause()
@@ -775,6 +794,7 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 	return <-result
 }
 
+// Close turns off the consensus engine.
 func (cbft *Cbft) Close() error {
 	cbft.log.Info("Close cbft consensus")
 	utils.SetFalse(&cbft.start)
@@ -791,6 +811,7 @@ func (cbft *Cbft) Close() error {
 	return nil
 }
 
+// ConsensusNodes returns to the list of consensus nodes.
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 	if cbft.consensusNodesMock != nil {
 		return cbft.consensusNodesMock()
@@ -820,6 +841,8 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	}
 }
 
+// OnShouldSeal determines whether the current condition
+// of the block is satisfied.
 func (cbft *Cbft) OnShouldSeal(result chan error) {
 	select {
 	case <-result:
@@ -884,6 +907,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	result <- nil
 }
 
+// CalcBlockDeadline return the deadline of the block.
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
 	rtt := cbft.avgRTT()
@@ -895,6 +919,7 @@ func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 	return cbft.state.Deadline()
 }
 
+// CalcNextBlockTime returns the deadline  of the next block.
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
 	rtt := cbft.avgRTT()
@@ -910,10 +935,12 @@ func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	return blockTime.Add(produceInterval)
 }
 
+// IsConsensusNode returns whether the current node is a consensus node.
 func (cbft *Cbft) IsConsensusNode() bool {
 	return cbft.validatorPool.IsValidator(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
 }
 
+// GetBlock returns the block corresponding to the specified number and hash.
 func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 	result := make(chan *types.Block, 1)
 	cbft.asyncCallCh <- func() {
@@ -923,34 +950,39 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return <-result
 }
 
+// GetBlockWithoutLock returns the block corresponding to the specified number and hash.
 func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
 	block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
 	return block
 }
 
+// IsSignedBySelf returns the verification result , and the result is
+// to determine whether the block information is the signature of the current node.
 func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
 	return cbft.verifySelfSigned(sealHash.Bytes(), header.Signature())
 }
 
+// TracingSwitch will be abandoned in the future.
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
 
+// Config returns the configuration information of the consensus engine.
 func (cbft *Cbft) Config() *ctypes.Config {
 	return &cbft.config
 }
 
-// Return the highest submitted block number of the current node.
+// HighestCommitBlockBn returns the highest submitted block number of the current node.
 func (cbft *Cbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return cbft.state.HighestCommitBlock().NumberU64(), cbft.state.HighestCommitBlock().Hash()
 }
 
-// Return the highest locked block number of the current node.
+// HighestLockBlockBn returns the highest locked block number of the current node.
 func (cbft *Cbft) HighestLockBlockBn() (uint64, common.Hash) {
 	return cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 }
 
-// Return the highest QC block number of the current node.
+// HighestQCBlockBn return the highest QC block number of the current node.
 func (cbft *Cbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 }
@@ -984,6 +1016,7 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 	})
 }
 
+// Evidences implements functions in API.
 func (cbft *Cbft) Evidences() string {
 	evs := cbft.evPool.Evidences()
 	if len(evs) == 0 {
@@ -997,7 +1030,6 @@ func (cbft *Cbft) Evidences() string {
 	return string(js)
 }
 
-// verifySelfSigned
 func (cbft *Cbft) verifySelfSigned(m []byte, sig []byte) bool {
 	recPubKey, err := crypto.Ecrecover(m, sig)
 	if err != nil {

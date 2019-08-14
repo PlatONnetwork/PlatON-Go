@@ -52,12 +52,14 @@ type ChainReader interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 }
 
+// TxPoolReset stands for transaction pool.
 type TxPoolReset interface {
 	ForkedReset(newHeader *types.Header, rollback []*types.Block)
 	Reset(newBlock *types.Block)
 }
 
-//Execution block, you need to pass in the parent block to find the parent block state
+// BlockCacheWriter executions block, you need to pass in the parent
+// block to find the parent block state
 type BlockCacheWriter interface {
 	Execute(block *types.Block, parent *types.Block) error
 	ClearCache(block *types.Block)
@@ -137,7 +139,8 @@ type PoW interface {
 	Hashrate() float64
 }
 
-// Agency
+// Agency defines the interface that the authentication
+// mechanism must implement.
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
@@ -147,6 +150,8 @@ type Agency interface {
 	IsCandidateNode(nodeID discover.NodeID) bool
 }
 
+// Bft defines the functions that BFT consensus
+// must implement.
 type Bft interface {
 	Engine
 

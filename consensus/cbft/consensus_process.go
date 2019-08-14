@@ -18,7 +18,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-// Perform security rule verification，store in blockTree, Whether to start synchronization
+// OnPrepareBlock performs security rule verification，store in blockTree,
+// Whether to start synchronization.
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err error) {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
@@ -63,7 +64,8 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err er
 	return nil
 }
 
-// Perform security rule verification，store in blockTree, Whether to start synchronization
+// OnPrepareVote performs security rule verification，store in blockTree,
+// Whether to start synchronization.
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err error) {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
@@ -95,7 +97,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err erro
 	return nil
 }
 
-// Perform security rule verification, view switching
+// OnViewChange performs security rule verification, view switching.
 func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) (err error) {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
@@ -123,6 +125,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) (err error)
 	return nil
 }
 
+// OnViewTimeout performs timeout logic for view.
 func (cbft *Cbft) OnViewTimeout() {
 	cbft.log.Info("Current view timeout", "view", cbft.state.ViewString())
 	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
@@ -159,7 +162,7 @@ func (cbft *Cbft) OnViewTimeout() {
 	cbft.tryChangeView()
 }
 
-//Perform security rule verification, view switching
+// OnInsertQCBlock performs security rule verification, view switching.
 func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
 	if len(blocks) != len(qcs) {
 		return fmt.Errorf("block")
@@ -489,9 +492,8 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	interval := func() uint64 {
 		if block.NumberU64() == 0 || qc.ViewNumber+1 != viewNumber {
 			return 1
-		} else {
-			return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
 		}
+		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
 	}
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
