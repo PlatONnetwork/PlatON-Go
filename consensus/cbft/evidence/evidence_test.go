@@ -96,11 +96,11 @@ func TestDuplicatePrepareBlockEvidence(t *testing.T) {
 		return
 	}
 	validateNodes, secretKeys := createValidateNode(1)
-	pb := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pb := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 
 	assert.Nil(t, pool.AddPrepareBlock(pb, validateNodes[0]))
 
-	pb = makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pb = makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	assert.IsType(t, &DuplicatePrepareBlockEvidence{}, pool.AddPrepareBlock(pb, validateNodes[0]))
 
 	assert.Len(t, pool.Evidences(), 1)
@@ -127,11 +127,11 @@ func TestDuplicatePrepareVoteEvidence(t *testing.T) {
 
 	validateNodes, secretKeys := createValidateNode(1)
 	block := newBlock(1)
-	pv := makePrepareVote(1, 1, block.Hash(), block.NumberU64(), 1, 1, t, secretKeys[0])
+	pv := makePrepareVote(1, 1, block.Hash(), block.NumberU64(), 1, validateNodes[0].Index, t, secretKeys[0])
 	assert.Nil(t, pool.AddPrepareVote(pv, validateNodes[0]))
 
 	block = newBlock(1)
-	pv = makePrepareVote(1, 1, block.Hash(), block.NumberU64(), 1, 1, t, secretKeys[0])
+	pv = makePrepareVote(1, 1, block.Hash(), block.NumberU64(), 1, validateNodes[0].Index, t, secretKeys[0])
 	assert.IsType(t, &DuplicatePrepareVoteEvidence{}, pool.AddPrepareVote(pv, validateNodes[0]))
 
 	assert.Len(t, pool.Evidences(), 1)
@@ -158,11 +158,11 @@ func TestDuplicateViewChangeEvidence(t *testing.T) {
 
 	validateNodes, secretKeys := createValidateNode(1)
 	block := newBlock(1)
-	vc := makeViewChange(1, 1, block.Hash(), block.NumberU64(), 1, t, secretKeys[0])
+	vc := makeViewChange(1, 1, block.Hash(), block.NumberU64(), validateNodes[0].Index, t, secretKeys[0])
 	assert.Nil(t, pool.AddViewChange(vc, validateNodes[0]))
 
 	block = newBlock(1)
-	vc = makeViewChange(1, 1, block.Hash(), block.NumberU64(), 1, t, secretKeys[0])
+	vc = makeViewChange(1, 1, block.Hash(), block.NumberU64(), validateNodes[0].Index, t, secretKeys[0])
 	assert.IsType(t, &DuplicateViewChangeEvidence{}, pool.AddViewChange(vc, validateNodes[0]))
 
 	assert.Len(t, pool.Evidences(), 1)
@@ -181,15 +181,15 @@ func TestDuplicateViewChangeEvidence(t *testing.T) {
 func TestJson(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(1)
 
-	pb := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pb := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidencePrepare, _ := NewEvidencePrepare(pb, validateNodes[0])
 
 	block1 := newBlock(1)
-	pv := makePrepareVote(1, 1, block1.Hash(), block1.NumberU64(), 1, 1, t, secretKeys[0])
+	pv := makePrepareVote(1, 1, block1.Hash(), block1.NumberU64(), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceVote, _ := NewEvidenceVote(pv, validateNodes[0])
 
 	block2 := newBlock(1)
-	vc := makeViewChange(1, 1, block2.Hash(), block2.NumberU64(), 1, t, secretKeys[0])
+	vc := makeViewChange(1, 1, block2.Hash(), block2.NumberU64(), validateNodes[0].Index, t, secretKeys[0])
 	evidenceView, _ := NewEvidenceView(vc, validateNodes[0])
 
 	evs := []consensus.Evidence{
@@ -232,13 +232,13 @@ func TestJson(t *testing.T) {
 func TestDuplicatePrepareBlockEvidence_Equal(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(1)
 
-	pbA := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbA := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidencePrepareA, _ := NewEvidencePrepare(pbA, validateNodes[0])
 
-	pbB := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbB := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidencePrepareB, _ := NewEvidencePrepare(pbB, validateNodes[0])
 
-	pbC := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbC := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidencePrepareC, _ := NewEvidencePrepare(pbC, validateNodes[0])
 
 	p1 := &DuplicatePrepareBlockEvidence{
@@ -258,13 +258,13 @@ func TestDuplicatePrepareBlockEvidence_Equal(t *testing.T) {
 func TestDuplicatePrepareVoteEvidence_Equal(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(1)
 
-	pvA := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, 1, t, secretKeys[0])
+	pvA := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceVoteA, _ := NewEvidenceVote(pvA, validateNodes[0])
 
-	pvB := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, 1, t, secretKeys[0])
+	pvB := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceVoteB, _ := NewEvidenceVote(pvB, validateNodes[0])
 
-	pvC := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, 1, t, secretKeys[0])
+	pvC := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceVoteC, _ := NewEvidenceVote(pvC, validateNodes[0])
 
 	p1 := &DuplicatePrepareVoteEvidence{
@@ -284,13 +284,13 @@ func TestDuplicatePrepareVoteEvidence_Equal(t *testing.T) {
 func TestDuplicateViewChangeEvidence_Equal(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(1)
 
-	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewA, _ := NewEvidenceView(vcA, validateNodes[0])
 
-	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewB, _ := NewEvidenceView(vcB, validateNodes[0])
 
-	vcC := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcC := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewC, _ := NewEvidenceView(vcC, validateNodes[0])
 
 	p1 := &DuplicateViewChangeEvidence{
@@ -310,10 +310,10 @@ func TestDuplicateViewChangeEvidence_Equal(t *testing.T) {
 func TestDuplicatePrepareBlockEvidence_Validate(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(2)
 
-	pbA := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbA := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidencePrepareA, _ := NewEvidencePrepare(pbA, validateNodes[0])
 
-	pbB := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbB := makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidencePrepareB, _ := NewEvidencePrepare(pbB, validateNodes[0])
 
 	d := &DuplicatePrepareBlockEvidence{
@@ -322,7 +322,7 @@ func TestDuplicatePrepareBlockEvidence_Validate(t *testing.T) {
 	}
 	assert.Nil(t, d.Validate())
 
-	pbB = makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[1])
+	pbB = makePrepareBlock(1, 1, newBlock(1), 1, validateNodes[1].Index, t, secretKeys[1])
 	evidencePrepareB, _ = NewEvidencePrepare(pbB, validateNodes[1])
 	d = &DuplicatePrepareBlockEvidence{
 		PrepareA: evidencePrepareA,
@@ -334,10 +334,10 @@ func TestDuplicatePrepareBlockEvidence_Validate(t *testing.T) {
 func TestDuplicatePrepareVoteEvidence_Validate(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(2)
 
-	pvA := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, 1, t, secretKeys[0])
+	pvA := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceVoteA, _ := NewEvidenceVote(pvA, validateNodes[0])
 
-	pvB := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, 1, t, secretKeys[0])
+	pvB := makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceVoteB, _ := NewEvidenceVote(pvB, validateNodes[0])
 
 	d := &DuplicatePrepareVoteEvidence{
@@ -346,7 +346,7 @@ func TestDuplicatePrepareVoteEvidence_Validate(t *testing.T) {
 	}
 	assert.Nil(t, d.Validate())
 
-	pvB = makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, 1, t, secretKeys[1])
+	pvB = makePrepareVote(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, validateNodes[1].Index, t, secretKeys[1])
 	evidenceVoteB, _ = NewEvidenceVote(pvB, validateNodes[1])
 	d = &DuplicatePrepareVoteEvidence{
 		VoteA: evidenceVoteA,
@@ -358,10 +358,10 @@ func TestDuplicatePrepareVoteEvidence_Validate(t *testing.T) {
 func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(2)
 
-	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewA, _ := NewEvidenceView(vcA, validateNodes[0])
 
-	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewB, _ := NewEvidenceView(vcB, validateNodes[0])
 
 	d := &DuplicateViewChangeEvidence{
@@ -370,7 +370,7 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 	}
 	assert.Nil(t, d.Validate())
 
-	vcB = makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[1])
+	vcB = makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[1].Index, t, secretKeys[1])
 	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[1])
 
 	d = &DuplicateViewChangeEvidence{
@@ -383,10 +383,10 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 func TestDuplicateViewChangeEvidence_Address(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(1)
 
-	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewA, _ := NewEvidenceView(vcA, validateNodes[0])
 
-	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, 1, t, secretKeys[0])
+	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewB, _ := NewEvidenceView(vcB, validateNodes[0])
 
 	d := &DuplicateViewChangeEvidence{

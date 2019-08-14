@@ -129,6 +129,7 @@ func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
 		pb.Epoch,
 		pb.ViewNumber,
 		pb.Block.Hash(),
+		pb.Block.NumberU64(),
 		pb.BlockIndex,
 		pb.ProposalIndex,
 	})
