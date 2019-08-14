@@ -6,6 +6,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -72,6 +73,11 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err erro
 		return err
 	}
 
+	if cbft.state.FindPrepareVote(msg.BlockIndex, msg.ValidatorIndex) != nil {
+		cbft.log.Debug("Prepare vote has exist", "vote", msg.String())
+		return errors.New("prepare vote has exist")
+	}
+
 	cbft.prepareVoteFetchRules(id, msg)
 
 	var node *cbfttypes.ValidateNode
@@ -89,7 +95,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err erro
 	cbft.insertPrepareQC(msg.ParentQC)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
-	cbft.log.Debug("Add prepare vote", "blockIndex", msg.BlockIndex, "number", msg.BlockNumber, "hash", msg.BlockHash, "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
+	cbft.log.Debug("Add prepare vote", "msgHash", msg.MsgHash(), "blockIndex", msg.BlockIndex, "number", msg.BlockNumber, "hash", msg.BlockHash, "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
 
 	cbft.findQCBlock()
 	return nil
