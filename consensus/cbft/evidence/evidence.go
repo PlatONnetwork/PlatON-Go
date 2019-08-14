@@ -25,6 +25,8 @@ type ViewChangeEvidence map[Identity]NumberOrderViewChange
 // Bytes gets the string representation of the underlying identity.
 func (id Identity) Bytes() []byte { return []byte(id) }
 
+// Add tries to add prepare block to PrepareBlockEvidence.
+// if the return error is DuplicatePrepareBlockEvidence instructions the prepare is duplicated
 func (e PrepareBlockEvidence) Add(pb *EvidencePrepare, id Identity) error {
 	var l NumberOrderPrepareBlock
 
@@ -36,6 +38,7 @@ func (e PrepareBlockEvidence) Add(pb *EvidencePrepare, id Identity) error {
 	return err
 }
 
+// Clear tries to clear stale intermediate prepare
 func (pbe PrepareBlockEvidence) Clear(epoch uint64, viewNumber uint64) {
 	for k, _ := range pbe {
 		s := strings.Split(string(k), "|")
@@ -78,6 +81,8 @@ func (opb *NumberOrderPrepareBlock) Add(pb *EvidencePrepare) error {
 	return nil
 }
 
+// find tries to find the same prepare evidence
+// the same epoch,viewNumber,blockNumber,node address and different blockHash
 func (opb NumberOrderPrepareBlock) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidencePrepare {
 	for _, v := range opb {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
@@ -99,6 +104,8 @@ func (opb NumberOrderPrepareBlock) Swap(i, j int) {
 	opb[i], opb[j] = opb[j], opb[i]
 }
 
+// Add tries to add prepare vote to PrepareVoteEvidence.
+// if the return error is DuplicatePrepareVoteEvidence instructions the vote is duplicated
 func (e PrepareVoteEvidence) Add(pv *EvidenceVote, id Identity) error {
 	var l NumberOrderPrepareVote
 
@@ -110,6 +117,7 @@ func (e PrepareVoteEvidence) Add(pv *EvidenceVote, id Identity) error {
 	return err
 }
 
+// Clear tries to clear stale intermediate vote
 func (pve PrepareVoteEvidence) Clear(epoch uint64, viewNumber uint64) {
 	for k, _ := range pve {
 		s := strings.Split(string(k), "|")
@@ -152,6 +160,8 @@ func (opv *NumberOrderPrepareVote) Add(pv *EvidenceVote) error {
 	return nil
 }
 
+// find tries to find the same vote evidence
+// the same epoch,viewNumber,blockNumber,node address and different blockHash
 func (opv NumberOrderPrepareVote) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceVote {
 	for _, v := range opv {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
@@ -173,6 +183,8 @@ func (opv NumberOrderPrepareVote) Swap(i, j int) {
 	opv[i], opv[j] = opv[j], opv[i]
 }
 
+// Add tries to add view to ViewChangeEvidence.
+// if the return error is DuplicateViewChangeEvidence instructions the view is duplicated
 func (e ViewChangeEvidence) Add(vc *EvidenceView, id Identity) error {
 	var l NumberOrderViewChange
 
@@ -184,6 +196,7 @@ func (e ViewChangeEvidence) Add(vc *EvidenceView, id Identity) error {
 	return err
 }
 
+// Clear tries to clear stale intermediate view
 func (vce ViewChangeEvidence) Clear(epoch uint64, viewNumber uint64) {
 	for k, _ := range vce {
 		s := strings.Split(string(k), "|")
@@ -226,6 +239,8 @@ func (ovc *NumberOrderViewChange) Add(vc *EvidenceView) error {
 	return nil
 }
 
+// find tries to find the same view evidence
+// the same epoch,viewNumber,blockNumber,node address and different blockHash
 func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceView {
 	for _, v := range ovc {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {

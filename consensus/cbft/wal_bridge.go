@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -208,7 +209,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Block) error {
 	log.Debug("Recover commit state", "commitNumber", commit.Block.NumberU64(), "commitHash", commit.Block.Hash(), "parentNumber", parent.NumberU64(), "parentHash", parent.Hash())
 	// recovery commit state
-	if err := cbft.executeBlock(commit.Block, parent); err != nil {
+	if err := cbft.executeBlock(commit.Block, parent, math.MaxUint32); err != nil {
 		return err
 	}
 	// write commit block to chain
@@ -227,7 +228,7 @@ func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Blo
 
 func (cbft *Cbft) recoveryLockState(lock *protocols.State, parent *types.Block) error {
 	// recovery lock state
-	if err := cbft.executeBlock(lock.Block, parent); err != nil {
+	if err := cbft.executeBlock(lock.Block, parent, math.MaxUint32); err != nil {
 		return err
 	}
 	cbft.recoveryChainStateProcess(protocols.LockState, lock)
@@ -237,7 +238,7 @@ func (cbft *Cbft) recoveryLockState(lock *protocols.State, parent *types.Block) 
 func (cbft *Cbft) recoveryQCState(qcs []*protocols.State, parent *types.Block) error {
 	// recovery qc state
 	for _, qc := range qcs {
-		if err := cbft.executeBlock(qc.Block, parent); err != nil {
+		if err := cbft.executeBlock(qc.Block, parent, math.MaxUint32); err != nil {
 			return err
 		}
 		cbft.recoveryChainStateProcess(protocols.QCState, qc)
@@ -302,7 +303,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 		if should {
 			// execute block
 			block := m.Prepare.Block
-			if err := cbft.executeBlock(block, nil); err != nil {
+			if err := cbft.executeBlock(block, nil, m.Prepare.BlockIndex); err != nil {
 				return err
 			}
 
@@ -325,7 +326,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 		if should {
 			// execute block
 			block := m.Block
-			if err := cbft.executeBlock(block, nil); err != nil {
+			if err := cbft.executeBlock(block, nil, m.Vote.BlockIndex); err != nil {
 				return err
 			}
 
@@ -351,10 +352,10 @@ func contiguousChainBlock(p *types.Block, s *types.Block) bool {
 }
 
 // executeBlock call blockCacheWriter to execute block.
-func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block) error {
+func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block, index uint32) error {
 	if parent == nil {
 		if parent, _ = cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); parent == nil {
-			if parent = cbft.state.HighestExecutedBlock(); parent == nil {
+			if parent = cbft.state.ViewBlockByIndex(index - 1); parent == nil {
 				return fmt.Errorf("find executable block's parent failed, blockNum:%d, blockHash:%s", block.NumberU64(), block.Hash().String())
 			}
 		}

@@ -218,13 +218,8 @@ func TestJson(t *testing.T) {
 	// test UnmarshalEvidence
 	p := path()
 	defer os.RemoveAll(p)
-	pool, err := NewBaseEvidencePool(p)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 
-	evidences, err := pool.UnmarshalEvidence(string(b2))
+	evidences, err := NewEvidences(string(b2))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, evidences.Len())
 }

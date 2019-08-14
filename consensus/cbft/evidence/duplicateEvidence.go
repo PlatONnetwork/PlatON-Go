@@ -18,6 +18,7 @@ const (
 	DuplicateViewChangeType   = 3
 )
 
+// DuplicatePrepareBlockEvidence recording duplicate blocks
 type DuplicatePrepareBlockEvidence struct {
 	PrepareA *EvidencePrepare
 	PrepareB *EvidencePrepare
@@ -65,6 +66,8 @@ func (d DuplicatePrepareBlockEvidence) Error() string {
 		d.PrepareA.Epoch, d.PrepareA.ViewNumber, d.PrepareA.BlockNumber, d.PrepareA.BlockHash.String(), d.PrepareB.BlockHash.String())
 }
 
+// Validate verify the validity of the DuplicatePrepareBlockEvidence
+// the same epoch,viewNumber,blockNumber,node address and different blockHash
 func (d DuplicatePrepareBlockEvidence) Validate() error {
 	if d.PrepareA.Epoch != d.PrepareB.Epoch {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence Epoch is different, PrepareA:%d, PrepareB:%d", d.PrepareA.Epoch, d.PrepareB.Epoch)
@@ -100,6 +103,7 @@ func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareBlockType
 }
 
+// DuplicatePrepareVoteEvidence recording duplicate vote
 type DuplicatePrepareVoteEvidence struct {
 	VoteA *EvidenceVote
 	VoteB *EvidenceVote
@@ -147,6 +151,8 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 		d.VoteA.Epoch, d.VoteA.ViewNumber, d.VoteA.BlockNumber, d.VoteA.BlockHash.String(), d.VoteB.BlockHash.String())
 }
 
+// Validate verify the validity of the duplicatePrepareVoteEvidence
+// the same epoch,viewNumber,blockNumber,node address and different blockHash
 func (d DuplicatePrepareVoteEvidence) Validate() error {
 	if d.VoteA.Epoch != d.VoteB.Epoch {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence Epoch is different, VoteA:%d, VoteB:%d", d.VoteA.Epoch, d.VoteB.Epoch)
@@ -182,6 +188,7 @@ func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareVoteType
 }
 
+// DuplicateViewChangeEvidence recording duplicate viewChange
 type DuplicateViewChangeEvidence struct {
 	ViewA *EvidenceView
 	ViewB *EvidenceView
@@ -229,6 +236,8 @@ func (d DuplicateViewChangeEvidence) Error() string {
 		d.ViewA.Epoch, d.ViewA.ViewNumber, d.ViewA.BlockNumber, d.ViewA.BlockHash.String(), d.ViewB.BlockHash.String())
 }
 
+// Validate verify the validity of the duplicateViewChangeEvidence
+// the same epoch,viewNumber,blockNumber,node address and different blockHash
 func (d DuplicateViewChangeEvidence) Validate() error {
 	if d.ViewA.Epoch != d.ViewB.Epoch {
 		return fmt.Errorf("DuplicateViewChangeEvidence Epoch is different, ViewA:%d, ViewB:%d", d.ViewA.Epoch, d.ViewB.Epoch)
@@ -264,6 +273,7 @@ func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {
 	return DuplicateViewChangeType
 }
 
+// EvidenceData encapsulate externally visible duplicate data
 type EvidenceData struct {
 	DP []*DuplicatePrepareBlockEvidence `json:"duplicate_prepare"`
 	DV []*DuplicatePrepareVoteEvidence  `json:"duplicate_vote"`
@@ -278,6 +288,7 @@ func NewEvidenceData() *EvidenceData {
 	}
 }
 
+// ClassifyEvidence tries to convert evidence list to evidenceData
 func ClassifyEvidence(evds consensus.Evidences) *EvidenceData {
 	ed := NewEvidenceData()
 	for _, e := range evds {
