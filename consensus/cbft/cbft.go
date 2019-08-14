@@ -866,7 +866,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 	qcBlock := cbft.state.HighestQCBlock()
 	_, qc := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-	if cbft.validatorPool.EqualSwitchPoint(currentExecutedBlockNumber) && qc != nil && qc.Epoch == cbft.state.Epoch() {
+	if cbft.validatorPool.ShouldSwitch(currentExecutedBlockNumber) && qc != nil && qc.Epoch == cbft.state.Epoch() {
 		cbft.log.Debug("New epoch, waiting for view's timeout", "executed", currentExecutedBlockNumber, "index", validator.Index)
 		result <- errors.New("current node not the proposer")
 		return
