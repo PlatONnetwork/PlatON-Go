@@ -1,3 +1,4 @@
+// Package evidence implements recording duplicate blocks and votes for cbft consensus.
 package evidence
 
 import (
@@ -18,11 +19,15 @@ import (
 )
 
 var (
+	// Duplicate prepare block prefix
 	prepareDualPrefix = byte(0x1)
-	voteDualPrefix    = byte(0x2)
-	viewDualPrefix    = byte(0x3)
+	// Duplicate prepare vote prefix
+	voteDualPrefix = byte(0x2)
+	// Duplicate viewChange prefix
+	viewDualPrefix = byte(0x3)
 )
 
+// EvidencePool encapsulates functions required to record duplicate blocks and votes.
 type EvidencePool interface {
 	consensus.EvidencePool
 	AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) error
@@ -30,6 +35,7 @@ type EvidencePool interface {
 	AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) error
 }
 
+// emptyEvidencePool is a empty implementation for EvidencePool
 type emptyEvidencePool struct {
 }
 
@@ -49,16 +55,13 @@ func (pool *emptyEvidencePool) Evidences() consensus.Evidences {
 	return nil
 }
 
-func (pool *emptyEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
-	return nil, nil
-}
-
 func (pool *emptyEvidencePool) Clear(epoch uint64, viewNumber uint64) {
 }
 
 func (pool *emptyEvidencePool) Close() {
 }
 
+// baseEvidencePool is a default implementation for EvidencePool
 type baseEvidencePool struct {
 	pb PrepareBlockEvidence
 	pv PrepareVoteEvidence
@@ -66,6 +69,7 @@ type baseEvidencePool struct {
 	db *leveldb.DB
 }
 
+// NewEvidencePool creates a new baseEvidencePool to record duplicate blocks and votes.
 func NewEvidencePool(ctx *node.ServiceContext, evidenceDir string) (EvidencePool, error) {
 	path := ""
 	if ctx != nil {
@@ -78,6 +82,7 @@ func NewEvidencePool(ctx *node.ServiceContext, evidenceDir string) (EvidencePool
 }
 
 func NewBaseEvidencePool(path string) (*baseEvidencePool, error) {
+	// Open or create evidence database
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
 		return nil, err
@@ -91,6 +96,7 @@ func NewBaseEvidencePool(path string) (*baseEvidencePool, error) {
 	}, nil
 }
 
+// AddPrepareBlock tries to record duplicate prepare block
 func (pool *baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) (err error) {
 	id := verifyIdentity(pb)
 	var evidencePrepare *EvidencePrepare
@@ -99,6 +105,7 @@ func (pool *baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *
 	}
 	if err := pool.pb.Add(evidencePrepare, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareBlockEvidence); ok {
+			// record duplicate prepare block to db
 			if err := pool.commit(evidence, id); err != nil {
 				return err
 			}
@@ -108,6 +115,7 @@ func (pool *baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *
 	return nil
 }
 
+// AddPrepareVote tries to record duplicate prepare vote
 func (pool *baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cbfttypes.ValidateNode) (err error) {
 	id := verifyIdentity(pv)
 	var evidenceVote *EvidenceVote
@@ -116,6 +124,7 @@ func (pool *baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cb
 	}
 	if err := pool.pv.Add(evidenceVote, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareVoteEvidence); ok {
+			// record duplicate prepare vote to db
 			if err := pool.commit(evidence, id); err != nil {
 				return err
 			}
@@ -125,6 +134,7 @@ func (pool *baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cb
 	return nil
 }
 
+// AddViewChange tries to record duplicate viewChange
 func (pool *baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (err error) {
 	id := verifyIdentity(vc)
 	var evidenceView *EvidenceView
@@ -133,6 +143,7 @@ func (pool *baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbft
 	}
 	if err := pool.vc.Add(evidenceView, id); err != nil {
 		if evidence, ok := err.(*DuplicateViewChangeEvidence); ok {
+			// record duplicate viewChange to db
 			if err := pool.commit(evidence, id); err != nil {
 				return err
 			}
@@ -142,6 +153,7 @@ func (pool *baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbft
 	return nil
 }
 
+// Evidences retrieves the duplicate evidence by querying the database
 func (pool *baseEvidencePool) Evidences() consensus.Evidences {
 	var evds consensus.Evidences
 	it := pool.db.NewIterator(nil, nil)
@@ -170,6 +182,7 @@ func (pool *baseEvidencePool) Evidences() consensus.Evidences {
 	return evds
 }
 
+// NewEvidences retrieves the duplicate evidence by parsing string
 func NewEvidences(data string) (consensus.Evidences, error) {
 	var eds EvidenceData
 	if err := json.Unmarshal([]byte(data), &eds); err != nil {
@@ -189,24 +202,25 @@ func NewEvidences(data string) (consensus.Evidences, error) {
 	return res, nil
 }
 
-func (pool *baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
-	var ed EvidenceData
-	if err := json.Unmarshal([]byte(data), &ed); err != nil {
-		return nil, err
-	}
-	evds := make(consensus.Evidences, 0)
-	for _, e := range ed.DP {
-		evds = append(evds, e)
-	}
-	for _, e := range ed.DV {
-		evds = append(evds, e)
-	}
-	for _, e := range ed.DC {
-		evds = append(evds, e)
-	}
-	return evds, nil
-}
+//func (pool *baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
+//	var ed EvidenceData
+//	if err := json.Unmarshal([]byte(data), &ed); err != nil {
+//		return nil, err
+//	}
+//	evds := make(consensus.Evidences, 0)
+//	for _, e := range ed.DP {
+//		evds = append(evds, e)
+//	}
+//	for _, e := range ed.DV {
+//		evds = append(evds, e)
+//	}
+//	for _, e := range ed.DC {
+//		evds = append(evds, e)
+//	}
+//	return evds, nil
+//}
 
+// Clear tries to clear stale intermediate data
 func (pool *baseEvidencePool) Clear(epoch uint64, viewNumber uint64) {
 	pool.pb.Clear(epoch, viewNumber)
 	pool.pv.Clear(epoch, viewNumber)
@@ -217,6 +231,7 @@ func (pool *baseEvidencePool) Close() {
 	pool.db.Close()
 }
 
+// "epoch|viewNumber|nodeIndex" represents a set of consensusMsg
 func verifyIdentity(msg types.ConsensusMsg) Identity {
 	msgID := ""
 	switch m := msg.(type) {
@@ -260,6 +275,7 @@ func encodeKey(e consensus.Evidence, id Identity) []byte {
 	return buf.Bytes()
 }
 
+// commit tries to record duplicate evidence to db
 func (ev *baseEvidencePool) commit(e consensus.Evidence, id Identity) error {
 	key := encodeKey(e, id)
 	var buf []byte
