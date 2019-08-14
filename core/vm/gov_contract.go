@@ -105,13 +105,6 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string, endVot
 	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
 		return nil, ErrOutOfGas
 	}
-
-	txHash := gc.Evm.StateDB.TxHash()
-	if txHash == common.ZeroHash {
-		log.Warn("Call submitText current txHash is empty!!")
-		return nil, nil
-	}
-
 	p := gov.TextProposal{
 		PIPID:          pipID,
 		ProposalType:   gov.Text,
@@ -152,12 +145,6 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 
 	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
 		return nil, ErrOutOfGas
-	}
-
-	txHash := gc.Evm.StateDB.TxHash()
-	if txHash == common.ZeroHash {
-		log.Warn("Call submitVersion current txHash is empty!!")
-		return nil, nil
 	}
 
 	p := gov.VersionProposal{
