@@ -3,13 +3,14 @@ package snapshotdb
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"math/rand"
 	"os"
 	"runtime"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type valueGen struct {
@@ -137,6 +138,7 @@ func (p *dbBench) putsUnrecognized() {
 		b.Fatal(err)
 	}
 	b.StopTimer()
+	b.SetBytes(116)
 }
 
 func (p *dbBench) putsRecognized() {
@@ -163,6 +165,7 @@ func (p *dbBench) putsRecognized() {
 		b.Fatal(err)
 	}
 	b.StopTimer()
+	b.SetBytes(116)
 }
 
 func (p *dbBench) close() {

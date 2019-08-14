@@ -60,11 +60,10 @@ func (k kvsMaxToMin) Len() int {
 }
 
 func (k kvsMaxToMin) Less(i, j int) bool {
-	n := bytes.Compare(k[i].key, k[j].key)
-	if n == -1 {
-		return false
+	if bytes.Compare(k[i].key, k[j].key) >= 0 {
+		return true
 	}
-	return true
+	return false
 }
 
 func (k kvsMaxToMin) Swap(i, j int) {

@@ -21,7 +21,7 @@ var (
 	errParamEpochInvalid   = common.NewBizError("param epoch can't be zero")
 	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
 	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
-	errBalanceNotEnough    = common.NewBizError("balance not enough to restrict")
+	errBalanceNotEnough    = common.NewBizError("the balance is not enough in restrict")
 	errAccountNotFound     = common.NewBizError("account is not found on restricting contract")
 )
 

@@ -147,7 +147,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 
 	// Current version only supports full syncmode
-	//ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
+	// ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
 
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)

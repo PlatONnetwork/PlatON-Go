@@ -87,6 +87,10 @@ func (db *StakingDB) GetCandidateStoreByIrr(addr common.Address) (*Candidate, er
 
 func (db *StakingDB) GetCandidateStoreWithSuffix(blockHash common.Hash, suffix []byte) (*Candidate, error) {
 	key := CandidateKeyBySuffix(suffix)
+
+	// todo test
+	log.Debug("GetCandidateStoreWithSuffix: Query can", "key", hex.EncodeToString(key))
+
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {

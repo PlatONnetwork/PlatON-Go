@@ -766,7 +766,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 	case msg.Code == PongMsg:
 		curTime := time.Now().UnixNano()
-		log.Debug("handle a eth Pong message", "curTime", curTime)
+		log.Debug("handle a eth Pong message", "pid", p.id, "curTime", curTime)
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			var pingTime [1]string
 			if err := msg.Decode(&pingTime); err != nil {

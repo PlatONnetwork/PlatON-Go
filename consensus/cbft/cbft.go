@@ -241,7 +241,7 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 
 	validators, err := cbft.agency.GetValidator(currentBlock.NumberU64())
 	if err != nil {
-		cbft.log.Error("Get validator fail", "error", err)
+		cbft.log.Error("Get validator fail", "blockNumber", currentBlock.NumberU64(), "blockHash", currentBlock.Hash().Hex(), "error", err)
 		return err
 	}
 	cbft.validators.Store(validators)
@@ -1181,7 +1181,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	err := cbft.verifyValidatorSign(request.Block.NumberU64(), request.ProposalIndex, request.ProposalAddr, request, request.Signature[:])
 	if err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
-		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash())
+		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash(), "err", err)
 		return err
 	}
 
@@ -1530,9 +1530,39 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		return errMissingSignature
 	}
 
-	if err := cbft.agency.VerifyHeader(header); err != nil {
+	state, err := cbft.blockChain.State()
+
+	if err != nil {
+		cbft.log.Error("Verify header error, cannot make state based on parent", "blockNumber", header.Number, "parentHash", header.ParentHash, "err", err)
+	}
+
+	if err := cbft.agency.VerifyHeader(header, state); err != nil {
 		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "seal", seal, "err", err)
 		return err
+	}
+	return nil
+}
+
+func (cbft *Cbft) checkGasUse(ext, parent *types.Header) error {
+	// Verify that the gas limit is <= 2^63-1
+	maxLimit := uint64(0x7fffffffffffffff)
+	if ext.GasLimit > maxLimit {
+		return errors.New(fmt.Sprintf("invalid gasLimit: have %v, max %v", ext.GasLimit, maxLimit))
+	}
+	// Verify that the gasUsed is <= gasLimit
+	if ext.GasUsed > ext.GasLimit {
+		return errors.New(fmt.Sprintf("invalid gasUsed: have %d, gasLimit %d", ext.GasUsed, ext.GasLimit))
+	}
+
+	// Verify that the gas limit remains within allowed bounds
+	diff := int64(parent.GasLimit) - int64(ext.GasLimit)
+	if diff < 0 {
+		diff *= -1
+	}
+	limit := parent.GasLimit / params.GasLimitBoundDivisor
+
+	if uint64(diff) >= limit || ext.GasLimit < params.MinGasLimit {
+		return errors.New(fmt.Sprintf("invalid gas limit: have %d, want %d += %d", ext.GasLimit, parent.GasLimit, limit))
 	}
 	return nil
 }
@@ -1541,6 +1571,11 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	cbft.log.Debug("execute block based on parent", "block", ext.String(), "parent", parent.String())
+
+	if err := cbft.checkGasUse(ext.block.Header(), parent.block.Header()); err != nil {
+		return err
+	}
+
 	state, err := cbft.blockChainCache.MakeStateDB(parent.block)
 	if err != nil {
 		cbft.log.Error("execute block error, cannot make state based on parent", "err", err, "block", ext.String(), "parent", parent.String(), "err", err)
