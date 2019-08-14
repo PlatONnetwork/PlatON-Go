@@ -145,6 +145,20 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	return
 }
 
+func AddInfo(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string, callFn string, txHash common.Hash) {
+	AddLog(state, blockNumber, contractAddr, event, data)
+	log.Info("Call "+callFn+" of stakingContract", "txHash", txHash.Hex(),
+		"blockNumber", blockNumber, "json: ", data)
+
+}
+
+func AddWarn(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string, callFn string, txHash common.Hash) {
+	AddLog(state, blockNumber, contractAddr, event, data)
+	log.Warn("Call "+callFn+" of stakingContract", "txHash", txHash.Hex(),
+		"blockNumber", blockNumber, "json: ", data)
+
+}
+
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 	log.Debug(s + " == " + string(objs))
@@ -158,6 +172,15 @@ func PrintObjForErr(s string, obj interface{}) {
 func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
+			return true
+		}
+	}
+	return false
+}
+
+func InHashList(hash common.Hash, hashList []common.Hash) bool {
+	for _, v := range hashList {
+		if hash == v {
 			return true
 		}
 	}

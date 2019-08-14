@@ -34,7 +34,7 @@ func buildSubmitTextInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
+	input = append(input, common.MustRlpEncode(nodeIdArr[1])) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
 	input = append(input, common.MustRlpEncode(uint64(5)))
 
@@ -49,22 +49,18 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode("versionUrl"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(uint64(5)))
-	input = append(input, common.MustRlpEncode(uint64(10)))
 
 	return common.MustRlpEncode(input)
 }
 
-func buildSubmitParamInput() []byte {
+func buildSubmitCancelInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2002))) // func type code
+	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
-	input = append(input, common.MustRlpEncode("paramUrl"))
-	input = append(input, common.MustRlpEncode("param1"))
-	input = append(input, common.MustRlpEncode(""))
-	input = append(input, common.MustRlpEncode("newValue"))
+	input = append(input, common.MustRlpEncode("cancelPIPID"))
 	input = append(input, common.MustRlpEncode(uint64(5)))
-
+	input = append(input, common.MustRlpEncode(txHashArr[0]))
 	return common.MustRlpEncode(input)
 }
 
@@ -130,13 +126,6 @@ func buildGetProgramVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-func buildListParamInput() []byte {
-	var input [][]byte
-	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2105))) // func type code
-	return common.MustRlpEncode(input)
-}
-
 var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
 
 func setup(t *testing.T) func() {
@@ -178,7 +167,7 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitTextInput(), t)
-
+	state.Prepare(txHashArr[1], blockHash, 0)
 	runGovContract(gc, buildGetProposalInput(0), t)
 }
 
@@ -187,46 +176,57 @@ func TestGovContract_SubmitVersion(t *testing.T) {
 	state := gc.Evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[1], blockHash, 1)
 
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(gc, buildSubmitVersionInput(), t)
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
 	defer setup(t)()
 	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[1], blockHash, 1)
-
+	state.Prepare(txHashArr[0], blockHash, 1)
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	runGovContract(gc, buildGetProposalInput(1), t)
+	runGovContract(gc, buildGetProposalInput(0), t)
 }
 
 func TestGovContract_DeclareVersion(t *testing.T) {
 	defer setup(t)()
 	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[1], blockHash, 1)
+	state.Prepare(txHashArr[0], blockHash, 1)
 
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(gc, buildDeclareInput(), t)
+
+	if nodeList, err := gov.GovDBInstance().GetActiveNodeList(blockHash, txHashArr[0]); err != nil {
+		t.Error("cannot list ActiveNode")
+	} else if len(nodeList) == 1 {
+		t.Log("nodeList", nodeList[0])
+	} else {
+		t.Error("cannot list ActiveNode")
+	}
+
 }
 
-func TestGovContract_SubmitParam(t *testing.T) {
+func TestGovContract_SubmitCancel(t *testing.T) {
 	defer setup(t)()
 	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[1], blockHash, 1)
+	state.Prepare(txHashArr[0], blockHash, 1)
+	//runGovContract(gc, buildSubmitVersionInput(), t)
 
-	runGovContract(gc, buildSubmitParamInput(), t)
+	runGovContract(gc, buildSubmitCancelInput(), t)
 }
 
-func TestGovContract_GetParamProposal(t *testing.T) {
+func TestGovContract_GetCancelProposal(t *testing.T) {
 	defer setup(t)()
 	state := gc.Evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[2], blockHash, 2)
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitParamInput(), t)
+	runGovContract(gc, buildSubmitCancelInput(), t)
 
 	runGovContract(gc, buildGetProposalInput(2), t)
 }
@@ -279,12 +279,6 @@ func TestGovContract_GetProgramVersion(t *testing.T) {
 	state := gc.Evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetProgramVersionInput(), t)
-}
-func TestGovContract_ListParam(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 0)
-	runGovContract(gc, buildListParamInput(), t)
 }
 
 func runGovContract(contract *vm.GovContract, buf []byte, t *testing.T) {
