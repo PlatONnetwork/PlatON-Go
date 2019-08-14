@@ -252,7 +252,6 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
 	cbft.state.AddQC(state.QuorumCert)
 	cbft.blockTree.InsertQCBlock(state.Block, state.QuorumCert)
-	//cbft.state.SetHighestExecutedBlock(state.Block)
 	cbft.state.SetExecuting(state.QuorumCert.BlockIndex, true)
 
 	switch stateType {
@@ -303,17 +302,14 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 		if should {
 			// execute block
 			block := m.Prepare.Block
-			if err := cbft.executeBlock(block, nil, m.Prepare.BlockIndex); err != nil {
-				return err
+			if cbft.state.ViewBlockByIndex(m.Prepare.BlockIndex) == nil {
+				if err := cbft.executeBlock(block, nil, m.Prepare.BlockIndex); err != nil {
+					return err
+				}
+				cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 			}
-
 			cbft.signMsgByBls(m.Prepare)
-			cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 			cbft.state.AddPrepareBlock(m.Prepare)
-			//cbft.OnPrepareBlock("", m.Prepare)
-			//cbft.signBlock(block.Hash(), block.NumberU64(), m.Prepare.BlockIndex)
-			//cbft.findQCBlock()
-			//cbft.state.SetHighestExecutedBlock(block)
 		}
 
 	case *protocols.SendPrepareVote:
@@ -326,21 +322,22 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 		if should {
 			// execute block
 			block := m.Block
-			if err := cbft.executeBlock(block, nil, m.Vote.BlockIndex); err != nil {
-				return err
+			if cbft.state.ViewBlockByIndex(m.Vote.BlockIndex) == nil {
+				if err := cbft.executeBlock(block, nil, m.Vote.BlockIndex); err != nil {
+					return err
+				}
+				cbft.state.SetExecuting(m.Vote.BlockIndex, true)
+				cbft.state.AddPrepareBlock(&protocols.PrepareBlock{
+					Epoch:      m.Vote.Epoch,
+					ViewNumber: m.Vote.ViewNumber,
+					Block:      block,
+					BlockIndex: m.Vote.BlockIndex,
+				})
 			}
 
-			cbft.state.AddPrepareBlock(&protocols.PrepareBlock{
-				Epoch:      m.Vote.Epoch,
-				ViewNumber: m.Vote.ViewNumber,
-				Block:      block,
-				BlockIndex: m.Vote.BlockIndex,
-			})
-			cbft.state.SetExecuting(m.Vote.BlockIndex, true)
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.BlockNum(), cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
-			//cbft.state.SetHighestExecutedBlock(block)
 		}
 	}
 	return nil
