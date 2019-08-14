@@ -154,6 +154,12 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 		return nil, ErrOutOfGas
 	}
 
+	txHash := gc.Evm.StateDB.TxHash()
+	if txHash == common.ZeroHash {
+		log.Warn("Call submitParam current txHash is empty!!")
+		return nil, nil
+	}
+
 	p := gov.ParamProposal{
 		//GithubID:       githubID,
 		//Topic:          topic,
@@ -187,6 +193,12 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		return nil, ErrOutOfGas
 	}
 
+	txHash := gc.Evm.StateDB.TxHash()
+	if txHash == common.ZeroHash {
+		log.Warn("Call vote current txHash is empty!!")
+		return nil, nil
+	}
+
 	option := gov.ParseVoteOption(op)
 
 	v := gov.Vote{}
@@ -210,6 +222,12 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 
 	if !gc.Contract.UseGas(params.DeclareVersionGas) {
 		return nil, ErrOutOfGas
+	}
+
+	txHash := gc.Evm.StateDB.TxHash()
+	if txHash == common.ZeroHash {
+		log.Warn("Call declareVersion current txHash is empty!!")
+		return nil, nil
 	}
 
 	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
