@@ -217,7 +217,7 @@ func (pv *PrepareVote) SetSign(sign []byte) {
 	pv.Signature.SetBytes(sign)
 }
 
-// Message structure for view switching.
+// ViewChange is message structure for view switching.
 type ViewChange struct {
 	Epoch          uint64             `json:"epoch"`
 	ViewNumber     uint64             `json:"view_number"`
@@ -317,7 +317,7 @@ func (ViewChanges) BHash() common.Hash {
 	return common.Hash{}
 }
 
-// cbftStatusData implement Message and including status information about peer.
+// CbftStatusData implement Message and including status information about peer.
 type CbftStatusData struct {
 	ProtocolVersion uint32       `json:"protocol_version"` // CBFT protocol version number.
 	QCBn            *big.Int     `json:"qc_bn"`            // The highest local block number for collecting block signatures.
@@ -348,7 +348,7 @@ func (s *CbftStatusData) BHash() common.Hash {
 	return s.QCBlock
 }
 
-// CBFT protocol message - used to get the
+// GetPrepareBlock is used to get the
 // proposed block information.
 type GetPrepareBlock struct {
 	Epoch       uint64
@@ -374,7 +374,7 @@ func (s *GetPrepareBlock) BHash() common.Hash {
 	return common.Hash{}
 }
 
-// Protocol message for obtaining an aggregated signature.
+// GetBlockQuorumCert is the protocol message for obtaining an aggregated signature.
 // todo: Need to determine the attribute field - ParentQC.
 type GetBlockQuorumCert struct {
 	BlockHash   common.Hash  `json:"block_hash"`   // The hash of the block to be acquired.

@@ -151,7 +151,7 @@ func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
 		log.Error("Failed to create wal directory", "err", err)
 		return nil, err
 	}
-	if journal, err = NewJournal(walPath); err != nil {
+	if journal, err = newJournal(walPath); err != nil {
 		return nil, err
 	}
 	if metaDB, err = createMetaDB(walPath, metaDBName); err != nil {

@@ -223,7 +223,7 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
-	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net)
+	peer := newPeer(version, p2p.NewPeer(id, name, nil), net)
 
 	// Start the peer on a new thread
 	errc := make(chan error, 1)
@@ -244,7 +244,7 @@ func newPeer(version int, name string) (*peer, discover.NodeID) {
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
-	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net)
+	peer := newPeer(version, p2p.NewPeer(id, name, nil), net)
 	return peer, id
 }
 
@@ -254,7 +254,7 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, disco
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
-	peer := NewPeer(version, p2p.NewPeer(id, name, nil), rw)
+	peer := newPeer(version, p2p.NewPeer(id, name, nil), rw)
 	return peer, id
 }
 
@@ -305,11 +305,11 @@ func Test_InitializePeers(t *testing.T) {
 
 type mockCbft struct {
 	consensusNodes []discover.NodeID
-	peerId         discover.NodeID
+	peerID         discover.NodeID
 }
 
-func (s *mockCbft) NodeId() discover.NodeID {
-	return s.peerId
+func (s *mockCbft) NodeID() discover.NodeID {
+	return s.peerID
 }
 
 func (s *mockCbft) ConsensusNodes() ([]discover.NodeID, error) {
@@ -342,10 +342,10 @@ func (s *mockCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 		ViewNumber: 1,
 	}, nil
 }
-func (cbft *mockCbft) OnPong(nodeID string, netLatency int64) error {
+func (s *mockCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
-func (cbft *mockCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
+func (s *mockCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 	return nil
 }
 

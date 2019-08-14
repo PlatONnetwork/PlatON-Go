@@ -32,9 +32,9 @@ func newRouter(t *testing.T) (*router, *peer) {
 	ps := NewPeerSet()
 	var consensusNodes []discover.NodeID
 	writer, reader := p2p.MsgPipe()
-	var localId discover.NodeID
-	rand.Read(localId[:])
-	localPeer := NewPeer(1, p2p.NewPeer(localId, "local", nil), reader)
+	var localID discover.NodeID
+	rand.Read(localID[:])
+	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 	for i := 0; i < testingPeerCount; i++ {
 		p, id := newLinkedPeer(writer, 1, fmt.Sprintf("p%d", i))
 		ps.Register(p)
@@ -46,13 +46,13 @@ func newRouter(t *testing.T) (*router, *peer) {
 		return ps.Unregister(id)
 	}
 	getHook := func(id string) (*peer, error) {
-		return ps.Get(id)
+		return ps.get(id)
 	}
 	consensusNodesHook := func() ([]discover.NodeID, error) {
 		return consensusNodes, nil
 	}
 	peersHook := func() ([]*peer, error) {
-		return ps.Peers(), nil
+		return ps.allPeers(), nil
 	}
 	router := NewRouter(unregisterHook, getHook, consensusNodesHook, peersHook)
 	peers, _ := router.peers()
@@ -247,13 +247,13 @@ func Test_Router_RepeatedCheck(t *testing.T) {
 
 func Test_Router_FormatPeers(t *testing.T) {
 	var peers []*peer
-	var lastId string
+	var lastID string
 	for i := 0; i < 3; i++ {
 		p, _ := newPeer(1, fmt.Sprintf("p%d", i))
 		peers = append(peers, p)
-		lastId = p.id
+		lastID = p.id
 	}
-	assert.Contains(t, formatPeers(peers), lastId)
+	assert.Contains(t, formatPeers(peers), lastID)
 	t.Log(formatPeers(peers))
 }
 

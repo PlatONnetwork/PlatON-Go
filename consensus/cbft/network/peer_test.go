@@ -99,7 +99,7 @@ func Test_PeerSet_Unregister(t *testing.T) {
 	len := ps.Len()
 	assert.Equal(t, 2, len)
 
-	rp, err := ps.Get(p1.id)
+	rp, err := ps.get(p1.id)
 	if err != nil {
 		t.Error("Get peer should not be return nil")
 	}
@@ -115,7 +115,7 @@ func Test_PeerSet_Unregister(t *testing.T) {
 	err = ps.Unregister(p3.id)
 	assert.Equal(t, err.Error(), errNotRegistered.Error())
 
-	_, err = ps.Get(p3.id)
+	_, err = ps.get(p3.id)
 	assert.Equal(t, err.Error(), errNotRegistered.Error())
 }
 
@@ -140,28 +140,28 @@ func Test_PeerSet_Peers(t *testing.T) {
 	}
 
 	// test PeersWithoutConsensus.
-	pwoc := ps.PeersWithoutConsensus(ids)
+	pwoc := ps.peersWithoutConsensus(ids)
 	assert.Equal(t, len(peers)-len(ids), len(pwoc))
 
-	// test PeersWithConsensus
-	pwc := ps.PeersWithConsensus(ids)
+	// test peersWithConsensus
+	pwc := ps.peersWithConsensus(ids)
 	assert.Equal(t, len(ids), len(pwc))
 
 	// test peers
-	pees := ps.Peers()
+	pees := ps.allPeers()
 	assert.Equal(t, len(peers), len(pees))
 
 	// test PeersWithHighestQCBn, i(1/3/5/7/9) * 100 (i is an odd number).
 	// If qcNumber is 700, then the count of results is 1.
-	pwhqb := ps.PeersWithHighestQCBn(700)
+	pwhqb := ps.peersWithHighestQCBn(700)
 	assert.Equal(t, 1, len(pwhqb))
 
 	// If lockedNumber is 700, then the count of results is 1.
-	pwhlb := ps.PeersWithHighestLockedBn(500)
+	pwhlb := ps.peersWithHighestLockedBn(500)
 	assert.Equal(t, 2, len(pwhlb))
 
 	// If lockedNumber is 700, then the count of results is 1.
-	pwhmb := ps.PeersWithHighestCommitBn(300)
+	pwhmb := ps.peersWithHighestCommitBn(300)
 	assert.Equal(t, 3, len(pwhmb))
 
 	// Print node information.
@@ -180,8 +180,8 @@ func Test_Peer_Handshake(t *testing.T) {
 		in, out := p2p.MsgPipe()
 		var id discover.NodeID
 		rand.Read(id[:])
-		me := NewPeer(1, p2p.NewPeer(id, "me", nil), in)
-		you := NewPeer(1, p2p.NewPeer(id, "you", nil), out)
+		me := newPeer(1, p2p.NewPeer(id, "me", nil), in)
+		you := newPeer(1, p2p.NewPeer(id, "you", nil), out)
 		go func() {
 			_, err := me.Handshake(inStatus)
 			if err != nil && wantErr != nil {

@@ -33,7 +33,7 @@ type fakeCbft struct {
 	peers          []*peer           // Pre-initialized node for testing.
 }
 
-func (s *fakeCbft) NodeId() discover.NodeID {
+func (s *fakeCbft) NodeID() discover.NodeID {
 	return s.localPeer.Peer.ID()
 }
 
@@ -79,10 +79,10 @@ func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 		ViewNumber: 1,
 	}, nil
 }
-func (cbft *fakeCbft) OnPong(nodeID string, netLatency int64) error {
+func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
-func (cbft *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
+func (s *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 	return nil
 }
 
@@ -92,9 +92,9 @@ func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {
 	var consensusNodes []discover.NodeID
 	var peers []*peer
 	writer, reader := p2p.MsgPipe()
-	var localId discover.NodeID
-	rand.Read(localId[:])
-	localPeer := NewPeer(1, p2p.NewPeer(localId, "local", nil), reader)
+	var localID discover.NodeID
+	rand.Read(localID[:])
+	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 
 	// Simulation generation test node.
 	for i := 0; i < testingPeerCount; i++ {
@@ -168,7 +168,7 @@ func Test_EngineManager_Handle(t *testing.T) {
 	//
 	protocols := h.Protocols()
 	protocols[0].NodeInfo()
-	pi := protocols[0].PeerInfo(fake.NodeId())
+	pi := protocols[0].PeerInfo(fake.NodeID())
 	assert.Nil(t, pi)
 	err := protocols[0].Run(fakePeer.Peer, fakePeer.rw)
 	//err := h.handler(fakePeer.Peer, fakePeer.rw)

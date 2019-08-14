@@ -218,16 +218,16 @@ func (pool *baseEvidencePool) Close() {
 }
 
 func verifyIdentity(msg types.ConsensusMsg) Identity {
-	msgId := ""
+	msgID := ""
 	switch m := msg.(type) {
 	case *protocols.PrepareBlock:
-		msgId = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ProposalIndex)
+		msgID = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ProposalIndex)
 	case *protocols.PrepareVote:
-		msgId = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ValidatorIndex)
+		msgID = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ValidatorIndex)
 	case *protocols.ViewChange:
-		msgId = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ValidatorIndex)
+		msgID = fmt.Sprintf("%d|%d|%d", m.Epoch, m.ViewNumber, m.ValidatorIndex)
 	}
-	return Identity(msgId)
+	return Identity(msgID)
 }
 
 func encodeKey(e consensus.Evidence, id Identity) []byte {

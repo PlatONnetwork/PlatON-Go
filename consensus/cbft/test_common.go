@@ -33,6 +33,7 @@ var (
 	testTxPoolConfig = core.DefaultTxPoolConfig
 )
 
+// NewBlock returns a new block for testing.
 func NewBlock(parent common.Hash, number uint64) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
@@ -48,6 +49,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 	return block
 }
 
+// GenerateKeys returns the public and private key pair for testing.
 func GenerateKeys(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey) {
 	pk := make([]*ecdsa.PrivateKey, 0)
 	sk := make([]*bls.SecretKey, 0)
@@ -61,6 +63,8 @@ func GenerateKeys(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey) {
 	}
 	return pk, sk
 }
+
+// GenerateCbftNode returns a list of CbftNode for testing.
 func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.CbftNode) {
 	pk, sk := GenerateKeys(num)
 	nodes := make([]params.CbftNode, num)
@@ -74,6 +78,7 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	return pk, sk, nodes
 }
 
+// CreateCBFT returns a new CBFT for testing.
 func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount uint32) *Cbft {
 
 	sysConfig := &params.CbftConfig{
@@ -95,6 +100,7 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	return New(sysConfig, optConfig, ctx.EventMux, ctx)
 }
 
+// CreateBackend returns a new Backend for testing.
 func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 
 	var (
@@ -113,6 +119,7 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 	return chain, cache, txpool, validator.NewStaticAgency(nodes)
 }
 
+// CreateValidatorBackend returns a new ValidatorBackend for testing.
 func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 	var (
 		db    = ethdb.NewMemDatabase()
@@ -138,6 +145,7 @@ func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockC
 	return chain, cache, txpool, validator.NewInnerAgency(nodes, chain, int(engine.config.Sys.Amount), int(engine.config.Sys.Amount)*2)
 }
 
+// TestCBFT for testing.
 type TestCBFT struct {
 	engine *Cbft
 	chain  *core.BlockChain
@@ -146,10 +154,12 @@ type TestCBFT struct {
 	agency consensus.Agency
 }
 
+// Start turns on the cbft for testing.
 func (t *TestCBFT) Start() error {
 	return t.engine.Start(t.chain, t.cache, t.txpool, t.agency)
 }
 
+// MockNode returns a new TestCBFT for testing.
 func MockNode(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftNode, period uint64, amount uint32) *TestCBFT {
 	engine := CreateCBFT(pk, sk, period, amount)
 
@@ -163,6 +173,7 @@ func MockNode(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftNode, 
 	}
 }
 
+// MockValidator returns a new TestCBFT for testing.
 func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftNode, period uint64, amount uint32) *TestCBFT {
 	engine := CreateCBFT(pk, sk, period, amount)
 
@@ -176,6 +187,7 @@ func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftN
 	}
 }
 
+// NewEngineManager returns a list of EngineManager and NodeID.
 func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []discover.NodeID) {
 	nodeids := make([]discover.NodeID, 0)
 	engines := make([]*network.EngineManager, 0)
@@ -186,6 +198,7 @@ func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []discover.N
 	return engines, nodeids
 }
 
+// Mock4NodePipe returns a list of TestCBFT for testing.
 func Mock4NodePipe(start bool) []*TestCBFT {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
