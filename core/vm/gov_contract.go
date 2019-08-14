@@ -154,12 +154,18 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 		return nil, ErrOutOfGas
 	}
 
+	txHash := gc.Evm.StateDB.TxHash()
+	if txHash == common.ZeroHash {
+		log.Warn("Call submitParam current txHash is empty!!")
+		return nil, nil
+	}
+
 	p := gov.ParamProposal{
 		//GithubID:       githubID,
 		//Topic:          topic,
 		//Desc:           desc,
 		Url:            url,
-		ProposalType:   gov.Version,
+		ProposalType:   gov.Param,
 		EndVotingBlock: endVotingBlock,
 		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
 		ProposalID:     gc.Evm.StateDB.TxHash(),
@@ -172,7 +178,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, url string, paramNa
 	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
 }
 
-func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, nodeProgramVersion uint32) ([]byte, error) {
+func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	log.Debug("Call vote of GovContract",
 		"from", from.Hex(),
@@ -180,10 +186,17 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
 		"option", op,
-		"nodeProgramVersion", nodeProgramVersion)
+		"programVersion", programVersion,
+		"programVersionSign", programVersionSign)
 
 	if !gc.Contract.UseGas(params.VoteGas) {
 		return nil, ErrOutOfGas
+	}
+
+	txHash := gc.Evm.StateDB.TxHash()
+	if txHash == common.ZeroHash {
+		log.Warn("Call vote current txHash is empty!!")
+		return nil, nil
 	}
 
 	option := gov.ParseVoteOption(op)
@@ -193,25 +206,31 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gc.Plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), nodeProgramVersion, gc.Evm.StateDB)
+	err := gc.Plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), programVersion, programVersionSign, gc.Evm.StateDB)
 
 	return gc.errHandler("vote", VoteEvent, err, VoteErrorMsg)
 }
 
-func (gc *GovContract) declareVersion(activeNode discover.NodeID, version uint32) ([]byte, error) {
+func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	log.Debug("Call declareVersion of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]),
-		"version", version)
+		"programVersion", programVersion)
 
 	if !gc.Contract.UseGas(params.DeclareVersionGas) {
 		return nil, ErrOutOfGas
 	}
 
-	err := gc.Plugin.DeclareVersion(from, activeNode, version, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
+	txHash := gc.Evm.StateDB.TxHash()
+	if txHash == common.ZeroHash {
+		log.Warn("Call declareVersion current txHash is empty!!")
+		return nil, nil
+	}
+
+	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 
 	return gc.errHandler("declareVersion", DeclareEvent, err, DeclareErrorMsg)
 }
@@ -261,7 +280,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	activeVersion := gc.Plugin.GetActiveVersion(gc.Evm.StateDB)
+	activeVersion := gc.Plugin.GetCurrentActiveVersion(gc.Evm.StateDB)
 
 	return gc.returnHandler("getActiveVersion", activeVersion, nil, GetActiveVersionErrorMsg)
 }
@@ -273,9 +292,9 @@ func (gc *GovContract) getProgramVersion() ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	versionValue, err := gc.Plugin.GetProgramVersion()
 
-	return gc.returnHandler("getProgramVersion", programVersion, nil, GetProgramVersionErrorMsg)
+	return gc.returnHandler("getProgramVersion", versionValue, err, GetProgramVersionErrorMsg)
 }
 
 func (gc *GovContract) listParam() ([]byte, error) {

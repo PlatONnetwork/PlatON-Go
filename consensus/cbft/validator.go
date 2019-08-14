@@ -4,6 +4,7 @@ import (
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -38,7 +39,7 @@ type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
 	Flush(header *types.Header) error
-	VerifyHeader(header *types.Header) error
+	VerifyHeader(header *types.Header, stateDB *state.StateDB) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
@@ -68,7 +69,7 @@ func (d *StaticAgency) Flush(header *types.Header) error {
 	return nil
 }
 
-func (d *StaticAgency) VerifyHeader(*types.Header) error {
+func (d *StaticAgency) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
 	return nil
 }
 
@@ -116,7 +117,7 @@ func (ia *InnerAgency) Flush(header *types.Header) error {
 	return nil
 }
 
-func (ia *InnerAgency) VerifyHeader(*types.Header) error {
+func (ia *InnerAgency) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
 	return nil
 }
 

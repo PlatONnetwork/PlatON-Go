@@ -2,7 +2,6 @@ package gov
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -15,7 +14,7 @@ var (
 	ValueDelimiter = []byte(":")
 )
 
-var dbOnce sync.Once
+//var dbOnce sync.Once
 var govDB *GovDB
 
 type GovDB struct {
@@ -36,15 +35,6 @@ func GovDBInstance() *GovDB {
 func (self *GovDB) Reset() {
 	govDB = nil
 	self.snapdb.reset()
-}
-
-func tobytes(data interface{}) []byte {
-	if bytes, err := json.Marshal(data); err != nil {
-		return bytes
-	} else {
-		log.Error("govdb, marshal value to bytes error..")
-		panic(err)
-	}
 }
 
 func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
@@ -203,15 +193,40 @@ func (self *GovDB) GetPreActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // Set active version record
-func (self *GovDB) SetActiveVersion(activeVersion uint32, state xcom.StateDB) error {
-	state.SetState(vm.GovContractAddr, KeyActiveVersion(), common.Uint32ToBytes(activeVersion))
+func (self *GovDB) AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.StateDB) error {
+	avList, err := self.ListActiveVersion(state)
+	if err != nil {
+		return err
+	}
+	curAv := ActiveVersionValue{ActiveVersion: activeVersion, ActiveBlock: activeBlock}
+	//Insert the object into the head of the list
+	avList = append([]ActiveVersionValue{curAv}, avList...)
+
+	avListBytes, _ := json.Marshal(avList)
+	state.SetState(vm.GovContractAddr, KeyActiveVersions(), avListBytes)
 	return nil
 }
 
-// Get active version record
-func (self *GovDB) GetActiveVersion(state xcom.StateDB) uint32 {
-	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	return common.BytesToUint32(value)
+func (self *GovDB) ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
+	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
+	if len(avListBytes) == 0 {
+		return nil, nil
+	}
+	var avList []ActiveVersionValue
+	if err := json.Unmarshal(avListBytes, &avList); err != nil {
+		return nil, common.NewSysError(err.Error())
+	}
+	return avList, nil
+}
+
+// Get current active version record
+func (self *GovDB) GetCurrentActiveVersion(state xcom.StateDB) uint32 {
+	avList, err := self.ListActiveVersion(state)
+	if err != nil {
+		log.Error("Cannot find active version list")
+		return 0
+	}
+	return avList[0].ActiveVersion
 }
 
 // Get voting proposal
@@ -271,7 +286,7 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -302,16 +317,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
-
 	voting = remove(voting, proposalID)
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
@@ -326,23 +332,8 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 }
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
-
-	pre, err := self.snapdb.getPreActiveProposalID(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	//pre = remove(pre, proposalID)
-	pre = common.Hash{}
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
-	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), pre)
+	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
+	err := self.snapdb.put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -403,50 +394,58 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	}
 }
 
-func (self *GovDB) SetParam(paramMap map[string]string, state xcom.StateDB) error {
-	if len(paramMap) > 0 {
-		paraListBytes, _ := json.Marshal(paramMap)
-		state.SetState(vm.GovContractAddr, KeyParams(), paraListBytes)
+func (self *GovDB) SetParam(paramValues []*ParamValue, state xcom.StateDB) error {
+	if len(paramValues) > 0 {
+		paramValuesBytes, _ := json.Marshal(paramValues)
+		state.SetState(vm.GovContractAddr, KeyParams(), paramValuesBytes)
 	}
 	return nil
 }
 
 func (self *GovDB) GetParam(name string, state xcom.StateDB) (string, error) {
-	paramMap, err := self.ListParam(state)
+	paramValues, err := self.ListParam(state)
 	if err != nil {
 		return "", err
 	}
-	return paramMap[name], nil
+	for _, paramValue := range paramValues {
+		if paramValue.Name == name {
+			return paramValue.Value, nil
+		}
+	}
+	return "", nil
 }
 
 func (self *GovDB) UpdateParam(name string, oldValue, newValue string, state xcom.StateDB) error {
-	paramMap, err := self.ListParam(state)
+	paramValues, err := self.ListParam(state)
 	if err != nil {
 		return err
 	}
 
-	if oldV, exist := paramMap[name]; exist {
-		if oldV == oldValue {
-			paramMap[name] = newValue
-			err = self.SetParam(paramMap, state)
-			if err != nil {
-				return err
+	for _, paramValue := range paramValues {
+		if paramValue.Name == name {
+			if paramValue.Value == oldValue {
+				paramValue.Value = newValue
+				err = self.SetParam(paramValues, state)
+				if err != nil {
+					return err
+				}
+				break
+			} else {
+				log.Warn("cannot update parameter's value cause mismatching current value.")
 			}
-		} else {
-			log.Warn("cannot update parameter's value cause mismatching current value.")
 		}
 	}
 	return nil
 }
 
-func (self *GovDB) ListParam(state xcom.StateDB) (map[string]string, error) {
+func (self *GovDB) ListParam(state xcom.StateDB) ([]*ParamValue, error) {
 	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
 	if len(paraListBytes) > 0 {
-		var paraMap map[string]string
-		if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
+		var paraValue []*ParamValue
+		if err := json.Unmarshal(paraListBytes, &paraValue); err != nil {
 			return nil, common.NewSysError(err.Error())
 		}
-		return paraMap, nil
+		return paraValue, nil
 	} else {
 		return nil, nil
 	}

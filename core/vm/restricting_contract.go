@@ -43,12 +43,15 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 // createRestrictingPlan is a PlatON precompiled contract function, used for create a restricting plan
 func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
 
-	sender := rc.Contract.Caller()
+	//sender := rc.Contract.Caller()
+	from := rc.Contract.CallerAddress
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNum := rc.Evm.BlockNumber
+	blockHash := rc.Evm.BlockHash
 	state := rc.Evm.StateDB
 
-	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64())
+	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(),
+		"blockNumber", blockNum.Uint64(), "blockHash", blockHash.Hex(), "from", from.Hex())
 
 	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
 		return nil, ErrOutOfGas
@@ -57,7 +60,12 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		return nil, ErrOutOfGas
 	}
 
-	if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
+	if txHash == common.ZeroHash {
+		log.Warn("Call createRestrictingPlan current txHash is empty!!")
+		return nil, nil
+	}
+
+	if err := rc.Plugin.AddRestrictingRecord(from, account, plans, state); err != nil {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
 			event, _ := json.Marshal(res)

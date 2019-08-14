@@ -232,7 +232,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
-	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
+	//extra data for each block will be set by GovPlugin.BeginBlock()
+	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
 
@@ -259,6 +260,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 				reactor.Start(common.PPOS_VALIDATOR_MODE)
 				reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+				reactor.SetCrypto_handler(xcom.GetCryptoHandler())
 				handlePlugin(reactor)
 				agency = reactor
 			}
@@ -284,11 +286,42 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	return eth, nil
 }
 
-func makeExtraData(extra []byte) []byte {
+func makeExtraData(blockChain *core.BlockChain, extra []byte) []byte {
 	if len(extra) == 0 {
+		state, err := blockChain.State()
+		if err != nil {
+			log.Error("Cannot get block chain stateDB", "err", err)
+			return nil
+		}
+
 		// create default extradata
 		extra, _ = rlp.EncodeToBytes([]interface{}{
-			uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			xplugin.GovPluginInstance().GetCurrentActiveVersion(state),
+			"platon",
+			runtime.Version(),
+			runtime.GOOS,
+		})
+	}
+	if uint64(len(extra)) > params.MaximumExtraDataSize {
+		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
+		extra = nil
+	}
+	return extra
+}
+
+func verifyHeader(blockChain *core.BlockChain, extra []byte) []byte {
+	if len(extra) == 0 {
+		state, err := blockChain.State()
+		if err != nil {
+			log.Error("Cannot get block chain stateDB", "err", err)
+			return nil
+		}
+
+		// create default extradata
+		extra, _ = rlp.EncodeToBytes([]interface{}{
+			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			xplugin.GovPluginInstance().GetCurrentActiveVersion(state),
 			"platon",
 			runtime.Version(),
 			runtime.GOOS,
@@ -520,8 +553,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	s.protocolManager.Start(maxPeers)
 
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
-		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
+		cbftEngine.SetPrivateKey(srvr.PrivateKey)
+		core.GetReactorInstance().SetPrivateKey(srvr.PrivateKey)
 
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			// self: s.chainConfig.Cbft.NodeID
@@ -594,7 +627,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
-	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RewardMgrInstance())
+	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 

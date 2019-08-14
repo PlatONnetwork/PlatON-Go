@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/go-errors/errors"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -26,6 +31,7 @@ import (
 
 type BlockChainReactor struct {
 	vh            *xcom.VrfHandler
+	chandler      *xcom.CryptoHandler
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
@@ -143,10 +149,18 @@ func (bcr *BlockChainReactor) SetVRF_handler(vher *xcom.VrfHandler) {
 	bcr.vh = vher
 }
 
+func (bcr *BlockChainReactor) SetCrypto_handler(ch *xcom.CryptoHandler) {
+	bcr.chandler = ch
+}
+
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	//if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
-	if nil != bcr.vh {
-		bcr.vh.SetPrivateKey(privateKey)
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+		if nil != bcr.vh {
+			bcr.vh.SetPrivateKey(privateKey)
+		}
+		if nil != bcr.chandler {
+			bcr.chandler.SetPrivateKey(privateKey)
+		}
 	}
 }
 
@@ -373,10 +387,40 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 	return nil
 }
 
-func (bcr *BlockChainReactor) VerifyHeader(header *types.Header) error {
+func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
+	if len(header.Extra) > 0 {
+		var tobeDecoded []byte
+		tobeDecoded = header.Extra
+		if len(header.Extra) <= 32 {
+			tobeDecoded = header.Extra
+		} else {
+			tobeDecoded = header.Extra[:32]
+		}
 
-	// TODO header.Extra
+		var extraData []interface{}
+		err := rlp.DecodeBytes(tobeDecoded, &extraData)
+		if err != nil {
+			log.Error(" rlp decode header extra error", "err", err)
+			return errors.New("rlp decode header extra error")
+		}
+		//reference to makeExtraData() in gov_plugin.go
+		if len(extraData) == 4 {
+			versionBytes := extraData[0].([]byte)
+			versionInHeader := common.BytesToUint32(versionBytes)
 
+			activeVersion := plugin.GovPluginInstance().GetActiveVersion(header.Number.Uint64(), stateDB)
+			log.Debug("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", header.Number.Uint64())
+
+			if activeVersion == versionInHeader {
+				return nil
+			} else {
+				return errors.New("header version error")
+			}
+		} else {
+			log.Error("unknown header extra data", "elementCount", len(extraData))
+			return errors.New("unknown header extra data")
+		}
+	}
 	return nil
 }
 

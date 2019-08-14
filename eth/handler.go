@@ -557,6 +557,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return errResp(ErrDecode, "msg %v: %v", msg, err)
 			}
 			// Retrieve the requested block body, stopping if enough was found
+			log.Debug(fmt.Sprintf("Send block body peer:%s,hash:%v", p.id, hash.Hex()))
 			if data := pm.blockchain.GetBodyRLP(hash); len(data) != 0 {
 				bodies = append(bodies, data)
 				bytes += len(data)
@@ -564,7 +565,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Debug(fmt.Sprintf("Block body empty peer:%s hash:%s", p.id, hash.TerminalString()))
 			}
 		}
-		log.Debug(fmt.Sprintf("Send block body peer:%s", p.id))
+		log.Debug(fmt.Sprintf("Send block body peer:%s,bodies:%v", p.id, len(bodies)))
 		return p.SendBlockBodiesRLP(bodies)
 
 	case msg.Code == BlockBodiesMsg:
@@ -765,7 +766,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 	case msg.Code == PongMsg:
 		curTime := time.Now().UnixNano()
-		log.Debug("handle a eth Pong message", "curTime", curTime)
+		log.Debug("handle a eth Pong message", "pid", p.id, "curTime", curTime)
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			var pingTime [1]string
 			if err := msg.Decode(&pingTime); err != nil {

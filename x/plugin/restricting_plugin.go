@@ -18,13 +18,13 @@ import (
 )
 
 var (
-	errParamEpochInvalid   = common.NewBizError("param epoch can't be zero")
-	errEmptyRestrictPlan   = common.NewBizError("the number of the restricting plan can't be zero")
-	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
-	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
-	errBalanceNotEnough    = common.NewBizError("balance not enough to restrict")
-	errAccountNotFound     = common.NewBizError("account is not found on restricting contract")
-	monthOfThreeYear       = 12 * 3
+	errParamEpochInvalid     = common.NewBizError("param epoch can't be zero")
+	errRestrictAmountInvalid = common.NewBizError("the number of the restricting plan can't be zero or more than 36")
+	errTooMuchPlan           = common.NewBizError("the number of the restricting plan is too much")
+	errLockedAmountTooLess   = common.NewBizError("total restricting amount need more than 1 LAT")
+	errBalanceNotEnough      = common.NewBizError("balance not enough to restrict")
+	errAccountNotFound       = common.NewBizError("account is not found on restricting contract")
+	monthOfThreeYear         = 12 * 3
 )
 
 type RestrictingPlugin struct {
@@ -86,9 +86,9 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 	log.Debug("begin to addRestrictingRecord", "sender", sender.String(), "account", account.String(), "plans", plans)
 
-	if len(plans) == 0 {
-		log.Debug("the number of restricting plan can't be zero")
-		return errEmptyRestrictPlan
+	if len(plans) == 0 || len(plans) > monthOfThreeYear {
+		log.Debug("the number of restricting plan can't be zero or more than %d", monthOfThreeYear)
+		return errRestrictAmountInvalid
 	}
 
 	// latest is the epoch of a settlement block closest to current block
@@ -106,6 +106,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			return errParamEpochInvalid
 		}
 
+		if v.Cmp(common.Big0) == -1 {
+			log.Debug("restricting amount is less than zero", "account", sender, "epoch", k, "amount", v)
+			return errRestrictAmountInvalid
+		}
+
 		k += latest
 		if mPlans[k] == nil {
 			mPlans[k] = v
@@ -116,10 +121,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 
 	// pre-check
-	if len(mPlans) > monthOfThreeYear {
-		log.Debug("the number of the restricting plan must less or equal than %d", monthOfThreeYear)
-		return errTooMuchPlan
-	}
 
 	if totalAmount.Cmp(big.NewInt(1E18)) == -1 {
 		log.Debug("total restricting amount need more than 1 LAT", "sender", sender, "amount", totalAmount)

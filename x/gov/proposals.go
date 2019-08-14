@@ -11,10 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-var (
-	GovParamMap = map[string]interface{}{"param1": nil, "param2": nil, "param3": nil}
-)
-
 type ProposalType uint8
 
 const (
@@ -70,31 +66,6 @@ func ParseVoteOption(option uint8) VoteOption {
 	return Abstention
 }
 
-type TallyResult struct {
-	ProposalID    common.Hash    `json:"proposalID"`
-	Yeas          uint16         `json:"yeas"`
-	Nays          uint16         `json:"nays"`
-	Abstentions   uint16         `json:"abstentions"`
-	AccuVerifiers uint16         `json:"accuVerifiers"`
-	Status        ProposalStatus `json:"status"`
-}
-
-type Vote struct {
-	ProposalID common.Hash     `json:"proposalID"`
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
-}
-
-type VoteValue struct {
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
-}
-
-type ParamValue struct {
-	Name  string      `json:"Name"`
-	Value interface{} `json:"Value"`
-}
-
 type Proposal interface {
 	//SetProposalID(proposalID common.Hash)
 	GetProposalID() common.Hash
@@ -141,7 +112,7 @@ type TextProposal struct {
 	SubmitBlock    uint64
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
-	Result         TallyResult
+	Result         TallyResult `json:"-"`
 }
 
 /*func (tp *TextProposal) SetProposalID(proposalID common.Hash) {
@@ -250,7 +221,7 @@ type VersionProposal struct {
 	SubmitBlock    uint64
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
-	Result         TallyResult
+	Result         TallyResult `json:"-"`
 	NewVersion     uint32
 	ActiveBlock    uint64
 }
@@ -361,7 +332,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return err
 	}
 
-	if vp.NewVersion>>8 <= uint32(GovDBInstance().GetActiveVersion(state))>>8 {
+	if vp.NewVersion>>8 <= uint32(GovDBInstance().GetCurrentActiveVersion(state))>>8 {
 		return common.NewBizError("New version should larger than current version.")
 	}
 
@@ -369,16 +340,15 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		log.Error("active-block should greater than end-voting-block")
 		return common.NewBizError("active-block invalid.")
 	} else {
-		difference := vp.ActiveBlock - (vp.EndVotingBlock + xcom.ElectionDistance())
-
-		remainder := difference % xutil.ConsensusSize()
-		if remainder != 0 {
-			log.Error("active-block should be multi-consensus-rounds greater than end-voting-block.")
+		remainder := vp.ActiveBlock % xutil.ConsensusSize()
+		if remainder != 1 {
+			log.Error("active-block should be the first block of a consensus round.")
 			return common.NewBizError("active-block invalid.")
 		} else {
+			difference := vp.ActiveBlock - (vp.EndVotingBlock + xcom.ElectionDistance())
 			quotient := difference / xutil.ConsensusSize()
-			if quotient <= 4 || quotient > 10 {
-				log.Error("active-block should be (4,10] consensus-rounds greater than end-voting-block.")
+			if quotient <= 4 || quotient >= 10 {
+				log.Error("active-block should be (4,10) consensus-rounds greater than end-voting-block.")
 				return common.NewBizError("active-block invalid.")
 			}
 		}
@@ -407,7 +377,7 @@ type ParamProposal struct {
 	SubmitBlock    uint64
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
-	Result         TallyResult
+	Result         TallyResult `json:"-"`
 
 	ParamName    string
 	CurrentValue string
@@ -476,12 +446,18 @@ func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return err
 	}
 
-	if _, exist := GovParamMap[pp.ParamName]; !exist {
-		return common.NewBizError("unsupported parameter.")
+	paramValueList, err := GovDBInstance().ListParam(state)
+
+	if err != nil {
+		return err
 	}
 
-	return nil
-
+	for _, paramValue := range paramValueList {
+		if paramValue.Name == pp.ParamName {
+			return nil
+		}
+	}
+	return common.NewBizError("unsupported parameter.")
 }
 
 func (pp ParamProposal) String() string {
@@ -509,9 +485,9 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, url string, e
 		return common.NewBizError("ProposalID is empty.")
 	}
 
-	/*if len(proposer) == 0 {
+	if proposer == discover.ZeroNodeID {
 		return common.NewBizError("Proposer is empty.")
-	}*/
+	}
 
 	/*if len(topic) == 0 || len(topic) > 128 {
 		return common.NewBizError("Topic is empty or the size is bigger than 128.")

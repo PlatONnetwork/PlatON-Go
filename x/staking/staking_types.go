@@ -121,6 +121,13 @@ type Candidate struct {
 //	return nil
 //}
 
+const (
+	MaxExternalIdLen = 70
+	MaxNodeNameLen   = 30
+	MaxWebsiteLen    = 140
+	MaxDetailsLen    = 280
+)
+
 type Description struct {
 	// External Id for the third party to pull the node description (with length limit)
 	ExternalId string
@@ -130,6 +137,23 @@ type Description struct {
 	Website string
 	// Description of the node (with a length limit)
 	Details string
+}
+
+func (desc *Description) CheckLength() error {
+
+	if len(desc.ExternalId) > MaxExternalIdLen {
+		return common.BizErrorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
+	}
+	if len(desc.NodeName) > MaxNodeNameLen {
+		return common.BizErrorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen)
+	}
+	if len(desc.Website) > MaxWebsiteLen {
+		return common.BizErrorf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen)
+	}
+	if len(desc.Details) > MaxDetailsLen {
+		return common.BizErrorf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen)
+	}
+	return nil
 }
 
 type CandidateQueue []*Candidate
@@ -327,9 +351,10 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // ProgramVersion: From small to big
 // LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // validaotorTerm: From big to small
-// Shares： From small to bigLowPackageRatio
+// Shares： From small to big
 // BlockNumber: From big to small
 // TxIndex: From big to small
+//
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -345,9 +370,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		rightTxIndex, _ := r.GetStakingTxIndex()
 		switch {
 		case leftTxIndex > rightTxIndex:
-			return -1
-		case leftTxIndex < rightTxIndex:
 			return 1
+		case leftTxIndex < rightTxIndex:
+			return -1
 		default:
 			return 0
 		}
@@ -359,9 +384,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		rightNum, _ := r.GetStakingBlockNumber()
 		switch {
 		case leftNum > rightNum:
-			return -1
-		case leftNum < rightNum:
 			return 1
+		case leftNum < rightNum:
+			return -1
 		default:
 			return compareTxIndexFunc(l, r)
 		}
@@ -374,9 +399,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 
 		switch {
 		case leftShares.Cmp(rightShares) < 0:
-			return -1
-		case leftShares.Cmp(rightShares) > 0:
 			return 1
+		case leftShares.Cmp(rightShares) > 0:
+			return -1
 		default:
 			return compareBlockNumberFunc(l, r)
 		}
@@ -544,7 +569,8 @@ type Validator_array struct {
 }
 
 type ValidatorEx struct {
-	NodeId discover.NodeID
+	NodeAddress common.Address
+	NodeId      discover.NodeID
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
