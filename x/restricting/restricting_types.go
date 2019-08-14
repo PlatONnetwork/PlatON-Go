@@ -1,6 +1,9 @@
 package restricting
 
-import "math/big"
+import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"math/big"
+)
 
 // for genesis and plugin test
 type RestrictingInfo struct {
@@ -28,4 +31,11 @@ type Result struct {
 	Debt    *big.Int `json:"debt"`
 	Symbol  bool     `json:"symbol"`
 	Entry   []ReleaseAmountInfo
+}
+
+// for plugin test
+type BalanceResult struct {
+	Account common.Address `json:"account"`
+	FreeBalance *big.Int `json:"freeBalance"`
+	LockBalance *big.Int `json:"lockBalance"`
 }

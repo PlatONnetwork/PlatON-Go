@@ -598,6 +598,36 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	return bResult, nil
 }
 
+func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state xcom.StateDB) (restricting.BalanceResult, error) {
+
+	log.Debug("begin to GetRestrictingBalance", "account", account.String())
+
+	restrictingKey := restricting.GetRestrictingKey(account)
+	bAccInfo := state.GetState(account, restrictingKey)
+	var (
+		info             restricting.RestrictingInfo
+		result           restricting.BalanceResult
+	)
+
+	if len(bAccInfo) == 0 {
+		log.Error("record not found in GetRestrictingBalance", "account", account.String())
+		info = restricting.RestrictingInfo{}
+	} else {
+		if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
+			log.Error("failed to rlp encode the restricting account", "error", err.Error(), "info", bAccInfo)
+			return result, common.NewSysError(err.Error())
+		}
+	}
+	result.Account = account
+	result.LockBalance = info.Balance
+	result.FreeBalance = state.GetBalance(account)
+	log.Trace("get restricting result", "account", account.String(), "result", result)
+
+	log.Debug("end to GetRestrictingBalance", "GetRestrictingBalance", result)
+
+	return result, nil
+}
+
 // state DB operation
 func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
 	key := restricting.GetLatestEpochKey()
