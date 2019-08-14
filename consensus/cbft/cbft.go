@@ -241,7 +241,7 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 
 	validators, err := cbft.agency.GetValidator(currentBlock.NumberU64())
 	if err != nil {
-		cbft.log.Error("Get validator fail", "error", err)
+		cbft.log.Error("Get validator fail", "blockNumber", currentBlock.NumberU64(), "blockHash", currentBlock.Hash().Hex(), "error", err)
 		return err
 	}
 	cbft.validators.Store(validators)
@@ -1181,7 +1181,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	err := cbft.verifyValidatorSign(request.Block.NumberU64(), request.ProposalIndex, request.ProposalAddr, request, request.Signature[:])
 	if err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
-		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash())
+		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash(), "err", err)
 		return err
 	}
 
