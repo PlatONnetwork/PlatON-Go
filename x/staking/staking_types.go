@@ -76,8 +76,6 @@ func Is_Invalid_DuplicateSign(status uint32) bool {
 // The Candidate info
 type Candidate struct {
 	NodeId discover.NodeID
-	// TODO consensus public key
-	ConsPubKey string
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
@@ -166,8 +164,6 @@ type CandidateQueue []*Candidate
 type Validator struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
-	// TODO consensus public key
-	ConsPubKey string
 	// The weight snapshot
 	// NOTE:
 	// converted from the weight snapshot of Candidate, they array order is:
@@ -575,8 +571,6 @@ type Validator_array struct {
 type ValidatorEx struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
-	// TODO consensus public key
-	ConsPubKey string
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
