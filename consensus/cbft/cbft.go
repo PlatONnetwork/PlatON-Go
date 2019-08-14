@@ -216,6 +216,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 // The message sent from the peer node is sent to the CBFT message queue and
 // there is a loop that will distribute the incoming message.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
+	if !cbft.running() {
+		cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
+		return nil
+	}
+
 	err := cbft.recordMessage(msg)
 	if err != nil {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
@@ -224,7 +229,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
+		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "duration", msg.Since())
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	}
@@ -316,18 +321,25 @@ func (cbft *Cbft) receiveLoop() {
 		select {
 		case msg := <-cbft.peerMsgCh:
 			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
+			cbft.network.Forwarding(msg.PeerID, msg.Msg, msg.Timestamp)
 
 			cbft.handleConsensusMsg(msg)
 			cbft.forgetMessage(msg.PeerID)
+		default:
+		}
+		select {
+		case msg := <-cbft.peerMsgCh:
+			// Forward the message before processing the message.
+			cbft.network.Forwarding(msg.PeerID, msg.Msg, msg.Timestamp)
 
+			cbft.handleConsensusMsg(msg)
+			cbft.forgetMessage(msg.PeerID)
 		case msg := <-cbft.syncMsgCh:
 			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
+			cbft.network.Forwarding(msg.PeerID, msg.Msg, msg.Timestamp)
 			cbft.handleSyncMsg(msg)
 			//
 			cbft.forgetMessage(msg.PeerID)
-
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
@@ -801,6 +813,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	if cbft.isLoading() || !cbft.isStart() || !cbft.running() {
+		cbft.log.Trace("Should seal fail, cbft not running", "curTime", common.Beautiful(curTime))
 		return false, nil
 	}
 
@@ -813,9 +826,11 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 		if err == nil {
 			masterCounter.Inc(1)
 		}
+		cbft.log.Trace("Should seal", "curTime", common.Beautiful(curTime), "err", err)
 		return err == nil, err
-	case <-time.After(5 * time.Millisecond):
+	case <-time.After(50 * time.Millisecond):
 		result <- errors.New("timeout")
+		cbft.log.Trace("Should seal timeout", "curTime", common.Beautiful(curTime), "asyncCallCh", len(cbft.asyncCallCh))
 		return false, errors.New("CBFT engine busy")
 	}
 }
@@ -834,7 +849,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	if cbft.state.IsDeadline() {
-		result <- errors.New("view timeout")
+		result <- fmt.Errorf("view timeout: %s", common.Beautiful(cbft.state.Deadline()))
 		return
 	}
 
@@ -1237,6 +1252,10 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 }
 
 func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
+	defer func(t time.Time) {
+		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
+	}(time.Now())
+
 	var cb []byte
 	var err error
 	if cb, err = qc.CannibalizeBytes(); err != nil {
