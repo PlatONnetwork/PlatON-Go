@@ -45,6 +45,35 @@ import (
 
 const cbftVersion = 1
 
+type HandleError interface {
+	error
+	AuthFailed() bool
+}
+
+type handleError struct {
+	err error
+}
+
+func (e handleError) Error() string {
+	return e.err.Error()
+}
+
+func (e handleError) AuthFailed() bool {
+	return false
+}
+
+type authFailedError struct {
+	err error
+}
+
+func (e authFailedError) Error() string {
+	return e.err.Error()
+}
+
+func (e authFailedError) AuthFailed() bool {
+	return true
+}
+
 type Cbft struct {
 	config           ctypes.Config
 	eventMux         *event.TypeMux
@@ -315,17 +344,26 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
-			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
+			err := cbft.handleConsensusMsg(msg)
+			if err == nil {
+				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
+					cbft.log.Warn("Forward message failed", "err", err)
+				}
+			} else if err.AuthFailed() {
+				//todo disconnect
+			}
 
-			cbft.handleConsensusMsg(msg)
 			cbft.forgetMessage(msg.PeerID)
 
 		case msg := <-cbft.syncMsgCh:
-			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
-			cbft.handleSyncMsg(msg)
-			//
+			if err := cbft.handleSyncMsg(msg); err != nil {
+				if err, ok := err.(HandleError); ok {
+					if err.AuthFailed() {
+						//todo disconnect
+					}
+				}
+			}
+
 			cbft.forgetMessage(msg.PeerID)
 
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
@@ -340,13 +378,13 @@ func (cbft *Cbft) receiveLoop() {
 }
 
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
-func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
+func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) HandleError {
 	if !cbft.running() {
 		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
-		return
+		return &handleError{fmt.Errorf("consensus message pause, ignore message")}
 	}
 	msg, id := info.Msg, info.PeerID
-	var err error
+	var err HandleError
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
@@ -360,50 +398,53 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
+	return err
 }
 
 // Behind the node will be synchronized by synchronization message
-func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
+func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) error {
 	msg, id := info.Msg, info.PeerID
+	var err error
 	if !cbft.fetcher.MatchTask(id, msg) {
 		switch msg := msg.(type) {
 		case *protocols.GetPrepareBlock:
-			cbft.OnGetPrepareBlock(id, msg)
+			err = cbft.OnGetPrepareBlock(id, msg)
 
 		case *protocols.GetBlockQuorumCert:
-			cbft.OnGetBlockQuorumCert(id, msg)
+			err = cbft.OnGetBlockQuorumCert(id, msg)
 
 		case *protocols.BlockQuorumCert:
-			cbft.OnBlockQuorumCert(id, msg)
+			err = cbft.OnBlockQuorumCert(id, msg)
 
 		case *protocols.GetPrepareVote:
-			cbft.OnGetPrepareVote(id, msg)
+			err = cbft.OnGetPrepareVote(id, msg)
 
 		case *protocols.PrepareVotes:
-			cbft.OnPrepareVotes(id, msg)
+			err = cbft.OnPrepareVotes(id, msg)
 
 		case *protocols.GetQCBlockList:
-			cbft.OnGetQCBlockList(id, msg)
+			err = cbft.OnGetQCBlockList(id, msg)
 
 		case *protocols.GetLatestStatus:
-			cbft.OnGetLatestStatus(id, msg)
+			err = cbft.OnGetLatestStatus(id, msg)
 
 		case *protocols.LatestStatus:
-			cbft.OnLatestStatus(id, msg)
+			err = cbft.OnLatestStatus(id, msg)
 
 		case *protocols.PrepareBlockHash:
-			cbft.OnPrepareBlockHash(id, msg)
+			err = cbft.OnPrepareBlockHash(id, msg)
 
 		case *protocols.GetViewChange:
-			cbft.OnGetViewChange(id, msg)
+			err = cbft.OnGetViewChange(id, msg)
 
 		case *protocols.ViewChangeQuorumCert:
-			cbft.OnViewChangeQuorumCert(id, msg)
+			err = cbft.OnViewChangeQuorumCert(id, msg)
 		case *protocols.ViewChanges:
-			cbft.OnViewChanges(id, msg)
+			err = cbft.OnViewChanges(id, msg)
 
 		}
 	}
+	return err
 }
 
 func (cbft *Cbft) running() bool {
