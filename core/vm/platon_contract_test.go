@@ -436,7 +436,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.Int, epochs int, stateDB xcom.StateDB) {
 	//account := addrArr[0]
-	fmt.Println("buildDbRestrictingPlan, store addr", account.Hex())
+	fmt.Println("buildDbRestrictingPlan, store addr", account.Hex(), "balance", balance, "epochs", epochs)
 	//const Epochs = 5
 	var list = make([]uint64, 0)
 
@@ -457,9 +457,13 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 		list = append(list, uint64(epoch))
 	}
 
+	lock_amount := new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
+
+	fmt.Println("")
+
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.Balance = new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
+	user.Balance = lock_amount
 	user.Debt = big.NewInt(0)
 	user.DebtSymbol = false
 	user.ReleaseList = list
@@ -475,8 +479,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 
 	stateDB.AddBalance(sender, sender_balance)
 
-	von, _ := new(big.Int).SetString("100000000000000000000000000", 10)
-	stateDB.AddBalance(cvm.RestrictingContractAddr, von)
+	stateDB.AddBalance(cvm.RestrictingContractAddr, lock_amount)
 }
 
 func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {

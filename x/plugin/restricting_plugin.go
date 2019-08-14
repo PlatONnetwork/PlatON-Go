@@ -278,7 +278,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	bAccInfo := state.GetState(vm.RestrictingContractAddr, restrictingKey)
 
 	if len(bAccInfo) == 0 {
-		log.Debug("record not found in PledgeLockFunds", "account", account.String(), "funds", amount)
+		log.Error("record not found in PledgeLockFunds", "account", account.String(), "funds", amount)
 		return errAccountNotFound
 	}
 
@@ -293,7 +293,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	}
 
 	if info.Balance.Cmp(amount) == -1 {
-		log.Debug("Balance of restricting account not enough", "balance", info.Balance, "funds", amount)
+		log.Error("Balance of restricting account not enough", "balance", info.Balance, "funds", amount)
 		return errBalanceNotEnough
 	}
 
