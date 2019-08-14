@@ -2768,7 +2768,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	if slash.Cmp(common.Big0) != 0 {
 		log.Error("Failed to SlashCandidates: the ramain is not zero", "slashed remain", slash,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-		return common.BizErrorf("Failed to SlashCandidates: the slashed ramain is not zero, slashAmount:%d, slash remain:%", amount, slash)
+		return common.BizErrorf("Failed to SlashCandidates: the slashed ramain is not zero, slashAmount:%d, slash remain:%d", amount, slash)
 	}
 
 	// If the status has been modified before, this time it will not be modified.
