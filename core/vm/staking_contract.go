@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -162,11 +163,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	/**
 	init candidate info
 	*/
-	var blsKey bls.SecretKey
-	blsKey.SetHexString(blsPubKey)
+	var blsPk bls.PublicKey
+	pkByte, err := hex.DecodeString(blsPubKey)
+	blsPk.Deserialize(pkByte)
 	canNew := &staking.Candidate{
 		NodeId:          nodeId,
-		BlsPubKey:       *blsKey.GetPublicKey(),
+		BlsPubKey:       blsPk,
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
