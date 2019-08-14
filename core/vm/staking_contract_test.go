@@ -10,8 +10,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -38,8 +36,8 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1000))
 	typ, _ := rlp.EncodeToBytes(uint16(0))
-	benefitAddress, _ := rlp.EncodeToBytes(common.HexToAddress("0x353bf1bc62c8320817fa1b29ae439633e3c5a6fd"))
-	nodeId, _ := rlp.EncodeToBytes(discover.MustHexID("046d118afe2892eb979556ef1124f0114b722f3db6230d5941cdc6c5dc7de270ff6bca017ffe229e63e8697e1d234655444dc9a4860ed174eecc6b34d4e34e1a"))
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
 	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
 	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
