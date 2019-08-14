@@ -73,19 +73,19 @@ type KeyValuePair struct {
 // sort.Interface to sort by Value.
 type KeyValuePairList []KeyValuePair
 
-func (p KeyValuePairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p KeyValuePairList) Len() int           { return len(p) }
-func (p KeyValuePairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+func (kvp KeyValuePairList) Swap(i, j int)      { kvp[i], kvp[j] = kvp[j], kvp[i] }
+func (kvp KeyValuePairList) Len() int           { return len(kvp) }
+func (kvp KeyValuePairList) Less(i, j int) bool { return kvp[i].Value < kvp[j].Value }
 
-func (p *KeyValuePairList) Push(x interface{}) {
-	*p = append(*p, x.(KeyValuePair))
+func (kvp *KeyValuePairList) Push(x interface{}) {
+	*kvp = append(*kvp, x.(KeyValuePair))
 }
 
-func (p *KeyValuePairList) Pop() interface{} {
-	old := *p
+func (kvp *KeyValuePairList) Pop() interface{} {
+	old := *kvp
 	n := len(old)
 	x := old[n-1]
-	*p = old[0 : n-1]
+	*kvp = old[0 : n-1]
 	return x
 }
 
