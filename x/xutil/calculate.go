@@ -182,14 +182,8 @@ func CalculateLastYear(blockNumber uint64) uint32 {
 	}
 }
 
-// TODO: calculate governed configure data for main net only
-func MaxVotingDuration() uint64 {
-	size := ConsensusSize()
-	return uint64(14*24*60*60) / uint64(size) * uint64(size)
-}
-
 func MaxVotingConsensusRounds() uint64 {
-	return uint64(4840)
+	return uint64(14*24*60*60) / uint64(ConsensusSize())
 }
 
 // TODO: calculate reward configure data for main net only

@@ -123,14 +123,18 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 }
 
 func (self *GovSnapshotDB) addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
-
 	nodes, err := self.getActiveNodeList(blockHash, proposalId)
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
-	nodes = append(nodes, node)
 
-	return self.put(blockHash, KeyActiveNodes(proposalId), nodes)
+	//distinct the nodeID
+	if xcom.InNodeIDList(node, nodes) {
+		return nil
+	} else {
+		nodes = append(nodes, node)
+		return self.put(blockHash, KeyActiveNodes(proposalId), nodes)
+	}
 }
 
 func (self *GovSnapshotDB) getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {

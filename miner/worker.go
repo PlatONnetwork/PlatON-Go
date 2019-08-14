@@ -17,12 +17,17 @@
 package miner
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -1165,8 +1170,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-		//Extra:      w.extra,
-		Time: big.NewInt(timestamp),
+		Extra:      w.makeExtraData(),
+		Time:       big.NewInt(timestamp),
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
@@ -1448,4 +1453,25 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		}
 	}
 	return shouldCommit, nextBaseBlock
+}
+
+// make default extra data when preparing new block
+func (w *worker) makeExtraData() []byte {
+
+	// create default extradata
+	extra, _ := rlp.EncodeToBytes([]interface{}{
+		//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+		plugin.GovPluginInstance().GetCurrentActiveVersion(w.current.state),
+		"platon",
+		runtime.Version(),
+		runtime.GOOS,
+	})
+
+	if uint64(len(extra)) > params.MaximumExtraDataSize {
+		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
+		extra = nil
+	}
+
+	log.Debug("prepare header extra", "data", hex.EncodeToString(extra))
+	return extra
 }

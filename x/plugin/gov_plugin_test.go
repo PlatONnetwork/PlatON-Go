@@ -1,6 +1,7 @@
 package plugin_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -65,12 +66,9 @@ func setup(t *testing.T) func() {
 
 func submitText(t *testing.T, pid common.Hash) {
 	vp := gov.TextProposal{
-		ProposalID: pid,
-		//GithubID:     "githubID",
-		ProposalType: gov.Text,
-		//Topic:          "textTopic",
-		//Desc:           "textDesc",
-		Url:            "textUrl",
+		ProposalID:     pid,
+		ProposalType:   gov.Text,
+		PIPID:          "textPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
@@ -87,12 +85,9 @@ func submitText(t *testing.T, pid common.Hash) {
 
 func submitVersion(t *testing.T, pid common.Hash) {
 	vp := gov.VersionProposal{
-		ProposalID: pid,
-		//GithubID:       "githubID",
-		ProposalType: gov.Version,
-		//Topic:          "versionTopic",
-		//Desc:           "versionDesc",
-		Url:            "versionUrl",
+		ProposalID:     pid,
+		ProposalType:   gov.Version,
+		PIPID:          "versionIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
@@ -109,21 +104,15 @@ func submitVersion(t *testing.T, pid common.Hash) {
 	}
 }
 
-func submitParam(t *testing.T, pid common.Hash) {
-	pp := gov.ParamProposal{
-		ProposalID: pid,
-		//GithubID:       "githubID",
-		ProposalType: gov.Param,
-		//Topic:          "paramTopic",
-		//Desc:           "paramDesc",
-		Url:            "paramUrl",
+func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
+	pp := gov.CancelProposal{
+		ProposalID:     pid,
+		ProposalType:   gov.Cancel,
+		PIPID:          "CancelPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
-
-		ParamName:    "param3",
-		CurrentValue: "12.5",
-		NewValue:     "0.85",
+		TobeCanceled:   tobeCanceled,
 	}
 
 	state := evm.StateDB.(*state.StateDB)
@@ -131,7 +120,7 @@ func submitParam(t *testing.T, pid common.Hash) {
 
 	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil {
-		t.Fatalf("submit param proposal err: %s", err)
+		t.Fatalf("submit cancel proposal err: %s", err)
 	}
 }
 
@@ -232,12 +221,9 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID: txHashArr[0],
-		//GithubID:     "githubID",
-		ProposalType: gov.Text,
-		//Topic:          "textTopic",
-		//Desc:           "textDesc",
-		Url:            "textUrl",
+		ProposalID:     txHashArr[0],
+		ProposalType:   gov.Text,
+		PIPID:          "textPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
@@ -258,12 +244,9 @@ func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.TextProposal{
-		ProposalID: txHashArr[0],
-		//GithubID:     "githubID",
-		ProposalType: gov.Text,
-		//Topic:          "textTopic",
-		//Desc:           "textDesc",
-		Url:            "textUrl",
+		ProposalID:     txHashArr[0],
+		ProposalType:   gov.Text,
+		PIPID:          "textPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
 		Proposer:       nodeIdArr[0],
@@ -301,12 +284,9 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.VersionProposal{
-		ProposalID: txHashArr[0],
-		//GithubID:       "githubID",
-		ProposalType: gov.Version,
-		//Topic:          "versionTopic",
-		//Desc:           "versionDesc",
-		Url:            "versionUrl",
+		ProposalID:     txHashArr[0],
+		ProposalType:   gov.Version,
+		PIPID:          "versionPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
 		Proposer:       nodeIdArr[0],
@@ -328,12 +308,9 @@ func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
 	defer setup(t)()
 
 	vp := gov.VersionProposal{
-		ProposalID: txHashArr[0],
-		//GithubID:       "githubID",
-		ProposalType: gov.Version,
-		//Topic:          "versionTopic",
-		//Desc:           "versionDesc",
-		Url:            "versionUrl",
+		ProposalID:     txHashArr[0],
+		ProposalType:   gov.Version,
+		PIPID:          "versionPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
@@ -351,21 +328,10 @@ func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_SubmitParam(t *testing.T) {
+func TestGovPlugin_SubmitCancel(t *testing.T) {
 	defer setup(t)()
 
-	paramValueList := []*gov.ParamValue{}
-	param1 := &gov.ParamValue{Name: "param1", Value: "12"}
-	param2 := &gov.ParamValue{Name: "param2", Value: "stringValue"}
-	param3 := &gov.ParamValue{Name: "param3", Value: "12.5"}
-	paramValueList = append(paramValueList, param1, param2, param3)
-
-	if err := govPlugin.SetParam(paramValueList, evm.StateDB); err != nil {
-		t.Errorf("set param failed, %s", err.Error())
-		return
-	}
-
-	submitParam(t, txHashArr[0])
+	submitVersion(t, txHashArr[0])
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -378,28 +344,36 @@ func TestGovPlugin_SubmitParam(t *testing.T) {
 	} else {
 		t.Log("Get the submitted version proposal success:", p)
 	}
+
+	submitCancel(t, txHashArr[1], txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	p, err = govDB.GetProposal(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatal("Get the submitted cancel proposal error:", err)
+	} else {
+		t.Log("Get the submitted cancel proposal success:", p)
+	}
 }
 
-func TestGovPlugin_SubmitParam_invalidEndVotingBlock(t *testing.T) {
+func TestGovPlugin_SubmitCancel_invalidEndVotingBlock(t *testing.T) {
 	defer setup(t)()
 
-	pp := gov.ParamProposal{
-		ProposalID: txHashArr[0],
-		//GithubID:       "githubID",
-		ProposalType: gov.Param,
-		//Topic:          "paramTopic",
-		//Desc:           "paramDesc",
-		Url:            "paramUrl",
+	pp := gov.CancelProposal{
+		ProposalID:     txHashArr[1],
+		ProposalType:   gov.Cancel,
+		PIPID:          "cancelPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock - 10, //error
-		Proposer:       nodeIdArr[0],
-
-		ParamName:    "param3",
-		CurrentValue: "12.5",
-		NewValue:     "0.85",
+		Proposer:       nodeIdArr[1],
+		TobeCanceled:   txHashArr[0],
 	}
 	state := evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[1], lastBlockHash, 0)
 
 	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
 	if err != nil && err.Error() == "end-voting-block invalid." {
@@ -409,32 +383,26 @@ func TestGovPlugin_SubmitParam_invalidEndVotingBlock(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_SubmitParam_unsupportedParameter(t *testing.T) {
+func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 	defer setup(t)()
 
-	pp := gov.ParamProposal{
-		ProposalID: txHashArr[0],
-		//GithubID:       "githubID",
-		ProposalType: gov.Param,
-		//Topic:          "paramTopic",
-		//Desc:           "paramDesc",
-		Url:            "paramUrl",
+	pp := gov.CancelProposal{
+		ProposalID:     txHashArr[1],
+		ProposalType:   gov.Cancel,
+		PIPID:          "cancelPIPID",
 		SubmitBlock:    1,
 		EndVotingBlock: endVotingBlock,
 		Proposer:       nodeIdArr[0],
-
-		ParamName:    "param4", //errror
-		CurrentValue: "12.5",
-		NewValue:     "0.85",
+		TobeCanceled:   txHashArr[0],
 	}
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.BlockNumber.Uint64(), evm.StateDB)
-	if err != nil && err.Error() == "unsupported parameter." {
-		t.Logf("detected unsupported parameter.")
+	if err != nil && err.Error() == "find to be canceled version proposal error" {
+		t.Logf("detected this case.")
 	} else {
-		t.Fatal("didn't detect unsupported parameter.")
+		t.Fatal("didn't detect is case.")
 	}
 }
 
@@ -993,109 +961,6 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_SetGetParam(t *testing.T) {
-	defer setup(t)()
-
-	paramValueList := []*gov.ParamValue{}
-	param1 := &gov.ParamValue{Name: "param1", Value: "12"}
-	param2 := &gov.ParamValue{Name: "param2", Value: "stringValue"}
-	param3 := &gov.ParamValue{Name: "param3", Value: "12.5"}
-	paramValueList = append(paramValueList, param1, param2, param3)
-
-	if err := govPlugin.SetParam(paramValueList, evm.StateDB); err != nil {
-		t.Errorf("set param failed, %s", err.Error())
-		return
-	}
-
-	list, err := govPlugin.ListParam(evm.StateDB)
-	if err != nil {
-		t.Fatalf("list param failed, %s", err)
-	} else {
-		t.Logf("list size: %d", len(list))
-	}
-
-	value, err := govPlugin.GetParamValue("param3", evm.StateDB)
-	if err != nil {
-		t.Fatalf("get param failed, %s", err)
-	} else if value == "12.5" {
-		t.Logf("param name: %s, value: %s", "param3", value)
-	} else {
-		t.Fatalf("get param value error, %s", value)
-	}
-
-}
-
-func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
-	defer setup(t)()
-
-	paramValueList := []*gov.ParamValue{}
-	param1 := &gov.ParamValue{Name: "param1", Value: "12"}
-	param2 := &gov.ParamValue{Name: "param2", Value: "stringValue"}
-	param3 := &gov.ParamValue{Name: "param3", Value: "12.5"}
-	paramValueList = append(paramValueList, param1, param2, param3)
-
-	if err := govPlugin.SetParam(paramValueList, evm.StateDB); err != nil {
-		t.Fatalf("set param failed, %s", err)
-	}
-	submitParam(t, txHashArr[0])
-
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction() //flush to LevelDB
-
-	buildBlockNoCommit(2)
-
-	allVote(t, txHashArr[0])
-
-	sndb.Commit(blockHash)
-	//buildSnapDBDataCommitted(2, 19999)
-	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
-	beginBlock(t)
-	sndb.Commit(lastBlockHash)
-
-	//buildSnapDBDataCommitted(20001, 22229)
-	sndb.Compaction()
-	lastBlockNumber = uint64(endVotingBlock - 1)
-	lastHeader = types.Header{
-		Number: big.NewInt(int64(lastBlockNumber)),
-	}
-	lastBlockHash = lastHeader.Hash()
-	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
-
-	build_staking_data_more(uint64(endVotingBlock))
-	endBlock(t)
-	sndb.Commit(lastBlockHash)
-
-	result, err := govPlugin.GetTallyResult(txHashArr[0], evm.StateDB)
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-	if result == nil {
-		t.Fatal("cannot find the tally result")
-	} else if result.Status == gov.Pass {
-		t.Logf("the result status, %d", result.Status)
-
-		value, err := govPlugin.GetParamValue("param3", evm.StateDB)
-		if err != nil {
-			t.Fatalf("cannot find the param value, %s", err.Error())
-		} else if value == "0.85" {
-			t.Logf("the param value, %s", value)
-		} else {
-			t.Fatalf("the param value error, %s", value)
-		}
-
-	} else {
-		t.Logf("the result status error, %d", result.Status)
-	}
-}
-
 func TestGovPlugin_printVersion(t *testing.T) {
 	defer setup(t)()
 
@@ -1162,6 +1027,23 @@ func Test_MakeExtraData(t *testing.T) {
 		} else {
 			t.Error("unknown header extra data", "elementCount", len(extraData))
 		}
+	}
+
+}
+
+func Test_version(t *testing.T) {
+	ver := uint32(66048) //1.2.0
+	t.Log(common.Uint32ToBytes(ver))
+}
+
+func Test_genVersionSign(t *testing.T) {
+
+	ver := uint32(66048) //1.2.0
+	chandler := xcom.GetCryptoHandler()
+
+	for i := 0; i < 18; i++ {
+		chandler.SetPrivateKey(priKeyArr[i])
+		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
 	}
 
 }
