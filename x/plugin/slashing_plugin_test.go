@@ -13,8 +13,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
-	//	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -263,11 +261,8 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 	if err != nil {
 		panic(err)
 	}
-	//hash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802111216")
 	db := snapshotdb.Instance()
-
 	sk := pri
-
 	_, genesis, _ := newChainState()
 	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
@@ -320,10 +315,8 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	plugin.GovPluginInstance()
 	si.SetDecodeEvidenceFun(evidence.NewEvidences)
 	GovPluginInstance()
-	//	si.SetDecodeEvidenceFun(cbft.NewEvidences)
 	data := `{
           "duplicate_prepare": [
           {
