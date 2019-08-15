@@ -2,6 +2,10 @@ package rules
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
@@ -9,9 +13,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
-	"time"
 )
 
 func NewBlock(parent common.Hash, number uint64) *types.Block {
@@ -71,7 +72,7 @@ func newEpochViewNumberState(epoch, viewNumber uint64, amount uint32) (*state.Vi
 	return viewState, blockTree
 }
 
-func testBaseSafetyRules_PrepareBlockRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
+func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
 	type testCase struct {
 		err     error
 		fetch   bool
@@ -109,7 +110,7 @@ func testBaseSafetyRules_PrepareBlockRules(t *testing.T, viewState *state.ViewSt
 	}
 }
 
-func testBaseSafetyRules_PrepareVoteRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
+func testBaseSafetyRulesPrepareVoteRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
 	type testCase struct {
 		err     error
 		fetch   bool
@@ -147,7 +148,7 @@ func testBaseSafetyRules_PrepareVoteRules(t *testing.T, viewState *state.ViewSta
 	}
 }
 
-func testBaseSafetyRules_ViewChangeRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
+func testBaseSafetyRulesViewChangeRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
 	type testCase struct {
 		err     error
 		fetch   bool
@@ -187,8 +188,8 @@ func TestSafetyError(t *testing.T) {
 	viewState, blockTree := newEpochViewNumberState(Epoch, ViewNumber, 10)
 	amount := uint32(10)
 	rules := NewSafetyRules(viewState, blockTree, &ctypes.Config{Sys: &params.CbftConfig{Amount: amount}})
-	testBaseSafetyRules_PrepareBlockRules(t, viewState, blockTree, rules, amount)
-	testBaseSafetyRules_PrepareVoteRules(t, viewState, blockTree, rules, amount)
+	testBaseSafetyRulesPrepareBlockRules(t, viewState, blockTree, rules, amount)
+	testBaseSafetyRulesPrepareVoteRules(t, viewState, blockTree, rules, amount)
 
-	testBaseSafetyRules_ViewChangeRules(t, viewState, blockTree, rules, amount)
+	testBaseSafetyRulesViewChangeRules(t, viewState, blockTree, rules, amount)
 }

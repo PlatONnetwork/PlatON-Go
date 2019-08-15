@@ -3,7 +3,6 @@ package cbft
 import (
 	"container/list"
 	"fmt"
-	"math/big"
 	"sort"
 	"time"
 
@@ -59,7 +58,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 				start := time.Now()
 				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
-					cbft.network.RemovePeer(id)
 					return
 				}
 				blockExecutedTimer.UpdateSince(start)
@@ -78,7 +76,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	expire := func() {
 		cbft.log.Debug("Fetch timeout, close fetching", "targetId", id, "baseBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 		utils.SetFalse(&cbft.fetching)
-		//cbft.network.RemovePeer(id)
 	}
 
 	cbft.log.Debug("Start fetching")
@@ -121,6 +118,7 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 	}
 }
 
+// OnGetPrepareBlock handles the  message type of GetPrepareBlockMsg.
 func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) {
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
@@ -131,6 +129,7 @@ func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) {
 	}
 }
 
+// OnGetBlockQuorumCert handles the message type of GetBlockQuorumCertMsg.
 func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumCert) {
 	_, qc := cbft.blockTree.FindBlockAndQC(msg.BlockHash, msg.BlockNumber)
 	if qc != nil {
@@ -138,6 +137,7 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 	}
 }
 
+// OnBlockQuorumCert handles the message type of BlockQuorumCertMsg.
 func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
 		cbft.log.Debug("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
@@ -156,6 +156,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) {
 	cbft.insertPrepareQC(msg.BlockQC)
 }
 
+// OnGetQCBlockList handles the message type of GetQCBlockListMsg.
 func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) {
 	highestQC := cbft.state.HighestQCBlock()
 
@@ -246,19 +247,10 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash(), "message", msg.String())
 	// Define a function that performs the send action.
 	launcher := func(bType uint64, targetId string, blockNumber uint64, blockHash common.Hash) error {
-		p, err := cbft.network.GetPeer(targetId)
+		err := cbft.network.PeerSetting(targetId, bType, blockNumber)
 		if err != nil {
 			cbft.log.Error("GetPeer failed", "err", err, "peerId", targetId)
 			return err
-		}
-		switch bType {
-		case network.TypeForQCBn:
-			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
-		case network.TypeForLockedBn:
-			p.SetLockedBn(new(big.Int).SetUint64(msg.BlockNumber))
-		case network.TypeForCommitBn:
-			p.SetCommitdBn(new(big.Int).SetUint64(msg.BlockNumber))
-		default:
 		}
 		// Synchronize block data with fetchBlock.
 		cbft.fetchBlock(targetId, blockHash, blockNumber)
@@ -274,10 +266,9 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 		if localQCNum < msg.BlockNumber || (localQCNum == msg.BlockNumber && localQCHash != msg.BlockHash) {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
 			return launcher(msg.LogicType, id, msg.BlockNumber, msg.BlockHash)
-		} else {
-			cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-			cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LogicType: msg.LogicType})
 		}
+		cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+		cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LogicType: msg.LogicType})
 	}
 	return nil
 }
@@ -289,12 +280,11 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	case network.TypeForQCBn:
 		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
 		if localQCBn < msg.BlockNumber || (localQCBn == msg.BlockNumber && localQCHash != msg.BlockHash) {
-			p, err := cbft.network.GetPeer(id)
+			err := cbft.network.PeerSetting(id, msg.LogicType, msg.BlockNumber)
 			if err != nil {
-				cbft.log.Error("GetPeer failed", "err", err)
+				cbft.log.Error("PeerSetting failed", "err", err)
 				return err
 			}
-			p.SetQcBn(new(big.Int).SetUint64(msg.BlockNumber))
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
@@ -373,6 +363,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	return fmt.Errorf("request is not match local view, local:%s,msg:%s", cbft.state.ViewString(), msg.String())
 }
 
+// OnViewChangeQuorumCert handles the message type of ViewChangeQuorumCertMsg.
 func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
 	cbft.log.Debug("Received message on OnViewChangeQuorumCert", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	viewChangeQC := msg.ViewChangeQC
@@ -386,6 +377,7 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 	}
 }
 
+// OnViewChanges handles the message type of ViewChangesMsg.
 func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
 	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, v := range msg.VCs {
@@ -397,7 +389,10 @@ func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
 	return nil
 }
 
-// Returns the node ID of the missing vote.
+// MissingViewChangeNodes returns the node ID of the missing vote.
+//
+// Notes:
+// Use the channel to complete serial execution to prevent concurrency.
 func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err error) {
 	result := make(chan struct{})
 
@@ -481,20 +476,11 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 	cbft.netLatencyLock.Lock()
 	defer cbft.netLatencyLock.Unlock()
 	// The intersection of peerSets and consensusNodes.
-	cNodes, _ := cbft.ConsensusNodes()
-	peers, _ := cbft.network.Peers()
-	target := make([]string, 0, len(peers))
-	for _, pNode := range peers {
-		for _, cNode := range cNodes {
-			if pNode.PeerID() == cNode.TerminalString() {
-				target = append(target, pNode.PeerID())
-			}
-		}
-	}
+	target, _ := cbft.network.AliveConsensusNodeIDs()
 	var (
-		avgSum     int64 = 0
-		result     int64 = 0
-		validCount int64 = 0
+		avgSum     int64
+		result     int64
+		validCount int64
 	)
 	// Take 2/3 nodes from the target.
 	var pair utils.KeyValuePairList
@@ -521,14 +507,15 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 	return time.Duration(result) * time.Millisecond
 }
 
+// DefaultAvgLatency returns the avg latency of default.
 func (cbft *Cbft) DefaultAvgLatency() time.Duration {
 	return time.Duration(protocols.DefaultAvgLatency) * time.Millisecond
 }
 
 func calAverage(latencyList *list.List) int64 {
 	var (
-		sum    int64 = 0
-		counts int64 = 0
+		sum    int64
+		counts int64
 	)
 	for e := latencyList.Front(); e != nil; e = e.Next() {
 		if latency, ok := e.Value.(int64); ok {

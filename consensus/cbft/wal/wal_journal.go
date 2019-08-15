@@ -107,8 +107,8 @@ func listJournalFiles(path string) sortFiles {
 	return nil
 }
 
-// NewJournal creates journal object
-func NewJournal(path string) (*journal, error) {
+// newJournal creates journal object
+func newJournal(path string) (*journal, error) {
 	journal := &journal{
 		path:   path,
 		exitCh: make(chan struct{}),
@@ -278,12 +278,15 @@ func (journal *journal) checkFileSize(journalLimitSize uint64) bool {
 
 // currentFileSize retrieves the size of current journal file.
 func (journal *journal) currentFileSize() (uint64, error) {
-	if fileInfo, err := journal.writer.file.Stat(); err != nil {
+	var (
+		fileInfo os.FileInfo
+		err      error
+	)
+	if fileInfo, err = journal.writer.file.Stat(); err != nil {
 		log.Error("Get the current journal file size error", "err", err)
 		return 0, err
-	} else {
-		return uint64(fileInfo.Size()), nil
 	}
+	return uint64(fileInfo.Size()), nil
 }
 
 // newJournalFile create a new journal file.

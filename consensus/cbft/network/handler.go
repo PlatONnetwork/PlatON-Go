@@ -17,30 +17,35 @@ import (
 
 const (
 
-	// Protocol name of CBFT
+	// CbftProtocolName is protocol name of CBFT.
 	CbftProtocolName = "cbft"
 
-	// Protocol version of CBFT
+	// CbftProtocolVersion is protocol version of CBFT.
 	CbftProtocolVersion = 1
 
 	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
 	CbftProtocolLength = 20
 
-	// Maximum threshold for the queue of messages waiting to be sent.
+	// sendQueueSize is maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
 
-	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
-	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
-	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+	// QCBnMonitorInterval is Qc block synchronization detection interval.
+	QCBnMonitorInterval = 10
+
+	// SyncViewChangeInterval is ViewChange synchronization detection interval.
 	SyncViewChangeInterval = 10
 
-	//
-	TypeForQCBn     = 1
+	// TypeForQCBn is the type for QC sync.
+	TypeForQCBn = 1
+
+	// TypeForLockedBn is the type for Locked sync.
 	TypeForLockedBn = 2
+
+	// TypeForCommitBn is the type for Commit sync.
 	TypeForCommitBn = 3
 )
 
-// Responsible for processing the messages in the network.
+// EngineManager responsibles for processing the messages in the network.
 type EngineManager struct {
 	engine        Cbft
 	router        *router
@@ -50,7 +55,7 @@ type EngineManager struct {
 	sendQueueHook func(*types.MsgPackage)
 }
 
-// Create a new handler and do some initialization.
+// NewEngineManger returns a new handler and do some initialization.
 func NewEngineManger(engine Cbft) *EngineManager {
 	handler := &EngineManager{
 		engine:    engine,
@@ -59,7 +64,7 @@ func NewEngineManger(engine Cbft) *EngineManager {
 		quitSend:  make(chan struct{}, 0),
 	}
 	// init router
-	handler.router = NewRouter(handler.Unregister, handler.GetPeer, handler.ConsensusNodes, handler.Peers)
+	handler.router = newRouter(handler.Unregister, handler.getPeer, handler.ConsensusNodes, handler.peerList)
 	return handler
 }
 
@@ -109,12 +114,30 @@ func (h *EngineManager) sendMessage(m *types.MsgPackage) {
 	h.router.SendMessage(m)
 }
 
-// Return the peer with the specified peerID.
-func (h *EngineManager) GetPeer(peerID string) (*peer, error) {
+// PeerSetting sets the block height of the node related type.
+func (h *EngineManager) PeerSetting(peerID string, bType uint64, blockNumber uint64) error {
+	p, err := h.peers.get(peerID)
+	if err != nil || p == nil {
+		return err
+	}
+	switch bType {
+	case TypeForQCBn:
+		p.SetQcBn(new(big.Int).SetUint64(blockNumber))
+	case TypeForLockedBn:
+		p.SetLockedBn(new(big.Int).SetUint64(blockNumber))
+	case TypeForCommitBn:
+		p.SetCommitdBn(new(big.Int).SetUint64(blockNumber))
+	default:
+	}
+	return nil
+}
+
+// GetPeer returns the peer with the specified peerID.
+func (h *EngineManager) getPeer(peerID string) (*peer, error) {
 	if peerID == "" {
 		return nil, fmt.Errorf("invalid peerID parameter - %v", peerID)
 	}
-	return h.peers.Get(peerID)
+	return h.peers.get(peerID)
 }
 
 // Send imports messages into the send queue and send it according to the specified ID.
@@ -142,7 +165,7 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	}
 }
 
-// Broadcast imports messages into the send queue.
+// PartBroadcast imports messages into the send queue.
 //
 // Note: The broadcast of this method defaults to PartMode.
 func (h *EngineManager) PartBroadcast(msg types.Message) {
@@ -163,20 +186,20 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 //    PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
 // 2. message type that need not to be forwarded:
 //    (Except for the above types, the rest are not forwarded).
-func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
+func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 	msgHash := msg.MsgHash()
 	msgType := protocols.MessageType(msg)
 
 	// the logic to forward message.
 	forward := func() error {
-		peers, err := h.Peers()
+		peers, err := h.peerList()
 		if err != nil || len(peers) == 0 {
 			return fmt.Errorf("peers is none, msgHash:%s", msgHash.TerminalString())
 		}
 		// Check all neighbor node lists and see if the specified message has been processed.
 		for _, peer := range peers {
 			// exclude currently send peer.
-			if peer.id == nodeId {
+			if peer.id == nodeID {
 				continue
 			}
 			if peer.ContainsMessageHash(msgHash) {
@@ -236,7 +259,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 				return h.NodeInfo()
 			},
 			PeerInfo: func(id discover.NodeID) interface{} {
-				if p, err := h.peers.Get(fmt.Sprintf("%x", id[:8])); err == nil {
+				if p, err := h.peers.get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
 				return nil
@@ -245,26 +268,42 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 	}
 }
 
-// Return all neighbor node lists.
-func (h *EngineManager) Peers() ([]*peer, error) {
-	return h.peers.Peers(), nil
+// AliveConsensusNodeIDs returns all NodeID to alive peer.
+func (h *EngineManager) AliveConsensusNodeIDs() ([]string, error) {
+	cNodes, _ := h.engine.ConsensusNodes()
+	peers := h.peers.allPeers()
+	target := make([]string, 0, len(peers))
+	for _, pNode := range peers {
+		for _, cNode := range cNodes {
+			if pNode.PeerID() == cNode.TerminalString() {
+				target = append(target, pNode.PeerID())
+			}
+		}
+	}
+	return target, nil
 }
 
-// Remove the peer with the specified ID
+// Return all neighbor node lists.
+func (h *EngineManager) peerList() ([]*peer, error) {
+	return h.peers.allPeers(), nil
+}
+
+// Unregister removes the peer with the specified ID.
 func (h *EngineManager) Unregister(id string) error {
 	return h.peers.Unregister(id)
 }
 
-// Return a list of all consensus nodes
+// ConsensusNodes returns a list of all consensus nodes.
 func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
 	return h.engine.ConsensusNodes()
 }
 
-// Representative node configuration information.
+// NodeInfo representatives node configuration information.
 type NodeInfo struct {
 	Config types.Config `json:"config"`
 }
 
+// NodeInfo returns the information of Node.
 func (h *EngineManager) NodeInfo() *NodeInfo {
 	cfg := h.engine.Config()
 	return &NodeInfo{
@@ -276,7 +315,7 @@ func (h *EngineManager) NodeInfo() *NodeInfo {
 // to the cbft protocol message, the method is called.
 func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// Further confirm if the version number needs to be read from the configuration.
-	peer := NewPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
+	peer := newPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
 
 	// execute handshake
 	// todo:
@@ -492,8 +531,8 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
 		log.Debug("handle a eth Pong message", "curTime", curTime)
-		var pingTime protocols.Pong
-		if err := msg.Decode(&pingTime); err != nil {
+		var pongTime protocols.Pong
+		if err := msg.Decode(&pongTime); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		for {
@@ -505,7 +544,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			}
 			log.Trace("Front element of p.PingList", "element", frontPing)
 			if t, ok := p.PingList.Remove(frontPing).(string); ok {
-				if t == pingTime[0] {
+				if t == pongTime[0] {
 					tInt64, err := strconv.ParseInt(t, 10, 64)
 					if err != nil {
 						return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
@@ -546,7 +585,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // a neighbor node.
 func (h *EngineManager) RemovePeer(id string) {
 	// Short circuit if the peer was already removed
-	peer, err := h.peers.Get(id)
+	peer, err := h.peers.get(id)
 	if err != nil {
 		log.Error("Removing CBFT peer failed", "err", err)
 		return
@@ -651,7 +690,7 @@ func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 
 // Testing is only used for unit testing.
 func (h *EngineManager) Testing() {
-	peers, _ := h.Peers()
+	peers, _ := h.peerList()
 	for _, v := range peers {
 		go func(p *peer) {
 			for {
