@@ -90,30 +90,34 @@ const (
 
 	// PlatONPrecompiled contract gas prices
 
-	StakingGas               uint64 = 6000   // Gas needed for precompiled contract: stakingContract
-	CreateStakeGas           uint64 = 32000  // Gas needed for createStaking
-	EditCandidatGas          uint64 = 12000  // Gas needed for editCandidate
-	IncStakeGas              uint64 = 20000  // Gas needed for increaseStaking
-	WithdrewStakeGas         uint64 = 20000  // Gas needed for withdrewStaking
-	DelegateGas              uint64 = 16000  // Gas needed for delegate
-	WithdrewDelegateGas      uint64 = 8000   // Gas needed for withdrewDelegate
+	StakingGas          uint64 = 6000  // Gas needed for precompiled contract: stakingContract
+	CreateStakeGas      uint64 = 32000 // Gas needed for createStaking
+	EditCandidatGas     uint64 = 12000 // Gas needed for editCandidate
+	IncStakeGas         uint64 = 20000 // Gas needed for increaseStaking
+	WithdrewStakeGas    uint64 = 20000 // Gas needed for withdrewStaking
+	DelegateGas         uint64 = 16000 // Gas needed for delegate
+	WithdrewDelegateGas uint64 = 8000  // Gas needed for withdrewDelegate
+
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
 	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion
 	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitParam
 	VoteGas                  uint64 = 2000   // Gas needed for vote
 	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
-	SlashingGas              uint64 = 1000   // Gas needed for precompiled contract: slashingContract
-	ReportDuplicateSignGas   uint64 = 1000   // Gas needed for ReportDuplicateSign
-	DuplicateEvidencesGas    uint64 = 21000  // When reporting, each duplicate sign of evidence requires gas to be consumed
-	RestrictingPlanGas       uint64 = 2000   // Gas needed for precompiled contract: restrictingPlanContract
-	CreateRestrictingPlanGas uint64 = 8000   // Gas needed for createRestrictingPlan
-	ReleasePlanGas           uint64 = 21000  // Gas consumed every time the von of the restrictPlan is released
+
+	SlashingGas              uint64 = 1000  // Gas needed for precompiled contract: slashingContract
+	ReportDuplicateSignGas   uint64 = 1000  // Gas needed for ReportDuplicateSign
+	DuplicateEvidencesGas    uint64 = 21000 // When reporting, each duplicate sign of evidence requires gas to be consumed
+	RestrictingPlanGas       uint64 = 2000  // Gas needed for precompiled contract: restrictingPlanContract
+	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan
+	ReleasePlanGas           uint64 = 21000 // Gas consumed every time the von of the restrictPlan is released
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2048)   // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DifficultyBoundDivisor = big.NewInt(2048)           // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(131072)         // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(131072)         // The minimum that the difficulty may ever be.
+	DurationLimit          = big.NewInt(13)             // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	GovMinGasPrice         = big.NewInt(50000000000000) // Min gas price for submit a governance proposal in WEI
+
 )

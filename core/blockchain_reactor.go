@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -369,6 +371,9 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 	case cvm.GovContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.GovContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
+		if tx.GasPrice().Cmp(params.GovMinGasPrice) < 0 {
+			return errors.New("Gas price under the min gas price of governance.")
+		}
 	case cvm.SlashingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)

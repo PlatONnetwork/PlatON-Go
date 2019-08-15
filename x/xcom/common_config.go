@@ -52,12 +52,13 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
-	Max_Vote_Duration           uint64
-	VersionProposal_SupportRate float64
-	TextProposal_VoteRate       float64
-	TextProposal_SupportRate    float64
-	CancelProposal_VoteRate     float64
-	CancelProposal_SupportRate  float64
+	VersionProposal_VoteDuration uint64  // max vote duration of version proposal in minutes
+	VersionProposal_SupportRate  float64 // the version proposal will pass if the support rate exceeds this value.
+	TextProposal_VoteDuration    uint64  // max vote duration of text proposal in minutes
+	TextProposal_VoteRate        float64 // the text proposal will pass if the vote rate exceeds this value.
+	TextProposal_SupportRate     float64 // the text proposal will pass if the vote support exceeds this value.
+	CancelProposal_VoteRate      float64 // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposal_SupportRate   float64 // the cancel proposal will pass if the vote support exceeds this value.
 }
 
 // total
@@ -155,12 +156,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				Max_Vote_Duration:           uint64(336),
-				VersionProposal_SupportRate: float64(0.6666),
-				TextProposal_VoteRate:       float64(0.6666),
-				TextProposal_SupportRate:    float64(0.50),
-				CancelProposal_VoteRate:     float64(0.6666),
-				CancelProposal_SupportRate:  float64(0.50),
+				VersionProposal_VoteDuration: uint64(20160),
+				VersionProposal_SupportRate:  float64(0.6666),
+				TextProposal_VoteDuration:    uint64(20160),
+				TextProposal_VoteRate:        float64(0.6666),
+				TextProposal_SupportRate:     float64(0.50),
+				CancelProposal_VoteRate:      float64(0.6666),
+				CancelProposal_SupportRate:   float64(0.50),
 			},
 		}
 
@@ -194,12 +196,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				Max_Vote_Duration:           uint64(336),
-				VersionProposal_SupportRate: float64(0.6666),
-				TextProposal_VoteRate:       float64(0.6666),
-				TextProposal_SupportRate:    float64(0.50),
-				CancelProposal_VoteRate:     float64(0.6666),
-				CancelProposal_SupportRate:  float64(0.50),
+				VersionProposal_VoteDuration: uint64(20160),
+				VersionProposal_SupportRate:  float64(0.6666),
+				TextProposal_VoteDuration:    uint64(20160),
+				TextProposal_VoteRate:        float64(0.6666),
+				TextProposal_SupportRate:     float64(0.50),
+				CancelProposal_VoteRate:      float64(0.6666),
+				CancelProposal_SupportRate:   float64(0.50),
 			},
 		}
 
@@ -233,12 +236,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				Max_Vote_Duration:           uint64(336),
-				VersionProposal_SupportRate: float64(0.6666),
-				TextProposal_VoteRate:       float64(0.6666),
-				TextProposal_SupportRate:    float64(0.50),
-				CancelProposal_VoteRate:     float64(0.6666),
-				CancelProposal_SupportRate:  float64(0.50),
+				VersionProposal_VoteDuration: uint64(20160),
+				VersionProposal_SupportRate:  float64(0.6666),
+				TextProposal_VoteDuration:    uint64(20160),
+				TextProposal_VoteRate:        float64(0.6666),
+				TextProposal_SupportRate:     float64(0.50),
+				CancelProposal_VoteRate:      float64(0.6666),
+				CancelProposal_SupportRate:   float64(0.50),
 			},
 		}
 
@@ -272,12 +276,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				Max_Vote_Duration:           uint64(336),
-				VersionProposal_SupportRate: float64(0.6666),
-				TextProposal_VoteRate:       float64(0.6666),
-				TextProposal_SupportRate:    float64(0.50),
-				CancelProposal_VoteRate:     float64(0.6666),
-				CancelProposal_SupportRate:  float64(0.50),
+				VersionProposal_VoteDuration: uint64(20160),
+				VersionProposal_SupportRate:  float64(0.6666),
+				TextProposal_VoteDuration:    uint64(20160),
+				TextProposal_VoteRate:        float64(0.6666),
+				TextProposal_SupportRate:     float64(0.50),
+				CancelProposal_VoteRate:      float64(0.6666),
+				CancelProposal_SupportRate:   float64(0.50),
 			},
 		}
 
@@ -311,12 +316,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				Max_Vote_Duration:           uint64(336),
-				VersionProposal_SupportRate: float64(0.6666),
-				TextProposal_VoteRate:       float64(0.6666),
-				TextProposal_SupportRate:    float64(0.50),
-				CancelProposal_VoteRate:     float64(0.6666),
-				CancelProposal_SupportRate:  float64(0.50),
+				VersionProposal_VoteDuration: uint64(20160),
+				VersionProposal_SupportRate:  float64(0.6666),
+				TextProposal_VoteDuration:    uint64(20160),
+				TextProposal_VoteRate:        float64(0.6666),
+				TextProposal_SupportRate:     float64(0.50),
+				CancelProposal_VoteRate:      float64(0.6666),
+				CancelProposal_SupportRate:   float64(0.50),
 			},
 		}
 
@@ -351,12 +357,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(20),
 			},
 			Gov: governanceConfig{
-				Max_Vote_Duration:           uint64(336),
-				VersionProposal_SupportRate: float64(0.6666),
-				TextProposal_VoteRate:       float64(0.6666),
-				TextProposal_SupportRate:    float64(0.50),
-				CancelProposal_VoteRate:     float64(0.6666),
-				CancelProposal_SupportRate:  float64(0.50),
+				VersionProposal_VoteDuration: uint64(20160),
+				VersionProposal_SupportRate:  float64(0.6666),
+				TextProposal_VoteDuration:    uint64(20160),
+				TextProposal_VoteRate:        float64(0.6666),
+				TextProposal_SupportRate:     float64(0.50),
+				CancelProposal_VoteRate:      float64(0.6666),
+				CancelProposal_SupportRate:   float64(0.50),
 			},
 		}
 	}
@@ -461,12 +468,16 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Governance config
  ******/
-func Max_Vote_Duration() uint64 {
-	return ec.Gov.Max_Vote_Duration
+func VersionProposal_VoteDuration() uint64 {
+	return ec.Gov.VersionProposal_VoteDuration
 }
 
 func VersionProposal_SupportRate() float64 {
 	return ec.Gov.VersionProposal_SupportRate
+}
+
+func TextProposal_VoteDuration() uint64 {
+	return ec.Gov.TextProposal_VoteDuration
 }
 
 func TextProposal_VoteRate() float64 {
