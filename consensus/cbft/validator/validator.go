@@ -3,6 +3,7 @@ package validator
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -72,7 +73,7 @@ func (d *StaticAgency) VerifySign(interface{}) error {
 	return nil
 }
 
-func (d *StaticAgency) VerifyHeader(*types.Header) error {
+func (d *StaticAgency) VerifyHeader(header *types.Header,statedb *state.StateDB) error {
 	return nil
 }
 
@@ -120,7 +121,7 @@ func (ia *InnerAgency) VerifySign(interface{}) error {
 	return nil
 }
 
-func (ia *InnerAgency) VerifyHeader(*types.Header) error {
+func (ia *InnerAgency) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
 	return nil
 }
 
@@ -421,7 +422,8 @@ func (vp *ValidatorPool) VerifyHeader(header *types.Header) error {
 	if err != nil {
 		return err
 	}
-	return vp.agency.VerifyHeader(header)
+	// todo: need confirmed.
+	return vp.agency.VerifyHeader(header, nil)
 }
 
 // IsValidator check if the node is validator.

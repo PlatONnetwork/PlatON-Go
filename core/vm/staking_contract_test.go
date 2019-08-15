@@ -46,6 +46,12 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
 	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
@@ -60,6 +66,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, sign)
 	params = append(params, blsPkm)
 
 	buf := new(bytes.Buffer)

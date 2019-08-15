@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -280,7 +281,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 		params.VersionMajor, params.VersionMinor, params.VersionPatch), "uint32 version", programVersion)
 
 	// Store genesis governance data
-	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(programVersion))
+	activeVersionList := []gov.ActiveVersionValue{
+		{ActiveVersion: programVersion, ActiveBlock: 0},
+	}
+	activeVersionListBytes, _ := json.Marshal(activeVersionList)
+	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 	// Store restricting plans for increase issue for second and third year
 	if err := genesisAllowancePlan(statedb, genesisIssue); nil != err {
 		return err

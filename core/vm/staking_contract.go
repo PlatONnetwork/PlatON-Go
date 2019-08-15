@@ -37,11 +37,13 @@ const (
 	GetCandidateListErrStr   = "Getting candidateList is failed"
 	GetDelegateRelatedErrStr = "Getting related of delegate is failed"
 	IncreaseStakingErrStr    = "IncreaseStaking failed"
-	ProgramVersionErr        = "The program version of the relates node's is too low"
+	ProgramVersionErrStr     = "The program version of the relates node's is too low"
+	ProgramVersionSignErrStr = "The program version sign is wrong"
 	QueryCanErrStr           = "Query candidate info failed"
 	QueryDelErrSTr           = "Query delegate info failed"
 	StakeVonTooLowStr        = "Staking deposit too low"
 	StakingAddrNoSomeErrStr  = "Address must be the same as initiated staking"
+	DescriptionLenErrStr     = "The Description length is wrong"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
 	WithdrewDelegateErrStr   = "Withdrew delegate failed"
 )
@@ -90,8 +92,8 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32, blsPubKey string) ([]byte, error) {
-
+	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32,
+	programVersionSign common.VersionSign, blsPubKey string) ([]byte, error) {
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
 	blockNumber := stkc.Evm.BlockNumber
@@ -105,10 +107,27 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "typ", typ,
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
-		"programVersion", programVersion)
+		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
+		"from", from.Hex())
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		log.Warn("Call createStaking current txHash is empty!!")
+		return nil, nil
+	}
+
+	// validate programVersion sign
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), nodeId) {
+		res := xcom.Result{false, "", ProgramVersionSignErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
 	}
 
 	if !xutil.CheckStakeThreshold(amount) {
@@ -118,8 +137,22 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return event, nil
 	}
 
+	// check Description length
+	desc := &staking.Description{
+		NodeName:   nodeName,
+		ExternalId: externalId,
+		Website:    website,
+		Details:    details,
+	}
+	if err := desc.CheckLength(); nil != err {
+		res := xcom.Result{false, "", DescriptionLenErrStr + ": " + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
+	}
+
 	// Query current active version
-	curr_version := plugin.GovPluginInstance().GetActiveVersion(state)
+	curr_version := plugin.GovPluginInstance().GetCurrentActiveVersion(state)
 	currVersion := xutil.CalcVersion(curr_version)
 	inputVersion := xutil.CalcVersion(programVersion)
 
@@ -130,7 +163,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
 		err := fmt.Errorf("input Version: %s, current valid Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(curr_version))
-		res := xcom.Result{false, "", ProgramVersionErr + ": " + err.Error()}
+		res := xcom.Result{false, "", ProgramVersionErrStr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
@@ -181,12 +214,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
 
-		Description: staking.Description{
-			NodeName:   nodeName,
-			ExternalId: externalId,
-			Website:    website,
-			Details:    details,
-		},
+		Description: *desc,
 	}
 
 	canNew.ProgramVersion = currVersion
@@ -209,7 +237,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if isDeclareVersion {
 		// Declare new Version
 		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
-			programVersion, blockHash, blockNumber.Uint64(), state)
+			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
@@ -246,10 +274,18 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	log.Info("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "benefitAddress", benefitAddress.String(),
 		"nodeId", nodeId.String(), "externalId", externalId, "nodeName", nodeName,
-		"website", website, "details", details)
+		"website", website, "details", details, "from", from.Hex())
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		log.Warn("Call editCandidate current txHash is empty!!")
+		return nil, nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -289,10 +325,21 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	canOld.BenefitAddress = benefitAddress
 
-	canOld.NodeName = nodeName
-	canOld.ExternalId = externalId
-	canOld.Website = website
-	canOld.Details = details
+	// check Description length
+	desc := &staking.Description{
+		NodeName:   nodeName,
+		ExternalId: externalId,
+		Website:    website,
+		Details:    details,
+	}
+	if err := desc.CheckLength(); nil != err {
+		res := xcom.Result{false, "", DescriptionLenErrStr + ": " + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editCandidate")
+		return event, nil
+	}
+
+	canOld.Description = *desc
 
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canOld)
 
@@ -327,10 +374,19 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	state := stkc.Evm.StateDB
 
 	log.Info("Call increaseStaking of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "typ", typ, "amount", amount)
+		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "typ", typ,
+		"amount", amount, "from", from.Hex())
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.IncStakeGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		log.Warn("Call increaseStaking current txHash is empty!!")
+		return nil, nil
 	}
 
 	if !xutil.CheckMinimumThreshold(amount) {
@@ -408,10 +464,18 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	state := stkc.Evm.StateDB
 
 	log.Info("Call withdrewStaking of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "from", from.Hex())
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		log.Warn("Call withdrewStaking current txHash is empty!!")
+		return nil, nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -486,8 +550,16 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "typ", typ,
 		"nodeId", nodeId.String(), "amount", amount)
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	if !stkc.Contract.UseGas(params.DelegateGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		log.Warn("Call delegate current txHash is empty!!")
+		return nil, nil
 	}
 
 	if !xutil.CheckMinimumThreshold(amount) {
@@ -599,8 +671,16 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		log.Warn("Call withdrewDelegate current txHash is empty!!")
+		return nil, nil
 	}
 
 	if !xutil.CheckMinimumThreshold(amount) {
@@ -648,6 +728,9 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
+
 	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
 
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -671,8 +754,7 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	// todo test
-	log.Debug("getVerifierList", "verArr", string(arrByte))
+	log.Info("getVerifierList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "verArr", string(arrByte))
 	return data, nil
 }
 
@@ -680,6 +762,9 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -698,8 +783,7 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	// todo test
-	log.Debug("getValidatorList", "valArr", string(arrByte))
+	log.Info("getValidatorList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "valArr", string(arrByte))
 	return data, nil
 }
 
@@ -707,6 +791,9 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	arr, err := stkc.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -730,15 +817,18 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	// todo test
-	log.Debug("getCandidateList", "canArr", string(arrByte))
+	log.Info("getCandidateList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canArr", string(arrByte))
 	return data, nil
 }
 
 // todo Maybe will implement
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
+	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -762,8 +852,7 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	// todo test
-	log.Debug("getRelatedListByDelAddr", "relateArr", string(jsonByte))
+	log.Info("getRelatedListByDelAddr", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "relateArr", string(jsonByte))
 	return data, nil
 }
 
@@ -772,6 +861,9 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -795,8 +887,7 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	// todo test
-	log.Debug("getDelegateInfo", "delinfo", string(jsonByte))
+	log.Info("getDelegateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delinfo", string(jsonByte))
 	return data, nil
 }
 
@@ -804,6 +895,9 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
+
+	// todo test
+	xcom.PrintEc(blockNumber, blockHash)
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -833,8 +927,7 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	// todo test
-	log.Debug("getCandidateInfo", "caninfo", string(jsonByte))
+	log.Info("getCandidateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "caninfo", string(jsonByte))
 	return data, nil
 
 }

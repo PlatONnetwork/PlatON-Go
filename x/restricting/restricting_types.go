@@ -10,6 +10,15 @@ type RestrictingInfo struct {
 	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
 }
 
+func (r *RestrictingInfo) RemoveEpoch(epoch uint64) {
+	for i, target := range r.ReleaseList {
+		if target == epoch {
+			r.ReleaseList = append(r.ReleaseList[:i], r.ReleaseList[i+1:]...)
+			break
+		}
+	}
+}
+
 // for contract, plugin test, byte util
 type RestrictingPlan struct {
 	Epoch  uint64   `json:"epoch"`  // epoch representation of the released epoch at the target blockNumber

@@ -235,7 +235,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
-	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
+	//extra data for each block will be set by worker.go
+	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(config.CbftConfig.NodePriKey, eth.EventMux())
 
@@ -244,7 +245,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		var agency consensus.Agency
 		// validatorMode:
 		// - static (default)
-		// - inner (via inner contract)
+		// - inner (via inner contract)eth/handler.go
 		// - ppos
 		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
@@ -282,11 +283,42 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	return eth, nil
 }
 
-func makeExtraData(extra []byte) []byte {
+func makeExtraData(blockChain *core.BlockChain, extra []byte) []byte {
 	if len(extra) == 0 {
+		state, err := blockChain.State()
+		if err != nil {
+			log.Error("Cannot get block chain stateDB", "err", err)
+			return nil
+		}
+
 		// create default extradata
 		extra, _ = rlp.EncodeToBytes([]interface{}{
-			uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			xplugin.GovPluginInstance().GetCurrentActiveVersion(state),
+			"platon",
+			runtime.Version(),
+			runtime.GOOS,
+		})
+	}
+	if uint64(len(extra)) > params.MaximumExtraDataSize {
+		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
+		extra = nil
+	}
+	return extra
+}
+
+func verifyHeader(blockChain *core.BlockChain, extra []byte) []byte {
+	if len(extra) == 0 {
+		state, err := blockChain.State()
+		if err != nil {
+			log.Error("Cannot get block chain stateDB", "err", err)
+			return nil
+		}
+
+		// create default extradata
+		extra, _ = rlp.EncodeToBytes([]interface{}{
+			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			xplugin.GovPluginInstance().GetCurrentActiveVersion(state),
 			"platon",
 			runtime.Version(),
 			runtime.GOOS,

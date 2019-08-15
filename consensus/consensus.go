@@ -141,11 +141,11 @@ type PoW interface {
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
-	VerifyHeader(header *types.Header) error
+	Flush(header *types.Header) error
+	VerifyHeader(header *types.Header, stateDB *state.StateDB) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
-	Flush(header *types.Header) error
 }
 
 type Bft interface {

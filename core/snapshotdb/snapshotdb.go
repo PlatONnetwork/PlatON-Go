@@ -707,12 +707,9 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	case hashLocationCommitted:
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			block := s.committed[i]
-			if block.BlockHash == hash {
+			if block.BlockHash == hash || block.BlockHash == parentHash {
 				itrs = append(itrs, block.data.NewIterator(prefix))
 				parentHash = block.ParentHash
-			} else if block.BlockHash == parentHash {
-				itrs = append(itrs, block.data.NewIterator(prefix))
-				parentHash = block.BlockHash
 			}
 		}
 	}
@@ -730,17 +727,11 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 
 	//generate memdb Iterator
 	mdb := memdb.New(DefaultComparer, rangeNumber)
-	var count int
 	for rankingHeap.heap.Len() > 0 {
-		// if rangeNumber>0 ,limit Iterator kv pairs nums
-		if rangeNumber > 0 && count >= rangeNumber {
-			break
-		}
 		kv := heap.Pop(&rankingHeap.heap).(kv)
 		if err := mdb.Put(kv.key, kv.value); err != nil {
 			return iterator.NewEmptyIterator(errors.New("put to mdb fail" + err.Error()))
 		}
-		count++
 	}
 	return mdb.NewIterator(nil)
 }
@@ -760,8 +751,8 @@ type rankingHeap struct {
 	hepMaxNum int
 }
 
-// the heap length must  gt than 0
-func (r *rankingHeap) gtThanMaxHeap(k []byte) bool {
+//   the key is gt than or eq than   heap top
+func (r *rankingHeap) geMaxHeap(k []byte) bool {
 	if bytes.Compare(k, r.heap[0].key) > 0 {
 		return true
 	}
@@ -776,28 +767,46 @@ func (r *rankingHeap) addHandledKey(key []byte) {
 
 func (r *rankingHeap) findHandledKey(key []byte) bool {
 	for _, value := range r.handledKey {
-		if bytes.Compare(key, value) == 0 {
+		if bytes.Equal(key, value) {
 			return true
 		}
 	}
 	return false
 }
 
+// the heap length is less or eq than r.hepMaxNum.
+// except baseDB, every block must range.
+// find key, continue ,handle key add to HandledKey.
+// the key must less than the top.
 func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
-	baseDBBreakCondition := baseDB && r.hepMaxNum > 0
+	unlimited := r.hepMaxNum <= 0
 	for itr.Next() {
 		k, v := itr.Key(), itr.Value()
-		// in baseDB, if the heap length is greater than hepMaxNum , the itr.key is gt than max heap,
-		// the every next itr.key will gt than max heap,so no need itr.next
-		if baseDBBreakCondition && (r.heap.Len() > r.hepMaxNum) && r.gtThanMaxHeap(k) {
-			break
-		}
-		if r.findHandledKey(k) {
-			continue
-		} else {
+		if unlimited {
+			if r.findHandledKey(k) {
+				continue
+			}
 			r.push2Heap(k, v, deepCopy)
-			r.addHandledKey(k)
+		} else {
+			if r.heap.Len() < r.hepMaxNum {
+				if r.findHandledKey(k) {
+					continue
+				}
+				r.push2Heap(k, v, deepCopy)
+			} else {
+				keyGEHeapTop := r.geMaxHeap(k)
+				if baseDB && keyGEHeapTop {
+					break
+				}
+				if r.findHandledKey(k) {
+					continue
+				}
+				if !keyGEHeapTop {
+					r.push2Heap(k, v, deepCopy)
+				}
+			}
 		}
+		r.addHandledKey(k)
 	}
 	itr.Release()
 }
@@ -805,6 +814,10 @@ func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
 func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
 	condtion := v == nil || len(v) == 0
 	if !condtion {
+		if r.hepMaxNum > 0 && r.heap.Len() >= r.hepMaxNum {
+			heap.Pop(&r.heap)
+		}
+
 		if deepCopy {
 			sk, sv := make([]byte, len(k)), make([]byte, len(v))
 			copy(sk, k)

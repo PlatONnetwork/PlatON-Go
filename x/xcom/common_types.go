@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -153,13 +151,4 @@ func PrintObject(s string, obj interface{}) {
 func PrintObjForErr(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 	log.Error(s + " == " + string(objs))
-}
-
-func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
-	for _, v := range nodeIDList {
-		if nodeID == v {
-			return true
-		}
-	}
-	return false
 }
