@@ -37,24 +37,24 @@ const initGas = 10000000
 
 var (
 	nodeIdArr = []discover.NodeID{
-		discover.MustHexID("a20aef0b2c6baeaa34be2848e7dfc04c899b5985adf6fa0e98b38f754f2bb0c47974506a8de13f2a2ae97c08bcb12b438b3dcbf237b7be58f6d6d8beb36dd235"),
-		discover.MustHexID("49ddf47ba0463eb4b40e66365660990ab035daf9cafd75c3c1cf7aa98f3021f157933381fe4cdc4496c40bf3fb0f732711c0ba8459367a8310a9a7ffeb33cb71"),
-		discover.MustHexID("8332fd21a9da740ad795ce50a322075beec16333daea6e5cf8049fd9b1cdd0277e16e7ba3bd29a9edb6a357349b6cdb01892095ab94d2d2a4f84a31717df68d7"),
-		discover.MustHexID("02e5274c02b0142b6e59d74c68729afc307f32ebf6ad3ac15fb2c69c537928869a1b02a054421d3160a48f724250818e7dbb7ced3408b9f7a073eca62674500f"),
-		discover.MustHexID("becb9e9c467b742f41a92dd6629cb107c2159421a1241b1176062c7f652ca5e090401aa379a016efea2e65691da17be51409c04f904ef3fa461830e6cc1a85ce"),
-		discover.MustHexID("0beed0b7bdfd674e1b51f3dc1d5cfbafba3def1ecdcdcef2640d3fb842aef3bb702490729096611bd74989297633416321578ddd5514aab90a359f6428a3cc2e"),
-		discover.MustHexID("f79d932933e952758e568ec5d21c71c7eb3fc7554370e6bd11cac9f1eda6a99cff64a48991df48bb5a94198c65745767b6c4368dd183be9962ec7a17bb597fbe"),
-		discover.MustHexID("5fa08d295fd276da2d351f0ff96d415cbe85eb2704df00ea7f83405038164bef3dc1c3f160f8149524379412f5a18e1f61b99ab51e213f075afe3f1ab95b8ba5"),
-		discover.MustHexID("5a4ad751151b7a8cce27cb60b780ae04bfb380c51132df7a9795c2626ad026912111eec579e49d594ebc560db56f12d8d1239dd52f6d23b6039e16bef18a549c"),
-		discover.MustHexID("79df7a746bc4c298cb53848435927004bd3e48f301b32d7b68b0b79f414ffdedd30eb6532d64b56393f59fcc74acb4d730408d017697d3d76f9e146e250ea4e3"),
-		discover.MustHexID("5fc56f8faf8eb42bcaff11184ba73c81dbcf503bf07772b794b6e7c13523f401d5bc5efd877cd244afca3dc8d335c9f3062f777bd1e631f077d55bc5153dc665"),
-		discover.MustHexID("7f8f1828a89acae44ba101ff07f78ebaac40e2cbf6609256482c75097475b273348e0a2acb4bcfd1d2cba4f2bdf72640a327faf50cef1b86ba1cad7baf6fe818"),
-		discover.MustHexID("fe104c8152f823c0e9b105bca203ff6f0f09a7feae2c4949afe8b00cbea67ff39bd48aa6b232e53baa1312fe1051408364e3dfba6438afa0ef7a27fd0a068e0d"),
-		discover.MustHexID("6c7cdedda488a335b8b0851decd09e512763ca4411021c7171a4cf5d535f3084057ac6b0e98876bce5dbaec9a966e8f7555828fca2a73385eb446f3fed287582"),
-		discover.MustHexID("cd40af30fe8da249a4d02dc51a89cc6f1008d281f8364c5777eda1168084d26f4e2553d56b6246ba70fe5a331d111c5d62bc833fe527cb82c2052a8c003eef24"),
-		discover.MustHexID("bef1f8017ee14c58a8bcc9288a28acb38cf52bbbd1fbe7d7eea9b52c11456ea50ade33531ea45a68b8aad71c2408fa19e7ba61b0c0ac2a2bfb6c5864b54392ab"),
-		discover.MustHexID("58430dacdba6823deee7af5c4d24df65e9678fc1b0b85dce49e59ccadb5bc220425563d86baaa93194023cb99e6dfeae58229966e9058d83ccba087fa4edd636"),
-		discover.MustHexID("6eaf01e5fd1b953a71a60fcd79317e1f69c212e5673d5670a8980b5a3729a4b8e7c6d6ca16719d81e4d77f0db399ef1163601179b0ac1d88b8c998600a407a9d"),
+		discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384"),
+		discover.MustHexID("0xced880d4769331f47af07a8d1b79de1e40c95a37ea1890bb9d3f0da8349e1a7c0ea4cadbb9c5bf185b051061eef8e5eadca251c24e1db1d9faf0fb24cbd06f9a"),
+		discover.MustHexID("0xda56501a77fc1dfe0399b81f3909061d9a176cb9433fab4d3dfb1a10344c243274e38155e18878c7a0b3fcdd6182000c7784a95e2c4d9e0691ce67798624786e"),
+		discover.MustHexID("0x89a4409abe1ace8b77c4497c2073a8a2046dbdabb58c8bb58fe73926bbdc572fb848d739b1d2d09dd0796abcc1ed8d9a33bb3ef0a6c2e106e408090df179b041"),
+		discover.MustHexID("0x65e2ab09161e32e6d07d82adaa416ee6d41d617c52db20e3145a4d1b7d396af38d095c87508ad5bb35df741513bdc4bf12fec215e58450e255f05d194d41d089"),
+		discover.MustHexID("0x9bfacd628f3adb0f94e8b3968064d5248fa18efa75c680fdffea3af2575406461f3395817dd2a1be07a79bd81ffa00f57ad82286061d4a6caceece048e352380"),
+		discover.MustHexID("0x1e07d66b56bbc931ddce7cc5b9f55672d7fe4e19897a42f19d4ad7c969435cad652d720401d68f5769e245ec0f4e23362c8b1b062771d614876fdbb875ba9d44"),
+		discover.MustHexID("0x11a315747ce79cdf3d6aaf87ff2b6897950a20bda281838f922ea9407736fec9029d85f6202fd059a57a9119d05895402e7570948ae759cb093a54c3da9e0a4a"),
+		discover.MustHexID("0x248af08a775ff63a47a5970e4928bcccd1a8cef984fd4142ea7f89cd13015bdab9ca4a8c5e1070dc00fa81a047542f53ca596f553c4acfb7abe75a8fb5019057"),
+		discover.MustHexID("0xfd790ff5dc48baccb9418ce5cfac6a10c3646f20a3fe32d9502c4edce3a77fa90bfee0361d8a72093b7994f8cbc28ee537bdda2b634c5966b1a9253d9d270145"),
+		discover.MustHexID("0x56d243db84a521cb204f582ee84bca7f4af29437dd447a6e36d17f4853888e05343844bd64294b99b835ca7f72ef5b1325ef1c89b0c5c2744154cdadf7c4e9fa"),
+		discover.MustHexID("0x8796a6fcefd9037d8433e3a959ff8f3c4552a482ce727b00a90bfd1ec365ce2faa33e19aa6a172b5c186b51f5a875b5acd35063171f0d9501a9c8f1c98513825"),
+		discover.MustHexID("0x547b876036165d66274ce31692165c8acb6f140a65cab0e0e12f1f09d1c7d8d53decf997830919e4f5cacb2df1adfe914c53d22e3ab284730b78f5c63a273b8c"),
+		discover.MustHexID("0x9fdbeb873bea2557752eabd2c96419b8a700b680716081472601ddf7498f0db9b8a40797b677f2fac541031f742c2bbd110ff264ae3400bf177c456a76a93d42"),
+		discover.MustHexID("0xc553783799bfef7c34a84b2737f2c77f8f2c5cfedc3fd7af2d944da6ece90aa94cf621e6de5c4495881fbfc9beec655ffb10e39cb4ca9be7768d284409040f32"),
+		discover.MustHexID("0x75ad2ee8ca77619c3ba0ddcec5dab1375fe4fa90bab9e751caef3996ce082dfed32fe4c137401ee05e501c079b2e4400397b09de14b08b09c9e7f9698e9e4f0a"),
+		discover.MustHexID("0xdb18af9be2af9dff2347c3d06db4b1bada0598d099a210275251b68fa7b5a863d47fcdd382cc4b3ea01e5b55e9dd0bdbce654133b7f58928ce74629d5e68b974"),
+		discover.MustHexID("0x472d19e5e9888368c02f24ebbbe0f2132096e7183d213ab65d96b8c03205f88398924af8876f3c615e08aa0f9a26c38911fda26d51c602c8d4f8f3cb866808d7"),
 		discover.MustHexID("4f1f036e5e18cc812347d5073cbec2a8da7930de323063c39b0d4413a396e088bfa90e8c28174313d8d82e9a14bc0884b13a48fc28e619e44c48a49b4fd9f107"),
 		discover.MustHexID("f18c596232d637409c6295abb1e720db99ffc12363a1eb8123d6f54af80423a5edd06f91115115a1dca1377e97b9031e2ddb864d34d9b3491d6fa07e8d9b951b"),
 		discover.MustHexID("7a8f7a28ac1c4eaf98b2be890f372e5abc58ebe6d3aab47aedcb0076e34eb42882e926676ebab327a4ef4e2ea5c4296e9c7bc0991360cb44f52672631012db1b"),
@@ -93,24 +93,24 @@ var (
 	}
 
 	priKeyArr = []*ecdsa.PrivateKey{
-		crypto.HexMustToECDSA("d30b490011d2a08053d46506ae533ff96f2cf6a37f73be740f52ad24243c4958"),
-		crypto.HexMustToECDSA("3dbace449229be40a641e056c250fee39a2b6077f3f40a47512e3559cb7b6174"),
-		crypto.HexMustToECDSA("a31f894228699550e0d53142d1b50c01d991d0e195d7f6e98d720fb4b14cbb84"),
-		crypto.HexMustToECDSA("7a6a73919df68e4c36c2b38b40fe6d154c8453d1c439262bd3912a0537ce4e51"),
-		crypto.HexMustToECDSA("351f8010623c4b7b1c358ce4dce9e1d1a6df4df947c0426d8dd50efdb9e5e2bf"),
-		crypto.HexMustToECDSA("17014f74092b63bd72f55d56f9b511532de7607620acbdfe9a55c3359e0a05d8"),
-		crypto.HexMustToECDSA("62dcf763f4bd71a22bfacdee247aa827858303f9e2f48d06be287c10b76c392e"),
-		crypto.HexMustToECDSA("b4b61440fe55277f47bcdefe93f849e10371bceabc26aa7fdcd049a80b8eaf98"),
-		crypto.HexMustToECDSA("d704124f3623ae25465fcad35405f632abb01d592f57bb201d729a8955c31647"),
-		crypto.HexMustToECDSA("82e9691ff8853c656e743515e606e38617edd7ecbcabb101a6796e7c53c107e5"),
-		crypto.HexMustToECDSA("7eab72a552af80835c994f265e9fbef3d043d779e943efeaff29e228199bbf6a"),
-		crypto.HexMustToECDSA("8df3b87b8b25c7e17dc6b46146b6581c965d11cd8d50db43c60b9a7566bc0f18"),
-		crypto.HexMustToECDSA("ada826fbded7ee2a06d3cec6e5d1567359f9af0ffcb52cf1701c686e6884e01a"),
-		crypto.HexMustToECDSA("5f97915d61ecdb38a048d8fa5a7bf7e16a46f3ecb92d8d7e48506cf1c6705ea4"),
-		crypto.HexMustToECDSA("625308f7e5a3de990f7297e20d0ea10a6b36a2d374dc1a68b051053cfd739313"),
-		crypto.HexMustToECDSA("207b68f34e8432163013003934da51889c3ac8c00fa5fa6f80299678882d2f50"),
-		crypto.HexMustToECDSA("aba5c7e329207d7cdccc1d3e1657d935d2f6029372bbafdb953c6d0b3a81d73b"),
-		crypto.HexMustToECDSA("77576a78f1fe8018bb0ae27076c86980c56e62c6014317796a2ca3ce59b1e7c0"),
+		crypto.HexMustToECDSA("0c6ccec28e36dc5581ea3d8af1303c774b51523da397f55cdc4acd9d2b988132"),
+		crypto.HexMustToECDSA("07c0b2525cbff7dad6211cf901507e3814a77d864d31bdaa5785a94ee20a8da1"),
+		crypto.HexMustToECDSA("564a4965c2bd98654c275c6b63713c936f2dc91bb6a91bdd47e8320d4d9ebcf4"),
+		crypto.HexMustToECDSA("dfdbb19f4c18bb4964392b6e1998c62c9e2b53e9400c4dd64d6659c2191625f5"),
+		crypto.HexMustToECDSA("2ceb44fe9196cd1ad2c4bb4c657098fdf8baeb85910011243f6da23a47ea9781"),
+		crypto.HexMustToECDSA("904160f823ede58e83584f0e2b98f0994fc9626f250457873b16570a446c9e92"),
+		crypto.HexMustToECDSA("9ed9a0d08f8354539e336f85b3011d609ded672bba12b63d62931b111471cb99"),
+		crypto.HexMustToECDSA("85e733ec3f15aab14848e21c1ac69624ce8547c92d3f0ee8abc0f3ab412158a1"),
+		crypto.HexMustToECDSA("343d10559147d42e1632b4e932aeae36e360d3e0083b9d8d30bb8cc9bb6923c1"),
+		crypto.HexMustToECDSA("15439211a0e25c58d7985e11138ce60f675e5243e2b4387fadbd6a0c85755791"),
+		crypto.HexMustToECDSA("4a931cfc05fd33b3f3b0f3d910b4358b4cfeac6e1f13b3461a56945ab0de8d96"),
+		crypto.HexMustToECDSA("72c8e5bc83fd79debd0af75dab09617198c5f06656ef24009bf7e9a944750bd2"),
+		crypto.HexMustToECDSA("d58b015ad107166bd648ba3fb15672e4958f8df668d85acacda7a2ed6f855683"),
+		crypto.HexMustToECDSA("1fa19b3862cb9ec584da03d56a84766abdc03cbb3a5e07645531563c1fe2ede6"),
+		crypto.HexMustToECDSA("a2be5c2766e9eeed2575448364313cfa91caeb1f1fd03cdbe6f9cee1ded2bffa"),
+		crypto.HexMustToECDSA("7da86d7aca8b5dbec9d0bd3c0c2e91552f504df3a42a6e4493992b251bc6c438"),
+		crypto.HexMustToECDSA("ed46c6521237ffba7626c67574f8e29d2941ef4bdef561e6d2b4bc877f7c4745"),
+		crypto.HexMustToECDSA("b5f8a8bff108a3e674eef019121bdb1c1e0c14857888ff4052954db5700520c3"),
 		crypto.HexMustToECDSA("548ceef29a39093e48ef65bc98b210320dedd79ca40acebeb573f8eb72018aac"),
 		crypto.HexMustToECDSA("73a2bd8694f883ff5f11551c04303ff7180ae6ef1b89170a67ace10d04c7c3e2"),
 		crypto.HexMustToECDSA("996e2bb9c1371e50125fb8b1d0e6f9c46148dfb8b01d9edd6e8b5ec1a6241316"),
@@ -436,7 +436,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.Int, epochs int, stateDB xcom.StateDB) {
 	//account := addrArr[0]
-	fmt.Println("buildDbRestrictingPlan, store addr", account.Hex())
+	fmt.Println("buildDbRestrictingPlan, store addr", account.Hex(), "balance", balance, "epochs", epochs)
 	//const Epochs = 5
 	var list = make([]uint64, 0)
 
@@ -457,9 +457,13 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 		list = append(list, uint64(epoch))
 	}
 
+	lock_amount := new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
+
+	fmt.Println("")
+
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.Balance = new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
+	user.Balance = lock_amount
 	user.Debt = big.NewInt(0)
 	user.DebtSymbol = false
 	user.ReleaseList = list
@@ -475,8 +479,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 
 	stateDB.AddBalance(sender, sender_balance)
 
-	von, _ := new(big.Int).SetString("100000000000000000000000000", 10)
-	stateDB.AddBalance(cvm.RestrictingContractAddr, von)
+	stateDB.AddBalance(cvm.RestrictingContractAddr, lock_amount)
 }
 
 func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {

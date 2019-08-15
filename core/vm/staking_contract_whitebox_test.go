@@ -115,7 +115,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 
 	index := 1
 
-	balance, _ := new(big.Int).SetString("20000000000000000000000000", 10)
+	balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 	buildDbRestrictingPlan(t, sender, balance, 1, state)
 
 	contract := &vm.StakingContract{
@@ -719,7 +719,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
 
 	// build a invalid nodeId
-	nid := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	nid := discover.MustHexID("0x91114567111121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 
 	nodeId, _ := rlp.EncodeToBytes(nid)
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
