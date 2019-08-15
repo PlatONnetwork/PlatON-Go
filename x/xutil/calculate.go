@@ -125,7 +125,7 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 
 	switch {
 	// first epoch
-	case div == 0 && mod >= 0:
+	case div == 0:
 		epoch = 1
 	case div > 0 && mod == 0:
 		epoch = div
@@ -145,7 +145,7 @@ func CalculateRound(blockNumber uint64) uint64 {
 	mod := blockNumber % size
 	switch {
 	// first consensus round
-	case div == 0 && mod >= 0:
+	case div == 0:
 		round = 1
 	case div > 0 && mod == 0:
 		round = div

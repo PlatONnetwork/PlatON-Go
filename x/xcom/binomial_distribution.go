@@ -34,7 +34,7 @@ func NewBinomialDistribution(n int64, p float64) *BinomialDistribution {
 }
 
 func (bd *BinomialDistribution) CumulativeProbability(x int64) (float64, error) {
-	var ret float64 = 0
+	var ret float64
 	if x < 0 {
 		ret = 0.0
 	} else if x >= bd.trials {
@@ -89,7 +89,7 @@ func (bd *BinomialDistribution) InverseCumulativeProbability(p float64) (int64, 
 			}
 		}
 	} else {
-		return 0, errors.New(fmt.Sprintf("%v out of [%v, %v] range", p, 0, 1))
+		return 0, fmt.Errorf("%v out of [%v, %v] range", p, 0, 1)
 	}
 }
 
@@ -135,7 +135,7 @@ func (bd *BinomialDistribution) checkedCumulativeProbability(argument int64) (fl
 		result = value
 	}
 	if math.IsNaN(result) {
-		return 0, errors.New(fmt.Sprintf("Discrete cumulative probability function returned NaN for argument %v", argument))
+		return 0, fmt.Errorf("Discrete cumulative probability function returned NaN for argument %v", argument)
 	}
 	return result, nil
 }
@@ -268,7 +268,7 @@ func (beta *Beta) deltaMinusDeltaSum(a float64, b float64) (float64, error) {
 			return float64(w) * float64(p) / float64(b), nil
 		}
 	} else {
-		return 0, errors.New(fmt.Sprintf("%v out of [%v, %v] range", a, 0, b))
+		return 0, fmt.Errorf("%v out of [%v, %v] range", a, 0, b)
 	}
 }
 
@@ -534,7 +534,7 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 }
 
 func precisionEq(x float64, y float64, eps float64) bool {
-	return precisionEqs(x, y, 1) || math.Abs(y - x) <= eps
+	return precisionEqs(x, y, 1) || math.Abs(y-x) <= eps
 }
 
 func precisionEqs(x float64, y float64, maxUlps float64) bool {
@@ -542,7 +542,7 @@ func precisionEqs(x float64, y float64, maxUlps float64) bool {
 	yInt := int64(math.Float64bits(y))
 	var isEqual bool
 	if ((xInt ^ yInt) & -9223372036854775808) == 0 {
-		isEqual = int64(math.Abs(float64(xInt) - float64(yInt))) <= int64(maxUlps)
+		isEqual = int64(math.Abs(float64(xInt)-float64(yInt))) <= int64(maxUlps)
 	} else {
 		var deltaPlus int64
 		var deltaMinus int64
@@ -557,7 +557,7 @@ func precisionEqs(x float64, y float64, maxUlps float64) bool {
 		if deltaPlus > int64(maxUlps) {
 			isEqual = false
 		} else {
-			isEqual = deltaMinus <= int64(maxUlps) - deltaPlus
+			isEqual = deltaMinus <= int64(maxUlps)-deltaPlus
 		}
 	}
 
@@ -715,7 +715,7 @@ func (g *Gamma) gamma(x float64) (float64, error) {
 	if x == math.Floor(x+0.5) && x <= 0.0 {
 		return 0.0, nil
 	} else {
-		var ret float64 = 0
+		var ret float64
 		absX := math.Abs(x)
 		var prod float64
 		var t float64

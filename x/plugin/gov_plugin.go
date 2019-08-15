@@ -597,7 +597,6 @@ func (govPlugin *GovPlugin) tallyVersion(proposal gov.VersionProposal, blockHash
 		}
 
 	} else {
-		status = gov.Failed
 		if err := govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state); err != nil {
 			log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
 			return err
