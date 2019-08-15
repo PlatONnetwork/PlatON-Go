@@ -320,7 +320,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	plugin.GovPluginInstance()
+	GovPluginInstance()
 	si.SetDecodeEvidenceFun(evidence.NewEvidences)
 	GovPluginInstance()
 	//	si.SetDecodeEvidenceFun(cbft.NewEvidences)

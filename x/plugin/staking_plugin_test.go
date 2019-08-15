@@ -860,7 +860,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		return
 	}
 
-	count := 1
+	count := 0
 	for i := 0; i < 4; i++ {
 		if err := create_staking(state, blockNumber, blockHash, i, 0, t); nil != err {
 			t.Error("Failed to Create num: "+fmt.Sprint(i)+" Staking", err)
@@ -2075,9 +2075,9 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
-			Released:           balance,
+			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
-			RestrictingPlan:    balance,
+			RestrictingPlan:    common.Big0,
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
@@ -2178,13 +2178,19 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Shares, false, staking.LowRatio, common.ZeroAddr)
+	//a, _ := json.Marshal(slash1)
+	//b, _ := json.Marshal(slash2)
+	//
+	//fmt.Println(string(a))
+	//fmt.Println(string(b))
+
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Released, false, staking.LowRatio, common.ZeroAddr)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates first can (LowRatio), err: %v", err)
 		return
 	}
 
-	sla := new(big.Int).Div(slash2.Shares, big.NewInt(10))
+	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
 
 	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
 	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DuplicateSign, caller)
@@ -2327,6 +2333,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		t.Error("Failed to build the state", err)
 		return
 	}
+
 	newPlugins()
 
 	build_gov_data(state)
@@ -2342,6 +2349,8 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
+
+	validatorQueue := make(staking.ValidatorQueue, 0)
 
 	nodeIdArr := make([]discover.NodeID, 0)
 	for i := 0; i < 1000; i++ {
@@ -2413,7 +2422,36 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		if i < 20 {
 			nodeIdArr = append(nodeIdArr, canTmp.NodeId)
 		}
+
+		v := &staking.Validator{
+			NodeAddress: canAddr,
+			NodeId:      canTmp.NodeId,
+			BlsPubKey:   canTmp.BlsPubKey,
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+			ValidatorTerm: 0,
+		}
+
+		validatorQueue = append(validatorQueue, v)
 	}
+
+	epoch_Arr := &staking.Validator_array{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+		Arr:   validatorQueue,
+	}
+
+	curr_Arr := &staking.Validator_array{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+		Arr:   validatorQueue,
+	}
+
+	t.Log("Store Curr Epoch VerifierList", "len", len(epoch_Arr.Arr))
+	setVerifierList(blockHash, epoch_Arr)
+
+	t.Log("Store CuRR Round Validator", "len", len(epoch_Arr.Arr))
+	setRoundValList(blockHash, curr_Arr)
 
 	// Commit Block 1
 	if err := sndb.Commit(blockHash); nil != err {
