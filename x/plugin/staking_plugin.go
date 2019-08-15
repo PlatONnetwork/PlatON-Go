@@ -2993,16 +2993,19 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 
 	for _, nodeId := range nodeIds {
 
+		log.Info("Call ProposalPassedNotify: promote candidate start", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", version, "nodeId", nodeId.String())
+
 		addr, _ := xutil.NodeId2Addr(nodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
 		if nil != err && err != snapshotdb.ErrNotFound {
-			log.Error("Call ProposalPassedNotify: Query Candidate is failed", "blockNumber", blockNumber,
+			log.Error("Failed to ProposalPassedNotify: Query Candidate is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
 
 		if nil == can {
-			log.Error("Call ProposalPassedNotify: Promote candidate programVersion failed, the can is empty",
+			log.Error("Failed to ProposalPassedNotify: Promote candidate programVersion failed, the can is empty",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 			continue
 		}
@@ -3091,8 +3094,10 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
 	programVersion uint32) error {
 
-	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "version", programVersion, "nodeId", nodeId.String())
+	version := xutil.CalcVersion(programVersion)
+
+	log.Info("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", version, "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -3124,7 +3129,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return err
 	}
 
-	can.ProgramVersion = xutil.CalcVersion(programVersion)
+	can.ProgramVersion = version
 
 	// TODO test
 	pposHash = sk.db.GetLastKVHash(blockHash)
