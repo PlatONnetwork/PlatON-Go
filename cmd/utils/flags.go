@@ -632,7 +632,7 @@ var (
 	}
 
 	CbftBlacklistDeadlineFlag = cli.StringFlag{
-		Name:  "cbft.blackDeadline",
+		Name:  "cbft.blacklist_deadline",
 		Usage: "Blacklist effective time. uint:minute",
 		Value: "60",
 	}
