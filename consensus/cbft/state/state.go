@@ -472,6 +472,16 @@ func (vs *ViewState) AllPrepareVoteByIndex(index uint32) map[uint32]*protocols.P
 	return nil
 }
 
+func (vs *ViewState) FindPrepareVote(blockIndex, validatorIndex uint32) *protocols.PrepareVote {
+	ps := vs.viewVotes.index(blockIndex)
+	if ps != nil {
+		if v, ok := ps.Votes[validatorIndex]; ok {
+			return v
+		}
+	}
+	return nil
+}
+
 func (vs *ViewState) AllViewChange() map[uint32]*protocols.ViewChange {
 	return vs.viewChanges.ViewChanges
 }
