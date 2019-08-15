@@ -41,7 +41,7 @@ type Fetcher struct {
 
 func NewFetcher() *Fetcher {
 	fetcher := &Fetcher{
-		newTask: make(chan *task),
+		newTask: make(chan *task, 1),
 		tasks:   make(map[string]*task),
 		quit:    make(chan struct{}),
 	}
