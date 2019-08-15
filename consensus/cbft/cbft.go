@@ -238,7 +238,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	default:
-		cbft.log.Debug("peerMsgCh is full, discard", "peerMsgCh", len(cbft.peerMsgCh), "duration", msg.Since())
+		cbft.log.Debug("peerMsgCh is full, discard", "peerMsgCh", len(cbft.peerMsgCh))
 	}
 	return nil
 }
