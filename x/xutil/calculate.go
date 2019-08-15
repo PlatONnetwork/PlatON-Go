@@ -183,7 +183,7 @@ func CalculateLastYear(blockNumber uint64) uint32 {
 }
 
 func MaxVotingConsensusRounds() uint64 {
-	return uint64(14*24*60*60) / uint64(ConsensusSize())
+	return uint64(xcom.Max_Vote_Duration()) / uint64(ConsensusSize())
 }
 
 func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
