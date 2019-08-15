@@ -259,7 +259,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
 		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
-		return fmt.Errorf("repeat message")
+		return nil
 	}
 	select {
 	case cbft.peerMsgCh <- msg:
