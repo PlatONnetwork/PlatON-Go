@@ -369,6 +369,10 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
+	if utils.True(&cbft.syncing) {
+		cbft.log.Debug("Currently syncing, consensus message pause")
+		return
+	}
 	msg, id := info.Msg, info.PeerID
 	if !cbft.fetcher.MatchTask(id, msg) {
 		switch msg := msg.(type) {
@@ -651,8 +655,6 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 // InsertChain is used to insert the block into the chain.
 func (cbft *Cbft) InsertChain(block *types.Block) error {
 	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash())
-	cbft.pause()
-	defer cbft.resume()
 
 	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() {
 		cbft.log.Debug("The inserted block has exists in chain",
@@ -768,8 +770,6 @@ func (cbft *Cbft) checkStart(exe func()) {
 // FastSyncCommitHead processes logic that performs fast synchronization.
 func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 	cbft.log.Debug("Fast sync commit head", "number", block.Number(), "hash", block.Hash())
-	cbft.pause()
-	defer cbft.resume()
 
 	result := make(chan error, 1)
 	cbft.asyncCallCh <- func() {
@@ -1166,8 +1166,8 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	return vnode, nil
 }
 
-func (cbft *Cbft) pause()  { utils.SetTrue(&cbft.syncing) }
-func (cbft *Cbft) resume() { utils.SetFalse(&cbft.syncing) }
+func (cbft *Cbft) Pause()  { utils.SetTrue(&cbft.syncing) }
+func (cbft *Cbft) Resume() { utils.SetFalse(&cbft.syncing) }
 
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
 	if len(votes) == 0 {

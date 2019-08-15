@@ -178,4 +178,7 @@ type Bft interface {
 	Evidences() string
 
 	TracingSwitch(flag int8)
+
+	Pause()
+	Resume()
 }

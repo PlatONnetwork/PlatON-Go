@@ -165,7 +165,7 @@ func (cbft *Cbft) OnViewTimeout() {
 // OnInsertQCBlock performs security rule verification, view switching.
 func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
 	if len(blocks) != len(qcs) {
-		return fmt.Errorf("block")
+		return fmt.Errorf("block qc is inconsistent")
 	}
 	//todo insert tree, update view
 	for i := 0; i < len(blocks); i++ {
