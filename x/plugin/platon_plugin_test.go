@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -30,9 +32,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-//func init() {
-//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-//}
+func init() {
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	bls.Init(bls.CurveFp254BNb)
+}
 
 var (
 	nodeIdArr = []discover.NodeID{
@@ -268,8 +271,12 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 
 	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
 	node, _ := discover.ParseNode(url)
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
 	gen := core.DefaultGenesisBlock()
-	gen.Config.Cbft.InitialNodes = []discover.Node{*node}
+	var nodes []params.CbftNode
+	nodes = append(nodes, params.CbftNode{Node: *node, BlsPubKey: *blsKey.GetPublicKey()})
+	gen.Config.Cbft.InitialNodes = nodes
 	gen.Config.Cbft.ValidatorMode = "ppos"
 
 	var (
@@ -366,8 +373,11 @@ func build_staking_data_more(block uint64) {
 			addr = ar
 		}
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
@@ -396,6 +406,7 @@ func build_staking_data_more(block uint64) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
+			BlsPubKey:   canTmp.BlsPubKey,
 			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
@@ -498,8 +509,11 @@ func build_staking_data(genesisHash common.Hash) {
 			addr = ar
 		}
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
@@ -536,6 +550,7 @@ func build_staking_data(genesisHash common.Hash) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
+			BlsPubKey:   canTmp.BlsPubKey,
 			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,

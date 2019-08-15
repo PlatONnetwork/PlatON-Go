@@ -1111,7 +1111,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 			} else if refundTmp.Cmp(restrictingPlanTmp) < 0 {
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
-
 				err := rt.ReturnLockFunds(delAddr, refundTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
@@ -1499,7 +1498,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		refundReleaseFn := func(balance *big.Int) *big.Int {
 			if balance.Cmp(common.Big0) > 0 {
-
 				state.AddBalance(delAddr, balance)
 				state.SubBalance(vm.StakingContractAddr, balance)
 				return common.Big0
@@ -1595,7 +1593,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					}
 					return common.Big0, new(big.Int).Sub(refund, balance), nil
 				} else {
-
 					err := rt.ReturnLockFunds(delAddr, refund, state)
 					if nil != err {
 						log.Error("Failed to handleUnDelegate on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
@@ -1743,6 +1740,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -1817,6 +1815,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
@@ -1884,7 +1883,6 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 	queue := make(staking.CandidateQueue, len(verifierList.Arr))
 
 	for i, v := range verifierList.Arr {
-
 		var can *staking.Candidate
 		if !isCommit {
 			c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
@@ -1965,6 +1963,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
@@ -2111,7 +2110,6 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uin
 func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
 	var can *staking.Candidate
-
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		return false, err
@@ -2140,7 +2138,6 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr common.Address) (staking.DelRelatedQueue, error) {
 
 	//var iter iterator.Iterator
-
 	iter := sk.db.IteratorDelegateByBlockHashWithAddr(blockHash, addr, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
@@ -2643,7 +2640,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			contract_balance, "slash amount", amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
-
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -2720,9 +2716,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			balanceTmp = common.Big0
 
 		} else {
-
 			state.SubBalance(vm.StakingContractAddr, slashAmount)
-
 			if staking.Is_DuplicateSign(uint32(slashType)) {
 				state.AddBalance(caller, slashAmount)
 			} else {
@@ -3220,7 +3214,6 @@ label:
 }
 
 func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
-
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
@@ -3228,9 +3221,10 @@ func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
 		pubKey, _ := v.NodeId.Pubkey()
 
 		vn := &cbfttypes.ValidateNode{
-			Index:   i,
-			Address: v.NodeAddress,
-			PubKey:  pubKey,
+			Index:     uint32(i),
+			Address:   v.NodeAddress,
+			PubKey:    pubKey,
+			BlsPubKey: &v.BlsPubKey,
 		}
 
 		valMap[v.NodeId] = vn
