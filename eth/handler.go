@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -764,40 +762,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		go pm.txpool.AddRemotes(txs)
 
-	case msg.Code == PongMsg:
-		curTime := time.Now().UnixNano()
-		log.Debug("handle a eth Pong message", "pid", p.id, "curTime", curTime)
-		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			var pingTime [1]string
-			if err := msg.Decode(&pingTime); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			p.lock.Lock()
-			defer p.lock.Unlock()
-			for {
-				e := p.PingList.Front()
-				if e != nil {
-					log.Trace("Front element of p.PingList", "element", e)
-					if t, ok := p.PingList.Remove(e).(string); ok {
-						if t == pingTime[0] {
-
-							tInt64, err := strconv.ParseInt(t, 10, 64)
-							if err != nil {
-								return errResp(ErrDecode, "%v: %v", msg, err)
-							}
-
-							log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
-							latency := (curTime - tInt64) / 2 / 1000000
-							cbftEngine.OnPong(p.Peer.ID(), latency)
-							break
-						}
-					}
-				} else {
-					log.Trace("end of p.PingList")
-					break
-				}
-			}
-		}
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}

@@ -254,7 +254,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		}
 		block, receipt := genblock(i, parent, statedb)
 		errCh := make(chan error, 1)
-		engine.InsertChain(block, errCh)
+		errCh <- engine.InsertChain(block)
 		<-errCh
 		blocks[i] = block
 		receipts[i] = receipt

@@ -1,17 +1,14 @@
 package miner
 
 import (
+	"encoding/binary"
 	"errors"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-
 	"math/big"
 
-	"encoding/binary"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -25,9 +22,9 @@ const (
 
 func (w *worker) shouldSwitch() bool {
 	header := w.current.header
-	blocksPerNode := int(int64(w.config.Cbft.Duration) / int64(w.config.Cbft.Period))
+	blocksPerNode := int(w.config.Cbft.Amount)
 	offset := blocksPerNode * 2
-	agency := cbft.NewInnerAgency(
+	agency := validator.NewInnerAgency(
 		w.config.Cbft.InitialNodes,
 		w.chain,
 		blocksPerNode,
@@ -48,7 +45,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 		return buf[:]
 	}
 
-	offset := (uint64(w.config.Cbft.Duration) / uint64(w.config.Cbft.Period)) * 2
+	offset := uint64(w.config.Cbft.Amount) * 2
 	validBlockNumber := w.current.header.Number.Uint64() + offset + 1
 	address := common.HexToAddress(innerAccountAddr)
 	nonce := w.current.state.GetNonce(address)

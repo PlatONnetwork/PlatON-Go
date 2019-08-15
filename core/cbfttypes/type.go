@@ -3,15 +3,19 @@ package cbfttypes
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
+	"sort"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -33,10 +37,13 @@ func (bs *BlockSignature) Copy() *BlockSignature {
 	}
 }
 
+type UpdateChainStateFn func(qcState, lockState, commitState *protocols.State)
+
 type CbftResult struct {
-	Block     *types.Block
-	ExtraData []byte
-	SyncState chan error
+	Block              *types.Block
+	ExtraData          []byte
+	SyncState          chan error
+	ChainStateUpdateCB func()
 }
 
 type ProducerState struct {
@@ -65,36 +72,50 @@ type AddValidatorEvent struct {
 	NodeID discover.NodeID
 }
 
+type RemoveValidatorEvent struct {
+	NodeID discover.NodeID
+}
+
 type UpdateValidatorEvent struct{}
 
 type ValidateNode struct {
-	Index   int            `json:"index"`
-	Address common.Address `json:"-"`
-	PubKey  *ecdsa.PublicKey
+	Index     uint32           `json:"index"`
+	Address   common.Address   `json:"-"`
+	PubKey    *ecdsa.PublicKey `json:"pubKey"`
+	NodeID    discover.NodeID
+	BlsPubKey *bls.PublicKey `json:"blsPubKey"`
 }
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
 
+type SortedValidatorNode []*ValidateNode
+
+func (sv SortedValidatorNode) Len() int           { return len(sv) }
+func (sv SortedValidatorNode) Swap(i, j int)      { sv[i], sv[j] = sv[j], sv[i] }
+func (sv SortedValidatorNode) Less(i, j int) bool { return sv[i].Index < sv[j].Index }
+
 type Validators struct {
 	Nodes            ValidateNodeMap `json:"validateNodes"`
 	ValidBlockNumber uint64          `json:"-"`
+
+	sortedNodes SortedValidatorNode
 }
 
 func (vn *ValidateNode) String() string {
-	return fmt.Sprintf("{Index:%d Address:%s}", vn.Index, vn.Address.String())
+	return fmt.Sprintf("{Index:%d Address:%s BlsPubKey:%s}", vn.Index, vn.Address.String(), fmt.Sprintf("%x", vn.BlsPubKey.Serialize()))
 }
 
-func (vn *ValidateNode) Verify(data, sign []byte) bool {
-	recPubKey, err := crypto.Ecrecover(data, sign)
+func (vn *ValidateNode) Verify(data, sign []byte) error {
+	var sig bls.Sign
+	err := sig.Deserialize(sign)
 	if err != nil {
-		return false
+		return err
 	}
 
-	pbytes := elliptic.Marshal(vn.PubKey.Curve, vn.PubKey.X, vn.PubKey.Y)
-	if !bytes.Equal(pbytes, recPubKey) {
-		return false
+	if !sig.Verify(vn.BlsPubKey, string(data)) {
+		return errors.New("bls verifies signature fail")
 	}
-	return true
+	return nil
 }
 
 func (vnm ValidateNodeMap) String() string {
@@ -117,7 +138,38 @@ func (vs *Validators) NodeList() []discover.NodeID {
 	return nodeList
 }
 
-func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error) {
+func (vs *Validators) NodeListByIndexes(indexes []uint32) ([]*ValidateNode, error) {
+	if len(vs.sortedNodes) == 0 {
+		vs.sort()
+	}
+	l := make([]*ValidateNode, 0)
+	for _, index := range indexes {
+		if int(index) >= len(vs.sortedNodes) {
+			return nil, errors.New("invalid index")
+		}
+		l = append(l, vs.sortedNodes[int(index)])
+	}
+	return l, nil
+}
+
+func (vs *Validators) NodeListByBitArray(vSet *utils.BitArray) ([]*ValidateNode, error) {
+	if len(vs.sortedNodes) == 0 {
+		vs.sort()
+	}
+	l := make([]*ValidateNode, 0)
+
+	for index := uint32(0); index < vSet.Size(); index++ {
+		if vSet.GetIndex(index) {
+			if int(index) >= len(vs.sortedNodes) {
+				return nil, errors.New("invalid index")
+			}
+			l = append(l, vs.sortedNodes[int(index)])
+		}
+	}
+	return l, nil
+}
+
+func (vs *Validators) FindNodeByID(id discover.NodeID) (*ValidateNode, error) {
 	node, ok := vs.Nodes[id]
 	if ok {
 		return node, nil
@@ -125,17 +177,18 @@ func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error
 	return nil, errors.New("not found the node")
 }
 
-func (vs *Validators) NodeID(idx int) discover.NodeID {
-	for id, node := range vs.Nodes {
-		if node.Index == idx {
-			return id
-		}
+func (vs *Validators) FindNodeByIndex(index int) (*ValidateNode, error) {
+	if len(vs.sortedNodes) == 0 {
+		vs.sort()
 	}
-	// I think never run here ^_^
-	return discover.NodeID{}
+	if index >= len(vs.sortedNodes) {
+		return nil, errors.New("not found the specified validator")
+	} else {
+		return vs.sortedNodes[index], nil
+	}
 }
 
-func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
+func (vs *Validators) FindNodeByAddress(addr common.Address) (*ValidateNode, error) {
 	for _, node := range vs.Nodes {
 		if bytes.Equal(node.Address[:], addr[:]) {
 			return node, nil
@@ -144,13 +197,21 @@ func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
 	return nil, errors.New("invalid address")
 }
 
-func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
-	for nodeID, node := range vs.Nodes {
-		if nodeID == id {
-			return node, nil
-		}
+func (vs *Validators) NodeID(idx int) discover.NodeID {
+	if len(vs.sortedNodes) == 0 {
+		vs.sort()
 	}
-	return nil, errors.New("not found the node")
+	if idx >= vs.sortedNodes.Len() {
+		return discover.NodeID{}
+	}
+	return vs.sortedNodes[idx].NodeID
+}
+
+func (vs *Validators) Index(nodeID discover.NodeID) (uint32, error) {
+	if node, ok := vs.Nodes[nodeID]; ok {
+		return node.Index, nil
+	}
+	return math.MaxUint32, errors.New("not found the specified validator")
 }
 
 func (vs *Validators) Len() int {
@@ -170,4 +231,11 @@ func (vs *Validators) Equal(rsh *Validators) bool {
 		}
 	}
 	return equal
+}
+
+func (vs *Validators) sort() {
+	for _, node := range vs.Nodes {
+		vs.sortedNodes = append(vs.sortedNodes, node)
+	}
+	sort.Sort(vs.sortedNodes)
 }

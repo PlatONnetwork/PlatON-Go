@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -79,8 +81,11 @@ func build_vrf_Nonce() ([]byte, [][]byte) {
 func create_staking(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, index int, typ uint16, t *testing.T) error {
 
 	balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
 	canTmp := &staking.Candidate{
 		NodeId:          nodeIdArr[index],
+		BlsPubKey:       *blsKey.GetPublicKey(),
 		StakingAddress:  sender,
 		BenefitAddress:  addrArr[index],
 		StakingBlockNum: blockNumber.Uint64(),
@@ -257,8 +262,11 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 				addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+				var blsKey bls.SecretKey
+				blsKey.SetByCSPRNG()
 				canTmp := &staking.Candidate{
 					NodeId:          nodeId,
+					BlsPubKey:       *blsKey.GetPublicKey(),
 					StakingAddress:  sender,
 					BenefitAddress:  addr,
 					StakingBlockNum: uint64(1 + i),
@@ -288,6 +296,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 				v := &staking.Validator{
 					NodeAddress: canAddr,
 					NodeId:      canTmp.NodeId,
+					BlsPubKey:   canTmp.BlsPubKey,
 					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
@@ -352,8 +361,11 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
 			canTmp := &staking.Candidate{
 				NodeId:          nodeId,
+				BlsPubKey:       *blsKey.GetPublicKey(),
 				StakingAddress:  sender,
 				BenefitAddress:  addr,
 				StakingBlockNum: uint64(i + 1),
@@ -514,8 +526,11 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 				addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+				var blsKey bls.SecretKey
+				blsKey.SetByCSPRNG()
 				canTmp := &staking.Candidate{
 					NodeId:          nodeId,
+					BlsPubKey:       *blsKey.GetPublicKey(),
 					StakingAddress:  sender,
 					BenefitAddress:  addr,
 					StakingBlockNum: uint64(1 + i),
@@ -544,6 +559,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 				v := &staking.Validator{
 					NodeAddress: canAddr,
 					NodeId:      canTmp.NodeId,
+					BlsPubKey:   canTmp.BlsPubKey,
 					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
@@ -603,8 +619,11 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
 			canTmp := &staking.Candidate{
 				NodeId:          nodeId,
+				BlsPubKey:       *blsKey.GetPublicKey(),
 				StakingAddress:  sender,
 				BenefitAddress:  addr,
 				StakingBlockNum: uint64(i + 1),
@@ -1662,8 +1681,11 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -1739,6 +1761,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -1839,8 +1862,11 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -1914,6 +1940,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -2038,8 +2065,11 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -2118,6 +2148,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -2226,8 +2257,11 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -2345,8 +2379,11 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -2457,8 +2494,11 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -2533,6 +2573,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -2636,8 +2677,11 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -2711,6 +2755,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -2830,8 +2875,11 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -2905,6 +2953,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -3024,8 +3073,11 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -3099,6 +3151,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -3204,8 +3257,11 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -3279,6 +3335,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -3390,8 +3447,11 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -3465,6 +3525,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -3563,8 +3624,11 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -3683,8 +3747,11 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -3762,6 +3829,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -3877,8 +3945,11 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -3956,6 +4027,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -4055,8 +4127,11 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -4130,6 +4205,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -4236,8 +4312,11 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -4311,6 +4390,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -4421,8 +4501,11 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
@@ -4496,6 +4579,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		val := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        can.NodeId,
+			BlsPubKey:     can.BlsPubKey,
 			StakingWeight: powerStr,
 			ValidatorTerm: 0,
 		}
@@ -4538,6 +4622,8 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte(string("nonce")))
 	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
 		nodeId := discover.PubkeyID(&privKey.PublicKey)
 		addr := crypto.PubkeyToAddress(privKey.PublicKey)
@@ -4553,6 +4639,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		v := &staking.Validator{
 			NodeAddress:   addr,
 			NodeId:        nodeId,
+			BlsPubKey:     *blsKey.GetPublicKey(),
 			StakingWeight: stakingWeight,
 			ValidatorTerm: 1,
 		}
@@ -4637,8 +4724,11 @@ func Test_IteratorCandidate(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),

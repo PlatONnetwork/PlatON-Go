@@ -62,3 +62,8 @@ life/resolver/builtins/build/
 mpc.rlp
 
 consensus/cbft/data/
+
+crypto/bls/include
+
+consensus/cbft/transactions.rlp
+consensus/cbft/transactions.rlp.new
