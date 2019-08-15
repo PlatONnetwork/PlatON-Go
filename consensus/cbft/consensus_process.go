@@ -19,14 +19,14 @@ import (
 )
 
 // OnPrepareBlock performs security rule verification，store in blockTree,
-// Whether to start synchronization.
-func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err error) {
+// Whether to start synchronization
+func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleError {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
-			return err
+			return &handleError{err}
 		} else if err.NewView() {
 			var block *types.Block
 			var qc *ctypes.QuorumCert
@@ -40,20 +40,21 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err er
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		} else {
 			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-			return err
+			return &handleError{err}
 		}
 	}
 
 	var node *cbfttypes.ValidateNode
+	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
-		return err
+		return &authFailedError{err}
 	}
 
 	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
-			return err
+			return &handleError{err}
 		}
 	}
 
@@ -64,27 +65,28 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err er
 	return nil
 }
 
-// OnPrepareVote performs security rule verification，store in blockTree,
-// Whether to start synchronization.
-func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err error) {
+// OnPrepareVote perform security rule verification，store in blockTree,
+// Whether to start synchronization
+func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleError {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
-		return err
+		return &handleError{err}
 	}
 
 	cbft.prepareVoteFetchRules(id, msg)
 
 	var node *cbfttypes.ValidateNode
+	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return err
+		return authFailedError{err}
 	}
 
 	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
-			return err
+			return &handleError{err}
 		}
 	}
 
@@ -98,23 +100,25 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err erro
 }
 
 // OnViewChange performs security rule verification, view switching.
-func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) (err error) {
+func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
-		return err
+		return &handleError{err}
 	}
 
 	var node *cbfttypes.ValidateNode
+	var err error
+
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return err
+		return authFailedError{err}
 	}
 
 	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
 			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
-			return err
+			return &handleError{err}
 		}
 	}
 
