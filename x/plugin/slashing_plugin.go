@@ -342,10 +342,7 @@ func getNodeId(prefix []byte, key []byte) (discover.NodeID, error) {
 }
 
 func isAbnormal(amount uint32) bool {
-	if uint64(amount) < (xutil.ConsensusSize() / xcom.ConsValidatorNum()) {
-		return true
-	}
-	return false
+	return uint64(amount) < (xutil.ConsensusSize() / xcom.ConsValidatorNum())
 }
 
 func parseNodeId(header *types.Header) (discover.NodeID, error) {
