@@ -179,6 +179,8 @@ type Bft interface {
 
 	TracingSwitch(flag int8)
 
+	// Pause consensus
 	Pause()
+	// Resume consensus
 	Resume()
 }
