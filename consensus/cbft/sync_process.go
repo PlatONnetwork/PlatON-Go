@@ -78,7 +78,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	expire := func() {
 		cbft.log.Debug("Fetch timeout, close fetching", "targetId", id, "baseBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 		utils.SetFalse(&cbft.fetching)
-		cbft.network.RemovePeer(id)
+		//cbft.network.RemovePeer(id)
 	}
 
 	cbft.log.Debug("Start fetching")
