@@ -255,6 +255,12 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		return err
 	}
 
+	// Repeat filtering on consensus messages.
+	// First check.
+	if cbft.network.ContainsMessageHash(msg.Msg.MsgHash()) {
+		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		return fmt.Errorf("repeat message")
+	}
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String())
@@ -304,6 +310,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
 	}
+	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
 		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String())
@@ -348,30 +355,37 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
-			err := cbft.handleConsensusMsg(msg)
-			if err == nil {
-				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
-					cbft.log.Warn("Forward message failed", "err", err)
+			if !cbft.network.ContainsMessageHash(msg.Msg.MsgHash()) {
+				err := cbft.handleConsensusMsg(msg)
+				if err == nil {
+					cbft.network.MarkHistoryMessageHash(msg.Msg.MsgHash())
+					if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
+						cbft.log.Warn("Forward message failed", "err", err)
+					}
+				} else if err.AuthFailed() {
+					// If the verification signature is abnormal,
+					// the peer node is added to the local blacklist
+					// and disconnected.
+					cbft.network.MarkBlacklist(msg.PeerID)
+					cbft.network.RemovePeer(msg.PeerID)
 				}
-			} else if err.AuthFailed() {
-				//todo disconnect
 			}
-
 			cbft.forgetMessage(msg.PeerID)
 
 		case msg := <-cbft.syncMsgCh:
 			if err := cbft.handleSyncMsg(msg); err != nil {
 				if err, ok := err.(HandleError); ok {
 					if err.AuthFailed() {
-						//todo disconnect
+						cbft.network.MarkBlacklist(msg.PeerID)
+						cbft.network.RemovePeer(msg.PeerID)
 					}
 				}
 			}
-
 			cbft.forgetMessage(msg.PeerID)
 
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
+
 		case fn := <-cbft.asyncCallCh:
 			fn()
 

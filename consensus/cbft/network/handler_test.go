@@ -44,11 +44,12 @@ func (s *fakeCbft) ConsensusNodes() ([]discover.NodeID, error) {
 func (s *fakeCbft) Config() *types.Config {
 	return &types.Config{
 		Option: &types.OptionsConfig{
-			WalMode:          false,
-			PeerMsgQueueSize: 1024,
-			EvidenceDir:      "evidencedata",
-			MaxPingLatency:   5000,
-			MaxQueuesLimit:   4096,
+			WalMode:           false,
+			PeerMsgQueueSize:  1024,
+			EvidenceDir:       "evidencedata",
+			MaxPingLatency:    5000,
+			MaxQueuesLimit:    4096,
+			BlacklistDeadline: 1,
 		},
 		Sys: &params.CbftConfig{
 			Period: 3,
