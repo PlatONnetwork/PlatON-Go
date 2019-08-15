@@ -199,7 +199,6 @@ func Open(path string) (DB, error) {
 func copyDB(from, to *snapshotDB) {
 	to.path = from.path
 	to.snapshotLockC = from.snapshotLockC
-	to.snapshotLock = from.snapshotLock
 	to.current = from.current
 	to.baseDB = from.baseDB
 	to.unCommit = from.unCommit
