@@ -1,8 +1,7 @@
-package plugin_test
+package plugin
 
 import (
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -11,21 +10,21 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
+	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	//	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -237,32 +236,32 @@ func TestVersion(t *testing.T) {
 	t.Log("the version is:", promoteVersion)
 }
 
-func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
+func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 	if nil == state {
 		state, _, _ = newChainState()
 	}
-	evm := &vm.EVM{
-		StateDB: state,
-	}
-	context := vm.Context{
-		BlockNumber: blockNumber,
-		BlockHash:   blockHash,
-	}
-	evm.Context = context
+	//evm := &vm.EVM{
+	//	StateDB: state,
+	//}
+	//context := vm.Context{
+	//	BlockNumber: blockNumber,
+	//	BlockHash:   blockHash,
+	//}
+	//	evm.Context = context
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
 	govDB.AddActiveVersion(initProgramVersion, 0, state)
 
-	return evm
+	return
 }
 
 func newPlugins() {
-	plugin.GovPluginInstance()
-	plugin.StakingInstance()
-	plugin.SlashInstance()
-	plugin.RestrictingInstance()
-	plugin.RewardMgrInstance()
+	GovPluginInstance()
+	StakingInstance()
+	SlashInstance()
+	RestrictingInstance()
+	RewardMgrInstance()
 
 	snapshotdb.Instance()
 }
@@ -278,31 +277,18 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 	nodes = append(nodes, params.CbftNode{Node: *node, BlsPubKey: *blsKey.GetPublicKey()})
 	gen.Config.Cbft.InitialNodes = nodes
 	gen.Config.Cbft.ValidatorMode = "ppos"
+func newChainState() (xcom.StateDB, *types.Block, error) {
+	testGenesis := new(types.Block)
+	chain := mock.NewChain(testGenesis)
+	//	var state *state.StateDB
 
-	var (
-		db      = ethdb.NewMemDatabase()
-		genesis = gen.MustCommit(db)
-	)
-
-	fmt.Println("genesis", genesis)
-	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
-
-	var state *state.StateDB
-	if statedb, err := blockchain.State(); nil != err {
-		return nil, nil, errors.New("reference statedb failed" + err.Error())
-	} else {
-		state = statedb
-	}
-	state.AddBalance(sender, sender_balance)
+	chain.StateDB.AddBalance(sender, sender_balance)
 	for i, addr := range addrArr {
-
 		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
 		amount = new(big.Int).Mul(common.Big257, amount)
-		state.AddBalance(addr, amount)
+		chain.StateDB.AddBalance(addr, amount)
 	}
-
-	return state, genesis, nil
+	return chain.StateDB, chain.Genesis, nil
 }
 
 func build_staking_data_more(block uint64) {
@@ -608,7 +594,7 @@ func buildBlockNoCommit(blockNum int) {
 	lastHeader = header
 }
 
-func build_gov_data(state *state.StateDB) {
+func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
@@ -616,14 +602,59 @@ func build_gov_data(state *state.StateDB) {
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
-	db := ethdb.NewMemDatabase()
-	stateDb, err := state.New(common.Hash{}, state.NewDatabase(db))
+	chain := mock.NewChain(nil)
 
-	if err != nil {
-		t.Errorf("new state db failed: %s", err.Error())
+	return chain.StateDB
+}
+
+type restrictingTest struct {
+	restrictingInfo restricting.RestrictingInfo
+	plans           []restricting.RestrictingPlan
+	account         common.Address
+	stateDB         xcom.StateDB
+}
+
+func newRestrictingTest() (*restrictingTest, error) {
+	return nil, nil
+	//r := new(restrictingTest)
+	//db := ethdb.NewMemDatabase()
+	//stateDb, err := state.New(common.Hash{}, state.NewDatabase(db))
+	//
+	//if err != nil {
+	//	return nil, err
+	//}
+	//r.stateDB = stateDb
+	//r.account = common.HexToAddress("0xc9E1C2B330Cf7e759F2493c5C754b34d98B07f93")
+	//r.plans = make([]restricting.RestrictingPlan, 0)
+	//var list = make([]uint64, 0)
+	//for i := 0; i < 5; i++ {
+	//	r.plans = append(r.plans, restricting.RestrictingPlan{1, big.NewInt(int64(1E18))})
+	//	list = append(list, uint64(i))
+	//}
+	//
+	//var user restricting.RestrictingInfo
+	//user.Balance = big.NewInt(int64(5E18))
+	//user.Debt = big.NewInt(0)
+	//user.DebtSymbol = false
+	//user.ReleaseList = list
+	//r.restrictingInfo = user
+	//return r, nil
+}
+
+func buildDbRestrictingPlan2(r *restrictingTest) error {
+	for _, value := range r.plans {
+		releaseAccountKey := restricting.GetReleaseAccountKey(value.Epoch, 1)
+		r.stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, r.account.Bytes())
+
+		// build release amount record
+		releaseAmountKey := restricting.GetReleaseAmountKey(value.Epoch, r.account)
+		r.stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, value.Amount.Bytes())
+
+		// build release epoch record
+		releaseEpochKey := restricting.GetReleaseEpochKey(value.Epoch)
+		r.stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
 	}
-
-	return stateDb
+	return nil
 }
 
 func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.StateDB) {
@@ -726,7 +757,7 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 
 	if len(queue) == 0 {
 		indexQueue = make(staking.ValArrIndexQueue, 0)
-		_, indexQueue = indexQueue.ConstantAppend(index, plugin.RoundValIndexSize)
+		_, indexQueue = indexQueue.ConstantAppend(index, RoundValIndexSize)
 	} else {
 
 		has := false
@@ -739,7 +770,7 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 		indexQueue = queue
 		if !has {
 
-			shabby, queue := queue.ConstantAppend(index, plugin.RoundValIndexSize)
+			shabby, queue := queue.ConstantAppend(index, RoundValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
 			if nil != shabby {
@@ -787,7 +818,7 @@ func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 
 	if len(queue) == 0 {
 		indexQueue = make(staking.ValArrIndexQueue, 0)
-		_, indexQueue = indexQueue.ConstantAppend(index, plugin.EpochValIndexSize)
+		_, indexQueue = indexQueue.ConstantAppend(index, EpochValIndexSize)
 	} else {
 
 		has := false
@@ -800,7 +831,7 @@ func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 		indexQueue = queue
 		if !has {
 
-			shabby, queue := queue.ConstantAppend(index, plugin.EpochValIndexSize)
+			shabby, queue := queue.ConstantAppend(index, EpochValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
 			if nil != shabby {
