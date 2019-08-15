@@ -121,6 +121,13 @@ type Candidate struct {
 //	return nil
 //}
 
+const (
+	MaxExternalIdLen = 70
+	MaxNodeNameLen   = 30
+	MaxWebsiteLen    = 140
+	MaxDetailsLen    = 280
+)
+
 type Description struct {
 	// External Id for the third party to pull the node description (with length limit)
 	ExternalId string
@@ -130,6 +137,23 @@ type Description struct {
 	Website string
 	// Description of the node (with a length limit)
 	Details string
+}
+
+func (desc *Description) CheckLength() error {
+
+	if len(desc.ExternalId) > MaxExternalIdLen {
+		return common.BizErrorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
+	}
+	if len(desc.NodeName) > MaxNodeNameLen {
+		return common.BizErrorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen)
+	}
+	if len(desc.Website) > MaxWebsiteLen {
+		return common.BizErrorf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen)
+	}
+	if len(desc.Details) > MaxDetailsLen {
+		return common.BizErrorf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen)
+	}
+	return nil
 }
 
 type CandidateQueue []*Candidate
@@ -545,7 +569,8 @@ type Validator_array struct {
 }
 
 type ValidatorEx struct {
-	NodeId discover.NodeID
+	NodeAddress common.Address
+	NodeId      discover.NodeID
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards

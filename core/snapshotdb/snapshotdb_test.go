@@ -2,6 +2,7 @@ package snapshotdb
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -392,6 +393,74 @@ func TestSnapshotDB_Has(t *testing.T) {
 	//same as get
 }
 
+func TestSnapshotDB_Ranking10(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+
+	t.Log("test ranking order")
+
+	a, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c387869d4e4fbefffff000000000000025000000000")
+	b, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c3de43133125effffff000000000000000000000001")
+	c, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c3de43133125effffff000000000000000000000002")
+	d, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c3de43133125effffff000000000000000000000003")
+	e, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c3de43133125effffff000000000000000000000004")
+	f, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c3de43133125effffff000000000000024600000000")
+
+	var base kvs
+	base = append(base, kv{b, []byte{1}})
+	base = append(base, kv{c, []byte{1}})
+	base = append(base, kv{d, []byte{1}})
+	base = append(base, kv{e, []byte{1}})
+	base = append(base, kv{f, []byte{1}})
+
+	newBlockBaseDB(big.NewInt(1), common.ZeroHash, generateHash("Hash1"), base)
+
+	itr := dbInstance.Ranking(generateHash("Hash1"), f[0:10], 5)
+	var i int
+	for itr.Next() {
+		if bytes.Compare(itr.Key(), base[i].key) != 0 {
+			t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(base[i].key), hex.EncodeToString(itr.Key()))
+		}
+		i++
+	}
+
+	newBlockCommited(big.NewInt(2), generateHash("Hash1"), generateHash("Hash2"), kvs{kv{a, []byte{1}}})
+	itr = dbInstance.Ranking(generateHash("Hash2"), f[0:10], 4)
+	i = 0
+	for itr.Next() {
+		if i == 0 {
+			if bytes.Compare(itr.Key(), a) != 0 {
+				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(a), hex.EncodeToString(itr.Key()))
+			}
+		} else {
+			if bytes.Compare(itr.Key(), base[i-1].key) != 0 {
+				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(base[i-1].key), hex.EncodeToString(itr.Key()))
+			}
+		}
+		i++
+	}
+
+	for i := 0; i < 12; i++ {
+		newBlockCommited(big.NewInt(int64(i+3)), generateHash(fmt.Sprintf("Hash%d", i+2)), generateHash(fmt.Sprintf("Hash%d", i+3)), kvs{kv{[]byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))}})
+	}
+
+	itr = dbInstance.Ranking(generateHash("Hash14"), f[0:10], 5)
+	i = 0
+	for itr.Next() {
+		if i == 0 {
+			if bytes.Compare(itr.Key(), a) != 0 {
+				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(a), hex.EncodeToString(itr.Key()))
+			}
+		} else {
+			if bytes.Compare(itr.Key(), base[i-1].key) != 0 {
+				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(base[i-1].key), hex.EncodeToString(itr.Key()))
+			}
+		}
+		i++
+	}
+
+}
+
 func TestSnapshotDB_Ranking2(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
@@ -495,6 +564,57 @@ func TestSnapshotDB_Ranking4(t *testing.T) {
 	if err := v2.compareWithkvs(generatekvs); err != nil {
 		t.Error(err)
 	}
+}
+
+func TestSnapshotDB_Ranking5(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	generatekvs := generatekvWithPrefix(4, "aaa")
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, generateHash("baseDBBlockhash"), generatekvs); err != nil {
+		t.Error(err)
+	}
+	if err := dbInstance.NewBlock(big.NewInt(2), generateHash("baseDBBlockhash"), generateHash("baseDBBlockhash2")); err != nil {
+		t.Error(err)
+	}
+	if err := dbInstance.Del(generateHash("baseDBBlockhash2"), generatekvs[0].key); err != nil {
+		t.Error(err)
+
+	}
+	if err := dbInstance.Commit(generateHash("baseDBBlockhash2")); err != nil {
+		t.Error(err)
+
+	}
+	var parentHash common.Hash
+	parentHash = generateHash("baseDBBlockhash2")
+	for i := 3; i < 11; i++ {
+		generatekvs := generatekvWithPrefix(1, "bbb")
+		hash := generateHash(fmt.Sprintf("baseDBBlockhash%v", i))
+		newBlockCommited(big.NewInt(int64(i)), parentHash, hash, generatekvs)
+		parentHash = hash
+	}
+
+	itr := dbInstance.Ranking(generateHash("baseDBBlockhash10"), []byte("aaa"), 20)
+	err := itr.Error()
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := make(kvs, 0)
+	for itr.Next() {
+		o = append(o, kv{itr.Key(), itr.Value()})
+	}
+	itr.Release()
+	if len(o) != 3 {
+		t.Errorf("must equql 3,have %v", len(o))
+	}
+	for i := 0; i < 3; i++ {
+		if !bytes.Equal(o[i].key, generatekvs[i+1].key) {
+			t.Errorf("not compare want %v,have %v", generatekvs[i+1].key, o[i].key)
+		}
+		if !bytes.Equal(o[i].value, generatekvs[i+1].value) {
+			t.Errorf("not compare want %v,have %v", generatekvs[i+1].value, o[i].value)
+		}
+	}
+
 }
 
 func TestSnapshotDB_Ranking3(t *testing.T) {

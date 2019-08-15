@@ -15,10 +15,11 @@ var (
 	keyPrefixEndProposals      = []byte("EndProposals")
 	keyPrefixPreActiveProposal = []byte("PreActiveProposal")
 	keyPrefixPreActiveVersion  = []byte("PreActiveVersion")
-	keyPrefixActiveVersion     = []byte("ActiveVersion")
+	keyPrefixActiveVersions    = []byte("ActiveVersions")
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
 	keyPrefixParams            = []byte("Params")
+	keyPrefixPIPIDs            = []byte("PIPIDs")
 )
 
 func KeyProposal(proposalID common.Hash) []byte {
@@ -47,7 +48,7 @@ func KeyVotingProposals() []byte {
 	return keyPrefixVotingProposals
 }
 
-func KeyPreActiveProposals() []byte {
+func KeyPreActiveProposal() []byte {
 	return keyPrefixPreActiveProposal
 }
 
@@ -55,8 +56,8 @@ func KeyEndProposals() []byte {
 	return keyPrefixEndProposals
 }
 
-func KeyActiveVersion() []byte {
-	return keyPrefixActiveVersion
+func KeyActiveVersions() []byte {
+	return keyPrefixActiveVersions
 }
 
 func KeyPreActiveVersion() []byte {
@@ -77,6 +78,6 @@ func KeyAccuVerifier(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-func KeyParams() []byte {
-	return keyPrefixParams
+func KeyPIPIDs() []byte {
+	return keyPrefixPIPIDs
 }
