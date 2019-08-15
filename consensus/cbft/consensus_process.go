@@ -193,10 +193,10 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
-	cbft.txPool.Reset(block)
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
+	cbft.txPool.Reset(block)
 	cbft.tryCommitNewBlock(lock, commit)
 	cbft.tryChangeView()
 	if cbft.insertBlockQCHook != nil {
