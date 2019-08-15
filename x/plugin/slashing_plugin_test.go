@@ -1,4 +1,4 @@
-package plugin_test
+package plugin
 
 import (
 	"crypto/ecdsa"
@@ -7,34 +7,30 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+
+	//	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/stretchr/testify/assert"
 )
 
-func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
-	si := plugin.SlashInstance()
-	plugin.StakingInstance()
-	db := ethdb.NewMemDatabase()
-	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db))
-	if nil != err {
-		t.Fatal(err)
-	}
-	return si, stateDB
+func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
+	si := SlashInstance()
+	StakingInstance()
+	chain := mock.NewChain(nil)
+	return si, chain.StateDB
 }
 
 func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T, stateDb xcom.StateDB) {
@@ -273,7 +269,7 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 		}
 		copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
 		block := types.NewBlock(header, nil, nil)
-		if err := plugin.SlashInstance().Confirmed(block); nil != err {
+		if err := SlashInstance().Confirmed(block); nil != err {
 			t.Fatal(err)
 		}
 		if err := db.NewBlock(blockNum, parentHash, common.ZeroHash); err != nil {
@@ -308,8 +304,8 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	plugin.GovPluginInstance()
-	si.SetDecodeEvidenceFun(cbft.NewEvidences)
+	GovPluginInstance()
+	//	si.SetDecodeEvidenceFun(cbft.NewEvidences)
 	data := `{
           "duplicate_prepare": [
             {
@@ -359,7 +355,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, chash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
+	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Fatal(err)
 	}
 	evidence, err := si.DecodeEvidence(data)
