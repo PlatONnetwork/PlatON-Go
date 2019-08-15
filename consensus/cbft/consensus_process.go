@@ -165,7 +165,7 @@ func (cbft *Cbft) OnViewTimeout() {
 // OnInsertQCBlock performs security rule verification, view switching.
 func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
 	if len(blocks) != len(qcs) {
-		return fmt.Errorf("block")
+		return fmt.Errorf("block qc is inconsistent")
 	}
 	//todo insert tree, update view
 	for i := 0; i < len(blocks); i++ {
@@ -193,10 +193,10 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
-	cbft.txPool.Reset(block)
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
+	cbft.txPool.Reset(block)
 	cbft.tryCommitNewBlock(lock, commit)
 	cbft.tryChangeView()
 	if cbft.insertBlockQCHook != nil {
