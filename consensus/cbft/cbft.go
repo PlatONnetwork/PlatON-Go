@@ -222,6 +222,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	}
 
 	err := cbft.recordMessage(msg)
+	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
@@ -229,9 +230,11 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "duration", msg.Since())
+		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
+	default:
+		cbft.log.Debug("peerMsgCh is full, discard", "peerMsgCh", len(cbft.peerMsgCh), "duration", msg.Since())
 	}
 	return nil
 }
@@ -278,9 +281,11 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	}
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String())
+		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
+	default:
+		cbft.log.Debug("syncMsgCh is full, discard", "syncMsgCh", len(cbft.syncMsgCh))
 	}
 	return nil
 }
@@ -321,7 +326,7 @@ func (cbft *Cbft) receiveLoop() {
 		select {
 		case msg := <-cbft.peerMsgCh:
 			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg, msg.Timestamp)
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 
 			cbft.handleConsensusMsg(msg)
 			cbft.forgetMessage(msg.PeerID)
@@ -330,13 +335,13 @@ func (cbft *Cbft) receiveLoop() {
 		select {
 		case msg := <-cbft.peerMsgCh:
 			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg, msg.Timestamp)
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 
 			cbft.handleConsensusMsg(msg)
 			cbft.forgetMessage(msg.PeerID)
 		case msg := <-cbft.syncMsgCh:
 			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg, msg.Timestamp)
+			cbft.network.Forwarding(msg.PeerID, msg.Msg)
 			cbft.handleSyncMsg(msg)
 			//
 			cbft.forgetMessage(msg.PeerID)
@@ -699,7 +704,8 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 // HashBlock check if the specified block exists in block tree.
 func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 	// Can only be invoked after startup
-	return cbft.state.HighestQCBlock().NumberU64() > number
+	qcBlock := cbft.state.HighestQCBlock()
+	return qcBlock.NumberU64() > number || (qcBlock.NumberU64() == number && qcBlock.Hash() == hash)
 }
 
 func (cbft *Cbft) Status() string {
@@ -739,6 +745,12 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 	result := make(chan *types.Block, 1)
 	cbft.asyncCallCh <- func() {
 		block := cbft.blockTree.FindBlockByHash(hash)
+		if block == nil {
+			header := cbft.blockChain.GetHeaderByHash(hash)
+			if header != nil {
+				block = cbft.blockChain.GetBlock(header.Hash(), header.Number.Uint64())
+			}
+		}
 		result <- block
 	}
 	return <-result
