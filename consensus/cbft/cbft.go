@@ -257,7 +257,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 
 	// Repeat filtering on consensus messages.
 	// First check.
-	if cbft.network.ContainsMessageHash(msg.Msg.MsgHash()) {
+	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
 		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
 		return fmt.Errorf("repeat message")
 	}
@@ -355,7 +355,7 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
-			if !cbft.network.ContainsMessageHash(msg.Msg.MsgHash()) {
+			if !cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
 				err := cbft.handleConsensusMsg(msg)
 				if err == nil {
 					cbft.network.MarkHistoryMessageHash(msg.Msg.MsgHash())
@@ -366,9 +366,12 @@ func (cbft *Cbft) receiveLoop() {
 					// If the verification signature is abnormal,
 					// the peer node is added to the local blacklist
 					// and disconnected.
+					cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID)
 					cbft.network.MarkBlacklist(msg.PeerID)
 					cbft.network.RemovePeer(msg.PeerID)
 				}
+			} else {
+				cbft.log.Debug("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
 			}
 			cbft.forgetMessage(msg.PeerID)
 

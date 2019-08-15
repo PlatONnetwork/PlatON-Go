@@ -619,7 +619,7 @@ func (h *EngineManager) MarkHistoryMessageHash(hash common.Hash) {
 }
 
 // ContainsMessageHash returns whether the specified hash exists.
-func (h *EngineManager) ContainsMessageHash(hash common.Hash) bool {
+func (h *EngineManager) ContainsHistoryMessageHash(hash common.Hash) bool {
 	return h.historyMessageHash.Contains(hash)
 }
 
