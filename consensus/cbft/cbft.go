@@ -578,6 +578,8 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.findQCBlock()
 
+	cbft.validatorPool.Flush(prepareBlock.Block.Header())
+
 	cbft.network.Broadcast(prepareBlock)
 	// Record the number of blocks.
 	minedCounter.Inc(1)

@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -76,6 +78,8 @@ func Is_Invalid_DuplicateSign(status uint32) bool {
 // The Candidate info
 type Candidate struct {
 	NodeId discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
@@ -140,6 +144,8 @@ type CandidateQueue []*Candidate
 type Validator struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
 	// The weight snapshot
 	// NOTE:
 	// converted from the weight snapshot of Candidate, they array order is:
@@ -546,6 +552,8 @@ type Validator_array struct {
 
 type ValidatorEx struct {
 	NodeId discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
