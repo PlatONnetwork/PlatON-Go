@@ -310,10 +310,10 @@ func TestDuplicateViewChangeEvidence_Equal(t *testing.T) {
 func TestDuplicatePrepareBlockEvidence_Validate(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(2)
 
-	pbA := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbA := makePrepareBlock(1, 1, newBlock(1), 1, 0, t, secretKeys[0])
 	evidencePrepareA, _ := NewEvidencePrepare(pbA, validateNodes[0])
 
-	pbB := makePrepareBlock(1, 1, newBlock(1), 1, 1, t, secretKeys[0])
+	pbB := makePrepareBlock(1, 1, newBlock(1), 1, 0, t, secretKeys[0])
 	evidencePrepareB, _ := NewEvidencePrepare(pbB, validateNodes[0])
 
 	d := &DuplicatePrepareBlockEvidence{

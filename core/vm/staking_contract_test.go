@@ -2,10 +2,13 @@ package vm_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	_ "fmt"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -43,6 +46,10 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -53,6 +60,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	params = append(params, details)
 	params = append(params, amount)
 	params = append(params, programVersion)
+	params = append(params, blsPkm)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
