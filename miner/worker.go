@@ -1193,7 +1193,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	//make header extra after w.current and it's state initialized
-	header.Extra = w.makeExtraData()
+	extraData := w.makeExtraData()
+	copy(header.Extra[:len(extraData)], extraData)
 
 	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
