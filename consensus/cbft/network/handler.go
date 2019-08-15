@@ -709,6 +709,7 @@ func (h *EngineManager) synchronize() {
 			// Iterate over the blacklist and remove
 			// the nodes that have expired.
 			keys := h.blacklist.Keys()
+			log.Debug("Blacklist pure start", "len", len(keys))
 			for _, k := range keys {
 				v, exists := h.blacklist.Get(k)
 				if !exists {
@@ -717,6 +718,7 @@ func (h *EngineManager) synchronize() {
 				if t, ok := v.(time.Time); ok {
 					if !t.Before(time.Now()) {
 						h.blacklist.Remove(k)
+						log.Debug("Remove blacklist success", "peerID", k)
 					}
 				}
 			}
