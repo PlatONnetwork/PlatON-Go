@@ -64,7 +64,8 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 		node := initQueue[index]
 
 		can := &staking.Candidate{
-			NodeId:             node.ID,
+			NodeId:             node.Node.ID,
+			BlsPubKey:          node.BlsPubKey,
 			StakingAddress:     vm.PlatONFoundationAddress,
 			BenefitAddress:     vm.RewardManagerPoolAddr,
 			StakingTxIndex:     uint32(index + 1),
@@ -108,7 +109,8 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
 			NodeAddress:   nodeAddr,
-			NodeId:        node.ID,
+			NodeId:        node.Node.ID,
+			BlsPubKey:     node.BlsPubKey,
 			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(version), xcom.StakeThreshold().String(), "0", fmt.Sprint(index + 1)},
 			ValidatorTerm: 0,
 		}

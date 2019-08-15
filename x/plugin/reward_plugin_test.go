@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/go-errors/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -26,8 +28,11 @@ var coinbase = common.HexToAddress("0xc7d92a06e9824955f1504b55114b0daad434e79")
 func buildDBSimpleCandidate(t *testing.T, snapDb snapshotdb.DB) error {
 	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
 	node, _ := discover.ParseNode(url)
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
 	can := &staking.Candidate{
 		NodeId:         node.ID,
+		BlsPubKey:      *blsKey.GetPublicKey(),
 		BenefitAddress: addrArr[1],
 	}
 
@@ -82,11 +87,14 @@ func buildVerifierList(t *testing.T, blockNumber uint64) error {
 		return err
 	}
 
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
 	// store epoch validators
 	validatorQueue := make(staking.ValidatorQueue, 0)
 	v := &staking.Validator{
 		NodeAddress: addr,
 		NodeId:      node.ID,
+		BlsPubKey:   *blsKey.GetPublicKey(),
 		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), string(100),
 			string(blockNumber), string(0)},
 		ValidatorTerm: 0,
