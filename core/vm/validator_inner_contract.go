@@ -12,6 +12,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -29,9 +30,10 @@ const (
 )
 
 type ValidateNode struct {
-	Index   uint            `json:"index"`
-	NodeID  discover.NodeID `json:"nodeID"`
-	Address common.Address  `json:"-"`
+	Index     uint            `json:"index"`
+	NodeID    discover.NodeID `json:"nodeID"`
+	Address   common.Address  `json:"-"`
+	BlsPubKey bls.PublicKey   `json:"blsPubKey"`
 }
 
 type NodeList []*ValidateNode
@@ -39,7 +41,7 @@ type NodeList []*ValidateNode
 func (nl *NodeList) String() string {
 	s := ""
 	for _, v := range *nl {
-		s = s + fmt.Sprintf("{Index: %d NodeID: %s Address: %s},", v.Index, v.NodeID, v.Address.String())
+		s = s + fmt.Sprintf("{Index: %d NodeID: %s Address: %s blsPubKey: %s},", v.Index, v.NodeID, v.Address.String(), fmt.Sprintf("%x", v.BlsPubKey.Serialize()))
 	}
 	return s
 }
@@ -135,7 +137,7 @@ func (vic *validatorInnerContract) SwitchValidators(validBlockNumber uint64) err
 		nvs.ValidBlockNumber = validBlockNumber
 		b, _ = rlp.EncodeToBytes(nvs)
 		state.SetState(vic.Contract.Address(), []byte(CurrentValidatorKey), b)
-		log.Debug("Switch validators success", "number", vic.Evm.BlockNumber , "validators", nvs.String())
+		log.Debug("Switch validators success", "number", vic.Evm.BlockNumber, "validators", nvs.String())
 		return nil
 	}
 

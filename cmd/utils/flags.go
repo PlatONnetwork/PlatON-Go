@@ -28,19 +28,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/fdlimit"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/dashboard"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -172,10 +171,6 @@ var (
 		Name:  "innertime",
 		Usage: "inner time",
 		Value: 1546300800000,
-	}
-	WalEnabledFlag = cli.BoolFlag{
-		Name:  "wal",
-		Usage: "Enable the Wal server",
 	}
 	SyncModeFlag = TextMarshalerFlag{
 		Name:  "syncmode",
@@ -609,16 +604,32 @@ var (
 	//	Value: "",
 	//}
 
-	CbftBlockIntervalFlag = cli.Uint64Flag{
-		Name:  "cbft.block_interval",
-		Usage: "This interval time use to broadcast block before mining next block",
-		Value: 100, // milliseconds
+	CbftPeerMsgQueueSize = cli.Uint64Flag{
+		Name:  "cbft.msg_queue_size",
+		Usage: "Message queue size",
+		Value: 1024,
 	}
 
-	CbftBreakpointFlag = cli.StringFlag{
-		Name:  "cbft.breakpoint",
-		Usage: "breakpoint type:tracing",
+	CbftWalEnabledFlag = cli.BoolFlag{
+		Name:  "cbft.wal",
+		Usage: "Enable the Wal server",
+	}
+
+	CbftEvidenceDir = cli.StringFlag{
+		Name:  "cbft.evidence_dir",
+		Usage: "Evidence path",
 		Value: "",
+	}
+
+	CbftMaxPingLatency = cli.Int64Flag{
+		Name:  "cbft.max_ping_latency",
+		Usage: "Maximum latency of ping",
+		Value: 2000,
+	}
+
+	CbftBlsPriKeyFileFlag = cli.StringFlag{
+		Name:  "cbft.blskey",
+		Usage: "BLS key file",
 	}
 )
 
@@ -1146,9 +1157,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// for mpc compute
 	//setMpcPool(ctx, &cfg.MPCPool)
 	//setVcPool(ctx, &cfg.VCPool)
-	SetCbft(ctx, &cfg.CbftConfig)
 
-	if ctx.GlobalIsSet(WalEnabledFlag.Name) {
+	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
 		cfg.CbftConfig.WalMode = true
 	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
@@ -1287,13 +1297,32 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 }
 
-func SetCbft(ctx *cli.Context, cfg *eth.CbftConfig) {
-	if ctx.GlobalIsSet(CbftBlockIntervalFlag.Name) {
-		cfg.BlockInterval = ctx.GlobalUint64(CbftBlockIntervalFlag.Name)
+func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
+	if nodeCfg.P2P.PrivateKey != nil {
+		cfg.NodePriKey = nodeCfg.P2P.PrivateKey
+		cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
 	}
-	if ctx.GlobalIsSet(CbftBreakpointFlag.Name) {
-		cfg.BreakpointType = ctx.GlobalString(CbftBreakpointFlag.Name)
+
+	if ctx.GlobalIsSet(CbftBlsPriKeyFileFlag.Name) {
+		priKey, err := bls.LoadBLS(ctx.GlobalString(CbftBlsPriKeyFileFlag.Name))
+		if err != nil {
+			Fatalf("Failed to load bls key from file: %v", err)
+		}
+		cfg.BlsPriKey = priKey
 	}
+
+	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
+		cfg.WalMode = ctx.GlobalBool(CbftWalEnabledFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(CbftPeerMsgQueueSize.Name) {
+		cfg.PeerMsgQueueSize = ctx.GlobalUint64(CbftPeerMsgQueueSize.Name)
+	}
+
+	if ctx.GlobalIsSet(CbftMaxPingLatency.Name) {
+		cfg.MaxPingLatency = ctx.GlobalInt64(CbftMaxPingLatency.Name)
+	}
+
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
@@ -1423,7 +1452,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
-	engine = cbft.NewFaker()
+	//todo: Merge confirmation.
+	//engine = cbft.NewFaker()
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}

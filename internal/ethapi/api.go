@@ -24,8 +24,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -1436,26 +1434,4 @@ func (s *PublicNetAPI) PeerCount() hexutil.Uint {
 // Version returns the current ethereum protocol version.
 func (s *PublicNetAPI) Version() string {
 	return fmt.Sprintf("%d", s.networkVersion)
-}
-
-// PublicBlockChainAPI provides an API to access the Ethereum blockchain.
-// It offers only methods that operate on public data that is freely available to anyone.
-type PublicConsensusAPI struct {
-	b Backend
-}
-
-// NewPublicBlockChainAPI creates a new Ethereum blockchain API.
-func NewPublicConsensusAPI(b Backend) *PublicConsensusAPI {
-	return &PublicConsensusAPI{b}
-}
-
-func (s *PublicConsensusAPI) ConsensusStatus() string {
-	return s.b.Engine().Status()
-}
-
-func (s *PublicConsensusAPI) Evidences() string {
-	if bft, ok := s.b.Engine().(consensus.Bft); ok {
-		return bft.Evidences()
-	}
-	return ""
 }
