@@ -89,10 +89,11 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	}
 
 	optConfig := &ctypes.OptionsConfig{
-		NodePriKey:     pk,
-		NodeID:         discover.PubkeyID(&pk.PublicKey),
-		BlsPriKey:      sk,
-		MaxQueuesLimit: 1000,
+		NodePriKey:        pk,
+		NodeID:            discover.PubkeyID(&pk.PublicKey),
+		BlsPriKey:         sk,
+		MaxQueuesLimit:    1000,
+		BlacklistDeadline: 1,
 	}
 
 	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)

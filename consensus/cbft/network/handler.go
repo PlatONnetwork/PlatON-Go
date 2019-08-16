@@ -8,11 +8,16 @@ import (
 	"strconv"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	mapset "github.com/deckarep/golang-set"
 )
 
 const (
@@ -35,6 +40,9 @@ const (
 	// SyncViewChangeInterval is ViewChange synchronization detection interval.
 	SyncViewChangeInterval = 10
 
+	// removeBlacklistInterval is remove blacklist detection interval.
+	removeBlacklistInterval = 20
+
 	// TypeForQCBn is the type for QC sync.
 	TypeForQCBn = 1
 
@@ -43,26 +51,38 @@ const (
 
 	// TypeForCommitBn is the type for Commit sync.
 	TypeForCommitBn = 3
+
+	// The maximum number of queues for message packets
+	// that are communicated by peers.
+	maxHistoryMessageHash = 5000
+
+	// If the number of blacklists reaches the threshold,
+	// the oldest blacklisted node will be re-trusted.
+	maxBlacklist = 300
 )
 
 // EngineManager responsibles for processing the messages in the network.
 type EngineManager struct {
-	engine        Cbft
-	router        *router
-	peers         *PeerSet
-	sendQueue     chan *types.MsgPackage
-	quitSend      chan struct{}
-	sendQueueHook func(*types.MsgPackage)
+	engine             Cbft
+	router             *router
+	peers              *PeerSet
+	sendQueue          chan *types.MsgPackage
+	quitSend           chan struct{}
+	sendQueueHook      func(*types.MsgPackage)
+	historyMessageHash mapset.Set // Consensus message record that has been processed successfully.
+	blacklist          *lru.Cache // Save node blacklist.
 }
 
 // NewEngineManger returns a new handler and do some initialization.
 func NewEngineManger(engine Cbft) *EngineManager {
 	handler := &EngineManager{
-		engine:    engine,
-		peers:     NewPeerSet(),
-		sendQueue: make(chan *types.MsgPackage, sendQueueSize),
-		quitSend:  make(chan struct{}, 0),
+		engine:             engine,
+		peers:              NewPeerSet(),
+		sendQueue:          make(chan *types.MsgPackage, sendQueueSize),
+		quitSend:           make(chan struct{}, 0),
+		historyMessageHash: mapset.NewSet(),
 	}
+	handler.blacklist, _ = lru.New(maxBlacklist)
 	// init router
 	handler.router = newRouter(handler.Unregister, handler.getPeer, handler.ConsensusNodes, handler.peerList)
 	return handler
@@ -345,6 +365,13 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 			p.Log().Debug("CBFT handshake failed", "err", err)
 			return err
 		}
+
+		// Blacklist check.
+		if h.ContainsBlacklist(peer.PeerID()) {
+			p.Log().Error("CBFT handshake, the peer node has been recorded in the blacklist")
+			return fmt.Errorf("illegal node: {%s}", peer.PeerID())
+		}
+
 		// If blockNumber in the local is better than the remote
 		// then determine if there is a fork.
 		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
@@ -581,6 +608,33 @@ func (h *EngineManager) handleMsg(p *peer) error {
 	return nil
 }
 
+// MarkHistoryMessageHash is used to record the hash value of each message from the peer node.
+// If the queue is full, remove the bottom element and add a new one.
+func (h *EngineManager) MarkHistoryMessageHash(hash common.Hash) {
+	for h.historyMessageHash.Cardinality() >= maxHistoryMessageHash {
+		h.historyMessageHash.Pop()
+	}
+	h.historyMessageHash.Add(hash)
+}
+
+// ContainsMessageHash returns whether the specified hash exists.
+func (h *EngineManager) ContainsHistoryMessageHash(hash common.Hash) bool {
+	return h.historyMessageHash.Contains(hash)
+}
+
+// MarkBlacklist marks the specified node as a blacklist.
+// If the number of recorded blacklists reaches the threshold,
+// the node that was first set to blacklist will be removed from the blacklist.
+func (h *EngineManager) MarkBlacklist(peerID string) {
+	deadline := time.Duration(h.engine.Config().Option.BlacklistDeadline) * time.Minute
+	h.blacklist.Add(peerID, time.Now().Add(deadline))
+}
+
+// ContainsBlacklist returns whether the specified node is blacklisted.
+func (h *EngineManager) ContainsBlacklist(peerID string) bool {
+	return h.blacklist.Contains(peerID)
+}
+
 // RemovePeer removes and disconnects a node from
 // a neighbor node.
 func (h *EngineManager) RemovePeer(id string) {
@@ -613,6 +667,7 @@ func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
 	blockNumberTimer := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
+	pureBlacklistTicker := time.NewTicker(removeBlacklistInterval * time.Second)
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
@@ -648,6 +703,24 @@ func (h *EngineManager) synchronize() {
 			log.Debug("Had new viewchange sync request", "msg", msg.String())
 			// Only broadcasts without forwarding.
 			h.PartBroadcast(msg)
+
+		case <-pureBlacklistTicker.C:
+			// Iterate over the blacklist and remove
+			// the nodes that have expired.
+			keys := h.blacklist.Keys()
+			log.Debug("Blacklist pure start", "len", len(keys))
+			for _, k := range keys {
+				v, exists := h.blacklist.Get(k)
+				if !exists {
+					continue
+				}
+				if t, ok := v.(time.Time); ok {
+					if !t.Before(time.Now()) {
+						h.blacklist.Remove(k)
+						log.Debug("Remove blacklist success", "peerID", k)
+					}
+				}
+			}
 
 		case <-h.quitSend:
 			log.Error("synchronize quit")
