@@ -171,7 +171,7 @@ func TestGovDB_SetActiveVersion(t *testing.T) {
 	if err := db.AddActiveVersion(version, 10000, statedb); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
-	vget := db.GetCurrentActiveVersion(statedb)
+	vget := GetCurrentActiveVersion(statedb)
 	if vget != version {
 		t.Fatalf("get current active version error,expect version:%d,get version:%d", version, vget)
 	}
