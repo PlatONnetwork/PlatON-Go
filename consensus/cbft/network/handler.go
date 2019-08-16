@@ -715,7 +715,7 @@ func (h *EngineManager) synchronize() {
 					continue
 				}
 				if t, ok := v.(time.Time); ok {
-					if !t.Before(time.Now()) {
+					if t.Before(time.Now()) {
 						h.blacklist.Remove(k)
 						log.Debug("Remove blacklist success", "peerID", k)
 					}

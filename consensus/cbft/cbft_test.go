@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -647,4 +648,27 @@ func TestJson(t *testing.T) {
 	if b, err := json.Marshal(&qc); err == nil {
 		log.Info(string(b))
 	}
+}
+
+func Test_StatMessage(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(1)
+	node := MockNode(pk[0], sk[0], cbftnodes, 5000, 10)
+	err := node.engine.statMessage(nil)
+	assert.NotNil(t, err)
+	for i := 0; i < 500; i++ {
+		pid1 := fmt.Sprintf("id%d", i)
+		pid2 := fmt.Sprintf("id%d", i)
+		msgInfo1 := ctypes.NewMsgInfo(&protocols.PrepareBlockHash{
+			BlockHash:   common.BytesToHash([]byte("1")),
+			BlockNumber: uint64(i),
+		}, pid1)
+		msgInfo2 := ctypes.NewMsgInfo(&protocols.PrepareBlockHash{
+			BlockHash:   common.BytesToHash([]byte("1")),
+			BlockNumber: uint64(i),
+		}, pid2)
+		node.engine.statMessage(msgInfo1)
+		node.engine.statMessage(msgInfo1)
+		node.engine.statMessage(msgInfo2)
+	}
+	assert.Equal(t, 199, len(node.engine.statQueues))
 }
