@@ -267,18 +267,19 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		return nil
 	}
 
-	// Repeat filtering on consensus messages.
-	// First check.
-	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
-		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
-		return nil
-	}
-
 	err := cbft.recordMessage(msg)
 	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
+	}
+
+	// Repeat filtering on consensus messages.
+	// First check.
+	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
+		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		cbft.forgetMessage(msg.PeerID)
+		return nil
 	}
 
 	select {
