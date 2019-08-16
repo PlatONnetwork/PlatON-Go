@@ -237,3 +237,10 @@ func (bm *BftMock) CurrentBlock() *types.Block {
 func (bm *BftMock) TracingSwitch(flag int8) {
 
 }
+
+func (bm *BftMock) Pause() {
+
+}
+func (bm *BftMock) Resume() {
+
+}
