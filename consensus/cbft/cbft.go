@@ -639,6 +639,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 			return
 		}
 		prepareBlock.PrepareQC = parentQC
+		prepareBlock.ViewChangeQC = cbft.state.LastViewChangeQC()
 	}
 
 	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
@@ -1300,6 +1301,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	}
 	qc.Signature.SetBytes(aggSig.Serialize())
 	qc.ValidatorSet.Update(vSet)
+	log.Debug("Generate prepare qc", "hash", vote.BlockHash, "number", vote.BlockNumber, "qc", qc.String())
 	return qc
 }
 
@@ -1352,6 +1354,7 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		q.cert.ValidatorSet.Update(q.ba)
 		qc.QCs = append(qc.QCs, q.cert)
 	}
+	log.Debug("Generate view change qc", "qc", qc.String())
 	return qc
 }
 
