@@ -301,13 +301,16 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 // the block data.
 func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash) error {
 	cbft.log.Debug("Received message on OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
-	block := cbft.blockTree.FindBlockByHash(msg.BlockHash)
-	if block == nil {
-		cbft.network.Send(id, &protocols.GetPrepareBlock{
-			Epoch:      msg.Epoch,
-			ViewNumber: msg.ViewNumber,
-			BlockIndex: msg.BlockIndex,
-		})
+	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		block := cbft.state.ViewBlockByIndex(msg.BlockIndex)
+		if block == nil {
+			cbft.log.Debug("Send GetPrepareBlock", "peer", id, "block", msg.String())
+			cbft.network.Send(id, &protocols.GetPrepareBlock{
+				Epoch:      msg.Epoch,
+				ViewNumber: msg.ViewNumber,
+				BlockIndex: msg.BlockIndex,
+			})
+		}
 	}
 	return nil
 }

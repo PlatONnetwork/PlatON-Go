@@ -639,6 +639,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 			return
 		}
 		prepareBlock.PrepareQC = parentQC
+		prepareBlock.ViewChangeQC = cbft.state.LastViewChangeQC()
 	}
 
 	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
