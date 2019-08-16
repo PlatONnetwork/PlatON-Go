@@ -26,7 +26,6 @@ import (
 type StakingPlugin struct {
 	db       *staking.StakingDB
 	eventMux *event.TypeMux
-	once     sync.Once
 }
 
 var (
@@ -1267,7 +1266,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		}
 
 		refundAmount := common.Big0
-		realSub := common.Big0
 		sub := new(big.Int).Sub(realtotal, amount)
 
 		// When the sub less than threshold
@@ -1277,7 +1275,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			refundAmount = amount
 		}
 
-		realSub = refundAmount
+		realSub := refundAmount
 		/**
 		handle delegate on Hesitate period
 		*/
@@ -1305,7 +1303,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			//xcom.PrintObject("WithdrewDelegate, Method Before AddUnDelegateItemStore, del", del)
 
 			// add a UnDelegateItem
-			sk.db.AddUnDelegateItemStore(blockHash, delAddr, nodeId, epoch, stakingBlockNum, refundAmount)
+			if err := sk.db.AddUnDelegateItemStore(blockHash, delAddr, nodeId, epoch, stakingBlockNum, refundAmount); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin：add a UnDelegateItem failed", "blockNumber",
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "epoch", epoch,
+					"stakingBlockNum", stakingBlockNum, "refundAmount", refundAmount, "err", err)
+			}
 			del.Reduction = new(big.Int).Add(del.Reduction, refundAmount)
 
 		} else {
@@ -2240,7 +2242,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	currLen := len(curr.Arr)
 	zeroLen := 0
 
-	slashCans := make(staking.SlashCandidate, 0)
+	slashCans := make(staking.SlashCandidate)
 	slashAddrQueue := make([]discover.NodeID, 0)
 
 	for _, v := range curr.Arr {

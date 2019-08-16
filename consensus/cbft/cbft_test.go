@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -476,7 +477,7 @@ func newUpdateValidatorTx(t *testing.T, parent *types.Block, header *types.Heade
 	statedb, err := mineNode.cache.MakeStateDB(parent)
 	assert.Nil(t, err)
 	statedb.Prepare(tx.Hash(), common.Hash{}, 1)
-	receipt, _, err := core.ApplyTransaction(chainConfig, mineNode.chain, &header.Coinbase, gp, statedb, header, tx, &header.GasUsed, cvm.Config{})
+	receipt, _, err := core.ApplyTransaction(chainConfig, mineNode.chain, gp, statedb, header, tx, &header.GasUsed, cvm.Config{})
 	assert.Nil(t, err)
 	return tx, receipt, statedb
 }

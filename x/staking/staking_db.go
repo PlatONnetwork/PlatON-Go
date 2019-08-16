@@ -602,6 +602,11 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 		v = common.BytesToUint64(val)
 	}
 
+	// Prevent large numbers from being directly called after the uint64 overflow
+	if v == 0 {
+		return nil
+	}
+
 	// todo test
 	log.Debug("SubAccountStakeRc, query rc", "blockHash", blockHash.Hex(), "addr", addr.String(), "rc", v)
 
@@ -613,8 +618,6 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 		log.Debug("SubAccountStakeRc, del", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
 
 		return db.del(blockHash, key)
-	} else if v < 0 {
-		return common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
 	} else {
 
 		// todo test
@@ -639,7 +642,7 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 	}
 
 	// todo test
-	log.Debug("HasAccountStakeRc, query rc", "blockHash", blockHash.Hex(), "addr", addr.String(), "rc", v)
+	log.Debug("HasAccountStakeRc, query rc", "blockHash", blockHash.Hex(), "addr", addr.String(), "key", hex.EncodeToString(key), "rc", v)
 
 	if v == 0 {
 		return false, nil

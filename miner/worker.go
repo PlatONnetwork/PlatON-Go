@@ -26,8 +26,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -1335,7 +1336,7 @@ func (w *worker) makeExtraData() []byte {
 	// create default extradata
 	extra, _ := rlp.EncodeToBytes([]interface{}{
 		//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-		plugin.GovPluginInstance().GetCurrentActiveVersion(w.current.state),
+		gov.GetCurrentActiveVersion(w.current.state),
 		"platon",
 		runtime.Version(),
 		runtime.GOOS,
