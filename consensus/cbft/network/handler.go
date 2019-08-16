@@ -235,7 +235,7 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 		if msgType == protocols.PrepareBlockMsg {
 			// Special treatment.
 			if v, ok := msg.(*protocols.PrepareBlock); ok {
-				go h.Broadcast(&protocols.PrepareBlockHash{
+				h.Broadcast(&protocols.PrepareBlockHash{
 					Epoch:       v.Epoch,
 					ViewNumber:  v.ViewNumber,
 					BlockIndex:  v.BlockIndex,
@@ -246,14 +246,13 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 			}
 		} else {
 			// Direct forwarding.
-			go h.Broadcast(msg)
+			h.Broadcast(msg)
 		}
 		return nil
 	}
 	// PrepareBlockMsg does not forward, the message will be forwarded using PrepareBlockHash.
 	switch msgType {
-	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg,
-		protocols.BlockQuorumCertMsg:
+	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg:
 		err := forward()
 		if err != nil {
 			messageGossipMeter.Mark(1)

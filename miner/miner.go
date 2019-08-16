@@ -40,11 +40,11 @@ type Backend interface {
 
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
-	mux      *event.TypeMux
-	worker   *worker
-	eth      Backend
-	engine   consensus.Engine
-	exitCh   chan struct{}
+	mux    *event.TypeMux
+	worker *worker
+	eth    Backend
+	engine consensus.Engine
+	exitCh chan struct{}
 
 	canStart    int32 // can start indicates whether we can start the mining operation
 	shouldStart int32 // should start indicates whether we should start after sync
@@ -113,10 +113,17 @@ func (self *Miner) Start() {
 		return
 	}
 	self.worker.start()
+	if bft, ok := self.engine.(consensus.Bft); ok {
+		bft.Resume()
+	}
 }
 
 func (self *Miner) Stop() {
 	self.worker.stop()
+	if bft, ok := self.engine.(consensus.Bft); ok {
+		bft.Pause()
+	}
+
 	atomic.StoreInt32(&self.shouldStart, 0)
 }
 
@@ -162,4 +169,3 @@ func (self *Miner) Pending() (*types.Block, *state.StateDB) {
 func (self *Miner) PendingBlock() *types.Block {
 	return self.worker.pendingBlock()
 }
-

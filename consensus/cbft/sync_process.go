@@ -145,6 +145,11 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("msg is not match current state")
 	}
 
+	if _, qc := cbft.blockTree.FindBlockAndQC(msg.BlockQC.BlockHash, msg.BlockQC.BlockNumber); qc != nil {
+		cbft.log.Debug("Block has exist", "msg", msg.String())
+		return fmt.Errorf("block already exists")
+	}
+
 	if err := cbft.verifyPrepareQC(msg.BlockQC); err != nil {
 		return &authFailedError{err}
 	}
