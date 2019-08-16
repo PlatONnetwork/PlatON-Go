@@ -3482,7 +3482,7 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 	if nil == targetIndex {
 		log.Error("No Found previous validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the round indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3556,7 +3556,7 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found current validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the round indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3630,7 +3630,7 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found next validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the round indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3744,7 +3744,7 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 	if nil == targetIndex {
 		log.Error("No Found epoch validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the epoch indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
