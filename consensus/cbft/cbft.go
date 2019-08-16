@@ -133,6 +133,12 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
+func NewFaker() consensus.Engine {
+	c := new(consensus.BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	return c
+}
+
 // Returns the ID value of the current node
 func (cbft *Cbft) NodeId() discover.NodeID {
 	return cbft.config.Option.NodeID

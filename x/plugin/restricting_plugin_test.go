@@ -1,28 +1,17 @@
-package plugin_test
+package plugin
 
 import (
 	"bytes"
-	"encoding/json"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-)
-
-var (
-	errParamEpochInvalid   = common.NewBizError("param epoch can't be zero")
-	errTooMuchPlan         = common.NewBizError("the number of the restricting plan is too much")
-	errLockedAmountTooLess = common.NewBizError("total restricting amount need more than 1 LAT")
-	errBalanceNotEnough    = common.NewBizError("the balance is not enough in restrict")
-	errAccountNotFound     = common.NewBizError("account is not found on restricting contract")
 )
 
 // showRestrictingAccountInfo prints restricting info of restricting account in stateDB
@@ -93,7 +82,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		buildDbRestrictingPlan(addrArr[0], t, stateDb)
 		head := types.Header{Number: big.NewInt(1)}
 
-		err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+		err := RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		// show expected result
 		t.Log("expected do nothing")
@@ -113,7 +102,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		blockNumber := uint64(1) * xutil.CalcBlocksEachEpoch()
 
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
-		err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+		err := RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		// show expected result
 		t.Logf("expected do nothing")
@@ -170,7 +159,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// do EndBlock
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
-		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+		err = RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		t.Log("=====================")
 		t.Log("expected case3 of EndBlock success")
@@ -212,7 +201,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		stateDb := buildStateDB(t)
 		restrictingAcc := addrArr[0]
 		blockNumber := uint64(1) * xutil.CalcBlocksEachEpoch()
-		plugin.SetLatestEpoch(stateDb, 0)
+		SetLatestEpoch(stateDb, 0)
 
 		var info restricting.RestrictingInfo
 		info.Balance = big.NewInt(2E18)
@@ -249,7 +238,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// do EndBlock
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
-		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+		err = RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		t.Log("=====================")
 		t.Log("expected case4 of EndBlock success")
@@ -327,7 +316,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// do EndBlock
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
-		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+		err = RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		t.Log("=====================")
 		t.Log("expected case5 of EndBlock success")
@@ -368,7 +357,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		stateDb := buildStateDB(t)
 		restrictingAcc := addrArr[0]
 		blockNumber := uint64(2) * xutil.CalcBlocksEachEpoch()
-		plugin.SetLatestEpoch(stateDb, 1)
+		SetLatestEpoch(stateDb, 1)
 
 		var info restricting.RestrictingInfo
 		info.Balance = big.NewInt(0)
@@ -403,7 +392,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		// do EndBlock
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
-		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+		err = RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		t.Log("=====================")
 		t.Log("expected case6 of EndBlock success")
@@ -473,9 +462,9 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			restrictingContractB = new(big.Int).Sub(restrictingContractB, allowance)
 
 			// do EndBlock
-			plugin.SetLatestEpoch(stateDb, epochs*yearEnd-1)
+			SetLatestEpoch(stateDb, epochs*yearEnd-1)
 			head := types.Header{Number: big.NewInt(int64(blocks * yearEnd))}
-			err = plugin.RestrictingInstance().EndBlock(head.Hash(), &head, stateDb)
+			err = RestrictingInstance().EndBlock(head.Hash(), &head, stateDb)
 
 			t.Log("==============================")
 			t.Log("expected case7 of EndBlock success")
@@ -518,286 +507,286 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	}
 }
 
-func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
-
-	var err error
-	var plan restricting.RestrictingPlan
-
-	// case1: release epoch must more than zero
-	{
-		stateDb := buildStateDB(t)
-		plugin.SetLatestEpoch(stateDb, 5)
-
-		var plans = make([]restricting.RestrictingPlan, 1)
-		plans[0].Epoch = 0
-		plans[0].Amount = big.NewInt(int64(1E18))
-
-		err = plugin.RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
-
-		// show expected result
-		t.Logf("expected error is [%s]", errParamEpochInvalid)
-		t.Logf("actually error is [%v]", err)
-
-		if err != nil && err.Error() == errParamEpochInvalid.Error() {
-			t.Log("case1 of AddRestrictingRecord pass")
-		} else {
-			t.Error("case1 of AddRestrictingRecord failed.")
-		}
-		t.Log("=====================")
-		t.Log("case1 pass")
-	}
-
-	// case2: balance of sender not enough
-	{
-		stateDb := buildStateDB(t)
-		stateDb.AddBalance(sender, big.NewInt(1))
-
-		var plans = make([]restricting.RestrictingPlan, 1)
-		plans[0].Epoch = 1
-		plans[0].Amount = big.NewInt(int64(1E18))
-
-		err = plugin.RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
-
-		// show expected result
-		t.Logf("expected error is [%s]", errBalanceNotEnough)
-		t.Logf("actually error is [%v]", err)
-
-		if err != nil && err.Error() == errBalanceNotEnough.Error() {
-			t.Log("case2 of AddRestrictingRecord pass")
-		} else {
-			t.Error("case2 of AddRestrictingRecord failed.")
-		}
-		t.Log("=====================")
-		t.Log("case2 pass")
-	}
-
-	// case3: rlp decode failed
-	{
-		stateDb := buildStateDB(t)
-		stateDb.AddBalance(sender, big.NewInt(1E18))
-		restrictingAcc := addrArr[0]
-
-		testData := "this is test data"
-		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
-		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
-
-		var plans = make([]restricting.RestrictingPlan, 1)
-		plans[0].Epoch = 1
-		plans[0].Amount = big.NewInt(int64(1E18))
-
-		err = plugin.RestrictingInstance().AddRestrictingRecord(sender, restrictingAcc, plans, stateDb)
-
-		// show expected result
-		t.Logf("expecetd error is [rlp: expected input list for restricting.RestrictingInfo]")
-		t.Logf("actually error is [%v]", err)
-
-		if err != nil {
-			if _, ok := err.(*common.SysError); ok {
-				t.Log("case3 of AddRestricting pass")
-			} else {
-				t.Error("case3 of AddRestrictingRecord failed.")
-			}
-		} else {
-			t.Error("case3 of AddRestrictingRecord failed.")
-		}
-
-		t.Log("=====================")
-		t.Log("case3 pass")
-	}
-
-	// case4: account is new user to restricting
-	{
-		stateDb := buildStateDB(t)
-
-		// preset sender balance
-		restrictingAmount := big.NewInt(int64(5E18))
-		senderBalance := new(big.Int).Add(sender_balance, restrictingAmount)
-		stateDb.AddBalance(sender, senderBalance)
-
-		// build input plans for case1
-		var plans = make([]restricting.RestrictingPlan, 5)
-		for i := 0; i < 5; i++ {
-			v := reflect.ValueOf(&plans[i]).Elem()
-
-			epoch := i + 1
-			amount := big.NewInt(int64(1E18))
-			v.FieldByName("Epoch").SetUint(uint64(epoch))
-			v.FieldByName("Amount").Set(reflect.ValueOf(amount))
-		}
-
-		// Deduct a portion of the money to contract in advance
-		stateDb.SubBalance(sender, restrictingAmount)
-		stateDb.AddBalance(vm.RestrictingContractAddr, restrictingAmount)
-
-		err := plugin.RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
-
-		// show expected result
-		t.Log("=====================")
-		t.Log("expected case4 of AddRestrictingRecord success")
-		t.Log("expected balance of sender:", sender_balance)
-		t.Log("expected balance of contract:", restrictingAmount)
-		t.Log("expected balance of restrict account: ", big.NewInt(int64(5E18)))
-		t.Log("expected debt    of restrict account: ", 0)
-		t.Log("expected symbol  of restrict account: ", false)
-		t.Log("expected list    of restrict account: ", []uint64{1, 2, 3, 4, 5})
-		for i := 0; i < 5; i++ {
-			epoch := i + 1
-			t.Log("=====================")
-			t.Logf("expected account numbers of release epoch %d: 1", epoch)
-			t.Logf("expected release accounts of epoch %d: %v", epoch, addrArr[0].String())
-			t.Logf("expected release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
-		}
-		t.Log("=====================")
-
-		if err != nil {
-			t.Errorf("case4 of AddRestrictingRecord failed. Actually returns error: %s", err.Error())
-
-		} else {
-
-			t.Log("=====================")
-			t.Log("case4 return success!")
-			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
-			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
-			showRestrictingAccountInfo(t, stateDb, addrArr[0])
-			for i := 0; i < 5; i++ {
-				epoch := i + 1
-
-				t.Log("=====================")
-				showReleaseEpoch(t, stateDb, uint64(epoch))
-				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
-			}
-			t.Log("=====================")
-			t.Log("case4 pass")
-		}
-	}
-
-	// case5: restricting account exist, but restricting epoch not intersect
-	{
-		stateDb := buildStateDB(t)
-
-		// preset sender balance
-		restrictingAmount := big.NewInt(int64(1E18))
-		stateDb.AddBalance(sender, restrictingAmount)
-
-		// build db info
-		buildDbRestrictingPlan(addrArr[0], t, stateDb)
-
-		// build plans for case3
-		var plans = make([]restricting.RestrictingPlan, 1)
-		plan.Epoch = uint64(6)
-		plan.Amount = restrictingAmount
-		plans[0] = plan
-
-		// Deduct a portion of the money to contract in advance
-		stateDb.SubBalance(sender, restrictingAmount)
-		stateDb.AddBalance(vm.RestrictingContractAddr, restrictingAmount)
-
-		err := plugin.RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
-
-		// show expected result
-		t.Log("=====================")
-		t.Log("expected case5 of AddRestrictingRecord success")
-		t.Log("expected balance of sender:", sender_balance)
-		t.Log("expected balance of contract:", big.NewInt(int64(6E18)))
-		t.Log("expected balance of restrict account: ", big.NewInt(int64(6E18)))
-		t.Log("expected debt    of restrict account: ", 0)
-		t.Log("expected symbol  of restrict account: ", false)
-		t.Log("expected list    of restrict account: ", []uint64{1, 2, 3, 4, 5, 6})
-		for i := 0; i < 6; i++ {
-			epoch := i + 1
-			t.Log("=====================")
-			t.Logf("expected account numbers of release epoch %d: 1", epoch)
-			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
-			t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
-		}
-		t.Log("=====================")
-
-		if err != nil {
-			t.Errorf("case5 of AddRestrictingRecord failed. Actually returns error: %s", err.Error())
-
-		} else {
-
-			t.Log("=====================")
-			t.Log("case5 return success!")
-			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
-			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
-
-			showRestrictingAccountInfo(t, stateDb, addrArr[0])
-			for i := 0; i < 6; i++ {
-				epoch := i + 1
-
-				t.Log("=====================")
-				showReleaseEpoch(t, stateDb, uint64(epoch))
-				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
-			}
-			t.Log("=====================")
-			t.Log("case5 pass")
-		}
-	}
-
-	// case6: restricting account exist, and restricting epoch intersect
-	{
-		stateDb := buildStateDB(t)
-
-		// preset sender balance
-		restrictingAmount := big.NewInt(int64(1E18))
-		stateDb.AddBalance(sender, restrictingAmount)
-
-		// build db info
-		buildDbRestrictingPlan(addrArr[0], t, stateDb)
-
-		// build plans for case3
-		var plans = make([]restricting.RestrictingPlan, 1)
-		plan.Epoch = uint64(5)
-		plan.Amount = restrictingAmount
-		plans[0] = plan
-
-		// Deduct a portion of the money to contract in advance
-		stateDb.SubBalance(sender, restrictingAmount)
-		stateDb.AddBalance(vm.RestrictingContractAddr, restrictingAmount)
-
-		err := plugin.RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
-
-		t.Log("=====================")
-		t.Log("expected case6 of AddRestrictingRecord success")
-		t.Log("expected balance of sender:", sender_balance)
-		t.Log("expected balance of contract:", big.NewInt(int64(6E18)))
-		t.Log("expected balance of restrict account: ", big.NewInt(int64(6E18)))
-		t.Log("expected debt    of restrict account: ", 0)
-		t.Log("expected symbol  of restrict account: ", false)
-		t.Log("expected list    of restrict account: ", []uint64{1, 2, 3, 4, 5})
-		for i := 0; i < 5; i++ {
-			epoch := i + 1
-			t.Log("=====================")
-			t.Logf("expected account numbers of release epoch %d: 1", epoch)
-			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
-			if epoch == 5 {
-				t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(2E18)))
-			} else {
-				t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
-			}
-		}
-		t.Log("=====================")
-
-		if err != nil {
-			t.Errorf("case6 of AddRestrictingRecord failed. Actually returns error: %s", err.Error())
-		} else {
-			t.Log("=====================")
-			t.Log("case6 return success!")
-			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
-			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
-			showRestrictingAccountInfo(t, stateDb, addrArr[0])
-			for i := 0; i < 5; i++ {
-				epoch := i + 1
-				t.Log("=====================")
-				showReleaseEpoch(t, stateDb, uint64(epoch))
-				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
-			}
-			t.Log("=====================")
-			t.Log("case6 pass")
-		}
-	}
-}
+//func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
+//
+//	var err error
+//	var plan restricting.RestrictingPlan
+//
+//	// case1: release epoch must more than zero
+//	{
+//		stateDb := buildStateDB(t)
+//		SetLatestEpoch(stateDb, 5)
+//
+//		var plans = make([]restricting.RestrictingPlan, 1)
+//		plans[0].Epoch = 0
+//		plans[0].Amount = big.NewInt(int64(1E18))
+//
+//		err = RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
+//
+//		// show expected result
+//		t.Logf("expected error is [%s]", errParamEpochInvalid)
+//		t.Logf("actually error is [%v]", err)
+//
+//		if err != nil && err.Error() == errParamEpochInvalid.Error() {
+//			t.Log("case1 of AddRestrictingRecord pass")
+//		} else {
+//			t.Error("case1 of AddRestrictingRecord failed.")
+//		}
+//		t.Log("=====================")
+//		t.Log("case1 pass")
+//	}
+//
+//	// case2: balance of sender not enough
+//	{
+//		stateDb := buildStateDB(t)
+//		stateDb.AddBalance(sender, big.NewInt(1))
+//
+//		var plans = make([]restricting.RestrictingPlan, 1)
+//		plans[0].Epoch = 1
+//		plans[0].Amount = big.NewInt(int64(1E18))
+//
+//		err = RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
+//
+//		// show expected result
+//		t.Logf("expected error is [%s]", errBalanceNotEnough)
+//		t.Logf("actually error is [%v]", err)
+//
+//		if err != nil && err.Error() == errBalanceNotEnough.Error() {
+//			t.Log("case2 of AddRestrictingRecord pass")
+//		} else {
+//			t.Error("case2 of AddRestrictingRecord failed.")
+//		}
+//		t.Log("=====================")
+//		t.Log("case2 pass")
+//	}
+//
+//	// case3: rlp decode failed
+//	{
+//		stateDb := buildStateDB(t)
+//		stateDb.AddBalance(sender, big.NewInt(1E18))
+//		restrictingAcc := addrArr[0]
+//
+//		testData := "this is test data"
+//		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
+//		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
+//
+//		var plans = make([]restricting.RestrictingPlan, 1)
+//		plans[0].Epoch = 1
+//		plans[0].Amount = big.NewInt(int64(1E18))
+//
+//		err = RestrictingInstance().AddRestrictingRecord(sender, restrictingAcc, plans, stateDb)
+//
+//		// show expected result
+//		t.Logf("expecetd error is [rlp: expected input list for restricting.RestrictingInfo]")
+//		t.Logf("actually error is [%v]", err)
+//
+//		if err != nil {
+//			if _, ok := err.(*common.SysError); ok {
+//				t.Log("case3 of AddRestricting pass")
+//			} else {
+//				t.Error("case3 of AddRestrictingRecord failed.")
+//			}
+//		} else {
+//			t.Error("case3 of AddRestrictingRecord failed.")
+//		}
+//
+//		t.Log("=====================")
+//		t.Log("case3 pass")
+//	}
+//
+//	// case4: account is new user to restricting
+//	{
+//		stateDb := buildStateDB(t)
+//
+//		// preset sender balance
+//		restrictingAmount := big.NewInt(int64(5E18))
+//		senderBalance := new(big.Int).Add(sender_balance, restrictingAmount)
+//		stateDb.AddBalance(sender, senderBalance)
+//
+//		// build input plans for case1
+//		var plans = make([]restricting.RestrictingPlan, 5)
+//		for i := 0; i < 5; i++ {
+//			v := reflect.ValueOf(&plans[i]).Elem()
+//
+//			epoch := i + 1
+//			amount := big.NewInt(int64(1E18))
+//			v.FieldByName("Epoch").SetUint(uint64(epoch))
+//			v.FieldByName("Amount").Set(reflect.ValueOf(amount))
+//		}
+//
+//		// Deduct a portion of the money to contract in advance
+//		stateDb.SubBalance(sender, restrictingAmount)
+//		stateDb.AddBalance(vm.RestrictingContractAddr, restrictingAmount)
+//
+//		err := RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
+//
+//		// show expected result
+//		t.Log("=====================")
+//		t.Log("expected case4 of AddRestrictingRecord success")
+//		t.Log("expected balance of sender:", sender_balance)
+//		t.Log("expected balance of contract:", restrictingAmount)
+//		t.Log("expected balance of restrict account: ", big.NewInt(int64(5E18)))
+//		t.Log("expected debt    of restrict account: ", 0)
+//		t.Log("expected symbol  of restrict account: ", false)
+//		t.Log("expected list    of restrict account: ", []uint64{1, 2, 3, 4, 5})
+//		for i := 0; i < 5; i++ {
+//			epoch := i + 1
+//			t.Log("=====================")
+//			t.Logf("expected account numbers of release epoch %d: 1", epoch)
+//			t.Logf("expected release accounts of epoch %d: %v", epoch, addrArr[0].String())
+//			t.Logf("expected release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
+//		}
+//		t.Log("=====================")
+//
+//		if err != nil {
+//			t.Errorf("case4 of AddRestrictingRecord failed. Actually returns error: %s", err.Error())
+//
+//		} else {
+//
+//			t.Log("=====================")
+//			t.Log("case4 return success!")
+//			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
+//			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+//			showRestrictingAccountInfo(t, stateDb, addrArr[0])
+//			for i := 0; i < 5; i++ {
+//				epoch := i + 1
+//
+//				t.Log("=====================")
+//				showReleaseEpoch(t, stateDb, uint64(epoch))
+//				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
+//			}
+//			t.Log("=====================")
+//			t.Log("case4 pass")
+//		}
+//	}
+//
+//	// case5: restricting account exist, but restricting epoch not intersect
+//	{
+//		stateDb := buildStateDB(t)
+//
+//		// preset sender balance
+//		restrictingAmount := big.NewInt(int64(1E18))
+//		stateDb.AddBalance(sender, restrictingAmount)
+//
+//		// build db info
+//		buildDbRestrictingPlan(addrArr[0], t, stateDb)
+//
+//		// build plans for case3
+//		var plans = make([]restricting.RestrictingPlan, 1)
+//		plan.Epoch = uint64(6)
+//		plan.Amount = restrictingAmount
+//		plans[0] = plan
+//
+//		// Deduct a portion of the money to contract in advance
+//		stateDb.SubBalance(sender, restrictingAmount)
+//		stateDb.AddBalance(vm.RestrictingContractAddr, restrictingAmount)
+//
+//		err := RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
+//
+//		// show expected result
+//		t.Log("=====================")
+//		t.Log("expected case5 of AddRestrictingRecord success")
+//		t.Log("expected balance of sender:", sender_balance)
+//		t.Log("expected balance of contract:", big.NewInt(int64(6E18)))
+//		t.Log("expected balance of restrict account: ", big.NewInt(int64(6E18)))
+//		t.Log("expected debt    of restrict account: ", 0)
+//		t.Log("expected symbol  of restrict account: ", false)
+//		t.Log("expected list    of restrict account: ", []uint64{1, 2, 3, 4, 5, 6})
+//		for i := 0; i < 6; i++ {
+//			epoch := i + 1
+//			t.Log("=====================")
+//			t.Logf("expected account numbers of release epoch %d: 1", epoch)
+//			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
+//			t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
+//		}
+//		t.Log("=====================")
+//
+//		if err != nil {
+//			t.Errorf("case5 of AddRestrictingRecord failed. Actually returns error: %s", err.Error())
+//
+//		} else {
+//
+//			t.Log("=====================")
+//			t.Log("case5 return success!")
+//			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
+//			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+//
+//			showRestrictingAccountInfo(t, stateDb, addrArr[0])
+//			for i := 0; i < 6; i++ {
+//				epoch := i + 1
+//
+//				t.Log("=====================")
+//				showReleaseEpoch(t, stateDb, uint64(epoch))
+//				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
+//			}
+//			t.Log("=====================")
+//			t.Log("case5 pass")
+//		}
+//	}
+//
+//	// case6: restricting account exist, and restricting epoch intersect
+//	{
+//		stateDb := buildStateDB(t)
+//
+//		// preset sender balance
+//		restrictingAmount := big.NewInt(int64(1E18))
+//		stateDb.AddBalance(sender, restrictingAmount)
+//
+//		// build db info
+//		buildDbRestrictingPlan(addrArr[0], t, stateDb)
+//
+//		// build plans for case3
+//		var plans = make([]restricting.RestrictingPlan, 1)
+//		plan.Epoch = uint64(5)
+//		plan.Amount = restrictingAmount
+//		plans[0] = plan
+//
+//		// Deduct a portion of the money to contract in advance
+//		stateDb.SubBalance(sender, restrictingAmount)
+//		stateDb.AddBalance(vm.RestrictingContractAddr, restrictingAmount)
+//
+//		err := RestrictingInstance().AddRestrictingRecord(sender, addrArr[0], plans, stateDb)
+//
+//		t.Log("=====================")
+//		t.Log("expected case6 of AddRestrictingRecord success")
+//		t.Log("expected balance of sender:", sender_balance)
+//		t.Log("expected balance of contract:", big.NewInt(int64(6E18)))
+//		t.Log("expected balance of restrict account: ", big.NewInt(int64(6E18)))
+//		t.Log("expected debt    of restrict account: ", 0)
+//		t.Log("expected symbol  of restrict account: ", false)
+//		t.Log("expected list    of restrict account: ", []uint64{1, 2, 3, 4, 5})
+//		for i := 0; i < 5; i++ {
+//			epoch := i + 1
+//			t.Log("=====================")
+//			t.Logf("expected account numbers of release epoch %d: 1", epoch)
+//			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
+//			if epoch == 5 {
+//				t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(2E18)))
+//			} else {
+//				t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
+//			}
+//		}
+//		t.Log("=====================")
+//
+//		if err != nil {
+//			t.Errorf("case6 of AddRestrictingRecord failed. Actually returns error: %s", err.Error())
+//		} else {
+//			t.Log("=====================")
+//			t.Log("case6 return success!")
+//			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
+//			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+//			showRestrictingAccountInfo(t, stateDb, addrArr[0])
+//			for i := 0; i < 5; i++ {
+//				epoch := i + 1
+//				t.Log("=====================")
+//				showReleaseEpoch(t, stateDb, uint64(epoch))
+//				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
+//			}
+//			t.Log("=====================")
+//			t.Log("case6 pass")
+//		}
+//	}
+//}
 
 func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 
@@ -810,7 +799,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		lockFunds := big.NewInt(int64(2E18))
 		notFoundAccount := common.HexToAddress("0x11")
 
-		err = plugin.RestrictingInstance().PledgeLockFunds(notFoundAccount, lockFunds, stateDb)
+		err = RestrictingInstance().PledgeLockFunds(notFoundAccount, lockFunds, stateDb)
 
 		// show expected result
 		t.Logf("expected error is [%s]", errAccountNotFound)
@@ -834,7 +823,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 
 		lockFunds := big.NewInt(int64(6E18))
 
-		err = plugin.RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
+		err = RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
 
 		// show expected result
 		t.Logf("expected error is [%s]", errBalanceNotEnough)
@@ -860,7 +849,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
 		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
-		err = plugin.RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
+		err = RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
 
 		// show expected result
 		t.Logf("expecetd error is [rlp: expected input list for restricting.RestrictingInfo]")
@@ -888,7 +877,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 
 		lockFunds := big.NewInt(int64(2E18))
 
-		err = plugin.RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
+		err = RestrictingInstance().PledgeLockFunds(addrArr[0], lockFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -935,7 +924,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		returnFunds := big.NewInt(int64(1E18))
 		notFoundAccount := common.HexToAddress("0x11")
 
-		err := plugin.RestrictingInstance().ReturnLockFunds(notFoundAccount, returnFunds, stateDb)
+		err := RestrictingInstance().ReturnLockFunds(notFoundAccount, returnFunds, stateDb)
 
 		// show expected result
 		t.Logf("expected error is [%s]", errAccountNotFound)
@@ -960,7 +949,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
 		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
-		err := plugin.RestrictingInstance().ReturnLockFunds(addrArr[0], lockFunds, stateDb)
+		err := RestrictingInstance().ReturnLockFunds(addrArr[0], lockFunds, stateDb)
 
 		// show expected result
 		t.Logf("expecetd error is [rlp: expected input list for restricting.RestrictingInfo]")
@@ -1017,7 +1006,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		stateDb.AddBalance(vm.RestrictingContractAddr, big.NewInt(1E18))
 
 		// do ReturnLockFunds
-		err = plugin.RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
+		err = RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -1087,7 +1076,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
 		// do ReturnLockFunds
-		err = plugin.RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
+		err = RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -1157,7 +1146,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(3E18))
 
 		// do ReturnLockFunds
-		err = plugin.RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
+		err = RestrictingInstance().ReturnLockFunds(addrArr[0], returnFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -1200,7 +1189,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		slashingFunds := big.NewInt(int64(1E18))
 		notFoundAccount := common.HexToAddress("0x11")
 
-		err := plugin.RestrictingInstance().SlashingNotify(notFoundAccount, slashingFunds, stateDb)
+		err := RestrictingInstance().SlashingNotify(notFoundAccount, slashingFunds, stateDb)
 
 		// show expected result
 		t.Logf("expected error is [%s]", errAccountNotFound)
@@ -1225,7 +1214,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		restrictingKey := restricting.GetRestrictingKey(restrictingAcc)
 		stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, []byte(testData))
 
-		err := plugin.RestrictingInstance().SlashingNotify(restrictingAcc, lockFunds, stateDb)
+		err := RestrictingInstance().SlashingNotify(restrictingAcc, lockFunds, stateDb)
 
 		// show expected result
 		t.Logf("expecetd error is [rlp: expected input list for restricting.RestrictingInfo]")
@@ -1281,7 +1270,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
 		// do SlashingNotify
-		err = plugin.RestrictingInstance().SlashingNotify(addrArr[0], slashFunds, stateDb)
+		err = RestrictingInstance().SlashingNotify(addrArr[0], slashFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -1354,7 +1343,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
 		// do SlashingNotify
-		err = plugin.RestrictingInstance().SlashingNotify(addrArr[0], slashFunds, stateDb)
+		err = RestrictingInstance().SlashingNotify(addrArr[0], slashFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -1427,7 +1416,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		stateDb.AddBalance(vm.StakingContractAddr, big.NewInt(1E18))
 
 		// do SlashingNotify
-		err = plugin.RestrictingInstance().SlashingNotify(addrArr[0], slashFunds, stateDb)
+		err = RestrictingInstance().SlashingNotify(addrArr[0], slashFunds, stateDb)
 
 		// show expected result
 		t.Log("=====================")
@@ -1464,93 +1453,73 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 	}
 }
 
-func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
-
-	// case1: restricting account not exist
-	{
-		stateDb := buildStateDB(t)
-
-		notFoundAccount := common.HexToAddress("0x11")
-		_, err := plugin.RestrictingInstance().GetRestrictingInfo(notFoundAccount, stateDb)
-
-		// show expected result
-		t.Logf("expected error is [%s]", errAccountNotFound)
-		t.Logf("actually error is [%v]", err)
-
-		if err != nil && err.Error() == errAccountNotFound.Error() {
-			t.Log("case1 of GetRestrictingInfo pass")
-			t.Log("=====================")
-			t.Log("case1 pass")
-		} else {
-			t.Error("case1 of GetRestrictingInfo failed.")
-		}
-	}
-
-	// case2: restricting account exist
-	{
-		stateDb := buildStateDB(t)
-
-		buildDbRestrictingPlan(addrArr[0], t, stateDb)
-
-		result, err := plugin.RestrictingInstance().GetRestrictingInfo(addrArr[0], stateDb)
-
-		t.Log("=====================")
-		t.Log("expected case2 of GetRestrictingInfo success")
-		t.Log("expected balance of restrict account: ", big.NewInt(int64(5E18)))
-		t.Log("expected slash   of restrict account: ", big.NewInt(0))
-		t.Log("expected debt    of restrict account: ", big.NewInt(0))
-		t.Log("expected staking of restrict account: ", big.NewInt(0))
-		for i := 0; i < 5; i++ {
-			expectedBlocks := uint64(i+1) * xutil.CalcBlocksEachEpoch()
-			t.Logf("expected release amount at blockNumber [%d] is: %v", expectedBlocks, big.NewInt(int64(1E18)))
-		}
-		t.Log("=====================")
-
-		if err != nil {
-			t.Errorf("case2 of GetRestrictingInfo failed. Actually returns error: %s", err.Error())
-		} else {
-
-			if len(result) == 0 {
-				t.Log("case2 of GetRestrictingInfo failed. Actually result is empty")
-			}
-
-			var res restricting.Result
-			if err = json.Unmarshal(result, &res); err != nil {
-				t.Fatalf("failed to elp decode result, result: %s", result)
-			}
-
-			t.Log("actually balance of restrict account: ", res.Balance)
-			t.Log("actually debt    of restrict account: ", res.Debt)
-			t.Log("actually symbol  of restrict account: ", res.Symbol)
-
-			for _, info := range res.Entry {
-				t.Logf("actually release amount at blockNumber [%d] is: %v", info.Height, info.Amount)
-			}
-			t.Log("=====================")
-			t.Log("case2 pass")
-		}
-	}
-
-	// case3: get genesis restricting info
-	{
-		stateDb, _, _ := newChainState()
-		result, err := plugin.RestrictingInstance().GetRestrictingInfo(vm.RewardManagerPoolAddr, stateDb)
-
-		// show expected result
-		t.Logf("expected result is [123 34 98 97 108 97 110 99 101 34 58 50 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 44 34 100 101 98 116 34 58 48 44 34 115 121 109 98 111 108 34 58 102 97 108 115 101 44 34 69 110 116 114 121 34 58 91 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 51 49 53 51 54 48 48 48 44 34 97 109 111 117 110 116 34 58 49 56 51 55 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 44 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 54 51 48 55 50 48 48 48 44 34 97 109 111 117 110 116 34 58 54 49 50 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 93 125]")
-		t.Logf("actually result is %v", result)
-
-		var res restricting.Result
-		if err != nil {
-			t.Error(err.Error())
-		} else {
-			if err := json.Unmarshal(result, &res); err != nil {
-				t.Error(err.Error())
-			} else {
-				t.Log(res)
-				t.Log("=====================")
-				t.Log("case3 pass")
-			}
-		}
-	}
-}
+//func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
+//
+//	t.Run("restricting account not exist", func(t *testing.T) {
+//		stateDb := buildStateDB(t)
+//		notFoundAccount := common.HexToAddress("0x11")
+//		_, err := RestrictingInstance().GetRestrictingInfo(notFoundAccount, stateDb)
+//		if err != errAccountNotFound {
+//			t.Errorf("restricting account not exist ,want err %v,have err %v", errAccountNotFound, err)
+//		}
+//	})
+//
+//	t.Run("restricting account exist", func(t *testing.T) {
+//
+//		stateDb := buildStateDB(t)
+//		buildDbRestrictingPlan(addrArr[0], t, stateDb)
+//		result, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], stateDb)
+//		if err != nil {
+//			t.Errorf("case2 of GetRestrictingInfo failed. Actually returns error: %s", err.Error())
+//		}
+//		t.Log("expected case2 of GetRestrictingInfo success")
+//		t.Log("expected balance of restrict account: ", big.NewInt(int64(5E18)))
+//		t.Log("expected slash   of restrict account: ", big.NewInt(0))
+//		t.Log("expected debt    of restrict account: ", big.NewInt(0))
+//		t.Log("expected staking of restrict account: ", big.NewInt(0))
+//		for i := 0; i < 5; i++ {
+//			expectedBlocks := uint64(i+1) * xutil.CalcBlocksEachEpoch()
+//			t.Logf("expected release amount at blockNumber [%d] is: %v", expectedBlocks, big.NewInt(int64(1E18)))
+//		}
+//
+//		if len(result) == 0 {
+//			t.Log("case2 of GetRestrictingInfo failed. Actually result is empty")
+//		}
+//
+//		var res restricting.Result
+//		if err = json.Unmarshal(result, &res); err != nil {
+//			t.Fatalf("failed to elp decode result, result: %s", result)
+//		}
+//
+//		t.Log("actually balance of restrict account: ", res.Balance)
+//		t.Log("actually debt    of restrict account: ", res.Debt)
+//		t.Log("actually symbol  of restrict account: ", res.Symbol)
+//
+//		for _, info := range res.Entry {
+//			t.Logf("actually release amount at blockNumber [%d] is: %v", info.Height, info.Amount)
+//		}
+//	})
+//
+//	// case3: get genesis restricting info
+//	{
+//		stateDb, _, _ := newChainState()
+//		result, err := RestrictingInstance().GetRestrictingInfo(vm.RewardManagerPoolAddr, stateDb)
+//
+//		// show expected result
+//		t.Logf("expected result is [123 34 98 97 108 97 110 99 101 34 58 50 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 44 34 100 101 98 116 34 58 48 44 34 115 121 109 98 111 108 34 58 102 97 108 115 101 44 34 69 110 116 114 121 34 58 91 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 51 49 53 51 54 48 48 48 44 34 97 109 111 117 110 116 34 58 49 56 51 55 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 44 123 34 98 108 111 99 107 78 117 109 98 101 114 34 58 54 51 48 55 50 48 48 48 44 34 97 109 111 117 110 116 34 58 54 49 50 53 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 125 93 125]")
+//		t.Logf("actually result is %v", result)
+//
+//		var res restricting.Result
+//		if err != nil {
+//			t.Error(err.Error())
+//		} else {
+//			if err := json.Unmarshal(result, &res); err != nil {
+//				t.Error(err.Error())
+//			} else {
+//				t.Log(res)
+//				t.Log("=====================")
+//				t.Log("case3 pass")
+//			}
+//		}
+//	}
+//}
