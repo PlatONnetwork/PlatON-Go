@@ -347,11 +347,11 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, notify []string, noverify bool, db ethdb.Database,
 	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
 	// If proof-of-authority is requested, set it up
-	if chainConfig.Cbft != nil {
-
-		return cbft.New(chainConfig.Cbft, cbftConfig, eventMux, ctx)
+	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, ctx)
+	if engine == nil {
+		panic("create consensus engine fail")
 	}
-	return nil
+	return engine
 }
 
 // APIs return the collection of RPC services the ethereum package offers.

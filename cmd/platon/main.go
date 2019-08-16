@@ -173,6 +173,7 @@ var (
 		utils.CbftEvidenceDir,
 		utils.CbftMaxPingLatency,
 		utils.CbftBlsPriKeyFileFlag,
+		utils.CbftBlacklistDeadlineFlag,
 	}
 )
 

@@ -135,7 +135,7 @@ func testViewChangeQC(t *testing.T, cnode []*Cbft) {
 	}
 	qc := cnode[0].generateViewChangeQC(pbs)
 	assert.Len(t, qc.QCs, len(cnode))
-	_, _, _, num := qc.MaxBlock()
+	_, _, _, _, _, num := qc.MaxBlock()
 	assert.Equal(t, uint64(len(cnode)-1), num)
 
 	assert.Nil(t, cnode[0].verifyViewChangeQC(qc))

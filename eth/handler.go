@@ -26,12 +26,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/fetcher"
@@ -42,6 +41,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 const (
@@ -174,7 +174,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 	heighter := func() uint64 {
 		//return blockchain.CurrentBlock().NumberU64()
-		return engine.CurrentBlock().NumberU64()
+		return engine.CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -563,7 +563,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Debug(fmt.Sprintf("Block body empty peer:%s hash:%s", p.id, hash.TerminalString()))
 			}
 		}
-		log.Debug(fmt.Sprintf("Send block body peer:%s,bodies:%v", p.id, len(bodies)))
+
+		log.Debug(fmt.Sprintf("Send block body peer:%s,bytes:%d,bodies:%d", p.id, bytes, len(bodies)))
 		return p.SendBlockBodiesRLP(bodies)
 
 	case msg.Code == BlockBodiesMsg:

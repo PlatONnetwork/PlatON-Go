@@ -33,7 +33,7 @@ type fakeCbft struct {
 	peers          []*peer           // Pre-initialized node for testing.
 }
 
-func (s *fakeCbft) NodeId() discover.NodeID {
+func (s *fakeCbft) NodeID() discover.NodeID {
 	return s.localPeer.Peer.ID()
 }
 
@@ -44,11 +44,12 @@ func (s *fakeCbft) ConsensusNodes() ([]discover.NodeID, error) {
 func (s *fakeCbft) Config() *types.Config {
 	return &types.Config{
 		Option: &types.OptionsConfig{
-			WalMode:          false,
-			PeerMsgQueueSize: 1024,
-			EvidenceDir:      "evidencedata",
-			MaxPingLatency:   5000,
-			MaxQueuesLimit:   4096,
+			WalMode:           false,
+			PeerMsgQueueSize:  1024,
+			EvidenceDir:       "evidencedata",
+			MaxPingLatency:    5000,
+			MaxQueuesLimit:    4096,
+			BlacklistDeadline: 1,
 		},
 		Sys: &params.CbftConfig{
 			Period: 3,
@@ -73,16 +74,16 @@ func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
 func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return s.localPeer.CommitBn(), common.Hash{}
 }
-func (s *fakeCbft) MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error) {
-	return []discover.NodeID{s.consensusNodes[0]}, &protocols.GetViewChange{
+func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
+	return &protocols.GetViewChange{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
 }
-func (cbft *fakeCbft) OnPong(nodeID string, netLatency int64) error {
+func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
-func (cbft *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
+func (s *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 	return nil
 }
 
@@ -92,9 +93,9 @@ func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {
 	var consensusNodes []discover.NodeID
 	var peers []*peer
 	writer, reader := p2p.MsgPipe()
-	var localId discover.NodeID
-	rand.Read(localId[:])
-	localPeer := NewPeer(1, p2p.NewPeer(localId, "local", nil), reader)
+	var localID discover.NodeID
+	rand.Read(localID[:])
+	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 
 	// Simulation generation test node.
 	for i := 0; i < testingPeerCount; i++ {
@@ -156,7 +157,8 @@ func Test_EngineManager_Handle(t *testing.T) {
 	// First send a status message and then to
 	// send consensus messages for processing.
 	go func() {
-		status := &protocols.CbftStatusData{1, big.NewInt(1), common.Hash{}, big.NewInt(2), common.Hash{}, big.NewInt(3), common.Hash{}}
+		status := &protocols.CbftStatusData{ProtocolVersion: 1, QCBn: big.NewInt(1), QCBlock: common.Hash{},
+			LockBn: big.NewInt(2), LockBlock: common.Hash{}, CmtBn: big.NewInt(3), CmtBlock: common.Hash{}}
 		p2p.Send(fake.localPeer.rw, protocols.CBFTStatusMsg, status)
 		t.Log("send status success.")
 		// send message that the type of consensus.
@@ -167,7 +169,7 @@ func Test_EngineManager_Handle(t *testing.T) {
 	//
 	protocols := h.Protocols()
 	protocols[0].NodeInfo()
-	pi := protocols[0].PeerInfo(fake.NodeId())
+	pi := protocols[0].PeerInfo(fake.NodeID())
 	assert.Nil(t, pi)
 	err := protocols[0].Run(fakePeer.Peer, fakePeer.rw)
 	//err := h.handler(fakePeer.Peer, fakePeer.rw)
@@ -242,14 +244,14 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 
 	// Verify that registration is successful.
 	checkedPeer := peers[1]
-	p, err := handle.GetPeer(checkedPeer.id)
+	p, err := handle.getPeer(checkedPeer.id)
 	if err != nil {
 		t.Error("register peer failed", err)
 	}
 	assert.Equal(t, checkedPeer.id, p.id)
 
 	// Should return an error if an empty string is passed in.
-	p, err = handle.GetPeer("")
+	p, err = handle.getPeer("")
 	assert.NotNil(t, err)
 
 	// The length of ConsensusNodes not equal to 0.

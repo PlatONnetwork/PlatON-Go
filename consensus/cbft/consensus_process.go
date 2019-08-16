@@ -6,6 +6,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -18,19 +19,20 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-// Perform security rule verification，store in blockTree, Whether to start synchronization
-func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err error) {
+// OnPrepareBlock performs security rule verification，store in blockTree,
+// Whether to start synchronization
+func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleError {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
-			return err
+			return &handleError{err}
 		} else if err.NewView() {
 			var block *types.Block
 			var qc *ctypes.QuorumCert
 			if msg.ViewChangeQC != nil {
-				_, _, hash, number := msg.ViewChangeQC.MaxBlock()
+				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
 			} else {
 				block, qc = cbft.blockTree.FindBlockAndQC(msg.Block.ParentHash(), msg.Block.NumberU64()-1)
@@ -39,20 +41,21 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err er
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		} else {
 			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-			return err
+			return &handleError{err}
 		}
 	}
 
 	var node *cbfttypes.ValidateNode
+	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
-		return err
+		return &authFailedError{err}
 	}
 
 	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
-			return err
+			return &handleError{err}
 		}
 	}
 
@@ -63,55 +66,65 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) (err er
 	return nil
 }
 
-// Perform security rule verification，store in blockTree, Whether to start synchronization
-func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) (err error) {
+// OnPrepareVote perform security rule verification，store in blockTree,
+// Whether to start synchronization
+func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleError {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
-		return err
+		return &handleError{err}
+	}
+
+	if cbft.state.FindPrepareVote(msg.BlockIndex, msg.ValidatorIndex) != nil {
+		cbft.log.Debug("Prepare vote has exist", "vote", msg.String())
+		return &handleError{errors.New("prepare vote has exist")}
 	}
 
 	cbft.prepareVoteFetchRules(id, msg)
 
 	var node *cbfttypes.ValidateNode
+	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return err
+		return authFailedError{err}
 	}
 
 	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
-			return err
+			return &handleError{err}
 		}
 	}
 
 	cbft.insertPrepareQC(msg.ParentQC)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
+	cbft.log.Debug("Add prepare vote", "msgHash", msg.MsgHash(), "blockIndex", msg.BlockIndex, "number", msg.BlockNumber, "hash", msg.BlockHash, "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
 
 	cbft.findQCBlock()
 	return nil
 }
 
-// Perform security rule verification, view switching
-func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) (err error) {
+// OnViewChange performs security rule verification, view switching.
+func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
-		return err
+		return &handleError{err}
 	}
 
 	var node *cbfttypes.ValidateNode
+	var err error
+
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return err
+		return authFailedError{err}
 	}
 
 	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
 			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
-			return err
+			return &handleError{err}
 		}
 	}
 
@@ -122,6 +135,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) (err error)
 	return nil
 }
 
+// OnViewTimeout performs timeout logic for view.
 func (cbft *Cbft) OnViewTimeout() {
 	cbft.log.Info("Current view timeout", "view", cbft.state.ViewString())
 	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
@@ -158,10 +172,10 @@ func (cbft *Cbft) OnViewTimeout() {
 	cbft.tryChangeView()
 }
 
-//Perform security rule verification, view switching
+// OnInsertQCBlock performs security rule verification, view switching.
 func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
 	if len(blocks) != len(qcs) {
-		return fmt.Errorf("block")
+		return fmt.Errorf("block qc is inconsistent")
 	}
 	//todo insert tree, update view
 	for i := 0; i < len(blocks); i++ {
@@ -189,10 +203,10 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
-	cbft.txPool.Reset(block)
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.state.SetHighestQCBlock(block)
+	cbft.txPool.Reset(block)
 	cbft.tryCommitNewBlock(lock, commit)
 	cbft.tryChangeView()
 	if cbft.insertBlockQCHook != nil {
@@ -466,7 +480,7 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	_, _, hash, number := viewChangeQC.MaxBlock()
+	_, _, _, _, hash, number := viewChangeQC.MaxBlock()
 	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
 	_, hc := cbft.blockTree.FindBlockAndQC(hash, number)
 	if block.NumberU64() != 0 && (number > qc.BlockNumber) && hc == nil {
@@ -488,9 +502,8 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	interval := func() uint64 {
 		if block.NumberU64() == 0 || qc.ViewNumber+1 != viewNumber {
 			return 1
-		} else {
-			return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
 		}
+		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
 	}
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())

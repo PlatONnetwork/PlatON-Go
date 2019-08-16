@@ -7,10 +7,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
+// Cbft defines the network layer to use the relevant interface
+// to the consensus layer.
 type Cbft interface {
 
 	// Returns the ID value of the current node.
-	NodeId() discover.NodeID
+	NodeID() discover.NodeID
 
 	// Return a list of all consensus nodes.
 	ConsensusNodes() ([]discover.NodeID, error)
@@ -36,7 +38,7 @@ type Cbft interface {
 	HighestCommitBlockBn() (uint64, common.Hash)
 
 	// Returns the node ID of the missing vote.
-	MissingViewChangeNodes() ([]discover.NodeID, *protocols.GetViewChange, error)
+	MissingViewChangeNodes() (*protocols.GetViewChange, error)
 
 	// OnPong records net delay time.
 	OnPong(nodeID string, netLatency int64) error

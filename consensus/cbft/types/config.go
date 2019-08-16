@@ -14,10 +14,11 @@ type OptionsConfig struct {
 	BlsPriKey  *bls.SecretKey
 	WalMode    bool
 
-	PeerMsgQueueSize uint64
-	EvidenceDir      string
-	MaxPingLatency   int64 // maxPingLatency is the time in milliseconds between Ping and Pong
-	MaxQueuesLimit   int64 // The maximum value that a single node can send a message.
+	PeerMsgQueueSize  uint64
+	EvidenceDir       string
+	MaxPingLatency    int64 // maxPingLatency is the time in milliseconds between Ping and Pong
+	MaxQueuesLimit    int64 // The maximum value that a single node can send a message.
+	BlacklistDeadline int64 // Blacklist expiration time. unit: minute.
 }
 
 type Config struct {

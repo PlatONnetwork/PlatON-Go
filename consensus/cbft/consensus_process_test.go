@@ -65,7 +65,11 @@ func TestTryViewChange(t *testing.T) {
 			PrepareQC:      qc,
 		}
 		assert.Nil(t, nodes[i].engine.signMsgByBls(viewchange))
-		assert.Nil(t, nodes[0].engine.OnViewChange("id", viewchange))
+		assert.Nil(t, nodes[0].engine.OnViewChanges("id", &protocols.ViewChanges{
+			VCs: []*protocols.ViewChange{
+				viewchange,
+			},
+		}))
 	}
 	assert.NotNil(t, nodes[0].engine.state.LastViewChangeQC())
 
