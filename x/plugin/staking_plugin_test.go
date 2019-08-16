@@ -110,19 +110,15 @@ func create_staking(state xcom.StateDB, blockNumber *big.Int, blockHash common.H
 	return StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, typ, canAddr, canTmp)
 }
 
-func getCandidate(blockHash common.Hash, index int, t *testing.T) *staking.Candidate {
+func getCandidate(blockHash common.Hash, index int) (*staking.Candidate, error) {
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
-	var c *staking.Candidate
 	if can, err := StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Log("Failed to Get Candidate info", err)
+		return nil, err
 	} else {
 
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
+		return can, nil
 	}
-	return c
 }
 
 func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
@@ -198,7 +194,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			fmt.Printf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
 			return
 		}
 
@@ -458,7 +454,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			fmt.Printf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
 			return
 		}
 
@@ -744,9 +740,6 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -781,14 +774,18 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	/**
 	Start Get Candidate Info
 	*/
-	getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 
 }
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -837,9 +834,6 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -891,9 +885,6 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -925,8 +916,16 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -951,14 +950,17 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	}
 
 	// get Candidate info after edit
-	getCandidate(blockHash2, index, t)
-
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 }
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -991,8 +993,16 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1028,9 +1038,6 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1062,8 +1069,16 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1080,14 +1095,17 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
 	t.Log("Finish WithdrewStaking ~~")
 	// get Candidate info
-	getCandidate(blockHash2, index, t)
+	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
+		t.Logf("expect candidate info is no found, err: %v", err)
+		return
+	} else {
+		t.Error("It is not expect~")
+		return
+	}
 
 }
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1131,7 +1149,13 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// Get Candidate Info
-	getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1149,15 +1173,18 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 	t.Log("Finish HandleUnCandidateItem ~~")
 
-	// get Candidate
-	getCandidate(blockHash2, index, t)
+	// get Candidate info
+	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
+		t.Logf("expect candidate info is no found, err: %v", err)
+		return
+	} else {
+		t.Error("It is not expect~")
+		return
+	}
 
 }
 
 func TestStakingPlugin_Delegate(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1190,8 +1217,16 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1212,14 +1247,18 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	}
 	t.Log("Finish Delegate ~~")
-	getCandidate(blockHash2, index, t)
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 
 }
 
 func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1246,8 +1285,16 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	// Delegate
 	del, err := delegate(state, blockHash, blockNumber, c, 0, index, t)
@@ -1262,7 +1309,13 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	}
 
 	t.Log("Finish delegate ~~")
-	getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1283,13 +1336,17 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		t.Error("Commit 2 err", err)
 	}
 	t.Log("Finish WithdrewDelegate ~~")
-	getCandidate(blockHash2, index, t)
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 }
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1322,7 +1379,17 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 	}
 
 	t.Log("Finish delegate ~~")
-	c := getCandidate(blockHash, index, t)
+
+	var c *staking.Candidate
+
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1348,9 +1415,6 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1382,7 +1446,15 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 		return
 	}
 
-	c := getCandidate(blockHash, index, t)
+	var c *staking.Candidate
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1419,9 +1491,6 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1451,7 +1520,16 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	t.Log("First delegate ~~")
 	for i := 0; i < 2; i++ {
 		// 0, 1
-		c := getCandidate(blockHash, i, t)
+		var c *staking.Candidate
+
+		if can, err := getCandidate(blockHash, i); nil != err {
+			t.Errorf("Failed to Get candidate info, err: %v", err)
+			return
+		} else {
+			canByte, _ := json.Marshal(can)
+			t.Log("Get Candidate Info is:", string(canByte))
+			c = can
+		}
 		// Delegate  0, 1
 		_, err := delegate(state, blockHash, blockNumber, c, 0, i, t)
 		if nil != err {
@@ -1476,7 +1554,16 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	t.Log("Second delegate ~~")
 	for i := 1; i < 3; i++ {
 		// 0, 1
-		c := getCandidate(blockHash2, i-1, t)
+		var c *staking.Candidate
+		if can, err := getCandidate(blockHash2, i-1); nil != err {
+			t.Errorf("Failed to Get candidate info, err: %v", err)
+			return
+		} else {
+			canByte, _ := json.Marshal(can)
+			t.Log("Get Candidate Info is:", string(canByte))
+			c = can
+		}
+
 		// Delegate
 		_, err := delegate(state, blockHash2, blockNumber2, c, 0, i, t)
 		if nil != err {
@@ -1509,9 +1596,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 
 func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1538,7 +1622,17 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 		return
 	}
 
-	c := getCandidate(blockHash, index, t)
+	var c *staking.Candidate
+
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
+
 	// Delegate
 	_, err = delegate(state, blockHash, blockNumber, c, 0, index, t)
 	if nil != err {
@@ -1618,7 +1712,14 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	t.Log("Finished HandleUnDelegateItem ~~")
 
 	// get Candiddate
-	c = getCandidate(blockHash2, index, t)
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	// get Delegate
 	getDelegate(blockHash2, c.StakingBlockNum, index, t)
@@ -1801,9 +1902,6 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 }
 
 func TestStakingPlugin_Election(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2005,9 +2103,6 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2178,12 +2273,6 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
-	//a, _ := json.Marshal(slash1)
-	//b, _ := json.Marshal(slash2)
-	//
-	//fmt.Println(string(a))
-	//fmt.Println(string(b))
-
 	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Released, false, staking.LowRatio, common.ZeroAddr)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates first can (LowRatio), err: %v", err)
@@ -2202,9 +2291,6 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 }
 
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2324,9 +2410,6 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 }
 
 func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2474,9 +2557,6 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2655,9 +2735,6 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2854,9 +2931,6 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3052,9 +3126,6 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3235,9 +3306,6 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 }
 
 func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3426,9 +3494,6 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3601,9 +3666,6 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 func TestStakingPlugin_IsCandidate(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3723,9 +3785,6 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCurrValidator(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3922,9 +3981,6 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -4105,9 +4161,6 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 // for consensus
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4290,9 +4343,6 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 }
 
 func TestStakingPlugin_GetValidator(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4479,9 +4529,6 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCandidateNode(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4702,9 +4749,6 @@ Expand test cases
 */
 
 func Test_IteratorCandidate(t *testing.T) {
-
-	//defer ClearStakingPlugin()
-	//defer ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
