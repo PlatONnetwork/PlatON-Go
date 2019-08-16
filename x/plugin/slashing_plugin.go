@@ -287,9 +287,9 @@ func (sp *SlashingPlugin) executeSlash(evidence consensus.Evidence, blockHash co
 			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 			return common.NewBizError(errDuplicateSignVerify.Error())
 		}
-		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignLowSlash(), blockNumber)
+		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()),
-			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignLowSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
+			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, true, staking.DuplicateSign, caller); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return err
