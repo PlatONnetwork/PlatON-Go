@@ -3,6 +3,8 @@ package gov
 import (
 	"encoding/json"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -193,7 +195,7 @@ func (self *GovDB) GetPreActiveVersion(state xcom.StateDB) uint32 {
 
 // Set active version record
 func (self *GovDB) AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.StateDB) error {
-	avList, err := self.ListActiveVersion(state)
+	avList, err := ListActiveVersion(state)
 	if err != nil {
 		return err
 	}
@@ -206,7 +208,7 @@ func (self *GovDB) AddActiveVersion(activeVersion uint32, activeBlock uint64, st
 	return nil
 }
 
-func (self *GovDB) ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
+func /*(self *GovDB)*/ ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
 	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
 	if len(avListBytes) == 0 {
 		return nil, nil
@@ -219,13 +221,21 @@ func (self *GovDB) ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, 
 }
 
 // Get current active version record
-func (self *GovDB) GetCurrentActiveVersion(state xcom.StateDB) uint32 {
-	avList, err := self.ListActiveVersion(state)
+func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
+	avList, err := ListActiveVersion(state)
 	if err != nil {
 		log.Error("Cannot find active version list")
 		return 0
 	}
-	return avList[0].ActiveVersion
+
+	var version uint32
+	if len(avList) == 0 {
+		version = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	} else {
+		version = avList[0].ActiveVersion
+	}
+
+	return version
 }
 
 // Get voting proposal

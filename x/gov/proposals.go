@@ -194,7 +194,7 @@ func (vp VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return err
 	}
 
-	if vp.NewVersion>>8 <= uint32(GovDBInstance().GetCurrentActiveVersion(state))>>8 {
+	if vp.NewVersion>>8 <= uint32(GetCurrentActiveVersion(state))>>8 {
 		return common.NewBizError("New version should larger than current active version.")
 	}
 
