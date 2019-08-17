@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -471,16 +473,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 
 	return rlpData
 }
-func FnSigns() map[uint16]interface{} {
-	return map[uint16]interface{}{
-		// Get
-		2100: GetProposal,
-	}
-}
-
-func GetProposal(proposalID common.Hash) {
-
-}
 
 func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{}, FnParams []reflect.Value, err error) {
 
@@ -540,7 +532,9 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 func main() {
 	data := "0xe683820834a1a0373e89d01414ff4b02a638599b093c2a5cb7ae5a9c30c2653a451b320ec28ffe"
 	bs, _ := hexutil.Decode(data)
-	if fn, _, err := Verify_tx_data(bs, FnSigns()); err != nil {
+
+	gc := &vm.GovContract{}
+	if fn, _, err := Verify_tx_data(bs, gc.FnSigns()); err != nil {
 		fmt.Print(err)
 	} else {
 		fmt.Print(fn)
