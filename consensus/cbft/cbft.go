@@ -6,7 +6,10 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync/atomic"
+
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -43,7 +46,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
-const cbftVersion = 1
+const (
+	cbftVersion = 1
+
+	maxStatQueuesSize = 200
+)
 
 type HandleError interface {
 	error
@@ -123,9 +130,13 @@ type Cbft struct {
 	updateChainStateHook cbfttypes.UpdateChainStateFn
 
 	// Record the number of peer requests for obtaining cbft information.
-
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
 	queuesLock sync.RWMutex
+
+	// Record message repetitions.
+	statQueues       map[common.Hash]map[string]int
+	statQueuesLock   sync.RWMutex
+	messageHashCache mapset.Set
 
 	// Delay time of each node
 	netLatencyMap  map[string]*list.List
@@ -153,6 +164,8 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
+		statQueues:         make(map[common.Hash]map[string]int),
+		messageHashCache:   mapset.NewSet(),
 		netLatencyMap:      make(map[string]*list.List),
 	}
 
@@ -265,8 +278,10 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
 		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		cbft.forgetMessage(msg.PeerID)
 		return nil
 	}
+
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
@@ -308,6 +323,49 @@ func (cbft *Cbft) forgetMessage(peerID string) error {
 	return nil
 }
 
+// statMessage statistics record of duplicate messages.
+func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
+	if msg == nil {
+		return fmt.Errorf("invalid msg")
+	}
+	cbft.statQueuesLock.Lock()
+	defer cbft.statQueuesLock.Unlock()
+
+	for cbft.messageHashCache.Cardinality() >= maxStatQueuesSize {
+		msgHash := cbft.messageHashCache.Pop().(common.Hash)
+		// Printout.
+		var bf bytes.Buffer
+		for k, v := range cbft.statQueues[msgHash] {
+			bf.WriteString(fmt.Sprintf("{%s:%d},", k, v))
+		}
+		output := strings.TrimSuffix(bf.String(), ",")
+		cbft.log.Debug("Statistics sync message", "msgHash", msgHash, "stat", output)
+		// remove the key from map.
+		delete(cbft.statQueues, msgHash)
+	}
+	// Reset the variable if there is a difference
+	// between the map and the set data.
+	if len(cbft.statQueues) > maxStatQueuesSize {
+		cbft.messageHashCache.Clear()
+		cbft.statQueues = make(map[common.Hash]map[string]int)
+	}
+
+	hash := msg.Msg.MsgHash()
+	if _, ok := cbft.statQueues[hash]; ok {
+		if _, exists := cbft.statQueues[hash][msg.PeerID]; exists {
+			cbft.statQueues[hash][msg.PeerID]++
+		} else {
+			cbft.statQueues[hash][msg.PeerID] = 1
+		}
+	} else {
+		cbft.statQueues[hash] = map[string]int{
+			msg.PeerID: 1,
+		}
+		cbft.messageHashCache.Add(hash)
+	}
+	return nil
+}
+
 // ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
 //
 // Possible message types are:
@@ -318,6 +376,10 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
 	}
+
+	// message stat.
+	cbft.statMessage(msg)
+
 	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
@@ -437,7 +499,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) HandleError {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err)
 	}
 	return err
 }

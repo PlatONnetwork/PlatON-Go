@@ -391,11 +391,13 @@ func (cbft *Cbft) findQCBlock() {
 	if prepareQC() {
 		block := cbft.state.ViewBlockByIndex(next)
 		qc := cbft.generatePrepareQC(cbft.state.AllPrepareVoteByIndex(next))
-		cbft.insertQCBlock(block, qc)
-		cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
-		// metrics
-		blockQCCollectedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
-		cbft.trySendPrepareVote()
+		if qc != nil {
+			cbft.insertQCBlock(block, qc)
+			cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
+			// metrics
+			blockQCCollectedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
+			cbft.trySendPrepareVote()
+		}
 	}
 
 	cbft.tryChangeView()

@@ -368,7 +368,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 
 		// Blacklist check.
 		if h.ContainsBlacklist(peer.PeerID()) {
-			p.Log().Error("CBFT handshake, the peer node has been recorded in the blacklist")
+			p.Log().Error("CBFT handshake, peer that are forbidden to connect")
 			return fmt.Errorf("illegal node: {%s}", peer.PeerID())
 		}
 
@@ -715,7 +715,7 @@ func (h *EngineManager) synchronize() {
 					continue
 				}
 				if t, ok := v.(time.Time); ok {
-					if !t.Before(time.Now()) {
+					if t.Before(time.Now()) {
 						h.blacklist.Remove(k)
 						log.Debug("Remove blacklist success", "peerID", k)
 					}
