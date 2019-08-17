@@ -429,7 +429,7 @@ func (cbft *Cbft) receiveLoop() {
 			if err == nil {
 				cbft.network.MarkHistoryMessageHash(msg.Msg.MsgHash())
 				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
-					cbft.log.Warn("Forward message failed", "err", err)
+					cbft.log.Debug("Forward message failed", "err", err)
 				}
 			} else if err.AuthFailed() {
 				// If the verification signature is abnormal,
