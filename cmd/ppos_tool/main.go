@@ -25,15 +25,17 @@ var (
 
 // createStaking
 type Ppos_1000 struct {
-	Typ            uint16
-	BenefitAddress common.Address
-	NodeId         discover.NodeID
-	ExternalId     string
-	NodeName       string
-	Website        string
-	Details        string
-	Amount         *big.Int
-	ProgramVersion uint32
+	Typ                uint16
+	BenefitAddress     common.Address
+	NodeId             discover.NodeID
+	ExternalId         string
+	NodeName           string
+	Website            string
+	Details            string
+	Amount             *big.Int
+	ProgramVersion     uint32
+	ProgramVersionSign common.VersionSign
+	BlsPubKey          string
 }
 
 // editorCandidate
@@ -248,6 +250,8 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			details, _ := rlp.EncodeToBytes(cfg.P1000.Details)
 			amount, _ := rlp.EncodeToBytes(cfg.P1000.Amount)
 			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
+			programVersionSign, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersionSign)
+			blsPubKey, _ := rlp.EncodeToBytes(cfg.P1000.BlsPubKey)
 			params = append(params, typ)
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
@@ -257,6 +261,8 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, details)
 			params = append(params, amount)
 			params = append(params, programVersion)
+			params = append(params, programVersionSign)
+			params = append(params, blsPubKey)
 		}
 	case 1001:
 		{
