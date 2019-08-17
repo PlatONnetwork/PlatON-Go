@@ -49,7 +49,7 @@ func (s *fakeCbft) Config() *types.Config {
 			EvidenceDir:       "evidencedata",
 			MaxPingLatency:    5000,
 			MaxQueuesLimit:    4096,
-			BlacklistDeadline: 1,
+			BlacklistDeadline: 5,
 		},
 		Sys: &params.CbftConfig{
 			Period: 3,
@@ -187,10 +187,7 @@ func Test_EngineManager_Forwarding(t *testing.T) {
 	// 2.need not to broadcast, the count of sendQueues is 0.
 	fakePeer := peers[1]
 	handle.peers.Register(fakePeer)
-	fakeMessage := &protocols.PrepareBlockHash{
-		BlockHash:   common.Hash{},
-		BlockNumber: 1,
-	}
+	fakeMessage := newFakeViewChange()
 	forward := func(msg types.Message) error {
 		return handle.Forwarding("", fakeMessage)
 	}
@@ -199,16 +196,11 @@ func Test_EngineManager_Forwarding(t *testing.T) {
 		t.Error("forwarding failed.", err)
 	}
 
-	select {
-	case <-handle.sendQueue:
-		assert.Equal(t, 0, len(handle.sendQueue))
-	}
-
 	// mark the msgHash to queues.
 	fakePeer.MarkMessageHash(fakeMessage.MsgHash())
 	err = forward(fakeMessage)
 	assert.NotNil(t, err)
-	assert.Equal(t, 0, len(handle.sendQueue))
+	assert.Equal(t, 1, len(handle.sendQueue))
 }
 
 func Test_EngineManager_Send(t *testing.T) {
@@ -254,6 +246,15 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 	p, err = handle.getPeer("")
 	assert.NotNil(t, err)
 
+	// blacklist
+	p1 := peers[0].PeerID()
+	p2 := peers[1].PeerID()
+	handle.MarkBlacklist(p1)
+	handle.MarkBlacklist(p2)
+
+	assert.True(t, handle.ContainsBlacklist(p1))
+	assert.True(t, handle.ContainsBlacklist(p2))
+
 	// The length of ConsensusNodes not equal to 0.
 	ds, err := handle.ConsensusNodes()
 	assert.NotEqual(t, 0, len(ds))
@@ -263,7 +264,9 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 	}()
 	var wg sync.WaitGroup
 	wg.Add(1)
-	time.AfterFunc(7*time.Second, func() {
+	time.AfterFunc(23*time.Second, func() {
+		assert.True(t, handle.ContainsBlacklist(p1))
+		assert.True(t, handle.ContainsBlacklist(p2))
 		handle.Close()
 		t.Log("handle close")
 		wg.Done()
