@@ -15,12 +15,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var (
@@ -65,12 +62,25 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Ev
 }
 
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
+	log.Debug("slashingPlugin BeginBlock", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()),
+		"consensusSize", xutil.ConsensusSize())
+	if (header.Number.Uint64()%xutil.ConsensusSize() == 1) && header.Number.Uint64() > 1 {
+		if err := sp.switchEpoch(header.Number.Uint64(), blockHash); nil != err {
+			log.Error("slashingPlugin switchEpoch fail", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+			return err
+		}
+	}
+	if err := sp.setPackAmount(blockHash, header); nil != err {
+		log.Error("slashingPlugin setPackAmount fail", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+		return err
+	}
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
 	if header.Number.Uint64() > xutil.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash",
 			hex.EncodeToString(blockHash.Bytes()), "consensusSize", xutil.ConsensusSize(),
 			"electionDistance", xcom.ElectionDistance())
-		if result, err := sp.GetPreNodeAmount(); nil != err {
+		if result, err := sp.GetPreNodeAmount(header.ParentHash); nil != err {
 			return err
 		} else {
 			if nil == result {
@@ -126,18 +136,6 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 }
 
 func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
-	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
-	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xutil.ConsensusSize())
-	if (block.NumberU64()%xutil.ConsensusSize() == 1) && block.NumberU64() > 1 {
-		if err := sp.switchEpoch(block.Hash()); nil != err {
-			log.Error("slashingPlugin switchEpoch fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
-			return err
-		}
-	}
-	if err := sp.setPackAmount(block.Hash(), block.Header()); nil != err {
-		log.Error("slashingPlugin setPackAmount fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
-		return err
-	}
 	return nil
 }
 
@@ -147,7 +145,7 @@ func (sp *SlashingPlugin) getPackAmount(blockHash common.Hash, header *types.Hea
 	if nil != err {
 		return 0, err
 	}
-	value, err := sp.db.GetBaseDB(curKey(nodeId.Bytes()))
+	value, err := sp.db.Get(blockHash, curKey(nodeId.Bytes()))
 	if nil != err && err != snapshotdb.ErrNotFound {
 		return 0, err
 	}
@@ -155,9 +153,7 @@ func (sp *SlashingPlugin) getPackAmount(blockHash common.Hash, header *types.Hea
 	if err == snapshotdb.ErrNotFound {
 		amount = 0
 	} else {
-		if err := rlp.DecodeBytes(value, &amount); nil != err {
-			return 0, err
-		}
+		amount = common.BytesToUint32(value)
 	}
 	return amount, nil
 }
@@ -172,78 +168,59 @@ func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Hea
 		return err
 	} else {
 		value++
-		if enValue, err := rlp.EncodeToBytes(value); nil != err {
+		if err := sp.db.Put(blockHash, curKey(nodeId.Bytes()), common.Uint32ToBytes(value)); nil != err {
 			return err
-		} else {
-			if err := sp.db.PutBaseDB(curKey(nodeId.Bytes()), enValue); nil != err {
-				return err
-			}
-			log.Debug("slashingPlugin setPackAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "value", value)
 		}
+		log.Debug("slashingPlugin setPackAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "value", value)
 	}
 	return nil
 }
 
-func (sp *SlashingPlugin) switchEpoch(blockHash common.Hash) error {
-	log.Debug("slashingPlugin switchEpoch", "blockHash", hex.EncodeToString(blockHash.Bytes()))
+func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash) error {
+	log.Debug("slashingPlugin switchEpoch", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()))
 	preCount := 0
-	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
-		for iter.Next() {
-			if err := sp.db.DelBaseDB(iter.Key()); nil != err {
-				return err
-			}
-			preCount++
+	iter := sp.db.Ranking(blockHash, preAbnormalPrefix, 0)
+	for iter.Next() {
+		log.Debug("slashingPlugin switchEpoch ranking pre", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", iter.Value())
+		if err := sp.db.Del(blockHash, iter.Key()); nil != err {
+			return err
 		}
-		return nil
-	})
-	if nil != err {
-		return err
+		preCount++
 	}
+
 	curCount := 0
-	err = sp.db.WalkBaseDB(util.BytesPrefix(curAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
-		for iter.Next() {
-			key := iter.Key()
-			if err := sp.db.DelBaseDB(key); nil != err {
-				return err
-			}
-			key = preKey(key[len(curAbnormalPrefix):])
-			if err := sp.db.PutBaseDB(key, iter.Value()); nil != err {
-				return err
-			}
-			curCount++
+	iter = sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
+	for iter.Next() {
+		key := iter.Key()
+		log.Debug("slashingPlugin switchEpoch ranking cur", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", iter.Value())
+		if err := sp.db.DelBaseDB(key); nil != err {
+			return err
 		}
-		return nil
-	})
-	if nil != err {
-		return err
+		key = preKey(key[len(curAbnormalPrefix):])
+		log.Debug("slashingPlugin switchEpoch ranking change pre", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", iter.Value())
+		if err := sp.db.PutBaseDB(key, iter.Value()); nil != err {
+			return err
+		}
+		curCount++
 	}
-	log.Info("slashingPlugin switchEpoch success", "blockHash", hex.EncodeToString(blockHash.Bytes()), "preCount", preCount, "curCount", curCount)
+	log.Info("slashingPlugin switchEpoch success", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "preCount", preCount, "curCount", curCount)
 	return nil
 }
 
 // Get the consensus rate of all nodes in the previous round
-func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint32, error) {
+func (sp *SlashingPlugin) GetPreNodeAmount(parentHash common.Hash) (map[discover.NodeID]uint32, error) {
 	result := make(map[discover.NodeID]uint32)
-	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
-		for iter.Next() {
-			key := iter.Key()
-			value := iter.Value()
-			var amount uint32
-			if err := rlp.DecodeBytes(value, &amount); nil != err {
-				log.Error("slashingPlugin rlp block amount fail", "value", value, "err", err)
-				return err
-			}
-			log.Debug("slashingPlugin GetPreEpochAnomalyNode", "key", hex.EncodeToString(key), "value", amount)
-			nodeId, err := getNodeId(preAbnormalPrefix, key)
-			if nil != err {
-				return err
-			}
-			result[nodeId] = amount
+	iter := sp.db.Ranking(parentHash, preAbnormalPrefix, 0)
+	for iter.Next() {
+		key := iter.Key()
+		value := iter.Value()
+		amount := common.BytesToUint32(value)
+		log.Debug("slashingPlugin GetPreEpochAnomalyNode", "parentHash", parentHash.Hex(), "key", hex.EncodeToString(key), "value", amount)
+		nodeId, err := getNodeId(preAbnormalPrefix, key)
+		if nil != err {
+			return nil, err
 		}
-		return nil
-	})
-	if nil != err {
-		return nil, err
+		result[nodeId] = amount
 	}
 	return result, nil
 }
