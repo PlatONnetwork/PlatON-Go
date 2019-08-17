@@ -113,13 +113,6 @@ func (bcr *BlockChainReactor) loop() {
 
 			}
 
-			// Slashing
-			if plugin, ok := bcr.basePluginMap[xcom.SlashingRule]; ok {
-				if err := plugin.Confirmed(block); nil != err {
-					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
-				}
-			}
-
 			log.Debug("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
@@ -161,6 +154,7 @@ func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 		if nil != bcr.chandler {
 			bcr.chandler.SetPrivateKey(privateKey)
 		}
+		plugin.SlashInstance().SetPrivateKey(privateKey)
 	}
 }
 
