@@ -473,8 +473,12 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 func FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Get
-		2100: Verify_tx_data,
+		2100: GetProposal,
 	}
+}
+
+func GetProposal(proposalID common.Hash) {
+
 }
 
 func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{}, FnParams []reflect.Value, err error) {
@@ -504,9 +508,9 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 		log.Error("data::::", "The TypeOf", t.Name())
 		log.Error("data::::", "The TypeOf", t.String())
 
-		v := reflect.ValueOf(fn)
+		/*v := reflect.ValueOf(fn)
 		log.Error("data::::", "The ValueOf", v)
-		log.Error("data::::", "The ValueOf", v.String())
+		log.Error("data::::", "The ValueOf", v.String())*/
 
 		// the func params type list
 		paramList := reflect.TypeOf(fn)
