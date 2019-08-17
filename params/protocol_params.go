@@ -98,12 +98,12 @@ const (
 	DelegateGas         uint64 = 16000 // Gas needed for delegate
 	WithdrewDelegateGas uint64 = 8000  // Gas needed for withdrewDelegate
 
-	GovGas                   uint64 = 9000                    // Gas needed for precompiled contract: govContract
-	SubmitTextProposalGas    uint64 = 350000 - TxGas - GovGas // Gas needed for submitText
-	SubmitVersionProposalGas uint64 = 480000 - TxGas - GovGas // Gas needed for submitVersion
-	SubmitCancelProposalGas  uint64 = 530000 - TxGas - GovGas // Gas needed for submitParam
-	VoteGas                  uint64 = 32000 - TxGas - GovGas  // Gas needed for vote
-	DeclareVersionGas        uint64 = 33000 - TxGas - GovGas  // Gas needed for declareVersion
+	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
+	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
+	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion
+	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitParam
+	VoteGas                  uint64 = 2000   // Gas needed for vote
+	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
 
 	SlashingGas              uint64 = 1000  // Gas needed for precompiled contract: slashingContract
 	ReportDuplicateSignGas   uint64 = 1000  // Gas needed for ReportDuplicateSign
