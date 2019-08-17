@@ -231,6 +231,15 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 		Number: new(big.Int).SetUint64(uint64(startNumber)),
 		Extra:  make([]byte, 97),
 	}
+	sk, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	sign, err := crypto.Sign(header.SealHash().Bytes(), sk)
+	if nil != err {
+		t.Fatal(err)
+	}
+	copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
 	if err := snapshotdb.Instance().NewBlock(header.Number, phash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
