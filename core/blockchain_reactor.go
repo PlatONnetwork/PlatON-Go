@@ -227,10 +227,12 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		blockHash = header.Hash()
 		// Verify vrf proof
 		sign := header.Extra[32:97]
-		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
+		sealHash := header.SealHash().Bytes()
+		pk, err := crypto.SigToPub(sealHash, sign)
 		if nil != err {
 			return err
 		}
+		log.Debug("BeginBlock verifyVrf", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(sealHash), "nodeId", discover.PubkeyID(pk).String())
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
 		}
