@@ -187,7 +187,7 @@ func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash)
 	preCount := 0
 	iter := sp.db.Ranking(blockHash, preAbnormalPrefix, 0)
 	for iter.Next() {
-		log.Debug("slashingPlugin switchEpoch ranking pre", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", iter.Value())
+		log.Debug("slashingPlugin switchEpoch ranking pre", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", common.BytesToUint32(iter.Value()))
 		if err := sp.db.Del(blockHash, iter.Key()); nil != err {
 			return err
 		}
@@ -198,13 +198,13 @@ func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash)
 	iter = sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
 	for iter.Next() {
 		key := iter.Key()
-		log.Debug("slashingPlugin switchEpoch ranking cur", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", iter.Value())
-		if err := sp.db.DelBaseDB(key); nil != err {
+		log.Debug("slashingPlugin switchEpoch ranking cur", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", common.BytesToUint32(iter.Value()))
+		if err := sp.db.Del(blockHash, key); nil != err {
 			return err
 		}
 		key = preKey(key[len(curAbnormalPrefix):])
-		log.Debug("slashingPlugin switchEpoch ranking change pre", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", iter.Value())
-		if err := sp.db.PutBaseDB(key, iter.Value()); nil != err {
+		log.Debug("slashingPlugin switchEpoch ranking change pre", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(iter.Value()))
+		if err := sp.db.Put(blockHash, key, iter.Value()); nil != err {
 			return err
 		}
 		curCount++
