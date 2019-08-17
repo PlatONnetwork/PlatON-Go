@@ -17,67 +17,66 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-func getGovDB() (*GovDB, xcom.StateDB) {
-	GovDBInstance()
+var (
+	statedb    xcom.StateDB
+	snapdbTest snapshotdb.DB
+)
+
+func Init() {
+	snapdbTest = snapshotdb.Instance()
 	c := mock.NewChain(nil)
-	return GovDBInstance(), c.StateDB
+	statedb = c.StateDB
 }
 
 func TestGovDB_SetGetTxtProposal(t *testing.T) {
-
-	db, statedb := getGovDB()
-
-	snapdb := snapshotdb.Instance()
-	defer snapdb.Clear()
+	Init()
+	defer snapdbTest.Clear()
 
 	proposal := getTxtProposal()
-	if e := db.SetProposal(proposal, statedb); e != nil {
+	if e := SetProposal(proposal, statedb); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
-	if proposalGet, e := db.GetProposal(proposal.ProposalID, statedb); e != nil {
+	if proposalGet, e := GetProposal(proposal.ProposalID, statedb); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
 		if proposalGet.GetPIPID() != proposal.GetPIPID() {
 			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetPIPID(), proposalGet.GetPIPID())
 		}
 	}
-	db.Reset()
 }
 
 func TestGovDB_SetGetVerProposal(t *testing.T) {
-	db, statedb := getGovDB()
-
-	snapdb := snapshotdb.Instance()
-	defer snapdb.Clear()
+	Init()
+	defer snapdbTest.Clear()
 
 	proposal := getVerProposal(common.Hash{0x1})
-	if e := db.SetProposal(proposal, statedb); e != nil {
+	if e := SetProposal(proposal, statedb); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
 	//var proposalGet  Proposal
-	if proposalGet, e := db.GetProposal(proposal.ProposalID, statedb); e != nil {
+	if proposalGet, e := GetProposal(proposal.ProposalID, statedb); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
 		if proposalGet.GetPIPID() != proposal.GetPIPID() {
 			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetPIPID(), proposalGet.GetPIPID())
 		}
 	}
-	db.Reset()
 }
 
 func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
-	db, statedb := getGovDB()
+	Init()
+	defer snapdbTest.Clear()
 
 	var proposalIds []common.Hash
 	var proposalIdsEnd []common.Hash
 	var proposalIdsPre common.Hash
 
-	snapdb := snapshotdb.Instance()
-	defer snapdb.Clear()
+	snapdbTest := snapshotdb.Instance()
+	defer snapdbTest.Clear()
 	//create block
-	blockhash, e := newblock(snapdb, big.NewInt(1))
+	blockhash, e := newblock(snapdbTest, big.NewInt(1))
 	if e != nil {
 		t.Fatalf("create block error ...%s", e)
 	}
@@ -85,16 +84,16 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	totalLen := 10
 	for i := 1; i <= totalLen; i++ {
 		proposal := getVerProposal(common.Hash{byte(i)})
-		if err := db.AddVotingProposalID(blockhash, proposal.ProposalID); err != nil {
+		if err := AddVotingProposalID(blockhash, proposal.ProposalID); err != nil {
 			t.Fatalf("add voting proposal failed...%s", err)
 		}
 		proposalIds = append(proposalIds, proposal.ProposalID)
 
-		db.SetProposal(proposal, statedb)
+		SetProposal(proposal, statedb)
 	}
 
 	for i := 0; i < 2; i++ {
-		if err := db.MoveVotingProposalIDToEnd(blockhash, proposalIds[i], statedb); err != nil {
+		if err := MoveVotingProposalIDToEnd(blockhash, proposalIds[i], statedb); err != nil {
 			t.Fatalf("move voting proposal to end failed...%s", err)
 		} else {
 			proposalIdsEnd = append(proposalIdsEnd, proposalIds[i])
@@ -102,14 +101,14 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 		}
 	}
 
-	if err := db.MoveVotingProposalIDToPreActive(blockhash, proposalIds[1]); err != nil {
+	if err := MoveVotingProposalIDToPreActive(blockhash, proposalIds[1]); err != nil {
 		t.Fatalf("move voting proposal to pre active failed...%s", err)
 	} else {
 		proposalIdsPre = proposalIds[1]
 		proposalIds = append(proposalIds[:1], proposalIds[2:]...)
 	}
 
-	if proposals, e := db.GetProposalList(blockhash, statedb); e != nil {
+	if proposals, e := GetProposalList(blockhash, statedb); e != nil {
 		t.Fatalf("get proposal list error ,%s", e)
 	} else {
 		if len(proposals) != totalLen {
@@ -117,21 +116,21 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 		}
 	}
 
-	if plist, e := db.ListEndProposalID(blockhash); e != nil {
+	if plist, e := ListEndProposalID(blockhash); e != nil {
 		t.Fatalf("list end propsal error,%s", e)
 	} else {
 		if len(plist) != len(proposalIdsEnd) {
 			t.Fatalf("get end proposal list error ,expect len:%d,get len: %d", len(proposalIdsEnd), len(plist))
 		}
 	}
-	if plist, e := db.ListVotingProposal(blockhash); e != nil {
+	if plist, e := ListVotingProposal(blockhash); e != nil {
 		t.Fatalf("list end propsal error,%s", e)
 	} else {
 		if len(plist) != len(proposalIds) {
 			t.Fatalf("get voting proposal list error ,expect len:%d,get len: %d", len(proposalIds), len(plist))
 		}
 	}
-	if p, e := db.GetPreActiveProposalID(blockhash); e != nil {
+	if p, e := GetPreActiveProposalID(blockhash); e != nil {
 		t.Fatalf("list end propsal error,%s", e)
 	} else {
 		if p != proposalIdsPre {
@@ -139,36 +138,41 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 		}
 	}
 
-	if err := commitBlock(snapdb, blockhash); err != nil {
+	if err := commitBlock(snapdbTest, blockhash); err != nil {
 		t.Fatalf("commit block error..%s", err)
 	}
-	db.Reset()
 }
 
 func TestGovDB_SetPreActiveVersion(t *testing.T) {
-	db, statedb := getGovDB()
+	Init()
+	defer snapdbTest.Clear()
+
 	version := uint32(32)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := db.SetPreActiveVersion(version, statedb); err != nil {
+	if err := SetPreActiveVersion(version, statedb); err != nil {
 		t.Fatalf("set pre-active version error...%s", err)
 	}
-	vget := db.GetPreActiveVersion(statedb)
+	vget := GetPreActiveVersion(statedb)
 	if vget != version {
 		t.Fatalf("get pre-active version error,expect version:%d,get version:%d", version, vget)
 	}
 }
 
 func TestGovDB_GetPreActiveVersionNotExist(t *testing.T) {
-	db, statedb := getGovDB()
-	vget := db.GetPreActiveVersion(statedb)
+	Init()
+	defer snapdbTest.Clear()
+
+	vget := GetPreActiveVersion(statedb)
 	t.Logf("get pre-active version error,get version:%d", vget)
 }
 
 func TestGovDB_SetActiveVersion(t *testing.T) {
-	db, statedb := getGovDB()
+	Init()
+	defer snapdbTest.Clear()
+
 	version := uint32(32)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := db.AddActiveVersion(version, 10000, statedb); err != nil {
+	if err := AddActiveVersion(version, 10000, statedb); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
 	vget := GetCurrentActiveVersion(statedb)
@@ -178,19 +182,19 @@ func TestGovDB_SetActiveVersion(t *testing.T) {
 }
 
 func TestGovDB_SetVote(t *testing.T) {
-	db, statedb := getGovDB()
+	Init()
+	defer snapdbTest.Clear()
 
 	proposal := getVerProposal(common.Hash{0x1})
-
-	db.SetProposal(proposal, statedb)
+	SetProposal(proposal, statedb)
 
 	for _, node := range nodeIdTests {
-		if nil != db.SetVote(proposal.ProposalID, node.VoteNodeID, node.VoteOption, statedb) {
+		if nil != SetVote(proposal.ProposalID, node.VoteNodeID, node.VoteOption, statedb) {
 			t.Fatalf("set vote error...")
 		}
 	}
 
-	voteList, err := db.ListVoteValue(proposal.GetProposalID(), statedb)
+	voteList, err := ListVoteValue(proposal.GetProposalID(), statedb)
 	if err != nil {
 		t.Fatalf("get vote list error, expect count：%d,get count:%d", len(nodeIdTests), len(voteList))
 	}
@@ -208,40 +212,40 @@ func TestGovDB_SetVote(t *testing.T) {
 		Status:        Pass,
 	}
 
-	if err := db.SetTallyResult(tallyResult, statedb); err != nil {
+	if err := SetTallyResult(tallyResult, statedb); err != nil {
 		t.Fatalf("set vote result error")
 	}
 
-	if result, e := db.GetTallyResult(proposal.ProposalID, statedb); e != nil {
+	if result, e := GetTallyResult(proposal.ProposalID, statedb); e != nil {
 		t.Fatalf("get vote result error,%s", e)
 	} else {
 		if result.Status != tallyResult.Status {
 			t.Fatalf("get vote result error")
 		}
 	}
-	db.Reset()
 }
 
 func TestGovDB_AddActiveNode(t *testing.T) {
 
-	db, _ := getGovDB()
+	Init()
+	defer snapdbTest.Clear()
 
-	snapdb := snapshotdb.Instance()
-	defer snapdb.Clear()
+	snapdbTest := snapshotdb.Instance()
+	defer snapdbTest.Clear()
 	//create block
-	blockhash, e := newblock(snapdb, big.NewInt(1))
+	blockhash, e := newblock(snapdbTest, big.NewInt(1))
 	if e != nil {
 		t.Fatalf("create block error ...%s", e)
 	}
 	proposal := getTxtProposal()
 
 	for _, node := range nodeIdTests {
-		if err := db.AddActiveNode(blockhash, proposal.ProposalID, node.VoteNodeID); err != nil {
+		if err := AddActiveNode(blockhash, proposal.ProposalID, node.VoteNodeID); err != nil {
 			t.Fatalf("add active node error...%s", err)
 		}
 	}
 
-	if ids, err := db.GetActiveNodeList(blockhash, proposal.ProposalID); err != nil {
+	if ids, err := GetActiveNodeList(blockhash, proposal.ProposalID); err != nil {
 		t.Fatalf("get active node list error...%s", err)
 	} else {
 		if len(ids) != len(nodeIdTests) {
@@ -249,10 +253,10 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 		}
 	}
 
-	if err := db.ClearActiveNodes(blockhash, proposal.ProposalID); err != nil {
+	if err := ClearActiveNodes(blockhash, proposal.ProposalID); err != nil {
 		t.Fatalf("clear active node list error...%s", err)
 	} else {
-		if ids, err := db.GetActiveNodeList(blockhash, proposal.ProposalID); err != nil {
+		if ids, err := GetActiveNodeList(blockhash, proposal.ProposalID); err != nil {
 			t.Fatalf("get active node list after clear error...%s", err)
 		} else {
 			if len(ids) != 0 {
@@ -260,23 +264,22 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 			}
 		}
 	}
-	db.Reset()
 }
 
-func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
+func newblock(snapdbTest snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
 
 	recognizedHash := generateHash("recognizedHash")
 
 	commitHash := recognizedHash
-	if err := snapdb.NewBlock(blockNumber, common.Hash{}, commitHash); err != nil {
+	if err := snapdbTest.NewBlock(blockNumber, common.Hash{}, commitHash); err != nil {
 		return common.Hash{}, err
 	}
 
-	if err := snapdb.Put(commitHash, []byte("wu"), []byte("wei")); err != nil {
+	if err := snapdbTest.Put(commitHash, []byte("wu"), []byte("wei")); err != nil {
 		return common.Hash{}, err
 	}
 
-	get, err := snapdb.Get(commitHash, []byte("wu"))
+	get, err := snapdbTest.Get(commitHash, []byte("wu"))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -285,36 +288,30 @@ func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
 	return commitHash, nil
 }
 
-func commitBlock(snapdb snapshotdb.DB, blockhash common.Hash) error {
-	return snapdb.Commit(blockhash)
+func commitBlock(snapdbTest snapshotdb.DB, blockhash common.Hash) error {
+	return snapdbTest.Commit(blockhash)
 }
 
-func getTxtProposal() TextProposal {
-	return TextProposal{
-		common.Hash{0x01},
-		//"p#01",
-		Text,
-		//"up,up,up....",
-		//"This is an example...",
-		"em。。。。",
-		uint64(1000),
-		uint64(10000000),
-		discover.NodeID{},
-		TallyResult{},
+func getTxtProposal() *TextProposal {
+	return &TextProposal{
+		ProposalID:   common.Hash{0x01},
+		ProposalType: Text,
+		PIPID:        "em。。。。",
+		SubmitBlock:  uint64(1000),
+		Proposer:     discover.NodeID{},
 	}
 }
 
-func getVerProposal(proposalId common.Hash) VersionProposal {
-	return VersionProposal{
-		proposalId,
-		Version,
-		"em。。。。",
-		uint64(1000),
-		uint64(10000000),
-		discover.NodeID{},
-		TallyResult{},
-		32,
-		uint64(562222),
+func getVerProposal(proposalId common.Hash) *VersionProposal {
+	return &VersionProposal{
+		ProposalID:      proposalId,
+		ProposalType:    Version,
+		PIPID:           "em。。。。",
+		SubmitBlock:     uint64(1000),
+		EndVotingRounds: uint64(10000000),
+		Proposer:        discover.NodeID{},
+		NewVersion:      32,
+		ActiveBlock:     uint64(562222),
 	}
 }
 

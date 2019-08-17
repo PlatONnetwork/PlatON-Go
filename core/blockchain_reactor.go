@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -368,11 +370,20 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 	case cvm.SlashingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
+	default:
+		// pass if the contract is validatorInnerContract
+		return nil
 	}
-	if _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
-		return err
+	if contract != nil {
+		if fn, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+			return err
+		} else {
+			return contract.CheckGasPrice(tx.GasPrice(), fn)
+		}
+	} else {
+		log.Warn("Cannot find an appropriate PlatONPrecompiledContract!")
+		return nil
 	}
-	return nil
 }
 
 func (bcr *BlockChainReactor) Sign(msg interface{}) error {
@@ -406,7 +417,7 @@ func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.
 			versionBytes := extraData[0].([]byte)
 			versionInHeader := common.BytesToUint32(versionBytes)
 
-			activeVersion := plugin.GovPluginInstance().GetActiveVersion(header.Number.Uint64(), stateDB)
+			activeVersion := gov.GetActiveVersion(header.Number.Uint64(), stateDB)
 			log.Debug("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", header.Number.Uint64())
 
 			if activeVersion == versionInHeader {
