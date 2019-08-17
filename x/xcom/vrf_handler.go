@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
@@ -64,7 +66,8 @@ func (vh *VrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash comm
 	} else {
 		if len(value) > 0 {
 			log.Info("Generate vrf proof Success", "blockNumber", currentBlockNumber.Uint64(),
-				"parentHash", hex.EncodeToString(parentHash.Bytes()), "nonce", hex.EncodeToString(value))
+				"parentHash", hex.EncodeToString(parentHash.Bytes()), "nonce", hex.EncodeToString(value),
+				"nodeId", discover.PubkeyID(&vh.privateKey.PublicKey).String())
 			return value, nil
 		}
 	}
