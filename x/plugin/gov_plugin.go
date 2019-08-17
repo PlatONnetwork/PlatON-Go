@@ -797,3 +797,7 @@ func (govPlugin *GovPlugin) listVotingProposalID(blockHash common.Hash, blockNum
 	}
 	return idList, nil
 }
+
+func (govPlugin *GovPlugin) GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
+	return 0, nil
+}

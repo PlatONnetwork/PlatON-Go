@@ -372,6 +372,9 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 	case cvm.SlashingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
+	default:
+		// pass if the contract is validatorInnerContract
+		return nil
 	}
 	if _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
 		return err
