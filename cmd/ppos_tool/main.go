@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"reflect"
+	"runtime"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -502,7 +503,9 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 		return nil, nil, err
 	} else {
 
-		//funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+		funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+		fmt.Println("The FuncName is", funcName)
+
 		t := reflect.TypeOf(fn)
 		fmt.Println("The FN", fn)
 		fmt.Println("The TypeOf.Name", t.Name())
