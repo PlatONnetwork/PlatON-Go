@@ -211,7 +211,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	}()
 	startNumber := xutil.ConsensusSize()
 	startNumber += xutil.ConsensusSize() - xcom.ElectionDistance() - 2
-	pri, phash := confirmBlock(t, int(startNumber))
+	pri, phash := buildBlock(t, int(startNumber), stateDB)
 	startNumber++
 	blockNumber := new(big.Int).SetInt64(int64(startNumber))
 	if err := snapshotdb.Instance().NewBlock(blockNumber, phash, common.ZeroHash); err != nil {
@@ -231,6 +231,15 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 		Number: new(big.Int).SetUint64(uint64(startNumber)),
 		Extra:  make([]byte, 97),
 	}
+	sk, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	sign, err := crypto.Sign(header.SealHash().Bytes(), sk)
+	if nil != err {
+		t.Fatal(err)
+	}
+	copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
 	if err := snapshotdb.Instance().NewBlock(header.Number, phash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
@@ -239,21 +248,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	}
 }
 
-func TestSlashingPlugin_Confirmed(t *testing.T) {
-	si, _ := initInfo(t)
-	defer func() {
-		snapshotdb.Instance().Clear()
-	}()
-	startNumber := xutil.ConsensusSize() + 1
-	confirmBlock(t, int(startNumber))
-	result, err := si.GetPreNodeAmount()
-	if nil != err {
-		t.Fatal(err)
-	}
-	fmt.Println(result)
-}
-
-func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) {
+func buildBlock(t *testing.T, maxNumber int, stateDb xcom.StateDB) (*ecdsa.PrivateKey, common.Hash) {
 	pri, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
@@ -280,11 +275,10 @@ func confirmBlock(t *testing.T, maxNumber int) (*ecdsa.PrivateKey, common.Hash) 
 			t.Fatal(err)
 		}
 		copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
-		block := types.NewBlock(header, nil, nil)
-		if err := SlashInstance().Confirmed(block); nil != err {
+		if err := db.NewBlock(blockNum, parentHash, common.ZeroHash); err != nil {
 			t.Fatal(err)
 		}
-		if err := db.NewBlock(blockNum, parentHash, common.ZeroHash); err != nil {
+		if err := SlashInstance().BeginBlock(common.ZeroHash, header, stateDb); nil != err {
 			t.Fatal(err)
 		}
 		if err := db.Flush(header.Hash(), blockNum); err != nil {
