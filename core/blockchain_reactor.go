@@ -154,6 +154,7 @@ func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 		if nil != bcr.chandler {
 			bcr.chandler.SetPrivateKey(privateKey)
 		}
+		plugin.SlashInstance().SetPrivateKey(privateKey)
 	}
 }
 

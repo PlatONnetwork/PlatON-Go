@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
 	"math/big"
@@ -35,6 +36,7 @@ var (
 type SlashingPlugin struct {
 	db             snapshotdb.DB
 	decodeEvidence func(data string) (consensus.Evidences, error)
+	privateKey     *ecdsa.PrivateKey
 }
 
 var slsh *SlashingPlugin
@@ -56,6 +58,10 @@ func SlashInstance() *SlashingPlugin {
 //	slsh = nil
 //	return nil
 //}
+
+func (sp *SlashingPlugin) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
+	sp.privateKey = privateKey
+}
 
 func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Evidences, error)) {
 	sp.decodeEvidence = f
@@ -324,12 +330,16 @@ func isAbnormal(amount uint32) bool {
 
 func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	log.Debug("extra parseNodeId", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(header.SealHash().Bytes()))
-	sign := header.Extra[32:97]
-	pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
-	if nil != err {
-		return discover.NodeID{}, err
+	if xutil.IsWorker(header.Extra) {
+		return discover.PubkeyID(&SlashInstance().privateKey.PublicKey), nil
+	} else {
+		sign := header.Extra[32:97]
+		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
+		if nil != err {
+			return discover.NodeID{}, err
+		}
+		return discover.PubkeyID(pk), nil
 	}
-	return discover.PubkeyID(pk), nil
 }
 
 func calcSlashAmount(candidate *staking.Candidate, rate uint32, blockNumber uint64) (*big.Int, *big.Int) {
