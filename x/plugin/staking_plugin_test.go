@@ -13,13 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -774,10 +775,10 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	/**
 	Start Get Candidate Info
 	*/
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
+	can, err := getCandidate(blockHash, index)
+
+	assert.False(t, nil != err)
+	if assert.True(t, nil != can) {
 		canByte, _ := json.Marshal(can)
 		t.Log("Get Candidate Info is:", string(canByte))
 		return
