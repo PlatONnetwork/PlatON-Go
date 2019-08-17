@@ -228,7 +228,7 @@ func (govPlugin *GovPlugin) GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 		return 0
 	}
 
-	return govPlugin.govDB.GetCurrentActiveVersion(state)
+	return gov.GetCurrentActiveVersion(state)
 }
 
 func (govPlugin *GovPlugin) GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
@@ -241,7 +241,7 @@ func (govPlugin *GovPlugin) GetActiveVersion(blockNumber uint64, state xcom.Stat
 		return 0
 	}
 
-	avList, err := govPlugin.govDB.ListActiveVersion(state)
+	avList, err := gov.ListActiveVersion(state)
 	if err != nil {
 		log.Error("List active version error", "err", err)
 		return 0
@@ -597,7 +597,6 @@ func (govPlugin *GovPlugin) tallyVersion(proposal gov.VersionProposal, blockHash
 		}
 
 	} else {
-		status = gov.Failed
 		if err := govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state); err != nil {
 			log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
 			return err

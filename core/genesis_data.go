@@ -1,10 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -22,7 +24,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint32) error {
+func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB, programVersion uint32) error {
 
 	isDone := false
 	switch {
@@ -44,8 +46,6 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 		return nil
 	}
 
-	snapdb := snapshotdb.Instance()
-
 	version := xutil.CalcVersion(programVersion)
 
 	var length int
@@ -59,12 +59,15 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 
 	validatorQueue := make(staking.ValidatorQueue, length)
 
+	lastHash := common.ZeroHash
+
 	for index := 0; index < length; index++ {
 
 		node := initQueue[index]
 
 		can := &staking.Candidate{
-			NodeId:             node.ID,
+			NodeId:             node.Node.ID,
+			BlsPubKey:          node.BlsPubKey,
 			StakingAddress:     vm.PlatONFoundationAddress,
 			BenefitAddress:     vm.RewardManagerPoolAddr,
 			StakingTxIndex:     uint32(index + 1),
@@ -98,17 +101,24 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 			if err := snapdb.PutBaseDB(key, val); nil != err {
 				return fmt.Errorf("Failed to Store Candidate Info: PutBaseDB failed. nodeId:%s, error:%s", can.NodeId.String(), err.Error())
 			}
+			// generate hash by candidate info
+			newHash := generateKVHash(key, val, lastHash)
+			lastHash = newHash
 		}
 
 		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 		if err := snapdb.PutBaseDB(powerKey, nodeAddr.Bytes()); nil != err {
 			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s", can.NodeId.String(), err.Error())
 		}
+		// generate hash by candidate power
+		newHash := generateKVHash(powerKey, nodeAddr.Bytes(), lastHash)
+		lastHash = newHash
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
 			NodeAddress:   nodeAddr,
-			NodeId:        node.ID,
+			NodeId:        node.Node.ID,
+			BlsPubKey:     node.BlsPubKey,
 			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(version), xcom.StakeThreshold().String(), "0", fmt.Sprint(index + 1)},
 			ValidatorTerm: 0,
 		}
@@ -121,6 +131,9 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 	if nil != err {
 		return fmt.Errorf("Failed to Store Staking Account Reference Count. account: %s, error:%s", vm.PlatONFoundationAddress.Hex(), err.Error())
 	}
+	// generate hash by stake account reference count
+	newHash := generateKVHash(staking.GetAccountStakeRcKey(vm.PlatONFoundationAddress), common.Uint64ToBytes(uint64(length)), lastHash)
+	lastHash = newHash
 
 	validatorArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
@@ -146,21 +159,27 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 	if err := snapdb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
 		return fmt.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 	}
+	// generate hash by epoch indexs
+	newHash = generateKVHash(staking.GetEpochIndexKey(), epoch_index, lastHash)
+	lastHash = newHash
 
 	// Epoch validators
 	if err := snapdb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), validatorArr); nil != err {
 		return fmt.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 	}
+	// generate hash by epoch validators
+	newHash = generateKVHash(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), validatorArr, lastHash)
+	lastHash = newHash
 
 	/**
 	Round
 	*/
-	// build previous validators indexInfo
+	// build previous round validators indexInfo
 	pre_indexInfo := &staking.ValArrIndex{
 		Start: 0,
 		End:   0,
 	}
-	// build current validators indexInfo
+	// build current round validators indexInfo
 	curr_indexInfo := &staking.ValArrIndex{
 		Start: 1,
 		End:   xutil.ConsensusSize(),
@@ -177,25 +196,35 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint
 	if err := snapdb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
 		return fmt.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
 	}
+	// generate hash by round indexs
+	newHash = generateKVHash(staking.GetRoundIndexKey(), round_index, lastHash)
+	lastHash = newHash
 
 	// Previous Round validator
 	if err := snapdb.PutBaseDB(staking.GetRoundValArrKey(pre_indexInfo.Start, pre_indexInfo.End), validatorArr); nil != err {
 		return fmt.Errorf("Failed to Store Previous Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
+	// generate hash by pre-round validators
+	newHash = generateKVHash(staking.GetRoundValArrKey(pre_indexInfo.Start, pre_indexInfo.End), validatorArr, lastHash)
+	lastHash = newHash
+
 	// Current Round validator
 	if err := snapdb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), validatorArr); nil != err {
 		return fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
+	// generate hash by curr-round validators
+	newHash = generateKVHash(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), validatorArr, lastHash)
+	lastHash = newHash
 
-	if err := snapdb.SetCurrent(genesisHash, *common.Big0, *common.Big0); nil != err {
-		return fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
-	}
+	log.Info("Call genesisStakingData, Store genesis pposHash by stake data", "pposHash", lastHash.Hex())
+
+	stateDB.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), lastHash.Bytes())
 	return nil
 }
 
 // genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
-func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
+func genesisAllowancePlan(stateDB *state.StateDB, issue *big.Int) error {
 
 	account := vm.RewardManagerPoolAddr
 
@@ -206,7 +235,7 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 	for i, epoch := range stableEpochs {
 		// store restricting account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(epoch, 1)
-		stateDb.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+		stateDB.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 		// store release amount record
 		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
@@ -216,23 +245,23 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		case i == 0:
 			allowance := new(big.Int).Mul(issue, big.NewInt(15))
 			allowance = allowance.Div(allowance, big.NewInt(1000))
-			stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
+			stateDB.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
 		case i == 1:
 			allowance := new(big.Int).Mul(issue, big.NewInt(5))
 			allowance = allowance.Div(allowance, big.NewInt(1000))
-			stateDb.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
+			stateDB.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
 		}
 
 		// store release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
-		stateDb.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
+		stateDB.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
 
 		epochList[i] = uint64(epoch)
 	}
 
 	// build restricting account info
 	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance = stateDb.GetBalance(vm.RestrictingContractAddr)
+	restrictInfo.Balance = stateDB.GetBalance(vm.RestrictingContractAddr)
 	restrictInfo.Debt = big.NewInt(0)
 	restrictInfo.DebtSymbol = false
 	restrictInfo.ReleaseList = epochList
@@ -244,7 +273,7 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 
 	// store restricting account info
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
+	stateDB.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
 
 	return nil
 }
@@ -292,4 +321,19 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
 	plugin.SetLatestEpoch(statedb, uint64(0))
 	return nil
+}
+
+func generateKVHash(k, v []byte, oldHash common.Hash) common.Hash {
+	var buf bytes.Buffer
+	buf.Write(k)
+	buf.Write(v)
+	buf.Write(oldHash.Bytes())
+	return rlpHash(buf.Bytes())
+}
+
+func rlpHash(x interface{}) (h common.Hash) {
+	hw := sha3.NewKeccak256()
+	rlp.Encode(hw, x)
+	hw.Sum(h[:0])
+	return h
 }

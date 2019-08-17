@@ -16,6 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -29,9 +30,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-//func init() {
-//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-//}
+func init() {
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	bls.Init(bls.CurveFp254BNb)
+}
 
 const initGas = 10000000
 
@@ -126,11 +128,13 @@ var (
 	blockNumber2 = big.NewInt(2)
 	blockHash2   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
-	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender            = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+
+	delegate_sender            = common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
+	delegate_sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
 
 	sndb = snapshotdb.Instance()
-
-	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
 
 	txHashArr = []common.Hash{
 		common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22"),
@@ -165,31 +169,31 @@ var (
 	promoteVersionBytes = common.Uint32ToBytes(promoteVersion)
 
 	balanceStr = []string{
-		"9000000000000000000000000",
-		"60000000000000000000000000",
-		"1300000000000000000000000",
-		"1100000000000000000000000",
-		"1000000000000000000000000",
-		"4879000000000000000000000",
-		"1800000000000000000000000",
-		"1000000000000000000000000",
-		"1000000000000000000000000",
-		"70000000000000000000000000",
-		"5550000000000000000000000",
-		"9000000000000000000000000",
-		"60000000000000000000000000",
-		"1300000000000000000000000",
-		"1100000000000000000000000",
-		"1000000000000000000000000",
-		"4879000000000000000000000",
-		"1800000000000000000000000",
-		"1000000000000000000000000",
-		"1000000000000000000000000",
-		"70000000000000000000000000",
-		"5550000000000000000000000",
-		"1000000000000000000000000",
-		"70000000000000000000000000",
-		"5550000000000000000000000",
+		"90000000000000000000000000",
+		"600000000000000000000000000",
+		"13000000000000000000000000",
+		"11000000000000000000000000",
+		"10000000000000000000000000",
+		"48790000000000000000000000",
+		"18000000000000000000000000",
+		"10000000000000000000000000",
+		"10000000000000000000000000",
+		"700000000000000000000000000",
+		"55500000000000000000000000",
+		"90000000000000000000000000",
+		"600000000000000000000000000",
+		"13000000000000000000000000",
+		"11000000000000000000000000",
+		"10000000000000000000000000",
+		"48790000000000000000000000",
+		"18000000000000000000000000",
+		"10000000000000000000000000",
+		"10000000000000000000000000",
+		"700000000000000000000000000",
+		"55500000000000000000000000",
+		"10000000000000000000000000",
+		"700000000000000000000000000",
+		"55500000000000000000000000",
 	}
 
 	nodeNameArr = []string{
@@ -227,10 +231,14 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 
 	node, _ := discover.ParseNode(url)
 
+	var nodes []params.CbftNode
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	nodes = append(nodes, params.CbftNode{Node: *node, BlsPubKey: *blsKey.GetPublicKey()})
 	gen := &core.Genesis{
 		Config: &params.ChainConfig{
 			Cbft: &params.CbftConfig{
-				InitialNodes:  []discover.Node{*node},
+				InitialNodes:  nodes,
 				ValidatorMode: "ppos",
 			},
 		},
@@ -252,6 +260,7 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 		state = statedb
 	}
 	state.AddBalance(sender, sender_balance)
+	state.AddBalance(delegate_sender, delegate_sender_balance)
 	for i, addr := range addrArr {
 
 		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
@@ -282,7 +291,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *
 	return evm
 }
 
-func newContract(value *big.Int) *vm.Contract {
+func newContract(value *big.Int, sender common.Address) *vm.Contract {
 	callerAddress := vm.AccountRef(sender)
 	fmt.Println("newContract sender :", callerAddress.Address().Hex())
 	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(initGas))
@@ -306,8 +315,11 @@ func build_staking_data(genesisHash common.Hash) {
 
 	//canArr := make(staking.CandidateQueue, 0)
 
+	var blsKey1 bls.SecretKey
+	blsKey1.SetByCSPRNG()
 	c1 := &staking.Candidate{
 		NodeId:             nodeId_A,
+		BlsPubKey:          *blsKey1.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[0],
 		StakingTxIndex:     uint32(2),
@@ -328,8 +340,11 @@ func build_staking_data(genesisHash common.Hash) {
 		},
 	}
 
+	var blsKey2 bls.SecretKey
+	blsKey2.SetByCSPRNG()
 	c2 := &staking.Candidate{
 		NodeId:             nodeId_B,
+		BlsPubKey:          *blsKey2.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(3),
@@ -350,8 +365,11 @@ func build_staking_data(genesisHash common.Hash) {
 		},
 	}
 
+	var blsKey3 bls.SecretKey
+	blsKey3.SetByCSPRNG()
 	c3 := &staking.Candidate{
 		NodeId:             nodeId_C,
+		BlsPubKey:          *blsKey3.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(4),
@@ -389,6 +407,7 @@ func build_staking_data(genesisHash common.Hash) {
 	v1 := &staking.Validator{
 		NodeAddress:   addr_A,
 		NodeId:        c1.NodeId,
+		BlsPubKey:     c1.BlsPubKey,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -396,6 +415,7 @@ func build_staking_data(genesisHash common.Hash) {
 	v2 := &staking.Validator{
 		NodeAddress:   addr_B,
 		NodeId:        c2.NodeId,
+		BlsPubKey:     c2.BlsPubKey,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -403,6 +423,7 @@ func build_staking_data(genesisHash common.Hash) {
 	v3 := &staking.Validator{
 		NodeAddress:   addr_C,
 		NodeId:        c3.NodeId,
+		BlsPubKey:     c3.BlsPubKey,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -477,7 +498,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 	restrictingKey := restricting.GetRestrictingKey(account)
 	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
-	stateDB.AddBalance(sender, sender_balance)
+	//stateDB.AddBalance(sender, sender_balance)
 
 	stateDB.AddBalance(cvm.RestrictingContractAddr, lock_amount)
 }

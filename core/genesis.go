@@ -25,6 +25,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -248,12 +250,20 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
-	// ppos add
+	// Store genesis programVersion into govenance data
 	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
 	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, version); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
+
+	snapdb := snapshotdb.Instance()
+
+	// Store genesis staking data
+	if err := genesisStakingData(snapdb, g, statedb, version); nil != err {
+		panic("Failed Store staking: " + err.Error())
+	}
+
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
@@ -275,12 +285,13 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if err := statedb.Database().TrieDB().Commit(root, true); nil != err {
 		panic("Failed to trieDB commit by genesis: " + err.Error())
 	}
+
 	block := types.NewBlock(head, nil, nil)
 
-	// Store genesis staking data
-	if err := genesisStakingData(g, block.Hash(), version); nil != err {
-		panic("Failed Store staking: " + err.Error())
+	if err := snapdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
+
 	return block
 }
 

@@ -2,12 +2,16 @@ package vm_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -27,10 +31,10 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	build_staking_data(genesis.Hash())
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
-	plugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
+	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
 	plugin.StakingInstance()
 	plugin.GovPluginInstance()
 
@@ -41,46 +45,40 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3000))
 	dataStr := `{
-          "duplicate_prepare": [
-            {
-              "VoteA": {
-                "timestamp": 0,
-                "block_hash": "0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130407",
-                "block_number": 1,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0xa65e16b3bc4862fdd893eaaaaecf1e415cdc2c8a08e4bbb1f6b2a1f4bf4e2d0c0ec27857da86a5f3150b32bee75322073cec320e51fe0a123cc4238ee4155bf001"
-              },
-              "VoteB": {
-                "timestamp": 0,
-                "block_hash": "0x18030d1e01071b1d071a12151e100a091f060801031917161e0a0d0f02161d0e",
-                "block_number": 1,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
-              }
+         "duplicate_prepare": [
+          {
+           "PrepareA": {
+            "epoch": 1,
+            "view_number": 1,
+            "block_hash": "0x09c94e00f687891f5de80146d906b55a249408dfd27afcad5a87bdad6fc28957",
+            "block_number": 1,
+            "block_index": 1,
+            "validate_node": {
+             "index": 0,
+             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
+             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
+             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
             },
-			{
-              "VoteA": {
-                "timestamp": 0,
-                "block_hash": "0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130407",
-                "block_number": 2,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0xa65e16b3bc4862fdd893eaaaaecf1e415cdc2c8a08e4bbb1f6b2a1f4bf4e2d0c0ec27857da86a5f3150b32bee75322073cec320e51fe0a123cc4238ee4155bf001"
-              },
-              "VoteB": {
-                "timestamp": 0,
-                "block_hash": "0x18030d1e01071b1d071a12151e100a091f060801031917161e0a0d0f02161d0e",
-                "block_number": 2,
-                "validator_index": 1,
-                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
-                "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
-              }
-            }
-          ],
-          "duplicate_viewchange": [],
-          "timestamp_viewchange": []
+            "signature": "0x13eb58303156f63d8961a916694d3f659d58804ef1d783ee5c8c7fc3ca393b8a"
+           },
+           "PrepareB": {
+            "epoch": 1,
+            "view_number": 1,
+            "block_hash": "0xd1fc79053b8e9fd6a7d9061b4e12a282110429bd0e643aa477083f221a8cba8c",
+            "block_number": 1,
+            "block_index": 1,
+            "validate_node": {
+             "index": 0,
+             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
+             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
+             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
+            },
+            "signature": "0x8de9fbb57edf75934b4caf40c95d569d03a75c762343066db737fdb2b818c313"
+           }
+          }
+         ],
+         "duplicate_vote": [],
+         "duplicate_viewchange": []
         }`
 	data, _ := rlp.EncodeToBytes(dataStr)
 
@@ -95,13 +93,20 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
-	nodeId, err := discover.HexID("0x38e2724b366d66a5acb271dba36bc45e2161e868d961ee299f4e331927feb5e9373f35229ef7fe7e84c083b0fbf24264faef01faaf388df5f459b87638aa620b")
+	addr := common.HexToAddress("0x27383a8d350139588daba349dcd6ef1d745da004")
+	nodeId, err := discover.HexID("2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270")
 	if nil != err {
 		t.Fatal(err)
 	}
+	var blsKey bls.SecretKey
+	skbyte, err := hex.DecodeString("328146a789365c846b1da23f89bc178a32febf217fb496153efe9e34ac4fa621")
+	if nil != err {
+		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
+	}
+	blsKey.SetLittleEndian(skbyte)
 	can := &staking.Candidate{
 		NodeId:          nodeId,
+		BlsPubKey:       *blsKey.GetPublicKey(),
 		StakingAddress:  addr,
 		BenefitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
@@ -129,7 +134,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	}
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	state.Prepare(txHashArr[1], blockHash, 2)
@@ -139,7 +144,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
 	typ, _ := rlp.EncodeToBytes(uint32(1))
-	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80111111"))
+	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257"))
 	blockNumber, _ := rlp.EncodeToBytes(uint16(1))
 
 	params = append(params, fnType)

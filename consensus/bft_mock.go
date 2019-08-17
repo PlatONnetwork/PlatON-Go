@@ -1,8 +1,10 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"math/big"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -15,6 +17,55 @@ import (
 
 type BftMock struct {
 	Blocks []*types.Block
+}
+
+func (bm *BftMock) InsertChain(block *types.Block) error {
+	// todo implement me
+	return nil
+}
+
+func (bm *BftMock) FastSyncCommitHead(block *types.Block) error {
+	// todo implement me
+	return nil
+}
+
+func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error {
+	// todo implement me
+	return nil
+}
+
+func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
+	// todo implement me
+	return time.Now()
+}
+
+func (bm *BftMock) CalcNextBlockTime(timePoint time.Time) time.Time {
+	// todo implement me
+	return time.Now()
+}
+
+func (bm *BftMock) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
+	// todo implement me
+	return nil
+}
+
+func (bm *BftMock) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
+	// todo implement me
+	return true
+}
+
+func (bm *BftMock) Evidences() string {
+	// todo implement me
+	return ""
+}
+
+func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
+	// todo implement me
+	return nil, nil
+}
+
+func (bm *BftMock) NodeID() discover.NodeID {
+	panic("Not support")
 }
 
 // Author retrieves the Ethereum address of the account that minted the given
@@ -163,17 +214,8 @@ func (bm *BftMock) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return nil
 }
 
-func (bm *BftMock) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-
-}
-
 func (bm *BftMock) NextBaseBlock() *types.Block {
 	return nil
-}
-
-func (bm *BftMock) InsertChain(block *types.Block, errCh chan error) {
-	bm.Blocks = append(bm.Blocks, block)
-	errCh <- nil
 }
 
 func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
@@ -194,10 +236,6 @@ func (bm *BftMock) CurrentBlock() *types.Block {
 		return types.NewBlockWithHeader(&h)
 	}
 	return bm.Blocks[len(bm.Blocks)-1]
-}
-
-func (bm *BftMock) FastSyncCommitHead() <-chan error {
-	return nil
 }
 
 func (bm *BftMock) TracingSwitch(flag int8) {

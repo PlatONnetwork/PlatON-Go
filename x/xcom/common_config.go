@@ -52,6 +52,7 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
+	Max_Vote_Duration           uint64
 	VersionProposal_SupportRate float64
 	TextProposal_VoteRate       float64
 	TextProposal_SupportRate    float64
@@ -145,15 +146,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(8),
-				PackAmountHighAbnormal:    uint32(5),
+				PackAmountAbnormal:        uint32(6),
+				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(20),
+				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(20),
+				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
+				Max_Vote_Duration:           uint64(336),
 				VersionProposal_SupportRate: float64(0.6666),
 				TextProposal_VoteRate:       float64(0.6666),
 				TextProposal_SupportRate:    float64(0.50),
@@ -183,15 +185,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(8),
-				PackAmountHighAbnormal:    uint32(5),
+				PackAmountAbnormal:        uint32(6),
+				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(20),
+				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(20),
+				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
+				Max_Vote_Duration:           uint64(336),
 				VersionProposal_SupportRate: float64(0.6666),
 				TextProposal_VoteRate:       float64(0.6666),
 				TextProposal_SupportRate:    float64(0.50),
@@ -221,15 +224,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(8),
-				PackAmountHighAbnormal:    uint32(5),
+				PackAmountAbnormal:        uint32(6),
+				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(20),
+				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(20),
+				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
+				Max_Vote_Duration:           uint64(336),
 				VersionProposal_SupportRate: float64(0.6666),
 				TextProposal_VoteRate:       float64(0.6666),
 				TextProposal_SupportRate:    float64(0.50),
@@ -259,15 +263,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(8),
-				PackAmountHighAbnormal:    uint32(5),
+				PackAmountAbnormal:        uint32(6),
+				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(20),
+				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(20),
+				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
+				Max_Vote_Duration:           uint64(336),
 				VersionProposal_SupportRate: float64(0.6666),
 				TextProposal_VoteRate:       float64(0.6666),
 				TextProposal_SupportRate:    float64(0.50),
@@ -297,15 +302,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(8),
-				PackAmountHighAbnormal:    uint32(5),
+				PackAmountAbnormal:        uint32(6),
+				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(20),
+				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(20),
+				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
+				Max_Vote_Duration:           uint64(336),
 				VersionProposal_SupportRate: float64(0.6666),
 				TextProposal_VoteRate:       float64(0.6666),
 				TextProposal_SupportRate:    float64(0.50),
@@ -336,15 +342,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(8),
-				PackAmountHighAbnormal:    uint32(5),
+				PackAmountAbnormal:        uint32(6),
+				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(20),
+				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(20),
+				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
+				Max_Vote_Duration:           uint64(336),
 				VersionProposal_SupportRate: float64(0.6666),
 				TextProposal_VoteRate:       float64(0.6666),
 				TextProposal_SupportRate:    float64(0.50),
@@ -454,6 +461,10 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Governance config
  ******/
+func Max_Vote_Duration() uint64 {
+	return ec.Gov.Max_Vote_Duration
+}
+
 func VersionProposal_SupportRate() float64 {
 	return ec.Gov.VersionProposal_SupportRate
 }
