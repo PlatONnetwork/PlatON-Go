@@ -6,7 +6,10 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync/atomic"
+
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -43,7 +46,40 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
-const cbftVersion = 1
+const (
+	cbftVersion = 1
+
+	maxStatQueuesSize = 200
+)
+
+type HandleError interface {
+	error
+	AuthFailed() bool
+}
+
+type handleError struct {
+	err error
+}
+
+func (e handleError) Error() string {
+	return e.err.Error()
+}
+
+func (e handleError) AuthFailed() bool {
+	return false
+}
+
+type authFailedError struct {
+	err error
+}
+
+func (e authFailedError) Error() string {
+	return e.err.Error()
+}
+
+func (e authFailedError) AuthFailed() bool {
+	return true
+}
 
 // Cbft is the core structure of the consensus engine
 // and is responsible for handling consensus logic.
@@ -94,9 +130,13 @@ type Cbft struct {
 	updateChainStateHook cbfttypes.UpdateChainStateFn
 
 	// Record the number of peer requests for obtaining cbft information.
-
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
 	queuesLock sync.RWMutex
+
+	// Record message repetitions.
+	statQueues       map[common.Hash]map[string]int
+	statQueuesLock   sync.RWMutex
+	messageHashCache mapset.Set
 
 	// Delay time of each node
 	netLatencyMap  map[string]*list.List
@@ -124,6 +164,8 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
+		statQueues:         make(map[common.Hash]map[string]int),
+		messageHashCache:   mapset.NewSet(),
 		netLatencyMap:      make(map[string]*list.List),
 	}
 
@@ -232,6 +274,14 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		return err
 	}
 
+	// Repeat filtering on consensus messages.
+	// First check.
+	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
+		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		cbft.forgetMessage(msg.PeerID)
+		return nil
+	}
+
 	select {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
@@ -273,6 +323,49 @@ func (cbft *Cbft) forgetMessage(peerID string) error {
 	return nil
 }
 
+// statMessage statistics record of duplicate messages.
+func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
+	if msg == nil {
+		return fmt.Errorf("invalid msg")
+	}
+	cbft.statQueuesLock.Lock()
+	defer cbft.statQueuesLock.Unlock()
+
+	for cbft.messageHashCache.Cardinality() >= maxStatQueuesSize {
+		msgHash := cbft.messageHashCache.Pop().(common.Hash)
+		// Printout.
+		var bf bytes.Buffer
+		for k, v := range cbft.statQueues[msgHash] {
+			bf.WriteString(fmt.Sprintf("{%s:%d},", k, v))
+		}
+		output := strings.TrimSuffix(bf.String(), ",")
+		cbft.log.Debug("Statistics sync message", "msgHash", msgHash, "stat", output)
+		// remove the key from map.
+		delete(cbft.statQueues, msgHash)
+	}
+	// Reset the variable if there is a difference
+	// between the map and the set data.
+	if len(cbft.statQueues) > maxStatQueuesSize {
+		cbft.messageHashCache.Clear()
+		cbft.statQueues = make(map[common.Hash]map[string]int)
+	}
+
+	hash := msg.Msg.MsgHash()
+	if _, ok := cbft.statQueues[hash]; ok {
+		if _, exists := cbft.statQueues[hash][msg.PeerID]; exists {
+			cbft.statQueues[hash][msg.PeerID]++
+		} else {
+			cbft.statQueues[hash][msg.PeerID] = 1
+		}
+	} else {
+		cbft.statQueues[hash] = map[string]int{
+			msg.PeerID: 1,
+		}
+		cbft.messageHashCache.Add(hash)
+	}
+	return nil
+}
+
 // ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
 //
 // Possible message types are:
@@ -283,6 +376,11 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 		cbft.log.Error("ReceiveMessage failed", "err", err)
 		return err
 	}
+
+	// message stat.
+	cbft.statMessage(msg)
+
+	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
 		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
@@ -323,34 +421,56 @@ func (cbft *Cbft) LoadWal() (err error) {
 
 // receiveLoop receives all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
+
+	// Responsible for handling consensus message logic.
+	consensusMessageHandler := func(msg *ctypes.MsgInfo) {
+		if !cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
+			err := cbft.handleConsensusMsg(msg)
+			if err == nil {
+				cbft.network.MarkHistoryMessageHash(msg.Msg.MsgHash())
+				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
+					cbft.log.Warn("Forward message failed", "err", err)
+				}
+			} else if err.AuthFailed() {
+				// If the verification signature is abnormal,
+				// the peer node is added to the local blacklist
+				// and disconnected.
+				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID)
+				cbft.network.MarkBlacklist(msg.PeerID)
+				cbft.network.RemovePeer(msg.PeerID)
+			}
+		} else {
+			cbft.log.Debug("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+		}
+		cbft.forgetMessage(msg.PeerID)
+	}
+
 	// channel Divided into read-only type, writable type
 	// Read-only is the channel that gets the current CBFT status.
 	// Writable type is the channel that affects the consensus state.
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
-			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
-
-			cbft.handleConsensusMsg(msg)
-			cbft.forgetMessage(msg.PeerID)
+			consensusMessageHandler(msg)
 		default:
 		}
 		select {
 		case msg := <-cbft.peerMsgCh:
 			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
-
-			cbft.handleConsensusMsg(msg)
-			cbft.forgetMessage(msg.PeerID)
+			consensusMessageHandler(msg)
 		case msg := <-cbft.syncMsgCh:
-			// Forward the message before processing the message.
-			cbft.network.Forwarding(msg.PeerID, msg.Msg)
-			cbft.handleSyncMsg(msg)
-			//
+			if err := cbft.handleSyncMsg(msg); err != nil {
+				if err, ok := err.(HandleError); ok {
+					if err.AuthFailed() {
+						cbft.network.MarkBlacklist(msg.PeerID)
+						cbft.network.RemovePeer(msg.PeerID)
+					}
+				}
+			}
 			cbft.forgetMessage(msg.PeerID)
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
+
 		case fn := <-cbft.asyncCallCh:
 			fn()
 
@@ -360,15 +480,14 @@ func (cbft *Cbft) receiveLoop() {
 	}
 }
 
-// handleConsensusMsg processes consensus messages, there are three main types of
-// messages - prepareBlock, prepareVote, viewChange
-func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
+// Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
+func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) HandleError {
 	if !cbft.running() {
 		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
-		return
+		return &handleError{fmt.Errorf("consensus message pause, ignore message")}
 	}
 	msg, id := info.Msg, info.PeerID
-	var err error
+	var err HandleError
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
@@ -380,56 +499,59 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err)
 	}
+	return err
 }
 
 // Behind the node will be synchronized by synchronization message
-func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
+func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) error {
 	if utils.True(&cbft.syncing) {
 		cbft.log.Debug("Currently syncing, consensus message pause")
-		return
+		return nil
 	}
 	msg, id := info.Msg, info.PeerID
+	var err error
 	if !cbft.fetcher.MatchTask(id, msg) {
 		switch msg := msg.(type) {
 		case *protocols.GetPrepareBlock:
-			cbft.OnGetPrepareBlock(id, msg)
+			err = cbft.OnGetPrepareBlock(id, msg)
 
 		case *protocols.GetBlockQuorumCert:
-			cbft.OnGetBlockQuorumCert(id, msg)
+			err = cbft.OnGetBlockQuorumCert(id, msg)
 
 		case *protocols.BlockQuorumCert:
-			cbft.OnBlockQuorumCert(id, msg)
+			err = cbft.OnBlockQuorumCert(id, msg)
 
 		case *protocols.GetPrepareVote:
-			cbft.OnGetPrepareVote(id, msg)
+			err = cbft.OnGetPrepareVote(id, msg)
 
 		case *protocols.PrepareVotes:
-			cbft.OnPrepareVotes(id, msg)
+			err = cbft.OnPrepareVotes(id, msg)
 
 		case *protocols.GetQCBlockList:
-			cbft.OnGetQCBlockList(id, msg)
+			err = cbft.OnGetQCBlockList(id, msg)
 
 		case *protocols.GetLatestStatus:
-			cbft.OnGetLatestStatus(id, msg)
+			err = cbft.OnGetLatestStatus(id, msg)
 
 		case *protocols.LatestStatus:
-			cbft.OnLatestStatus(id, msg)
+			err = cbft.OnLatestStatus(id, msg)
 
 		case *protocols.PrepareBlockHash:
-			cbft.OnPrepareBlockHash(id, msg)
+			err = cbft.OnPrepareBlockHash(id, msg)
 
 		case *protocols.GetViewChange:
-			cbft.OnGetViewChange(id, msg)
+			err = cbft.OnGetViewChange(id, msg)
 
 		case *protocols.ViewChangeQuorumCert:
-			cbft.OnViewChangeQuorumCert(id, msg)
+			err = cbft.OnViewChangeQuorumCert(id, msg)
 		case *protocols.ViewChanges:
-			cbft.OnViewChanges(id, msg)
+			err = cbft.OnViewChanges(id, msg)
 
 		}
 	}
+	return err
 }
 
 // running returns whether the consensus engine is running.
@@ -579,6 +701,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 			return
 		}
 		prepareBlock.PrepareQC = parentQC
+		prepareBlock.ViewChangeQC = cbft.state.LastViewChangeQC()
 	}
 
 	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
