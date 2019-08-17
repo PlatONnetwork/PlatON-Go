@@ -500,7 +500,7 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 
 		t := reflect.TypeOf(fn)
 		fmt.Println("The FN", fn)
-		fmt.Println("The TypeOf.Name", t.Method(0).Name)
+		fmt.Println("The TypeOf.Name", t.Name())
 		fmt.Println("The TypeOf.String", t.String())
 
 		v := reflect.ValueOf(fn)
