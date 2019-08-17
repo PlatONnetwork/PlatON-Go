@@ -26,8 +26,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -1039,8 +1040,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-		Extra:      w.makeExtraData(),
-		Time:       big.NewInt(timestamp),
+		//Extra:      w.makeExtraData(),
+		Time: big.NewInt(timestamp),
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
@@ -1064,6 +1065,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
+
+	//make header extra after w.current and it's state initialized
+	extraData := w.makeExtraData()
+	copy(header.Extra[:len(extraData)], extraData)
 
 	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
@@ -1331,7 +1336,7 @@ func (w *worker) makeExtraData() []byte {
 	// create default extradata
 	extra, _ := rlp.EncodeToBytes([]interface{}{
 		//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-		plugin.GovPluginInstance().GetCurrentActiveVersion(w.current.state),
+		gov.GetCurrentActiveVersion(w.current.state),
 		"platon",
 		runtime.Version(),
 		runtime.GOOS,

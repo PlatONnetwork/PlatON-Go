@@ -1,27 +1,26 @@
-package gov_test
+package gov
 
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"math/big"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
-func getGovDB() (*gov.GovDB, *state.StateDB) {
-	gov.GovDBInstance()
-
-	db := ethdb.NewMemDatabase()
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
-	return gov.GovDBInstance(), statedb
+func getGovDB() (*GovDB, xcom.StateDB) {
+	GovDBInstance()
+	c := mock.NewChain(nil)
+	return GovDBInstance(), c.StateDB
 }
 
 func TestGovDB_SetGetTxtProposal(t *testing.T) {
@@ -172,7 +171,7 @@ func TestGovDB_SetActiveVersion(t *testing.T) {
 	if err := db.AddActiveVersion(version, 10000, statedb); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
-	vget := db.GetCurrentActiveVersion(statedb)
+	vget := GetCurrentActiveVersion(statedb)
 	if vget != version {
 		t.Fatalf("get current active version error,expect version:%d,get version:%d", version, vget)
 	}
@@ -200,13 +199,13 @@ func TestGovDB_SetVote(t *testing.T) {
 		t.Fatalf("get vote list error, expect count：%d,get count:%d", len(nodeIdTests), len(voteList))
 	}
 
-	tallyResult := gov.TallyResult{
+	tallyResult := TallyResult{
 		ProposalID:    proposal.GetProposalID(),
 		Yeas:          uint16(len(voteList)),
 		Nays:          0,
 		Abstentions:   0,
 		AccuVerifiers: 1000,
-		Status:        gov.Pass,
+		Status:        Pass,
 	}
 
 	if err := db.SetTallyResult(tallyResult, statedb); err != nil {
@@ -290,55 +289,55 @@ func commitBlock(snapdb snapshotdb.DB, blockhash common.Hash) error {
 	return snapdb.Commit(blockhash)
 }
 
-func getTxtProposal() gov.TextProposal {
-	return gov.TextProposal{
+func getTxtProposal() TextProposal {
+	return TextProposal{
 		common.Hash{0x01},
 		//"p#01",
-		gov.Text,
+		Text,
 		//"up,up,up....",
 		//"This is an example...",
 		"em。。。。",
 		uint64(1000),
 		uint64(10000000),
 		discover.NodeID{},
-		gov.TallyResult{},
+		TallyResult{},
 	}
 }
 
-func getVerProposal(proposalId common.Hash) gov.VersionProposal {
-	return gov.VersionProposal{
+func getVerProposal(proposalId common.Hash) VersionProposal {
+	return VersionProposal{
 		proposalId,
-		gov.Version,
+		Version,
 		"em。。。。",
 		uint64(1000),
 		uint64(10000000),
 		discover.NodeID{},
-		gov.TallyResult{},
+		TallyResult{},
 		32,
 		uint64(562222),
 	}
 }
 
-var nodeIdTests = []gov.VoteValue{
+var nodeIdTests = []VoteValue{
 	{
 		VoteNodeID: discover.MustHexID("0x1dd9d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
-		VoteOption: gov.Yes,
+		VoteOption: Yes,
 	},
 	{
 		VoteNodeID: discover.MustHexID("0x1dd8d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
-		VoteOption: gov.Yes,
+		VoteOption: Yes,
 	},
 	{
 		VoteNodeID: discover.MustHexID("0x1dd7d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
-		VoteOption: gov.Yes,
+		VoteOption: Yes,
 	},
 	{
 		VoteNodeID: discover.MustHexID("0x1dd6d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
-		VoteOption: gov.Yes,
+		VoteOption: Yes,
 	},
 	{
 		VoteNodeID: discover.MustHexID("0x1dd5d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
-		VoteOption: gov.Yes,
+		VoteOption: Yes,
 	},
 }
 
