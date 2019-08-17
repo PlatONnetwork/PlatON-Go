@@ -503,14 +503,14 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 	} else {
 
 		//funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
-		log.Error("data::::", "The FuncName", fn)
 		t := reflect.TypeOf(fn)
-		log.Error("data::::", "The TypeOf", t.Name())
-		log.Error("data::::", "The TypeOf", t.String())
+		fmt.Println("The FN", fn)
+		fmt.Println("The TypeOf.Name", t.Name())
+		fmt.Println("The TypeOf.String", t.String())
 
-		/*v := reflect.ValueOf(fn)
-		log.Error("data::::", "The ValueOf", v)
-		log.Error("data::::", "The ValueOf", v.String())*/
+		v := reflect.ValueOf(fn)
+		fmt.Println("The ValueOf", v)
+		fmt.Println("The ValueOf.String", v.String())
 
 		// the func params type list
 		paramList := reflect.TypeOf(fn)
