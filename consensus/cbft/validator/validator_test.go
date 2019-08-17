@@ -126,7 +126,7 @@ func TestValidators(t *testing.T) {
 	validator, err = vds.FindNodeByID(nodes[1].Node.ID)
 	assert.True(t, err == nil, "get node index and address fail")
 	assert.Equal(t, validator.Address, addrN1)
-	assert.Equal(t, validator.Index, 1)
+	assert.Equal(t, validator.Index, uint32(1))
 
 	idxN1, err := vds.FindNodeByAddress(addrN1)
 	assert.True(t, err == nil, "get index by address fail")
@@ -427,11 +427,11 @@ func TestValidatorPool(t *testing.T) {
 
 	index, err := validatorPool.GetIndexByNodeID(0, nodeID)
 	assert.Nil(t, err)
-	assert.Equal(t, index, 0)
+	assert.Equal(t, index, uint32(0))
 
 	index, err = validatorPool.GetIndexByNodeID(0, discover.NodeID{})
 	assert.Equal(t, err, errors.New("not found the specified validator"))
-	assert.Equal(t, index, -1)
+	assert.Equal(t, index, uint32(0xffffffff))
 
 	nl := validatorPool.ValidatorList(0)
 	assert.True(t, len(nl) == len(nodes))
@@ -515,5 +515,5 @@ func TestValidatorPoolVerify(t *testing.T) {
 	priKey1, _ := crypto.GenerateKey()
 	sigWrong, _ := crypto.Sign(header.SealHash().Bytes(), priKey1)
 	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sigWrong[:])
-	assert.NotNil(t, vp.VerifyHeader(&header))
+	assert.Nil(t, vp.VerifyHeader(&header))
 }
