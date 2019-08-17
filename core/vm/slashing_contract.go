@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"math/big"
 	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -41,6 +42,10 @@ func (sc *SlashingContract) FnSigns() map[uint16]interface{} {
 		// Get
 		CheckDuplicateSignEvent: sc.CheckDuplicateSign,
 	}
+}
+
+func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fn interface{}) error {
+	return nil
 }
 
 // Report the double signing behavior of the node

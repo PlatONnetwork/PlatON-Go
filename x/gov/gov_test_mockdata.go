@@ -1,4 +1,4 @@
-package plugin
+package gov
 
 import (
 	"crypto/ecdsa"
@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
 	govdb "github.com/PlatONnetwork/PlatON-Go/x/gov/db"
 
@@ -259,11 +261,10 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 }
 
 func newPlugins() {
-	GovPluginInstance()
-	StakingInstance()
-	SlashInstance()
-	RestrictingInstance()
-	RewardMgrInstance()
+	plugin.StakingInstance()
+	plugin.SlashInstance()
+	plugin.RestrictingInstance()
+	plugin.RewardMgrInstance()
 
 	snapshotdb.Instance()
 }
@@ -747,7 +748,7 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 
 	if len(queue) == 0 {
 		indexQueue = make(staking.ValArrIndexQueue, 0)
-		_, indexQueue = indexQueue.ConstantAppend(index, RoundValIndexSize)
+		_, indexQueue = indexQueue.ConstantAppend(index, plugin.RoundValIndexSize)
 	} else {
 
 		has := false
@@ -760,7 +761,7 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 		indexQueue = queue
 		if !has {
 
-			shabby, queue := queue.ConstantAppend(index, RoundValIndexSize)
+			shabby, queue := queue.ConstantAppend(index, plugin.RoundValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
 			if nil != shabby {
@@ -808,7 +809,7 @@ func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 
 	if len(queue) == 0 {
 		indexQueue = make(staking.ValArrIndexQueue, 0)
-		_, indexQueue = indexQueue.ConstantAppend(index, EpochValIndexSize)
+		_, indexQueue = indexQueue.ConstantAppend(index, plugin.EpochValIndexSize)
 	} else {
 
 		has := false
@@ -821,7 +822,7 @@ func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 		indexQueue = queue
 		if !has {
 
-			shabby, queue := queue.ConstantAppend(index, EpochValIndexSize)
+			shabby, queue := queue.ConstantAppend(index, plugin.EpochValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
 			if nil != shabby {

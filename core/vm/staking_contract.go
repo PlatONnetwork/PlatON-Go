@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -69,6 +71,10 @@ func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
 	return exec_platon_contract(input, stkc.FnSigns())
+}
+
+func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fn interface{}) error {
+	return nil
 }
 
 func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
@@ -152,7 +158,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	curr_version := plugin.GovPluginInstance().GetCurrentActiveVersion(state)
+	curr_version := gov.GetCurrentActiveVersion(state)
 	currVersion := xutil.CalcVersion(curr_version)
 	inputVersion := xutil.CalcVersion(programVersion)
 
@@ -236,7 +242,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if isDeclareVersion {
 		// Declare new Version
-		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
+		err := gov.DeclareVersion(canNew.StakingAddress, canNew.NodeId,
 			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",

@@ -98,12 +98,12 @@ const (
 	DelegateGas         uint64 = 16000 // Gas needed for delegate
 	WithdrewDelegateGas uint64 = 8000  // Gas needed for withdrewDelegate
 
-	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
-	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
-	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion
-	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitParam
-	VoteGas                  uint64 = 2000   // Gas needed for vote
-	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
+	GovGas                   uint64 = 9000                    // Gas needed for precompiled contract: govContract
+	SubmitTextProposalGas    uint64 = 350000 - TxGas - GovGas // Gas needed for submitText
+	SubmitVersionProposalGas uint64 = 480000 - TxGas - GovGas // Gas needed for submitVersion
+	SubmitCancelProposalGas  uint64 = 530000 - TxGas - GovGas // Gas needed for submitParam
+	VoteGas                  uint64 = 32000 - TxGas - GovGas  // Gas needed for vote
+	DeclareVersionGas        uint64 = 33000 - TxGas - GovGas  // Gas needed for declareVersion
 
 	SlashingGas              uint64 = 1000  // Gas needed for precompiled contract: slashingContract
 	ReportDuplicateSignGas   uint64 = 1000  // Gas needed for ReportDuplicateSign
@@ -114,10 +114,12 @@ const (
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2048)           // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072)         // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072)         // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13)             // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
-	GovMinGasPrice         = big.NewInt(50000000000000) // Min gas price for submit a governance proposal in WEI
+	DifficultyBoundDivisor = big.NewInt(2048)   // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(131072) // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
+	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
+	SubmitTextProposalGasPrice    = big.NewInt(1500000 * 1000000000) // Min gas price for submit a text proposal in Von
+	SubmitVersionProposalGasPrice = big.NewInt(2100000 * 1000000000) // Min gas price for submit a version proposal in Von
+	SubmitCancelProposalGasPrice  = big.NewInt(3000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
 )
