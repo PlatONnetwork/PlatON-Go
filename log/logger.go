@@ -136,7 +136,7 @@ func (l *logger) write(msg string, lvl Lvl, ctx []interface{}, skip int) {
 	l.h.Log(&Record{
 		Time: time.Now(),
 		Lvl:  lvl,
-		Msg:  fmt.Sprintf("routine %s ", CurrentGoRoutineID()) + msg,
+		Msg:  msg,
 		Ctx:  newContext(l.ctx, ctx),
 		Call: stack.Caller(skip),
 		KeyNames: RecordKeyNames{

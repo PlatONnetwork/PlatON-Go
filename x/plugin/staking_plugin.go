@@ -556,7 +556,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 
 	lazyCalcStakeAmount(epoch, can)
 
-	addr := crypto.PubkeyToAddress(*pubKey)
+	canAddr := crypto.PubkeyToAddress(*pubKey)
 
 	// TODO test
 	pposHash := sk.db.GetLastKVHash(blockHash)
@@ -573,7 +573,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
-	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, addr, can); nil != err {
+	if err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), epoch, canAddr, can); nil != err {
 		return err
 	}
 
@@ -589,7 +589,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		// todo test
 		//xcom.PrintObject("WithdrewStaking, Method Before SetCandidateStore", can)
 
-		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Store Candidate info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
@@ -605,7 +605,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 		//xcom.PrintObject("WithdrewStaking, Method Before DelCandidateStore", can)
 
 		// Clean candidate info
-		if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
+		if err := sk.db.DelCandidateStore(blockHash, canAddr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
@@ -637,7 +637,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 }
 
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
-	addr common.Address, can *staking.Candidate) error {
+	canAddr common.Address, can *staking.Candidate) error {
 
 	total := calCanTotalAmount(can)
 
@@ -681,7 +681,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		// todo test
 		//xcom.PrintObject("WithdrewStaking, Method Before AddUnStakeItemStore", can)
 
-		if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+		if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
@@ -696,11 +696,9 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash common.Hash, epoch uint64) error {
 
-	log.Info("Call HandleUnCandidateItem", "blockHash", blockHash.Hex(), "epoch", epoch)
+	log.Debug("Call HandleUnCandidateItem", "blockHash", blockHash.Hex(), "epoch", epoch)
 
-	releaseEpoch := epoch - xcom.UnStakeFreezeRatio()
-
-	unStakeCount, err := sk.db.GetUnStakeCountStore(blockHash, releaseEpoch)
+	unStakeCount, err := sk.db.GetUnStakeCountStore(blockHash, epoch)
 	switch {
 	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
@@ -715,7 +713,7 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 	filterAddr := make(map[common.Address]struct{})
 
 	for index := 1; index <= int(unStakeCount); index++ {
-		addr, err := sk.db.GetUnStakeItemStore(blockHash, releaseEpoch, uint64(index))
+		addr, err := sk.db.GetUnStakeItemStore(blockHash, epoch, uint64(index))
 		if nil != err {
 			log.Error("Failed to HandleUnCandidateItem: Query the unStakeItem node addr is failed",
 				"blockHash", blockHash.Hex(), "err", err)
@@ -761,7 +759,7 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 		filterAddr[addr] = struct{}{}
 	}
 
-	if err := sk.db.DelUnStakeCountStore(blockHash, releaseEpoch); nil != err {
+	if err := sk.db.DelUnStakeCountStore(blockHash, epoch); nil != err {
 		log.Error("Failed to HandleUnCandidateItem: Delete unstakeCount failed", "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
@@ -1305,10 +1303,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			//xcom.PrintObject("WithdrewDelegate, Method Before AddUnDelegateItemStore, del", del)
 
 			// add a UnDelegateItem
-			if err := sk.db.AddUnDelegateItemStore(blockHash, delAddr, nodeId, epoch, stakingBlockNum, refundAmount); nil != err {
+			if err := sk.addUnDelegateItem(blockNumber.Uint64(), blockHash, delAddr, nodeId, epoch, stakingBlockNum, refundAmount); nil != err {
 				log.Error("Failed to WithdrewDelegate on stakingPlugin：add a UnDelegateItem failed", "blockNumber",
-					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "epoch", epoch,
+					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "current epoch", epoch,
 					"stakingBlockNum", stakingBlockNum, "refundAmount", refundAmount, "err", err)
+				return err
 			}
 			del.Reduction = new(big.Int).Add(del.Reduction, refundAmount)
 
@@ -1422,11 +1421,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash common.Hash, epoch uint64) error {
 
-	log.Info("Call HandleUnDelegateItem", "blockHash", blockHash.Hex(), "epoch", epoch)
+	log.Debug("Call HandleUnDelegateItem", "blockHash", blockHash.Hex(), "epoch", epoch)
 
-	releaseEpoch := epoch - xcom.ActiveUnDelFreezeRatio()
-
-	unDelegateCount, err := sk.db.GetUnDelegateCountStore(blockHash, releaseEpoch)
+	unDelegateCount, err := sk.db.GetUnDelegateCountStore(blockHash, epoch)
 	switch {
 	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
@@ -1439,17 +1436,17 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 	}
 
 	for index := 1; index <= int(unDelegateCount); index++ {
-		unDelegateItem, err := sk.db.GetUnDelegateItemStore(blockHash, releaseEpoch, uint64(index))
+		unDelegateItem, err := sk.db.GetUnDelegateItemStore(blockHash, epoch, uint64(index))
 
 		if nil != err {
-			log.Error("Failed to HandleUnCandidateItem: Query the unStakeItem is failed", "blockHash",
+			log.Error("Failed to HandleUnDelegateItem: Query the unStakeItem is failed", "blockHash",
 				blockHash.Hex(), "epoch", epoch, "err", err)
 			return err
 		}
 
 		del, err := sk.db.GetDelegateStoreBySuffix(blockHash, unDelegateItem.KeySuffix)
 		if nil != err {
-			log.Error("Failed to HandleUnCandidateItem: Query delegate info is failed", "blockHash",
+			log.Error("Failed to HandleUnDelegateItem: Query delegate info is failed", "blockHash",
 				blockHash.Hex(), "epoch", epoch, "err", err)
 			return err
 		}
@@ -1463,6 +1460,17 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 			return err
 		}
 
+		// clean item
+		if err := sk.db.DelUnDelegateItemStore(blockHash, epoch, uint64(index)); nil != err {
+			log.Error("Failed to HandleUnDelegateItem: Delete unDelegateItem failed", "blockHash", blockHash.Hex(), "err", err)
+			return err
+		}
+	}
+
+	// clean count
+	if err := sk.db.DelUnDelegateCountStore(blockHash, epoch); nil != err {
+		log.Error("Failed to HandleUnDelegateItem: Delete unDelegateCount failed", "blockHash", blockHash.Hex(), "err", err)
+		return err
 	}
 
 	return nil
@@ -2644,8 +2652,8 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			contract_balance, "slash amount", amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
-	addr, _ := xutil.NodeId2Addr(nodeId)
-	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	canAddr, _ := xutil.NodeId2Addr(nodeId)
+	can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Call SlashCandidates: Query can is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
@@ -2779,7 +2787,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
@@ -2820,7 +2828,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
-		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
@@ -2831,7 +2839,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		log.Debug("SlashCandidates pposHash, Method Before SetCandidateStore", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
@@ -2883,7 +2891,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			log.Debug("SlashCandidates, Method Before AddUnStakeItemStore", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-			if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+			if err := sk.addUnStakeItem(state, blockNumber, blockHash, epoch, can.NodeId, canAddr); nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: Add UnStakeItemStore failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
@@ -2894,7 +2902,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			log.Debug("SlashCandidates, Method Before SetCandidateStore", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
-			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+			if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: Store Candidate info is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
@@ -2907,7 +2915,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				"blockHash", blockHash.Hex(), "pposHash", hex.EncodeToString(pposHash))
 
 			// Clean candidate info
-			if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
+			if err := sk.db.DelCandidateStore(blockHash, canAddr); nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: Delete Candidate info is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
@@ -3484,7 +3492,7 @@ func (sk *StakingPlugin) getPreValList(blockHash common.Hash, blockNumber uint64
 	if nil == targetIndex {
 		log.Error("No Found previous validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the round indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3558,7 +3566,7 @@ func (sk *StakingPlugin) getCurrValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found current validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the round indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3632,7 +3640,7 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 	if nil == targetIndex {
 		log.Error("No Found next validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the round indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3746,7 +3754,7 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 	if nil == targetIndex {
 		log.Error("No Found epoch validators index", "isCommit", isCommit,
 			"current blockNumber", blockNumber, "current blockHash", blockHash.Hex())
-		xcom.PrintObjForErr("the indexs arr is", indexArr)
+		xcom.PrintObjForErr("the epoch indexs arr is", indexArr)
 		return nil, ValidatorNotExist
 	}
 
@@ -3818,6 +3826,51 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 		return err
 	}
 
+	return nil
+}
+
+func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
+	nodeId discover.NodeID, canAddr common.Address) error {
+
+	endVoteNum, err := gov.GetMaxEndVotingBlock(nodeId, blockHash, state)
+	if nil != err {
+		return err
+	}
+
+	refundEpoch := xutil.CalculateEpoch(blockNumber) + xcom.UnStakeFreezeRatio()
+	maxEndVoteEpoch := xutil.CalculateEpoch(endVoteNum)
+
+	var targetEpoch uint64
+
+	if maxEndVoteEpoch <= refundEpoch {
+		targetEpoch = refundEpoch
+	} else {
+		targetEpoch = maxEndVoteEpoch
+	}
+
+	log.Debug("Call addUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
+		"govenance max end vote blokNumber", endVoteNum, "unStakeFreeze Epoch", refundEpoch,
+		"govenance max end vote epoch", maxEndVoteEpoch, "unstake item target Epoch", targetEpoch,
+		"nodeId", nodeId.String())
+
+	if err := sk.db.AddUnStakeItemStore(blockHash, targetEpoch, canAddr); nil != err {
+		return err
+	}
+	return nil
+}
+
+func (sk *StakingPlugin) addUnDelegateItem(blockNumber uint64, blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+	epoch, stakeBlockNumber uint64, amount *big.Int) error {
+
+	targetEpoch := epoch + xcom.ActiveUnDelFreezeRatio()
+
+	log.Debug("Call addUnDelegateItem, AddUnDelegateItemStore start", "current blockNumber",
+		blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "current epoch", epoch,
+		"target epoch", targetEpoch, "stakingBlockNum", stakeBlockNumber, "refundAmount", amount)
+
+	if err := sk.db.AddUnDelegateItemStore(blockHash, delAddr, nodeId, targetEpoch, stakeBlockNumber, amount); nil != err {
+		return err
+	}
 	return nil
 }
 

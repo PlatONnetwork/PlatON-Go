@@ -1133,12 +1133,12 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// Add UNStakingItems
-	stakingDB := staking.NewStakingDB()
+	//stakingDB := staking.NewStakingDB()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
+	canAddr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
-	if err := stakingDB.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+	if err := StakingInstance().addUnStakeItem(state, blockNumber.Uint64(), blockHash, epoch, nodeIdArr[index], canAddr); nil != err {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
@@ -1165,7 +1165,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, uint64(2))
+	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, epoch+xcom.UnStakeFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnCandidateItem:", err)
 		return
@@ -1663,7 +1663,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 	delAddr := addrArr[index+1]
 
-	err = stakingDB.AddUnDelegateItemStore(blockHash2, delAddr, c.NodeId, epoch, c.StakingBlockNum, amount)
+	err = StakingInstance().addUnDelegateItem(blockNumber2.Uint64(), blockHash2, delAddr, c.NodeId, epoch, c.StakingBlockNum, amount)
 	if nil != err {
 		t.Error("Failed to AddUnDelegateItemStore:", err)
 		return
@@ -1698,7 +1698,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	/**
 	Start HandleUnDelegateItem
 	*/
-	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch)
+	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnDelegateItem:", err)
 		return

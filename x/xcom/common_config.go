@@ -102,7 +102,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	)
 
 	switch netId {
-	case DefaultMainNet, DefaultDeveloperNet:
+	case DefaultMainNet:
 		stakeThresholdCount = "10000000000000000000000000" // 1000W von
 		minimumThresholdCount = "10000000000000000000"     // 10 von
 	case DefaultAlphaTestNet:
@@ -115,6 +115,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		stakeThresholdCount = "10000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	case DefaultInnerDevNet:
+		stakeThresholdCount = "10000000000000000000000000"
+		minimumThresholdCount = "10000000000000000000"
+	default: // DefaultDeveloperNet
 		stakeThresholdCount = "10000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	}
@@ -143,7 +146,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
 				ElectionDistance:             uint64(20),
-				UnStakeFreezeRatio:           uint64(1),
+				UnStakeFreezeRatio:           uint64(28), // freezing 28 epoch
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
@@ -332,7 +335,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 		}
 
-	default:
+	default: // DefaultDeveloperNet
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{

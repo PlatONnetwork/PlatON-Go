@@ -105,10 +105,10 @@ const (
 	VoteGas                  uint64 = 2000   // Gas needed for vote
 	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
 
-	SlashingGas              uint64 = 1000  // Gas needed for precompiled contract: slashingContract
-	ReportDuplicateSignGas   uint64 = 1000  // Gas needed for ReportDuplicateSign
+	SlashingGas              uint64 = 21000 // Gas needed for precompiled contract: slashingContract
+	ReportDuplicateSignGas   uint64 = 21000 // Gas needed for ReportDuplicateSign
 	DuplicateEvidencesGas    uint64 = 21000 // When reporting, each duplicate sign of evidence requires gas to be consumed
-	RestrictingPlanGas       uint64 = 2000  // Gas needed for precompiled contract: restrictingPlanContract
+	RestrictingPlanGas       uint64 = 18000 // Gas needed for precompiled contract: restrictingPlanContract
 	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan
 	ReleasePlanGas           uint64 = 21000 // Gas consumed every time the von of the restrictPlan is released
 )
