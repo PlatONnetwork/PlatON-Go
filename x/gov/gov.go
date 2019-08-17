@@ -6,15 +6,20 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	govdb "github.com/PlatONnetwork/PlatON-Go/x/gov/db"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
+type Staking interface {
+	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
+	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateQueue, error)
+	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
+	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
+}
+
 func GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
-	avList, err := govdb.ListActiveVersion(state)
+	avList, err := ListActiveVersion(state)
 	if err != nil {
 		log.Error("List active version error", "err", err)
 		return 0
@@ -30,7 +35,7 @@ func GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
 
 // Get current active version record
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
-	avList, err := govdb.ListActiveVersion(state)
+	avList, err := ListActiveVersion(state)
 	if err != nil {
 		log.Error("Cannot find active version list")
 		return 0
@@ -57,7 +62,7 @@ func GetProgramVersion() (*ProgramVersionValue, error) {
 }
 
 // submit a proposal
-func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
@@ -67,16 +72,16 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 	}
 
 	//check caller and proposer
-	if err := checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()); err != nil {
+	if err := checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock(), stk); err != nil {
 		return err
 	}
 
 	//handle storage
-	if err := govdb.SetProposal(proposal, state); err != nil {
+	if err := SetProposal(proposal, state); err != nil {
 		log.Error("save proposal failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
-	if err := govdb.AddVotingProposalID(blockHash, proposal.GetProposalID()); err != nil {
+	if err := AddVotingProposalID(blockHash, proposal.GetProposalID()); err != nil {
 		log.Error("add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
@@ -84,13 +89,13 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 }
 
 // vote for a proposal
-func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, state xcom.StateDB) error {
+func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, stk Staking, state xcom.StateDB) error {
 	log.Debug("call Vote", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign, "voteInfo", vote)
 	if vote.ProposalID == common.ZeroHash || vote.VoteOption == 0 {
 		return common.NewBizError("empty parameter detected.")
 	}
 
-	proposal, err := govdb.GetProposal(vote.ProposalID, state)
+	proposal, err := GetProposal(vote.ProposalID, state)
 	if err != nil {
 		log.Error("cannot find proposal by ID", "proposalID", vote.ProposalID)
 		return err
@@ -100,7 +105,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check caller and voter
-	if err := checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber); err != nil {
+	if err := checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber, stk); err != nil {
 		return err
 	}
 
@@ -150,7 +155,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if node has voted
-	verifierList, err := govdb.ListVotedVerifier(vote.ProposalID, state)
+	verifierList, err := ListVotedVerifier(vote.ProposalID, state)
 	if err != nil {
 		log.Error("list voted verifiers failed", "proposalID", vote.ProposalID)
 		return err
@@ -162,14 +167,14 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//handle storage
-	if err := govdb.SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
+	if err := SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
 		log.Error("save vote failed", "proposalID", vote.ProposalID)
 		return err
 	}
 
 	//the proposal is version type, so add the node ID to active node list.
 	if proposal.GetProposalType() == Version {
-		if err := govdb.AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
+		if err := AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
 			log.Error("add nodeID to active node list failed", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
 			return err
 		}
@@ -179,7 +184,8 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 }
 
 // node declares it's version
-func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
+
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 	//check caller is a Verifier or Candidate
 	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
@@ -190,7 +196,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return common.NewBizError("version sign error.")
 	}
 
-	if err := checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
+	if err := checkCandidate(from, declaredNodeID, blockHash, blockNumber, stk); err != nil {
 		return err
 	}
 
@@ -199,7 +205,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return common.NewBizError("wrong current active version.")
 	}
 
-	votingVP, err := govdb.FindVotingVersionProposal(blockHash, blockNumber, state)
+	votingVP, err := FindVotingVersionProposal(blockHash, blockNumber, state)
 	if err != nil {
 		log.Error("find if there's a voting version proposal failed", "blockHash", blockHash)
 		return err
@@ -208,7 +214,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 	//there is a voting version proposal
 	if votingVP != nil {
 		if declaredVersion>>8 == activeVersion>>8 {
-			nodeList, err := govdb.ListVotedVerifier(votingVP.ProposalID, state)
+			nodeList, err := ListVotedVerifier(votingVP.ProposalID, state)
 			if err != nil {
 				log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
 				return err
@@ -221,7 +227,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 					//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
 					log.Debug("there's a voting-version-proposal, and declared version equals active version, notify staking immediately.",
 						"blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion)
-					if err := plugin.StakingInstance().DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+					if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 						log.Error("notify staking of declared node ID failed", "err", err)
 						return common.NewBizError("notify staking of declared node ID failed")
 					}
@@ -231,7 +237,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			//the declared version equals the new version, will notify staking when the proposal is passed
 			log.Debug("declared version equals the new version.",
 				"newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
-			if err := govdb.AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
+			if err := AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
 				log.Error("add declared node ID to active node list failed", "err", err)
 				return err
 			}
@@ -240,13 +246,13 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			return common.NewBizError("declared version neither equals active version nor new version.")
 		}
 	} else {
-		preActiveVersion := govdb.GetPreActiveVersion(state)
+		preActiveVersion := GetPreActiveVersion(state)
 		if declaredVersion>>8 == activeVersion>>8 || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
 			//there's no voting-version-proposal, if the declared version equals either the current active version or preActive version, notify staking immediately
 			//stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
 			log.Debug("there's no voting-version-proposal, the declared version equals either the current active version or preActive version, notify staking immediately.",
 				"blockNumber", blockNumber, "declaredVersion", declaredVersion, "declaredNodeID", declaredNodeID, "activeVersion", activeVersion, "preActiveVersion", preActiveVersion)
-			if err := plugin.StakingInstance().DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
 				log.Error("notify staking of declared node ID failed", "err", err)
 				return common.NewBizError("notify staking of declared node ID failed")
 			}
@@ -259,9 +265,9 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 }
 
 // check if the node a verifier, and the caller address is same as the staking address
-func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
+func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	verifierList, err := plugin.StakingInstance().GetVerifierList(blockHash, blockNumber, plugin.QueryStartNotIrr)
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
 		return err
@@ -271,7 +277,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
 				nodeAddress, _ := xutil.NodeId2Addr(verifier.NodeId)
-				candidate, err := plugin.StakingInstance().GetCandidateInfo(blockHash, nodeAddress)
+				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
 				if err != nil {
 					return common.NewBizError("cannot get verifier's detail info.")
 				} else if staking.Is_Invalid(candidate.Status) {
@@ -294,18 +300,18 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 	var proposalIDs []common.Hash
 	var proposals []Proposal
 
-	votingProposals, err := govdb.ListVotingProposal(blockHash)
+	votingProposals, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("list voting proposals failed.", "blockHash", blockHash)
 		return nil, err
 	}
-	endProposals, err := govdb.ListEndProposalID(blockHash)
+	endProposals, err := ListEndProposalID(blockHash)
 	if err != nil {
 		log.Error("list end proposals failed.", "blockHash", blockHash)
 		return nil, err
 	}
 
-	preActiveProposals, err := govdb.GetPreActiveProposalID(blockHash)
+	preActiveProposals, err := GetPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("find pre-active proposal failed.", "blockHash", blockHash)
 		return nil, err
@@ -318,7 +324,7 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 	}
 
 	for _, proposalID := range proposalIDs {
-		proposal, err := govdb.GetExistProposal(proposalID, state)
+		proposal, err := GetExistProposal(proposalID, state)
 		if err != nil {
 			log.Error("find proposal failed.", "proposalID", proposalID)
 			return nil, err
@@ -331,7 +337,7 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 // list all proposal IDs at voting stage
 func ListVotingProposalID(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) ([]common.Hash, error) {
 	log.Debug("call ListVotingProposalID", "blockHash", blockHash, "blockNumber", blockNumber)
-	idList, err := govdb.ListVotingProposal(blockHash)
+	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting version proposal failed", "blockHash", blockHash)
 		return nil, err
@@ -342,13 +348,13 @@ func ListVotingProposalID(blockHash common.Hash, blockNumber uint64, state xcom.
 // find a cancel proposal at voting stage
 func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*CancelProposal, error) {
 	log.Debug("call findVotingCancelProposal", "blockHash", blockHash, "blockNumber", blockNumber)
-	idList, err := govdb.ListVotingProposal(blockHash)
+	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting proposal failed", "blockHash", blockHash)
 		return nil, err
 	}
 	for _, proposalID := range idList {
-		p, err := govdb.GetExistProposal(proposalID, state)
+		p, err := GetExistProposal(proposalID, state)
 		if err != nil {
 			return nil, err
 		}
@@ -361,17 +367,17 @@ func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state x
 }
 
 func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
-	if proposalIDList, err := govdb.ListVotingProposal(blockHash); err != nil {
+	if proposalIDList, err := ListVotingProposal(blockHash); err != nil {
 		return 0, err
 	} else {
 		var maxEndVotingBlock = uint64(0)
 		for _, proposalID := range proposalIDList {
-			if voteValueList, err := govdb.ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
 				return 0, err
 			} else {
 				for _, voteValue := range voteValueList {
 					if voteValue.VoteNodeID == nodeID {
-						if proposal, err := govdb.GetExistProposal(proposalID, state); err != nil {
+						if proposal, err := GetExistProposal(proposalID, state); err != nil {
 							return 0, err
 						} else if proposal.GetEndVotingBlock() > maxEndVotingBlock {
 							maxEndVotingBlock = proposal.GetEndVotingBlock()
@@ -385,9 +391,9 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
-func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
+func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	candidateList, err := plugin.StakingInstance().GetCandidateList(blockHash, blockNumber)
+	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
 		return err

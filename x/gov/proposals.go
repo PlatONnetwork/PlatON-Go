@@ -3,8 +3,6 @@ package gov
 import (
 	"fmt"
 
-	govdb "github.com/PlatONnetwork/PlatON-Go/x/gov/db"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -220,7 +218,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return common.NewBizError("New version should larger than current active version.")
 	}
 
-	if exist, err := govdb.FindVotingVersionProposal(blockHash, submitBlock, state); err != nil {
+	if exist, err := FindVotingVersionProposal(blockHash, submitBlock, state); err != nil {
 		return err
 	} else if exist != nil {
 		log.Error("there is another version proposal at voting stage", "proposalID", exist.ProposalID)
@@ -228,7 +226,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	}
 
 	//another VersionProposal in Pre-active process，exit
-	proposalID, err := govdb.GetPreActiveProposalID(blockHash)
+	proposalID, err := GetPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("to check if there's a pre-active version proposal failed.", "blockNumber", submitBlock, "blockHash", blockHash)
 		return err
@@ -311,12 +309,12 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return common.NewBizError("there is another cancel proposal at voting stage")
 	}
 
-	if tobeCanceled, err := govdb.GetExistProposal(cp.TobeCanceled, state); err != nil {
+	if tobeCanceled, err := GetExistProposal(cp.TobeCanceled, state); err != nil {
 		log.Error("find to be canceled version proposal error", "err", err)
 		return common.NewBizError("find to be canceled version proposal error")
 	} else if tobeCanceled.GetProposalType() != Version {
 		return common.NewBizError("to be canceled proposal should be version proposal")
-	} else if votingList, err := govdb.ListVotingProposal(blockHash); err != nil {
+	} else if votingList, err := ListVotingProposal(blockHash); err != nil {
 		return err
 	} else if !xutil.InHashList(cp.TobeCanceled, votingList) {
 		return common.NewBizError("to be canceled version proposal should be at voting stage")
@@ -341,7 +339,7 @@ func verifyBasic(p Proposal, state xcom.StateDB) error {
 	log.Debug("verify proposal basic parameters", "proposalID", p.GetProposalID(), "proposer", p.GetProposer(), "pipID", p.GetPIPID(), "endVotingBlock", p.GetEndVotingBlock(), "submitBlock", p.GetSubmitBlock())
 
 	if p.GetProposalID() != common.ZeroHash {
-		p, err := govdb.GetProposal(p.GetProposalID(), state)
+		p, err := GetProposal(p.GetProposalID(), state)
 		if err != nil {
 			return err
 		}
@@ -358,7 +356,7 @@ func verifyBasic(p Proposal, state xcom.StateDB) error {
 
 	if len(p.GetPIPID()) == 0 {
 		return common.NewBizError("PIPID is empty.")
-	} else if pipIdList, err := govdb.ListPIPID(state); err != nil {
+	} else if pipIdList, err := ListPIPID(state); err != nil {
 		return err
 	} else if isPIPIDExist(p.GetPIPID(), pipIdList) {
 		return common.NewBizError("PIPID is existing.")

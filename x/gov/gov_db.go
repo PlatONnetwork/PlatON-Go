@@ -1,9 +1,7 @@
-package govdb
+package gov
 
 import (
 	"encoding/json"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -16,41 +14,41 @@ var (
 	ValueDelimiter = []byte(":")
 )
 
-func SetProposal(proposal gov.Proposal, state xcom.StateDB) error {
+func SetProposal(proposal Proposal, state xcom.StateDB) error {
 	bytes, e := json.Marshal(proposal)
 	if e != nil {
 		return common.NewSysError(e.Error())
 	}
 
 	value := append(bytes, byte(proposal.GetProposalType()))
-	state.SetState(vm.GovContractAddr, gov.KeyProposal(proposal.GetProposalID()), value)
+	state.SetState(vm.GovContractAddr, KeyProposal(proposal.GetProposalID()), value)
 
 	return AddPIPID(proposal.GetPIPID(), state)
 }
 
-func GetProposal(proposalID common.Hash, state xcom.StateDB) (gov.Proposal, error) {
-	value := state.GetState(vm.GovContractAddr, gov.KeyProposal(proposalID))
+func GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
+	value := state.GetState(vm.GovContractAddr, KeyProposal(proposalID))
 	if len(value) == 0 {
 		return nil, nil
 	}
 	pData := value[0 : len(value)-1]
 	pType := value[len(value)-1]
-	if pType == byte(gov.Text) {
-		var proposal gov.TextProposal
+	if pType == byte(Text) {
+		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			log.Error("cannot parse data to text proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		return &proposal, nil
-	} else if pType == byte(gov.Version) {
-		var proposal gov.VersionProposal
+	} else if pType == byte(Version) {
+		var proposal VersionProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			log.Error("cannot parse data to version proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		return &proposal, nil
-	} else if pType == byte(gov.Cancel) {
-		var proposal gov.CancelProposal
+	} else if pType == byte(Cancel) {
+		var proposal CancelProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			log.Error("cannot parse data to cancel proposal")
 			return nil, common.NewSysError(e.Error())
@@ -62,12 +60,12 @@ func GetProposal(proposalID common.Hash, state xcom.StateDB) (gov.Proposal, erro
 }
 
 // Select proposal id list from snapshot database ,then get propsal detail from statedb one by one
-func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]gov.Proposal, error) {
+func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
 	proposalIds, err := getAllProposalIDList(blockHash)
 	if err != nil {
 		return nil, common.NewSysError(err.Error())
 	}
-	var proposls []gov.Proposal
+	var proposls []Proposal
 	for _, proposalId := range proposalIds {
 		proposal, err := GetExistProposal(proposalId, state)
 		if err != nil {
@@ -80,26 +78,26 @@ func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]gov.Proposal,
 }
 
 //Save the Vote detail
-func SetVote(proposalID common.Hash, voter discover.NodeID, option gov.VoteOption, state xcom.StateDB) error {
+func SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) error {
 	voteValueList, err := ListVoteValue(proposalID, state)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
-	voteValueList = append(voteValueList, gov.VoteValue{voter, option})
+	voteValueList = append(voteValueList, VoteValue{voter, option})
 
 	voteListBytes, _ := json.Marshal(voteValueList)
 
-	state.SetState(vm.GovContractAddr, gov.KeyVote(proposalID), voteListBytes)
+	state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
 	return nil
 }
 
 //list vote detail
-func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]gov.VoteValue, error) {
-	voteListBytes := state.GetState(vm.GovContractAddr, gov.KeyVote(proposalID))
+func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, error) {
+	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
 	if len(voteListBytes) == 0 {
 		return nil, nil
 	}
-	var voteList []gov.VoteValue
+	var voteList []VoteValue
 	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
 		return nil, common.NewSysError(err.Error()) //errors.New("Unmarshal VoteValue error")
 	}
@@ -119,23 +117,23 @@ func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.N
 	return voterList, nil
 }
 
-func SetTallyResult(tallyResult gov.TallyResult, state xcom.StateDB) error {
+func SetTallyResult(tallyResult TallyResult, state xcom.StateDB) error {
 	value, err := json.Marshal(tallyResult)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
-	state.SetState(vm.GovContractAddr, gov.KeyTallyResult(tallyResult.ProposalID), value)
+	state.SetState(vm.GovContractAddr, KeyTallyResult(tallyResult.ProposalID), value)
 	return nil
 }
 
-func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*gov.TallyResult, error) {
-	value := state.GetState(vm.GovContractAddr, gov.KeyTallyResult(proposalID))
+func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, error) {
+	value := state.GetState(vm.GovContractAddr, KeyTallyResult(proposalID))
 
 	if len(value) == 0 {
 		return nil, nil
 	}
 
-	var tallyResult gov.TallyResult
+	var tallyResult TallyResult
 	if err := json.Unmarshal(value, &tallyResult); err != nil {
 		return nil, common.NewSysError(err.Error())
 	}
@@ -145,13 +143,13 @@ func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*gov.TallyResul
 
 // Set pre-active version
 func SetPreActiveVersion(preActiveVersion uint32, state xcom.StateDB) error {
-	state.SetState(vm.GovContractAddr, gov.KeyPreActiveVersion(), common.Uint32ToBytes(preActiveVersion))
+	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), common.Uint32ToBytes(preActiveVersion))
 	return nil
 }
 
 // Get pre-active version
 func GetPreActiveVersion(state xcom.StateDB) uint32 {
-	value := state.GetState(vm.GovContractAddr, gov.KeyPreActiveVersion())
+	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
 	return common.BytesToUint32(value)
 }
 
@@ -161,12 +159,12 @@ func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.State
 	if err != nil {
 		return err
 	}
-	curAv := gov.ActiveVersionValue{ActiveVersion: activeVersion, ActiveBlock: activeBlock}
+	curAv := ActiveVersionValue{ActiveVersion: activeVersion, ActiveBlock: activeBlock}
 	//Insert the object into the head of the list
-	avList = append([]gov.ActiveVersionValue{curAv}, avList...)
+	avList = append([]ActiveVersionValue{curAv}, avList...)
 
 	avListBytes, _ := json.Marshal(avList)
-	state.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), avListBytes)
+	state.SetState(vm.GovContractAddr, KeyActiveVersions(), avListBytes)
 	return nil
 }
 
@@ -199,7 +197,7 @@ func GetPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 }
 
 func AddVotingProposalID(blockHash common.Hash, proposalID common.Hash) error {
-	if err := addProposalByKey(blockHash, gov.KeyVotingProposals(), proposalID); err != nil {
+	if err := addProposalByKey(blockHash, KeyVotingProposals(), proposalID); err != nil {
 		//log.Error("add voting proposal to snapshot db error:%s", err)
 		return common.NewSysError(err.Error())
 	}
@@ -221,12 +219,12 @@ func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Ha
 
 	pre = append(pre, proposalID)*/
 
-	err = put(blockHash, gov.KeyVotingProposals(), voting)
+	err = put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = put(blockHash, gov.KeyPreActiveProposal(), proposalID)
+	err = put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -258,12 +256,12 @@ func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, st
 		return common.NewSysError(err.Error())
 	}
 	voting = remove(voting, proposalID)
-	err = put(blockHash, gov.KeyVotingProposals(), voting)
+	err = put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = addProposalByKey(blockHash, gov.KeyEndProposals(), proposalID)
+	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -273,12 +271,12 @@ func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, st
 
 func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
-	err := put(blockHash, gov.KeyPreActiveProposal(), common.Hash{})
+	err := put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = addProposalByKey(blockHash, gov.KeyEndProposals(), proposalID)
+	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -347,12 +345,12 @@ func AddPIPID(pipID string, state xcom.StateDB) error {
 	}
 
 	pipIDListBytes, _ := json.Marshal(pipIDList)
-	state.SetState(vm.GovContractAddr, gov.KeyPIPIDs(), pipIDListBytes)
+	state.SetState(vm.GovContractAddr, KeyPIPIDs(), pipIDListBytes)
 	return nil
 }
 
 func ListPIPID(state xcom.StateDB) ([]string, error) {
-	pipIDListBytes := state.GetState(vm.GovContractAddr, gov.KeyPIPIDs())
+	pipIDListBytes := state.GetState(vm.GovContractAddr, KeyPIPIDs())
 	if len(pipIDListBytes) > 0 {
 		var pipIDList []string
 		if err := json.Unmarshal(pipIDListBytes, &pipIDList); err != nil {
@@ -364,7 +362,7 @@ func ListPIPID(state xcom.StateDB) ([]string, error) {
 	}
 }
 
-func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (gov.Proposal, error) {
+func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
 	p, err := GetProposal(proposalID, state)
 	if err != nil {
 		return nil, err
@@ -377,7 +375,7 @@ func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (gov.Proposal,
 }
 
 // find a version proposal at voting stage
-func FindVotingVersionProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*gov.VersionProposal, error) {
+func FindVotingVersionProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*VersionProposal, error) {
 	log.Debug("call findVotingVersionProposal", "blockHash", blockHash, "blockNumber", blockNumber)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
@@ -389,20 +387,20 @@ func FindVotingVersionProposal(blockHash common.Hash, blockNumber uint64, state 
 		if err != nil {
 			return nil, err
 		}
-		if p.GetProposalType() == gov.Version {
-			vp := p.(*gov.VersionProposal)
+		if p.GetProposalType() == Version {
+			vp := p.(*VersionProposal)
 			return vp, nil
 		}
 	}
 	return nil, nil
 }
 
-func ListActiveVersion(state xcom.StateDB) ([]gov.ActiveVersionValue, error) {
-	avListBytes := state.GetState(vm.GovContractAddr, gov.KeyActiveVersions())
+func ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
+	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
 	if len(avListBytes) == 0 {
 		return nil, nil
 	}
-	var avList []gov.ActiveVersionValue
+	var avList []ActiveVersionValue
 	if err := json.Unmarshal(avListBytes, &avList); err != nil {
 		return nil, common.NewSysError(err.Error())
 	}

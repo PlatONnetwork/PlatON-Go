@@ -1,4 +1,4 @@
-package govdb
+package gov
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -6,7 +6,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -42,12 +41,12 @@ func addProposalByKey(blockHash common.Hash, key []byte, proposalId common.Hash)
 }
 
 func getVotingIDList(blockHash common.Hash) ([]common.Hash, error) {
-	return getProposalIDListByKey(blockHash, gov.KeyVotingProposals())
+	return getProposalIDListByKey(blockHash, KeyVotingProposals())
 }
 
 func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
-	bytes, err := get(blockHash, gov.KeyPreActiveProposal())
+	bytes, err := get(blockHash, KeyPreActiveProposal())
 
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return common.Hash{}, err
@@ -64,7 +63,7 @@ func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 }
 
 func getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
-	return getProposalIDListByKey(blockHash, gov.KeyEndProposals())
+	return getProposalIDListByKey(blockHash, KeyEndProposals())
 }
 
 func getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, error) {
@@ -121,12 +120,12 @@ func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId commo
 		return nil
 	} else {
 		nodes = append(nodes, node)
-		return put(blockHash, gov.KeyActiveNodes(proposalId), nodes)
+		return put(blockHash, KeyActiveNodes(proposalId), nodes)
 	}
 }
 
 func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
-	value, err := get(blockHash, gov.KeyActiveNodes(proposalId))
+	value, err := get(blockHash, KeyActiveNodes(proposalId))
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
@@ -140,11 +139,11 @@ func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discove
 }
 
 func deleteActiveNodeList(blockHash common.Hash, proposalId common.Hash) error {
-	return del(blockHash, gov.KeyActiveNodes(proposalId))
+	return del(blockHash, KeyActiveNodes(proposalId))
 }
 
 func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
-	value, err := get(blockHash, gov.KeyAccuVerifier(proposalId))
+	value, err := get(blockHash, KeyAccuVerifier(proposalId))
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
@@ -161,11 +160,11 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 		}
 	}
 	log.Debug("accumulated verifiers", "proposalID", proposalId, "total", len(accuVerifiers))
-	return put(blockHash, gov.KeyAccuVerifier(proposalId), accuVerifiers)
+	return put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)
 }
 
 func getAccuVerifiersLength(blockHash common.Hash, proposalId common.Hash) (uint16, error) {
-	value, err := get(blockHash, gov.KeyAccuVerifier(proposalId))
+	value, err := get(blockHash, KeyAccuVerifier(proposalId))
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return 0, err
 	}

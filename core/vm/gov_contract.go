@@ -5,8 +5,6 @@ import (
 	"errors"
 	"math/big"
 
-	govdb "github.com/PlatONnetwork/PlatON-Go/x/gov/db"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -128,7 +126,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		ProposalID:   txHash,
 		Proposer:     verifier,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitText", SubmitTextEvent, err, SubmitTextProposalErrorMsg)
 }
 
@@ -166,7 +164,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		Proposer:        verifier,
 		NewVersion:      newVersion,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
 }
 
@@ -203,7 +201,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		Proposer:     verifier,
 		TobeCanceled: tobeCanceledProposalID,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitCancel", SubmitCancelEvent, err, SubmitCancelProposalErrorMsg)
 }
 
@@ -238,7 +236,7 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gov.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, gc.Evm.StateDB)
+	err := gov.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, plugin.StakingInstance(), gc.Evm.StateDB)
 
 	return gc.errHandler("vote", VoteEvent, err, VoteErrorMsg)
 }
@@ -264,7 +262,7 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 		return nil, ErrOutOfGas
 	}
 
-	err := gov.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 
 	return gc.errHandler("declareVersion", DeclareEvent, err, DeclareErrorMsg)
 }
@@ -280,7 +278,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	proposal, err := govdb.GetProposal(proposalID, gc.Evm.StateDB)
+	proposal, err := gov.GetProposal(proposalID, gc.Evm.StateDB)
 
 	return gc.returnHandler("getProposal", proposal, err, GetProposalErrorMsg)
 }
@@ -296,7 +294,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	rallyResult, err := govdb.GetTallyResult(proposalID, gc.Evm.StateDB)
+	rallyResult, err := gov.GetTallyResult(proposalID, gc.Evm.StateDB)
 
 	return gc.returnHandler("getTallyResult", rallyResult, err, GetTallyResultErrorMsg)
 }
