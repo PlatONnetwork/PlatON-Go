@@ -99,7 +99,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 	cbft.insertPrepareQC(msg.ParentQC)
 
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
-	cbft.log.Debug("Add prepare vote", "msgHash", msg.MsgHash(), "blockIndex", msg.BlockIndex, "number", msg.BlockNumber, "hash", msg.BlockHash, "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
+	cbft.log.Debug("Add prepare vote", "msgHash", msg.MsgHash(), "validatorIndex", msg.ValidatorIndex, "blockIndex", msg.BlockIndex, "number", msg.BlockNumber, "hash", msg.BlockHash, "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
 
 	cbft.findQCBlock()
 	return nil
@@ -213,6 +213,7 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		// test hook
 		cbft.insertBlockQCHook(block, qc)
 	}
+	cbft.trySendPrepareVote()
 }
 
 func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
