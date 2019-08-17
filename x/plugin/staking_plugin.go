@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -1697,7 +1699,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
-	curr_version := govp.GetCurrentActiveVersion(state)
+	curr_version := gov.GetCurrentActiveVersion(state)
 	currVersion := xutil.CalcVersion(curr_version)
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
@@ -3830,7 +3832,7 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64,
 	nodeId discover.NodeID, canAddr common.Address) error {
 
-	endVoteNum, err := govp.GetMaxEndVotingBlock(nodeId, blockHash, state)
+	endVoteNum, err := gov.GetMaxEndVotingBlock(nodeId, blockHash, state)
 	if nil != err {
 		return err
 	}

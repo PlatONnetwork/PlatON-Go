@@ -158,10 +158,6 @@ type Ppos_2103 struct {
 type Ppos_2104 struct {
 }
 
-// listParam
-type Ppos_2105 struct {
-}
-
 // ReportDuplicateSign
 type Ppos_3000 struct {
 	Data string
@@ -206,7 +202,6 @@ type decDataConfig struct {
 	P2102  Ppos_2102
 	P2103  Ppos_2103
 	P2104  Ppos_2104
-	P2105  Ppos_2105
 	P3000  Ppos_3000
 	P3001  Ppos_3001
 	P4000  Ppos_4000
@@ -428,7 +423,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2102:
 	case 2103:
 	case 2104:
-	case 2105:
 	case 3000:
 		{
 			data, _ := rlp.EncodeToBytes(cfg.P3000.Data)

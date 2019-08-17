@@ -2,8 +2,8 @@ package vm
 
 import (
 	"encoding/json"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"errors"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -80,22 +80,36 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (gc *GovContract) submitText(verifier discover.NodeID, pipID string, endVotingRounds uint64) ([]byte, error) {
+func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, api interface{}) error {
+	switch api {
+	case gc.submitText:
+		if gasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
+			return errors.New("Gas price under the min gas price.")
+		}
+	case gc.submitVersion:
+		if gasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
+			return errors.New("Gas price under the min gas price.")
+		}
+	case gc.submitCancel:
+		if gasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
+			return errors.New("Gas price under the min gas price.")
+		}
+	}
+	return nil
+}
+
+func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
-
-	endVotingBlock := blockNumber + xutil.ConsensusSize() - blockNumber%xutil.ConsensusSize() + endVotingRounds*xutil.ConsensusSize() - xcom.ElectionDistance()
 
 	log.Debug("Call submitText of GovContract",
 		"from", from.Hex(),
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
-		"verifierID", verifier.TerminalString(),
-		"endVotingRounds", endVotingRounds,
-		"endVotingBlock", endVotingBlock)
+		"verifierID", verifier.TerminalString())
 
 	if txHash == common.ZeroHash {
 		log.Warn("current txHash is empty!!")
@@ -105,15 +119,14 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string, endVot
 	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
 		return nil, ErrOutOfGas
 	}
-	p := gov.TextProposal{
-		PIPID:          pipID,
-		ProposalType:   gov.Text,
-		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    blockNumber,
-		ProposalID:     txHash,
-		Proposer:       verifier,
+	p := &gov.TextProposal{
+		PIPID:        pipID,
+		ProposalType: gov.Text,
+		SubmitBlock:  blockNumber,
+		ProposalID:   txHash,
+		Proposer:     verifier,
 	}
-	err := gc.Plugin.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitText", SubmitTextEvent, err, SubmitTextProposalErrorMsg)
 }
 
@@ -124,9 +137,6 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
-	endVotingBlock := blockNumber + xutil.ConsensusSize() - blockNumber%xutil.ConsensusSize() + endVotingRounds*xutil.ConsensusSize() - xcom.ElectionDistance()
-	activeBlock := endVotingBlock + xcom.ElectionDistance() + 5*xutil.ConsensusSize() + 1
-
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
 		"txHash", txHash,
@@ -134,9 +144,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		"PIPID", pipID,
 		"verifierID", verifier.TerminalString(),
 		"newVersion", newVersion,
-		"endVotingRounds", endVotingRounds,
-		"endVotingBlock", endVotingBlock,
-		"activeBlock", activeBlock)
+		"endVotingRounds", endVotingRounds)
 
 	if txHash == common.ZeroHash {
 		log.Warn("current txHash is empty!!")
@@ -147,17 +155,16 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		return nil, ErrOutOfGas
 	}
 
-	p := gov.VersionProposal{
-		PIPID:          pipID,
-		ProposalType:   gov.Version,
-		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    blockNumber,
-		ProposalID:     txHash,
-		Proposer:       verifier,
-		NewVersion:     newVersion,
-		ActiveBlock:    activeBlock,
+	p := &gov.VersionProposal{
+		PIPID:           pipID,
+		ProposalType:    gov.Version,
+		EndVotingRounds: endVotingRounds,
+		SubmitBlock:     blockNumber,
+		ProposalID:      txHash,
+		Proposer:        verifier,
+		NewVersion:      newVersion,
 	}
-	err := gc.Plugin.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
 }
 
@@ -168,8 +175,6 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
-	endVotingBlock := blockNumber + xutil.ConsensusSize() - blockNumber%xutil.ConsensusSize() + endVotingRounds*xutil.ConsensusSize() - xcom.ElectionDistance()
-
 	log.Debug("Call submitCancel of GovContract",
 		"from", from.Hex(),
 		"txHash", txHash,
@@ -177,7 +182,6 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		"PIPID", pipID,
 		"verifierID", verifier.TerminalString(),
 		"endVotingRounds", endVotingRounds,
-		"endVotingBlock", endVotingBlock,
 		"tobeCanceled", tobeCanceledProposalID)
 
 	if txHash == common.ZeroHash {
@@ -189,16 +193,15 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		return nil, ErrOutOfGas
 	}
 
-	p := gov.CancelProposal{
-		PIPID:          pipID,
-		ProposalType:   gov.Cancel,
-		EndVotingBlock: endVotingBlock,
-		SubmitBlock:    blockNumber,
-		ProposalID:     txHash,
-		Proposer:       verifier,
-		TobeCanceled:   tobeCanceledProposalID,
+	p := &gov.CancelProposal{
+		PIPID:        pipID,
+		ProposalType: gov.Cancel,
+		SubmitBlock:  blockNumber,
+		ProposalID:   txHash,
+		Proposer:     verifier,
+		TobeCanceled: tobeCanceledProposalID,
 	}
-	err := gc.Plugin.Submit(from, p, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitCancel", SubmitCancelEvent, err, SubmitCancelProposalErrorMsg)
 }
 
@@ -228,12 +231,12 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 
 	option := gov.ParseVoteOption(op)
 
-	v := gov.Vote{}
+	v := gov.VoteInfo{}
 	v.ProposalID = proposalID
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gc.Plugin.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, gc.Evm.StateDB)
+	err := gov.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, plugin.StakingInstance(), gc.Evm.StateDB)
 
 	return gc.errHandler("vote", VoteEvent, err, VoteErrorMsg)
 }
@@ -259,7 +262,7 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 		return nil, ErrOutOfGas
 	}
 
-	err := gc.Plugin.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, gc.Evm.StateDB)
+	err := gov.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 
 	return gc.errHandler("declareVersion", DeclareEvent, err, DeclareErrorMsg)
 }
@@ -275,7 +278,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	proposal, err := gc.Plugin.GetProposal(proposalID, gc.Evm.StateDB)
+	proposal, err := gov.GetProposal(proposalID, gc.Evm.StateDB)
 
 	return gc.returnHandler("getProposal", proposal, err, GetProposalErrorMsg)
 }
@@ -291,7 +294,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	rallyResult, err := gc.Plugin.GetTallyResult(proposalID, gc.Evm.StateDB)
+	rallyResult, err := gov.GetTallyResult(proposalID, gc.Evm.StateDB)
 
 	return gc.returnHandler("getTallyResult", rallyResult, err, GetTallyResultErrorMsg)
 }
@@ -306,7 +309,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	proposalList, err := gc.Plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
+	proposalList, err := gov.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
 	return gc.returnHandler("listProposal", proposalList, err, ListProposalErrorMsg)
 }
@@ -321,7 +324,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	activeVersion := gc.Plugin.GetCurrentActiveVersion(gc.Evm.StateDB)
+	activeVersion := gov.GetCurrentActiveVersion(gc.Evm.StateDB)
 
 	return gc.returnHandler("getActiveVersion", activeVersion, nil, GetActiveVersionErrorMsg)
 }
@@ -336,7 +339,7 @@ func (gc *GovContract) getProgramVersion() ([]byte, error) {
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	versionValue, err := gc.Plugin.GetProgramVersion()
+	versionValue, err := gov.GetProgramVersion()
 
 	return gc.returnHandler("getProgramVersion", versionValue, err, GetProgramVersionErrorMsg)
 }
@@ -380,49 +383,3 @@ func (gc *GovContract) returnHandler(funcName string, resultValue interface{}, e
 	resultBytes, _ := json.Marshal(res)
 	return resultBytes, nil
 }
-
-/*func rlpEncodeProposalList(proposals []gov.Proposal) []byte{
-	if len(proposals) == 0 {
-		return nil
-	}
-	var data []byte
-	for _, p := range proposals {
-		eachData := rlpEncodeProposal(p)
-		data = bytes.Join([][]byte{data, eachData}, Delimiter)
-	}
-	return data
-}*/
-
-/*func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte {
-	if len(proposals) == 0 {
-		return nil
-	}
-	var data [][]byte
-	for _, p := range proposals {
-		eachData := rlpEncodeProposal(p)
-		data = append(data, eachData)
-	}
-	return data
-}
-
-func rlpEncodeProposal(proposal gov.Proposal) []byte {
-	if proposal == nil {
-		return nil
-	}
-
-	var data []byte
-	if proposal.GetProposalType() == gov.Text {
-		txt, _ := proposal.(gov.TextProposal)
-		encode := common.MustRlpEncode(txt)
-
-		data = []byte{byte(gov.Text)}
-		data = bytes.Join([][]byte{data, encode}, Delimiter)
-	} else if proposal.GetProposalType() == gov.Version {
-		version, _ := proposal.(gov.VersionProposal)
-		encode := common.MustRlpEncode(version)
-
-		data = []byte{byte(gov.Version)}
-		data = bytes.Join([][]byte{data, encode}, Delimiter)
-	}
-	return data
-}*/
