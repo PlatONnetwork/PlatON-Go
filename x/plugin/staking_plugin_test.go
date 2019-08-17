@@ -1,4 +1,4 @@
-package plugin_test
+package plugin
 
 import (
 	"crypto/ecdsa"
@@ -18,13 +18,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -78,7 +76,7 @@ func build_vrf_Nonce() ([]byte, [][]byte) {
 	return curentNonce, preNonces
 }
 
-func create_staking(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, index int, typ uint16, t *testing.T) error {
+func create_staking(state xcom.StateDB, blockNumber *big.Int, blockHash common.Hash, index int, typ uint16, t *testing.T) error {
 
 	balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 	var blsKey bls.SecretKey
@@ -109,22 +107,18 @@ func create_staking(state *state.StateDB, blockNumber *big.Int, blockHash common
 
 	canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
-	return plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, typ, canAddr, canTmp)
+	return StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, typ, canAddr, canTmp)
 }
 
-func getCandidate(blockHash common.Hash, index int, t *testing.T) *staking.Candidate {
+func getCandidate(blockHash common.Hash, index int) (*staking.Candidate, error) {
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
-	var c *staking.Candidate
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Log("Failed to Get Candidate info", err)
+	if can, err := StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
+		return nil, err
 	} else {
 
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
+		return can, nil
 	}
-	return c
 }
 
 func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
@@ -145,12 +139,12 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	//amount := common.Big257  // FAIL
 	amount, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
 
-	return del, plugin.StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, can, 0, amount)
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, can, 0, amount)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
 
-	del, err := plugin.StakingInstance().GetDelegateInfo(blockHash, addrArr[index+1], nodeIdArr[index], stakingNum)
+	del, err := StakingInstance().GetDelegateInfo(blockHash, addrArr[index+1], nodeIdArr[index], stakingNum)
 	if nil != err {
 		t.Log("Failed to GetDelegateInfo:", err)
 	} else {
@@ -200,7 +194,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			fmt.Printf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
 			return
 		}
 
@@ -413,7 +407,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		/**
 		Start Election
 		*/
-		err = plugin.StakingInstance().EndBlock(curr_Hash, header, state)
+		err = StakingInstance().EndBlock(curr_Hash, header, state)
 		if nil != err {
 			t.Errorf("Failed to Election, blockNumber: %d, err: %v", i+1, err)
 			return
@@ -460,7 +454,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
-			fmt.Printf("Failed to generate random NodeId private key: %v", err)
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
 			return
 		}
 
@@ -663,7 +657,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 			// TODO Must be this
 			if xutil.IsElection(header.Number.Uint64()) {
-				err = plugin.StakingInstance().Election(curr_Hash, header)
+				err = StakingInstance().Election(curr_Hash, header)
 				if nil != err {
 					t.Errorf("Failed to Election, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
 					return
@@ -693,20 +687,20 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	//p2pNode := p2p.Server{}
 	//p2pNode.StartWatching(eventMux)
 
-	plugin.StakingInstance().SetEventMux(eventMux)
+	StakingInstance().SetEventMux(eventMux)
 
 	go watching(eventMux, t)
 
 	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil)
 	blockElection := types.NewBlock(headerMap[electionNum], nil, nil)
 
-	err = plugin.StakingInstance().Confirmed(blockSwitch)
+	err = StakingInstance().Confirmed(blockSwitch)
 	if nil != err {
 		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockSwitch.Number().Uint64(), err)
 		return
 	}
 
-	err = plugin.StakingInstance().Confirmed(blockElection)
+	err = StakingInstance().Confirmed(blockElection)
 	if nil != err {
 		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
 		return
@@ -746,9 +740,6 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -783,14 +774,18 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	/**
 	Start Get Candidate Info
 	*/
-	getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 
 }
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -829,7 +824,7 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 	Get Candidate Info
 	*/
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-	if can, err := plugin.StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
+	if can, err := StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
 		t.Error("Failed to Get Candidate info", err)
 	} else {
 
@@ -839,9 +834,6 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -862,7 +854,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		return
 	}
 
-	count := 1
+	count := 0
 	for i := 0; i < 4; i++ {
 		if err := create_staking(state, blockNumber, blockHash, i, 0, t); nil != err {
 			t.Error("Failed to Create num: "+fmt.Sprint(i)+" Staking", err)
@@ -879,7 +871,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	/**
 	Start GetCandidateList
 	*/
-	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64()); nil != err {
+	if queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64()); nil != err {
 		t.Error("Failed to GetCandidateList", err)
 	} else {
 		if count != len(queue) {
@@ -893,9 +885,6 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -927,8 +916,16 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -942,7 +939,7 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	c.ExternalId = "What is this ?"
 	c.Website = "www.baidu.com"
 	c.Details = "This is buidu website ?"
-	if err := plugin.StakingInstance().EditCandidate(blockHash2, blockNumber2, c); nil != err {
+	if err := StakingInstance().EditCandidate(blockHash2, blockNumber2, c); nil != err {
 		t.Error("Failed to EditCandidate", err)
 		return
 	}
@@ -953,14 +950,17 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	}
 
 	// get Candidate info after edit
-	getCandidate(blockHash2, index, t)
-
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 }
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -993,8 +993,16 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1004,7 +1012,7 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 	/**
 	Start IncreaseStaking
 	*/
-	if err := plugin.StakingInstance().IncreaseStaking(state, blockHash2, blockNumber2, common.Big256, uint16(0), c); nil != err {
+	if err := StakingInstance().IncreaseStaking(state, blockHash2, blockNumber2, common.Big256, uint16(0), c); nil != err {
 		t.Error("Failed to IncreaseStaking", err)
 		return
 	}
@@ -1016,8 +1024,8 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 	// get Candidate info
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-	if can, err := plugin.StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
-		//if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash2, addr); nil != err {
+	if can, err := StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
+		//if can, err := StakingInstance().GetCandidateInfo(blockHash2, addr); nil != err {
 		t.Error("Failed to Get Candidate info After Increase", err)
 	} else {
 
@@ -1029,9 +1037,6 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 }
 
 func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1064,8 +1069,16 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1075,21 +1088,24 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 	/**
 	Start WithdrewStaking
 	*/
-	if err := plugin.StakingInstance().WithdrewStaking(state, blockHash2, blockNumber2, c); nil != err {
+	if err := StakingInstance().WithdrewStaking(state, blockHash2, blockNumber2, c); nil != err {
 		t.Error("Failed to WithdrewStaking", err)
 		return
 	}
 
 	t.Log("Finish WithdrewStaking ~~")
 	// get Candidate info
-	getCandidate(blockHash2, index, t)
+	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
+		t.Logf("expect candidate info is no found, err: %v", err)
+		return
+	} else {
+		t.Error("It is not expect~")
+		return
+	}
 
 }
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1133,7 +1149,13 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// Get Candidate Info
-	getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1143,7 +1165,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = plugin.StakingInstance().HandleUnCandidateItem(state, blockHash2, uint64(2))
+	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, uint64(2))
 	if nil != err {
 		t.Error("Failed to HandleUnCandidateItem:", err)
 		return
@@ -1151,15 +1173,18 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 	t.Log("Finish HandleUnCandidateItem ~~")
 
-	// get Candidate
-	getCandidate(blockHash2, index, t)
+	// get Candidate info
+	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
+		t.Logf("expect candidate info is no found, err: %v", err)
+		return
+	} else {
+		t.Error("It is not expect~")
+		return
+	}
 
 }
 
 func TestStakingPlugin_Delegate(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1192,8 +1217,16 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1214,14 +1247,18 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	}
 	t.Log("Finish Delegate ~~")
-	getCandidate(blockHash2, index, t)
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 
 }
 
 func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1248,8 +1285,16 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		return
 	}
 
+	var c *staking.Candidate
 	// Get Candidate Info
-	c := getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	// Delegate
 	del, err := delegate(state, blockHash, blockNumber, c, 0, index, t)
@@ -1264,7 +1309,13 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	}
 
 	t.Log("Finish delegate ~~")
-	getCandidate(blockHash, index, t)
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1274,7 +1325,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	/**
 	Start Withdrew Delegate
 	*/
-	err = plugin.StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, common.Big257, addrArr[index+1],
+	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, common.Big257, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del)
 	if nil != err {
 		t.Error("Failed to WithdrewDelegate:", err)
@@ -1285,13 +1336,17 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		t.Error("Commit 2 err", err)
 	}
 	t.Log("Finish WithdrewDelegate ~~")
-	getCandidate(blockHash2, index, t)
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		return
+	}
 }
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1324,7 +1379,17 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 	}
 
 	t.Log("Finish delegate ~~")
-	c := getCandidate(blockHash, index, t)
+
+	var c *staking.Candidate
+
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1350,9 +1415,6 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1384,7 +1446,15 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 		return
 	}
 
-	c := getCandidate(blockHash, index, t)
+	var c *staking.Candidate
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1408,7 +1478,7 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 	/**
 	Start get Delegate info
 	*/
-	del, err := plugin.StakingInstance().GetDelegateInfoByIrr(addrArr[index+1], nodeIdArr[index], blockNumber.Uint64())
+	del, err := StakingInstance().GetDelegateInfoByIrr(addrArr[index+1], nodeIdArr[index], blockNumber.Uint64())
 	if nil != err {
 		t.Error("Failed to GetDelegateInfoByIrr:", err)
 		return
@@ -1420,9 +1490,6 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1453,7 +1520,16 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	t.Log("First delegate ~~")
 	for i := 0; i < 2; i++ {
 		// 0, 1
-		c := getCandidate(blockHash, i, t)
+		var c *staking.Candidate
+
+		if can, err := getCandidate(blockHash, i); nil != err {
+			t.Errorf("Failed to Get candidate info, err: %v", err)
+			return
+		} else {
+			canByte, _ := json.Marshal(can)
+			t.Log("Get Candidate Info is:", string(canByte))
+			c = can
+		}
 		// Delegate  0, 1
 		_, err := delegate(state, blockHash, blockNumber, c, 0, i, t)
 		if nil != err {
@@ -1478,7 +1554,16 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	t.Log("Second delegate ~~")
 	for i := 1; i < 3; i++ {
 		// 0, 1
-		c := getCandidate(blockHash2, i-1, t)
+		var c *staking.Candidate
+		if can, err := getCandidate(blockHash2, i-1); nil != err {
+			t.Errorf("Failed to Get candidate info, err: %v", err)
+			return
+		} else {
+			canByte, _ := json.Marshal(can)
+			t.Log("Get Candidate Info is:", string(canByte))
+			c = can
+		}
+
 		// Delegate
 		_, err := delegate(state, blockHash2, blockNumber2, c, 0, i, t)
 		if nil != err {
@@ -1499,7 +1584,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	/**
 	Start get RelatedList
 	*/
-	rel, err := plugin.StakingInstance().GetRelatedListByDelAddr(blockHash2, addrArr[1+1])
+	rel, err := StakingInstance().GetRelatedListByDelAddr(blockHash2, addrArr[1+1])
 	if nil != err {
 		t.Error("Failed to GetRelatedListByDelAddr:", err)
 		return
@@ -1510,9 +1595,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 }
 
 func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1540,7 +1622,17 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 		return
 	}
 
-	c := getCandidate(blockHash, index, t)
+	var c *staking.Candidate
+
+	if can, err := getCandidate(blockHash, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
+
 	// Delegate
 	_, err = delegate(state, blockHash, blockNumber, c, 0, index, t)
 	if nil != err {
@@ -1606,7 +1698,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	/**
 	Start HandleUnDelegateItem
 	*/
-	err = plugin.StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch)
+	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch)
 	if nil != err {
 		t.Error("Failed to HandleUnDelegateItem:", err)
 		return
@@ -1620,7 +1712,14 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	t.Log("Finished HandleUnDelegateItem ~~")
 
 	// get Candiddate
-	c = getCandidate(blockHash2, index, t)
+	if can, err := getCandidate(blockHash2, index); nil != err {
+		t.Errorf("Failed to Get candidate info, err: %v", err)
+		return
+	} else {
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
 
 	// get Delegate
 	getDelegate(blockHash2, c.StakingBlockNum, index, t)
@@ -1708,7 +1807,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -1795,7 +1894,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		return
 	}
 
-	err = plugin.StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), state)
+	err = StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), state)
 	if nil != err {
 		t.Errorf("Failed to ElectNextVerifierList, err: %v", err)
 	}
@@ -1803,9 +1902,6 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 }
 
 func TestStakingPlugin_Election(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -1888,7 +1984,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -1998,7 +2094,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		Nonce:      types.EncodeNonce(currNonce),
 	}
 
-	err = plugin.StakingInstance().Election(blockHash2, header)
+	err = StakingInstance().Election(blockHash2, header)
 	if nil != err {
 		t.Errorf("Failed to Election, err: %v", err)
 	}
@@ -2006,9 +2102,6 @@ func TestStakingPlugin_Election(t *testing.T) {
 }
 
 func TestStakingPlugin_SlashCandidates(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2077,9 +2170,9 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
-			Released:           balance,
+			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
-			RestrictingPlan:    balance,
+			RestrictingPlan:    common.Big0,
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
@@ -2091,7 +2184,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2180,16 +2273,16 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
-	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Shares, false, staking.LowRatio, common.ZeroAddr)
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Released, false, staking.LowRatio, common.ZeroAddr)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates first can (LowRatio), err: %v", err)
 		return
 	}
 
-	sla := new(big.Int).Div(slash2.Shares, big.NewInt(10))
+	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
 
 	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
-	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DuplicateSign, caller)
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DuplicateSign, caller)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err)
 		return
@@ -2198,9 +2291,6 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 }
 
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2283,7 +2373,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2310,7 +2400,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	Start DeclarePromoteNotify
 	*/
 	for i, can := range queue {
-		err = plugin.StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
+		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
 		if nil != err {
 			t.Errorf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err)
 			return
@@ -2321,14 +2411,12 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
 	}
+
 	newPlugins()
 
 	build_gov_data(state)
@@ -2344,6 +2432,8 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
+
+	validatorQueue := make(staking.ValidatorQueue, 0)
 
 	nodeIdArr := make([]discover.NodeID, 0)
 	for i := 0; i < 1000; i++ {
@@ -2405,7 +2495,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2415,7 +2505,36 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		if i < 20 {
 			nodeIdArr = append(nodeIdArr, canTmp.NodeId)
 		}
+
+		v := &staking.Validator{
+			NodeAddress: canAddr,
+			NodeId:      canTmp.NodeId,
+			BlsPubKey:   canTmp.BlsPubKey,
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+			ValidatorTerm: 0,
+		}
+
+		validatorQueue = append(validatorQueue, v)
 	}
+
+	epoch_Arr := &staking.Validator_array{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+		Arr:   validatorQueue,
+	}
+
+	curr_Arr := &staking.Validator_array{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+		Arr:   validatorQueue,
+	}
+
+	t.Log("Store Curr Epoch VerifierList", "len", len(epoch_Arr.Arr))
+	setVerifierList(blockHash, epoch_Arr)
+
+	t.Log("Store CuRR Round Validator", "len", len(epoch_Arr.Arr))
+	setRoundValList(blockHash, curr_Arr)
 
 	// Commit Block 1
 	if err := sndb.Commit(blockHash); nil != err {
@@ -2431,16 +2550,13 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	/**
 	Start ProposalPassedNotify
 	*/
-	err = plugin.StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
+	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 	if nil != err {
 		t.Errorf("Failed to ProposalPassedNotify, err: %v", err)
 	}
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2520,7 +2636,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2601,7 +2717,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	/**
 	Start GetCandidateONEpoch
 	*/
-	canQueue, err := plugin.StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), plugin.QueryStartNotIrr)
+	canQueue, err := StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONEpoch by QueryStartNotIrr, err: %v", err)
 		return
@@ -2610,7 +2726,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	canArr, _ := json.Marshal(canQueue)
 	t.Log("GetCandidateONEpoch by QueryStartNotIrr:", string(canArr))
 
-	canQueue, err = plugin.StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), plugin.QueryStartIrr)
+	canQueue, err = StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONEpoch by QueryStartIrr, err: %v", err)
 	}
@@ -2619,9 +2735,6 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2703,7 +2816,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2797,7 +2910,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	/**
 	Start GetCandidateONRound
 	*/
-	canQueue, err := plugin.StakingInstance().GetCandidateONRound(blockHash2, blockNumber2.Uint64(), plugin.CurrentRound, plugin.QueryStartNotIrr)
+	canQueue, err := StakingInstance().GetCandidateONRound(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONRound by QueryStartNotIrr, err: %v", err)
 		return
@@ -2806,7 +2919,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	canArr, _ := json.Marshal(canQueue)
 	t.Log("GetCandidateONRound by QueryStartNotIrr:", string(canArr))
 
-	canQueue, err = plugin.StakingInstance().GetCandidateONRound(blockHash2, blockNumber2.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	canQueue, err = StakingInstance().GetCandidateONRound(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONRound by QueryStartIrr, err: %v", err)
 		return
@@ -2817,9 +2930,6 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 }
 
 func TestStakingPlugin_GetValidatorList(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -2901,7 +3011,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2995,7 +3105,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	/**
 	Start  GetValidatorList
 	*/
-	validatorExQueue, err := plugin.StakingInstance().GetValidatorList(blockHash2, blockNumber2.Uint64(), plugin.CurrentRound, plugin.QueryStartNotIrr)
+	validatorExQueue, err := StakingInstance().GetValidatorList(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetValidatorList by QueryStartNotIrr, err: %v", err)
 		return
@@ -3004,7 +3114,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	validatorExArr, _ := json.Marshal(validatorExQueue)
 	t.Log("GetValidatorList by QueryStartNotIrr:", string(validatorExArr))
 
-	validatorExQueue, err = plugin.StakingInstance().GetValidatorList(blockHash2, blockNumber2.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	validatorExQueue, err = StakingInstance().GetValidatorList(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetValidatorList by QueryStartIrr, err: %v", err)
 		return
@@ -3015,9 +3125,6 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 }
 
 func TestStakingPlugin_GetVerifierList(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3099,7 +3206,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3179,7 +3286,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	/**
 	Start GetVerifierList
 	*/
-	validatorExQueue, err := plugin.StakingInstance().GetVerifierList(blockHash2, blockNumber2.Uint64(), plugin.QueryStartNotIrr)
+	validatorExQueue, err := StakingInstance().GetVerifierList(blockHash2, blockNumber2.Uint64(), QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetVerifierList by QueryStartNotIrr, err: %v", err)
 		return
@@ -3188,7 +3295,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	validatorExArr, _ := json.Marshal(validatorExQueue)
 	t.Log("GetVerifierList by QueryStartNotIrr:", string(validatorExArr))
 
-	validatorExQueue, err = plugin.StakingInstance().GetVerifierList(blockHash2, blockNumber2.Uint64(), plugin.QueryStartIrr)
+	validatorExQueue, err = StakingInstance().GetVerifierList(blockHash2, blockNumber2.Uint64(), QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetVerifierList by QueryStartIrr, err: %v", err)
 		return
@@ -3199,9 +3306,6 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 }
 
 func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3283,7 +3387,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3377,7 +3481,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	/**
 	Start  ListCurrentValidatorID
 	*/
-	validatorIdQueue, err := plugin.StakingInstance().ListCurrentValidatorID(blockHash2, blockNumber2.Uint64())
+	validatorIdQueue, err := StakingInstance().ListCurrentValidatorID(blockHash2, blockNumber2.Uint64())
 	if nil != err {
 		t.Errorf("Failed to ListCurrentValidatorID, err: %v", err)
 		return
@@ -3389,9 +3493,6 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 }
 
 func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3473,7 +3574,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3553,7 +3654,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 	/**
 	Start  ListVerifierNodeID
 	*/
-	validatorIdQueue, err := plugin.StakingInstance().ListVerifierNodeID(blockHash2, blockNumber2.Uint64())
+	validatorIdQueue, err := StakingInstance().ListVerifierNodeID(blockHash2, blockNumber2.Uint64())
 	if nil != err {
 		t.Errorf("Failed to ListVerifierNodeID, err: %v", err)
 		return
@@ -3564,9 +3665,6 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCandidate(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3650,7 +3748,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3675,7 +3773,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 	Start  IsCandidate
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := plugin.StakingInstance().IsCandidate(blockHash2, nodeId, plugin.QueryStartNotIrr)
+		yes, err := StakingInstance().IsCandidate(blockHash2, nodeId, QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCandidate, index: %d, err: %v", i, err)
 			return
@@ -3687,9 +3785,6 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCurrValidator(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3773,7 +3868,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3872,7 +3967,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	Start  IsCurrValidator
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := plugin.StakingInstance().IsCurrValidator(blockHash2, blockNumber2.Uint64(), nodeId, plugin.QueryStartNotIrr)
+		yes, err := StakingInstance().IsCurrValidator(blockHash2, blockNumber2.Uint64(), nodeId, QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCurrValidator, index: %d, err: %v", i, err)
 			return
@@ -3885,9 +3980,6 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -3971,7 +4063,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4056,7 +4148,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 	Start  IsCurrVerifier
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := plugin.StakingInstance().IsCurrVerifier(blockHash2, blockNumber2.Uint64(), nodeId, plugin.QueryStartNotIrr)
+		yes, err := StakingInstance().IsCurrVerifier(blockHash2, blockNumber2.Uint64(), nodeId, QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCurrVerifier, index: %d, err: %v", i, err)
 			return
@@ -4069,9 +4161,6 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 // for consensus
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4153,7 +4242,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4247,16 +4336,13 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	/**
 	Start  GetLastNumber
 	*/
-	endNumber := plugin.StakingInstance().GetLastNumber(blockNumber2.Uint64())
+	endNumber := StakingInstance().GetLastNumber(blockNumber2.Uint64())
 
 	t.Log("GetLastNumber the endNumber is:", endNumber)
 
 }
 
 func TestStakingPlugin_GetValidator(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4338,7 +4424,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4432,7 +4518,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	/**
 	Start  GetValidator
 	*/
-	valArr, err := plugin.StakingInstance().GetValidator(blockNumber2.Uint64())
+	valArr, err := StakingInstance().GetValidator(blockNumber2.Uint64())
 	if nil != err {
 		t.Errorf("Failed to GetValidator, err: %v", err)
 	}
@@ -4443,9 +4529,6 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCandidateNode(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4527,7 +4610,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4607,7 +4690,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 	/**
 	Start  IsCandidateNode
 	*/
-	yes := plugin.StakingInstance().IsCandidateNode(nodeIdArr[0])
+	yes := StakingInstance().IsCandidateNode(nodeIdArr[0])
 
 	t.Log("IsCandidateNode the flag is:", yes)
 
@@ -4650,7 +4733,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	for index, v := range vqList {
 		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight, "nonce", hex.EncodeToString(preNonces[index]))
 	}
-	result, err := plugin.StakingInstance().ProbabilityElection(vqList, currentNonce, preNonces)
+	result, err := StakingInstance().ProbabilityElection(vqList, currentNonce, preNonces)
 	if nil != err {
 		t.Fatal("Failed to ProbabilityElection, err:", err)
 		return
@@ -4666,9 +4749,6 @@ Expand test cases
 */
 
 func Test_IteratorCandidate(t *testing.T) {
-
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
 
 	state, genesis, err := newChainState()
 	if nil != err {
@@ -4750,7 +4830,7 @@ func Test_IteratorCandidate(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)

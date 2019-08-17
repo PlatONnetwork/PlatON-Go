@@ -31,7 +31,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	build_staking_data(genesis.Hash())
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
@@ -134,7 +134,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	}
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	state.Prepare(txHashArr[1], blockHash, 2)

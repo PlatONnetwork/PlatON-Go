@@ -122,8 +122,7 @@ func (r *Result) DecodeRLP(s *rlp.Stream) error {
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
-	var logdata [][]byte
-	logdata = make([][]byte, 0)
+	logdata := make([][]byte, 0)
 	logdata = append(logdata, []byte(data))
 
 	buf := new(bytes.Buffer)
@@ -140,7 +139,6 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
-	return
 }
 
 func PrintObject(s string, obj interface{}) {

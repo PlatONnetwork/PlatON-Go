@@ -178,6 +178,12 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
+func NewFaker() consensus.Engine {
+	c := new(consensus.BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	return c
+}
+
 // Start starts consensus engine.
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.log.Info("~ Start cbft consensus")
@@ -427,7 +433,7 @@ func (cbft *Cbft) receiveLoop() {
 			if err == nil {
 				cbft.network.MarkHistoryMessageHash(msg.Msg.MsgHash())
 				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
-					cbft.log.Warn("Forward message failed", "err", err)
+					cbft.log.Debug("Forward message failed", "err", err)
 				}
 			} else if err.AuthFailed() {
 				// If the verification signature is abnormal,
@@ -1363,6 +1369,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	}
 	qc.Signature.SetBytes(aggSig.Serialize())
 	qc.ValidatorSet.Update(vSet)
+	log.Debug("Generate prepare qc", "hash", vote.BlockHash, "number", vote.BlockNumber, "qc", qc.String())
 	return qc
 }
 
@@ -1415,6 +1422,7 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		q.cert.ValidatorSet.Update(q.ba)
 		qc.QCs = append(qc.QCs, q.cert)
 	}
+	log.Debug("Generate view change qc", "qc", qc.String())
 	return qc
 }
 
@@ -1470,6 +1478,7 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	return err
 }
 
+// NodeID returns the ID value of the current node
 func (cbft *Cbft) NodeID() discover.NodeID {
 	return cbft.config.Option.NodeID
 }
