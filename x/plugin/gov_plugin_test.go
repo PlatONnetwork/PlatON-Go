@@ -271,10 +271,10 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
-	if err != nil && err.Error() == "end-voting-block invalid." {
-		t.Logf("detected invalid end-voting-block.")
+	if err != nil && err.Error() == "voting consensus rounds too large." {
+		t.Logf("detected invalid end-voting-rounds.")
 	} else {
-		t.Fatal("didn't detect invalid end-voting-block.")
+		t.Fatal("didn't detect invalid end-voting-rounds.")
 	}
 }
 
@@ -341,10 +341,10 @@ func TestGovPlugin_SubmitCancel_invalidEndVotingRounds(t *testing.T) {
 	//state.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	err = gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB)
-	if err != nil && err.Error() == "end-voting-block invalid." {
-		t.Logf("detected invalid end-voting-block.")
+	if err != nil && err.Error() == "voting consensus rounds too large." {
+		t.Logf("detected invalid end-voting-rounds.")
 	} else {
-		t.Fatal("didn't detect invalid end-voting-block.")
+		t.Fatal("didn't detect invalid end-voting-rounds.")
 	}
 }
 
