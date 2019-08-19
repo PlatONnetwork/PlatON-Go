@@ -138,7 +138,6 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		}
 
 		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
-
 	}
 
 	if r.viewState.Epoch() != block.Epoch {
@@ -149,23 +148,19 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 	}
 
 	if r.viewState.ViewNumber() < block.ViewNumber {
-
 		isLockChild := func() bool {
 			return block.Block.ParentHash() == r.viewState.HighestLockBlock().Hash()
 		}
-
 		isNextView := func() bool {
 			return r.viewState.ViewNumber()+1 == block.ViewNumber
 		}
-
 		if isNextView() && isFirstBlock() && (isQCChild() || isLockChild()) && acceptViewChangeQC() {
 			return newViewError("need change view")
 		}
-
 		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
 	}
 
-	// if the epoch and viewNumber is the same
+	// if local epoch and viewNumber is the same with msg
 	if err := acceptIndexBlock(); err != nil {
 		return err
 	}
