@@ -1,7 +1,10 @@
 package vm
 
 import (
+	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -147,6 +150,8 @@ func clear(t *testing.T) {
 }
 
 func TestGovContract_SubmitText(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
 	setup(t)
 	defer clear(t)
 
@@ -170,6 +175,8 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 }
 
 func TestGovContract_SubmitVersion(t *testing.T) {
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	setup(t)
 	//defer clear(t)
 
