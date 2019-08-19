@@ -72,7 +72,7 @@ func EpochSize() uint64 {
 func EpochsPerYear() uint64 {
 	epochBlocks := CalcBlocksEachEpoch()
 	i := xcom.Interval()
-	return xcom.SecondsPerYear / (i * epochBlocks)
+	return xcom.AdditionalCycleTime() * 60 / (i * epochBlocks)
 }
 
 // CalcBlocksEachEpoch return how many blocks per epoch
