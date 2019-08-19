@@ -126,7 +126,7 @@ func buildGetProgramVersionInput() []byte {
 
 var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
 
-func setup(t *testing.T) {
+func setup(t *testing.T) func() {
 	t.Log("setup()......")
 
 	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
@@ -147,17 +147,15 @@ func setup(t *testing.T) {
 
 	//state.Prepare(txHashArr[1], blockHash2, 2)
 	//sndb.NewBlock(blockNumber2, blockHash, blockHash2)
-}
 
-func clear(t *testing.T) {
-	t.Log("tear down()......")
-	sndb.Clear()
+	return func() {
+		t.Log("tear down()......")
+		sndb.Clear()
+	}
 }
 
 func TestGovContract_SubmitText(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash2, 2)
 	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
@@ -166,8 +164,7 @@ func TestGovContract_SubmitText(t *testing.T) {
 }
 
 func TestGovContract_GetTextProposal(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	defer setup(t)()
 	//state := gc.Evm.StateDB.(*mock.MockStateDB)
 	//state.Prepare(txHashArr[0], blockHash2, 0)
 
@@ -178,9 +175,7 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 }
 
 func TestGovContract_SubmitVersion(t *testing.T) {
-	setup(t)
-	//defer clear(t)
-
+	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash2, 2)
 	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
@@ -189,9 +184,7 @@ func TestGovContract_SubmitVersion(t *testing.T) {
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 	//submit a proposal and get it.
@@ -201,9 +194,7 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 }
 
 func TestGovContract_DeclareVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 
@@ -225,9 +216,7 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 }
 
 func TestGovContract_SubmitCancel(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 	//runGovContract(gc, buildSubmitVersionInput(), t)
@@ -236,9 +225,7 @@ func TestGovContract_SubmitCancel(t *testing.T) {
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[2], blockHash, 2)
 
@@ -249,9 +236,7 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 }
 
 func TestGovContract_OneNodeVoteVersionProposal(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash, 1)
 
@@ -262,9 +247,7 @@ func TestGovContract_OneNodeVoteVersionProposal(t *testing.T) {
 }
 
 func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash, 1)
 	//submit a proposal and vote for it.
@@ -275,9 +258,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 }
 
 func TestGovContract_ListProposal(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	//submit a proposal
@@ -291,18 +272,14 @@ func TestGovContract_ListProposal(t *testing.T) {
 }
 
 func TestGovContract_GetActiveVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetActiveVersionInput(), t)
 }
 
 func TestGovContract_GetProgramVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetProgramVersionInput(), t)
