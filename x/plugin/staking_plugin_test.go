@@ -777,12 +777,11 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	*/
 	can, err := getCandidate(blockHash, index)
 
-	assert.False(t, nil != err)
-	if assert.True(t, nil != can) {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		return
-	}
+	assert.True(t, nil == err)
+
+	assert.True(t, nil != can)
+	canByte, _ := json.Marshal(can)
+	t.Log("Get Candidate Info is:", string(canByte))
 
 }
 
@@ -825,13 +824,14 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 	Get Candidate Info
 	*/
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-	if can, err := StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
-	} else {
 
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-	}
+	can, err := StakingInstance().GetCandidateInfoByIrr(addr)
+	assert.True(t, nil == err)
+
+	assert.True(t, nil != can)
+	canByte, _ := json.Marshal(can)
+	t.Log("Get Candidate Info is:", string(canByte))
+
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
@@ -872,16 +872,13 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	/**
 	Start GetCandidateList
 	*/
-	if queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64()); nil != err {
-		t.Error("Failed to GetCandidateList", err)
-	} else {
-		if count != len(queue) {
-			t.Errorf("Failed to GetCandidateList, the count is wrong, target length: %d, real length: %d", count, len(queue))
-		} else {
-			queueByte, _ := json.Marshal(queue)
-			t.Log("GetCandidateList is:", string(queueByte))
-		}
-	}
+
+	queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64())
+	assert.True(t, nil == err)
+
+	assert.Equal(t, count, len(queue))
+	queueByte, _ := json.Marshal(queue)
+	t.Log("Get CandidateList Info is:", string(queueByte))
 }
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
