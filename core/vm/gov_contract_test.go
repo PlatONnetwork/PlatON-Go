@@ -162,8 +162,8 @@ func setup(t *testing.T) func() {
 
 func TestGovContract_SubmitText(t *testing.T) {
 	setup(t)()
-	//state := gc.Evm.StateDB.(*mock.MockStateDB)
-	//state.Prepare(txHashArr[0], blockHash2, 0)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
+	state.Prepare(txHashArr[1], blockHash2, 2)
 
 	runGovContract(gc, buildSubmitTextInput(), t)
 }
