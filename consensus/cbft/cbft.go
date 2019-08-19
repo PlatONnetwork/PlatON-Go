@@ -1433,10 +1433,6 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 }
 
 func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
-	defer func(t time.Time) {
-		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
-	}(time.Now())
-
 	var cb []byte
 	var err error
 	if cb, err = qc.CannibalizeBytes(); err != nil {
