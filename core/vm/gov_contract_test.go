@@ -36,7 +36,7 @@ func buildSubmitTextInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[1])) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
-	input = append(input, common.MustRlpEncode(uint64(5)))
+	//input = append(input, common.MustRlpEncode(uint64(5)))
 
 	return common.MustRlpEncode(input)
 }

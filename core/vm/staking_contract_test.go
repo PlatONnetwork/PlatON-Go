@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -78,21 +79,14 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	} else {
 
-		var resJson xcom.Result
-		if err := json.Unmarshal(res, &resJson); nil != err {
-			t.Error(err)
-		} else {
-			if resJson.Status {
-				t.Log(string(res))
-			} else {
-				t.Error(string(res))
-			}
-		}
-	}
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 	return contract
 }
@@ -122,20 +116,15 @@ func create_delegate(contract *StakingContract, index int, t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	} else {
-		var resJson xcom.Result
-		if err := json.Unmarshal(res, &resJson); nil != err {
-			t.Error(err)
-		} else {
-			if resJson.Status {
-				t.Log(string(res))
-			} else {
-				t.Error(string(res))
-			}
-		}
-	}
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the delegate result Msg:", r.ErrMsg)
+
 }
 
 func getCandidate(contract *StakingContract, index int, t *testing.T) {
@@ -157,22 +146,15 @@ func getCandidate(contract *StakingContract, index int, t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error("getCandidate err", err)
-	} else {
 
-		var r xcom.Result
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			t.Error("Failed to parse result", err)
-		}
+	assert.True(t, nil == err)
 
-		if r.Status {
-			t.Log("the Candidate info:", r.Data)
-		} else {
-			t.Error("getCandidate failed", r.ErrMsg)
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the Candidate info:", r.Data)
+
 }
 
 /**
@@ -271,23 +253,14 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to Call editCandidate, err:", err)
-		return
-	} else {
-		var resJson xcom.Result
-		if err := json.Unmarshal(res, &resJson); nil != err {
-			t.Error(err)
-			return
-		} else {
-			if resJson.Status {
-				t.Log(string(res))
-			} else {
-				t.Error(string(res))
-				return
-			}
-		}
-	}
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the editStaking result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Commit 2 error: %v", err)
@@ -368,24 +341,13 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to Call increaseStaking,err:", err)
-		return
-	} else {
+	assert.True(t, nil == err)
 
-		var resJson xcom.Result
-		if err := json.Unmarshal(res, &resJson); nil != err {
-			t.Error(err)
-			return
-		} else {
-			if resJson.Status {
-				t.Log(string(res))
-			} else {
-				t.Error(string(res))
-				return
-			}
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the increaseStaking result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Commit 2 error: %v", err)
@@ -462,24 +424,14 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to Call withdrewStaking, err:", err)
-		return
-	} else {
 
-		var resJson xcom.Result
-		if err := json.Unmarshal(res, &resJson); nil != err {
-			t.Error(err)
-			return
-		} else {
-			if resJson.Status {
-				t.Log(string(res))
-			} else {
-				t.Error(string(res))
-				return
-			}
-		}
-	}
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the withdrew candidate result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Commit 2 err: %v", err)
@@ -626,24 +578,14 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to call delegate, err:", err)
-		return
-	} else {
 
-		var resJson xcom.Result
-		if err := json.Unmarshal(res, &resJson); nil != err {
-			t.Error(err)
-			return
-		} else {
-			if resJson.Status {
-				t.Log(string(res))
-			} else {
-				t.Error(string(res))
-				return
-			}
-		}
-	}
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the withdelegate result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Commit 2 err: %v", err)
@@ -694,24 +636,14 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to call getVerifierList, err", err)
-		return
-	} else {
 
-		var r xcom.Result
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			t.Error("Failed tp parse result", err)
-			return
-		}
+	assert.True(t, nil == err)
 
-		if r.Status {
-			t.Log("the VerifierList info:", r.Data)
-		} else {
-			t.Error("getVerifierList failed", r.ErrMsg)
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the getVerifierList result Data:", r.Data)
 
 }
 
@@ -755,24 +687,14 @@ func TestStakingContract_getValidatorList(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to Call getValidatorList, err", err)
-		return
-	} else {
 
-		var r xcom.Result
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			t.Error("Failed to parse result", err)
-			return
-		}
+	assert.True(t, nil == err)
 
-		if r.Status {
-			t.Log("the ValidatorList info:", r.Data)
-		} else {
-			t.Error("getValidatorList failed", r.ErrMsg)
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the getValidatorList result Data:", r.Data)
 
 }
 
@@ -836,24 +758,14 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to Call getCandidateList, err", err)
-		return
-	} else {
 
-		var r xcom.Result
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			t.Error("Failed to parse result", err)
-			return
-		}
+	assert.True(t, nil == err)
 
-		if r.Status {
-			t.Log("the CandidateList info:", r.Data)
-		} else {
-			t.Error("CandidateList failed", r.ErrMsg)
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the getCandidateList result Data:", r.Data)
 
 }
 
@@ -924,24 +836,14 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to call getRelatedListByDelAddr, err:", err)
-		return
-	} else {
 
-		var r *xcom.Result
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			t.Error("Failed to parse result", err)
-			return
-		}
+	assert.True(t, nil == err)
 
-		if r.Status {
-			t.Log("the getRelatedListByDelAddr info:", r.Data)
-		} else {
-			t.Error("getRelatedListByDelAddr failed", r.ErrMsg)
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the getRelatedListByDelAddr result Data:", r.Data)
 }
 
 func TestStakingContract_getDelegateInfo(t *testing.T) {
@@ -1022,23 +924,14 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	}
 
 	res, err := contract2.Run(buf.Bytes())
-	if nil != err {
-		t.Error("Failed to call getDelegateInfo, err:", err)
-	} else {
-		var r xcom.Result
 
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			t.Error("Failed to parse result", err)
-			return
-		}
+	assert.True(t, nil == err)
 
-		if r.Status {
-			t.Log("the getRelatedListByDelAddr info:", r.Data)
-		} else {
-			t.Error("getRelatedListByDelAddr failed", r.ErrMsg)
-		}
-	}
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, true, r.Status)
+	t.Log("the getDelegateInfo result Data:", r.Data)
 }
 
 func TestStakingContract_getCandidateInfo(t *testing.T) {
