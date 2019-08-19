@@ -16,6 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+const DefaultEpoch = 1
 const DefaultViewNumber = 0
 
 type PrepareVoteQueue struct {
