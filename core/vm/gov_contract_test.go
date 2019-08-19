@@ -141,18 +141,12 @@ func setup(t *testing.T) func() {
 	govPlugin = plugin.GovPluginInstance()
 	gc.Plugin = govPlugin
 
-	snapdb = snapshotdb.Instance()
-
 	build_staking_data(genesis.Hash())
 
 	// ---
 
-	/*header := types.Header{
-		Number: blockNumber2,
-	}*/
-	//hash := header.Hash()
-	state.Prepare(txHashArr[1], blockHash2, 2)
-	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
+	//state.Prepare(txHashArr[1], blockHash2, 2)
+	//sndb.NewBlock(blockNumber2, blockHash, blockHash2)
 
 	return func() {
 		t.Log("tear down()......")
@@ -182,13 +176,14 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 func TestGovContract_SubmitVersion(t *testing.T) {
 	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	state.Prepare(txHashArr[1], blockHash2, 2)
+	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
 
 	runGovContract(gc, buildSubmitVersionInput(), t)
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 	//submit a proposal and get it.
@@ -198,7 +193,7 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 }
 
 func TestGovContract_DeclareVersion(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 
@@ -220,7 +215,7 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 }
 
 func TestGovContract_SubmitCancel(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 	//runGovContract(gc, buildSubmitVersionInput(), t)
@@ -262,7 +257,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 }
 
 func TestGovContract_ListProposal(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	//submit a proposal
@@ -276,14 +271,14 @@ func TestGovContract_ListProposal(t *testing.T) {
 }
 
 func TestGovContract_GetActiveVersion(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetActiveVersionInput(), t)
 }
 
 func TestGovContract_GetProgramVersion(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetProgramVersionInput(), t)
