@@ -692,8 +692,6 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	defer setup(t)()
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
 	submitText(t, txHashArr[0])
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -725,7 +723,11 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
 	build_staking_data_more(endVotingBlock)
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	endBlock(t)
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	sndb.Commit(lastBlockHash)
 
 	result, err := gov.GetTallyResult(txHashArr[0], stateDB)
