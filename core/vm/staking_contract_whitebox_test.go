@@ -1,4 +1,4 @@
-package vm_test
+package vm
 
 import (
 	"bytes"
@@ -17,7 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 )
@@ -43,7 +42,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -136,7 +135,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 	buildDbRestrictingPlan(t, sender, balance, 1, state)
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -182,41 +181,41 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, sign)
 	params = append(params, blsPkm)
 
-	var params [][]byte
-	params = make([][]byte, 0)
+	var args [][]byte
+	args = make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(1000))
-	typ, _ := rlp.EncodeToBytes(uint16(1))
-	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
-	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
-	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
-	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
-	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
-	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
-	amount, _ := rlp.EncodeToBytes(StakeThreshold)
-	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+	fnType2, _ := rlp.EncodeToBytes(uint16(1000))
+	typ2, _ := rlp.EncodeToBytes(uint16(1))
+	benefitAddress2, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId2, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	externalId2, _ := rlp.EncodeToBytes("xssssddddffffggggg")
+	nodeName2, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
+	website2, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
+	details2, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
+	StakeThreshold2, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
+	amount2, _ := rlp.EncodeToBytes(StakeThreshold2)
+	programVersion2, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
-	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
-	sign, _ := rlp.EncodeToBytes(versionSign)
+	versionSign2 := common.VersionSign{}
+	versionSign2.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign2, _ := rlp.EncodeToBytes(versionSign2)
 
-	params = append(params, fnType)
-	params = append(params, typ)
-	params = append(params, benefitAddress)
-	params = append(params, nodeId)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
-	params = append(params, amount)
-	params = append(params, programVersion)
-	params = append(params, sign)
+	args = append(args, fnType2)
+	args = append(args, typ2)
+	args = append(args, benefitAddress2)
+	args = append(args, nodeId2)
+	args = append(args, externalId2)
+	args = append(args, nodeName2)
+	args = append(args, website2)
+	args = append(args, details2)
+	args = append(args, amount2)
+	args = append(args, programVersion2)
+	args = append(args, sign2)
 
 	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
+	err := rlp.Encode(buf, args)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
 	} else {
@@ -245,7 +244,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -320,7 +319,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -443,7 +442,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -524,7 +523,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -606,7 +605,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 	buildDbRestrictingPlan(t, sender, initBalance, 1, state)
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -685,7 +684,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	buildDbRestrictingPlan(t, sender, StakeThreshold, 1, state)
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -757,7 +756,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -842,7 +841,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),

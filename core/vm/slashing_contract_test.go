@@ -1,4 +1,4 @@
-package vm_test
+package vm
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -29,7 +28,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Fatal(err)
 	}
 	build_staking_data(genesis.Hash())
-	contract := &vm.SlashingContract{
+	contract := &SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -132,7 +131,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	contract := &vm.SlashingContract{
+	contract := &SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
@@ -162,7 +161,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	runContract(contract, buf.Bytes(), t)
 }
 
-func runContract(contract *vm.SlashingContract, buf []byte, t *testing.T) {
+func runContract(contract *SlashingContract, buf []byte, t *testing.T) {
 	res, err := contract.Run(buf)
 	if nil != err {
 		t.Fatal(err)

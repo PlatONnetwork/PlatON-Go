@@ -1,4 +1,4 @@
-package vm_test
+package vm
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
@@ -61,7 +60,7 @@ func buildErrorRestrictingPlanData() ([]byte, error) {
 }
 
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
-	contract := &vm.RestrictingContract{
+	contract := &RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, nil),
@@ -108,7 +107,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 	balance, _ := new(big.Int).SetString("20000000000000000000000000", 10)
 	buildDbRestrictingPlan(t, account, balance, 5, stateDb)
 
-	contract := &vm.RestrictingContract{
+	contract := &RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, stateDb),

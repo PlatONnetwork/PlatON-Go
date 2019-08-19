@@ -1,7 +1,9 @@
-package vm_test
+package vm
 
 import (
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -10,8 +12,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
@@ -19,7 +19,7 @@ import (
 var (
 	snapdb      snapshotdb.DB
 	govPlugin   *plugin.GovPlugin
-	gc          *vm.GovContract
+	gc          *GovContract
 	versionSign common.VersionSign
 	chandler    *xcom.CryptoHandler
 )
@@ -131,8 +131,8 @@ var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", 
 func setup(t *testing.T) func() {
 	t.Log("setup()......")
 
-	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
-	gc, _ = precompiledContract.(*vm.GovContract)
+	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
+	gc, _ = precompiledContract.(*GovContract)
 	state, genesis, _ := newChainState()
 	gc.Evm = newEvm(blockNumber, blockHash, state)
 	gc.Contract = newContract(common.Big0, sender)
@@ -154,7 +154,7 @@ func setup(t *testing.T) func() {
 
 func TestGovContract_SubmitText(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 
 	runGovContract(gc, buildSubmitTextInput(), t)
@@ -162,7 +162,7 @@ func TestGovContract_SubmitText(t *testing.T) {
 
 func TestGovContract_GetTextProposal(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 
 	//submit a proposal and get it.
@@ -173,7 +173,7 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 
 func TestGovContract_SubmitVersion(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash, 1)
 
 	runGovContract(gc, buildSubmitVersionInput(), t)
@@ -181,7 +181,7 @@ func TestGovContract_SubmitVersion(t *testing.T) {
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
@@ -191,7 +191,7 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 
 func TestGovContract_DeclareVersion(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 
 	//submit a proposal and get it.
@@ -213,7 +213,7 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 
 func TestGovContract_SubmitCancel(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 1)
 	//runGovContract(gc, buildSubmitVersionInput(), t)
 
@@ -222,7 +222,7 @@ func TestGovContract_SubmitCancel(t *testing.T) {
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[2], blockHash, 2)
 
 	//submit a proposal and get it.
@@ -233,7 +233,7 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 
 func TestGovContract_OneNodeVoteVersionProposal(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash, 1)
 
 	//submit a proposal and vote for it.
@@ -244,7 +244,7 @@ func TestGovContract_OneNodeVoteVersionProposal(t *testing.T) {
 
 func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash, 1)
 	//submit a proposal and vote for it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
@@ -255,7 +255,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 
 func TestGovContract_ListProposal(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	//submit a proposal
 	runGovContract(gc, buildSubmitTextInput(), t)
@@ -269,19 +269,19 @@ func TestGovContract_ListProposal(t *testing.T) {
 
 func TestGovContract_GetActiveVersion(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetActiveVersionInput(), t)
 }
 
 func TestGovContract_GetProgramVersion(t *testing.T) {
 	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 	runGovContract(gc, buildGetProgramVersionInput(), t)
 }
 
-func runGovContract(contract *vm.GovContract, buf []byte, t *testing.T) {
+func runGovContract(contract *GovContract, buf []byte, t *testing.T) {
 	res, err := contract.Run(buf)
 	if nil != err {
 		t.Fatal(err)
