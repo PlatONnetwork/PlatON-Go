@@ -179,7 +179,7 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 
 func TestGovContract_SubmitVersion(t *testing.T) {
 	setup(t)
-	defer clear(t)
+	//defer clear(t)
 
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash2, 2)
