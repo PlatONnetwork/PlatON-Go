@@ -152,7 +152,7 @@ func setup(t *testing.T) func() {
 }
 
 func TestGovContract_SubmitText(t *testing.T) {
-	defer setup(t)()
+	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 
@@ -160,7 +160,7 @@ func TestGovContract_SubmitText(t *testing.T) {
 }
 
 func TestGovContract_GetTextProposal(t *testing.T) {
-	defer setup(t)()
+	setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 
