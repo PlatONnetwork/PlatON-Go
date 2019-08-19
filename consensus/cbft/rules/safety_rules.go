@@ -93,6 +93,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		return block.Block.NumberU64() == r.viewState.HighestQCBlock().NumberU64()+1 &&
 			r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
 	}
+
 	acceptViewChangeQC := func() bool {
 		if block.ViewChangeQC == nil {
 			return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
@@ -103,6 +104,28 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 
 	isFirstBlock := func() bool {
 		return block.BlockIndex == 0
+	}
+
+	acceptIndexBlock := func() SafetyError {
+		if block.BlockIndex >= r.config.Sys.Amount {
+			return newError(fmt.Sprintf("blockIndex higher than amount(index:%d, amount:%d)", block.BlockIndex, r.config.Sys.Amount))
+		}
+		current := r.viewState.ViewBlockByIndex(block.BlockIndex)
+		if current != nil {
+			return newError(fmt.Sprintf("blockIndex already existed(index:%d)", block.BlockIndex))
+		}
+		if isFirstBlock() {
+			return nil
+		}
+		pre := r.viewState.ViewBlockByIndex(block.BlockIndex - 1)
+		if pre == nil {
+			return newError(fmt.Sprintf("previous index block not existed,discard msg(index:%d)", block.BlockIndex-1))
+		}
+		if pre.NumberU64() != block.BlockNum()-1 || pre.Hash() != block.Block.ParentHash() {
+			return newError(fmt.Sprintf("non contiguous index block(preIndex:%d,preNum:%d,preHash:%s,curIndex:%d,curNum:%d,curParentHash:%s)",
+				block.BlockIndex-1, pre.NumberU64(), pre.Hash().String(), block.BlockIndex, block.BlockNum(), block.Block.ParentHash()))
+		}
+		return nil
 	}
 
 	changeEpochBlockRules := func(block *protocols.PrepareBlock) SafetyError {
@@ -142,8 +165,9 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
 	}
 
-	if block.BlockIndex >= r.config.Sys.Amount {
-		return newError(fmt.Sprintf("blockIndex higher than amount(index:%d, amount:%d)", block.BlockIndex, r.config.Sys.Amount))
+	// if the epoch and viewNumber is the same
+	if err := acceptIndexBlock(); err != nil {
+		return err
 	}
 
 	if r.viewState.IsDeadline() {
