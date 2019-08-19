@@ -216,7 +216,6 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 			}
 		}
 	} else {
-		// todo: need to confirm.
 		// Is it necessary to obtain the PrepareVotes from the blockchain
 		// when it is not in the memory?
 	}

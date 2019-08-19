@@ -2,19 +2,21 @@ package gov
 
 import (
 	"encoding/json"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"sync"
 )
 
 var (
 	ValueDelimiter = []byte(":")
 )
 
-var dbOnce sync.Once
+//var dbOnce sync.Once
 var govDB *GovDB
 
 type GovDB struct {
@@ -26,6 +28,7 @@ func GovDBInstance() *GovDB {
 	//	govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	//})
 	if govDB == nil {
+		log.Info("Init GovDB ........")
 		govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	}
 	return govDB
@@ -36,17 +39,7 @@ func (self *GovDB) Reset() {
 	self.snapdb.reset()
 }
 
-func tobytes(data interface{}) []byte {
-	if bytes, err := json.Marshal(data); err != nil {
-		return bytes
-	} else {
-		log.Error("govdb, marshal value to bytes error..")
-		panic(err)
-	}
-}
-
 func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
-
 	bytes, e := json.Marshal(proposal)
 	if e != nil {
 		return common.NewSysError(e.Error())
@@ -55,7 +48,7 @@ func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
 	value := append(bytes, byte(proposal.GetProposalType()))
 	state.SetState(vm.GovContractAddr, KeyProposal(proposal.GetProposalID()), value)
 
-	return nil
+	return self.AddPIPID(proposal.GetPIPID(), state)
 }
 
 func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
@@ -69,13 +62,21 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if pType == byte(Text) {
 		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to text proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
 	} else if pType == byte(Version) {
 		var proposal VersionProposal
-		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to version proposal")
+			return nil, common.NewSysError(e.Error())
+		}
+		p = proposal
+	} else if pType == byte(Cancel) {
+		var proposal CancelProposal
+		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to cancel proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
@@ -193,19 +194,52 @@ func (self *GovDB) GetPreActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // Set active version record
-func (self *GovDB) SetActiveVersion(activeVersion uint32, state xcom.StateDB) error {
-	state.SetState(vm.GovContractAddr, KeyActiveVersion(), common.Uint32ToBytes(activeVersion))
+func (self *GovDB) AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.StateDB) error {
+	avList, err := ListActiveVersion(state)
+	if err != nil {
+		return err
+	}
+	curAv := ActiveVersionValue{ActiveVersion: activeVersion, ActiveBlock: activeBlock}
+	//Insert the object into the head of the list
+	avList = append([]ActiveVersionValue{curAv}, avList...)
+
+	avListBytes, _ := json.Marshal(avList)
+	state.SetState(vm.GovContractAddr, KeyActiveVersions(), avListBytes)
 	return nil
 }
 
-// Get active version record
-func (self *GovDB) GetActiveVersion(state xcom.StateDB) uint32 {
-	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	return common.BytesToUint32(value)
+func /*(self *GovDB)*/ ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
+	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
+	if len(avListBytes) == 0 {
+		return nil, nil
+	}
+	var avList []ActiveVersionValue
+	if err := json.Unmarshal(avListBytes, &avList); err != nil {
+		return nil, common.NewSysError(err.Error())
+	}
+	return avList, nil
+}
+
+// Get current active version record
+func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
+	avList, err := ListActiveVersion(state)
+	if err != nil {
+		log.Error("Cannot find active version list")
+		return 0
+	}
+
+	var version uint32
+	if len(avList) == 0 {
+		version = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	} else {
+		version = avList[0].ActiveVersion
+	}
+
+	return version
 }
 
 // Get voting proposal
-func (self *GovDB) ListVotingProposal(blockHash common.Hash, state xcom.StateDB) ([]common.Hash, error) {
+func (self *GovDB) ListVotingProposal(blockHash common.Hash) ([]common.Hash, error) {
 	value, err := govDB.snapdb.getVotingIDList(blockHash)
 	if err != nil {
 		log.Error("List voting proposal ID error")
@@ -214,7 +248,7 @@ func (self *GovDB) ListVotingProposal(blockHash common.Hash, state xcom.StateDB)
 	return value, nil
 }
 
-func (self *GovDB) ListEndProposalID(blockHash common.Hash, state xcom.StateDB) ([]common.Hash, error) {
+func (self *GovDB) ListEndProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	value, err := govDB.snapdb.getEndIDList(blockHash)
 	if err != nil {
 		return nil, common.NewSysError(err.Error())
@@ -223,20 +257,16 @@ func (self *GovDB) ListEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 	return value, nil
 }
 
-func (self *GovDB) GetPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) (common.Hash, error) {
-	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
+func (self *GovDB) GetPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
+	value, err := govDB.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		//log.Error("Get pre-active proposal ID error")
-		return common.Hash{}, common.NewSysError(err.Error())
+		return common.ZeroHash, common.NewSysError(err.Error())
 	}
-	if len(value) > 0 {
-		return value[0], nil
-	} else {
-		return common.Hash{}, nil
-	}
+	return value, nil
 }
 
-func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
+func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.Hash) error {
 	if err := govDB.snapdb.addProposalByKey(blockHash, KeyVotingProposals(), proposalID); err != nil {
 		//log.Error("add voting proposal to snapshot db error:%s", err)
 		return common.NewSysError(err.Error())
@@ -245,7 +275,7 @@ func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.
 	return nil
 }
 
-func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
+func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash) error {
 
 	voting, err := self.snapdb.getVotingIDList(blockHash)
 	if err != nil {
@@ -253,19 +283,19 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 	}
 	voting = remove(voting, proposalID)
 
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
+	/*pre, err := self.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	pre = append(pre, proposalID)
+	pre = append(pre, proposalID)*/
 
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -296,16 +326,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
-
 	voting = remove(voting, proposalID)
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
@@ -320,22 +341,8 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 }
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
-
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	pre = remove(pre, proposalID)
-
-	end, err := self.snapdb.getEndIDList(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	end = append(end, proposalID)
-
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
+	err := self.snapdb.put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -351,7 +358,7 @@ func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalI
 // Add the node that has made a new version declare or vote during voting period
 func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) error {
 	if err := self.snapdb.addActiveNode(blockHash, nodeID, proposalID); err != nil {
-		log.Error("add declared node to snapshot db error,", err)
+		log.Error("add active node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -361,7 +368,7 @@ func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, 
 func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
 	nodes, err := self.snapdb.getActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("get declared node list from snapshot db error,", err)
+		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return nil, common.NewSysError(err.Error())
 	}
 	return nodes, nil
@@ -371,16 +378,7 @@ func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Ha
 func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 	err := self.snapdb.deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("delete declared node list from snapshot db error,", err)
-		return common.NewSysError(err.Error())
-	}
-	return nil
-}
-
-// Add the voted verifier record
-func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) error {
-	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
-		log.Error("add voted node to snapshot db error,", err)
+		log.Error("clear active nodes in snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -388,8 +386,8 @@ func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Has
 
 // All verifiers who can vote accumulatively in the settlement cycle
 func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
-	if err := self.snapdb.addTotalVerifiers(blockHash, proposalID, verifierList); err != nil {
-		log.Error("add total verifier to snapshot db error,", err)
+	if err := self.snapdb.addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
+		log.Error("save accumulated verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
@@ -398,9 +396,81 @@ func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, 
 // Get the total number of all voting verifiers
 func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.Hash) (uint16, error) {
 	if l, err := self.snapdb.getAccuVerifiersLength(blockHash, proposalID); err != nil {
-		log.Error("add total verifier to  snapshot db error,", err)
+		log.Error("get accumulated verifiers count failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return 0, common.NewSysError(err.Error())
 	} else {
 		return l, nil
 	}
+}
+
+func (self *GovDB) AddPIPID(pipID string, state xcom.StateDB) error {
+	pipIDList, err := self.ListPIPID(state)
+	if err != nil {
+		return err
+	}
+
+	if pipIDList == nil || len(pipIDList) == 0 {
+		pipIDList = []string{pipID}
+	} else {
+		pipIDList = append(pipIDList, pipID)
+	}
+
+	pipIDListBytes, _ := json.Marshal(pipIDList)
+	state.SetState(vm.GovContractAddr, KeyPIPIDs(), pipIDListBytes)
+	return nil
+}
+
+func (self *GovDB) ListPIPID(state xcom.StateDB) ([]string, error) {
+	pipIDListBytes := state.GetState(vm.GovContractAddr, KeyPIPIDs())
+	if len(pipIDListBytes) > 0 {
+		var pipIDList []string
+		if err := json.Unmarshal(pipIDListBytes, &pipIDList); err != nil {
+			return nil, common.NewSysError(err.Error())
+		}
+		return pipIDList, nil
+	} else {
+		return nil, nil
+	}
+}
+
+// find a version proposal at voting stage
+func (self *GovDB) FindVotingVersionProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*VersionProposal, error) {
+	log.Debug("call findVotingVersionProposal", "blockHash", blockHash, "blockNumber", blockNumber)
+	idList, err := self.ListVotingProposal(blockHash)
+	if err != nil {
+		log.Error("find voting version proposal failed", "blockHash", blockHash)
+		return nil, err
+	}
+	for _, proposalID := range idList {
+		p, err := self.GetExistProposal(proposalID, state)
+		if err != nil {
+			return nil, err
+		}
+		if p.GetProposalType() == Version {
+			vp := p.(VersionProposal)
+			return &vp, nil
+		}
+	}
+	return nil, nil
+}
+
+// find a cancel proposal at voting stage
+func (self *GovDB) FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*CancelProposal, error) {
+	log.Debug("call findVotingCancelProposal", "blockHash", blockHash, "blockNumber", blockNumber)
+	idList, err := self.ListVotingProposal(blockHash)
+	if err != nil {
+		log.Error("find voting proposal failed", "blockHash", blockHash)
+		return nil, err
+	}
+	for _, proposalID := range idList {
+		p, err := self.GetExistProposal(proposalID, state)
+		if err != nil {
+			return nil, err
+		}
+		if p.GetProposalType() == Cancel {
+			vp := p.(CancelProposal)
+			return &vp, nil
+		}
+	}
+	return nil, nil
 }

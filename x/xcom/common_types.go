@@ -2,12 +2,14 @@ package xcom
 
 import (
 	"bytes"
-	"crypto/ecdsa"
+	"encoding/json"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
 )
 
 // StateDB is an Plugin database for full state querying.
@@ -63,57 +65,88 @@ type StateDB interface {
 	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
-}
 
-type Evidence interface {
-	Verify(ecdsa.PublicKey) error
-	Equal(Evidence) bool
-	//return lowest number
-	BlockNumber() uint64
-	Hash() []byte
-	Address() common.Address
-	Validate() error
+	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
 // inner contract event data
 type Result struct {
 	Status bool
-	Data   interface{}
+	Data   string
 	ErrMsg string
 }
 
-// addLog let the result add to event.
-func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) error {
-	var logdata [][]byte
-	logdata = make([][]byte, 0)
-	logdata = append(logdata, []byte(data))
-	buf := new(bytes.Buffer)
-	if err := rlp.Encode(buf, logdata); nil != err {
+func SuccessResult(data string, errMsg string) []byte {
+	return BuildResult(true, data, errMsg)
+}
+
+func FailResult(data string, errMsg string) []byte {
+	return BuildResult(false, data, errMsg)
+}
+
+func BuildResult(status bool, data string, errMsg string) []byte {
+	res := Result{status, data, errMsg}
+	bytes, _ := json.Marshal(res)
+	return bytes
+}
+
+/*// EncodeRLP implements rlp.Encoder
+func (r *Result) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, Result{
+		Status:    	r.Status,
+		Data:       r.Data,
+		ErrMsg: 	r.ErrMsg,
+	})
+}
+
+
+// DecodeRLP implements rlp.Decoder
+func (r *Result) DecodeRLP(s *rlp.Stream) error {
+	var rs Result
+	if err := s.Decode(&rs); err != nil {
 		return err
 	}
+
+	ty := reflect.ValueOf(r.Data).Elem()
+
+	if dByte, err := rlp.EncodeToBytes(r.Data); nil != err {
+		return err
+	}else {
+		if err := rlp.DecodeBytes(dByte, &ty); nil != err {
+			return err
+		}
+	}
+	r.Status, r.Data, r.ErrMsg = rs.Status, ty, rs.ErrMsg
+	return nil
+}*/
+
+// addLog let the result add to event.
+func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
+	logdata := make([][]byte, 0)
+	logdata = append(logdata, []byte(data))
+
+	buf := new(bytes.Buffer)
+	if err := rlp.Encode(buf, logdata); nil != err {
+		log.Error("Cannot RlpEncode the log data, data", "data", data)
+		panic("Cannot RlpEncode the log data")
+	}
+
+	//encoded := common.MustRlpEncode(logdata)
+
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
 		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
-	return nil
 }
 
-//type SnapshotDB interface {
-//	NewBlock (blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
-//	Put (hash common.Hash, key, value []byte) error
-//	Get (hash common.Hash, key []byte) ([]byte, error)
-//	GetCommitedBlock (key []byte) ([]byte, error)
-//	Del (hash common.Hash, key []byte) error
-//	Has (hash common.Hash, key []byte) (bool, error)
-//	Flush (hash common.Hash, blocknumber *big.Int) (bool, error)
-//	Ranking (hash *common.Hash,key []byte, rangeInt int) iterator.Iterator
-//	BaseNum () (big.Int, error)
-//	WalkBaseDB (f func(num *big.Int, ran *util.Range))
-//	Commit (hash common.Hash) error
-//	Clear () error
-//	PutBaseDB (key,value []byte)  error
-//	GetLastKVHash (blockhash []byte) []byte
-//	Close () error
-//}
+func PrintObject(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	log.Debug(s + " == " + string(objs))
+}
+
+func PrintObjForErr(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	log.Error(s + " == " + string(objs))
+}

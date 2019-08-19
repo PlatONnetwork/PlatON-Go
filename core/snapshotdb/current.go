@@ -17,7 +17,7 @@ func newCurrent(dir string) *current {
 	c.HighestNum = big.NewInt(0)
 	c.BaseNum = big.NewInt(0)
 	c.path = getCurrentPath(dir)
-	c.LastHash = common.ZeroHash
+	c.HighestHash = common.ZeroHash
 	f, err := os.OpenFile(c.path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0664)
 	if err != nil {
 		panic(err)
@@ -31,7 +31,7 @@ type current struct {
 	f            *os.File    `rlp:"-"`
 	path         string      `rlp:"-"`
 	HighestNum   *big.Int    `rlp:"nil"`
-	LastHash     common.Hash `rlp:"nil"`
+	HighestHash  common.Hash `rlp:"nil"`
 	BaseNum      *big.Int    `rlp:"nil"`
 	sync.RWMutex `rlp:"-"`
 }

@@ -43,6 +43,35 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 }
 
 var (
+	// TODO need finish
+	initialMainNetConsensusNodes = []string{
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16791",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16792",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16793",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16794",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16795",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16796",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16797",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16798",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16799",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16800",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16801",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16802",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16803",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16804",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26790",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26791",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26792",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26793",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26794",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26795",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26796",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26797",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26798",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26799",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26799",
+	}
+
 	initialTestnetConsensusNodes = []string{
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16791", //TEST-SEA
 		"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16792",  //TEST-SG
@@ -83,7 +112,7 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(2675000),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+			InitialNodes:      convertNodeUrl(initialMainNetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -103,27 +132,7 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
-		},
-		VMInterpreter: "wasm",
-	}
-
-	// InnerTestnetChainConfig contains the chain parameters to run a node on the inner test network.
-	InnerTestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(203),
-		EIP155Block: big.NewInt(3),
-		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
-		},
-		VMInterpreter: "wasm",
-	}
-
-	// InnerDevnetChainConfig contains the chain parameters to run a node on the inner test network.
-	InnerDevnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(204),
-		EIP155Block: big.NewInt(3),
-		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
+			InitialNodes:      convertNodeUrl(initialTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -137,6 +146,16 @@ var (
 		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
 	}
 
+	// InnerTestnetChainConfig contains the chain parameters to run a node on the inner test network.
+	InnerTestnetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(203),
+		EIP155Block: big.NewInt(3),
+		Cbft: &CbftConfig{
+			InitialNodes:      convertNodeUrl(initialInnerTestnetConsensusNodes),
+		},
+		VMInterpreter: "wasm",
+	}
+
 	// InnerTestnetTrustedCheckpoint contains the light client trusted checkpoint for the inner test network.
 	InnerTestnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "innertestnet",
@@ -144,6 +163,16 @@ var (
 		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
 		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
 		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
+	}
+
+	// InnerDevnetChainConfig contains the chain parameters to run a node on the inner test network.
+	InnerDevnetChainConfig = &ChainConfig{
+		ChainID:     big.NewInt(204),
+		EIP155Block: big.NewInt(3),
+		Cbft: &CbftConfig{
+			InitialNodes:      convertNodeUrl(initialInnerDevnetConsensusNodes),
+		},
+		VMInterpreter: "wasm",
 	}
 
 	// InnerDevnetTrustedCheckpoint contains the light client trusted checkpoint for the inner test network.
@@ -161,7 +190,7 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
+			InitialNodes:      convertNodeUrl(initialBetanetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -181,7 +210,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			Period: 3,
-			Epoch:  30000,
 			PposConfig: &PposConfig{
 				CandidateConfig: &CandidateConfig{
 					Threshold:         "1000000000000000000000000",
@@ -255,7 +283,6 @@ type CbftNode struct {
 }
 
 type CbftConfig struct {
-	Epoch         uint64      `json:"epoch,omitempty"`         // Epoch length to reset votes and checkpoint
 	Period        uint64      `json:"period,omitempty"`        // Number of seconds between blocks to enforce
 	Amount        uint32      `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
 	InitialNodes  []CbftNode  `json:"initialNodes,omitempty"`  //Genesis consensus node

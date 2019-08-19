@@ -20,24 +20,32 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 const (
 	testInstance = "console-tester"
 )
+
+func init() {
+	bls.Init(bls.CurveFp254BNb)
+}
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.
 type hookedPrompter struct {
@@ -102,10 +110,12 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	ethConf.Genesis = core.DeveloperGenesisBlock(15, common.Address{})
 	n, _ := discover.ParseNode("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
 
+	var nodes []params.CbftNode
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	nodes = append(nodes, params.CbftNode{Node: *n, BlsPubKey: *blsKey.GetPublicKey()})
 	ethConf.Genesis.Config.Cbft = &params.CbftConfig{
-		InitialNodes: []discover.Node{
-			*n,
-		},
+		InitialNodes: nodes,
 	}
 	if confOverride != nil {
 		confOverride(ethConf)

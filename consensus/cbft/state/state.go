@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -15,6 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+const DefaultEpoch = 1
 const DefaultViewNumber = 0
 
 type PrepareVoteQueue struct {
@@ -513,6 +515,7 @@ func (vs *ViewState) ViewBlockAndQC(blockIndex uint32) (*types.Block, *ctypes.Qu
 }
 
 func (vs *ViewState) AddPrepareBlock(pb *protocols.PrepareBlock) {
+	log.Debug("Add prepare block", "hash", pb.Block.Hash(), "number", pb.Block.Number())
 	vs.view.viewBlocks.addBlock(&prepareViewBlock{pb})
 }
 

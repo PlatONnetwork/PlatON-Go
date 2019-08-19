@@ -22,13 +22,11 @@ import (
 	"os/user"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -51,9 +49,9 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 3150000000,
-	MinerGasCeil:  3150000000,
-	MinerGasPrice: big.NewInt(params.GVon),
+	MinerGasFloor: 4000 * 21000 * 1.2,
+	MinerGasCeil:  4000 * 21000 * 1.2,
+	MinerGasPrice: big.NewInt(5e11),
 	MinerRecommit: 3 * time.Second,
 
 	MiningLogAtDepth:       7,

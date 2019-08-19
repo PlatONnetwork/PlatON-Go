@@ -82,7 +82,6 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount uint32) *Cbft {
 
 	sysConfig := &params.CbftConfig{
-		Epoch:        1,
 		Period:       period,
 		Amount:       amount,
 		InitialNodes: []params.CbftNode{},

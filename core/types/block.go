@@ -36,12 +36,11 @@ var (
 	EmptyRootHash = DeriveSha(Transactions{})
 )
 
-// A BlockNonce is a 64-bit hash which proves (combined with the
-// mix-hash) that a sufficient amount of computation has been carried
-// out on a block.
+// BlockNonce is an 81-byte vrf proof containing random numbers
+// Used to verify the block when receiving the block
 type BlockNonce [81]byte
 
-// EncodeNonce converts the given integer to a block nonce.
+// EncodeNonce converts the given byte to a block nonce.
 func EncodeNonce(v []byte) BlockNonce {
 	var n BlockNonce
 	copy(n[:], v)

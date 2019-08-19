@@ -3,8 +3,8 @@ package miner
 import (
 	"encoding/binary"
 	"errors"
-	"math/big"
 	"time"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -80,7 +80,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	}
 	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs)
 
-	if ok, _ := w.commitTransactionsWithHeader(w.current.header, txs, w.current.header.Coinbase, nil, timestamp, blockDeadline); ok {
+	if ok, _ := w.commitTransactionsWithHeader(w.current.header, txs, nil, timestamp, blockDeadline); ok {
 		log.Error("Commit inner contract transaction fail")
 		return errors.New("commit transaction fail")
 	}

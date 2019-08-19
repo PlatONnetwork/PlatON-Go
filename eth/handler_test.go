@@ -17,19 +17,24 @@
 package eth
 
 import (
+	"encoding/binary"
+	"math"
+	"math/big"
+	"math/rand"
+	"os"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"math"
-	"math/big"
-	"math/rand"
-	"testing"
 )
 
 // Tests that protocol versions and modes of operations are matched up properly.
@@ -46,7 +51,6 @@ func TestProtocolCompatibility(t *testing.T) {
 	// Make sure anything we screw up is restored
 	backup := ProtocolVersions
 	defer func() { ProtocolVersions = backup }()
-
 	// Try all available compatibility configs and check for errors
 	for i, tt := range tests {
 		ProtocolVersions = []uint{tt.version}
@@ -62,8 +66,9 @@ func TestProtocolCompatibility(t *testing.T) {
 }
 
 // Tests that block headers can be retrieved from a remote chain based on user queries.
-//func TestGetBlockHeaders62(t *testing.T) { testGetBlockHeaders(t, 62) }
-//func TestGetBlockHeaders63(t *testing.T) { testGetBlockHeaders(t, 63) }
+func TestGetBlockHeaders62(t *testing.T) { testGetBlockHeaders(t, 62) }
+
+func TestGetBlockHeaders63(t *testing.T) { testGetBlockHeaders(t, 63) }
 
 func testGetBlockHeaders(t *testing.T, protocol int) {
 	//db := ethdb.NewMemDatabase()
@@ -222,8 +227,9 @@ func testGetBlockHeaders(t *testing.T, protocol int) {
 }
 
 // Tests that block contents can be retrieved from a remote chain based on their hashes.
-//func TestGetBlockBodies62(t *testing.T) { testGetBlockBodies(t, 62) }
-//func TestGetBlockBodies63(t *testing.T) { testGetBlockBodies(t, 63) }
+func TestGetBlockBodies62(t *testing.T) { testGetBlockBodies(t, 62) }
+
+func TestGetBlockBodies63(t *testing.T) { testGetBlockBodies(t, 63) }
 
 func testGetBlockBodies(t *testing.T, protocol int) {
 	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxBlockFetch+15, nil, nil)
@@ -293,8 +299,107 @@ func testGetBlockBodies(t *testing.T, protocol int) {
 	}
 }
 
+func newSnapshotdb() (snapshotdb.DB, error) {
+	db := snapshotdb.Instance()
+	highth := big.NewInt(100)
+	if err := db.SetCurrent(common.ZeroHash, *highth, *highth); err != nil {
+		return nil, err
+	}
+	var m [][2][]byte
+	for i := 0; i < 1028; i++ {
+		b := make([]byte, 8)
+		binary.LittleEndian.PutUint64(b, rand.Uint64())
+		m = append(m, [2][]byte{b, b})
+	}
+	if err := db.WriteBaseDB(m); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func TestGetOriginAndPivotMsg(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
+	pm, _ := newTestProtocolManagerMust(t, downloader.FastSync, downloader.MaxBlockFetch+15, nil, nil)
+	peer, _ := newTestPeer("peer", 63, pm, true)
+	db, err := newSnapshotdb()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer func() {
+		peer.close()
+		db.Clear()
+	}()
+
+	if err := p2p.Send(peer.app, GetOriginAndPivotMsg, pm.blockchain.CurrentBlock().Header().Number.Uint64()); err != nil {
+		t.Error(err)
+		return
+	}
+	data := make([]*types.Header, 0)
+
+	oHead := pm.blockchain.GetHeaderByNumber(pm.blockchain.CurrentBlock().Header().Number.Uint64())
+	pivot, err := db.BaseNum()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	pHead := pm.blockchain.GetHeaderByNumber(pivot.Uint64())
+	data = append(data, oHead, pHead)
+	if err := p2p.ExpectMsg(peer.app, OriginAndPivotMsg, &data); err != nil {
+		t.Errorf("TestGetOriginAndPivotMsg : data mismatch: %v", err)
+	}
+}
+
+func TestGetPPOSStorageMsg(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
+	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxBlockFetch+15, nil, nil)
+	peer, _ := newTestPeer("peer", 63, pm, true)
+	db, err := newSnapshotdb()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer func() {
+		peer.close()
+		db.Clear()
+	}()
+	if err := p2p.Send(peer.app, GetPPOSStorageMsg, []interface{}{}); err != nil {
+		t.Error(err)
+		return
+	}
+	var data PPOSStorage
+	msg, err := peer.app.ReadMsg()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := msg.Decode(&data); err != nil {
+		t.Error(err)
+		return
+	}
+	if data.Pivot.Number.Int64() != 100 {
+		t.Error("Pivot num is wrong")
+	}
+	if data.Latest.Number.Int64() != int64(downloader.MaxBlockFetch+15) {
+		t.Error("latest num is wrong")
+	}
+	for !data.Last {
+		msg, err := peer.app.ReadMsg()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if err := msg.Decode(&data); err != nil {
+			t.Error(err)
+			return
+		}
+	}
+}
+
 // Tests that the node state database can be retrieved based on hashes.
-//func TestGetNodeData63(t *testing.T) { testGetNodeData(t, 63) }
+func TestGetNodeData63(t *testing.T) { testGetNodeData(t, 63) }
 
 func testGetNodeData(t *testing.T, protocol int) {
 	// Define three accounts to simulate transactions with
@@ -302,8 +407,8 @@ func testGetNodeData(t *testing.T, protocol int) {
 	acc2Key, _ := crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
-
-	signer := types.NewEIP155Signer(new(big.Int))
+	//chanid := new(big.Int)
+	signer := types.NewEIP155Signer(big.NewInt(1))
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
@@ -384,7 +489,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 }
 
 // Tests that the transaction receipts can be retrieved based on hashes.
-//func TestGetReceipt63(t *testing.T) { testGetReceipt(t, 63) }
+func TestGetReceipt63(t *testing.T) { testGetReceipt(t, 63) }
 
 func testGetReceipt(t *testing.T, protocol int) {
 	// Define three accounts to simulate transactions with
@@ -393,7 +498,7 @@ func testGetReceipt(t *testing.T, protocol int) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.NewEIP155Signer(new(big.Int))
+	signer := types.NewEIP155Signer(big.NewInt(1))
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
@@ -439,5 +544,3 @@ func testGetReceipt(t *testing.T, protocol int) {
 		t.Errorf("receipts mismatch: %v", err)
 	}
 }
-
-

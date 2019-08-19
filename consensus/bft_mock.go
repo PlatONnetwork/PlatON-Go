@@ -17,51 +17,65 @@ import (
 
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
+	Blocks []*types.Block
 }
 
 // InsertChain is a fake interface, no need to implement.
 func (bm *BftMock) InsertChain(block *types.Block) error {
-	panic("implement me")
+	// todo implement me
+	return nil
 }
 
 // FastSyncCommitHead is a fake interface, no need to implement.
 func (bm *BftMock) FastSyncCommitHead(block *types.Block) error {
-	panic("implement me")
+	// todo implement me
+	return nil
 }
 
 // Start is a fake interface, no need to implement.
 func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error {
-	panic("implement me")
+	// todo implement me
+	return nil
 }
 
 // CalcBlockDeadline is a fake interface, no need to implement.
 func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
-	panic("implement me")
+	// todo implement me
+	return time.Now()
 }
 
 // CalcNextBlockTime is a fake interface, no need to implement.
 func (bm *BftMock) CalcNextBlockTime(timePoint time.Time) time.Time {
-	panic("implement me")
+	// todo implement me
+	return time.Now()
 }
 
 // GetBlockWithoutLock is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
-	panic("implement me")
+	// todo implement me
+	return nil
 }
 
 // IsSignedBySelf is a fake interface, no need to implement.
 func (bm *BftMock) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
-	panic("implement me")
+	// todo implement me
+	return true
 }
 
 // Evidences is a fake interface, no need to implement.
 func (bm *BftMock) Evidences() string {
-	panic("implement me")
+	// todo implement me
+	return ""
 }
 
 // UnmarshalEvidence is a fake interface, no need to implement.
 func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
-	panic("implement me")
+	// todo implement me
+	return nil, nil
+}
+
+func (bm *BftMock) NodeID() discover.NodeID {
+	panic("Not support")
 }
 
 // Author retrieves the Ethereum address of the account that minted the given
@@ -83,7 +97,14 @@ func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bo
 // a results channel to retrieve the async verifications (the order is that of
 // the input slice).
 func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	return nil, nil
+	results := make(chan error, len(headers))
+	c := make(chan<- struct{})
+	go func() {
+		for range headers {
+			results <- nil
+		}
+	}()
+	return c, results
 }
 
 // VerifyUncles verifies that the given block's uncles conform to the consensus
@@ -230,7 +251,11 @@ func (bm *BftMock) Status() string {
 
 // CurrentBlock is a fake interface, no need to implement.
 func (bm *BftMock) CurrentBlock() *types.Block {
-	return nil
+	if len(bm.Blocks) == 0 {
+		h := types.Header{Number: big.NewInt(0)}
+		return types.NewBlockWithHeader(&h)
+	}
+	return bm.Blocks[len(bm.Blocks)-1]
 }
 
 // TracingSwitch is a fake interface, no need to implement.

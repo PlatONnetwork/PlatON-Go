@@ -44,7 +44,8 @@ matrix:
         - go test  -tags=test `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
 
     # This builder run the auto tests
-    - name: auto test
+    - if: type = push
+      name: auto test
       os: linux
       dist: xenial
       sudo: required

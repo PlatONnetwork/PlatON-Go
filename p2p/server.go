@@ -1092,7 +1092,7 @@ func (srv *Server) StartWatching(eventMux *event.TypeMux) {
 }
 
 func (srv *Server) watching() {
-	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -1112,15 +1112,6 @@ func (srv *Server) watching() {
 				log.Trace("Received AddValidatorEvent", "nodeID", addEv.NodeID.String())
 				node := discover.NewNode(addEv.NodeID, nil, 0, 0)
 				srv.AddConsensusPeer(node)
-			case cbfttypes.RemoveValidatorEvent:
-				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
-				if !ok {
-					log.Error("Received remove validator event type error")
-					continue
-				}
-				log.Trace("Received RemoveValidatorEvent", "nodeID", removeEv.NodeID.String())
-				node := discover.NewNode(removeEv.NodeID, nil, 0, 0)
-				srv.RemoveConsensusPeer(node)
 			default:
 				log.Error("Received unexcepted event")
 			}

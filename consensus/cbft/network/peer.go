@@ -143,7 +143,6 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) (*protocols.CbftSt
 		return nil, errForkBlock
 	}
 
-	// todo:
 	// 1、If the QCBlock from another peer is less than the current node,
 	// determine if the local node contains a block height and a hash that matches it.
 	// qcBn/lockedBn/commitBn.

@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
+
 	"os"
 	"runtime"
 	"strconv"
@@ -131,7 +133,7 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 		Action:    utils.MigrateFlags(copyDb),
 		Name:      "copydb",
 		Usage:     "Create a local chain from a target chaindata folder",
-		ArgsUsage: "<sourceChaindataDir>",
+		ArgsUsage: "<sourceChaindataDir> <sourceSnapshotDBDir>",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.CacheFlag,
@@ -144,7 +146,7 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The first argument must be the directory containing the blockchain to download from`,
+The first argument must be the directory containing the blockchain to download from,The second argument must be the directory containing the ppos to download from`,
 	}
 	removedbCommand = cli.Command{
 		Action:    utils.MigrateFlags(removeDB),
@@ -195,6 +197,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
+
 	for _, name := range []string{"chaindata", "lightchaindata"} {
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {
@@ -205,7 +208,9 @@ func initGenesis(ctx *cli.Context) error {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
+
 	}
+	snapshotdb.Instance().Close()
 	return nil
 }
 
@@ -231,7 +236,9 @@ func importChain(ctx *cli.Context) error {
 	defer chainDb.Close()
 	if c, ok := chain.Engine().(*cbft.Cbft); ok {
 		blockChainCache := core.NewBlockChainCache(chain)
-		var agency consensus.Agency //cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
+		//todo: Merge confirmation.
+		var agency consensus.Agency
+		//cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
 		// init worker
 		bc := &FakeBackend{bc: chain}
 
@@ -402,15 +409,15 @@ func exportPreimages(ctx *cli.Context) error {
 
 func copyDb(ctx *cli.Context) error {
 	// Ensure we have a source chain directory to copy
-	if len(ctx.Args()) != 1 {
-		utils.Fatalf("Source chaindata directory path argument missing")
+	if len(ctx.Args()) != 2 {
+		utils.Fatalf("invalid arguments, please specify both <sourceChaindataDir> (path to a local chain database), <sourceSnapshotDBDir> (path to a local ppos database)")
 	}
 	// Initialize a new chain for the running node to sync into
 	stack := makeFullNode(ctx)
 	chain, chainDb := utils.MakeChain(ctx, stack)
 
 	syncmode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	dl := downloader.New(syncmode, chainDb, new(event.TypeMux), chain, nil, nil)
+	dl := downloader.New(syncmode, chainDb, snapshotdb.Instance(), new(event.TypeMux), chain, nil, nil)
 
 	// Create a source peer to satisfy downloader requests from
 	db, err := ethdb.NewLDBDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
@@ -421,7 +428,11 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	peer := downloader.NewFakePeer("local", db, hc, dl)
+	sdb, err := snapshotdb.Open(ctx.Args().Get(1))
+	if err != nil {
+		return err
+	}
+	peer := downloader.NewFakePeer("local", db, sdb, hc, dl)
 	if err = dl.RegisterPeer("local", 63, peer); err != nil {
 		return err
 	}

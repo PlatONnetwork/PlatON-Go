@@ -46,7 +46,6 @@ const (
 // The program is forcibly terminated if there is an unmatched message type and
 // all types must exist in the match list.
 func MessageType(msg interface{}) uint64 {
-	// todo: need to process depending on mmessageType.
 	switch msg.(type) {
 	case *CbftStatusData:
 		return CBFTStatusMsg

@@ -144,7 +144,8 @@ type PoW interface {
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
-	VerifyHeader(header *types.Header) error
+	Flush(header *types.Header) error
+	VerifyHeader(header *types.Header, stateDB *state.StateDB) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
@@ -179,6 +180,8 @@ type Bft interface {
 
 	TracingSwitch(flag int8)
 
+	// NodeID is temporary.
+	NodeID() discover.NodeID
 	// Pause consensus
 	Pause()
 	// Resume consensus

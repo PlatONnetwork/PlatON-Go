@@ -100,6 +100,9 @@ type Cbft struct {
 	start    int32
 	syncing  int32
 	fetching int32
+
+	// Commit block error
+	commitErrCh chan error
 	// Async call channel
 	asyncCallCh chan func()
 
@@ -160,6 +163,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		start:              0,
 		syncing:            0,
 		fetching:           0,
+		commitErrCh:        make(chan error, 1),
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
@@ -178,13 +182,15 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
-// NodeID returns the ID value of the current node
-func (cbft *Cbft) NodeID() discover.NodeID {
-	return cbft.config.Option.NodeID
+func NewFaker() consensus.Engine {
+	c := new(consensus.BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	return c
 }
 
 // Start starts consensus engine.
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+	cbft.log.Info("~ Start cbft consensus")
 	cbft.blockChain = chain
 	cbft.txPool = txPool
 	cbft.blockCacheWriter = blockCacheWriter
@@ -205,6 +211,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 		_, qc, err = ctypes.DecodeExtra(block.ExtraData())
 
 		if err != nil {
+			cbft.log.Error("It's not genesis", "err", err)
 			return errors.Wrap(err, fmt.Sprintf("start cbft failed"))
 		}
 	}
@@ -212,7 +219,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	utils.SetTrue(&cbft.loading)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
+		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
@@ -238,6 +245,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	// load consensus state
 	if err := cbft.LoadWal(); err != nil {
+		cbft.log.Error("Load wal failed", "err", err)
 		return err
 	}
 	utils.SetFalse(&cbft.loading)
@@ -277,7 +285,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	// Repeat filtering on consensus messages.
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
-		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
 		cbft.forgetMessage(msg.PeerID)
 		return nil
 	}
@@ -429,7 +437,7 @@ func (cbft *Cbft) receiveLoop() {
 			if err == nil {
 				cbft.network.MarkHistoryMessageHash(msg.Msg.MsgHash())
 				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
-					cbft.log.Warn("Forward message failed", "err", err)
+					cbft.log.Debug("Forward message failed", "err", err)
 				}
 			} else if err.AuthFailed() {
 				// If the verification signature is abnormal,
@@ -440,7 +448,7 @@ func (cbft *Cbft) receiveLoop() {
 				cbft.network.RemovePeer(msg.PeerID)
 			}
 		} else {
-			cbft.log.Debug("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+			cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
 		}
 		cbft.forgetMessage(msg.PeerID)
 	}
@@ -476,6 +484,8 @@ func (cbft *Cbft) receiveLoop() {
 
 		case <-cbft.state.ViewTimeout():
 			cbft.OnViewTimeout()
+		case err := <-cbft.commitErrCh:
+			cbft.OnCommitError(err)
 		}
 	}
 }
@@ -733,6 +743,8 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.findQCBlock()
 
+	cbft.validatorPool.Flush(prepareBlock.Block.Header())
+
 	cbft.network.Broadcast(prepareBlock)
 	// Record the number of blocks.
 	minedCounter.Inc(1)
@@ -834,7 +846,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to executed block")
 	}
 	// FIXME: needed update highest exection block?
-
 	result := make(chan error, 1)
 	cbft.asyncCallCh <- func() {
 		result <- cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{qc})
@@ -909,6 +920,7 @@ func (cbft *Cbft) CurrentBlock() *types.Block {
 }
 
 func (cbft *Cbft) checkStart(exe func()) {
+	cbft.log.Debug("Cbft status", "start", cbft.start)
 	if utils.True(&cbft.start) {
 		exe()
 	}
@@ -1161,7 +1173,7 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,
-		SyncState:          nil,
+		SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },
 	})
 }
@@ -1363,6 +1375,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	}
 	qc.Signature.SetBytes(aggSig.Serialize())
 	qc.ValidatorSet.Update(vSet)
+	log.Debug("Generate prepare qc", "hash", vote.BlockHash, "number", vote.BlockNumber, "qc", qc.String())
 	return qc
 }
 
@@ -1415,6 +1428,7 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 		q.cert.ValidatorSet.Update(q.ba)
 		qc.QCs = append(qc.QCs, q.cert)
 	}
+	log.Debug("Generate view change qc", "qc", qc.String())
 	return qc
 }
 
@@ -1468,6 +1482,11 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	return err
+}
+
+// NodeID returns the ID value of the current node
+func (cbft *Cbft) NodeID() discover.NodeID {
+	return cbft.config.Option.NodeID
 }
 
 func (cbft *Cbft) avgRTT() time.Duration {

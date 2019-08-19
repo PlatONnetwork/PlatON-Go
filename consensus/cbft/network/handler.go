@@ -110,7 +110,6 @@ func (h *EngineManager) sendLoop() {
 			if h.sendQueueHook != nil {
 				h.sendQueueHook(m)
 			}
-			// todo: Need to add to the processing judgment of wal
 			if len(m.PeerID()) == 0 {
 				h.broadcast(m)
 			} else {
@@ -169,7 +168,6 @@ func (h *EngineManager) Send(peerID string, msg types.Message) {
 	default:
 		log.Error("Send message failed, message queue blocking", "msgHash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 	}
-	// todo: Whether to consider the problem of blocking
 }
 
 // Broadcast imports messages into the send queue and send it according to broadcast.
@@ -266,7 +264,6 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 
 // Protocols implemented the Protocols method and returned basic information about the CBFT protocol.
 func (h *EngineManager) Protocols() []p2p.Protocol {
-	// todo: version and ProtocolLengths need to confirm.
 	return []p2p.Protocol{
 		{
 			Name:    CbftProtocolName,
@@ -338,7 +335,6 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	peer := newPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
 
 	// execute handshake
-	// todo:
 	// 1.need qcBn/qcHash/lockedBn/lockedHash/commitBn/commitHash from cbft.
 	var (
 		qcBn, qcHash         = h.engine.HighestQCBlockBn()
@@ -578,7 +574,6 @@ func (h *EngineManager) handleMsg(p *peer) error {
 					}
 					log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 					latency := (curTime - tInt64) / 2 / 1000000
-					// todo: need confirm
 					// Record the latency in metrics and output it. unit: second.
 					log.Trace("latency", "time", latency)
 					h.engine.OnPong(p.id, latency)
