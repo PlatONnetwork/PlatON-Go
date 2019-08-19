@@ -57,6 +57,7 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 
 func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Address) (*Candidate, error) {
 	key := CandidateKeyByAddr(addr)
+
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {

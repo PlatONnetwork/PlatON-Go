@@ -2,6 +2,7 @@ package snapshotdb
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -293,11 +294,11 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		return errors.New("can't put read only block")
 	}
 	// TODO test
-	//if len(value) != 0 {
-	//	logger.Debug("old pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
-	//} else {
-	//	logger.Debug("old pposHash", "key", hex.EncodeToString(key), "pposHash", block.kvHash.Hex())
-	//}
+	if len(value) != 0 {
+		logger.Debug("old pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
+	} else {
+		logger.Debug("old pposHash", "key", hex.EncodeToString(key), "pposHash", block.kvHash.Hex())
+	}
 
 	jData := journalData{
 		Key:   key,
@@ -316,10 +317,10 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	}
 	block.kvHash = jData.Hash
 	// TODO test
-	//if len(value) != 0 {
-	//	logger.Debug("new pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
-	//} else {
-	//	logger.Debug("new pposHash", "key", hex.EncodeToString(key), "pposHash", block.kvHash.Hex())
-	//}
+	if len(value) != 0 {
+		logger.Debug("new pposHash", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value), "pposHash", block.kvHash.Hex())
+	} else {
+		logger.Debug("new pposHash", "key", hex.EncodeToString(key), "pposHash", block.kvHash.Hex())
+	}
 	return nil
 }
