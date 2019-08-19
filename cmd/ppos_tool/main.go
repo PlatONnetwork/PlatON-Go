@@ -3,21 +3,16 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"math/big"
 	"os"
-	"reflect"
-	"runtime"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"strconv"
+	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
@@ -480,75 +475,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	return rlpData
 }
 
-func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{}, FnParams []reflect.Value, err error) {
-
-	defer func() {
-		if er := recover(); nil != er {
-			fn, FnParams, err = nil, nil, fmt.Errorf("parse tx data is panic: %s", er)
-			log.Error("Failed to Verify PlatON inner contract tx data", "error", er)
-		}
-	}()
-
-	var args [][]byte
-	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
-		log.Error("Failed to Verify PlatON inner contract tx data, Decode rlp input failed", "err", err)
-		return nil, nil, err
-	}
-
-	//fmt.Println("the Function Type:", byteutil.BytesToUint16(args[0]))
-
-	if fn, ok := command[byteutil.BytesToUint16(args[0])]; !ok {
-		return nil, nil, err
-	} else {
-
-		funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
-		fmt.Println("The FuncName is", funcName)
-
-		t := reflect.TypeOf(fn)
-		fmt.Println("The FN", fn)
-		fmt.Println("The TypeOf.Name", t.Name())
-		fmt.Println("The TypeOf.String", t.String())
-
-		v := reflect.ValueOf(fn)
-		fmt.Println("The ValueOf", v.Type().Name())
-		fmt.Println("The ValueOf.String", v.String())
-
-		// the func params type list
-		paramList := reflect.TypeOf(fn)
-		// the func params len
-		paramNum := paramList.NumIn()
-
-		if paramNum != len(args)-1 {
-			return nil, nil, errors.New("para num error")
-		}
-		params := make([]reflect.Value, paramNum)
-
-		for i := 0; i < paramNum; i++ {
-			//fmt.Println("byte:", args[i+1])
-
-			targetType := paramList.In(i).String()
-			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
-			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
-			//fmt.Println("num", i+1, "type", targetType)
-		}
-		return fn, params, nil
-	}
-}
-
 func main() {
-	data := "0xe683820834a1a0373e89d01414ff4b02a638599b093c2a5cb7ae5a9c30c2653a451b320ec28ffe"
-	bs, _ := hexutil.Decode(data)
-
-	gc := &vm.GovContract{}
-	if fn, _, err := Verify_tx_data(bs, gc.FnSigns()); err != nil {
-		fmt.Print(err)
-	} else {
-		fmt.Print(fn)
-	}
-
-}
-
-/*func main() {
 	// Parse and ensure all needed inputs are specified
 	flag.Parse()
 
@@ -572,4 +499,3 @@ func main() {
 	}
 
 }
-*/
