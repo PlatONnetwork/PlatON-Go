@@ -823,7 +823,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to decode block extra data")
 	}
 
-	if err := cbft.verifyPrepareQC(qc); err != nil {
+	if err := cbft.verifyPrepareQC(block.NumberU64(), qc); err != nil {
 		cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
 		return err
 	}
@@ -1321,7 +1321,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		prepareQC = cm.PrepareQC
 	}
 
-	if err := cbft.verifyPrepareQC(prepareQC); err != nil {
+	if err := cbft.verifyPrepareQC(msg.Original(), prepareQC); err != nil {
 		return nil, err
 	}
 
@@ -1432,11 +1432,14 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 	return qc
 }
 
-func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
+func (cbft *Cbft) verifyPrepareQC(original uint64, qc *ctypes.QuorumCert) error {
 	defer func(t time.Time) {
 		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
 	}(time.Now())
 
+	if original != qc.BlockNumber {
+		return fmt.Errorf("verify prepare qc failed,not the corresponding qc,oriNum:%d,qcNum:%d", original, qc.BlockNumber)
+	}
 	var cb []byte
 	var err error
 	if cb, err = qc.CannibalizeBytes(); err != nil {

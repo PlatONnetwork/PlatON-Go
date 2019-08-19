@@ -50,7 +50,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
 			for i, block := range blockList.Blocks {
-				if err := cbft.verifyPrepareQC(blockList.QC[i]); err != nil {
+				if err := cbft.verifyPrepareQC(block.NumberU64(), blockList.QC[i]); err != nil {
 					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
@@ -108,7 +108,7 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
 				cbft.network.Send(id, msg)
 				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
-			} else if q != nil {
+			} else if q == nil {
 				msg := &protocols.GetBlockQuorumCert{BlockHash: b.Hash(), BlockNumber: b.NumberU64()}
 				cbft.network.Send(id, msg)
 				cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
@@ -150,7 +150,8 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block already exists")
 	}
 
-	if err := cbft.verifyPrepareQC(msg.BlockQC); err != nil {
+	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
+	if err := cbft.verifyPrepareQC(block.NumberU64(), msg.BlockQC); err != nil {
 		return &authFailedError{err}
 	}
 
