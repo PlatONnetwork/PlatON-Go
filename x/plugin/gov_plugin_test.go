@@ -715,7 +715,7 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -769,7 +769,7 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -825,7 +825,7 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
