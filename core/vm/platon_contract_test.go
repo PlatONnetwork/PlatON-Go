@@ -231,49 +231,6 @@ func newPlugins() {
 
 func newChainState() (*mock.MockStateDB, *types.Block, error) {
 
-	//url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
-	//
-	//node, _ := discover.ParseNode(url)
-	//
-	//var nodes []params.CbftNode
-	//var blsKey bls.SecretKey
-	//blsKey.SetByCSPRNG()
-	//nodes = append(nodes, params.CbftNode{Node: *node, BlsPubKey: *blsKey.GetPublicKey()})
-	//gen := &core.Genesis{
-	//	Config: &params.ChainConfig{
-	//		Cbft: &params.CbftConfig{
-	//			InitialNodes:  nodes,
-	//			ValidatorMode: "ppos",
-	//		},
-	//	},
-	//}
-	//
-	//var (
-	//	db      = ethdb.NewMemDatabase()
-	//	genesis = gen.MustCommit(db)
-	//)
-	//
-	//fmt.Println("genesis", genesis)
-	//// Initialize a fresh chain with only a genesis block
-	//blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
-	//
-	//var state *state.StateDB
-	//if statedb, err := blockchain.State(); nil != err {
-	//	return nil, nil, errors.New("reference statedb failed" + err.Error())
-	//} else {
-	//	state = statedb
-	//}
-	//state.AddBalance(sender, sender_balance)
-	//state.AddBalance(delegate_sender, delegate_sender_balance)
-	//for i, addr := range addrArr {
-	//
-	//	amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
-	//	amount = new(big.Int).Mul(common.Big257, amount)
-	//	state.AddBalance(addr, amount)
-	//}
-	//
-	//return state, genesis, nil
-
 	testGenesis := new(types.Block)
 	chain := mock.NewChain(testGenesis)
 	//	var state *state.StateDB

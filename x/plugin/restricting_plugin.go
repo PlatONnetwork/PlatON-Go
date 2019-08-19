@@ -252,7 +252,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 // PledgeLockFunds transfer the money from the restricting contract account to the staking contract account
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	rp.log.Info("begin to PledgeLockFunds", "account", account.String(), "amount", amount)
+	rp.log.Debug("begin to PledgeLockFunds", "account", account.String(), "amount", amount)
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return err
