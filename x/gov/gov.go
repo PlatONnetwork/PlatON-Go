@@ -18,6 +18,15 @@ type Staking interface {
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 
+func GetVersionForStaking(state xcom.StateDB) uint32 {
+	preActiveVersion := GetPreActiveVersion(state)
+	if preActiveVersion > 0 {
+		return preActiveVersion
+	} else {
+		return GetCurrentActiveVersion(state)
+	}
+}
+
 func GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
 	if err != nil {
