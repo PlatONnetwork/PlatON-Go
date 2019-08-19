@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -147,12 +145,14 @@ func setup(t *testing.T) func() {
 
 	build_staking_data(genesis.Hash())
 
-	state.Prepare(txHashArr[1], blockHash2, 2)
-	header := types.Header{
+	// ---
+
+	/*header := types.Header{
 		Number: blockNumber2,
-	}
-	hash := header.Hash()
-	sndb.NewBlock(blockNumber2, blockHash, hash)
+	}*/
+	//hash := header.Hash()
+	state.Prepare(txHashArr[1], blockHash2, 2)
+	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
 
 	return func() {
 		t.Log("tear down()......")
@@ -161,7 +161,7 @@ func setup(t *testing.T) func() {
 }
 
 func TestGovContract_SubmitText(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash2, 2)
 
@@ -169,7 +169,7 @@ func TestGovContract_SubmitText(t *testing.T) {
 }
 
 func TestGovContract_GetTextProposal(t *testing.T) {
-	setup(t)()
+	defer setup(t)()
 	//state := gc.Evm.StateDB.(*mock.MockStateDB)
 	//state.Prepare(txHashArr[0], blockHash2, 0)
 
