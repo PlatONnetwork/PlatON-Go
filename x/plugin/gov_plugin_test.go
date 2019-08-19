@@ -34,9 +34,9 @@ var (
 	govPlugin *GovPlugin
 	//	evm       *vm.EVM
 	//newVersion     = uint32(2<<16 | 0<<8 | 0)
-	endVotingBlock uint64
-	activeBlock    uint64
-	stateDB        xcom.StateDB
+	/*endVotingBlock uint64
+	activeBlock    uint64*/
+	stateDB xcom.StateDB
 
 //	stk            *StakingPlugin
 )
@@ -59,8 +59,6 @@ func setup(t *testing.T) func() {
 	snapdb = snapshotdb.Instance()
 
 	// init data
-	endVotingBlock = uint64(xutil.ConsensusSize()*5 - xcom.ElectionDistance())
-	activeBlock = uint64(xutil.ConsensusSize()*10 + 1)
 
 	return func() {
 		t.Log("tear down()......")
@@ -697,6 +695,9 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
+	endVotingBlock := xutil.CalEndVotingBlock(1, xcom.VersionProposalVote_ConsensusRounds())
+	//	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
+
 	buildBlockNoCommit(2)
 
 	allVote(t, txHashArr[0])
@@ -716,7 +717,8 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
+
+	lastBlockNumber = uint64(endVotingBlock - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -770,14 +772,14 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(endVotingBlock)
+	build_staking_data_more(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 
@@ -826,14 +828,14 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(endVotingBlock)
+	build_staking_data_more(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()))
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 
@@ -900,7 +902,9 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
+	endVotingBlock := xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds())
+
+	lastBlockNumber = uint64(endVotingBlock - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -913,7 +917,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.CalActiveBlock(lastBlockNumber) - 1)
+	lastBlockNumber = uint64(xutil.CalActiveBlock(endVotingBlock) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -921,7 +925,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
 	//buildBlockNoCommit(23480)
-	build_staking_data_more(uint64(activeBlock))
+	build_staking_data_more(uint64(xutil.CalActiveBlock(lastBlockNumber)))
 	//active
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
