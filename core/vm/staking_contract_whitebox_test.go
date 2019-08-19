@@ -664,11 +664,14 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	} else {
-		t.Log(string(res))
-	}
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, false, r.Status)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -748,11 +751,14 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	} else {
-		t.Log(string(res))
-	}
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, false, r.Status)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -789,11 +795,9 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	// build a invalid nodeId
 	//
-	// 0x99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
-	// 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-	//nid := discover.MustHexID("0x99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999")
-	//nid := discover.MustHexID("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	nid := discover.MustHexID("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010")
+	//0xf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010
+	//0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+	nid := discover.MustHexID("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	nodeId, _ := rlp.EncodeToBytes(nid)
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
@@ -837,12 +841,14 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		assert.Equal(t, err != err, "err is nil", err)
 
-	} else {
-		t.Log(string(res))
-	}
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, false, r.Status)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -918,11 +924,14 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	}
 
 	res, err := contract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	} else {
-		t.Log(string(res))
-	}
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, false, r.Status)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
