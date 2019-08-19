@@ -1699,7 +1699,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
-	curr_version := gov.GetCurrentActiveVersion(state)
+	curr_version := gov.GetVersionForStaking(state)
 	currVersion := xutil.CalcVersion(curr_version)
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
