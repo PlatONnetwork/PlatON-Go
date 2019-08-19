@@ -216,7 +216,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	utils.SetTrue(&cbft.loading)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
+		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
