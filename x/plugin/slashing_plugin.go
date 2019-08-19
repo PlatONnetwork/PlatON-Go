@@ -329,10 +329,11 @@ func isAbnormal(amount uint32) bool {
 }
 
 func parseNodeId(header *types.Header) (discover.NodeID, error) {
-	log.Debug("extra parseNodeId", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(header.SealHash().Bytes()))
 	if xutil.IsWorker(header.Extra) {
+		log.Debug("extra parseNodeId is worker", "extra", hex.EncodeToString(header.Extra))
 		return discover.PubkeyID(&SlashInstance().privateKey.PublicKey), nil
 	} else {
+		log.Debug("extra parseNodeId", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(header.SealHash().Bytes()))
 		sign := header.Extra[32:97]
 		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 		if nil != err {

@@ -487,8 +487,8 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 
 // NOTE: Sort when doing storage
 //
-// The priorities just like that:
-// ProgramVersion > validaotorTerm > Shares > BlockNumber > TxIndex
+// The priorities just like that: (No  shares)
+// ProgramVersion > validaotorTerm > BlockNumber > TxIndex
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -525,20 +525,20 @@ func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	// 3. Shares
-	compareSharesFunc := func(l, r *Validator) int {
-		leftShares, _ := l.GetShares()
-		rightShares, _ := r.GetShares()
-
-		switch {
-		case leftShares.Cmp(rightShares) < 0:
-			return -1
-		case leftShares.Cmp(rightShares) > 0:
-			return 1
-		default:
-			return compareBlockNumberFunc(l, r)
-		}
-	}
+	//// 3. Shares
+	//compareSharesFunc := func(l, r *Validator) int {
+	//	leftShares, _ := l.GetShares()
+	//	rightShares, _ := r.GetShares()
+	//
+	//	switch {
+	//	case leftShares.Cmp(rightShares) < 0:
+	//		return -1
+	//	case leftShares.Cmp(rightShares) > 0:
+	//		return 1
+	//	default:
+	//		return compareBlockNumberFunc(l, r)
+	//	}
+	//}
 
 	// 2. Term
 	compareTermFunc := func(l, r *Validator) int {
@@ -548,7 +548,8 @@ func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 		case l.ValidatorTerm > r.ValidatorTerm:
 			return 1
 		default:
-			return compareSharesFunc(l, r)
+			//return compareSharesFunc(l, r)
+			return compareBlockNumberFunc(l, r)
 		}
 	}
 

@@ -2212,12 +2212,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 
 	// todo test
-	log.Info("Call Election start", "Curr epoch validators length", len(verifiers.Arr))
-	log.Info("Call Election start", "Curr round validators length", len(curr.Arr))
+	log.Info("Call Election start", "Curr epoch validators length", len(verifiers.Arr), "Curr round validators length", len(curr.Arr))
 	xcom.PrintObject("Call Election Curr validators", curr)
 
 	if blockNumber != (curr.End - xcom.ElectionDistance()) {
-		log.Error("Failed to Election: this blockNumber invalid", "Target blockNumber",
+		log.Error("Failed to Election: Current blockNumber invalid", "Target blockNumber",
 			curr.End-xcom.ElectionDistance(), "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 		return common.BizErrorf("The BlockNumber invalid, Target blockNumber: %d, Current blockNumber: %d",
 			curr.End-xcom.ElectionDistance(), blockNumber)
@@ -2232,28 +2231,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	start := curr.End + 1
 	end := curr.End + xutil.ConsensusSize()
 
-	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
-	for _, v := range curr.Arr {
-		currMap[v.NodeId] = struct{}{}
-	}
-
-	// Exclude the current consensus round validators from the validators of the Epoch
-	diffQueue := make(staking.ValidatorQueue, 0)
-	for _, v := range verifiers.Arr {
-		if _, ok := currMap[v.NodeId]; ok {
-			continue
-		}
-		diffQueue = append(diffQueue, v)
-	}
-
 	mbn := 1 // Minimum allowed total number of consensus nodes
-	diffQueueLen := len(diffQueue)
+	diffQueueLen := 0
 	invalidLen := 0 // duplicateSign And lowRatio No enough von
 	currLen := len(curr.Arr)
 	zeroLen := 0
 
 	slashCans := make(staking.SlashCandidate)
 	slashAddrQueue := make([]discover.NodeID, 0)
+
+	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
 
 	for _, v := range curr.Arr {
 
@@ -2274,8 +2261,22 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				invalidLen++
 			}
 		}
+
+		currMap[v.NodeId] = struct{}{}
 	}
 
+	// Exclude the current consensus round validators from the validators of the Epoch
+	diffQueue := make(staking.ValidatorQueue, 0)
+	for _, v := range verifiers.Arr {
+		if _, ok := currMap[v.NodeId]; ok {
+			continue
+		}
+		diffQueue = append(diffQueue, v)
+	}
+	diffQueueLen = len(diffQueue)
+
+	// The shuffle function is the list of certifiers
+	// that assemble the new consensus wheel.
 	shuffle := func(deleteLen int, shiftQueue staking.ValidatorQueue) staking.ValidatorQueue {
 
 		realDeleteLen := 0
@@ -2333,6 +2334,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	****
 	*/
 
+	// unGov_ElectionFn mean a function
+	// that is not governed during the epoch,
+	// cause make the consensus round validator list smaller
 	unGov_ElectionFn := func(currLength, invalidLength, diffQueueLength int, diffArr staking.ValidatorQueue) (staking.ValidatorQueue, error) {
 		var shiftQueue staking.ValidatorQueue
 		var nextQueueTmp staking.ValidatorQueue
