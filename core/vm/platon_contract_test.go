@@ -285,8 +285,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *
 	evm.Context = context
 
 	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.AddActiveVersion(initProgramVersion, 0, state)
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return evm
 }

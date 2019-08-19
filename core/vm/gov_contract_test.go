@@ -201,7 +201,7 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(gc, buildDeclareInput(), t)
 
-	if nodeList, err := gov.GovDBInstance().GetActiveNodeList(blockHash, txHashArr[0]); err != nil {
+	if nodeList, err := gov.GetActiveNodeList(blockHash, txHashArr[0]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("nodeList", nodeList[0])
@@ -291,7 +291,7 @@ func runGovContract(contract *vm.GovContract, buf []byte, t *testing.T) {
 }
 
 func Test_ResetVoteOption(t *testing.T) {
-	v := gov.Vote{}
+	v := gov.VoteInfo{}
 	v.ProposalID = common.ZeroHash
 	v.VoteNodeID = discover.NodeID{}
 	v.VoteOption = gov.Abstention
