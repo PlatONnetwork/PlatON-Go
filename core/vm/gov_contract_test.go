@@ -158,6 +158,7 @@ func TestGovContract_SubmitText(t *testing.T) {
 	defer setup(t)()
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[1], blockHash2, 2)
+	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
 
 	runGovContract(gc, buildSubmitTextInput(), t)
 }
