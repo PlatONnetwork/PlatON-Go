@@ -67,12 +67,11 @@ func setup(t *testing.T) func() {
 
 func submitText(t *testing.T, pid common.Hash) {
 	vp := &gov.TextProposal{
-		ProposalID:     pid,
-		ProposalType:   gov.Text,
-		PIPID:          "textPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock,
-		Proposer:       nodeIdArr[0],
+		ProposalID:   pid,
+		ProposalType: gov.Text,
+		PIPID:        "textPIPID",
+		SubmitBlock:  1,
+		Proposer:     nodeIdArr[0],
 	}
 
 	//state := stateDB.(*state.StateDB)
@@ -86,14 +85,13 @@ func submitText(t *testing.T, pid common.Hash) {
 
 func submitVersion(t *testing.T, pid common.Hash) {
 	vp := &gov.VersionProposal{
-		ProposalID:     pid,
-		ProposalType:   gov.Version,
-		PIPID:          "versionIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock,
-		Proposer:       nodeIdArr[0],
-		NewVersion:     promoteVersion,
-		ActiveBlock:    activeBlock,
+		ProposalID:      pid,
+		ProposalType:    gov.Version,
+		PIPID:           "versionIPID",
+		SubmitBlock:     1,
+		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds(),
+		Proposer:        nodeIdArr[0],
+		NewVersion:      promoteVersion,
 	}
 
 	//state := stateDB.(*state.StateDB)
@@ -107,13 +105,13 @@ func submitVersion(t *testing.T, pid common.Hash) {
 
 func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
 	pp := &gov.CancelProposal{
-		ProposalID:     pid,
-		ProposalType:   gov.Cancel,
-		PIPID:          "CancelPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock,
-		Proposer:       nodeIdArr[0],
-		TobeCanceled:   tobeCanceled,
+		ProposalID:      pid,
+		ProposalType:    gov.Cancel,
+		PIPID:           "CancelPIPID",
+		SubmitBlock:     1,
+		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds() - 1,
+		Proposer:        nodeIdArr[0],
+		TobeCanceled:    tobeCanceled,
 	}
 
 	//state := stateDB.(*state.StateDB)
@@ -222,12 +220,11 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	defer setup(t)()
 
 	vp := &gov.TextProposal{
-		ProposalID:     txHashArr[0],
-		ProposalType:   gov.Text,
-		PIPID:          "textPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock,
-		Proposer:       nodeIdArr[0],
+		ProposalID:   txHashArr[0],
+		ProposalType: gov.Text,
+		PIPID:        "textPIPID",
+		SubmitBlock:  1,
+		Proposer:     nodeIdArr[0],
 	}
 
 	state := stateDB.(*mock.MockStateDB)
@@ -238,29 +235,6 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 		t.Log("detected invalid sender.", err)
 	} else {
 		t.Fatal("didn't detect invalid sender.")
-	}
-}
-
-func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
-	defer setup(t)()
-
-	vp := &gov.TextProposal{
-		ProposalID:     txHashArr[0],
-		ProposalType:   gov.Text,
-		PIPID:          "textPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock - 10, //error
-		Proposer:       nodeIdArr[0],
-	}
-
-	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
-
-	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
-	if err != nil && err.Error() == "end-voting-block invalid." {
-		t.Logf("detected invalid end-voting-block.")
-	} else {
-		t.Fatal("didn't detect invalid end-voting-block.")
 	}
 }
 
@@ -281,18 +255,17 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
+func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 	defer setup(t)()
 
 	vp := &gov.VersionProposal{
-		ProposalID:     txHashArr[0],
-		ProposalType:   gov.Version,
-		PIPID:          "versionPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock - 10, //error
-		Proposer:       nodeIdArr[0],
-		NewVersion:     promoteVersion,
-		ActiveBlock:    activeBlock,
+		ProposalID:      txHashArr[0],
+		ProposalType:    gov.Version,
+		PIPID:           "versionPIPID",
+		SubmitBlock:     1,
+		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds() + 1, //error
+		Proposer:        nodeIdArr[0],
+		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
@@ -302,30 +275,6 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
 		t.Logf("detected invalid end-voting-block.")
 	} else {
 		t.Fatal("didn't detect invalid end-voting-block.")
-	}
-}
-
-func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
-	defer setup(t)()
-
-	vp := &gov.VersionProposal{
-		ProposalID:     txHashArr[0],
-		ProposalType:   gov.Version,
-		PIPID:          "versionPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock,
-		Proposer:       nodeIdArr[0],
-		NewVersion:     promoteVersion,
-		ActiveBlock:    activeBlock - 10, // error
-	}
-	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
-
-	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
-	if err != nil && err.Error() == "active-block invalid." {
-		t.Logf("detected invalid active-block.")
-	} else {
-		t.Fatal("didn't detect invalid active-block.")
 	}
 }
 
@@ -361,22 +310,37 @@ func TestGovPlugin_SubmitCancel(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_SubmitCancel_invalidEndVotingBlock(t *testing.T) {
+func TestGovPlugin_SubmitCancel_invalidEndVotingRounds(t *testing.T) {
 	defer setup(t)()
 
-	pp := &gov.CancelProposal{
-		ProposalID:     txHashArr[1],
-		ProposalType:   gov.Cancel,
-		PIPID:          "cancelPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock - 10, //error
-		Proposer:       nodeIdArr[1],
-		TobeCanceled:   txHashArr[0],
-	}
-	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[1], lastBlockHash, 0)
+	submitVersion(t, txHashArr[0])
 
-	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB)
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	p, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("Get the submitted version proposal error:", err)
+	} else {
+		t.Log("Get the submitted version proposal success:", p)
+	}
+
+	pp := &gov.CancelProposal{
+		ProposalID:      txHashArr[1],
+		ProposalType:    gov.Cancel,
+		PIPID:           "CancelPIPID",
+		SubmitBlock:     1,
+		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds(),
+		Proposer:        nodeIdArr[1],
+		TobeCanceled:    txHashArr[0],
+	}
+
+	//state := stateDB.(*state.StateDB)
+	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err = gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil && err.Error() == "end-voting-block invalid." {
 		t.Logf("detected invalid end-voting-block.")
 	} else {
@@ -388,13 +352,13 @@ func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 	defer setup(t)()
 
 	pp := &gov.CancelProposal{
-		ProposalID:     txHashArr[1],
-		ProposalType:   gov.Cancel,
-		PIPID:          "cancelPIPID",
-		SubmitBlock:    1,
-		EndVotingBlock: endVotingBlock,
-		Proposer:       nodeIdArr[0],
-		TobeCanceled:   txHashArr[0],
+		ProposalID:      txHashArr[1],
+		ProposalType:    gov.Cancel,
+		PIPID:           "cancelPIPID",
+		SubmitBlock:     1,
+		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds() - 1,
+		Proposer:        nodeIdArr[0],
+		TobeCanceled:    txHashArr[0],
 	}
 	state := stateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
@@ -748,7 +712,7 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -798,7 +762,7 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -854,7 +818,7 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -928,7 +892,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = uint64(xutil.CalEndVotingBlock(lastBlockNumber, xcom.VersionProposalVote_ConsensusRounds()) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -941,7 +905,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
-	lastBlockNumber = uint64(activeBlock - 1)
+	lastBlockNumber = uint64(xutil.CalActiveBlock(lastBlockNumber) - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
