@@ -79,8 +79,9 @@ func submitText(t *testing.T, pid common.Hash) {
 
 	//state := stateDB.(*state.StateDB)
 	//state.Prepare(txHashArr[0], lastBlockHash, 0)
-
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	if err != nil {
 		t.Fatalf("submit text proposal err: %s", err)
 	}

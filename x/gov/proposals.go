@@ -131,6 +131,7 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xcom.TextProposalVote_ConsensusRounds())
 	tp.EndVotingBlock = endVotingBlock
 
+	log.Debug("text proposal", "endVotingBlock", tp.EndVotingBlock, "consensusSize", xutil.ConsensusSize(), "xcom.ElectionDistance()", xcom.ElectionDistance())
 	return nil
 }
 
