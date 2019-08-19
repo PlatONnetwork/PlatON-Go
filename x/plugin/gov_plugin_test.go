@@ -2,7 +2,10 @@ package plugin
 
 import (
 	"encoding/hex"
+	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -688,6 +691,8 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	defer setup(t)()
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	submitText(t, txHashArr[0])
 	sndb.Commit(lastBlockHash)
