@@ -25,6 +25,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
+
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 			return &handleError{err}
@@ -32,6 +33,9 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 			var block *types.Block
 			var qc *ctypes.QuorumCert
 			if msg.ViewChangeQC != nil {
+				if e := cbft.verifyViewChangeQC(msg.ViewChangeQC); e != nil {
+					return &handleError{e}
+				}
 				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
 			} else {
