@@ -31,13 +31,13 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	contract := &SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, common.ZeroHash, state),
 	}
 	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
 	plugin.StakingInstance()
 	plugin.GovPluginInstance()
 
-	state.Prepare(txHashArr[1], blockHash, 2)
+	state.Prepare(txHashArr[1], common.ZeroHash, 2)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -113,14 +113,17 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		ProgramVersion:  initProgramVersion,
 		Shares:          new(big.Int).SetUint64(1000),
 
-		Released:           common.Big0,
+		Released:           common.Big256,
 		ReleasedHes:        common.Big0,
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
 	}
 	state.CreateAccount(addr)
 	state.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
-	if err := plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, can.Shares, 0, addr, can); nil != err {
+	if err := snapshotdb.Instance().NewBlock(blockNumber, blockHash, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Fatal(err)
 	}
 	runContract(contract, buf.Bytes(), t)
