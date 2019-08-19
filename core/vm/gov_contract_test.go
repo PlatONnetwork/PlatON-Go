@@ -223,7 +223,7 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(gc, buildDeclareInput(), t)
 
-	if nodeList, err := gov.GetActiveNodeList(blockHash, txHashArr[2]); err != nil {
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("nodeList", nodeList[0])
