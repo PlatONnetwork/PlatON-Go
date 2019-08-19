@@ -119,10 +119,11 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 		pbs[uint32(i)] = pb
 	}
 	qc := cnode[0].generatePrepareQC(pbs)
+	fmt.Println(qc)
 
-	assert.Nil(t, cnode[0].verifyPrepareQC(qc))
+	assert.Nil(t, cnode[0].verifyPrepareQC(0, qc))
 	qc.ValidatorSet = nil
-	assert.NotNil(t, cnode[0].verifyPrepareQC(qc))
+	assert.NotNil(t, cnode[0].verifyPrepareQC(0, qc))
 
 }
 func testViewChangeQC(t *testing.T, cnode []*Cbft) {

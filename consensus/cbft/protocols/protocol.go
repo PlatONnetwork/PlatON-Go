@@ -153,6 +153,10 @@ func (pb *PrepareBlock) SetSign(sign []byte) {
 	pb.Signature.SetBytes(sign)
 }
 
+func (pb *PrepareBlock) Original() uint64 {
+	return pb.BlockNum() - 1
+}
+
 // Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
 type PrepareVote struct {
 	Epoch          uint64             `json:"epoch"`
@@ -214,6 +218,10 @@ func (pv *PrepareVote) Sign() []byte {
 
 func (pv *PrepareVote) SetSign(sign []byte) {
 	pv.Signature.SetBytes(sign)
+}
+
+func (pv *PrepareVote) Original() uint64 {
+	return pv.BlockNumber - 1
 }
 
 // ViewChange is message structure for view switching.
@@ -281,6 +289,10 @@ func (vc *ViewChange) Sign() []byte {
 
 func (vc *ViewChange) SetSign(sign []byte) {
 	vc.Signature.SetBytes(sign)
+}
+
+func (vc *ViewChange) Original() uint64 {
+	return vc.BlockNumber
 }
 
 type ViewChanges struct {
