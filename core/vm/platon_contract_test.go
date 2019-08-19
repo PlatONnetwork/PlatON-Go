@@ -498,16 +498,16 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 		list = append(list, uint64(epoch))
 	}
 
-	lock_amount := new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
+	lockAmount := new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
 
 	fmt.Println("")
 
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	//user.Balance = lock_amount
-	//user.Debt = big.NewInt(0)
-	//user.DebtSymbol = false
 	user.ReleaseList = list
+	user.CachePlanAmount = lockAmount
+	user.StakingAmount = big.NewInt(0)
+	user.NeedRelease = big.NewInt(0)
 
 	bUser, err := rlp.EncodeToBytes(user)
 	if err != nil {
@@ -520,7 +520,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 
 	//stateDB.AddBalance(sender, sender_balance)
 
-	stateDB.AddBalance(cvm.RestrictingContractAddr, lock_amount)
+	stateDB.AddBalance(cvm.RestrictingContractAddr, lockAmount)
 }
 
 func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
