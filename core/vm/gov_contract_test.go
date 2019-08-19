@@ -150,7 +150,7 @@ func setup(t *testing.T) func() {
 
 	return func() {
 		t.Log("tear down()......")
-		snapdb.Clear()
+		sndb.Clear()
 	}
 }
 
