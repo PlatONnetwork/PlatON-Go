@@ -159,6 +159,12 @@ func TestGovContract_SubmitText(t *testing.T) {
 	state.Prepare(txHashArr[2], blockHash2, 2)
 	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
 
+	context := Context{
+		BlockNumber: blockNumber2,
+		BlockHash:   blockHash2,
+	}
+	gc.Evm.Context = context
+
 	runGovContract(gc, buildSubmitTextInput(), t)
 }
 
@@ -183,6 +189,12 @@ func TestGovContract_SubmitVersion(t *testing.T) {
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[2], blockHash2, 2)
 	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
+
+	context := Context{
+		BlockNumber: blockNumber2,
+		BlockHash:   blockHash2,
+	}
+	gc.Evm.Context = context
 
 	runGovContract(gc, buildSubmitVersionInput(), t)
 }
