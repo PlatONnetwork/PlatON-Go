@@ -22,20 +22,24 @@ const (
 )
 
 type commonConfig struct {
-	ExpectedMinutes uint64 // expected minutes every epoch
-	Interval        uint64 // each block interval (uint: seconds)
-	PerRoundBlocks  uint64 // blocks each validator will create per consensus epoch
-	ValidatorCount  uint64 // The consensus validators count
+	ExpectedMinutes       uint64 // expected minutes every epoch
+	NodeBlockTimeWindow   uint64 // Node block time window (uint: seconds)
+	PerRoundBlocks        uint64 // blocks each validator will create per consensus epoch
+	OptValidatorCount     uint64 // Alternative number of validation nodes
+	ValidatorCount        uint64 // The consensus validators count
+	AdditionalCycleTime   uint64 // Additional cycle time (uint: minutes)
+	PleRetLockCycle       uint64 // Pledge return lock cycle
+	TextVotCycle          uint64 // Voting cycles for text proposals
+	UpgradeMaxVotCycle    uint64 // The upgrade proposal has a maximum voting period
+	UpgradeEffectiveCycle uint64 // Upgrade proposal effective period
 }
 
 type stakingConfig struct {
 	StakeThreshold               *big.Int // The Staking minimum threshold allowed
 	MinimumThreshold             *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
 	EpochValidatorNum            uint64   // The epoch (billing cycle) validators count
-	ShiftValidatorNum            uint64   // The number of elections and replacements for each of the consensus rounds
 	HesitateRatio                uint64   // Each hesitation period is a multiple of the epoch
 	EffectiveRatio               uint64   // Each effective period is a multiple of the epoch
-	ElectionDistance             uint64   // The interval of the last block of the high-distance consensus round of the election block for each consensus round
 	UnStakeFreezeRatio           uint64   // The freeze period of the withdrew Staking (unit is  epochs)
 	PassiveUnDelegateFreezeRatio uint64   // The freeze period of the delegate was invalidated due to the withdrawal of the Stake (unit is  epochs)
 	ActiveUnDelegateFreezeRatio  uint64   // The freeze period of the delegate was invalidated due to active withdrew delegate (unit is  epochs)
@@ -133,19 +137,23 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultMainNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes: uint64(360), // 6 hours
-				Interval:        uint64(1),
-				PerRoundBlocks:  uint64(10),
-				ValidatorCount:  uint64(25),
+				ExpectedMinutes:       uint64(360), // 6 hours
+				NodeBlockTimeWindow:   uint64(20),  // 20 seconds
+				PerRoundBlocks:        uint64(10),
+				OptValidatorCount:     uint64(101),
+				ValidatorCount:        uint64(25),
+				AdditionalCycleTime:   uint64(525600),
+				PleRetLockCycle:       uint64(28),
+				TextVotCycle:          uint64(2419),
+				UpgradeMaxVotCycle:    uint64(2419),
+				UpgradeEffectiveCycle: uint64(5),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
 				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(101),
-				ShiftValidatorNum:            uint64(8),
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
-				ElectionDistance:             uint64(20),
 				UnStakeFreezeRatio:           uint64(28), // freezing 28 epoch
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
@@ -174,19 +182,23 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultAlphaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes: uint64(10), // 10 minutes
-				Interval:        uint64(1),
-				PerRoundBlocks:  uint64(15),
-				ValidatorCount:  uint64(4),
+				ExpectedMinutes:       uint64(10), // 10 minutes
+				NodeBlockTimeWindow:   uint64(30), // 30 seconds
+				PerRoundBlocks:        uint64(15),
+				OptValidatorCount:     uint64(24),
+				ValidatorCount:        uint64(4),
+				AdditionalCycleTime:   uint64(525600),
+				PleRetLockCycle:       uint64(28),
+				TextVotCycle:          uint64(2419),
+				UpgradeMaxVotCycle:    uint64(2419),
+				UpgradeEffectiveCycle: uint64(5),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
 				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
-				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
-				ElectionDistance:             uint64(10),
 				UnStakeFreezeRatio:           uint64(1),
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
@@ -215,19 +227,23 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultBetaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes: uint64(10), // 10 minutes
-				Interval:        uint64(1),
-				PerRoundBlocks:  uint64(15),
-				ValidatorCount:  uint64(4),
+				ExpectedMinutes:       uint64(10), // 10 minutes
+				NodeBlockTimeWindow:   uint64(30), // 30 seconds
+				PerRoundBlocks:        uint64(15),
+				OptValidatorCount:     uint64(24),
+				ValidatorCount:        uint64(4),
+				AdditionalCycleTime:   uint64(525600),
+				PleRetLockCycle:       uint64(28),
+				TextVotCycle:          uint64(2419),
+				UpgradeMaxVotCycle:    uint64(2419),
+				UpgradeEffectiveCycle: uint64(5),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
 				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
-				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
-				ElectionDistance:             uint64(10),
 				UnStakeFreezeRatio:           uint64(1),
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
@@ -256,19 +272,23 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultInnerTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes: uint64(666), // 11 hours
-				Interval:        uint64(1),
-				PerRoundBlocks:  uint64(25),
-				ValidatorCount:  uint64(10),
+				ExpectedMinutes:       uint64(666), // 11 hours
+				NodeBlockTimeWindow:   uint64(50),  // 50 seconds
+				PerRoundBlocks:        uint64(25),
+				OptValidatorCount:     uint64(24),
+				ValidatorCount:        uint64(10),
+				AdditionalCycleTime:   uint64(525600),
+				PleRetLockCycle:       uint64(28),
+				TextVotCycle:          uint64(2419),
+				UpgradeMaxVotCycle:    uint64(2419),
+				UpgradeEffectiveCycle: uint64(5),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
 				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(51),
-				ShiftValidatorNum:            uint64(3),
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
-				ElectionDistance:             uint64(20),
 				UnStakeFreezeRatio:           uint64(1),
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
@@ -297,19 +317,23 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultInnerDevNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes: uint64(10), // 10 minutes
-				Interval:        uint64(1),
-				PerRoundBlocks:  uint64(15),
-				ValidatorCount:  uint64(4),
+				ExpectedMinutes:       uint64(10), // 10 minutes
+				NodeBlockTimeWindow:   uint64(30), // 30 seconds
+				PerRoundBlocks:        uint64(15),
+				OptValidatorCount:     uint64(24),
+				ValidatorCount:        uint64(4),
+				AdditionalCycleTime:   uint64(525600),
+				PleRetLockCycle:       uint64(28),
+				TextVotCycle:          uint64(2419),
+				UpgradeMaxVotCycle:    uint64(2419),
+				UpgradeEffectiveCycle: uint64(5),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
 				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
-				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
-				ElectionDistance:             uint64(10),
 				UnStakeFreezeRatio:           uint64(1),
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
@@ -339,19 +363,23 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes: uint64(10), // 10 minutes
-				Interval:        uint64(1),
-				PerRoundBlocks:  uint64(15),
-				ValidatorCount:  uint64(4),
+				ExpectedMinutes:       uint64(10), // 10 minutes
+				NodeBlockTimeWindow:   uint64(30), // 30 seconds
+				PerRoundBlocks:        uint64(15),
+				OptValidatorCount:     uint64(24),
+				ValidatorCount:        uint64(4),
+				AdditionalCycleTime:   uint64(525600),
+				PleRetLockCycle:       uint64(28),
+				TextVotCycle:          uint64(2419),
+				UpgradeMaxVotCycle:    uint64(2419),
+				UpgradeEffectiveCycle: uint64(5),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
 				MinimumThreshold:             minimumThreshold,
 				EpochValidatorNum:            uint64(21),
-				ShiftValidatorNum:            uint64(1),
 				HesitateRatio:                uint64(1),
 				EffectiveRatio:               uint64(1),
-				ElectionDistance:             uint64(10),
 				UnStakeFreezeRatio:           uint64(1),
 				PassiveUnDelegateFreezeRatio: uint64(0),
 				ActiveUnDelegateFreezeRatio:  uint64(0),
@@ -388,13 +416,17 @@ func ExpectedMinutes() uint64 {
 	return ec.Common.ExpectedMinutes
 }
 func Interval() uint64 {
-	return ec.Common.Interval
+	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
 func BlocksWillCreate() uint64 {
 	return ec.Common.PerRoundBlocks
 }
 func ConsValidatorNum() uint64 {
 	return ec.Common.ValidatorCount
+}
+
+func AdditionalCycleTime() uint64 {
+	return ec.Common.AdditionalCycleTime
 }
 
 /******
@@ -413,7 +445,7 @@ func EpochValidatorNum() uint64 {
 }
 
 func ShiftValidatorNum() uint64 {
-	return ec.Staking.ShiftValidatorNum
+	return (ec.Common.ValidatorCount - 1) / 3
 }
 
 func HesitateRatio() uint64 {
@@ -425,7 +457,7 @@ func EffectiveRatio() uint64 {
 }
 
 func ElectionDistance() uint64 {
-	return ec.Staking.ElectionDistance
+	return 20
 }
 
 func UnStakeFreezeRatio() uint64 {
