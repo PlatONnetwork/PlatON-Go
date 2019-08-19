@@ -703,16 +703,14 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	/*lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))*/
-
-	build_staking_data_more(lastBlockNumber)
+	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 
