@@ -135,7 +135,7 @@ func setup(t *testing.T) func() {
 	gc, _ = precompiledContract.(*vm.GovContract)
 	state, genesis, _ := newChainState()
 	gc.Evm = newEvm(blockNumber, blockHash, state)
-	gc.Contract = newContract(common.Big0)
+	gc.Contract = newContract(common.Big0, sender)
 
 	newPlugins()
 

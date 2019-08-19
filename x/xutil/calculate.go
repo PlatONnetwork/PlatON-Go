@@ -125,7 +125,7 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 
 	switch {
 	// first epoch
-	case div == 0 && mod >= 0:
+	case div == 0:
 		epoch = 1
 	case div > 0 && mod == 0:
 		epoch = div
@@ -145,7 +145,7 @@ func CalculateRound(blockNumber uint64) uint64 {
 	mod := blockNumber % size
 	switch {
 	// first consensus round
-	case div == 0 && mod >= 0:
+	case div == 0:
 		round = 1
 	case div > 0 && mod == 0:
 		round = div
@@ -182,10 +182,6 @@ func CalculateLastYear(blockNumber uint64) uint32 {
 	}
 }
 
-func MaxVotingConsensusRounds() uint64 {
-	return uint64(14*24*60*60) / uint64(ConsensusSize())
-}
-
 func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
@@ -202,4 +198,15 @@ func InHashList(hash common.Hash, hashList []common.Hash) bool {
 		}
 	}
 	return false
+}
+
+func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
+	electionDistance := xcom.ElectionDistance()
+	consensusSize := ConsensusSize()
+
+	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
+}
+
+func CalActiveBlock(endVotingBlock uint64) uint64 {
+	return endVotingBlock + xcom.ElectionDistance() + xcom.VersionProposalActive_ConsensusRounds()*ConsensusSize() + 1
 }

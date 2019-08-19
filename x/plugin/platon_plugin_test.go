@@ -8,6 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
@@ -15,23 +20,23 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	//	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-//func init() {
-//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-//}
+func init() {
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	bls.Init(bls.CurveFp254BNb)
+}
 
 var (
 	nodeIdArr = []discover.NodeID{
@@ -165,31 +170,31 @@ var (
 	promoteVersion     = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 
 	balanceStr = []string{
-		"9000000000000000000000000",
-		"60000000000000000000000000",
-		"1300000000000000000000000",
-		"1100000000000000000000000",
-		"1000000000000000000000000",
-		"4879000000000000000000000",
-		"1800000000000000000000000",
-		"1000000000000000000000000",
-		"1000000000000000000000000",
-		"70000000000000000000000000",
-		"5550000000000000000000000",
-		"9000000000000000000000000",
-		"60000000000000000000000000",
-		"1300000000000000000000000",
-		"1100000000000000000000000",
-		"1000000000000000000000000",
-		"4879000000000000000000000",
-		"1800000000000000000000000",
-		"1000000000000000000000000",
-		"1000000000000000000000000",
-		"70000000000000000000000000",
-		"5550000000000000000000000",
-		"1000000000000000000000000",
-		"70000000000000000000000000",
-		"5550000000000000000000000",
+		"90000000000000000000000000",
+		"600000000000000000000000000",
+		"13000000000000000000000000",
+		"11000000000000000000000000",
+		"10000000000000000000000000",
+		"48790000000000000000000000",
+		"18000000000000000000000000",
+		"10000000000000000000000000",
+		"10000000000000000000000000",
+		"700000000000000000000000000",
+		"55500000000000000000000000",
+		"90000000000000000000000000",
+		"600000000000000000000000000",
+		"13000000000000000000000000",
+		"11000000000000000000000000",
+		"10000000000000000000000000",
+		"48790000000000000000000000",
+		"18000000000000000000000000",
+		"10000000000000000000000000",
+		"10000000000000000000000000",
+		"700000000000000000000000000",
+		"55500000000000000000000000",
+		"10000000000000000000000000",
+		"700000000000000000000000000",
+		"55500000000000000000000000",
 	}
 
 	nodeNameArr = []string{
@@ -247,8 +252,8 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 	//	evm.Context = context
 
 	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.AddActiveVersion(initProgramVersion, 0, state)
+
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return
 }
@@ -345,8 +350,11 @@ func build_staking_data_more(block uint64) {
 			addr = ar
 		}
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
@@ -375,6 +383,7 @@ func build_staking_data_more(block uint64) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
+			BlsPubKey:   canTmp.BlsPubKey,
 			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
@@ -477,8 +486,11 @@ func build_staking_data(genesisHash common.Hash) {
 			addr = ar
 		}
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
@@ -515,6 +527,7 @@ func build_staking_data(genesisHash common.Hash) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
+			BlsPubKey:   canTmp.BlsPubKey,
 			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
@@ -575,8 +588,7 @@ func buildBlockNoCommit(blockNum int) {
 func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.AddActiveVersion(initProgramVersion, 0, state)
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {

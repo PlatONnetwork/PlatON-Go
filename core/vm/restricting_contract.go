@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/json"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -38,6 +39,10 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 		// Get
 		4100: rc.getRestrictingInfo,
 	}
+}
+
+func (rc *RestrictingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
+	return nil
 }
 
 // createRestrictingPlan is a PlatON precompiled contract function, used for create a restricting plan

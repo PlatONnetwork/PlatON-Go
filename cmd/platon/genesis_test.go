@@ -53,14 +53,19 @@ var customGenesisTests = []struct {
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
 			"config"     : {
-               "cbft": {
-                       "initialNodes":  [
-                          "enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@127.0.0.1:16701",
-                          "enode://99e82e36db41e81366f644e14943bed70f03494d744a5d4f983387c2128e3fb5f2b8fa1b6555ea8eab81dd96de71cfda11ea8eb5310cefabc34357229e880a00@127.0.0.1:16702",
-                          "enode://2f92a6719fb214667ebc85a12f738dae4d9dfd3b02be251512ab3bc1b240f92a58badc62774e1552f59d97fd5b52be8d182ed941db6f9954be120e680b531adf@127.0.0.1:16703",
-                          "enode://bf9752bb531b9df04dcf869b6b19be56235a1771b19df81a6f874404db903ee360f41925ccfe3e12ca3020e91d10549b745507cd75a12cd327f52972fcc73ce3@127.0.0.1:16704"
-                         ]
-               }}
+               "cbft":  {
+     				"initialNodes": [
+     				  {
+     				    "node": "enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+     				    "blsPubKey":"15e87df4d48d1294c7ca6485cd42b5f5d66b9f5561fd0f78b091ad6a43613921cab55951a6aa9289cdb76f80d6c42dedc673e03ff7e4b3f1b996db12351f3109"
+     				  }
+     				],
+     				"epoch": 1,
+     				"amount": 10,
+     				"validatorMode": "ppos",
+     				"period": 10000
+    			}
+			}
 		}`,
 		query:  "platon.getBlock(0).nonce",
 		result: "0xd31d37efa7b9e9d7df775d9a6f9ddb6f5e3d6dd6b87b471b71ed9be9a69b7b871c71cd1d7f46f96b7f5ed76f7bedad9f71ddb7000000000000000000000000000000000000000000000000000000000000",
@@ -79,14 +84,18 @@ var customGenesisTests = []struct {
                "chainId": 101,
                "eip155Block": 0,
                "interpreter":"wasm",
-               "cbft": {
-                       "initialNodes":  [
-                          "enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@127.0.0.1:16701",
-                          "enode://99e82e36db41e81366f644e14943bed70f03494d744a5d4f983387c2128e3fb5f2b8fa1b6555ea8eab81dd96de71cfda11ea8eb5310cefabc34357229e880a00@127.0.0.1:16702",
-                          "enode://2f92a6719fb214667ebc85a12f738dae4d9dfd3b02be251512ab3bc1b240f92a58badc62774e1552f59d97fd5b52be8d182ed941db6f9954be120e680b531adf@127.0.0.1:16703",
-                          "enode://bf9752bb531b9df04dcf869b6b19be56235a1771b19df81a6f874404db903ee360f41925ccfe3e12ca3020e91d10549b745507cd75a12cd327f52972fcc73ce3@127.0.0.1:16704"
-                         ]
-               }
+               "cbft":  {
+     				"initialNodes": [
+     				  {
+     				    "node": "enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+     				    "blsPubKey":"15e87df4d48d1294c7ca6485cd42b5f5d66b9f5561fd0f78b091ad6a43613921cab55951a6aa9289cdb76f80d6c42dedc673e03ff7e4b3f1b996db12351f3109"
+     				  }
+     				],
+     				"epoch": 1,
+     				"amount": 10,
+     				"validatorMode": "ppos",
+     				"period": 10000
+    			}
 			}
 		}`,
 		query:  "platon.getBlock(0).nonce",

@@ -2,8 +2,12 @@ package vm_test
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +45,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -70,6 +74,10 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, benefitAddress)
@@ -81,6 +89,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, amount)
 	params = append(params, programVersion)
 	params = append(params, sign)
+	params = append(params, blsPkm)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -94,7 +103,16 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	} else {
-		t.Log(string(res))
+		var resJson xcom.Result
+		if err := json.Unmarshal(res, &resJson); nil != err {
+			t.Error(err)
+		} else {
+			if resJson.Status {
+				t.Log(string(res))
+			} else {
+				t.Error(string(res))
+			}
+		}
 	}
 
 }
@@ -120,11 +138,49 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
 	state.Prepare(txHashArr[index], blockHash, index+1)
+
+	var params [][]byte
+	params = make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	typ, _ := rlp.EncodeToBytes(uint16(0))
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
+	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
+	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
+	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
+	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
+	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
+
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	params = append(params, fnType)
+	params = append(params, typ)
+	params = append(params, benefitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+	params = append(params, amount)
+	params = append(params, programVersion)
+	params = append(params, sign)
+	params = append(params, blsPkm)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -191,7 +247,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -266,7 +322,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -389,7 +445,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -470,7 +526,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -552,7 +608,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -631,7 +687,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -703,7 +759,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -719,7 +775,12 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
 
 	// build a invalid nodeId
-	nid := discover.MustHexID("0x91114567111121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	//
+	// 0x99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+	// 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+	//nid := discover.MustHexID("0x99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999")
+	//nid := discover.MustHexID("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	nid := discover.MustHexID("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010")
 
 	nodeId, _ := rlp.EncodeToBytes(nid)
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
@@ -783,7 +844,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 

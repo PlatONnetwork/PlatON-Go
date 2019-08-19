@@ -15,7 +15,7 @@ type TallyResult struct {
 	CanceledBy    common.Hash    `json:"canceledBy"`
 }
 
-type Vote struct {
+type VoteInfo struct {
 	ProposalID common.Hash     `json:"proposalID"`
 	VoteNodeID discover.NodeID `json:"voteNodeID"`
 	VoteOption VoteOption      `json:"voteOption"`

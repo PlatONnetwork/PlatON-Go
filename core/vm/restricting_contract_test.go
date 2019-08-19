@@ -63,7 +63,7 @@ func buildErrorRestrictingPlanData() ([]byte, error) {
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	contract := &vm.RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, nil),
 	}
 
@@ -110,7 +110,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 
 	contract := &vm.RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, stateDb),
 	}
 

@@ -3,16 +3,21 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"math/big"
 	"os"
-	"strconv"
-	"strings"
+	"reflect"
+	"runtime"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
@@ -25,15 +30,17 @@ var (
 
 // createStaking
 type Ppos_1000 struct {
-	Typ            uint16
-	BenefitAddress common.Address
-	NodeId         discover.NodeID
-	ExternalId     string
-	NodeName       string
-	Website        string
-	Details        string
-	Amount         *big.Int
-	ProgramVersion uint32
+	Typ                uint16
+	BenefitAddress     common.Address
+	NodeId             discover.NodeID
+	ExternalId         string
+	NodeName           string
+	Website            string
+	Details            string
+	Amount             *big.Int
+	ProgramVersion     uint32
+	ProgramVersionSign common.VersionSign
+	BlsPubKey          string
 }
 
 // editorCandidate
@@ -158,10 +165,6 @@ type Ppos_2103 struct {
 type Ppos_2104 struct {
 }
 
-// listParam
-type Ppos_2105 struct {
-}
-
 // ReportDuplicateSign
 type Ppos_3000 struct {
 	Data string
@@ -206,7 +209,6 @@ type decDataConfig struct {
 	P2102  Ppos_2102
 	P2103  Ppos_2103
 	P2104  Ppos_2104
-	P2105  Ppos_2105
 	P3000  Ppos_3000
 	P3001  Ppos_3001
 	P4000  Ppos_4000
@@ -253,6 +255,8 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			details, _ := rlp.EncodeToBytes(cfg.P1000.Details)
 			amount, _ := rlp.EncodeToBytes(cfg.P1000.Amount)
 			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
+			programVersionSign, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersionSign)
+			blsPubKey, _ := rlp.EncodeToBytes(cfg.P1000.BlsPubKey)
 			params = append(params, typ)
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
@@ -262,6 +266,8 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, details)
 			params = append(params, amount)
 			params = append(params, programVersion)
+			params = append(params, programVersionSign)
+			params = append(params, blsPubKey)
 		}
 	case 1001:
 		{
@@ -428,7 +434,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2102:
 	case 2103:
 	case 2104:
-	case 2105:
 	case 3000:
 		{
 			data, _ := rlp.EncodeToBytes(cfg.P3000.Data)
@@ -475,7 +480,75 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	return rlpData
 }
 
+func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{}, FnParams []reflect.Value, err error) {
+
+	defer func() {
+		if er := recover(); nil != er {
+			fn, FnParams, err = nil, nil, fmt.Errorf("parse tx data is panic: %s", er)
+			log.Error("Failed to Verify PlatON inner contract tx data", "error", er)
+		}
+	}()
+
+	var args [][]byte
+	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
+		log.Error("Failed to Verify PlatON inner contract tx data, Decode rlp input failed", "err", err)
+		return nil, nil, err
+	}
+
+	//fmt.Println("the Function Type:", byteutil.BytesToUint16(args[0]))
+
+	if fn, ok := command[byteutil.BytesToUint16(args[0])]; !ok {
+		return nil, nil, err
+	} else {
+
+		funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+		fmt.Println("The FuncName is", funcName)
+
+		t := reflect.TypeOf(fn)
+		fmt.Println("The FN", fn)
+		fmt.Println("The TypeOf.Name", t.Name())
+		fmt.Println("The TypeOf.String", t.String())
+
+		v := reflect.ValueOf(fn)
+		fmt.Println("The ValueOf", v.Type().Name())
+		fmt.Println("The ValueOf.String", v.String())
+
+		// the func params type list
+		paramList := reflect.TypeOf(fn)
+		// the func params len
+		paramNum := paramList.NumIn()
+
+		if paramNum != len(args)-1 {
+			return nil, nil, errors.New("para num error")
+		}
+		params := make([]reflect.Value, paramNum)
+
+		for i := 0; i < paramNum; i++ {
+			//fmt.Println("byte:", args[i+1])
+
+			targetType := paramList.In(i).String()
+			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
+			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
+			//fmt.Println("num", i+1, "type", targetType)
+		}
+		return fn, params, nil
+	}
+}
+
 func main() {
+	data := "0xe683820834a1a0373e89d01414ff4b02a638599b093c2a5cb7ae5a9c30c2653a451b320ec28ffe"
+	bs, _ := hexutil.Decode(data)
+
+	gc := &vm.GovContract{}
+	if fn, _, err := Verify_tx_data(bs, gc.FnSigns()); err != nil {
+		fmt.Print(err)
+	} else {
+		fmt.Print(fn)
+	}
+
+}
+
+/*func main() {
 	// Parse and ensure all needed inputs are specified
 	flag.Parse()
 
@@ -499,3 +572,4 @@ func main() {
 	}
 
 }
+*/

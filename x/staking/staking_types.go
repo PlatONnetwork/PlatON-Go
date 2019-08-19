@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -76,6 +78,8 @@ func Is_Invalid_DuplicateSign(status uint32) bool {
 // The Candidate info
 type Candidate struct {
 	NodeId discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
@@ -164,6 +168,8 @@ type CandidateQueue []*Candidate
 type Validator struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
 	// The weight snapshot
 	// NOTE:
 	// converted from the weight snapshot of Candidate, they array order is:
@@ -481,8 +487,8 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 
 // NOTE: Sort when doing storage
 //
-// The priorities just like that:
-// ProgramVersion > validaotorTerm > Shares > BlockNumber > TxIndex
+// The priorities just like that: (No  shares)
+// ProgramVersion > validaotorTerm > BlockNumber > TxIndex
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -519,20 +525,20 @@ func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	// 3. Shares
-	compareSharesFunc := func(l, r *Validator) int {
-		leftShares, _ := l.GetShares()
-		rightShares, _ := r.GetShares()
-
-		switch {
-		case leftShares.Cmp(rightShares) < 0:
-			return -1
-		case leftShares.Cmp(rightShares) > 0:
-			return 1
-		default:
-			return compareBlockNumberFunc(l, r)
-		}
-	}
+	//// 3. Shares
+	//compareSharesFunc := func(l, r *Validator) int {
+	//	leftShares, _ := l.GetShares()
+	//	rightShares, _ := r.GetShares()
+	//
+	//	switch {
+	//	case leftShares.Cmp(rightShares) < 0:
+	//		return -1
+	//	case leftShares.Cmp(rightShares) > 0:
+	//		return 1
+	//	default:
+	//		return compareBlockNumberFunc(l, r)
+	//	}
+	//}
 
 	// 2. Term
 	compareTermFunc := func(l, r *Validator) int {
@@ -542,7 +548,8 @@ func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 		case l.ValidatorTerm > r.ValidatorTerm:
 			return 1
 		default:
-			return compareSharesFunc(l, r)
+			//return compareSharesFunc(l, r)
+			return compareBlockNumberFunc(l, r)
 		}
 	}
 
@@ -571,6 +578,8 @@ type Validator_array struct {
 type ValidatorEx struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards

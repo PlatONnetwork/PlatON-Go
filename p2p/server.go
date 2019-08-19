@@ -1099,7 +1099,6 @@ func (srv *Server) watching() {
 		select {
 		case ev := <-events.Chan():
 			if ev == nil {
-				log.Warn("ev is nil, may be Server closing")
 				continue
 			}
 

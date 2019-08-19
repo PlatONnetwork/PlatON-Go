@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	VersionMajor = 0        // Major version component of the current release
-	VersionMinor = 7        // Minor version component of the current release
-	VersionPatch = 0        // Patch version component of the current release
-	VersionMeta  = "unstable" // Version metadata to append to the version string
+	VersionMajor   = 0          // Major version component of the current release
+	VersionMinor   = 7          // Minor version component of the current release
+	VersionPatch   = 0          // Patch version component of the current release
+	VersionMeta    = "unstable" // Version metadata to append to the version string
+	GenesisVersion = uint32(0<<16 | 7<<8 | 0)
 )
 
 // Version holds the textual version string.

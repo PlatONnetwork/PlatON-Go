@@ -3,12 +3,13 @@ package core
 import (
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"sync"
 )
 
 var (
@@ -34,13 +35,10 @@ type receiptsCache struct {
 }
 
 func (pbc *BlockChainCache) CurrentBlock() *types.Block {
-	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestConfirmedBlock(); block != nil {
-			log.Debug("get CurrentBlock() in cbft", "hash", block.Hash(), "number", block.NumberU64())
-			return block
-		}
+	block := pbc.Engine().CurrentBlock()
+	if block != nil {
+		return block
 	}
-	log.Debug("get CurrentBlock() in chain")
 	return pbc.currentBlock.Load().(*types.Block)
 }
 
@@ -121,9 +119,13 @@ func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*type
 	pbc.receiptsMu.Lock()
 	defer pbc.receiptsMu.Unlock()
 	obj, exist := pbc.receiptsCache[sealHash]
-	if exist && obj.blockNum == blockNum {
-		obj.receipts = append(obj.receipts, receipts...)
-	} else if !exist {
+	if exist {
+		// FIXME: removing in productive environment
+		// Only for test
+		if types.DeriveSha(types.Receipts(obj.receipts)) != types.DeriveSha(types.Receipts(receipts)) {
+			panic("invalid receipts")
+		}
+	} else {
 		pbc.receiptsCache[sealHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }
@@ -205,4 +207,58 @@ func (bcc *BlockChainCache) StateDBString() string {
 	}
 	status += fmt.Sprintf("]")
 	return status
+}
+
+func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
+	state, err := bcc.MakeStateDB(parent)
+	if err != nil {
+		return errors.New("execute block error")
+	}
+
+	//to execute
+	receipts, err := bcc.ProcessDirectly(block, state, parent)
+	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
+		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "err", err)
+	if err == nil {
+		//save the receipts and state to consensusCache
+		sealHash := block.Header().SealHash()
+		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
+		bcc.WriteStateDB(sealHash, state, block.NumberU64())
+
+	} else {
+		return fmt.Errorf("execute block error, err:%s", err.Error())
+	}
+	return nil
+}
+
+func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
+	sealHash := block.Header().SealHash()
+	state := bcc.ReadStateDB(sealHash)
+	receipts := bcc.ReadReceipts(sealHash)
+
+	if state == nil {
+		log.Error("Write Block error, state is nil", "number", block.NumberU64(), "hash", block.Hash())
+		return fmt.Errorf("write Block error, state is nil, number:%d, hash:%s", block.NumberU64(), block.Hash().String())
+	} else if len(block.Transactions()) > 0 && len(receipts) == 0 {
+		log.Error("Write Block error, block has transactions but receipts is nil", "number", block.NumberU64(), "hash", block.Hash())
+		return fmt.Errorf("write Block error, block has transactions but receipts is nil, number:%d, hash:%s", block.NumberU64(), block.Hash().String())
+	}
+
+	// Different block could share same sealhash, deep copy here to prevent write-write conflict.
+	var _receipts = make([]*types.Receipt, len(receipts))
+	for i, receipt := range receipts {
+		_receipts[i] = new(types.Receipt)
+		*_receipts[i] = *receipt
+	}
+	// Commit block and state to database.
+	//block.SetExtraData(extraData)
+	log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
+	_, err := bcc.WriteBlockWithState(block, _receipts, state)
+	if err != nil {
+		log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
+		return fmt.Errorf("Failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
+	}
+
+	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64())
+	return nil
 }

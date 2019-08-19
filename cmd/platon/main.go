@@ -32,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/ethclient"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
@@ -167,9 +168,11 @@ var (
 	//}
 
 	cbftFlags = []cli.Flag{
-		utils.CbftBlockIntervalFlag,
-		utils.CbftBreakpointFlag,
-		utils.WalEnabledFlag,
+		utils.CbftPeerMsgQueueSize,
+		utils.CbftWalEnabledFlag,
+		utils.CbftEvidenceDir,
+		utils.CbftMaxPingLatency,
+		utils.CbftBlsPriKeyFileFlag,
 	}
 )
 
@@ -223,6 +226,7 @@ func init() {
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
+		bls.Init(bls.CurveFp254BNb)
 
 		logdir := ""
 		if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
@@ -351,20 +355,21 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	}()
 	// Start auxiliary services if enabled
 	// Mining only makes sense if a full Ethereum node is running
-	if ctx.GlobalString(utils.SyncModeFlag.Name) != "light" {
-		var ethereum *eth.Ethereum
-		if err := stack.Service(&ethereum); err != nil {
-			utils.Fatalf("PlatON service not running: %v", err)
-		}
-		// Set the gas price to the limits from the CLI and start mining
-		gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
-		if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
-			gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
-		}
-		ethereum.TxPool().SetGasPrice(gasprice)
+	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
+		utils.Fatalf("Light clients do not support mining")
+	}
+	var ethereum *eth.Ethereum
+	if err := stack.Service(&ethereum); err != nil {
+		utils.Fatalf("PlatON service not running: %v", err)
+	}
+	// Set the gas price to the limits from the CLI and start mining
+	gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
+	if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
+		gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+	}
+	ethereum.TxPool().SetGasPrice(gasprice)
 
-		if err := ethereum.StartMining(); err != nil {
-			utils.Fatalf("Failed to start mining: %v", err)
-		}
+	if err := ethereum.StartMining(); err != nil {
+		utils.Fatalf("Failed to start mining: %v", err)
 	}
 }
