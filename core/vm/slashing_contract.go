@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"math/big"
 	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -43,6 +44,10 @@ func (sc *SlashingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
+func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
+	return nil
+}
+
 // Report the double signing behavior of the node
 func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
 
@@ -59,11 +64,6 @@ func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
 		return nil, ErrOutOfGas
 	}
 
-	if txHash == common.ZeroHash {
-		log.Warn("Call ReportDuplicateSign current txHash is empty!!")
-		return nil, nil
-	}
-
 	sender := sc.Contract.CallerAddress
 	evidences, err := sc.Plugin.DecodeEvidence(data)
 	if nil != err {
@@ -76,6 +76,10 @@ func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
 	}
 	if !sc.Contract.UseGas(params.DuplicateEvidencesGas * uint64(len(evidences))) {
 		return nil, ErrOutOfGas
+	}
+	if txHash == common.ZeroHash {
+		log.Warn("Call ReportDuplicateSign current txHash is empty!!")
+		return nil, nil
 	}
 	if err := sc.Plugin.Slash(evidences, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
 		if _, ok := err.(*common.BizError); ok {

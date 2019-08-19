@@ -27,7 +27,7 @@ var (
 	FnParamsLenErr  = errors.New("the params len and func params len is not equal")
 )
 
-func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{}, FnParams []reflect.Value, err error) {
+func Verify_tx_data(input []byte, command map[uint16]interface{}) (cnCode uint16, fn interface{}, FnParams []reflect.Value, err error) {
 
 	defer func() {
 		if er := recover(); nil != er {
@@ -40,13 +40,14 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 	var args [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
 		log.Error("Failed to Verify PlatON inner contract tx data, Decode rlp input failed", "err", err)
-		return nil, nil, fmt.Errorf("%v: %v", DecodeTxDataErr, err)
+		return 0, nil, nil, fmt.Errorf("%v: %v", DecodeTxDataErr, err)
 	}
 
 	//fmt.Println("the Function Type:", byteutil.BytesToUint16(args[0]))
 
-	if fn, ok := command[byteutil.BytesToUint16(args[0])]; !ok {
-		return nil, nil, FuncNotExistErr
+	fnCode := byteutil.BytesToUint16(args[0])
+	if fn, ok := command[fnCode]; !ok {
+		return 0, nil, nil, FuncNotExistErr
 	} else {
 
 		//funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
@@ -58,7 +59,7 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 		paramNum := paramList.NumIn()
 
 		if paramNum != len(args)-1 {
-			return nil, nil, FnParamsLenErr
+			return 0, nil, nil, FnParamsLenErr
 		}
 		params := make([]reflect.Value, paramNum)
 
@@ -70,6 +71,6 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (fn interface{
 			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
 			//fmt.Println("num", i+1, "type", targetType)
 		}
-		return fn, params, nil
+		return fnCode, fn, params, nil
 	}
 }

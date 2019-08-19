@@ -1,12 +1,21 @@
 package restricting
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+)
 
 // for genesis and plugin test
 type RestrictingInfo struct {
-	Balance     *big.Int // Balance representation all locked amount
-	Debt        *big.Int // Debt representation will released amount.
-	DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
+	NeedRelease     *big.Int
+	StakingAmount   *big.Int
+	CachePlanAmount *big.Int
+	//	SlashingMount *big.Int
+
+	//Balance     *big.Int // Balance representation all locked amount
+	//Debt        *big.Int // Debt representation will released amount.
+	//DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
 	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
 }
 
@@ -33,8 +42,13 @@ type ReleaseAmountInfo struct {
 
 // for plugin test
 type Result struct {
-	Balance *big.Int `json:"balance"`
-	Debt    *big.Int `json:"debt"`
-	Symbol  bool     `json:"symbol"`
-	Entry   []ReleaseAmountInfo
+	Balance *big.Int            `json:"balance"`
+	Debt    *big.Int            `json:"debt"`
+	Entry   []ReleaseAmountInfo `json:"plans"`
+	Pledge  *big.Int            `json:"Pledge"`
+}
+
+type EpochInfo struct {
+	Account common.Address
+	Amount  *big.Int
 }

@@ -13,13 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -774,14 +775,13 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	/**
 	Start Get Candidate Info
 	*/
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		return
-	}
+	can, err := getCandidate(blockHash, index)
+
+	assert.True(t, nil == err)
+
+	assert.True(t, nil != can)
+	canByte, _ := json.Marshal(can)
+	t.Log("Get Candidate Info is:", string(canByte))
 
 }
 
@@ -824,13 +824,14 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 	Get Candidate Info
 	*/
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-	if can, err := StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
-	} else {
 
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-	}
+	can, err := StakingInstance().GetCandidateInfoByIrr(addr)
+	assert.True(t, nil == err)
+
+	assert.True(t, nil != can)
+	canByte, _ := json.Marshal(can)
+	t.Log("Get Candidate Info is:", string(canByte))
+
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
@@ -871,16 +872,13 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	/**
 	Start GetCandidateList
 	*/
-	if queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64()); nil != err {
-		t.Error("Failed to GetCandidateList", err)
-	} else {
-		if count != len(queue) {
-			t.Errorf("Failed to GetCandidateList, the count is wrong, target length: %d, real length: %d", count, len(queue))
-		} else {
-			queueByte, _ := json.Marshal(queue)
-			t.Log("GetCandidateList is:", string(queueByte))
-		}
-	}
+
+	queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64())
+	assert.True(t, nil == err)
+
+	assert.Equal(t, count, len(queue))
+	queueByte, _ := json.Marshal(queue)
+	t.Log("Get CandidateList Info is:", string(queueByte))
 }
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
@@ -1133,12 +1131,12 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// Add UNStakingItems
-	stakingDB := staking.NewStakingDB()
+	//stakingDB := staking.NewStakingDB()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
+	canAddr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
-	if err := stakingDB.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+	if err := StakingInstance().addUnStakeItem(state, blockNumber.Uint64(), blockHash, epoch, nodeIdArr[index], canAddr); nil != err {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
@@ -1165,7 +1163,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, uint64(2))
+	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, epoch+xcom.UnStakeFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnCandidateItem:", err)
 		return
@@ -1663,7 +1661,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 	delAddr := addrArr[index+1]
 
-	err = stakingDB.AddUnDelegateItemStore(blockHash2, delAddr, c.NodeId, epoch, c.StakingBlockNum, amount)
+	err = StakingInstance().addUnDelegateItem(blockNumber2.Uint64(), blockHash2, delAddr, c.NodeId, epoch, c.StakingBlockNum, amount)
 	if nil != err {
 		t.Error("Failed to AddUnDelegateItemStore:", err)
 		return
@@ -1698,7 +1696,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	/**
 	Start HandleUnDelegateItem
 	*/
-	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch)
+	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnDelegateItem:", err)
 		return

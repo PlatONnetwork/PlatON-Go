@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -25,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -251,8 +252,8 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 	//	evm.Context = context
 
 	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.AddActiveVersion(initProgramVersion, 0, state)
+
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return
 }
@@ -587,8 +588,7 @@ func buildBlockNoCommit(blockNum int) {
 func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.AddActiveVersion(initProgramVersion, 0, state)
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
@@ -671,9 +671,9 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.Balance = big.NewInt(int64(5E18))
-	user.Debt = big.NewInt(0)
-	user.DebtSymbol = false
+	user.CachePlanAmount = big.NewInt(int64(5E18))
+	user.StakingAmount = big.NewInt(0)
+	user.NeedRelease = big.NewInt(0)
 	user.ReleaseList = list
 
 	bUser, err := rlp.EncodeToBytes(user)
@@ -687,44 +687,6 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
-}
-
-func buildDBStakingRestrictingFunds(t *testing.T, stateDB xcom.StateDB) {
-
-	account := addrArr[0]
-
-	// build release account record
-	releaseAccountKey := restricting.GetReleaseAccountKey(1, 1)
-	stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
-
-	// build release amount record
-	releaseAmount := big.NewInt(int64(2E18))
-	releaseAmountKey := restricting.GetReleaseAmountKey(1, account)
-	stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, releaseAmount.Bytes())
-
-	// build release epoch record
-	releaseEpochKey := restricting.GetReleaseEpochKey(1)
-	stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
-
-	var releaseEpochList = []uint64{1}
-
-	// build restricting user info
-	var user restricting.RestrictingInfo
-	user.Balance = big.NewInt(int64(1E18))
-	user.Debt = big.NewInt(0)
-	user.DebtSymbol = false
-	user.ReleaseList = releaseEpochList
-
-	bUser, err := rlp.EncodeToBytes(user)
-	if err != nil {
-		t.Fatalf("failed to rlp encode restricting info: %s", err.Error())
-	}
-
-	// build restricting account info record
-	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
-
-	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(1E18)))
 }
 
 func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
