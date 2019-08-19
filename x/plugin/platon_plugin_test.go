@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	govdb "github.com/PlatONnetwork/PlatON-Go/x/gov/db"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -253,7 +253,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 
 	//set a default active version
 
-	govdb.AddActiveVersion(initProgramVersion, 0, state)
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return
 }
@@ -588,7 +588,7 @@ func buildBlockNoCommit(blockNum int) {
 func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
-	govdb.AddActiveVersion(initProgramVersion, 0, state)
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {

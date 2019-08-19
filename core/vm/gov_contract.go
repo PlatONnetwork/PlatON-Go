@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -81,17 +80,18 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, api interface{}) error {
-	switch reflect.TypeOf(api).Name() {
-	case "submitText":
+func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
+	switch fcode {
+
+	case 2000:
 		if gasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
 			return errors.New("Gas price under the min gas price.")
 		}
-	case "submitVersion":
+	case 2001:
 		if gasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
 			return errors.New("Gas price under the min gas price.")
 		}
-	case "submitCancel":
+	case 2005:
 		if gasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
 			return errors.New("Gas price under the min gas price.")
 		}

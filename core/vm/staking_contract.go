@@ -73,7 +73,7 @@ func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
 	return exec_platon_contract(input, stkc.FnSigns())
 }
 
-func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fn interface{}) error {
+func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 

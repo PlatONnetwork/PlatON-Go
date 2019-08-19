@@ -373,10 +373,10 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 		return nil
 	}
 	if contract != nil {
-		if fn, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+		if fcode, _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
 			return err
 		} else {
-			return contract.CheckGasPrice(tx.GasPrice(), fn)
+			return contract.CheckGasPrice(tx.GasPrice(), fcode)
 		}
 	} else {
 		log.Warn("Cannot find an appropriate PlatONPrecompiledContract!")

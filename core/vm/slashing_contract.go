@@ -44,7 +44,7 @@ func (sc *SlashingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fn interface{}) error {
+func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 

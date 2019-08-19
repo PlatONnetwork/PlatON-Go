@@ -42,7 +42,7 @@ type PrecompiledContract interface {
 type PlatONPrecompiledContract interface {
 	PrecompiledContract
 	FnSigns() map[uint16]interface{} // Return PlatON PrecompiledContract methods signs
-	CheckGasPrice(gasPrice *big.Int, fn interface{}) error
+	CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum

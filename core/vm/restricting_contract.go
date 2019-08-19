@@ -41,7 +41,7 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (rc *RestrictingContract) CheckGasPrice(gasPrice *big.Int, fn interface{}) error {
+func (rc *RestrictingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 
