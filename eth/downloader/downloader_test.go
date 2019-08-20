@@ -49,7 +49,7 @@ func init() {
 	rand.Seed(time.Now().Unix())
 	MaxForkAncestry = uint64(10000)
 	fsHeaderContCheck = 500 * time.Millisecond
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(5), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(5), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
 // downloadTester is a test simulator for mocking out local block chain.
@@ -467,8 +467,8 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 	defer dlp.dl.lock.RUnlock()
 	Pivot := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum]]
 	Latest := dlp.chain.headBlock().Header()
-
-	if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, Latest, Pivot, nil, false, 0); err != nil {
+	log.Debug("DeliverPposInfo")
+	if err := dlp.dl.downloader.DeliverPposInfo(dlp.id, Latest, Pivot); err != nil {
 		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 		return err
 	}
@@ -484,14 +484,14 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 		KVNum++
 		count++
 		if count >= PPOSStorageKVSizeFetch {
-			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, nil, nil, ps, false, KVNum); err != nil {
+			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum); err != nil {
 				logger.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 				return err
 			}
 			count = 0
 			ps = make([]PPOSStorageKV, 0)
 		}
-		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, nil, nil, ps, true, KVNum); err != nil {
+		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum); err != nil {
 			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 			return err
 		}

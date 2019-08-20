@@ -18,6 +18,7 @@ package downloader
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -77,8 +78,6 @@ func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
 // pposStoragePack is a batch of ppos storage returned by a peer.
 type pposStoragePack struct {
 	peerID string
-	latest *types.Header
-	pivot  *types.Header
 	kvs    []PPOSStorageKV
 	last   bool
 	kvNum  uint64
@@ -96,3 +95,14 @@ func (p *pposStoragePack) KVs() [][2][]byte {
 	}
 	return kv
 }
+
+// pposStoragePack is a batch of ppos storage returned by a peer.
+type pposInfoPack struct {
+	peerID string
+	latest *types.Header
+	pivot  *types.Header
+}
+
+func (p *pposInfoPack) PeerId() string { return p.peerID }
+func (p *pposInfoPack) Items() int     { return 1 }
+func (p *pposInfoPack) Stats() string  { return fmt.Sprint(1) }
