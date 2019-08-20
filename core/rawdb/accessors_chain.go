@@ -19,7 +19,6 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -32,8 +31,6 @@ import (
 func ReadCanonicalHash(db DatabaseReader, number uint64) common.Hash {
 	data, _ := db.Get(headerHashKey(number))
 
-	log.Debug("Get genesisHash", "key", hex.EncodeToString(headerHashKey(number)), "data hash", hex.EncodeToString(data))
-
 	if len(data) == 0 {
 		return common.Hash{}
 	}
@@ -42,8 +39,6 @@ func ReadCanonicalHash(db DatabaseReader, number uint64) common.Hash {
 
 // WriteCanonicalHash stores the hash assigned to a canonical block number.
 func WriteCanonicalHash(db DatabaseWriter, hash common.Hash, number uint64) {
-
-	log.Debug("Write genesisHash", "key", hex.EncodeToString(headerHashKey(number)), "data hash", hex.EncodeToString(hash.Bytes()))
 
 	if err := db.Put(headerHashKey(number), hash.Bytes()); err != nil {
 		log.Crit("Failed to store number to hash mapping", "err", err)
