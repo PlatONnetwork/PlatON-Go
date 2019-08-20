@@ -7,19 +7,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/go-errors/errors"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -397,7 +389,7 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
-	if len(header.Extra) > 0 {
+	/*if len(header.Extra) > 0 {
 		var tobeDecoded []byte
 		tobeDecoded = header.Extra
 		if len(header.Extra) <= 32 {
@@ -431,7 +423,7 @@ func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.
 			log.Error("unknown header extra data", "elementCount", len(extraData))
 			return errors.New("unknown header extra data")
 		}
-	}
+	}*/
 	return nil
 }
 
