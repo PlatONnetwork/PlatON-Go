@@ -163,6 +163,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	for _, votingProposalID := range votingProposalIDs {
 		log.Debug("iterate each voting proposal", "proposalID", votingProposalID)
 		votingProposal, err := gov.GetExistProposal(votingProposalID, state)
+		log.Debug("find voting proposal", "votingProposal", votingProposal)
 		if nil != err {
 			return err
 		}
