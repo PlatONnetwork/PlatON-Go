@@ -184,20 +184,23 @@ func testWalLoad() (int, error) {
 
 func testLevelDB() error {
 	path := filepath.Join(tempDir, "wal_meta")
-	if db, err := leveldb.OpenFile(path, nil); err != nil {
+	var (
+		db  *leveldb.DB
+		err error
+	)
+	if db, err = leveldb.OpenFile(path, nil); err != nil {
 		return err
-	} else {
-		data, err := db.Get(viewChangeKey, nil)
-		if err != nil {
-			db.Close()
-			return err
-		}
-		var vc ViewChangeMessage
-		if err := rlp.DecodeBytes(data, &vc); err == nil {
-			db.Close()
-			if vc.Epoch != epoch || vc.ViewNumber != viewNumber {
-				return errors.New("TestLevelDB error")
-			}
+	}
+	data, err := db.Get(viewChangeKey, nil)
+	if err != nil {
+		db.Close()
+		return err
+	}
+	var vc ViewChangeMessage
+	if err := rlp.DecodeBytes(data, &vc); err == nil {
+		db.Close()
+		if vc.Epoch != epoch || vc.ViewNumber != viewNumber {
+			return errors.New("TestLevelDB error")
 		}
 	}
 	return nil

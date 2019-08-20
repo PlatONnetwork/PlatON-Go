@@ -1,4 +1,4 @@
-// Package cbft implements  a concrete consensus engines.
+// Package network implements  a concrete consensus engines.
 package network
 
 import (
@@ -18,12 +18,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
-// The fanout value of the gossip protocol, used to indicate
+// DefaultFanOut - The fanout value of the gossip protocol, used to indicate
 // the number of nodes selected per broadcast.
-const DEFAULT_FAN_OUT = 5
+const DefaultFanOut = 5
 
 type unregisterFunc func(id string) error                 // Unregister peer from peerSet.
-type getByIdFunc func(id string) (*peer, error)           // Get peer based on ID.
+type getByIDFunc func(id string) (*peer, error)           // Get peer based on ID.
 type consensusNodesFunc func() ([]discover.NodeID, error) // Get a list of consensus nodes.
 type peersFunc func() ([]*peer, error)                    // Get a list of all neighbor nodes.
 
@@ -38,13 +38,13 @@ type router struct {
 
 	// Customized functions belonging to the router.
 	unregister     unregisterFunc     // Used for deregistration.
-	get            getByIdFunc        // Used to get peer by ID.
+	get            getByIDFunc        // Used to get peer by ID.
 	consensusNodes consensusNodesFunc // Used to get a list of consensus nodes.
 	peers          peersFunc          // Used to get all the nodes.
 }
 
-// NewRouter creates a new router. It is mainly used for message forwarding
-func NewRouter(unregister unregisterFunc, get getByIdFunc, consensusNodes consensusNodesFunc, peers peersFunc) *router {
+// newRouter creates a new router. It is mainly used for message forwarding
+func newRouter(unregister unregisterFunc, get getByIDFunc, consensusNodes consensusNodesFunc, peers peersFunc) *router {
 	r := &router{
 		filter: func(p *peer, condition common.Hash) bool {
 			return p.ContainsMessageHash(condition)
@@ -55,7 +55,7 @@ func NewRouter(unregister unregisterFunc, get getByIdFunc, consensusNodes consen
 }
 
 // Init handler function.
-func (r *router) initFunc(unregister unregisterFunc, get getByIdFunc, consensusNodes consensusNodesFunc, peers peersFunc) error {
+func (r *router) initFunc(unregister unregisterFunc, get getByIDFunc, consensusNodes consensusNodesFunc, peers peersFunc) error {
 	r.unregister, r.get, r.consensusNodes, r.peers = unregister, get, consensusNodes, peers
 	return nil
 }
@@ -104,15 +104,15 @@ func (r *router) Gossip(m *types.MsgPackage) {
 	}
 }
 
-// Send message to a known peerId. Determine if the peerId has established
-// a connection before sending.
-func (h *router) SendMessage(m *types.MsgPackage) {
-	if peer, err := h.get(m.PeerID()); err == nil {
+// SendMessage sends message to a known peerId. Determine if the peerId
+// has established a connection before sending.
+func (r *router) SendMessage(m *types.MsgPackage) {
+	if peer, err := r.get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
 			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash())
 		if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
 			log.Error("Send Peer error")
-			h.unregister(m.PeerID())
+			r.unregister(m.PeerID())
 		}
 	}
 }
@@ -174,7 +174,7 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 		}
 	}
 	if random {
-		return kRandomNodes(DEFAULT_FAN_OUT, consensusPeers, condition, r.filter), nil
+		return kRandomNodes(DefaultFanOut, consensusPeers, condition, r.filter), nil
 	}
 	return consensusPeers, nil
 }
@@ -193,7 +193,7 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 	}
 	consensusPeers := make([]*peer, 0, len(existsPeers))
 	// The length of non-consensus nodes is equal to the default fan-out value.
-	nonconsensusPeers := make([]*peer, 0, DEFAULT_FAN_OUT)
+	nonconsensusPeers := make([]*peer, 0, DefaultFanOut)
 	for _, peer := range existsPeers {
 		isConsensus := false
 		for _, node := range cNodes {
@@ -212,7 +212,7 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 		}
 	}
 	// Obtain random nodes from non-consensus nodes.
-	kNonconsensusNodes := kRandomNodes(DEFAULT_FAN_OUT, nonconsensusPeers, condition, r.filter)
+	kNonconsensusNodes := kRandomNodes(DefaultFanOut, nonconsensusPeers, condition, r.filter)
 	// Summary target peers and return.
 	consensusPeers = append(consensusPeers, kNonconsensusNodes...)
 	return consensusPeers, nil
@@ -250,13 +250,13 @@ OUTER:
 }
 
 // Check if the specified message has been processed by the neighbor node.
-func (r *router) repeatedCheck(peerId string, msgHash common.Hash) bool {
+func (r *router) repeatedCheck(peerID string, msgHash common.Hash) bool {
 	peers, err := r.peers()
 	if err != nil {
 		return false
 	}
 	for _, peer := range peers {
-		if peer.id == peerId {
+		if peer.id == peerID {
 			continue
 		}
 		// if true: indicates that the neighbor node has been processed.
@@ -280,7 +280,7 @@ func formatPeers(peers []*peer) string {
 	return bf.String()
 }
 
-// formatNodes is used to print the information about peerID.
+// FormatNodes is used to print the information about peerID.
 func FormatNodes(ids []discover.NodeID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {

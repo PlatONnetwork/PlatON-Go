@@ -3,8 +3,9 @@ package validator
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -73,7 +74,7 @@ func (d *StaticAgency) VerifySign(interface{}) error {
 	return nil
 }
 
-func (d *StaticAgency) VerifyHeader(header *types.Header,statedb *state.StateDB) error {
+func (d *StaticAgency) VerifyHeader(header *types.Header, statedb *state.StateDB) error {
 	return nil
 }
 
@@ -147,8 +148,12 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 		// via `blockNumber`.
 		if lastBlockNumber < blockNumber {
 			blocksPerRound := ia.blocksPerNode * uint64(vds.Len())
-			baseNum := blockNumber - (blockNumber % blocksPerRound)
-			lastBlockNumber = baseNum + blocksPerRound
+			if blockNumber%blocksPerRound == 0 {
+				lastBlockNumber = blockNumber
+			} else {
+				baseNum := blockNumber - (blockNumber % blocksPerRound)
+				lastBlockNumber = baseNum + blocksPerRound
+			}
 		}
 	}
 	//log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)
@@ -234,14 +239,23 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, nodeID discov
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
 	}
-	pool.switchPoint = blockNumber
+	// When validator mode is `static`, the `ValidatorBlockNumber` always 0,
+	// means we are using static validators. Otherwise, represent use current
+	// validators validate start from `ValidatorBlockNumber` block,
+	// so `ValidatorBlockNumber` - 1 is the switch point.
+	if pool.currentValidators.ValidBlockNumber > 0 {
+		pool.switchPoint = pool.currentValidators.ValidBlockNumber - 1
+	}
 	return pool
 }
 
 // ShouldSwitch check if should switch validators at the moment.
 func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
-	if blockNumber <= vp.switchPoint {
+	if blockNumber == 0 {
 		return false
+	}
+	if blockNumber == vp.switchPoint {
+		return true
 	}
 	return blockNumber == vp.agency.GetLastNumber(blockNumber)
 }

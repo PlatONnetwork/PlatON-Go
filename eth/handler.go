@@ -174,7 +174,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 	heighter := func() uint64 {
 		//return blockchain.CurrentBlock().NumberU64()
-		return engine.CurrentBlock().NumberU64()
+		return engine.CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -577,7 +577,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Debug(fmt.Sprintf("Block body empty peer:%s hash:%s", p.id, hash.TerminalString()))
 			}
 		}
-		log.Debug(fmt.Sprintf("Send block body peer:%s,bodies:%v", p.id, len(bodies)))
+
+		log.Debug(fmt.Sprintf("Send block body peer:%s,bytes:%d,bodies:%d", p.id, bytes, len(bodies)))
 		return p.SendBlockBodiesRLP(bodies)
 
 	case msg.Code == BlockBodiesMsg:

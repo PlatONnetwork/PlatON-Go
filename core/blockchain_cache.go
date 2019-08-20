@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -22,6 +23,9 @@ type BlockChainCache struct {
 	receiptsCache map[common.Hash]*receiptsCache // key is header SealHash
 	stateDBMu     sync.RWMutex
 	receiptsMu    sync.RWMutex
+
+	executing sync.Mutex
+	executed  sync.Map
 }
 
 type stateDBCache struct {
@@ -198,6 +202,7 @@ func (bcc *BlockChainCache) ClearCache(block *types.Block) {
 	sealHash := block.Header().SealHash()
 	bcc.clearReceipts(sealHash)
 	bcc.clearStateDB(sealHash)
+	bcc.executed.Delete(block.Hash())
 }
 
 func (bcc *BlockChainCache) StateDBString() string {
@@ -210,21 +215,40 @@ func (bcc *BlockChainCache) StateDBString() string {
 }
 
 func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
+	executed := func() bool {
+		if number, ok := bcc.executed.Load(block.Hash()); ok && number.(uint64) == block.Number().Uint64() {
+			log.Debug("Block has executed", "number", block.Number(), "hash", block.Hash(), "parentNumber", parent.Number(), "parentHash", parent.Hash())
+			return true
+		}
+		return false
+	}
+
+	if executed() {
+		return nil
+	}
+
+	bcc.executing.Lock()
+	defer bcc.executing.Unlock()
+	if executed() {
+		return nil
+	}
+
 	state, err := bcc.MakeStateDB(parent)
 	if err != nil {
 		return errors.New("execute block error")
 	}
 
+	t := time.Now()
 	//to execute
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
 	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
-		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "err", err)
+		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "err", err)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		sealHash := block.Header().SealHash()
 		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
 		bcc.WriteStateDB(sealHash, state, block.NumberU64())
-
+		bcc.executed.Store(block.Hash(), block.Number().Uint64())
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}

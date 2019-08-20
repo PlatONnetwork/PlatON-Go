@@ -65,8 +65,8 @@ type peer struct {
 	PingList *list.List
 }
 
-// NewPeer creates a new peer.
-func NewPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
+// newPeer creates a new peer.
+func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
 		Peer:             p,
 		rw:               rw,
@@ -349,8 +349,8 @@ func (ps *PeerSet) Unregister(id string) error {
 	return nil
 }
 
-// Peer retrieves the registered peer with the given id.
-func (ps *PeerSet) Get(id string) (*peer, error) {
+// Get retrieves the registered peer with the given id.
+func (ps *PeerSet) get(id string) (*peer, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -370,9 +370,9 @@ func (ps *PeerSet) Len() int {
 	return len(ps.peers)
 }
 
-// PeersWithConsensus retrieves a list of peers that exist with the PeerSet based
+// peersWithConsensus retrieves a list of peers that exist with the PeerSet based
 // on the incoming consensus node ID array.
-func (ps *PeerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer {
+func (ps *PeerSet) peersWithConsensus(consensusNodes []discover.NodeID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -386,8 +386,8 @@ func (ps *PeerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer 
 	return list
 }
 
-// PeersWithoutConsensus retrieves a list of peer that does not contain consensus nodes.
-func (ps *PeerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*peer {
+// peersWithoutConsensus retrieves a list of peer that does not contain consensus nodes.
+func (ps *PeerSet) peersWithoutConsensus(consensusNodes []discover.NodeID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -398,8 +398,8 @@ func (ps *PeerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*pe
 	}
 
 	list := make([]*peer, 0, len(ps.peers))
-	for nodeId, peer := range ps.peers {
-		if _, ok := consensusNodeMap[nodeId]; !ok {
+	for nodeID, peer := range ps.peers {
+		if _, ok := consensusNodeMap[nodeID]; !ok {
 			list = append(list, peer)
 		}
 	}
@@ -408,7 +408,7 @@ func (ps *PeerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*pe
 }
 
 // Peers retrieves a list of peer from the PeerSet.
-func (ps *PeerSet) Peers() []*peer {
+func (ps *PeerSet) allPeers() []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -419,8 +419,8 @@ func (ps *PeerSet) Peers() []*peer {
 	return list
 }
 
-// Returns a list of nodes that are larger than the qcNumber of the highest qc block.
-func (ps *PeerSet) PeersWithHighestQCBn(qcNumber uint64) []*peer {
+// peersWithHighestQCBn returns a list of nodes that are larger than the qcNumber of the highest qc block.
+func (ps *PeerSet) peersWithHighestQCBn(qcNumber uint64) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	list := make([]*peer, 0, len(ps.peers))
@@ -433,8 +433,9 @@ func (ps *PeerSet) PeersWithHighestQCBn(qcNumber uint64) []*peer {
 	return list
 }
 
-// Returns a list of nodes that are larger than the lockedNumber of the highest locked block.
-func (ps *PeerSet) PeersWithHighestLockedBn(lockedNumber uint64) []*peer {
+// peersWithHighestLockedBn returns a list of nodes that are larger than the lockedNumber
+// of the highest locked block.
+func (ps *PeerSet) peersWithHighestLockedBn(lockedNumber uint64) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	list := make([]*peer, 0, len(ps.peers))
@@ -447,8 +448,9 @@ func (ps *PeerSet) PeersWithHighestLockedBn(lockedNumber uint64) []*peer {
 	return list
 }
 
-// Returns a list of nodes that are larger than the commitNumber of the highest locked block.
-func (ps *PeerSet) PeersWithHighestCommitBn(commitNumber uint64) []*peer {
+// peersWithHighestCommitBn returns a list of nodes that are larger than the commitNumber
+// of the highest locked block.
+func (ps *PeerSet) peersWithHighestCommitBn(commitNumber uint64) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 	list := make([]*peer, 0, len(ps.peers))
@@ -482,7 +484,7 @@ func (ps *PeerSet) printPeers() {
 		}
 		select {
 		case <-outTimer.C:
-			peers := ps.Peers()
+			peers := ps.allPeers()
 			if peers != nil {
 				neighborPeerGauage.Update(int64(len(peers)))
 			}
