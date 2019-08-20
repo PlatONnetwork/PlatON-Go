@@ -36,11 +36,17 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 }
 
 func Test_Decode(t *testing.T) {
-	bytes, _ := hex.DecodeString("c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
-	if !chandler.IsSignedByNodeID(1792, bytes, nodeID) {
-		t.Fatal("verify sign error")
-	} else {
-		t.Fatal("verify sign OK")
-	}
+
+	sig := chandler.MustSign(1792)
+	t.Fatal("sign", sig)
+
+	/*	bytes, _ := hex.DecodeString("c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
+
+
+		if !chandler.IsSignedByNodeID(1792, bytes, nodeID) {
+			t.Fatal("verify sign error")
+		} else {
+			t.Fatal("verify sign OK")
+		}*/
 
 }
