@@ -52,7 +52,8 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 
 	var version uint32
 	if len(avList) == 0 {
-		version = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+		log.Error("cannot find current active version")
+		return 0
 	} else {
 		version = avList[0].ActiveVersion
 	}
@@ -209,7 +210,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return err
 	}
 
-	activeVersion := uint32(GetCurrentActiveVersion(state))
+	activeVersion := GetCurrentActiveVersion(state)
 	if activeVersion <= 0 {
 		return common.NewBizError("wrong current active version.")
 	}
