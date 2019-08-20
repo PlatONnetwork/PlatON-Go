@@ -39,7 +39,7 @@ func Test_Decode(t *testing.T) {
 	initChandlerHandler()
 
 	sig := chandler.MustSign(1792)
-	t.Fatal("sign", sig)
+	t.Fatal("sign", hex.EncodeToString(sig))
 
 	/*	bytes, _ := hex.DecodeString("c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
 
