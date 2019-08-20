@@ -36,6 +36,7 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 }
 
 func Test_Decode(t *testing.T) {
+	initChandlerHandler()
 
 	sig := chandler.MustSign(1792)
 	t.Fatal("sign", sig)
