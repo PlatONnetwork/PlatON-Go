@@ -504,7 +504,7 @@ func verifyData(decode []byte) {
 		var extraData []interface{}
 		err := rlp.DecodeBytes(tobeDecoded, &extraData)
 		if err != nil {
-			fmt.Println("rlp decode header extra error")
+			fmt.Println("rlp decode header extra error", err)
 		}
 		//reference to makeExtraData() in gov_plugin.go
 		if len(extraData) == 4 {
