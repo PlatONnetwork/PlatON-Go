@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -13,10 +15,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-const RewardNewBlockRate = 4 //
-
 type rewardMgrPlugin struct {
 }
+
+const (
+	level_1 = 100 // allocate DeveloperFoundation: 100% , PlatONFoundation: 0%
+	level_2 = 50  // allocate DeveloperFoundation: 50% , PlatONFoundation: 50%
+
+	foundation = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+)
 
 var (
 	rewardOnce sync.Once
@@ -51,31 +58,37 @@ func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 
 	blockNumber := head.Number.Uint64()
-	log.Debug("begin to EndBlock in reward plugin", "hash", blockHash, "blockNumber", blockNumber)
 
-	stakingReward, newBlockReward := rmp.calculateExpectReward(blockNumber, state)
-	log.Debug("show calculated data", "blockNumber", blockNumber, "total stkReward", stakingReward, "new block Reward", newBlockReward)
+	log.Debug("Call EndBlock on reward_plugin start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
-	if xutil.IsSettlementPeriod(blockNumber) {
-		if err := rmp.rewardStaking(head, stakingReward, state); err != nil {
-			return err
-		}
-		// set current to latest epoch
-		currEpoch := xutil.CalculateEpoch(blockNumber)
-		log.Info("Set latest epoch at settlement block", "blockNumber", blockNumber, "epoch", currEpoch)
-		SetLatestEpoch(state, currEpoch)
+	thisYear := xutil.CalculateYear(blockNumber)
+	var lastYear uint32
+	if thisYear != 0 {
+		lastYear = thisYear - 1
 	}
 
-	if err := rmp.rewardNewBlock(head, newBlockReward, state); err != nil {
+	stakingReward, newBlockReward := rmp.calculateExpectReward(thisYear, lastYear, state)
+
+	log.Debug("Call EndBlock on reward_plugin: after call calculateExpectReward", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "stakingReward", stakingReward, "packageBlockReward", newBlockReward)
+
+	if xutil.IsSettlementPeriod(blockNumber) {
+		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
+			return err
+		}
+	}
+
+	if err := rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, newBlockReward, state); err != nil {
 		return err
 	}
 
+	// the block at the end of each year, additional issuance
 	if xutil.IsYearEnd(blockNumber) {
-		log.Info("ready to increase issuance", "blockNumber", blockNumber, "hash", head.Hash())
-		rmp.increaseIssuance(blockNumber, state)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		rmp.increaseIssuance(thisYear, lastYear, state)
 	}
 
-	log.Debug("end to EndBlock in reward plugin")
+	log.Debug("Call EndBlock on reward_plugin End")
 
 	return nil
 }
@@ -86,96 +99,114 @@ func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
 }
 
 // increaseIssuance used for increase issuance at the end of each year
-func (rmp *rewardMgrPlugin) increaseIssuance(blockNumber uint64, state xcom.StateDB) {
-	thisYear := xutil.CalculateYear(blockNumber)
-	lastYear := xutil.CalculateLastYear(blockNumber)
+func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB) {
 
-	// every year will increase 2.5 percent of historical issuance, and 1/5 send to
-	// community developer foundation, the left send to reward manage pool
 	histIssuance := GetHistoryCumulativeIssue(state, lastYear)
-	currIssuance := new(big.Int).Div(histIssuance, big.NewInt(40))
-	devIssuance := new(big.Int).Div(currIssuance, big.NewInt(5))
-	rewardIssuance := new(big.Int).Sub(currIssuance, devIssuance)
+	currIssuance := new(big.Int).Div(histIssuance, big.NewInt(40)) // 2.5% increase in the previous year
 
-	state.AddBalance(vm.CommunityDeveloperFoundation, devIssuance)
-	state.AddBalance(vm.RewardManagerPoolAddr, rewardIssuance)
+	// calculate the reward pool issue
+	rewardpool_temp := new(big.Int).Mul(currIssuance, big.NewInt(foundation))
+	rewardpool_incr := new(big.Int).Div(rewardpool_temp, common.Big100)
+	state.AddBalance(vm.RewardManagerPoolAddr, rewardpool_incr)
 
-	// restore the cumulative issue at this year end
-	histIssuance.Add(histIssuance, currIssuance)
+	var allocate_rate int64
+
+	// Issuance of the next year’s circulation at the end of each year
+	// Therefore, “<” indicates the issuance allocation standard before the allocation year,
+	// and “>=” indicates the additional allocation standard after the allocation year.
+	if thisYear < xcom.PlatONFoundationYear() {
+		allocate_rate = level_1
+	} else {
+		allocate_rate = level_2
+	}
+
+	remain := new(big.Int).Sub(currIssuance, rewardpool_incr)
+
+	// The Community Developer Foundation increase
+	developerFoundation_tmp := new(big.Int).Mul(remain, big.NewInt(allocate_rate))
+	developerFoundation_incr := new(big.Int).Div(developerFoundation_tmp, common.Big100)
+	// the PlatON Foundation increase
+	platonFoundation_incr := new(big.Int).Sub(remain, developerFoundation_incr)
+
+	state.AddBalance(vm.CommunityDeveloperFoundation, developerFoundation_incr)
+	state.AddBalance(vm.PlatONFoundationAddress, platonFoundation_incr)
+
+	// Restore the cumulative issue at this year end
+	histIssuance = new(big.Int).Add(histIssuance, currIssuance)
 	SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 
-	// restore the Balance of rewardMgrPool at this year end
+	// Restore the remain balance of reward pool at this year end
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
+
 }
 
-// rewardStaking used for reward staking at the settle block
-func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, state xcom.StateDB) error {
-	blockHash := head.Hash()
-	blockNumber := head.Number.Uint64()
+// allocateStakingReward used for reward staking at the settle block
+func (rmp *rewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, reward *big.Int, state xcom.StateDB) error {
 
-	log.Info("ready to reward staking", "blockNumber", blockNumber, "hash", blockHash,
-		"epoch", xutil.CalculateEpoch(blockNumber), "total reward", reward)
+	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
+		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
 
 	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
-		log.Debug("get verifier list failed in rewardStaking", "blockNumber", blockNumber, "hash", blockHash)
+		log.Error("Failed to allocateStakingReward: call GetVerifierList is failed", "blockNumber", blockNumber, "hash", blockHash, "err", err)
 		return err
 	}
-
-	validatorNum := int64(len(list))
-	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
-
-	log.Debug("get verifier list success", "listLen", len(list), "everyOneReward", everyValidatorReward, "list", list)
-
-	for index := 0; index < len(list); index++ {
-		v := list[index]
-		addr := v.BenefitAddress
-
-		if addr != vm.RewardManagerPoolAddr {
-			log.Debug("rewarding staking", "blockNumber", blockNumber, "nodeId", v.NodeId.String(),
-				"benefitAddress", addr.String(), "balance", everyValidatorReward)
-			state.SubBalance(vm.RewardManagerPoolAddr, everyValidatorReward)
-			state.AddBalance(addr, everyValidatorReward)
-		}
-	}
-
+	rmp.rewardStakingByValidatorList(state, list, reward, blockNumber)
 	return nil
 }
 
-// rewardNewBlock used for reward new block. it returns coinbase and error
-func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, state xcom.StateDB) error {
+func (rmp *rewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int, blockNumber uint64) {
+	validatorNum := int64(len(list))
+	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
 
-	rewardAddr := head.Coinbase
-	if rewardAddr != vm.RewardManagerPoolAddr {
+	log.Debug("calculate validator staking reward", "blockNumber", blockNumber, "validator length", len(list), "everyOneReward", everyValidatorReward)
 
-		log.Info("ready to reward new block", "blockNumber", head.Number.Uint64(), "hash", head.Hash(),
-			"receive addr", rewardAddr.String(), "reward", reward)
+	for _, value := range list {
+		addr := value.BenefitAddress
+		if addr != vm.RewardManagerPoolAddr {
+
+			log.Debug("allocate staking reward one-by-one", "blockNumber", blockNumber, "nodeId", value.NodeId.String(),
+				"benefitAddress", addr.String(), "staking reward", everyValidatorReward)
+
+			state.AddBalance(addr, everyValidatorReward)
+			state.SubBalance(vm.RewardManagerPoolAddr, everyValidatorReward)
+		}
+	}
+}
+
+// allocatePackageBlock used for reward new block. it returns coinbase and error
+func (rmp *rewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash common.Hash, coinBase common.Address, reward *big.Int, state xcom.StateDB) error {
+
+	if coinBase != vm.RewardManagerPoolAddr {
+
+		log.Debug("allocate package reward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"coinBase", coinBase.String(), "reward", reward)
 
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
-		state.AddBalance(rewardAddr, reward)
+		state.AddBalance(coinBase, reward)
 	}
 	return nil
 }
 
 // calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
-func (rmp *rewardMgrPlugin) calculateExpectReward(blockNumber uint64, state xcom.StateDB) (*big.Int, *big.Int) {
+func (rmp *rewardMgrPlugin) calculateExpectReward(thisYear, lastYear uint32, state xcom.StateDB) (*big.Int, *big.Int) {
 	// get expected settlement epochs and new blocks per year first
 	epochs := xutil.EpochsPerYear()
 	blocks := xutil.CalcBlocksEachYear()
-	log.Debug("[calculateExpectReward]epochs,blocks", "epochs", epochs, "blocks", blocks)
+	lastYearBalance := GetYearEndBalance(state, lastYear)
 
-	// 1/4 of total reward is used for reward create new block, the left is used for staking
-	lastYear := xutil.CalculateLastYear(blockNumber)
-	lastYearB := GetYearEndBalance(state, lastYear)
-	totalNewBlockReward := new(big.Int).Div(lastYearB, big.NewInt(RewardNewBlockRate))
-	totalStakingReward := new(big.Int).Sub(lastYearB, totalNewBlockReward)
-	log.Debug("[calculateExpectReward]total reward to create new block and reward to staking", "totalNewBlockReward", totalNewBlockReward, "totalStakingReward", totalStakingReward)
+	ratio := new(big.Int).Mul(lastYearBalance, big.NewInt(int64(xcom.NewBlockRewardRate())))
+	totalNewBlockReward := new(big.Int).Div(ratio, common.Big100)
+	totalStakingReward := new(big.Int).Sub(lastYearBalance, totalNewBlockReward)
 
 	newBlockReward := new(big.Int).Div(totalNewBlockReward, big.NewInt(int64(blocks)))
 	stakingReward := new(big.Int).Div(totalStakingReward, big.NewInt(int64(epochs)))
 
-	log.Debug("[calculateExpectReward]reward to create new block and staking", "block", newBlockReward, "staking", stakingReward)
+	log.Debug("Call calculateExpectReward", "thisYear", thisYear, "lastYear", lastYear,
+		"lastYearBalance", lastYearBalance, "totalNewBlockReward", totalNewBlockReward,
+		"totalStakingReward", totalStakingReward, "epochs of this year", epochs,
+		"blocks of this year", blocks, "newBlockReward", newBlockReward, "stakingReward", stakingReward)
 
 	return stakingReward, newBlockReward
 }

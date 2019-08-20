@@ -221,6 +221,9 @@ func (bc *BlockChain) getProcInterrupt() bool {
 func (bc *BlockChain) loadLastState() error {
 	// Restore the last known head block
 	head := rawdb.ReadHeadBlockHash(bc.db)
+
+	log.Debug("Call loadLastState", "blockHash", head.Hex())
+
 	if head == (common.Hash{}) {
 		// Corrupt or empty database, init from scratch
 		log.Warn("Empty database, resetting chain")

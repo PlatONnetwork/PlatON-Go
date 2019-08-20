@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	cli "gopkg.in/urfave/cli.v1"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
