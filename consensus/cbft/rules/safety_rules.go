@@ -176,6 +176,16 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 // 2.Synchronization greater than local viewNumber
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyError {
+	acceptIndexVote := func() SafetyError {
+		if vote.BlockIndex >= r.config.Sys.Amount {
+			return newError(fmt.Sprintf("voteIndex higher than amount(index:%d, amount:%d)", vote.BlockIndex, r.config.Sys.Amount))
+		}
+		if r.viewState.FindPrepareVote(vote.BlockIndex, vote.ValidatorIndex) != nil {
+			return newError(fmt.Sprintf("prepare vote has exist(blockIndex:%d, validatorIndex:%d)", vote.BlockIndex, vote.ValidatorIndex))
+		}
+		return nil
+	}
+
 	if r.viewState.Epoch() != vote.Epoch {
 		return r.changeEpochVoteRules(vote)
 	}
@@ -185,6 +195,11 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 
 	if r.viewState.ViewNumber() < vote.ViewNumber {
 		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), vote.ViewNumber))
+	}
+
+	// if local epoch and viewNumber is the same with msg
+	if err := acceptIndexVote(); err != nil {
+		return err
 	}
 
 	if r.viewState.IsDeadline() {

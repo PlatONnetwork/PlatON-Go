@@ -150,6 +150,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block already exists")
 	}
 
+	// If blockQC comes the block must exist
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
 	if err := cbft.verifyPrepareQC(block.NumberU64(), msg.BlockQC); err != nil {
 		return &authFailedError{err}

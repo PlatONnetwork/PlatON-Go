@@ -6,7 +6,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -78,11 +77,6 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
 		return &handleError{err}
-	}
-
-	if cbft.state.FindPrepareVote(msg.BlockIndex, msg.ValidatorIndex) != nil {
-		cbft.log.Debug("Prepare vote has exist", "vote", msg.String())
-		return &handleError{errors.New("prepare vote has exist")}
 	}
 
 	cbft.prepareVoteFetchRules(id, msg)
