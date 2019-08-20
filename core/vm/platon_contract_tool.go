@@ -10,7 +10,7 @@ import (
 func exec_platon_contract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
 
 	// verify the tx data by contracts method
-	fn, params, err := plugin.Verify_tx_data(input, command)
+	_, fn, params, err := plugin.Verify_tx_data(input, command)
 	if nil != err {
 		log.Error("Failed to verify contract tx", "err", err)
 		return nil, err

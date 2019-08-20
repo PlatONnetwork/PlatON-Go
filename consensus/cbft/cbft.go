@@ -100,6 +100,9 @@ type Cbft struct {
 	start    int32
 	syncing  int32
 	fetching int32
+
+	// Commit block error
+	commitErrCh chan error
 	// Async call channel
 	asyncCallCh chan func()
 
@@ -160,6 +163,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		start:              0,
 		syncing:            0,
 		fetching:           0,
+		commitErrCh:        make(chan error, 1),
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		fetcher:            fetcher.NewFetcher(),
 		nodeServiceContext: ctx,
@@ -215,7 +219,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	utils.SetTrue(&cbft.loading)
 	if isGenesis() {
-		cbft.changeView(cbft.config.Sys.Epoch, cstate.DefaultViewNumber, block, qc, nil)
+		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
@@ -281,7 +285,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	// Repeat filtering on consensus messages.
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
-		cbft.log.Error("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
 		cbft.forgetMessage(msg.PeerID)
 		return nil
 	}
@@ -444,7 +448,7 @@ func (cbft *Cbft) receiveLoop() {
 				cbft.network.RemovePeer(msg.PeerID)
 			}
 		} else {
-			cbft.log.Debug("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+			cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
 		}
 		cbft.forgetMessage(msg.PeerID)
 	}
@@ -480,6 +484,8 @@ func (cbft *Cbft) receiveLoop() {
 
 		case <-cbft.state.ViewTimeout():
 			cbft.OnViewTimeout()
+		case err := <-cbft.commitErrCh:
+			cbft.OnCommitError(err)
 		}
 	}
 }
@@ -1167,7 +1173,7 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,
-		SyncState:          nil,
+		SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },
 	})
 }
@@ -1427,10 +1433,6 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 }
 
 func (cbft *Cbft) verifyPrepareQC(qc *ctypes.QuorumCert) error {
-	defer func(t time.Time) {
-		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
-	}(time.Now())
-
 	var cb []byte
 	var err error
 	if cb, err = qc.CannibalizeBytes(); err != nil {

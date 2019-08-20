@@ -224,57 +224,26 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 // genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
-func genesisAllowancePlan(stateDB *state.StateDB, issue *big.Int) error {
-
+func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 	account := vm.RewardManagerPoolAddr
-
-	OneYearEpochs := xutil.EpochsPerYear()
-	stableEpochs := []uint64{OneYearEpochs, 2 * OneYearEpochs}
-
-	epochList := make([]uint64, len(stableEpochs))
-	for i, epoch := range stableEpochs {
-		// store restricting account record
-		releaseAccountKey := restricting.GetReleaseAccountKey(epoch, 1)
-		stateDB.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
-
-		// store release amount record
-		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
-		// At the first year end, 1.5% of genesis issuance need be released
-		// At the twice year end, 0.5% of genesis issuance need be released
-		switch {
-		case i == 0:
-			allowance := new(big.Int).Mul(issue, big.NewInt(15))
-			allowance = allowance.Div(allowance, big.NewInt(1000))
-			stateDB.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
-		case i == 1:
-			allowance := new(big.Int).Mul(issue, big.NewInt(5))
-			allowance = allowance.Div(allowance, big.NewInt(1000))
-			stateDB.SetState(vm.RestrictingContractAddr, releaseAmountKey, allowance.Bytes())
-		}
-
-		// store release epoch record
-		releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
-		stateDB.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
-
-		epochList[i] = uint64(epoch)
+	var (
+		zeroEpoch  = new(big.Int).Mul(big.NewInt(622157424869165), big.NewInt(1E11))
+		oneEpoch   = new(big.Int).Mul(big.NewInt(559657424869165), big.NewInt(1E11))
+		twoEpoch   = new(big.Int).Mul(big.NewInt(495594924869165), big.NewInt(1E11))
+		threeEpoch = new(big.Int).Mul(big.NewInt(429930862369165), big.NewInt(1E11))
+		fourEpoch  = new(big.Int).Mul(big.NewInt(362625198306666), big.NewInt(1E11))
+		fiveEpoch  = new(big.Int).Mul(big.NewInt(293636892642603), big.NewInt(1E11))
+		sixEpoch   = new(big.Int).Mul(big.NewInt(222923879336939), big.NewInt(1E11))
+		sevenEpoch = new(big.Int).Mul(big.NewInt(150443040698633), big.NewInt(1E11))
+		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943699), big.NewInt(1E10))
+	)
+	stateDb.AddBalance(account, zeroEpoch)
+	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
+	restrictingPlans := make([]restricting.RestrictingPlan, 0)
+	for key, value := range needRelease {
+		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{uint64(key + 1), value})
 	}
-
-	// build restricting account info
-	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance = stateDB.GetBalance(vm.RestrictingContractAddr)
-	restrictInfo.Debt = big.NewInt(0)
-	restrictInfo.DebtSymbol = false
-	restrictInfo.ReleaseList = epochList
-
-	bRestrictInfo, err := rlp.EncodeToBytes(restrictInfo)
-	if err != nil {
-		return fmt.Errorf("failed to rlp encode restricting info. info:%v, error:%s", restrictInfo, err.Error())
-	}
-
-	// store restricting account info
-	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
-
+	plugin.CreateRestrictingRecord(account, stateDb, restrictingPlans)
 	return nil
 }
 

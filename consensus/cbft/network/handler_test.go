@@ -53,7 +53,6 @@ func (s *fakeCbft) Config() *types.Config {
 		},
 		Sys: &params.CbftConfig{
 			Period: 3,
-			Epoch:  30000,
 		},
 	}
 }

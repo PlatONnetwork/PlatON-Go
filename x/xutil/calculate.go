@@ -72,7 +72,7 @@ func EpochSize() uint64 {
 func EpochsPerYear() uint64 {
 	epochBlocks := CalcBlocksEachEpoch()
 	i := xcom.Interval()
-	return xcom.SecondsPerYear / (i * epochBlocks)
+	return xcom.AdditionalCycleTime() * 60 / (i * epochBlocks)
 }
 
 // CalcBlocksEachEpoch return how many blocks per epoch
@@ -182,10 +182,6 @@ func CalculateLastYear(blockNumber uint64) uint32 {
 	}
 }
 
-func MaxVotingConsensusRounds() uint64 {
-	return uint64(xcom.Max_Vote_Duration()) / uint64(ConsensusSize())
-}
-
 func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
@@ -202,4 +198,15 @@ func InHashList(hash common.Hash, hashList []common.Hash) bool {
 		}
 	}
 	return false
+}
+
+func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
+	electionDistance := xcom.ElectionDistance()
+	consensusSize := ConsensusSize()
+
+	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
+}
+
+func CalActiveBlock(endVotingBlock uint64) uint64 {
+	return endVotingBlock + xcom.ElectionDistance() + xcom.VersionProposalActive_ConsensusRounds()*ConsensusSize() + 1
 }
