@@ -11,12 +11,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
@@ -485,7 +483,7 @@ func main() {
 	}
 	decode, err := hex.DecodeString("da82070086706c61746f6e88676f312e31322e388664617277696e0000000000993cb2862467579ec0f452b04bcc50655b1be1fda91ddd5cf3f57750ccdf77cd5c5c7d1375bdcd725fc6ed3afbd608e45cbfcc383bd1894df443d1f7233dccc900")
 	if err != nil {
-		log.Error("hex decode from string error", "err", err)
+		fmt.Println("hex decode from string error", "err", err)
 	} else {
 		lastHeader.Extra = decode
 	}
@@ -502,16 +500,17 @@ func main() {
 		var extraData []interface{}
 		err := rlp.DecodeBytes(tobeDecoded, &extraData)
 		if err != nil {
-			log.Error("rlp decode header extra error")
+			fmt.Println("rlp decode header extra error")
 		}
 		//reference to makeExtraData() in gov_plugin.go
 		if len(extraData) == 4 {
 			versionBytes := extraData[0].([]byte)
 			versionInHeader := common.BytesToUint32(versionBytes)
-			log.Error("version in header", "versionInHeader", versionInHeader)
+			fmt.Println("version In Header", versionInHeader)
+		} else {
+			fmt.Println("decode error")
 		}
 	}
-
 }
 
 func mainw() {
