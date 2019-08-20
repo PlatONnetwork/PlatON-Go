@@ -62,8 +62,8 @@ type governanceConfig struct {
 }
 
 type rewardConfig struct {
-	NewBlockRate         uint // new block reward ,default 50%
-	PlatONFoundationYear uint32
+	NewBlockRate         uint64 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
+	PlatONFoundationYear uint32 // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 }
 
 // total
@@ -174,8 +174,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         4,
-				PlatONFoundationYear: 0,
+				NewBlockRate:         50,
+				PlatONFoundationYear: 10,
 			},
 		}
 
@@ -218,8 +218,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         4,
-				PlatONFoundationYear: 0,
+				NewBlockRate:         50,
+				PlatONFoundationYear: 1,
 			},
 		}
 
@@ -262,8 +262,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         4,
-				PlatONFoundationYear: 0,
+				NewBlockRate:         50,
+				PlatONFoundationYear: 1,
 			},
 		}
 
@@ -306,8 +306,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         4,
-				PlatONFoundationYear: 0,
+				NewBlockRate:         50,
+				PlatONFoundationYear: 1,
 			},
 		}
 
@@ -350,8 +350,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         4,
-				PlatONFoundationYear: 0,
+				NewBlockRate:         50,
+				PlatONFoundationYear: 1,
 			},
 		}
 
@@ -395,8 +395,8 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
-				NewBlockRate:         4,
-				PlatONFoundationYear: 0,
+				NewBlockRate:         50,
+				PlatONFoundationYear: 1,
 			},
 		}
 	}
@@ -501,8 +501,7 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Reward config
  ******/
-
-func NewBlockRewardRate() uint {
+func NewBlockRewardRate() uint64 {
 	return ec.Reward.NewBlockRate
 }
 

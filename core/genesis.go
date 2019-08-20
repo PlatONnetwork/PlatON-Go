@@ -287,9 +287,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	block := types.NewBlock(head, nil, nil)
 
 	if err := snapdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
-		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash(), err.Error()))
 	}
-
+	log.Debug("Call ToBlock finished", "genesisHash", block.Hash())
 	return block
 }
 

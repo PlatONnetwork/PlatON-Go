@@ -3198,7 +3198,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 	}
 
 	if nil == err && nil != val_arr {
-		return build_CBFT_Validators(val_arr.Arr), nil
+		return build_cbft_validators(val_arr.Start, val_arr.Arr), nil
 	}
 	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }
@@ -3234,7 +3234,7 @@ label:
 	return isCandidate
 }
 
-func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
+func build_cbft_validators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Validators {
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
@@ -3252,7 +3252,8 @@ func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
 	}
 
 	res := &cbfttypes.Validators{
-		Nodes: valMap,
+		Nodes:            valMap,
+		ValidBlockNumber: start,
 	}
 	return res
 }
