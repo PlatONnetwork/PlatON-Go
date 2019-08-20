@@ -261,6 +261,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetCrypto_handler(xcom.GetCryptoHandler())
 			handlePlugin(reactor)
 			agency = reactor
 		}
