@@ -61,12 +61,18 @@ type governanceConfig struct {
 	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
 }
 
+type rewardConfig struct {
+	NewBlockRate         uint // new block reward ,default 50%
+	PlatONFoundationYear uint32
+}
+
 // total
 type EconomicModel struct {
 	Common   commonConfig
 	Staking  stakingConfig
 	Slashing slashingConfig
 	Gov      governanceConfig
+	Reward   rewardConfig
 }
 
 var (
@@ -167,6 +173,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	case DefaultAlphaTestNet:
@@ -206,6 +216,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
 			},
 		}
 
@@ -247,6 +261,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	case DefaultInnerTestNet:
@@ -286,6 +304,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
 			},
 		}
 
@@ -327,6 +349,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	default: // DefaultDeveloperNet
@@ -367,6 +393,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
 			},
 		}
 	}
@@ -471,6 +501,14 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Reward config
  ******/
+
+func NewBlockRewardRate() uint {
+	return ec.Reward.NewBlockRate
+}
+
+func PlatONFoundationYear() uint32 {
+	return ec.Reward.PlatONFoundationYear
+}
 
 /******
  * Governance config
