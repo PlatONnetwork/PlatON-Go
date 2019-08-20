@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	priKey = crypto.HexMustToECDSA("76711a880d0b2fc40167428005aa80bdeb66ada7a82d3e9c78d93201022161e2")
-	nodeID = discover.MustHexID("4b6083b5d2fa4638690e54e3ea37771f42776c044c76fd021931c476dc480492264ffaacaf59259438c16e404366ace3ce2fbbf19d230a8417a04ddc2f8be3c6")
+	priKey = crypto.HexMustToECDSA("8c56e4a0d8bb1f82b94231d535c499fdcbf6e06221acf669d5a964f5bb974903")
+	nodeID = discover.MustHexID("0x3a06953a2d5d45b29167bef58208f1287225bdd2591260af29ae1300aeed362e9b548369dfc1659abbef403c9b3b07a8a194040e966acd6e5b6d55aa2df7c1d8")
 )
 
 func initChandlerHandler() {
@@ -38,15 +38,15 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 func Test_Decode(t *testing.T) {
 	initChandlerHandler()
 
-	sig := chandler.MustSign(common.Uint32ToBytes(1792))
+	/*sig := chandler.MustSign(1792)
 	t.Fatal("sign", hex.EncodeToString(sig))
+	*/
+	bytes, _ := hex.DecodeString("7c03cb6bc1c6103b979c7842cced4cdec5abfe8506b03ac9a714d1c31344f29e1185af720beae23a023f8ed02a9eb6eefaec0a381dda63c425d2af7a0c7ca7e501")
 
-	/*bytes, _ := hex.DecodeString("155fe2050c65ff4633499f9d81acf3a0f185a6110e6ed1459f7c5ac95925fb284fdc3c2f299ea71ab176f41003383caf345e2ded72e4e5dc568f5d01e982d1cd01")
-
-	if !chandler.IsSignedByNodeID(common.Uint32ToBytes(1792), bytes, nodeID) {
+	if !chandler.IsSignedByNodeID(common.Uint32ToBytes(2048), bytes, nodeID) {
 		t.Fatal("verify sign error")
 	} else {
 		t.Fatal("verify sign OK")
-	}*/
+	}
 
 }
