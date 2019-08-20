@@ -491,14 +491,14 @@ func main() {
 	}
 }
 
-func RTrim(decode []byte) {
+func RTrim(decode []byte) []byte {
 	var pos int
 	for pos = len(decode); pos > 0; pos-- {
 		if decode[pos-1] != '\x00' {
 			break
 		}
 	}
-	decode = decode[:pos]
+	return decode[:pos]
 }
 func verifyData(decode []byte) {
 	if len(decode) > 0 {
@@ -510,10 +510,8 @@ func verifyData(decode []byte) {
 			tobeDecoded = decode[:32]
 		}
 
-		RTrim(tobeDecoded)
-
 		var extraData []interface{}
-		err := rlp.DecodeBytes(tobeDecoded, &extraData)
+		err := rlp.DecodeBytes(RTrim(tobeDecoded), &extraData)
 		if err != nil {
 			fmt.Println("rlp decode header extra error", err)
 		}
