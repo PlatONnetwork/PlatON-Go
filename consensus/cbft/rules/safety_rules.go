@@ -90,7 +90,14 @@ type baseSafetyRules struct {
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) SafetyError {
 	isQCChild := func() bool {
-		return block.Block.NumberU64() == r.viewState.HighestQCBlock().NumberU64()+1 &&
+		return block.BlockNum() == r.viewState.HighestQCBlock().NumberU64()+1 &&
+			block.Block.ParentHash() == r.viewState.HighestQCBlock().Hash() &&
+			r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
+	}
+
+	isLockChild := func() bool {
+		return block.BlockNum() == r.viewState.HighestLockBlock().NumberU64()+1 &&
+			block.Block.ParentHash() == r.viewState.HighestLockBlock().Hash() &&
 			r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
 	}
 
@@ -115,6 +122,9 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 			return newError(fmt.Sprintf("blockIndex already existed(index:%d)", block.BlockIndex))
 		}
 		if isFirstBlock() {
+			if !isQCChild() && !isLockChild() {
+				return newError(fmt.Sprintf("the first index block is not contiguous by local highestQC or highestLock"))
+			}
 			return nil
 		}
 		pre := r.viewState.ViewBlockByIndex(block.BlockIndex - 1)
@@ -148,9 +158,6 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 	}
 
 	if r.viewState.ViewNumber() < block.ViewNumber {
-		isLockChild := func() bool {
-			return block.Block.ParentHash() == r.viewState.HighestLockBlock().Hash()
-		}
 		isNextView := func() bool {
 			return r.viewState.ViewNumber()+1 == block.ViewNumber
 		}
@@ -176,12 +183,23 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 // 2.Synchronization greater than local viewNumber
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyError {
+	existPrepare := func() bool {
+		prepare := r.viewState.ViewBlockByIndex(vote.BlockIndex)
+		if prepare != nil && prepare.NumberU64() == vote.BlockNumber && prepare.Hash() == vote.BlockHash {
+			return true
+		}
+		return false
+	}
+
 	acceptIndexVote := func() SafetyError {
 		if vote.BlockIndex >= r.config.Sys.Amount {
 			return newError(fmt.Sprintf("voteIndex higher than amount(index:%d, amount:%d)", vote.BlockIndex, r.config.Sys.Amount))
 		}
 		if r.viewState.FindPrepareVote(vote.BlockIndex, vote.ValidatorIndex) != nil {
 			return newError(fmt.Sprintf("prepare vote has exist(blockIndex:%d, validatorIndex:%d)", vote.BlockIndex, vote.ValidatorIndex))
+		}
+		if !existPrepare() {
+			return newError(fmt.Sprintf("current index block not existed,discard msg(index:%d)", vote.BlockIndex))
 		}
 		return nil
 	}
@@ -220,7 +238,6 @@ func (r *baseSafetyRules) changeEpochVoteRules(vote *protocols.PrepareVote) Safe
 // 1.Less than local viewNumber drop
 // 2.Synchronization greater than local viewNumber
 func (r *baseSafetyRules) ViewChangeRules(viewChange *protocols.ViewChange) SafetyError {
-
 	if r.viewState.Epoch() != viewChange.Epoch {
 		return r.changeEpochViewChangeRules(viewChange)
 	}
