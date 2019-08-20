@@ -1437,6 +1437,9 @@ func (cbft *Cbft) verifyPrepareQC(original uint64, qc *ctypes.QuorumCert) error 
 		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
 	}(time.Now())
 
+	if qc == nil {
+		return fmt.Errorf("verify prepare qc failed,qc is nil")
+	}
 	// check signature number
 	threshold := cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
 	signsTotal := qc.Len()
