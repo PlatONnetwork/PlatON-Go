@@ -11,6 +11,8 @@ import (
 )
 
 // ============================ simulation network ============================
+
+// RandomID returns a list of NodeID by random.
 func RandomID() []discover.NodeID {
 	ids := make([]discover.NodeID, 0)
 	for i := 0; i < 4; i++ {
@@ -28,32 +30,32 @@ func RandomID() []discover.NodeID {
 func EnhanceEngineManager(ids []discover.NodeID, handlers []*EngineManager) {
 
 	// node 1 => 1 <--> 2 association.
-	rw1_node_1_2, rw2_node_1_2 := p2p.MsgPipe()
-	rw1_node_1_3, rw2_node_1_3 := p2p.MsgPipe()
-	rw1_node_1_4, rw2_node_1_4 := p2p.MsgPipe()
-	rw1_node_3_2, rw2_node_3_2 := p2p.MsgPipe()
-	rw1_node_3_4, rw2_node_3_4 := p2p.MsgPipe()
-	rw1_node_2_4, rw2_node_2_4 := p2p.MsgPipe()
+	rw1Node1_2, rw2Node1_2 := p2p.MsgPipe()
+	rw1Node1_3, rw2Node1_3 := p2p.MsgPipe()
+	rw1Node1_4, rw2Node1_4 := p2p.MsgPipe()
+	rw1Node3_2, rw2Node3_2 := p2p.MsgPipe()
+	rw1Node3_4, rw2Node3_4 := p2p.MsgPipe()
+	rw1Node2_4, rw2Node2_4 := p2p.MsgPipe()
 
-	peer1_1_2 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[0], ids[0].TerminalString(), nil), rw1_node_1_2)
-	peer2_1_2 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[1], ids[1].TerminalString(), nil), rw2_node_1_2)
+	peer1_1_2 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[0], ids[0].TerminalString(), nil), rw1Node1_2)
+	peer2_1_2 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[1], ids[1].TerminalString(), nil), rw2Node1_2)
 
 	// 1 <--> 3 association.
-	peer1_1_3 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[0], ids[0].TerminalString(), nil), rw1_node_1_3)
-	peer3_1_3 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[2], ids[2].TerminalString(), nil), rw2_node_1_3)
+	peer1_1_3 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[0], ids[0].TerminalString(), nil), rw1Node1_3)
+	peer3_1_3 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[2], ids[2].TerminalString(), nil), rw2Node1_3)
 
 	// 1 <--> 4 association.
-	peer1_1_4 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[0], ids[0].TerminalString(), nil), rw1_node_1_4)
-	peer4_1_4 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[3], ids[3].TerminalString(), nil), rw2_node_1_4)
+	peer1_1_4 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[0], ids[0].TerminalString(), nil), rw1Node1_4)
+	peer4_1_4 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[3], ids[3].TerminalString(), nil), rw2Node1_4)
 
-	peer3_3_2 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[2], ids[2].TerminalString(), nil), rw1_node_3_2)
-	peer2_3_2 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[1], ids[1].TerminalString(), nil), rw2_node_3_2)
+	peer3_3_2 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[2], ids[2].TerminalString(), nil), rw1Node3_2)
+	peer2_3_2 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[1], ids[1].TerminalString(), nil), rw2Node3_2)
 
-	peer3_3_4 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[2], ids[2].TerminalString(), nil), rw1_node_3_4)
-	peer4_3_4 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[3], ids[3].TerminalString(), nil), rw2_node_3_4)
+	peer3_3_4 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[2], ids[2].TerminalString(), nil), rw1Node3_4)
+	peer4_3_4 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[3], ids[3].TerminalString(), nil), rw2Node3_4)
 
-	peer2_2_4 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[1], ids[1].TerminalString(), nil), rw1_node_2_4)
-	peer4_2_4 := NewPeer(CbftProtocolVersion, p2p.NewPeer(ids[3], ids[3].TerminalString(), nil), rw2_node_2_4)
+	peer2_2_4 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[1], ids[1].TerminalString(), nil), rw1Node2_4)
+	peer4_2_4 := newPeer(CbftProtocolVersion, p2p.NewPeer(ids[3], ids[3].TerminalString(), nil), rw2Node2_4)
 
 	// register for h1
 	handlers[0].peers.Register(peer2_1_2)
@@ -76,15 +78,16 @@ func EnhanceEngineManager(ids []discover.NodeID, handlers []*EngineManager) {
 	handlers[3].peers.Register(peer2_2_4)
 }
 
+// SetSendQueueHook sets the hook for engine.
 func SetSendQueueHook(engine *EngineManager, hook func(msg *types.MsgPackage)) {
 	engine.sendQueueHook = hook
 }
 
-// Populate the peer for the specified Handle.
+// FillEngineManager populates the peer for the specified Handle.
 func FillEngineManager(ids []discover.NodeID, handler *EngineManager) {
 	write, read := p2p.MsgPipe()
 	for _, v := range ids {
-		peer := NewPeer(CbftProtocolVersion, p2p.NewPeer(v, v.TerminalString(), nil), write)
+		peer := newPeer(CbftProtocolVersion, p2p.NewPeer(v, v.TerminalString(), nil), write)
 		handler.peers.Register(peer)
 	}
 	go func() {

@@ -631,6 +631,12 @@ var (
 		Name:  "cbft.blskey",
 		Usage: "BLS key file",
 	}
+
+	CbftBlacklistDeadlineFlag = cli.StringFlag{
+		Name:  "cbft.blacklist_deadline",
+		Usage: "Blacklist effective time. uint:minute",
+		Value: "60",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1321,6 +1327,9 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 
 	if ctx.GlobalIsSet(CbftMaxPingLatency.Name) {
 		cfg.MaxPingLatency = ctx.GlobalInt64(CbftMaxPingLatency.Name)
+	}
+	if ctx.GlobalIsSet(CbftBlacklistDeadlineFlag.Name) {
+		cfg.BlacklistDeadline = ctx.GlobalInt64(CbftBlacklistDeadlineFlag.Name)
 	}
 
 }

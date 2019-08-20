@@ -63,13 +63,13 @@ func (b *blockExt) MarshalJSON() ([]byte, error) {
 		ext.ParentHash = b.Parent.Block.Hash()
 	}
 
-	for h, _ := range b.Children {
+	for h := range b.Children {
 		ext.Children = append(ext.Children, h)
 	}
 	return json.Marshal(ext)
 }
 
-//BlockTree used to store blocks that are not currently written to disk， Block of QC, LockQC. Every time you submit to blockTree, it is possible to start QC changes.
+// BlockTree used to store blocks that are not currently written to disk， Block of QC, LockQC. Every time you submit to blockTree, it is possible to start QC changes.
 type BlockTree struct {
 	// The highest Block that has been written to disk, root will grow with each commit
 	root *blockExt

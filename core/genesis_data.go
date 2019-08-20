@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -57,6 +58,9 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	}
 	initQueue := g.Config.Cbft.InitialNodes
 
+	//b, _ := json.Marshal(initQueue)
+	//log.Debug("genesisStakingData InitialNodes", "queue", string(b))
+
 	validatorQueue := make(staking.ValidatorQueue, length)
 
 	lastHash := common.ZeroHash
@@ -104,6 +108,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			// generate hash by candidate info
 			newHash := generateKVHash(key, val, lastHash)
 			lastHash = newHash
+			log.Debug("Call genesisStakingData: Store Candidate", "pposhash", lastHash.Hex())
+
 		}
 
 		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
@@ -113,6 +119,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		// generate hash by candidate power
 		newHash := generateKVHash(powerKey, nodeAddr.Bytes(), lastHash)
 		lastHash = newHash
+		log.Debug("Call genesisStakingData: Store Power", "pposhash", lastHash.Hex())
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
@@ -134,6 +141,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	// generate hash by stake account reference count
 	newHash := generateKVHash(staking.GetAccountStakeRcKey(vm.PlatONFoundationAddress), common.Uint64ToBytes(uint64(length)), lastHash)
 	lastHash = newHash
+	log.Debug("Call genesisStakingData: Store Ac", "pposhash", lastHash.Hex())
 
 	validatorArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
@@ -156,12 +164,24 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	if nil != err {
 		return fmt.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
 	}
+
+	b, _ := json.Marshal(epochIndexArr)
+	log.Debug("Before Store Epoch Index", "queue", string(b), "epoch calc", xutil.CalcBlocksEachEpoch())
+	//
+	//
+	log.Debug("Call genesisStakingData: Before Store Epoch Index", "key", hex.EncodeToString(staking.GetEpochIndexKey()), "val", hex.EncodeToString(epoch_index), "pposhash", lastHash.Hex())
+	//
+	//
+	//
+
 	if err := snapdb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
 		return fmt.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 	}
+
 	// generate hash by epoch indexs
 	newHash = generateKVHash(staking.GetEpochIndexKey(), epoch_index, lastHash)
 	lastHash = newHash
+	log.Debug("Call genesisStakingData: After Store Epoch index", "pposhash", lastHash.Hex())
 
 	// Epoch validators
 	if err := snapdb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), validatorArr); nil != err {
@@ -170,6 +190,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	// generate hash by epoch validators
 	newHash = generateKVHash(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), validatorArr, lastHash)
 	lastHash = newHash
+	log.Debug("Call genesisStakingData: Store Epoch", "pposhash", lastHash.Hex())
 
 	/**
 	Round
@@ -199,6 +220,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	// generate hash by round indexs
 	newHash = generateKVHash(staking.GetRoundIndexKey(), round_index, lastHash)
 	lastHash = newHash
+	log.Debug("Call genesisStakingData: Store ROund index", "pposhash", lastHash.Hex())
 
 	// Previous Round validator
 	if err := snapdb.PutBaseDB(staking.GetRoundValArrKey(pre_indexInfo.Start, pre_indexInfo.End), validatorArr); nil != err {
@@ -207,6 +229,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	// generate hash by pre-round validators
 	newHash = generateKVHash(staking.GetRoundValArrKey(pre_indexInfo.Start, pre_indexInfo.End), validatorArr, lastHash)
 	lastHash = newHash
+	log.Debug("Call genesisStakingData: Store pre Round", "pposhash", lastHash.Hex())
 
 	// Current Round validator
 	if err := snapdb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), validatorArr); nil != err {
@@ -215,6 +238,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	// generate hash by curr-round validators
 	newHash = generateKVHash(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), validatorArr, lastHash)
 	lastHash = newHash
+	log.Debug("Call genesisStakingData: Store curr round", "pposhash", lastHash.Hex())
 
 	log.Info("Call genesisStakingData, Store genesis pposHash by stake data", "pposHash", lastHash.Hex())
 

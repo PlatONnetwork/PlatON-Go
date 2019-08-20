@@ -210,7 +210,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			Period: 3,
-			Epoch:  30000,
 			PposConfig: &PposConfig{
 				CandidateConfig: &CandidateConfig{
 					Threshold:         "1000000000000000000000000",
@@ -284,7 +283,6 @@ type CbftNode struct {
 }
 
 type CbftConfig struct {
-	Epoch         uint64      `json:"epoch,omitempty"`         // Epoch length to reset votes and checkpoint
 	Period        uint64      `json:"period,omitempty"`        // Number of seconds between blocks to enforce
 	Amount        uint32      `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
 	InitialNodes  []CbftNode  `json:"initialNodes,omitempty"`  //Genesis consensus node

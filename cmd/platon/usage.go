@@ -250,6 +250,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CbftEvidenceDir,
 			utils.CbftMaxPingLatency,
 			utils.CbftBlsPriKeyFileFlag,
+			utils.CbftBlacklistDeadlineFlag,
 		},
 	},
 	{

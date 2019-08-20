@@ -11,7 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 )
 
-// Returns a random offset between 0 and n
+// RandomOffset returns a random offset between 0 and n
 func RandomOffset(n int) int {
 	if n == 0 {
 		return 0
@@ -19,7 +19,7 @@ func RandomOffset(n int) int {
 	return int(rand.Uint32() % uint32(n))
 }
 
-// Convert byte array to hash. Use sha256 to
+// BuildHash converts byte array to hash. Use sha256 to
 // generate a unique message hash.
 func BuildHash(msgType byte, bytes []byte) common.Hash {
 	bytes[0] = msgType
@@ -29,7 +29,7 @@ func BuildHash(msgType byte, bytes []byte) common.Hash {
 	return result
 }
 
-// A merges multiple bytes of data and
+// MergeBytes merges multiple bytes of data and
 // returns the merged byte array.
 func MergeBytes(bts ...[]byte) []byte {
 	buffer := bytes.NewBuffer(make([]byte, 0, 128))
@@ -69,22 +69,23 @@ type KeyValuePair struct {
 	Value int64
 }
 
-// A slice of Pairs that implements sort.Interface to sort by Value.
+// KeyValuePairList is a slice of Pairs that implements
+// sort.Interface to sort by Value.
 type KeyValuePairList []KeyValuePair
 
-func (p KeyValuePairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p KeyValuePairList) Len() int           { return len(p) }
-func (p KeyValuePairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+func (kvp KeyValuePairList) Swap(i, j int)      { kvp[i], kvp[j] = kvp[j], kvp[i] }
+func (kvp KeyValuePairList) Len() int           { return len(kvp) }
+func (kvp KeyValuePairList) Less(i, j int) bool { return kvp[i].Value < kvp[j].Value }
 
-func (h *KeyValuePairList) Push(x interface{}) {
-	*h = append(*h, x.(KeyValuePair))
+func (kvp *KeyValuePairList) Push(x interface{}) {
+	*kvp = append(*kvp, x.(KeyValuePair))
 }
 
-func (h *KeyValuePairList) Pop() interface{} {
-	old := *h
+func (kvp *KeyValuePairList) Pop() interface{} {
+	old := *kvp
 	n := len(old)
 	x := old[n-1]
-	*h = old[0 : n-1]
+	*kvp = old[0 : n-1]
 	return x
 }
 
@@ -93,7 +94,7 @@ func SortMap(m map[string]int64) KeyValuePairList {
 	i := 0
 	for k, v := range m {
 		p[i] = KeyValuePair{k, v}
-		i += 1
+		i++
 	}
 	sort.Sort(p)
 	return p
