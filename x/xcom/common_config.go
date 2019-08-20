@@ -22,16 +22,11 @@ const (
 )
 
 type commonConfig struct {
-	ExpectedMinutes       uint64 // expected minutes every epoch
-	NodeBlockTimeWindow   uint64 // Node block time window (uint: seconds)
-	PerRoundBlocks        uint64 // blocks each validator will create per consensus epoch
-	OptValidatorCount     uint64 // Alternative number of validation nodes
-	ValidatorCount        uint64 // The consensus validators count
-	AdditionalCycleTime   uint64 // Additional cycle time (uint: minutes)
-	PleRetLockCycle       uint64 // Pledge return lock cycle
-	TextVotCycle          uint64 // Voting cycles for text proposals
-	UpgradeMaxVotCycle    uint64 // The upgrade proposal has a maximum voting period
-	UpgradeEffectiveCycle uint64 // Upgrade proposal effective period
+	ExpectedMinutes     uint64 // expected minutes every epoch
+	NodeBlockTimeWindow uint64 // Node block time window (uint: seconds)
+	PerRoundBlocks      uint64 // blocks each validator will create per consensus epoch
+	ValidatorCount      uint64 // The consensus validators count
+	AdditionalCycleTime uint64 // Additional cycle time (uint: minutes)
 }
 
 type stakingConfig struct {
@@ -137,16 +132,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultMainNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(360), // 6 hours
-				NodeBlockTimeWindow:   uint64(20),  // 20 seconds
-				PerRoundBlocks:        uint64(10),
-				OptValidatorCount:     uint64(101),
-				ValidatorCount:        uint64(25),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(360), // 6 hours
+				NodeBlockTimeWindow: uint64(20),  // 20 seconds
+				PerRoundBlocks:      uint64(10),
+				ValidatorCount:      uint64(25),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -182,16 +172,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultAlphaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -227,16 +212,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultBetaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -272,16 +252,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultInnerTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(666), // 11 hours
-				NodeBlockTimeWindow:   uint64(50),  // 50 seconds
-				PerRoundBlocks:        uint64(25),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(10),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(666), // 11 hours
+				NodeBlockTimeWindow: uint64(50),  // 50 seconds
+				PerRoundBlocks:      uint64(25),
+				ValidatorCount:      uint64(10),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -317,16 +292,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultInnerDevNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -363,16 +333,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
