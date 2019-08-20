@@ -23,8 +23,8 @@ const (
 
 type commonConfig struct {
 	ExpectedMinutes     uint64 // expected minutes every epoch
-	NodeBlockTimeWindow uint64 // Node block time window (uint: seconds)
-	PerRoundBlocks      uint64 // blocks each validator will create per consensus epoch
+	NodeBlockTimeWindow uint64 `json:"-"` // Node block time window (uint: seconds)
+	PerRoundBlocks      uint64 `json:"-"` // blocks each validator will create per consensus epoch
 	ValidatorCount      uint64 // The consensus validators count
 	AdditionalCycleTime uint64 // Additional cycle time (uint: minutes)
 }
@@ -410,6 +410,19 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 func ExpectedMinutes() uint64 {
 	return ec.Common.ExpectedMinutes
 }
+
+// set the value by genesis block
+func SetNodeBlockTimeWindow(period uint64) {
+	if ec != nil {
+		ec.Common.NodeBlockTimeWindow = period
+	}
+}
+func SetPerRoundBlocks(amount uint64) {
+	if ec != nil {
+		ec.Common.PerRoundBlocks = amount
+	}
+}
+
 func Interval() uint64 {
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
