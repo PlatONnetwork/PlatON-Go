@@ -8,58 +8,83 @@ import (
 	"strconv"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	mapset "github.com/deckarep/golang-set"
 )
 
 const (
 
-	// Protocol name of CBFT
+	// CbftProtocolName is protocol name of CBFT.
 	CbftProtocolName = "cbft"
 
-	// Protocol version of CBFT
+	// CbftProtocolVersion is protocol version of CBFT.
 	CbftProtocolVersion = 1
 
 	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
 	CbftProtocolLength = 20
 
-	// Maximum threshold for the queue of messages waiting to be sent.
+	// sendQueueSize is maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
 
-	QCBnMonitorInterval = 10 // Qc block synchronization detection interval
-	//LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
-	//CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+	// QCBnMonitorInterval is Qc block synchronization detection interval.
+	QCBnMonitorInterval = 10
+
+	// SyncViewChangeInterval is ViewChange synchronization detection interval.
 	SyncViewChangeInterval = 10
 
-	//
-	TypeForQCBn     = 1
+	// removeBlacklistInterval is remove blacklist detection interval.
+	removeBlacklistInterval = 20
+
+	// TypeForQCBn is the type for QC sync.
+	TypeForQCBn = 1
+
+	// TypeForLockedBn is the type for Locked sync.
 	TypeForLockedBn = 2
+
+	// TypeForCommitBn is the type for Commit sync.
 	TypeForCommitBn = 3
+
+	// The maximum number of queues for message packets
+	// that are communicated by peers.
+	maxHistoryMessageHash = 5000
+
+	// If the number of blacklists reaches the threshold,
+	// the oldest blacklisted node will be re-trusted.
+	maxBlacklist = 300
 )
 
-// Responsible for processing the messages in the network.
+// EngineManager responsibles for processing the messages in the network.
 type EngineManager struct {
-	engine        Cbft
-	router        *router
-	peers         *PeerSet
-	sendQueue     chan *types.MsgPackage
-	quitSend      chan struct{}
-	sendQueueHook func(*types.MsgPackage)
+	engine             Cbft
+	router             *router
+	peers              *PeerSet
+	sendQueue          chan *types.MsgPackage
+	quitSend           chan struct{}
+	sendQueueHook      func(*types.MsgPackage)
+	historyMessageHash mapset.Set // Consensus message record that has been processed successfully.
+	blacklist          *lru.Cache // Save node blacklist.
 }
 
-// Create a new handler and do some initialization.
+// NewEngineManger returns a new handler and do some initialization.
 func NewEngineManger(engine Cbft) *EngineManager {
 	handler := &EngineManager{
-		engine:    engine,
-		peers:     NewPeerSet(),
-		sendQueue: make(chan *types.MsgPackage, sendQueueSize),
-		quitSend:  make(chan struct{}, 0),
+		engine:             engine,
+		peers:              NewPeerSet(),
+		sendQueue:          make(chan *types.MsgPackage, sendQueueSize),
+		quitSend:           make(chan struct{}, 0),
+		historyMessageHash: mapset.NewSet(),
 	}
+	handler.blacklist, _ = lru.New(maxBlacklist)
 	// init router
-	handler.router = NewRouter(handler.Unregister, handler.GetPeer, handler.ConsensusNodes, handler.Peers)
+	handler.router = newRouter(handler.Unregister, handler.getPeer, handler.ConsensusNodes, handler.peerList)
 	return handler
 }
 
@@ -108,12 +133,30 @@ func (h *EngineManager) sendMessage(m *types.MsgPackage) {
 	h.router.SendMessage(m)
 }
 
-// Return the peer with the specified peerID.
-func (h *EngineManager) GetPeer(peerID string) (*peer, error) {
+// PeerSetting sets the block height of the node related type.
+func (h *EngineManager) PeerSetting(peerID string, bType uint64, blockNumber uint64) error {
+	p, err := h.peers.get(peerID)
+	if err != nil || p == nil {
+		return err
+	}
+	switch bType {
+	case TypeForQCBn:
+		p.SetQcBn(new(big.Int).SetUint64(blockNumber))
+	case TypeForLockedBn:
+		p.SetLockedBn(new(big.Int).SetUint64(blockNumber))
+	case TypeForCommitBn:
+		p.SetCommitdBn(new(big.Int).SetUint64(blockNumber))
+	default:
+	}
+	return nil
+}
+
+// GetPeer returns the peer with the specified peerID.
+func (h *EngineManager) getPeer(peerID string) (*peer, error) {
 	if peerID == "" {
 		return nil, fmt.Errorf("invalid peerID parameter - %v", peerID)
 	}
-	return h.peers.Get(peerID)
+	return h.peers.get(peerID)
 }
 
 // Send imports messages into the send queue and send it according to the specified ID.
@@ -140,7 +183,7 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	}
 }
 
-// Broadcast imports messages into the send queue.
+// PartBroadcast imports messages into the send queue.
 //
 // Note: The broadcast of this method defaults to PartMode.
 func (h *EngineManager) PartBroadcast(msg types.Message) {
@@ -161,20 +204,20 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 //    PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
 // 2. message type that need not to be forwarded:
 //    (Except for the above types, the rest are not forwarded).
-func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
+func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 	msgHash := msg.MsgHash()
 	msgType := protocols.MessageType(msg)
 
 	// the logic to forward message.
 	forward := func() error {
-		peers, err := h.Peers()
+		peers, err := h.peerList()
 		if err != nil || len(peers) == 0 {
 			return fmt.Errorf("peers is none, msgHash:%s", msgHash.TerminalString())
 		}
 		// Check all neighbor node lists and see if the specified message has been processed.
 		for _, peer := range peers {
 			// exclude currently send peer.
-			if peer.id == nodeId {
+			if peer.id == nodeID {
 				continue
 			}
 			if peer.ContainsMessageHash(msgHash) {
@@ -190,7 +233,7 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 		if msgType == protocols.PrepareBlockMsg {
 			// Special treatment.
 			if v, ok := msg.(*protocols.PrepareBlock); ok {
-				go h.Broadcast(&protocols.PrepareBlockHash{
+				h.Broadcast(&protocols.PrepareBlockHash{
 					Epoch:       v.Epoch,
 					ViewNumber:  v.ViewNumber,
 					BlockIndex:  v.BlockIndex,
@@ -201,14 +244,13 @@ func (h *EngineManager) Forwarding(nodeId string, msg types.Message) error {
 			}
 		} else {
 			// Direct forwarding.
-			go h.Broadcast(msg)
+			h.Broadcast(msg)
 		}
 		return nil
 	}
 	// PrepareBlockMsg does not forward, the message will be forwarded using PrepareBlockHash.
 	switch msgType {
-	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg,
-		protocols.BlockQuorumCertMsg, protocols.PrepareBlockHashMsg:
+	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg, protocols.ViewChangeMsg:
 		err := forward()
 		if err != nil {
 			messageGossipMeter.Mark(1)
@@ -234,7 +276,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 				return h.NodeInfo()
 			},
 			PeerInfo: func(id discover.NodeID) interface{} {
-				if p, err := h.peers.Get(fmt.Sprintf("%x", id[:8])); err == nil {
+				if p, err := h.peers.get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
 				return nil
@@ -243,26 +285,42 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 	}
 }
 
-// Return all neighbor node lists.
-func (h *EngineManager) Peers() ([]*peer, error) {
-	return h.peers.Peers(), nil
+// AliveConsensusNodeIDs returns all NodeID to alive peer.
+func (h *EngineManager) AliveConsensusNodeIDs() ([]string, error) {
+	cNodes, _ := h.engine.ConsensusNodes()
+	peers := h.peers.allPeers()
+	target := make([]string, 0, len(peers))
+	for _, pNode := range peers {
+		for _, cNode := range cNodes {
+			if pNode.PeerID() == cNode.TerminalString() {
+				target = append(target, pNode.PeerID())
+			}
+		}
+	}
+	return target, nil
 }
 
-// Remove the peer with the specified ID
+// Return all neighbor node lists.
+func (h *EngineManager) peerList() ([]*peer, error) {
+	return h.peers.allPeers(), nil
+}
+
+// Unregister removes the peer with the specified ID.
 func (h *EngineManager) Unregister(id string) error {
 	return h.peers.Unregister(id)
 }
 
-// Return a list of all consensus nodes
+// ConsensusNodes returns a list of all consensus nodes.
 func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
 	return h.engine.ConsensusNodes()
 }
 
-// Representative node configuration information.
+// NodeInfo representatives node configuration information.
 type NodeInfo struct {
 	Config types.Config `json:"config"`
 }
 
+// NodeInfo returns the information of Node.
 func (h *EngineManager) NodeInfo() *NodeInfo {
 	cfg := h.engine.Config()
 	return &NodeInfo{
@@ -274,7 +332,7 @@ func (h *EngineManager) NodeInfo() *NodeInfo {
 // to the cbft protocol message, the method is called.
 func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// Further confirm if the version number needs to be read from the configuration.
-	peer := NewPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
+	peer := newPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
 
 	// execute handshake
 	// 1.need qcBn/qcHash/lockedBn/lockedHash/commitBn/commitHash from cbft.
@@ -303,6 +361,13 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 			p.Log().Debug("CBFT handshake failed", "err", err)
 			return err
 		}
+
+		// Blacklist check.
+		if h.ContainsBlacklist(peer.PeerID()) {
+			p.Log().Error("CBFT handshake, peer that are forbidden to connect")
+			return fmt.Errorf("illegal node: {%s}", peer.PeerID())
+		}
+
 		// If blockNumber in the local is better than the remote
 		// then determine if there is a fork.
 		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
@@ -332,7 +397,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		p.Log().Error("Cbft peer registration failed", "err", err)
 		return err
 	}
-	defer h.peers.Unregister(peer.PeerID())
+	defer h.RemovePeer(peer.PeerID())
 
 	// start ping loop.
 	go peer.Run()
@@ -483,14 +548,14 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		// Directly respond to the response message after receiving the ping message.
 		go p2p.SendItems(p.ReadWriter(), protocols.PongMsg, pingTime[0])
 		p.Log().Trace("Respond to ping message done")
-
 		return nil
+
 	case msg.Code == protocols.PongMsg:
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
 		log.Debug("handle a eth Pong message", "curTime", curTime)
-		var pingTime protocols.Pong
-		if err := msg.Decode(&pingTime); err != nil {
+		var pongTime protocols.Pong
+		if err := msg.Decode(&pongTime); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		for {
@@ -502,7 +567,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			}
 			log.Trace("Front element of p.PingList", "element", frontPing)
 			if t, ok := p.PingList.Remove(frontPing).(string); ok {
-				if t == pingTime[0] {
+				if t == pongTime[0] {
 					tInt64, err := strconv.ParseInt(t, 10, 64)
 					if err != nil {
 						return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
@@ -524,12 +589,65 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
 		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
+	case msg.Code == protocols.ViewChangesMsg:
+		var request protocols.ViewChanges
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		return h.engine.ReceiveSyncMsg(types.NewMsgInfo(&request, p.PeerID()))
 
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
 
 	return nil
+}
+
+// MarkHistoryMessageHash is used to record the hash value of each message from the peer node.
+// If the queue is full, remove the bottom element and add a new one.
+func (h *EngineManager) MarkHistoryMessageHash(hash common.Hash) {
+	for h.historyMessageHash.Cardinality() >= maxHistoryMessageHash {
+		h.historyMessageHash.Pop()
+	}
+	h.historyMessageHash.Add(hash)
+}
+
+// ContainsMessageHash returns whether the specified hash exists.
+func (h *EngineManager) ContainsHistoryMessageHash(hash common.Hash) bool {
+	return h.historyMessageHash.Contains(hash)
+}
+
+// MarkBlacklist marks the specified node as a blacklist.
+// If the number of recorded blacklists reaches the threshold,
+// the node that was first set to blacklist will be removed from the blacklist.
+func (h *EngineManager) MarkBlacklist(peerID string) {
+	deadline := time.Duration(h.engine.Config().Option.BlacklistDeadline) * time.Minute
+	h.blacklist.Add(peerID, time.Now().Add(deadline))
+}
+
+// ContainsBlacklist returns whether the specified node is blacklisted.
+func (h *EngineManager) ContainsBlacklist(peerID string) bool {
+	return h.blacklist.Contains(peerID)
+}
+
+// RemovePeer removes and disconnects a node from
+// a neighbor node.
+func (h *EngineManager) RemovePeer(id string) {
+	// Short circuit if the peer was already removed
+	peer, err := h.peers.get(id)
+	if err != nil {
+		log.Error("Removing CBFT peer failed", "err", err)
+		return
+	}
+	log.Debug("Removing CBFT peer", "peer", id)
+
+	if err := h.peers.Unregister(id); err != nil {
+		log.Error("CBFT Peer removal failed", "peer", id, "err", err)
+	}
+	// Hard disconnect at the networking layer
+	if peer != nil {
+		peer.Peer.Disconnect(p2p.DiscUselessPeer)
+	}
 }
 
 // Select a node with a height higher than the local node block from
@@ -544,6 +662,7 @@ func (h *EngineManager) synchronize() {
 	log.Debug("~ Start synchronize in the handler")
 	blockNumberTimer := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
+	pureBlacklistTicker := time.NewTicker(removeBlacklistInterval * time.Second)
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
@@ -555,12 +674,6 @@ func (h *EngineManager) synchronize() {
 			LogicType:   TypeForQCBn,
 		})
 	}
-
-	// Update if it is the same state within 5 seconds
-	var (
-		lastEpoch      uint64 = 0
-		lastViewNumber uint64 = 0
-	)
 
 	for {
 		select {
@@ -577,20 +690,32 @@ func (h *EngineManager) synchronize() {
 		case <-viewTicker.C:
 			// If the local viewChange has insufficient votes,
 			// the GetViewChange message is sent from the missing node.
-			missingViewNodes, msg, err := h.engine.MissingViewChangeNodes()
+			msg, err := h.engine.MissingViewChangeNodes()
 			if err != nil {
-				log.Error("Get consensus nodes failed", "err", err)
+				log.Debug("Request missing viewchange failed", "err", err)
 				break
 			}
-			// Initi.al situation.
-			if lastEpoch == msg.Epoch && lastViewNumber == msg.ViewNumber {
-				log.Debug("Will send GetViewChange", "missingNodes", FormatNodes(missingViewNodes))
-				// Only broadcasts without forwarding.
-				h.Broadcast(msg)
-			} else {
-				log.Debug("Waiting for the next round")
+			log.Debug("Had new viewchange sync request", "msg", msg.String())
+			// Only broadcasts without forwarding.
+			h.PartBroadcast(msg)
+
+		case <-pureBlacklistTicker.C:
+			// Iterate over the blacklist and remove
+			// the nodes that have expired.
+			keys := h.blacklist.Keys()
+			log.Debug("Blacklist pure start", "len", len(keys))
+			for _, k := range keys {
+				v, exists := h.blacklist.Get(k)
+				if !exists {
+					continue
+				}
+				if t, ok := v.(time.Time); ok {
+					if t.Before(time.Now()) {
+						h.blacklist.Remove(k)
+						log.Debug("Remove blacklist success", "peerID", k)
+					}
+				}
 			}
-			lastEpoch, lastViewNumber = msg.Epoch, msg.ViewNumber
 
 		case <-h.quitSend:
 			log.Error("synchronize quit")
@@ -633,7 +758,7 @@ func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 
 // Testing is only used for unit testing.
 func (h *EngineManager) Testing() {
-	peers, _ := h.Peers()
+	peers, _ := h.peerList()
 	for _, v := range peers {
 		go func(p *peer) {
 			for {

@@ -136,7 +136,7 @@ func testViewChangeQC(t *testing.T, cnode []*Cbft) {
 	}
 	qc := cnode[0].generateViewChangeQC(pbs)
 	assert.Len(t, qc.QCs, len(cnode))
-	_, _, _, num := qc.MaxBlock()
+	_, _, _, _, _, num := qc.MaxBlock()
 	assert.Equal(t, uint64(len(cnode)-1), num)
 
 	assert.Nil(t, cnode[0].verifyViewChangeQC(qc))
@@ -549,7 +549,7 @@ func TestShouldSeal(t *testing.T) {
 
 	time.Sleep(4 * time.Second)
 	should, err = node.engine.ShouldSeal(time.Now())
-	assert.Equal(t, err.Error(), "view timeout")
+	assert.NotNil(t, err.Error())
 	assert.False(t, should)
 }
 func TestInsertChain(t *testing.T) {
@@ -648,4 +648,27 @@ func TestJson(t *testing.T) {
 	if b, err := json.Marshal(&qc); err == nil {
 		log.Info(string(b))
 	}
+}
+
+func Test_StatMessage(t *testing.T) {
+	pk, sk, cbftnodes := GenerateCbftNode(1)
+	node := MockNode(pk[0], sk[0], cbftnodes, 5000, 10)
+	err := node.engine.statMessage(nil)
+	assert.NotNil(t, err)
+	for i := 0; i < 500; i++ {
+		pid1 := fmt.Sprintf("id%d", i)
+		pid2 := fmt.Sprintf("id%d", i)
+		msgInfo1 := ctypes.NewMsgInfo(&protocols.PrepareBlockHash{
+			BlockHash:   common.BytesToHash([]byte("1")),
+			BlockNumber: uint64(i),
+		}, pid1)
+		msgInfo2 := ctypes.NewMsgInfo(&protocols.PrepareBlockHash{
+			BlockHash:   common.BytesToHash([]byte("1")),
+			BlockNumber: uint64(i),
+		}, pid2)
+		node.engine.statMessage(msgInfo1)
+		node.engine.statMessage(msgInfo1)
+		node.engine.statMessage(msgInfo2)
+	}
+	assert.Equal(t, 199, len(node.engine.statQueues))
 }

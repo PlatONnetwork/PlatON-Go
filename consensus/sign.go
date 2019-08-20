@@ -2,16 +2,18 @@ package consensus
 
 import (
 	"errors"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
-	ExtraSeal = 65 // Fixed number of extra-data suffix bytes reserved for signer seal
+	// ExtraSeal fixed number of extra-data suffix bytes reserved for signer seal
+	ExtraSeal = 65
 	// ErrMissingSignature is returned if a block's extra-data section doesn't seem
 	// to contain a 65 byte secp256k1 signature.
 	ErrMissingSignature = errors.New("extra-data 65 byte signature suffix missing")

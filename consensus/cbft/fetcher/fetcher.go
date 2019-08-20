@@ -1,21 +1,28 @@
 package fetcher
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
 var (
 	arriveTimeout = 500 * time.Millisecond
 )
 
+// SetArriveTimeout set timeout.
 func SetArriveTimeout(duration time.Duration) {
 	arriveTimeout = duration
 }
 
+// MatchFunc is a function that judges the matching of messages.
 type MatchFunc func(types.Message) bool
+
+// ExecutorFunc defines the execution function.
 type ExecutorFunc func(types.Message)
+
+// ExpireFunc defines the timeout execution function.
 type ExpireFunc func()
 
 type task struct {
@@ -31,6 +38,7 @@ type task struct {
 	time time.Time
 }
 
+// Fetcher manages the logic associated with fetch.
 type Fetcher struct {
 	lock    sync.Mutex
 	newTask chan *task
@@ -38,9 +46,10 @@ type Fetcher struct {
 	tasks   map[string]*task
 }
 
+// NewFetcher returns a new pointer to the Fetcher.
 func NewFetcher() *Fetcher {
 	fetcher := &Fetcher{
-		newTask: make(chan *task),
+		newTask: make(chan *task, 1),
 		tasks:   make(map[string]*task),
 		quit:    make(chan struct{}),
 	}
@@ -48,23 +57,25 @@ func NewFetcher() *Fetcher {
 	return fetcher
 }
 
+// Start turns on for Fetch.
 func (f *Fetcher) Start() {
 	go f.loop()
 }
 
+// Stop turns off for Fetch.
 func (f *Fetcher) Stop() {
 	close(f.quit)
 }
 
-// Add a fetcher task
+// AddTask adds a fetcher task.
 func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, expire ExpireFunc) {
 	select {
 	case <-f.quit:
 	case f.newTask <- &task{id: id, match: match, executor: executor, expire: expire, time: time.Now()}:
 	}
-
 }
 
+// MatchTask matching task.
 func (f *Fetcher) MatchTask(id string, message types.Message) bool {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -78,6 +89,7 @@ func (f *Fetcher) MatchTask(id string, message types.Message) bool {
 	return false
 }
 
+// Len returns the number of existing tasks.
 func (f *Fetcher) Len() int {
 	f.lock.Lock()
 	defer f.lock.Unlock()

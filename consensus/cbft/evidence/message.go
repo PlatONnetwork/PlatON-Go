@@ -151,6 +151,7 @@ func (ev *EvidenceView) Verify() error {
 	return ev.ValidateNode.Verify(data, ev.Signature.Bytes())
 }
 
+// EvidenceNode mainly used to save node BlsPubKey
 type EvidenceNode struct {
 	Index     uint32          `json:"index"`
 	Address   common.Address  `json:"address"`
@@ -167,6 +168,7 @@ func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	}
 }
 
+// bls verifies signature
 func (vn *EvidenceNode) Verify(data, sign []byte) error {
 	var sig bls.Sign
 	err := sig.Deserialize(sign)

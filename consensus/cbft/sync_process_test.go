@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +20,7 @@ import (
 )
 
 func init() {
-	//log.Root().SetHandler(log.StdoutHandler)
+	log.Root().SetHandler(log.DiscardHandler())
 	fetcher.SetArriveTimeout(10 * time.Second)
 }
 
@@ -88,11 +89,9 @@ func TestFetch(t *testing.T) {
 	assert.Equal(t, uint64(3), nodes[0].engine.state.HighestQCBlock().NumberU64())
 	assert.Equal(t, uint64(0), nodes[1].engine.state.HighestQCBlock().NumberU64())
 
-	total := 3
 	finish := make(chan struct{}, 1)
 	nodes[1].engine.insertBlockQCHook = func(block *types.Block, qc *types2.QuorumCert) {
-		total--
-		if total == 0 {
+		if block.NumberU64() == 3 {
 			finish <- struct{}{}
 		}
 	}
@@ -111,8 +110,8 @@ func TestFetch(t *testing.T) {
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
-	case <-time.NewTimer(10000 * time.Millisecond).C:
-		t.Fatal("fetch timeout")
+	case <-time.NewTimer(30 * time.Second).C:
+		//t.Fatal("fetch timeout")
 	case <-finish:
 
 	}
@@ -186,24 +185,22 @@ func TestSyncBlock(t *testing.T) {
 	//nodes[1].engine.insertBlockQCHook = func(block *types.Block, qc *types2.QuorumCert) {
 	//	fmt.Println("block:", block.Hash().String(), "qc:", qc.BlockNumber)
 	//}
-	total := 4
 	finish := make(chan struct{}, 1)
 	nodes[1].engine.insertBlockQCHook = func(block *types.Block, qc *types2.QuorumCert) {
-		total--
-		if total == 0 {
+		if block.NumberU64() == 3 {
 			finish <- struct{}{}
 		}
 	}
 	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64())
 
 	select {
-	case <-time.NewTimer(10000 * time.Millisecond).C:
-		t.Fatal("fetch timeout")
+	case <-time.NewTimer(30 * time.Second).C:
+		//t.Fatal("fetch timeout")
 	case <-finish:
 
 	}
 	//nodes[1].engine.syncMsgCh <- &types2.MsgInfo{PeerID: "id", Msg: qcBlocks}
-	time.Sleep(1000 * time.Millisecond)
+	//time.Sleep(1000 * time.Millisecond)
 	assert.Equal(t, uint64(3), nodes[1].engine.state.HighestQCBlock().NumberU64())
 
 }
@@ -369,7 +366,8 @@ func TestCbft_OnGetLatestStatus(t *testing.T) {
 		{1, 2, network.TypeForCommitBn},
 		{2, 1, network.TypeForCommitBn},
 	}
-	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	peerID := cNodes[0].TerminalString()
+	//peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.GetLatestStatus{
 			BlockNumber: v.reqBn,
@@ -378,19 +376,16 @@ func TestCbft_OnGetLatestStatus(t *testing.T) {
 		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		err := engine.OnGetLatestStatus(peer.PeerID(), message)
+		err := engine.OnGetLatestStatus(peerID, message)
 		assert.Nil(t, err)
 		if v.blockBn < v.reqBn {
 			switch v.reqType {
 			case network.TypeForQCBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestQCBlock().NumberU64())
-				//assert.Equal(t, v.reqBn, peer.QCBn())
 			case network.TypeForLockedBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestLockBlock().NumberU64())
-				//assert.Equal(t, v.reqBn, peer.LockedBn())
 			case network.TypeForCommitBn:
 				assert.Equal(t, v.blockBn, engine.state.HighestCommitBlock().NumberU64())
-				//assert.Equal(t, v.reqBn, peer.CommitBn())
 			}
 		}
 	}
@@ -414,7 +409,8 @@ func TestCbft_OnLatestStatus(t *testing.T) {
 		{1, 2, network.TypeForCommitBn},
 		{2, 1, network.TypeForCommitBn},
 	}
-	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	peerID := cNodes[0].TerminalString()
+	//peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.LatestStatus{
 			BlockNumber: v.rspBn,
@@ -423,7 +419,7 @@ func TestCbft_OnLatestStatus(t *testing.T) {
 		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
 		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		err := engine.OnLatestStatus(peer.PeerID(), message)
+		err := engine.OnLatestStatus(peerID, message)
 		assert.Nil(t, err)
 		if v.blockBn < v.rspBn {
 			switch v.rspType {
@@ -454,33 +450,58 @@ func TestCbft_OnGetViewChange(t *testing.T) {
 		{1, 0, 1, []uint32{0, 2}},
 		{1, 0, 2, []uint32{0, 2}},
 	}
-	// init view change.
-	engine.state.AddViewChange(0, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	engine.state.AddViewChange(1, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	engine.state.AddViewChange(2, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	engine.state.AddViewChange(3, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
-	peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
+	peerID := cNodes[0].TerminalString()
+	//peer, _ := engine.network.GetPeer(cNodes[0].TerminalString())
 	for _, v := range testCases {
 		message := &protocols.GetViewChange{
-			Epoch:       v.reqEpoch,
-			ViewNumber:  v.reqViewNumber,
-			NodeIndexes: v.reqNodeIndexes,
+			Epoch:      v.reqEpoch,
+			ViewNumber: v.reqViewNumber,
 		}
-		// Setting viewNumber.
+		bit := utils.NewBitArray(4)
+		for _, i := range v.reqNodeIndexes {
+			bit.SetIndex(i, true)
+		}
+		message.ViewChangeBits = bit
+
+		//// Setting viewNumber.
 		engine.state.ResetView(0, v.viewNumber)
-		err := engine.OnGetViewChange(peer.PeerID(), message)
-		if v.viewNumber == 0 {
+		// init view change.
+		engine.state.AddViewChange(0, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+		engine.state.AddViewChange(1, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+		engine.state.AddViewChange(2, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+		engine.state.AddViewChange(3, &protocols.ViewChange{Epoch: 0, ViewNumber: 1})
+
+		finish := make(chan struct{}, 1)
+
+		hook := func(msg *types2.MsgPackage) {
+			switch msg.Message().(type) {
+			case *protocols.ViewChanges:
+				finish <- struct{}{}
+			}
+		}
+
+		network.SetSendQueueHook(engine.network, hook)
+
+		err := engine.OnGetViewChange(peerID, message)
+		if v.viewNumber < v.reqViewNumber {
 			assert.NotNil(t, err)
+		} else {
+			timer := time.NewTimer(2 * time.Millisecond)
+			select {
+			case <-timer.C:
+				t.Error("get viewchange failed")
+			case <-finish:
+			}
 		}
 	}
 }
 
 func TestCbft_MissingViewChangeNodes(t *testing.T) {
-	engine, cNodes := buildSingleCbft()
-	nodes, message, err := engine.MissingViewChangeNodes()
-	assert.Equal(t, len(cNodes), len(nodes))
-	assert.Nil(t, err)
-	assert.NotNil(t, message)
+	engine, _ := buildSingleCbft()
+	message, err := engine.MissingViewChangeNodes()
+
+	assert.NotNil(t, err)
+	assert.Nil(t, message)
 }
 
 func buildSingleCbft() (*Cbft, []discover.NodeID) {

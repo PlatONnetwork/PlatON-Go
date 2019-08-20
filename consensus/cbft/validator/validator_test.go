@@ -515,5 +515,4 @@ func TestValidatorPoolVerify(t *testing.T) {
 	priKey1, _ := crypto.GenerateKey()
 	sigWrong, _ := crypto.Sign(header.SealHash().Bytes(), priKey1)
 	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sigWrong[:])
-	//assert.NotNil(t, vp.VerifyHeader(&header))
 }

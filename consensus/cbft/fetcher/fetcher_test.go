@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestFetcher_AddTask(t *testing.T) {
@@ -54,7 +55,7 @@ func TestFetcher_MatchTask(t *testing.T) {
 		w.Done()
 
 	})
-
+	time.Sleep(10 * time.Millisecond)
 	fetcher.MatchTask("add", &protocols.PrepareBlock{})
 	w.Wait()
 	assert.Equal(t, fetcher.Len(), 0)

@@ -96,10 +96,9 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 	acceptViewChangeQC := func() bool {
 		if block.ViewChangeQC == nil {
 			return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
-		} else {
-			_, _, hash, number := block.ViewChangeQC.MaxBlock()
-			return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
 		}
+		_, _, _, _, hash, number := block.ViewChangeQC.MaxBlock()
+		return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
 	}
 
 	isFirstBlock := func() bool {
@@ -217,7 +216,7 @@ func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert
 	if b := r.blockTree.FindBlockByHash(block.ParentHash()); b == nil {
 		return newError(fmt.Sprintf("not find parent qc block"))
 	}
-	if r.viewState.Epoch() < qc.Epoch || r.viewState.ViewNumber() < qc.ViewNumber {
+	if (r.viewState.Epoch() == qc.Epoch && r.viewState.ViewNumber() < qc.ViewNumber) || (r.viewState.Epoch()+1 == qc.Epoch) {
 		return newViewError("need change view")
 	}
 	return nil

@@ -7,20 +7,24 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+// Executor defines an execution function.
 type Executor func(block *types.Block, parent *types.Block) error
 
+// BlockExecutor defines the interface of the executor.
 type BlockExecutor interface {
 	//Execution block, you need to pass in the parent block to find the parent block state
 	Execute(block *types.Block, parent *types.Block) error
 }
 
-//Block execution results, including block Hash, block Number, error message
+// BlockExecuteStatus is block execution results, including block Hash,
+// block Number, error message
 type BlockExecuteStatus struct {
 	Hash   common.Hash
 	Number uint64
 	Err    error
 }
 
+// AsyncBlockExecutor defines the interface of the asynchronous executor.
 type AsyncBlockExecutor interface {
 	BlockExecutor
 	Stop()
@@ -33,7 +37,7 @@ type executeTask struct {
 	block  *types.Block
 }
 
-// asyncExecutor async block executor implement.
+// AsyncExecutor async block executor implement.
 type AsyncExecutor struct {
 	AsyncBlockExecutor
 
@@ -71,7 +75,7 @@ func (exe *AsyncExecutor) Execute(block *types.Block, parent *types.Block) error
 	return exe.newTask(block, parent)
 }
 
-// executeStatus return a channel for notify block execute result.
+// ExecuteStatus return a channel for notify block execute result.
 func (exe *AsyncExecutor) ExecuteStatus() <-chan *BlockExecuteStatus {
 	return exe.executeResults
 }
