@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -407,7 +409,7 @@ func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.
 		log.Debug("verify header extra", "data", hex.EncodeToString(header.Extra))
 
 		var extraData []interface{}
-		err := rlp.DecodeBytes(tobeDecoded, &extraData)
+		err := rlp.DecodeBytes(byteutil.RTrim(tobeDecoded), &extraData)
 		if err != nil {
 			log.Error(" rlp decode header extra error", "err", err)
 			return errors.New("rlp decode header extra error")
