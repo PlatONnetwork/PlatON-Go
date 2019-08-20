@@ -71,6 +71,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	signedTx, err := types.SignTx(tx, w.current.signer, privateKy)
 	if err != nil {
 		log.Error("Sign transaction fail", "error", err)
+		return nil
 	}
 
 	signedTxs := map[common.Address]types.Transactions{
