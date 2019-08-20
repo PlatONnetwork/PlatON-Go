@@ -382,7 +382,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 20031:
 		{
 			for i := 0; i < len(cfg.P20031); i++ {
-				fnType, _ := rlp.EncodeToBytes(2003)
+				fnType, _ := rlp.EncodeToBytes(uint16(2003))
 				verifier, _ := rlp.EncodeToBytes(cfg.P20031[i].Verifier)
 				proposalID, _ := rlp.EncodeToBytes(cfg.P20031[i].ProposalID.Bytes())
 				op, _ := rlp.EncodeToBytes(cfg.P20031[i].Option)
