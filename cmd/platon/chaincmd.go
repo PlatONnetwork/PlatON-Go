@@ -19,10 +19,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"os"
 	"runtime"
@@ -207,8 +209,12 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
-		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
 
+		if "chaindata" == name && nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft {
+			xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+			xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+		}
+		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
 	}
 	snapshotdb.Instance().Close()
 	return nil

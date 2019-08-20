@@ -178,7 +178,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 		}
 		Pivot := p.hc.GetHeaderByNumber(num.Uint64())
 		Latest := p.hc.CurrentHeader()
-		if err := p.dl.DeliverPposStorage(p.id, Latest, Pivot, KVs, false, 0); err != nil {
+		if err := p.dl.DeliverPposInfo(p.id, Latest, Pivot); err != nil {
 			log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 			return err
 		}
@@ -194,7 +194,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 			KVNum++
 			count++
 			if count >= PPOSStorageKVSizeFetch {
-				if err := p.dl.DeliverPposStorage(p.id, nil, nil, KVs, false, KVNum); err != nil {
+				if err := p.dl.DeliverPposStorage(p.id, KVs, false, KVNum); err != nil {
 					log.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 					return err
 				}
@@ -202,7 +202,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 				KVs = make([]PPOSStorageKV, 0)
 			}
 		}
-		if err := p.dl.DeliverPposStorage(p.id, nil, nil, KVs, true, KVNum); err != nil {
+		if err := p.dl.DeliverPposStorage(p.id, KVs, true, KVNum); err != nil {
 			log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 			return err
 		}

@@ -21,7 +21,6 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -32,7 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -318,7 +316,7 @@ func newSnapshotdb() (snapshotdb.DB, error) {
 }
 
 func TestGetOriginAndPivotMsg(t *testing.T) {
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	pm, _ := newTestProtocolManagerMust(t, downloader.FastSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", 63, pm, true)
@@ -352,7 +350,7 @@ func TestGetOriginAndPivotMsg(t *testing.T) {
 }
 
 func TestGetPPOSStorageMsg(t *testing.T) {
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", 63, pm, true)
@@ -369,7 +367,7 @@ func TestGetPPOSStorageMsg(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	var data PPOSStorage
+	var data PPOSInfo
 	msg, err := peer.app.ReadMsg()
 	if err != nil {
 		t.Error(err)
@@ -385,15 +383,20 @@ func TestGetPPOSStorageMsg(t *testing.T) {
 	if data.Latest.Number.Int64() != int64(downloader.MaxBlockFetch+15) {
 		t.Error("latest num is wrong")
 	}
-	for !data.Last {
+	var data2 PPOSStorage
+
+	for {
 		msg, err := peer.app.ReadMsg()
 		if err != nil {
 			t.Error(err)
 			return
 		}
-		if err := msg.Decode(&data); err != nil {
+		if err := msg.Decode(&data2); err != nil {
 			t.Error(err)
 			return
+		}
+		if data2.Last {
+			break
 		}
 	}
 }

@@ -98,7 +98,8 @@ var (
 	ErrNotFound = errors.New("snapshotDB: not found")
 
 	//ErrDBNotInit when db  not init
-	ErrDBNotInit = errors.New("snapshotDB: not init")
+	ErrDBNotInit   = errors.New("snapshotDB: not init")
+	ErrBlockRepeat = errors.New("the block is exist in snapshotdb uncommit")
 )
 
 type snapshotDB struct {
@@ -415,11 +416,10 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	if blockNumber == nil {
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
 	}
-	if hash == s.getUnRecognizedHash() {
-		block := s.unCommit.Get(hash)
-		if block != nil && block.readOnly {
-			return errors.New("[SnapshotDB]can't  new unRecognized block,it's have value,must flush it before NewBlock ")
-		}
+	findBlock := s.unCommit.Get(hash)
+	if findBlock != nil {
+		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
+		return ErrBlockRepeat
 	}
 
 	block := new(blockData)
@@ -572,6 +572,24 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	return nil
 }
 
+func (s *snapshotDB) IsBlockSame(block1, block2 *blockData) bool {
+	if block1.Number.Cmp(block2.Number) != 0 {
+		return false
+	}
+
+	if block1.kvHash.String() != block2.kvHash.String() {
+		return false
+	}
+	if block1.BlockHash != block2.BlockHash {
+		return false
+	}
+
+	if block1.ParentHash == block2.ParentHash {
+		return false
+	}
+	return true
+}
+
 // Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.lock()
@@ -596,14 +614,19 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 			}
 		}
 	}
-	block.readOnly = true
-	s.committed = append(s.committed, block)
-	s.current.HighestNum = block.Number
-	s.current.HighestHash = hash
-	if err := s.current.update(); err != nil {
-		return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
-	}
+	highestCommitBlock := s.committed[len(s.committed)-1]
 
+	if s.IsBlockSame(block, highestCommitBlock) {
+
+	} else {
+		block.readOnly = true
+		s.committed = append(s.committed, block)
+		s.current.HighestNum = block.Number
+		s.current.HighestHash = hash
+		if err := s.current.update(); err != nil {
+			return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
+		}
+	}
 	if err := s.closeJournalWriter(hash); err != nil {
 		return err
 	}

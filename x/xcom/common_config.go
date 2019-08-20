@@ -22,16 +22,11 @@ const (
 )
 
 type commonConfig struct {
-	ExpectedMinutes       uint64 // expected minutes every epoch
-	NodeBlockTimeWindow   uint64 // Node block time window (uint: seconds)
-	PerRoundBlocks        uint64 // blocks each validator will create per consensus epoch
-	OptValidatorCount     uint64 // Alternative number of validation nodes
-	ValidatorCount        uint64 // The consensus validators count
-	AdditionalCycleTime   uint64 // Additional cycle time (uint: minutes)
-	PleRetLockCycle       uint64 // Pledge return lock cycle
-	TextVotCycle          uint64 // Voting cycles for text proposals
-	UpgradeMaxVotCycle    uint64 // The upgrade proposal has a maximum voting period
-	UpgradeEffectiveCycle uint64 // Upgrade proposal effective period
+	ExpectedMinutes     uint64 // expected minutes every epoch
+	NodeBlockTimeWindow uint64 `json:"-"` // Node block time window (uint: seconds)
+	PerRoundBlocks      uint64 `json:"-"` // blocks each validator will create per consensus epoch
+	ValidatorCount      uint64 // The consensus validators count
+	AdditionalCycleTime uint64 // Additional cycle time (uint: minutes)
 }
 
 type stakingConfig struct {
@@ -66,12 +61,18 @@ type governanceConfig struct {
 	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
 }
 
+type rewardConfig struct {
+	NewBlockRate         uint // new block reward ,default 50%
+	PlatONFoundationYear uint32
+}
+
 // total
 type EconomicModel struct {
 	Common   commonConfig
 	Staking  stakingConfig
 	Slashing slashingConfig
 	Gov      governanceConfig
+	Reward   rewardConfig
 }
 
 var (
@@ -137,16 +138,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultMainNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(360), // 6 hours
-				NodeBlockTimeWindow:   uint64(20),  // 20 seconds
-				PerRoundBlocks:        uint64(10),
-				OptValidatorCount:     uint64(101),
-				ValidatorCount:        uint64(25),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(360), // 6 hours
+				NodeBlockTimeWindow: uint64(20),  // 20 seconds
+				PerRoundBlocks:      uint64(10),
+				ValidatorCount:      uint64(25),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -177,21 +173,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	case DefaultAlphaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -221,22 +216,21 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
 			},
 		}
 
 	case DefaultBetaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -267,21 +261,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	case DefaultInnerTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(666), // 11 hours
-				NodeBlockTimeWindow:   uint64(50),  // 50 seconds
-				PerRoundBlocks:        uint64(25),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(10),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(666), // 11 hours
+				NodeBlockTimeWindow: uint64(50),  // 50 seconds
+				PerRoundBlocks:      uint64(25),
+				ValidatorCount:      uint64(10),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -312,21 +305,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	case DefaultInnerDevNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -357,22 +349,21 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 
 	default: // DefaultDeveloperNet
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:       uint64(10), // 10 minutes
-				NodeBlockTimeWindow:   uint64(30), // 30 seconds
-				PerRoundBlocks:        uint64(15),
-				OptValidatorCount:     uint64(24),
-				ValidatorCount:        uint64(4),
-				AdditionalCycleTime:   uint64(525600),
-				PleRetLockCycle:       uint64(28),
-				TextVotCycle:          uint64(2419),
-				UpgradeMaxVotCycle:    uint64(2419),
-				UpgradeEffectiveCycle: uint64(5),
+				ExpectedMinutes:     uint64(10), // 10 minutes
+				NodeBlockTimeWindow: uint64(30), // 30 seconds
+				PerRoundBlocks:      uint64(15),
+				ValidatorCount:      uint64(4),
+				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -403,6 +394,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
 			},
+			Reward: rewardConfig{
+				NewBlockRate:         4,
+				PlatONFoundationYear: 0,
+			},
 		}
 	}
 
@@ -415,6 +410,19 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 func ExpectedMinutes() uint64 {
 	return ec.Common.ExpectedMinutes
 }
+
+// set the value by genesis block
+func SetNodeBlockTimeWindow(period uint64) {
+	if ec != nil {
+		ec.Common.NodeBlockTimeWindow = period
+	}
+}
+func SetPerRoundBlocks(amount uint64) {
+	if ec != nil {
+		ec.Common.PerRoundBlocks = amount
+	}
+}
+
 func Interval() uint64 {
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
@@ -506,6 +514,14 @@ func DuplicateSignHighSlash() uint32 {
 /******
  * Reward config
  ******/
+
+func NewBlockRewardRate() uint {
+	return ec.Reward.NewBlockRate
+}
+
+func PlatONFoundationYear() uint32 {
+	return ec.Reward.PlatONFoundationYear
+}
 
 /******
  * Governance config
