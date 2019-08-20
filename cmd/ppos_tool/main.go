@@ -14,7 +14,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
@@ -478,23 +477,28 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 }
 
 func main() {
-	lastHeader := types.Header{
-		Number: big.NewInt(int64(1)),
+	datas := []string{"da82070086706c61746f6e88676f312e31322e388664617277696e0000000000993cb2862467579ec0f452b04bcc50655b1be1fda91ddd5cf3f57750ccdf77cd5c5c7d1375bdcd725fc6ed3afbd608e45cbfcc383bd1894df443d1f7233dccc900",
+		"da82070086706c61746f6e88676f312e31322e388664617277696e0000000000a805c2524f1acde791043a449c56246346a42455e9041cc8fe14a29b0bc794536743c28c371304b21feb7c4c3abad302c7e331d5e197d81323f3129b2bbe42ee01",
+		"da82070086706c61746f6e88676f312e31322e388664617277696e00000000008f2e99ef48013885e07ce585dc61533ddd2fbc198d982886e5c68a828eb714a54a562931b6aaad8239ec5467ad67981e0982841c882298f42a0bb3ef961344d801",
 	}
-	decode, err := hex.DecodeString("da82070086706c61746f6e88676f312e31322e388664617277696e0000000000993cb2862467579ec0f452b04bcc50655b1be1fda91ddd5cf3f57750ccdf77cd5c5c7d1375bdcd725fc6ed3afbd608e45cbfcc383bd1894df443d1f7233dccc900")
-	if err != nil {
-		fmt.Println("hex decode from string error", "err", err)
-	} else {
-		lastHeader.Extra = decode
-	}
-
-	if len(lastHeader.Extra) > 0 {
-		var tobeDecoded []byte
-		tobeDecoded = lastHeader.Extra
-		if len(lastHeader.Extra) <= 32 {
-			tobeDecoded = lastHeader.Extra
+	for i, data := range datas {
+		decode, err := hex.DecodeString(data)
+		if err != nil {
+			fmt.Println("decode hex string err:", i)
 		} else {
-			tobeDecoded = lastHeader.Extra[:32]
+			verifyData(decode)
+		}
+	}
+}
+
+func verifyData(decode []byte) {
+	if len(decode) > 0 {
+		var tobeDecoded []byte
+		tobeDecoded = decode
+		if len(decode) <= 32 {
+			tobeDecoded = decode
+		} else {
+			tobeDecoded = decode[:32]
 		}
 
 		var extraData []interface{}
