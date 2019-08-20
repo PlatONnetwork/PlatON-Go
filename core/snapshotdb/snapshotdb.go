@@ -572,19 +572,11 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	return nil
 }
 
-func (s *snapshotDB) IsBlockSame(block1, block2 *blockData) bool {
-	if block1.Number.Cmp(block2.Number) != 0 {
+func (s *snapshotDB) IsBlockSame(block1 *blockData) bool {
+	if block1.Number.Cmp(s.current.HighestNum) != 0 {
 		return false
 	}
-
-	if block1.kvHash.String() != block2.kvHash.String() {
-		return false
-	}
-	if block1.BlockHash != block2.BlockHash {
-		return false
-	}
-
-	if block1.ParentHash == block2.ParentHash {
+	if block1.BlockHash != s.current.HighestHash {
 		return false
 	}
 	return true
@@ -614,11 +606,8 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 			}
 		}
 	}
-	highestCommitBlock := s.committed[len(s.committed)-1]
 
-	if s.IsBlockSame(block, highestCommitBlock) {
-
-	} else {
+	if !s.IsBlockSame(block) {
 		block.readOnly = true
 		s.committed = append(s.committed, block)
 		s.current.HighestNum = block.Number
