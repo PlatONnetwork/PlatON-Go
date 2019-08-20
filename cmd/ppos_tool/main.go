@@ -491,6 +491,15 @@ func main() {
 	}
 }
 
+func RTrim(decode []byte) {
+	var pos int
+	for pos = len(decode); pos > 0; pos-- {
+		if decode[pos-1] != '\x00' {
+			break
+		}
+	}
+	decode = decode[:pos]
+}
 func verifyData(decode []byte) {
 	if len(decode) > 0 {
 		var tobeDecoded []byte
@@ -500,6 +509,8 @@ func verifyData(decode []byte) {
 		} else {
 			tobeDecoded = decode[:32]
 		}
+
+		RTrim(tobeDecoded)
 
 		var extraData []interface{}
 		err := rlp.DecodeBytes(tobeDecoded, &extraData)
