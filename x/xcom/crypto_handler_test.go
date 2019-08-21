@@ -41,7 +41,7 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 func Test_Decode(t *testing.T) {
 	initChandlerHandler()
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	sig := chandler.MustSign(uint32(66048))
+	sig := chandler.MustSign(uint32(1792))
 
 	log.Error("Decode hex String", "sig", hex.EncodeToString(sig), "src", "c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
 	version, err := hex.DecodeString("c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
@@ -49,7 +49,7 @@ func Test_Decode(t *testing.T) {
 		log.Error("Decode hex String", "err", err)
 		return
 	}
-	if !chandler.IsSignedByNodeID(uint32(66048), version, nodeID) {
+	if !chandler.IsSignedByNodeID(uint32(1792), version, nodeID) {
 		t.Error("verify sign error")
 	} else {
 		t.Error("verify sign OK")
