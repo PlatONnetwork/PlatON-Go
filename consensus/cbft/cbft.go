@@ -1289,6 +1289,11 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		return nil, errors.Wrap(err, "get validator failed")
 	}
 
+	// check if the prepareBlock must take viewChangeQC
+	needViewChangeQC := func(number uint64, hash common.Hash) bool {
+		_, localQC := cbft.blockTree.FindBlockAndQC(hash, number)
+		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
+	}
 	var prepareQC *ctypes.QuorumCert
 
 	switch cm := msg.(type) {
@@ -1303,6 +1308,9 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 			return vnode, nil
 		}
 		prepareQC = cm.PrepareQC
+		if needViewChangeQC(cm.Block.NumberU64()-1, cm.Block.ParentHash()) && cm.ViewChangeQC == nil {
+			return nil, fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)
+		}
 		if cm.ViewChangeQC != nil {
 			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
 				return nil, err

@@ -183,12 +183,9 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 // 2.Synchronization greater than local viewNumber
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyError {
-	existPrepare := func() bool {
+	existsPrepare := func() bool {
 		prepare := r.viewState.ViewBlockByIndex(vote.BlockIndex)
-		if prepare != nil && prepare.NumberU64() == vote.BlockNumber && prepare.Hash() == vote.BlockHash {
-			return true
-		}
-		return false
+		return prepare != nil && prepare.NumberU64() == vote.BlockNumber && prepare.Hash() == vote.BlockHash
 	}
 
 	acceptIndexVote := func() SafetyError {
@@ -198,7 +195,7 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 		if r.viewState.FindPrepareVote(vote.BlockIndex, vote.ValidatorIndex) != nil {
 			return newError(fmt.Sprintf("prepare vote has exist(blockIndex:%d, validatorIndex:%d)", vote.BlockIndex, vote.ValidatorIndex))
 		}
-		if !existPrepare() {
+		if !existsPrepare() {
 			return newError(fmt.Sprintf("current index block not existed,discard msg(index:%d)", vote.BlockIndex))
 		}
 		return nil
