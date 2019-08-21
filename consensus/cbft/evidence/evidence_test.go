@@ -364,7 +364,7 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 		ViewA: evidenceViewA,
 		ViewB: evidenceViewB,
 	}
-	assert.Nil(t, d.Validate())
+	assert.NotNil(t, d.Validate())
 
 	// different validater
 	vcB = makeViewChange(1, 1, hash, 1, validateNodes[1].Index, t, secretKeys[1])
@@ -378,23 +378,23 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 
 	// different number
 	vcB = makeViewChange(1, 1, hash, 2, validateNodes[0].Index, t, secretKeys[0])
-	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[1])
+	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[0])
 
 	d = &DuplicateViewChangeEvidence{
 		ViewA: evidenceViewA,
 		ViewB: evidenceViewB,
 	}
-	assert.NotNil(t, d.Validate())
+	assert.Nil(t, d.Validate())
 
 	// different hash
 	vcB = makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
-	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[1])
+	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[0])
 
 	d = &DuplicateViewChangeEvidence{
 		ViewA: evidenceViewA,
 		ViewB: evidenceViewB,
 	}
-	assert.NotNil(t, d.Validate())
+	assert.Nil(t, d.Validate())
 }
 
 func TestDuplicateViewChangeEvidence_Address(t *testing.T) {
