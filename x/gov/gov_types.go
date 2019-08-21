@@ -32,8 +32,8 @@ type ParamValue struct {
 }
 
 type ProgramVersionValue struct {
-	ProgramVersion     uint32             `json:"ProgramVersion"`
-	ProgramVersionSign common.VersionSign `json:"ProgramVersionSign"`
+	ProgramVersion     uint32 `json:"ProgramVersion"`
+	ProgramVersionSign string `json:"ProgramVersionSign"`
 }
 
 type ActiveVersionValue struct {

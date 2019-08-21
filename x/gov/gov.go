@@ -3,6 +3,7 @@ package gov
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -67,7 +68,7 @@ func GetProgramVersion() (*ProgramVersionValue, error) {
 		log.Error("sign version data error")
 		return nil, err
 	}
-	value := &ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: common.BytesToVersionSign(sig)}
+	value := &ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: hexutil.Encode(sig)}
 	return value, nil
 }
 

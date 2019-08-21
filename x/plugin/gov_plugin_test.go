@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -1051,7 +1053,7 @@ func Test_Encode(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	sig, err := chandler.Sign(uint32(1792))
 
-	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: common.BytesToVersionSign(sig)}
+	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: hexutil.Encode(sig)}
 
 	jsonByte, err := json.Marshal(value)
 	if nil != err {
