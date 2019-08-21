@@ -35,10 +35,10 @@ const (
 	sendQueueSize = 10240
 
 	// QCBnMonitorInterval is Qc block synchronization detection interval.
-	QCBnMonitorInterval = 10
+	QCBnMonitorInterval = 2
 
 	// SyncViewChangeInterval is ViewChange synchronization detection interval.
-	SyncViewChangeInterval = 10
+	SyncViewChangeInterval = 2
 
 	// removeBlacklistInterval is remove blacklist detection interval.
 	removeBlacklistInterval = 20
