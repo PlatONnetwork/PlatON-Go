@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	priKey = crypto.HexMustToECDSA("8c56e4a0d8bb1f82b94231d535c499fdcbf6e06221acf669d5a964f5bb974903")
-	nodeID = discover.MustHexID("0x3a06953a2d5d45b29167bef58208f1287225bdd2591260af29ae1300aeed362e9b548369dfc1659abbef403c9b3b07a8a194040e966acd6e5b6d55aa2df7c1d8")
+	priKey = crypto.HexMustToECDSA("76711a880d0b2fc40167428005aa80bdeb66ada7a82d3e9c78d93201022161e2")
+	nodeID = discover.MustHexID("4b6083b5d2fa4638690e54e3ea37771f42776c044c76fd021931c476dc480492264ffaacaf59259438c16e404366ace3ce2fbbf19d230a8417a04ddc2f8be3c6")
 )
 
 func initChandlerHandler() {
@@ -43,13 +43,12 @@ func Test_Decode(t *testing.T) {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	sig := chandler.MustSign(uint32(66048))
 
-	log.Error("Decode hex String", "sig", sig, "src", "05af3bbd099562e520ddb824199182dcd8249bc91274afbcce4be24bd0fbf8c259cd403738923722163fa7493ea8ef8725d52f3d1bb3fd2713592ac135d0f85200")
-	version, err := hex.DecodeString("05af3bbd099562e520ddb824199182dcd8249bc91274afbcce4be24bd0fbf8c259cd403738923722163fa7493ea8ef8725d52f3d1bb3fd2713592ac135d0f85200")
+	log.Error("Decode hex String", "sig", hex.EncodeToString(sig), "src", "c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
+	version, err := hex.DecodeString("c6c027a49c04afb7daecdaaa03590a374746d65e000b8dce4542afdc985106fe4ef9477cb0a697340097c6a786b59a4c090075a592a51a337b9b8c299cc8c6d401")
 	if err != nil {
 		log.Error("Decode hex String", "err", err)
 		return
 	}
-
 	if !chandler.IsSignedByNodeID(uint32(66048), version, nodeID) {
 		t.Error("verify sign error")
 	} else {
