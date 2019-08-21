@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"

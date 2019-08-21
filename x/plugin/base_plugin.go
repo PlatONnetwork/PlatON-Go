@@ -61,6 +61,7 @@ func Verify_tx_data(input []byte, command map[uint16]interface{}) (cnCode uint16
 		if paramNum != len(args)-1 {
 			return 0, nil, nil, FnParamsLenErr
 		}
+
 		params := make([]reflect.Value, paramNum)
 
 		for i := 0; i < paramNum; i++ {

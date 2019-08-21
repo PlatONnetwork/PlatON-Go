@@ -263,9 +263,13 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 	)
 	stateDb.AddBalance(account, zeroEpoch)
 	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
+
 	restrictingPlans := make([]restricting.RestrictingPlan, 0)
+	OneYearEpochs := xutil.EpochsPerYear()
+
 	for key, value := range needRelease {
-		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{uint64(key + 1), value})
+		epochs := OneYearEpochs * (uint64(key) + 1)
+		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
 	}
 	plugin.CreateRestrictingRecord(account, stateDb, restrictingPlans)
 	return nil
