@@ -410,3 +410,78 @@ func NewBlockConfirmSign(signSlice []byte) *BlockConfirmSign {
 	copy(sign[:], signSlice[:])
 	return &sign
 }
+
+type VersionSign [VersionSignLength]byte
+
+func BytesToVersionSign(b []byte) VersionSign {
+	var h VersionSign
+	h.SetBytes(b)
+	return h
+}
+
+func (s VersionSign) Bytes() []byte { return s[:] }
+
+func (s VersionSign) Hex() string { return hexutil.Encode(s[:]) }
+
+func (s VersionSign) HexWithNoPrefix() string {
+	hex := hexutil.Encode(s[:])
+	return strings.TrimPrefix(hex, "0x")
+}
+
+func (s VersionSign) TerminalString() string {
+	return fmt.Sprintf("%x…%x", s[:3], s[61:])
+}
+
+func (s VersionSign) String() string {
+	return s.Hex()
+}
+
+func (s VersionSign) Format(st fmt.State, c rune) {
+	fmt.Fprintf(st, "%"+string(c), s[:])
+}
+
+func (s *VersionSign) SetBytes(b []byte) {
+	if len(b) > len(s) {
+		b = b[len(b)-VersionSignLength:]
+	}
+	copy(s[VersionSignLength-len(b):], b)
+}
+
+// MarshalText implements the encoding.TextMarshaler interface.
+func (s VersionSign) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(s[:])), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (s *VersionSign) UnmarshalText(text []byte) error {
+	id, err := HexSign(string(text))
+	if err != nil {
+		return err
+	}
+	*s = id
+	return nil
+}
+
+// HexID converts a hex string to a NodeID.
+// The string may be prefixed with 0x.
+func HexSign(in string) (VersionSign, error) {
+	var vs VersionSign
+	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))
+	if err != nil {
+		return vs, err
+	} else if len(b) != len(vs) {
+		return vs, fmt.Errorf("wrong length, want %d hex chars", len(vs)*2)
+	}
+	copy(vs[:], b)
+	return vs, nil
+}
+
+// MustHexID converts a hex string to a NodeID.
+// It panics if the string is not a valid NodeID.
+func MustHexSign(in string) VersionSign {
+	vs, err := HexSign(in)
+	if err != nil {
+		panic(err)
+	}
+	return vs
+}

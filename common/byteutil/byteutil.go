@@ -23,14 +23,16 @@ var Bytes2X_CMD = map[string]interface{}{
 	"uint32": BytesToUint32,
 	"uint64": BytesToUint64,
 
-	"*big.Int":          BytesToBigInt,
-	"[]*big.Int":        BytesToBigIntArr,
-	"discover.NodeID":   BytesToNodeId,
-	"[]discover.NodeID": BytesToNodeIdArr,
-	"common.Hash":       BytesToHash,
-	"[]common.Hash":     BytesToHashArr,
-	"common.Address":    BytesToAddress,
-	"[]common.Address":  BytesToAddressArr,
+	"*big.Int":             BytesToBigInt,
+	"[]*big.Int":           BytesToBigIntArr,
+	"discover.NodeID":      BytesToNodeId,
+	"[]discover.NodeID":    BytesToNodeIdArr,
+	"common.Hash":          BytesToHash,
+	"[]common.Hash":        BytesToHashArr,
+	"common.Address":       BytesToAddress,
+	"[]common.Address":     BytesToAddressArr,
+	"common.VersionSign":   BytesToVersionSign,
+	"[]common.VersionSign": BytesToVersionSignArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 }
@@ -208,6 +210,22 @@ func BytesToAddressArr(curByte []byte) []common.Address {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return addrArr
+}
+
+func BytesToVersionSign(currByte []byte) common.VersionSign {
+	var version common.VersionSign
+	if err := rlp.DecodeBytes(currByte, &version); nil != err {
+		panic("BytesToVersionSign:" + err.Error())
+	}
+	return version
+}
+
+func BytesToVersionSignArr(currByte []byte) []common.VersionSign {
+	var arr []common.VersionSign
+	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
+		panic("BytesToVersionSignArr:" + err.Error())
+	}
+	return arr
 }
 
 func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
