@@ -278,10 +278,13 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
+
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
 		return err
 	}
+
+	xcom.PrintObject("checkVerifier", verifierList)
 
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
