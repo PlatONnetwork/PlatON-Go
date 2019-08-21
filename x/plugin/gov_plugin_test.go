@@ -2,8 +2,13 @@ package plugin
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -1030,4 +1035,33 @@ func Test_genVersionSign(t *testing.T) {
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
 	}
 
+}
+
+var (
+	chandler *xcom.CryptoHandler
+	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
+	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+)
+
+func initChandlerHandler() {
+	chandler = xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKey)
+}
+
+func Test_Encode(t *testing.T) {
+	initChandlerHandler()
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	sig, err := chandler.Sign(uint32(1792))
+
+	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: hexutil.Encode(sig)}
+
+	jsonByte, err := json.Marshal(value)
+	if nil != err {
+		log.Error("json.Marshal err", "err", err)
+	}
+
+	log.Error("encode result", "sig", hex.EncodeToString(jsonByte))
+	res := xcom.Result{true, string(jsonByte), ""}
+	resultBytes, _ := json.Marshal(res)
+	log.Error("encode result", "bytes", hex.EncodeToString(resultBytes))
 }

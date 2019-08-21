@@ -3,6 +3,7 @@ package gov
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -67,7 +68,7 @@ func GetProgramVersion() (*ProgramVersionValue, error) {
 		log.Error("sign version data error")
 		return nil, err
 	}
-	value := &ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: common.BytesToVersionSign(sig)}
+	value := &ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: hexutil.Encode(sig)}
 	return value, nil
 }
 
@@ -379,6 +380,9 @@ func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state x
 	return nil, nil
 }
 
+// GetMaxEndVotingBlock returns the max endVotingBlock of proposals those are at voting stage, and the nodeID has voted for those proposals.
+// or returns 0 if there's no proposal at voting stage, or nodeID didn't voted for any proposal.
+// if any error happened, return 0 and the error
 func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
 	if proposalIDList, err := ListVotingProposal(blockHash); err != nil {
 		return 0, err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -162,11 +163,11 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee5"),
 	}
 
-	//initProgramVersion      = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	//initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
-
-	initProgramVersion      = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	initProgramVersion      = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 	initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
+
+	//initProgramVersion      = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	//initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
 	promoteVersion      = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 	promoteVersionBytes = common.Uint32ToBytes(promoteVersion)
