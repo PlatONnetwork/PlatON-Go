@@ -1292,13 +1292,26 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		return nil, errors.Wrap(err, "get msg's cannibalize bytes failed")
 	}
 
+	getValidator := func() (uint64, uint32) {
+		number, index := msg.BlockNum(), msg.NodeIndex()
+		switch cm := msg.(type) {
+		case *protocols.ViewChange:
+			if cm.PrepareQC != nil && cm.PrepareQC.Epoch != cm.Epoch {
+				number, index = cm.BlockNumber+1, cm.ValidatorIndex
+			}
+		}
+		return number, index
+	}
+
+	blockNumber, blockIndex := getValidator()
+
 	// Verify consensus msg signature
-	if err := cbft.validatorPool.Verify(msg.BlockNum(), msg.NodeIndex(), digest, msg.Sign()); err != nil {
+	if err := cbft.validatorPool.Verify(blockNumber, blockIndex, digest, msg.Sign()); err != nil {
 		return nil, err
 	}
 
 	// Get validator of signer
-	vnode, err := cbft.validatorPool.GetValidatorByIndex(msg.BlockNum(), msg.NodeIndex())
+	vnode, err := cbft.validatorPool.GetValidatorByIndex(blockNumber, blockIndex)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "get validator failed")
@@ -1484,8 +1497,12 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 			err = fmt.Errorf("get cannibalize bytes failed")
 			break
 		}
+		blockNumber := vc.BlockNumber
+		if vc.Epoch != vc.BlockEpoch {
+			blockNumber = blockNumber + 1
+		}
 
-		if err = cbft.validatorPool.VerifyAggSigByBA(vc.BlockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()); err != nil {
+		if err = cbft.validatorPool.VerifyAggSigByBA(blockNumber, vc.ValidatorSet, cb, vc.Signature.Bytes()); err != nil {
 			err = fmt.Errorf("verify viewchange qc failed:number:%d,validators:%s,msg:%s,signature:%s,err:%v",
 				vc.BlockNumber, vc.ValidatorSet.String(), hexutil.Encode(cb), vc.Signature.String(), err)
 			break
