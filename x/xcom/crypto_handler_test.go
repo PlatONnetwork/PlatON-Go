@@ -50,7 +50,7 @@ func Test_Decode(t *testing.T) {
 		log.Error("Decode hex String", "err", err)
 		return
 	}
-	if !chandler.IsSignedByNodeID(uint32(1792), versionSign, nodeID) {
+	if !chandler.IsSignedByNodeID(uint32(1793), versionSign, nodeID) {
 		t.Error("verify sign error")
 	} else {
 		t.Error("verify sign OK")
