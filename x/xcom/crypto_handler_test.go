@@ -2,7 +2,10 @@ package xcom
 
 import (
 	"encoding/hex"
+	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
@@ -37,24 +40,18 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 
 func Test_Decode(t *testing.T) {
 	initChandlerHandler()
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-	/*sig := chandler.MustSign(1792)
-	t.Fatal("sign", hex.EncodeToString(sig))
-	*/
-	bytes, _ := hex.DecodeString("0x05af3bbd099562e520ddb824199182dcd8249bc91274afbcce4be24bd0fbf8c259cd403738923722163fa7493ea8ef8725d52f3d1bb3fd2713592ac135d0f85200")
-
-	data := uint32(66048)
-
-	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), bytes)
+	version, err := hex.DecodeString("0x05af3bbd099562e520ddb824199182dcd8249bc91274afbcce4be24bd0fbf8c259cd403738923722163fa7493ea8ef8725d52f3d1bb3fd2713592ac135d0f85200")
 	if err != nil {
-		t.Error("Check if the signature is signed by a node", "err", err)
+		log.Error("Decode hex String", "err", err)
+		return
 	}
-	id := discover.PubkeyID(pubKey)
 
-	t.Error("IsSignedByNodeID", "id", id, "nodeID", nodeID)
-	if id == nodeID {
+	if !chandler.IsSignedByNodeID(66048, version, nodeID) {
+		t.Error("verify sign error")
+	} else {
 		t.Error("verify sign OK")
 	}
-	t.Error("verify sign error")
 
 }
