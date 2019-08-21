@@ -140,7 +140,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// validate programVersion sign
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), nodeId) {
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
 		res := xcom.Result{false, "", ProgramVersionSignErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
