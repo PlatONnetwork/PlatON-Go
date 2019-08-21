@@ -956,7 +956,7 @@ func TestGovPlugin_printVersion(t *testing.T) {
 
 }
 
-func TestNodeID(t *testing.T) {
+func TestGovPlugin_TestNodeID(t *testing.T) {
 	var nodeID discover.NodeID
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
@@ -976,7 +976,7 @@ func TestNodeID(t *testing.T) {
 	t.Error("proposalID is empty", "proposalID", proposalID)
 }*/
 
-func Test_MakeExtraData(t *testing.T) {
+func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 	defer setup(t)()
 
 	lastHeader = types.Header{
@@ -1019,12 +1019,12 @@ func Test_MakeExtraData(t *testing.T) {
 
 }
 
-func Test_version(t *testing.T) {
+func TestGovPlugin_Test_version(t *testing.T) {
 	ver := uint32(66048) //1.2.0
 	t.Log(common.Uint32ToBytes(ver))
 }
 
-func Test_genVersionSign(t *testing.T) {
+func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 
 	ver := uint32(66048) //1.2.0
 	chandler := xcom.GetCryptoHandler()
@@ -1047,7 +1047,7 @@ func initChandlerHandler() {
 	chandler.SetPrivateKey(priKey)
 }
 
-func Test_Encode(t *testing.T) {
+func TestGovPlugin_Test_Encode(t *testing.T) {
 	initChandlerHandler()
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	sig, err := chandler.Sign(uint32(1792))
