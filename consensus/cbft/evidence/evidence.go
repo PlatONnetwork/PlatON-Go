@@ -218,8 +218,8 @@ func (vce ViewChangeEvidence) Size() int {
 }
 
 func (ovc *NumberOrderViewChange) Add(vc *EvidenceView) error {
-	if ev := ovc.find(vc.Epoch, vc.ViewNumber, vc.BlockNumber); ev != nil {
-		if ev.BlockHash != vc.BlockHash {
+	if ev := ovc.find(vc.Epoch, vc.ViewNumber); ev != nil {
+		if ev.BlockNumber != vc.BlockNumber || ev.BlockHash != vc.BlockHash {
 			a, b := vc, ev
 			ha := new(big.Int).SetBytes(vc.BlockHash.Bytes())
 			hb := new(big.Int).SetBytes(ev.BlockHash.Bytes())
@@ -241,14 +241,23 @@ func (ovc *NumberOrderViewChange) Add(vc *EvidenceView) error {
 
 // find tries to find the same view evidence
 // the same epoch,viewNumber,blockNumber,node address and different blockHash
-func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceView {
+func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64) *EvidenceView {
 	for _, v := range ovc {
-		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
+		if v.Epoch == epoch && v.ViewNumber == viewNumber {
 			return v
 		}
 	}
 	return nil
 }
+
+//func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceView {
+//	for _, v := range ovc {
+//		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
+//			return v
+//		}
+//	}
+//	return nil
+//}
 
 func (ovc NumberOrderViewChange) Len() int {
 	return len(ovc)

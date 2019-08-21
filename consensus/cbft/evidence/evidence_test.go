@@ -353,10 +353,11 @@ func TestDuplicatePrepareVoteEvidence_Validate(t *testing.T) {
 func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 	validateNodes, secretKeys := createValidateNode(2)
 
-	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
+	hash := common.BytesToHash(utils.Rand32Bytes(32))
+	vcA := makeViewChange(1, 1, hash, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewA, _ := NewEvidenceView(vcA, validateNodes[0])
 
-	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
+	vcB := makeViewChange(1, 1, hash, 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewB, _ := NewEvidenceView(vcB, validateNodes[0])
 
 	d := &DuplicateViewChangeEvidence{
@@ -365,7 +366,28 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 	}
 	assert.Nil(t, d.Validate())
 
-	vcB = makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[1].Index, t, secretKeys[1])
+	// different validater
+	vcB = makeViewChange(1, 1, hash, 1, validateNodes[1].Index, t, secretKeys[1])
+	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[1])
+
+	d = &DuplicateViewChangeEvidence{
+		ViewA: evidenceViewA,
+		ViewB: evidenceViewB,
+	}
+	assert.NotNil(t, d.Validate())
+
+	// different number
+	vcB = makeViewChange(1, 1, hash, 2, validateNodes[0].Index, t, secretKeys[0])
+	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[1])
+
+	d = &DuplicateViewChangeEvidence{
+		ViewA: evidenceViewA,
+		ViewB: evidenceViewB,
+	}
+	assert.NotNil(t, d.Validate())
+
+	// different hash
+	vcB = makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
 	evidenceViewB, _ = NewEvidenceView(vcB, validateNodes[1])
 
 	d = &DuplicateViewChangeEvidence{

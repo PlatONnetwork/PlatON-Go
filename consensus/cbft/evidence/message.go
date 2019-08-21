@@ -117,6 +117,10 @@ type EvidenceView struct {
 }
 
 func NewEvidenceView(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (*EvidenceView, error) {
+	blockEpoch, blockView := uint64(0), uint64(0)
+	if vc.PrepareQC != nil {
+		blockEpoch, blockView = vc.PrepareQC.Epoch, vc.PrepareQC.ViewNumber
+	}
 	return &EvidenceView{
 		Epoch:        vc.Epoch,
 		ViewNumber:   vc.ViewNumber,
@@ -124,6 +128,8 @@ func NewEvidenceView(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (*E
 		BlockNumber:  vc.BlockNumber,
 		ValidateNode: NewEvidenceNode(node),
 		Signature:    vc.Signature,
+		BlockEpoch:   blockEpoch,
+		BlockView:    blockView,
 	}, nil
 }
 
