@@ -41,9 +41,9 @@ func Test_Decode(t *testing.T) {
 	/*sig := chandler.MustSign(1792)
 	t.Fatal("sign", hex.EncodeToString(sig))
 	*/
-	bytes, _ := hex.DecodeString("7c03cb6bc1c6103b979c7842cced4cdec5abfe8506b03ac9a714d1c31344f29e1185af720beae23a023f8ed02a9eb6eefaec0a381dda63c425d2af7a0c7ca7e501")
+	bytes, _ := hex.DecodeString("0x05af3bbd099562e520ddb824199182dcd8249bc91274afbcce4be24bd0fbf8c259cd403738923722163fa7493ea8ef8725d52f3d1bb3fd2713592ac135d0f85200")
 
-	if !chandler.IsSignedByNodeID(common.Uint32ToBytes(2048), bytes, nodeID) {
+	if !chandler.IsSignedByNodeID(common.Uint32ToBytes(66048), bytes, nodeID) {
 		t.Fatal("verify sign error")
 	} else {
 		t.Fatal("verify sign OK")
