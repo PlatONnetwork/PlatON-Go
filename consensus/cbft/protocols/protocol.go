@@ -376,7 +376,7 @@ func (s *GetPrepareBlock) MsgHash() common.Hash {
 	if mhash := s.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	v := utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
+	v := utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.Epoch), common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
 	s.messageHash.Store(v)
 	return v
 }

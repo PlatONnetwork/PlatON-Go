@@ -90,9 +90,7 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 		for i := uint32(0); i < pb.BlockIndex; i++ {
 			b, _ := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
-				cbft.network.Send(id, msg)
-				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
 			}
 		}
 	}
@@ -105,13 +103,9 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		for i := uint32(0); i < vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
-				cbft.network.Send(id, msg)
-				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
 			} else if q == nil {
-				msg := &protocols.GetBlockQuorumCert{BlockHash: b.Hash(), BlockNumber: b.NumberU64()}
-				cbft.network.Send(id, msg)
-				cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
+				cbft.SyncBlockQuorumCert(id, b.NumberU64(), b.Hash())
 			}
 		}
 	}
@@ -309,12 +303,7 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		block := cbft.state.ViewBlockByIndex(msg.BlockIndex)
 		if block == nil {
-			cbft.log.Debug("Send GetPrepareBlock", "peer", id, "block", msg.String())
-			cbft.network.Send(id, &protocols.GetPrepareBlock{
-				Epoch:      msg.Epoch,
-				ViewNumber: msg.ViewNumber,
-				BlockIndex: msg.BlockIndex,
-			})
+			cbft.SyncPrepareBlock(id, msg.Epoch, msg.ViewNumber, msg.BlockIndex)
 		}
 	}
 	return nil
@@ -539,4 +528,20 @@ func calAverage(latencyList *list.List) int64 {
 		return sum / counts
 	}
 	return 0
+}
+
+func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, blockIndex uint32) {
+	msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
+	if cbft.limitFetcher.AddTask(msg.MsgHash()) {
+		cbft.network.Send(id, msg)
+		cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+	}
+}
+
+func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash) {
+	msg := &protocols.GetBlockQuorumCert{BlockHash: blockHash, BlockNumber: blockNumber}
+	if cbft.limitFetcher.AddTask(msg.MsgHash()) {
+		cbft.network.Send(id, msg)
+		cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
+	}
 }

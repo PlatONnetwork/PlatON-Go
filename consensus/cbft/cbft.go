@@ -106,7 +106,8 @@ type Cbft struct {
 	// Async call channel
 	asyncCallCh chan func()
 
-	fetcher *fetcher.Fetcher
+	fetcher      *fetcher.Fetcher
+	limitFetcher *fetcher.LimitFetcher
 	// Control the current view state
 	state *cstate.ViewState
 
@@ -166,6 +167,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		commitErrCh:        make(chan error, 1),
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		fetcher:            fetcher.NewFetcher(),
+		limitFetcher:       fetcher.NewLimitFetcher(),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		statQueues:         make(map[common.Hash]map[string]int),
