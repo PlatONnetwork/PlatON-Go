@@ -190,7 +190,7 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 	msgPkg := types.NewMsgPackage("", msg, types.PartMode)
 	select {
 	case h.sendQueue <- msgPkg:
-		log.Debug("PartBroadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+		log.Debug("PartBroadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString(), "msg", msg.String())
 	default:
 		log.Error("PartBroadcast message failed, message queue blocking", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
