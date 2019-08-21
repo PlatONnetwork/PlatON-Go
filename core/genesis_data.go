@@ -261,6 +261,7 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		sevenEpoch = new(big.Int).Mul(big.NewInt(150443040698633), big.NewInt(1E11))
 		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943699), big.NewInt(1E10))
 	)
+	stateDb.SubBalance(vm.PlatONFoundationAddress, zeroEpoch)
 	stateDb.AddBalance(account, zeroEpoch)
 	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
 
@@ -271,7 +272,9 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		epochs := OneYearEpochs * (uint64(key) + 1)
 		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
 	}
-	plugin.CreateRestrictingRecord(account, stateDb, restrictingPlans)
+	if err := plugin.RestrictingInstance().AddRestrictingRecord(vm.PlatONFoundationAddress, vm.RewardManagerPoolAddr, restrictingPlans, stateDb); err != nil {
+		return err
+	}
 	return nil
 }
 
