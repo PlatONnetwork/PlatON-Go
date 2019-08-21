@@ -2,11 +2,8 @@ package xcom
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"os"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -41,23 +38,6 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 	}
 }
 
-func Test_Encode(t *testing.T) {
-	initChandlerHandler()
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	sig, err := chandler.Sign(uint32(1792))
-
-	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: common.BytesToVersionSign(sig)}
-
-	jsonByte, err := json.Marshal(value)
-	if nil != err {
-		log.Error("json.Marshal err", "err", err)
-	}
-
-	log.Error("encode result", "sig", hex.EncodeToString(jsonByte))
-	res := Result{true, string(jsonByte), ""}
-	resultBytes, _ := json.Marshal(res)
-	log.Error("encode result", "bytes", hex.EncodeToString(resultBytes))
-}
 func Test_Decode(t *testing.T) {
 	initChandlerHandler()
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
