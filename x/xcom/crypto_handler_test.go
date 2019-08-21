@@ -47,14 +47,14 @@ func Test_Decode(t *testing.T) {
 
 	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), bytes)
 	if err != nil {
-		t.Fatal("Check if the signature is signed by a node", "err", err)
+		t.Error("Check if the signature is signed by a node", "err", err)
 	}
 	id := discover.PubkeyID(pubKey)
 
-	t.Fatal("IsSignedByNodeID", "id", id, "nodeID", nodeID)
+	t.Error("IsSignedByNodeID", "id", id, "nodeID", nodeID)
 	if id == nodeID {
-		t.Fatal("verify sign OK")
+		t.Error("verify sign OK")
 	}
-	t.Fatal("verify sign error")
+	t.Error("verify sign error")
 
 }
