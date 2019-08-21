@@ -1025,7 +1025,7 @@ func Test_genVersionSign(t *testing.T) {
 	ver := uint32(66048) //1.2.0
 	chandler := xcom.GetCryptoHandler()
 
-	for i := 0; i < 18; i++ {
+	for i := 0; i < 4; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
 	}
