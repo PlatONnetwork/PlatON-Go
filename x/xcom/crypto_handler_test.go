@@ -43,10 +43,18 @@ func Test_Decode(t *testing.T) {
 	*/
 	bytes, _ := hex.DecodeString("0x05af3bbd099562e520ddb824199182dcd8249bc91274afbcce4be24bd0fbf8c259cd403738923722163fa7493ea8ef8725d52f3d1bb3fd2713592ac135d0f85200")
 
-	if !chandler.IsSignedByNodeID(66048, bytes, nodeID) {
-		t.Fatal("verify sign error")
-	} else {
+	data := uint32(66048)
+
+	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), bytes)
+	if err != nil {
+		t.Fatal("Check if the signature is signed by a node", "err", err)
+	}
+	id := discover.PubkeyID(pubKey)
+
+	t.Fatal("IsSignedByNodeID", "id", id, "nodeID", nodeID)
+	if id == nodeID {
 		t.Fatal("verify sign OK")
 	}
+	t.Fatal("verify sign error")
 
 }
