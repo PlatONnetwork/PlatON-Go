@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	_ "fmt"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/stretchr/testify/assert"
@@ -47,15 +50,16 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
-	//xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("3ef85f48c069d0c81740f9be1aed13beae606a5073a85709ee32d759eef4804f"))
+	//xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22"))
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
-	//fmt.Println("The versionSign", versionSign.Hex())
-	// return
+	fmt.Println("The versionSign", versionSign.Hex())
+	return nil
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
