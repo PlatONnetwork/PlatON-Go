@@ -1239,6 +1239,21 @@ func (cbft *Cbft) isStart() bool {
 	return utils.True(&cbft.start)
 }
 
+func (cbft *Cbft) isCurrentValidator() (*cbfttypes.ValidateNode, error) {
+	block := cbft.state.HighestQCBlock()
+	_, qc := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+
+	var validator *cbfttypes.ValidateNode
+	var err error
+	if qc == nil || cbft.state.Epoch() == qc.Epoch {
+		validator, err = cbft.validatorPool.GetValidatorByNodeID(block.NumberU64(), cbft.config.Option.NodeID)
+	} else {
+		validator, err = cbft.validatorPool.GetValidatorByNodeID(block.NumberU64()+1, cbft.config.Option.NodeID)
+
+	}
+	return validator, err
+}
+
 func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
 	block := cbft.state.HighestQCBlock()
 	_, qc := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
