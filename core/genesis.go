@@ -250,17 +250,15 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
-	// Store genesis programVersion into govenance data
-	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-
-	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, version); nil != err {
+	// Store genesis version into governance data
+	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, params.GenesisVersion); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 
 	snapdb := snapshotdb.Instance()
 
 	// Store genesis staking data
-	if err := genesisStakingData(snapdb, g, statedb, version); nil != err {
+	if err := genesisStakingData(snapdb, g, statedb, params.GenesisVersion); nil != err {
 		panic("Failed Store staking: " + err.Error())
 	}
 

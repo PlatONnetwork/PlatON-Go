@@ -19,8 +19,9 @@ package vm
 import (
 	"crypto/sha256"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -40,7 +41,8 @@ type PrecompiledContract interface {
 
 type PlatONPrecompiledContract interface {
 	PrecompiledContract
-	FnSigns() map[uint16]interface{}  // Return PlatON PrecompiledContract methods signs
+	FnSigns() map[uint16]interface{} // Return PlatON PrecompiledContract methods signs
+	CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
@@ -65,15 +67,13 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
-
-
 var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
-	vm.StakingContractAddr: &StakingContract{},
+	vm.StakingContractAddr:     &StakingContract{},
 	vm.RestrictingContractAddr: &RestrictingContract{},
-	vm.SlashingContractAddr: &SlashingContract{},
-	vm.GovContractAddr: &GovContract{},
+	vm.SlashingContractAddr:    &SlashingContract{},
+	vm.GovContractAddr:         &GovContract{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.

@@ -225,7 +225,7 @@ func TestInnerAgency(t *testing.T) {
 		return buf[:]
 	}
 
-	blockchain := core.GenerateBlockChain(chainConfig, genesis, new(consensus.BftMock), testdb, 80, func(i int, block *core.BlockGen) {
+	blockchain := core.GenerateBlockChain(chainConfig, genesis, new(consensus.BftMock), testdb, 200, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{1})
 
 		if i == 50 {
@@ -284,6 +284,7 @@ func TestInnerAgency(t *testing.T) {
 
 	assert.True(t, agency.GetLastNumber(0) == 40)
 	assert.True(t, agency.GetLastNumber(80) == 80)
+	assert.True(t, agency.GetLastNumber(81) == 120)
 	assert.True(t, agency.GetLastNumber(110) == 120)
 
 	validators, err := agency.GetValidator(0)
@@ -305,8 +306,17 @@ func TestInnerAgency(t *testing.T) {
 	assert.True(t, newVds.String() != "")
 	assert.False(t, newVds.Equal(validators))
 
-	defaultVds, _ := agency.GetValidator(120)
+	defaultVds, _ := agency.GetValidator(60)
 	assert.True(t, defaultVds.Equal(validators))
+
+	assert.True(t, agency.GetLastNumber(120) == 120)
+	assert.True(t, agency.GetLastNumber(121) == 160)
+	assert.True(t, agency.GetLastNumber(125) == 160)
+	assert.True(t, agency.GetLastNumber(159) == 160)
+	assert.True(t, agency.GetLastNumber(160) == 160)
+	assert.True(t, agency.GetLastNumber(200) == 200)
+	assert.True(t, agency.GetLastNumber(201) == 240)
+
 }
 
 func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {

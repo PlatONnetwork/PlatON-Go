@@ -24,7 +24,8 @@ type BlockChainCache struct {
 	stateDBMu     sync.RWMutex
 	receiptsMu    sync.RWMutex
 
-	executed sync.Map
+	executing sync.Mutex
+	executed  sync.Map
 }
 
 type stateDBCache struct {
@@ -214,8 +215,21 @@ func (bcc *BlockChainCache) StateDBString() string {
 }
 
 func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
-	if number, ok := bcc.executed.Load(block.Hash()); ok && number.(uint64) == block.Number().Uint64() {
-		log.Debug("Block has executed", "number", block.Number(), "hash", block.Hash(), "parentNumber", parent.Number(), "parentHash", parent.Hash())
+	executed := func() bool {
+		if number, ok := bcc.executed.Load(block.Header().SealHash()); ok && number.(uint64) == block.Number().Uint64() {
+			log.Debug("Block has executed", "number", block.Number(), "hash", block.Hash(), "parentNumber", parent.Number(), "parentHash", parent.Hash())
+			return true
+		}
+		return false
+	}
+
+	if executed() {
+		return nil
+	}
+
+	bcc.executing.Lock()
+	defer bcc.executing.Unlock()
+	if executed() {
 		return nil
 	}
 
@@ -234,14 +248,16 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		sealHash := block.Header().SealHash()
 		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
 		bcc.WriteStateDB(sealHash, state, block.NumberU64())
-		bcc.executed.Store(block.Hash(), block.Number().Uint64())
-
+		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}
 	return nil
 }
 
+func (bcc *BlockChainCache) AddSealBlock(hash common.Hash, number uint64) {
+	bcc.executed.Store(hash, number)
+}
 func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 	sealHash := block.Header().SealHash()
 	state := bcc.ReadStateDB(sealHash)

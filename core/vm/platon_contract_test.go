@@ -1,26 +1,22 @@
-package vm_test
+package vm
 
 import (
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -128,6 +124,9 @@ var (
 	blockNumber2 = big.NewInt(2)
 	blockHash2   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
+	blockNumber3 = big.NewInt(3)
+	blockHash3   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60345")
+
 	sender            = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
 	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
 
@@ -157,6 +156,11 @@ var (
 		common.HexToHash("0x000000008fd2abdf28d87efb2c7fa2d37618c8dba97059376d6a58007bee3d8b"),
 		common.HexToHash("0x0000000000000000000000003566f3a0adf49d90e610ef3d3548b5a72b1fe199"),
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
+		common.HexToHash("0x00000000000000000000000000cbeb8f4d51969d7eb70a4f6e8505950d870ef3"),
+		common.HexToHash("0x00000000000000000000000000000000000000000000000000000000000011b4"),
+		common.HexToHash("0x000000008fd2abdf28d87efb2c7fa2d37618c8dba97059376d6a58007bee3d84"),
+		common.HexToHash("0x0000000000000000000000003566f3a0adf49d90e610ef3d3548b5a72b1fe178"),
+		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee5"),
 	}
 
 	//initProgramVersion      = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
@@ -225,76 +229,47 @@ func newPlugins() {
 	snapshotdb.Instance()
 }
 
-func newChainState() (*state.StateDB, *types.Block, error) {
+func newChainState() (*mock.MockStateDB, *types.Block, error) {
 
-	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
+	testGenesis := new(types.Block)
+	chain := mock.NewChain(testGenesis)
+	//	var state *state.StateDB
 
-	node, _ := discover.ParseNode(url)
-
-	var nodes []params.CbftNode
-	var blsKey bls.SecretKey
-	blsKey.SetByCSPRNG()
-	nodes = append(nodes, params.CbftNode{Node: *node, BlsPubKey: *blsKey.GetPublicKey()})
-	gen := &core.Genesis{
-		Config: &params.ChainConfig{
-			Cbft: &params.CbftConfig{
-				InitialNodes:  nodes,
-				ValidatorMode: "ppos",
-			},
-		},
-	}
-
-	var (
-		db      = ethdb.NewMemDatabase()
-		genesis = gen.MustCommit(db)
-	)
-
-	fmt.Println("genesis", genesis)
-	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
-
-	var state *state.StateDB
-	if statedb, err := blockchain.State(); nil != err {
-		return nil, nil, errors.New("reference statedb failed" + err.Error())
-	} else {
-		state = statedb
-	}
-	state.AddBalance(sender, sender_balance)
-	state.AddBalance(delegate_sender, delegate_sender_balance)
+	chain.StateDB.AddBalance(sender, sender_balance)
+	chain.StateDB.AddBalance(delegate_sender, delegate_sender_balance)
 	for i, addr := range addrArr {
-
 		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
 		amount = new(big.Int).Mul(common.Big257, amount)
-		state.AddBalance(addr, amount)
+		chain.StateDB.AddBalance(addr, amount)
 	}
-
-	return state, genesis, nil
+	return chain.StateDB, chain.Genesis, nil
 }
 
-func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
+func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB) *EVM {
+
 	if nil == state {
 		state, _, _ = newChainState()
 	}
-	evm := &vm.EVM{
+	evm := &EVM{
 		StateDB: state,
 	}
-	context := vm.Context{
+	context := Context{
 		BlockNumber: blockNumber,
 		BlockHash:   blockHash,
 	}
 	evm.Context = context
 
 	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.AddActiveVersion(initProgramVersion, 0, state)
+
+	gov.AddActiveVersion(initProgramVersion, 0, state)
 
 	return evm
 }
 
-func newContract(value *big.Int, sender common.Address) *vm.Contract {
-	callerAddress := vm.AccountRef(sender)
+func newContract(value *big.Int, sender common.Address) *Contract {
+	callerAddress := AccountRef(sender)
 	fmt.Println("newContract sender :", callerAddress.Address().Hex())
-	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(initGas))
+	contract := NewContract(callerAddress, callerAddress, value, uint64(initGas))
 	return contract
 }
 
@@ -453,6 +428,8 @@ func build_staking_data(genesisHash common.Hash) {
 	setVerifierList(blockHash, epoch_Arr)
 	setRoundValList(blockHash, pre_Arr)
 	setRoundValList(blockHash, curr_Arr)
+
+	sndb.Commit(blockHash)
 }
 
 func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.Int, epochs int, stateDB xcom.StateDB) {
@@ -478,16 +455,16 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 		list = append(list, uint64(epoch))
 	}
 
-	lock_amount := new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
+	lockAmount := new(big.Int).Mul(balance, big.NewInt(int64(epochs)))
 
 	fmt.Println("")
 
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.Balance = lock_amount
-	user.Debt = big.NewInt(0)
-	user.DebtSymbol = false
 	user.ReleaseList = list
+	user.CachePlanAmount = lockAmount
+	user.StakingAmount = big.NewInt(0)
+	user.NeedRelease = big.NewInt(0)
 
 	bUser, err := rlp.EncodeToBytes(user)
 	if err != nil {
@@ -500,7 +477,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 
 	//stateDB.AddBalance(sender, sender_balance)
 
-	stateDB.AddBalance(cvm.RestrictingContractAddr, lock_amount)
+	stateDB.AddBalance(cvm.RestrictingContractAddr, lockAmount)
 }
 
 func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {

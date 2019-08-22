@@ -65,7 +65,7 @@ func buildVerifierList(t *testing.T, blockNumber uint64) error {
 		return err
 	}
 
-	snapdb = snapshotdb.Instance()
+	snapdb := snapshotdb.Instance()
 
 	// build epoch validators indexInfo
 	oneEpochBlocks := xutil.CalcBlocksEachEpoch()
