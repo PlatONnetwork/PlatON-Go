@@ -87,7 +87,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			BlsPubKey:          node.BlsPubKey,
 			StakingAddress:     vm.PlatONFoundationAddress,
 			BenefitAddress:     vm.RewardManagerPoolAddr,
-			StakingTxIndex:     uint32(index + 1),
+			StakingTxIndex:     uint32(index /* + 1*/), // txIndex from zero to n
 			ProgramVersion:     version,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
