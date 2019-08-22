@@ -151,9 +151,9 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, uint64, uint64, common.Hash, u
 	epoch, view, blockEpoch, blockView, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
 	for _, qc := range v.QCs {
-		if view < qc.ViewNumber {
-			blockEpoch, blockView, hash, number = qc.Epoch, qc.ViewNumber, qc.BlockHash, qc.BlockNumber
-		} else if view == qc.ViewNumber && number < qc.BlockNumber {
+		if blockEpoch < qc.BlockEpoch || blockView < qc.BlockViewNumber {
+			blockEpoch, blockView, hash, number = qc.BlockEpoch, qc.BlockViewNumber, qc.BlockHash, qc.BlockNumber
+		} else if number < qc.BlockNumber {
 			hash, number = qc.BlockHash, qc.BlockNumber
 		}
 	}
