@@ -95,7 +95,7 @@ func Test_Router_Gossip(t *testing.T) {
 			case protocols.PrepareBlockHashMsg:
 				t.Log("gossip message success.")
 			default:
-				t.Fatal("Error message code")
+				t.Error("Error message code")
 			}
 			msg.Discard()
 			t.Logf("messageType: %d", msg.Code)
@@ -136,7 +136,7 @@ func Test_Router_SendMessage(t *testing.T) {
 			case protocols.GetLatestStatusMsg, protocols.LatestStatusMsg:
 				t.Log("send message success.")
 			default:
-				t.Fatal("Error message code")
+				t.Error("Error message code")
 			}
 			t.Logf("messageType: %d", msg.Code)
 			msg.Discard()
@@ -177,8 +177,10 @@ func Test_Router_FilteredPeers(t *testing.T) {
 			protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
 			if v.cond == (common.Hash{}) {
 				//assert.Equal(t, testingPeerCount, len(peers))
+				t.Log(testingPeerCount)
 			} else {
 				//assert.Equal(t, testingPeerCount-1, len(peers))
+				t.Log(len(peers))
 			}
 		case protocols.PrepareBlockHashMsg:
 			if v.cond == (common.Hash{}) {

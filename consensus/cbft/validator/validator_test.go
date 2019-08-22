@@ -120,7 +120,7 @@ func TestValidators(t *testing.T) {
 	assert.True(t, err == nil, "get node idex fail")
 	assert.True(t, validator.Index == 2)
 
-	pubkey, err := nodes[1].Node.ID.Pubkey()
+	pubkey, _ := nodes[1].Node.ID.Pubkey()
 	addrN1 := crypto.PubkeyToAddress(*pubkey)
 
 	validator, err = vds.FindNodeByID(nodes[1].Node.ID)
@@ -239,7 +239,7 @@ func TestInnerAgency(t *testing.T) {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -263,7 +263,7 @@ func TestInnerAgency(t *testing.T) {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -355,7 +355,7 @@ func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -379,7 +379,7 @@ func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,

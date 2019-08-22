@@ -1125,7 +1125,7 @@ func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, header *types.Header) boo
 }
 
 // TracingSwitch will be abandoned in the future.
-func (Cbft) TracingSwitch(flag int8) {
+func (cbft *Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
 
@@ -1165,11 +1165,11 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
 	if cbft.updateChainStateHook != nil {
-		cbft.updateChainStateHook(&protocols.State{qcBlock, qcQC}, &protocols.State{lockBlock, lockQC}, &protocols.State{commitBlock, commitQC})
+		cbft.updateChainStateHook(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, &protocols.State{Block: lockBlock, QuorumCert: lockQC}, &protocols.State{Block: commitBlock, QuorumCert: commitQC})
 	}
-	qcState := &protocols.State{qcBlock, qcQC}
-	lockState := &protocols.State{lockBlock, lockQC}
-	commitState := &protocols.State{commitBlock, commitQC}
+	qcState := &protocols.State{Block: qcBlock, QuorumCert: qcQC}
+	lockState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
+	commitState := &protocols.State{Block: commitBlock, QuorumCert: commitQC}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,
@@ -1200,10 +1200,7 @@ func (cbft *Cbft) verifySelfSigned(m []byte, sig []byte) bool {
 
 	pubKey := cbft.config.Option.NodePriKey.PublicKey
 	pbytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-	if !bytes.Equal(pbytes, recPubKey) {
-		return false
-	}
-	return true
+	return bytes.Equal(pbytes, recPubKey)
 }
 
 // signFn use private key to sign byte slice.

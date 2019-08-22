@@ -432,7 +432,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		blockConfirmedMeter.Mark(1)
 	} else {
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
-		cbft.bridge.UpdateChainState(&protocols.State{qcBlock, qcQC}, nil, nil)
+		cbft.bridge.UpdateChainState(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, nil, nil)
 	}
 }
 
