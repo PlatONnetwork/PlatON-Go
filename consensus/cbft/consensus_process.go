@@ -107,6 +107,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 
 // OnViewChange performs security rule verification, view switching.
 func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError {
+	cbft.log.Debug("Receive ViewChange", "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
@@ -328,6 +329,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			hadSend.Push(p)
 			//Determine if the current consensus node is
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(p.BlockNum(), cbft.config.Option.NodeID)
+			cbft.log.Debug("Add local prepareVote", "vote", p.String())
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
 
@@ -450,7 +452,8 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	enough := func() bool {
-		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount
+		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
+			(qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
 	}()
 
 	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
