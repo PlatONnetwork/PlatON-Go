@@ -121,19 +121,20 @@ func newFakeGetQCBlockList() *protocols.GetQCBlockList {
 // Create a new GetPrepareVote for testing.
 func newFakeGetPrepareVote() *protocols.GetPrepareVote {
 	return &protocols.GetPrepareVote{
-		ViewNumber:  1,
-		BlockHash:   common.BytesToHash([]byte("GetPrepareVote")),
-		BlockNumber: 1,
-		VoteBits:    utils.NewBitArray(32),
+		Epoch:      1,
+		ViewNumber: 1,
+		BlockIndex: 1,
+		KnownSet:   utils.NewBitArray(32),
 	}
 }
 
 // Create a new PrepareVotes for testing.
 func newFakePrepareVotes() *protocols.PrepareVotes {
 	return &protocols.PrepareVotes{
-		BlockHash:   common.BytesToHash([]byte("PrepareVotes")),
-		BlockNumber: 1,
-		Votes:       []*protocols.PrepareVote{newFakePrepareVote()},
+		Epoch:      1,
+		ViewNumber: 1,
+		BlockIndex: 1,
+		Votes:      []*protocols.PrepareVote{newFakePrepareVote()},
 	}
 }
 
@@ -338,6 +339,12 @@ func (s *mockCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 }
 func (s *mockCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 	return &protocols.GetViewChange{
+		Epoch:      1,
+		ViewNumber: 1,
+	}, nil
+}
+func (s *mockCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
+	return &protocols.GetPrepareVote{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil

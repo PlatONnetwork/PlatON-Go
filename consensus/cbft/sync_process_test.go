@@ -314,34 +314,34 @@ func TestCbft_OnGetPrepareVote(t *testing.T) {
 		done <- struct{}{}
 
 	}
-	pk, sk, cbftnodes := GenerateCbftNode(1)
+	pk, sk, cbftnodes := GenerateCbftNode(4)
 	node := MockNode(pk[0], sk[0], cbftnodes, 1000000, 10)
 	node.Start()
 	network.SetSendQueueHook(node.engine.network, hook)
 
-	parent := common.Hash{}
 	for i := 1; i < 3; i++ {
 		block := NewBlock(common.Hash{}, uint64(i))
-		parent = block.Hash()
 
-		pb := &protocols.PrepareVote{
-			Epoch:       0,
-			ViewNumber:  1,
-			BlockHash:   block.Hash(),
-			BlockNumber: block.NumberU64(),
-			BlockIndex:  uint32(i - 1),
-		}
-		for i := 0; i < 4; i++ {
-			node.engine.state.AddPrepareVote(uint32(i), pb)
+		for j := 0; j < len(cbftnodes); j++ {
+			pb := &protocols.PrepareVote{
+				Epoch:          1,
+				ViewNumber:     0,
+				BlockHash:      block.Hash(),
+				BlockNumber:    block.NumberU64(),
+				BlockIndex:     uint32(i - 1),
+				ValidatorIndex: uint32(j),
+			}
+			node.engine.state.AddPrepareVote(uint32(j), pb)
 		}
 	}
 
+	knownSet := utils.NewBitArray(4)
+	knownSet.SetIndex(2, true)
 	assert.Nil(t, node.engine.OnGetPrepareVote("id", &protocols.GetPrepareVote{
-		ViewNumber:  1,
-		BlockHash:   parent,
-		BlockNumber: 4,
-		BlockIndex:  1,
-		VoteBits:    utils.NewBitArray(4),
+		Epoch:      1,
+		ViewNumber: 0,
+		BlockIndex: 1,
+		KnownSet:   knownSet,
 	}))
 	select {
 	case <-timer.C:

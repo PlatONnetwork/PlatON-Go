@@ -40,6 +40,9 @@ const (
 	// SyncViewChangeInterval is ViewChange synchronization detection interval.
 	SyncViewChangeInterval = 10
 
+	// SyncPrepareVoteInterval is PrepareVote synchronization detection interval.
+	SyncPrepareVoteInterval = 2
+
 	// removeBlacklistInterval is remove blacklist detection interval.
 	removeBlacklistInterval = 20
 
@@ -663,6 +666,7 @@ func (h *EngineManager) synchronize() {
 	blockNumberTimer := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
 	pureBlacklistTicker := time.NewTicker(removeBlacklistInterval * time.Second)
+	voteTicker := time.NewTicker(SyncPrepareVoteInterval * time.Second)
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
@@ -677,6 +681,16 @@ func (h *EngineManager) synchronize() {
 
 	for {
 		select {
+		case <-voteTicker.C:
+			msg, err := h.engine.MissingPrepareVote()
+			if err != nil {
+				log.Debug("Request missing prepareVote failed", "err", err)
+				break
+			}
+			log.Debug("Had new prepareVote sync request", "msg", msg.String())
+			// Only broadcasts without forwarding.
+			h.PartBroadcast(msg)
+
 		case <-blockNumberTimer.C:
 			// Sent at random.
 			syncQCBnFunc()

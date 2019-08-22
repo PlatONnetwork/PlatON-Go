@@ -203,25 +203,21 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) err
 // PrepareVotes message to the sender.
 func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
 	cbft.log.Debug("Received message on OnGetPrepareVote", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
-	// Get all the received PrepareVote of the block according to the index
-	// position of the block in the view.
-	prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
-
-	// Defining an array for receiving PrepareVote.
-	votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
-	if prepareVoteMap != nil {
-		for k, v := range prepareVoteMap {
-			if !msg.VoteBits.GetIndex(k) {
-				votes = append(votes, v)
+	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
+		// Defining an array for receiving PrepareVote.
+		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
+		if prepareVoteMap != nil {
+			for k, v := range prepareVoteMap {
+				if !msg.KnownSet.GetIndex(k) {
+					votes = append(votes, v)
+				}
 			}
 		}
-	} else {
-		// Is it necessary to obtain the PrepareVotes from the blockchain
-		// when it is not in the memory?
-	}
-	if len(votes) != 0 {
-		cbft.network.Send(id, &protocols.PrepareVotes{BlockHash: msg.BlockHash, BlockNumber: msg.BlockNumber, Votes: votes})
-		cbft.log.Debug("Send PrepareVotes", "peer", id, "hash", msg.BlockHash, "number", msg.BlockNumber)
+		if len(votes) > 0 {
+			cbft.network.Send(id, &protocols.PrepareVotes{Epoch: msg.Epoch, ViewNumber: msg.ViewNumber, BlockIndex: msg.BlockIndex, Votes: votes})
+			cbft.log.Debug("Send PrepareVotes", "peer", id, "epoch", msg.Epoch, "viewNumber", msg.ViewNumber, "blockIndex", msg.BlockIndex)
+		}
 	}
 	return nil
 }
@@ -420,6 +416,41 @@ func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err erro
 			ViewNumber:     cbft.state.ViewNumber(),
 			ViewChangeBits: vbits,
 		}, nil
+	}
+	<-result
+	return
+}
+
+// MissingPrepareVote returns missing vote.
+func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) {
+	result := make(chan struct{})
+
+	cbft.asyncCallCh <- func() {
+		defer func() { result <- struct{}{} }()
+
+		begin := cbft.state.MaxQCIndex() + 1
+		end := cbft.state.NextViewBlockIndex()
+		len := cbft.currentValidatorLen()
+
+		for i := begin; i < end; i++ {
+			size := cbft.state.PrepareVoteLenByIndex(i)
+			if size < cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
+				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
+				knownSet := utils.NewBitArray(uint32(len))
+				for i := uint32(0); i < knownSet.Size(); i++ {
+					if _, ok := knownVotes[i]; ok {
+						knownSet.SetIndex(i, true)
+					}
+				}
+
+				v, err = &protocols.GetPrepareVote{
+					Epoch:      cbft.state.Epoch(),
+					ViewNumber: cbft.state.ViewNumber(),
+					BlockIndex: i,
+					KnownSet:   knownSet,
+				}, nil
+			}
+		}
 	}
 	<-result
 	return

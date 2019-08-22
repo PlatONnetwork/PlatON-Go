@@ -40,6 +40,9 @@ type Cbft interface {
 	// Returns the node ID of the missing vote.
 	MissingViewChangeNodes() (*protocols.GetViewChange, error)
 
+	// Returns the missing vote.
+	MissingPrepareVote() (*protocols.GetPrepareVote, error)
+
 	// OnPong records net delay time.
 	OnPong(nodeID string, netLatency int64) error
 
