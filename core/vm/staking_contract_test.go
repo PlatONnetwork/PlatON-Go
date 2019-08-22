@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	_ "fmt"
 	"math/big"
 	"testing"
@@ -56,8 +55,8 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(1793))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
-	fmt.Println("The versionSign", versionSign.Hex())
-	return nil
+	//fmt.Println("The versionSign", versionSign.Hex())
+	//return nil
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
