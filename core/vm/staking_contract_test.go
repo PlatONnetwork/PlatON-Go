@@ -48,14 +48,15 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
-	//xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("3ef85f48c069d0c81740f9be1aed13beae606a5073a85709ee32d759eef4804f"))
+	//xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("30999a0591d350be57ef38ff17babdc73aa8e091532c0a8aafb76375dcb9f0c9"))
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
+	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(1793))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	//fmt.Println("The versionSign", versionSign.Hex())
-	// return
+	//return nil
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()

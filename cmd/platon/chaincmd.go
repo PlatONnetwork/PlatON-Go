@@ -201,11 +201,13 @@ func initGenesis(ctx *cli.Context) error {
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 
+	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
+	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft {
+		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	}
+
 	for _, name := range []string{"chaindata", "lightchaindata"} {
-		if "chaindata" == name && nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft {
-			xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-			xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
-		}
 
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {

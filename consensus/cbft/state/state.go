@@ -223,7 +223,7 @@ type executing struct {
 	// Block index of current view
 	BlockIndex uint32 `json:"block_index"`
 	// Whether to complete
-	Finish bool `json:"Finish"`
+	Finish bool `json:"finish"`
 }
 
 type view struct {

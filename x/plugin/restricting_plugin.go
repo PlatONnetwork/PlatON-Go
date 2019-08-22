@@ -73,7 +73,11 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 	}
 
 	rp.log.Info("begin to release restricting plan", "curr", head.Number, "epoch", expectBlock)
-	return rp.releaseRestricting(expect, state)
+	if err := rp.releaseRestricting(expect, state); err != nil {
+		return err
+	}
+	SetLatestEpoch(state, expect)
+	return nil
 }
 
 // Confirmed is empty function
@@ -130,31 +134,32 @@ func (rp *RestrictingPlugin) transferAmount(state xcom.StateDB, from, to common.
 	state.AddBalance(to, mount)
 }
 
-func CreateRestrictingRecord(account common.Address, state xcom.StateDB, plans []restricting.RestrictingPlan) {
-	rt := RestrictingInstance()
-	epochList := make([]uint64, 0)
-	totalAmount := new(big.Int)
-	for _, plan := range plans {
-		rt.storeAccount2ReleaseAccount(state, plan.Epoch, 1, account)
-		// store release amount record
-		rt.storeAmount2ReleaseAmount(state, plan.Epoch, account, plan.Amount)
-		// store release epoch record
-		releaseEpochKey := restricting.GetReleaseEpochKey(plan.Epoch)
-		rt.storeNumber2ReleaseEpoch(state, releaseEpochKey, 1)
-		epochList = append(epochList, plan.Epoch)
-		totalAmount.Add(totalAmount, plan.Amount)
-	}
-	state.AddBalance(vm.RestrictingContractAddr, totalAmount)
-
-	// build restricting account info
-	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.CachePlanAmount = totalAmount
-	restrictInfo.StakingAmount = big.NewInt(0)
-	restrictInfo.NeedRelease = big.NewInt(0)
-	restrictInfo.ReleaseList = epochList
-	restrictingKey := restricting.GetRestrictingKey(account)
-	rt.storeRestrictingInfo(state, restrictingKey, restrictInfo)
-}
+//
+//func CreateRestrictingRecord(account common.Address, state xcom.StateDB, plans []restricting.RestrictingPlan) {
+//	rt := RestrictingInstance()
+//	epochList := make([]uint64, 0)
+//	totalAmount := new(big.Int)
+//	for _, plan := range plans {
+//		rt.storeAccount2ReleaseAccount(state, plan.Epoch, 1, account)
+//		// store release amount record
+//		rt.storeAmount2ReleaseAmount(state, plan.Epoch, account, plan.Amount)
+//		// store release epoch record
+//		releaseEpochKey := restricting.GetReleaseEpochKey(plan.Epoch)
+//		rt.storeNumber2ReleaseEpoch(state, releaseEpochKey, 1)
+//		epochList = append(epochList, plan.Epoch)
+//		totalAmount.Add(totalAmount, plan.Amount)
+//	}
+//	state.AddBalance(vm.RestrictingContractAddr, totalAmount)
+//
+//	// build restricting account info
+//	var restrictInfo restricting.RestrictingInfo
+//	restrictInfo.CachePlanAmount = totalAmount
+//	restrictInfo.StakingAmount = big.NewInt(0)
+//	restrictInfo.NeedRelease = big.NewInt(0)
+//	restrictInfo.ReleaseList = epochList
+//	restrictingKey := restricting.GetRestrictingKey(account)
+//	rt.storeRestrictingInfo(state, restrictingKey, restrictInfo)
+//}
 
 // AddRestrictingRecord stores four K-V record in StateDB:
 // RestrictingInfo: the account info to be released
@@ -422,7 +427,6 @@ func (rp *RestrictingPlugin) storeAmount2ReleaseAmount(state xcom.StateDB, epoch
 func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
 
 	rp.log.Info("begin to releaseRestricting", "epoch", epoch)
-
 	releaseEpochKey, numbers := rp.getReleaseEpochNumber(state, epoch)
 	if numbers == 0 {
 		rp.log.Info("there is no release record on curr epoch", "epoch", epoch)
@@ -484,7 +488,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 	// delete ReleaseEpoch
 	state.SetState(vm.RestrictingContractAddr, releaseEpochKey, []byte{})
-	SetLatestEpoch(state, epoch)
+
 	rp.log.Info("end to releaseRestricting")
 
 	return nil

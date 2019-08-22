@@ -649,6 +649,7 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (err error) {
 		if err != nil {
 			d.snapshotDB.Clear()
 		}
+		close(d.pposStorageDoneCh)
 	}()
 	d.pposStorageDoneCh = make(chan struct{})
 	var count int64
@@ -679,7 +680,6 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (err error) {
 			}
 			if pposDada.last {
 				log.Info("fetchPPOSStorage has finish")
-				close(d.pposStorageDoneCh)
 				return nil
 			}
 			ttl = d.requestTTL()
