@@ -13,6 +13,85 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
+//
+//func TestSnapshotDB(t *testing.T) {
+//	Instance()
+//	basedb := dbInstance.baseDB
+//	kvs0 := generatekvWithPrefix(20000, "aaaa")
+//	batch := new(leveldb.Batch)
+//	for _, kv := range kvs0 {
+//		batch.Put(kv.key, kv.value)
+//	}
+//	if err := basedb.Write(batch, nil); err != nil {
+//		t.Error(err)
+//	}
+//
+//	snapshot, err := basedb.GetSnapshot()
+//	if err != nil {
+//		t.Error(err)
+//	}
+//
+//	go func() {
+//		kvs1 := generatekvWithPrefix(20000, "bbb")
+//		batch := new(leveldb.Batch)
+//		for _, kv := range kvs1 {
+//			batch.Put(kv.key, kv.value)
+//		}
+//		if err := basedb.Write(batch, nil); err != nil {
+//			t.Error(err)
+//		}
+//	}()
+//	go func() {
+//		kvs2 := generatekvWithPrefix(20000, "aaaa")
+//		batch := new(leveldb.Batch)
+//		for _, kv := range kvs2 {
+//			batch.Put(kv.key, kv.value)
+//		}
+//		if err := basedb.Write(batch, nil); err != nil {
+//			t.Error(err)
+//		}
+//	}()
+//	go func() {
+//		kvs3 := generatekvWithPrefix(20000, "ccccc")
+//		batch := new(leveldb.Batch)
+//		for _, kv := range kvs3 {
+//			batch.Put(kv.key, kv.value)
+//		}
+//		if err := basedb.Write(batch, nil); err != nil {
+//			t.Error(err)
+//		}
+//	}()
+//
+//	for i := 0; i < 10; i++ {
+//		go func() {
+//			kvs4 := generatekvWithPrefix(1000, "bbb")
+//			batch := new(leveldb.Batch)
+//			for _, kv := range kvs4 {
+//				batch.Put(kv.key, kv.value)
+//			}
+//			if err := basedb.Write(batch, nil); err != nil {
+//				t.Error(err)
+//			}
+//		}()
+//	}
+//	time.Sleep(2 * time.Second)
+//
+//	itr := snapshot.NewIterator(nil, nil)
+//	var i int
+//	for itr.Next() {
+//		if bytes.Compare(itr.Key(), kvs0[i].key) != 0 {
+//			t.Error("key not same")
+//		}
+//		if bytes.Compare(itr.Value(), kvs0[i].value) != 0 {
+//			t.Error("val not same")
+//		}
+//		i++
+//	}
+//	if i != 20000 {
+//		t.Error("num not  same", i)
+//	}
+//}
+
 func TestRecover(t *testing.T) {
 	os.RemoveAll(dbpath)
 	if err := initDB(); err != nil {
@@ -150,8 +229,8 @@ func TestRecover(t *testing.T) {
 		commit,
 	}
 	rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
-	if !ok {
-		t.Error("recognizedHash4 not found")
+	if ok {
+		t.Error("recognizedHash4 should not found")
 	}
 	rg2 := rg
 	newarr := []*blockData{
@@ -161,9 +240,9 @@ func TestRecover(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		if i == 0 {
-			if newarr[i].BlockHash != common.ZeroHash {
-				t.Error("unRecognized block hash must nil", i, newarr[i].BlockHash, oldarr[i].BlockHash)
+		if i == 0 || i == 1 {
+			if newarr[i] != nil {
+				t.Error("unRecognized  must nil")
 				return
 			}
 		} else {
@@ -171,42 +250,43 @@ func TestRecover(t *testing.T) {
 				t.Error("block hash must compare", i, oldarr[i].BlockHash.String(), newarr[i].BlockHash.String())
 				return
 			}
-		}
 
-		if oldarr[i].ParentHash != newarr[i].ParentHash {
-			t.Error("ParentHash  must compare", i)
-			return
-		}
-		if oldarr[i].kvHash != newarr[i].kvHash {
-			t.Error("kvHash  must compare", i)
-			return
-		}
-		if oldarr[i].readOnly != newarr[i].readOnly {
-			t.Error("readOnly  must compare", i, oldarr[i].readOnly, newarr[i].readOnly)
-			return
-		}
-		itr := oldarr[i].data.NewIterator(nil)
-		for itr.Next() {
-			v, err := newarr[i].data.Get(itr.Key())
-			if err != nil {
-				t.Error(err)
+			if oldarr[i].ParentHash != newarr[i].ParentHash {
+				t.Error("ParentHash  must compare", i)
 				return
 			}
-			if bytes.Compare(v, itr.Value()) != 0 {
-				t.Error("kv  must compare", i)
+			if oldarr[i].kvHash != newarr[i].kvHash {
+				t.Error("kvHash  must compare", i)
 				return
 			}
+			if oldarr[i].readOnly != newarr[i].readOnly {
+				t.Error("readOnly  must compare", i, oldarr[i].readOnly, newarr[i].readOnly)
+				return
+			}
+			itr := oldarr[i].data.NewIterator(nil)
+			for itr.Next() {
+				v, err := newarr[i].data.Get(itr.Key())
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if bytes.Compare(v, itr.Value()) != 0 {
+					t.Error("kv  must compare", i)
+					return
+				}
+			}
 		}
+
 	}
 
-	if err := dbInstance.Put(common.ZeroHash, []byte("dddd"), []byte("dddd")); err != nil {
-		t.Error(err)
+	if err := dbInstance.Put(common.ZeroHash, []byte("dddd"), []byte("dddd")); err == nil {
+		t.Error("should not put")
 	}
-	if err := dbInstance.Flush(generateHash("flush"), big.NewInt(4)); err != nil {
-		t.Error(err)
+	if err := dbInstance.Flush(generateHash("flush"), big.NewInt(4)); err == nil {
+		t.Error("should not flush")
 	}
-	if err := dbInstance.Commit(generateHash("recognizedHash4")); err != nil {
-		t.Error(err)
+	if err := dbInstance.Commit(generateHash("recognizedHash4")); err == nil {
+		t.Error("should not commit")
 	}
 	if err := dbInstance.Compaction(); err != nil {
 		t.Error(err)
