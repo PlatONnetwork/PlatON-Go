@@ -202,7 +202,7 @@ func (bcc *BlockChainCache) ClearCache(block *types.Block) {
 	sealHash := block.Header().SealHash()
 	bcc.clearReceipts(sealHash)
 	bcc.clearStateDB(sealHash)
-	bcc.executed.Delete(block.Hash())
+	bcc.executed.Delete(sealHash)
 }
 
 func (bcc *BlockChainCache) StateDBString() string {
@@ -232,7 +232,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	if executed() {
 		return nil
 	}
-
+	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
 	state, err := bcc.MakeStateDB(parent)
 	if err != nil {
 		return errors.New("execute block error")
