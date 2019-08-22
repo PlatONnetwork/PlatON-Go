@@ -87,7 +87,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			BlsPubKey:          node.BlsPubKey,
 			StakingAddress:     vm.PlatONFoundationAddress,
 			BenefitAddress:     vm.RewardManagerPoolAddr,
-			StakingTxIndex:     uint32(index /* + 1*/), // txIndex from zero to n
+			StakingTxIndex:     uint32(index), // txIndex from zero to n
 			ProgramVersion:     version,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
@@ -135,10 +135,11 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
-			NodeAddress:   nodeAddr,
-			NodeId:        node.Node.ID,
-			BlsPubKey:     node.BlsPubKey,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(version), xcom.StakeThreshold().String(), "0", fmt.Sprint(index + 1)},
+			NodeAddress: nodeAddr,
+			NodeId:      can.NodeId,
+			BlsPubKey:   can.BlsPubKey,
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Released.String(),
+				fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)},
 			ValidatorTerm: 0,
 		}
 		validatorQueue[index] = validator
