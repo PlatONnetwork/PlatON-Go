@@ -453,7 +453,7 @@ func (cbft *Cbft) tryChangeView() {
 
 	enough := func() bool {
 		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
-			(qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+			(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
 	}()
 
 	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
