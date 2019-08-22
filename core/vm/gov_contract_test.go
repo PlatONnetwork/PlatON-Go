@@ -1,25 +1,22 @@
-package vm_test
+package vm
 
 import (
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
-	snapdb      snapshotdb.DB
 	govPlugin   *plugin.GovPlugin
-	gc          *vm.GovContract
+	gc          *GovContract
 	versionSign common.VersionSign
 	chandler    *xcom.CryptoHandler
 )
@@ -36,7 +33,6 @@ func buildSubmitTextInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[1])) // param 1 ...
 	input = append(input, common.MustRlpEncode("textUrl"))
-	input = append(input, common.MustRlpEncode(uint64(5)))
 
 	return common.MustRlpEncode(input)
 }
@@ -128,71 +124,97 @@ func buildGetProgramVersionInput() []byte {
 
 var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
 
-func setup(t *testing.T) func() {
-	t.Log("setup()......")
+func buildBlock2() {
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
+	state.Prepare(txHashArr[2], blockHash2, int(2+1))
+	sndb.NewBlock(blockNumber2, blockHash, blockHash2)
+	context := Context{
+		BlockNumber: blockNumber2,
+		BlockHash:   blockHash2,
+	}
+	gc.Evm.Context = context
+}
 
-	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
-	gc, _ = precompiledContract.(*vm.GovContract)
-	state, genesis, _ := newChainState()
-	gc.Evm = newEvm(blockNumber, blockHash, state)
+func buildBlock3() {
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
+	state.Prepare(txHashArr[3], blockHash2, int(3+1))
+	sndb.NewBlock(blockNumber3, blockHash2, blockHash3)
+	context := Context{
+		BlockNumber: blockNumber3,
+		BlockHash:   blockHash3,
+	}
+	gc.Evm.Context = context
+}
+
+func setup(t *testing.T) {
+	t.Log("setup()......")
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
+	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
+	gc, _ = precompiledContract.(*GovContract)
 	gc.Contract = newContract(common.Big0, sender)
 
-	newPlugins()
+	state, genesis, _ := newChainState()
+	gc.Evm = newEvm(blockNumber, blockHash, state)
 
+	newPlugins()
 	govPlugin = plugin.GovPluginInstance()
 	gc.Plugin = govPlugin
 
 	build_staking_data(genesis.Hash())
+}
 
-	snapdb = snapshotdb.Instance()
-
-	return func() {
-		t.Log("tear down()......")
-		snapdb.Clear()
-	}
+func clear(t *testing.T) {
+	t.Log("tear down()......")
+	sndb.Clear()
 }
 
 func TestGovContract_SubmitText(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 0)
+	setup(t)
+	defer clear(t)
+
+	buildBlock2()
 
 	runGovContract(gc, buildSubmitTextInput(), t)
 }
 
 func TestGovContract_GetTextProposal(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 0)
+	setup(t)
+	defer clear(t)
 
+	buildBlock2()
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitTextInput(), t)
-	state.Prepare(txHashArr[1], blockHash, 0)
-	runGovContract(gc, buildGetProposalInput(0), t)
+	//state.Prepare(txHashArr[1], blockHash2, 0)
+	runGovContract(gc, buildGetProposalInput(2), t)
 }
 
 func TestGovContract_SubmitVersion(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[1], blockHash, 1)
+	setup(t)
+	defer clear(t)
+
+	buildBlock2()
 
 	runGovContract(gc, buildSubmitVersionInput(), t)
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 1)
+	setup(t)
+	defer clear(t)
+
+	buildBlock2()
+
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	runGovContract(gc, buildGetProposalInput(0), t)
+	runGovContract(gc, buildGetProposalInput(2), t)
 }
 
 func TestGovContract_DeclareVersion(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 1)
+	setup(t)
+	defer clear(t)
+
+	buildBlock2()
 
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
@@ -201,7 +223,7 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(gc, buildDeclareInput(), t)
 
-	if nodeList, err := gov.GovDBInstance().GetActiveNodeList(blockHash, txHashArr[0]); err != nil {
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("nodeList", nodeList[0])
@@ -212,19 +234,24 @@ func TestGovContract_DeclareVersion(t *testing.T) {
 }
 
 func TestGovContract_SubmitCancel(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 1)
-	//runGovContract(gc, buildSubmitVersionInput(), t)
+	setup(t)
+	defer clear(t)
 
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	buildBlock3()
 	runGovContract(gc, buildSubmitCancelInput(), t)
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[2], blockHash, 2)
+	setup(t)
+	defer clear(t)
 
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	buildBlock3()
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitCancelInput(), t)
 
@@ -232,56 +259,60 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 }
 
 func TestGovContract_OneNodeVoteVersionProposal(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[1], blockHash, 1)
-
+	setup(t)
+	defer clear(t)
 	//submit a proposal and vote for it.
+	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	runGovContract(gc, buildVoteInput(0, 1), t)
+	runGovContract(gc, buildVoteInput(0, 2), t)
 }
 
 func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[1], blockHash, 1)
+	setup(t)
+	defer clear(t)
+
 	//submit a proposal and vote for it.
+	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
+
 	for i := 0; i < 3; i++ {
-		runGovContract(gc, buildVoteInput(i, 1), t)
+		runGovContract(gc, buildVoteInput(i, 2), t)
 	}
 }
 
 func TestGovContract_ListProposal(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 0)
-	//submit a proposal
-	runGovContract(gc, buildSubmitTextInput(), t)
+	setup(t)
+	defer clear(t)
 
-	state.Prepare(txHashArr[1], blockHash, 1)
+	buildBlock2()
+
 	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(gc, buildSubmitTextInput(), t)
 
 	runGovContract(gc, buildListProposalInput(), t)
 
 }
 
 func TestGovContract_GetActiveVersion(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 0)
+	setup(t)
+	defer clear(t)
+
+	buildBlock2()
+
 	runGovContract(gc, buildGetActiveVersionInput(), t)
 }
 
 func TestGovContract_GetProgramVersion(t *testing.T) {
-	defer setup(t)()
-	state := gc.Evm.StateDB.(*state.StateDB)
-	state.Prepare(txHashArr[0], blockHash, 0)
+	setup(t)
+	defer clear(t)
+
+	buildBlock2()
+
 	runGovContract(gc, buildGetProgramVersionInput(), t)
 }
 
-func runGovContract(contract *vm.GovContract, buf []byte, t *testing.T) {
+func runGovContract(contract *GovContract, buf []byte, t *testing.T) {
 	res, err := contract.Run(buf)
 	if nil != err {
 		t.Fatal(err)
@@ -291,7 +322,7 @@ func runGovContract(contract *vm.GovContract, buf []byte, t *testing.T) {
 }
 
 func Test_ResetVoteOption(t *testing.T) {
-	v := gov.Vote{}
+	v := gov.VoteInfo{}
 	v.ProposalID = common.ZeroHash
 	v.VoteNodeID = discover.NodeID{}
 	v.VoteOption = gov.Abstention

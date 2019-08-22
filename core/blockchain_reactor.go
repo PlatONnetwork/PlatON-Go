@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -113,13 +115,6 @@ func (bcr *BlockChainReactor) loop() {
 
 			}
 
-			// Slashing
-			if plugin, ok := bcr.basePluginMap[xcom.SlashingRule]; ok {
-				if err := plugin.Confirmed(block); nil != err {
-					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
-				}
-			}
-
 			log.Debug("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
@@ -161,6 +156,7 @@ func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 		if nil != bcr.chandler {
 			bcr.chandler.SetPrivateKey(privateKey)
 		}
+		plugin.SlashInstance().SetPrivateKey(privateKey)
 	}
 }
 
@@ -233,10 +229,12 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		blockHash = header.Hash()
 		// Verify vrf proof
 		sign := header.Extra[32:97]
-		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
+		sealHash := header.SealHash().Bytes()
+		pk, err := crypto.SigToPub(sealHash, sign)
 		if nil != err {
 			return err
 		}
+		log.Debug("BeginBlock verifyVrf", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(sealHash), "nodeId", discover.PubkeyID(pk).String())
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
 		}
@@ -372,11 +370,20 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 	case cvm.SlashingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
+	default:
+		// pass if the contract is validatorInnerContract
+		return nil
 	}
-	if _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
-		return err
+	if contract != nil {
+		if fcode, _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+			return err
+		} else {
+			return contract.CheckGasPrice(tx.GasPrice(), fcode)
+		}
+	} else {
+		log.Warn("Cannot find an appropriate PlatONPrecompiledContract!")
+		return nil
 	}
-	return nil
 }
 
 func (bcr *BlockChainReactor) Sign(msg interface{}) error {
@@ -410,7 +417,7 @@ func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.
 			versionBytes := extraData[0].([]byte)
 			versionInHeader := common.BytesToUint32(versionBytes)
 
-			activeVersion := plugin.GovPluginInstance().GetActiveVersion(header.Number.Uint64(), stateDB)
+			activeVersion := gov.GetActiveVersion(header.Number.Uint64(), stateDB)
 			log.Debug("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", header.Number.Uint64())
 
 			if activeVersion == versionInHeader {

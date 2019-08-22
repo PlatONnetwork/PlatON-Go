@@ -3,8 +3,9 @@ package validator
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -73,7 +74,7 @@ func (d *StaticAgency) VerifySign(interface{}) error {
 	return nil
 }
 
-func (d *StaticAgency) VerifyHeader(header *types.Header,statedb *state.StateDB) error {
+func (d *StaticAgency) VerifyHeader(header *types.Header, statedb *state.StateDB) error {
 	return nil
 }
 
@@ -147,8 +148,12 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 		// via `blockNumber`.
 		if lastBlockNumber < blockNumber {
 			blocksPerRound := ia.blocksPerNode * uint64(vds.Len())
-			baseNum := blockNumber - (blockNumber % blocksPerRound)
-			lastBlockNumber = baseNum + blocksPerRound
+			if blockNumber%blocksPerRound == 0 {
+				lastBlockNumber = blockNumber
+			} else {
+				baseNum := blockNumber - (blockNumber % blocksPerRound)
+				lastBlockNumber = baseNum + blocksPerRound
+			}
 		}
 	}
 	//log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)

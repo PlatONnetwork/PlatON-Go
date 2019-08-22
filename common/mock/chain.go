@@ -172,8 +172,8 @@ func (s *MockStateDB) ForEachStorage(common.Address, func(common.Hash, common.Ha
 }
 
 func (s *MockStateDB) TxHash() common.Hash {
-	return common.ZeroHash
+	return s.thash
 }
 func (s *MockStateDB) TxIdx() uint32 {
-	return 0
+	return uint32(s.txIndex)
 }

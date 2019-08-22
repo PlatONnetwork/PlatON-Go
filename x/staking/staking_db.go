@@ -57,6 +57,7 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 
 func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Address) (*Candidate, error) {
 	key := CandidateKeyByAddr(addr)
+
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
@@ -385,6 +386,23 @@ func (db *StakingDB) GetUnDelegateItemStore(blockHash common.Hash, epoch, index 
 		return nil, err
 	}
 	return &unDelegateItem, nil
+}
+
+func (db *StakingDB) DelUnDelegateCountStore(blockHash common.Hash, epoch uint64) error {
+	count_key := GetUnDelegateCountKey(epoch)
+	// todo test
+	log.Debug("DelUnDelegateCountStore", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key))
+
+	return db.del(blockHash, count_key)
+}
+
+func (db *StakingDB) DelUnDelegateItemStore(blockHash common.Hash, epoch, index uint64) error {
+	item_key := GetUnDelegateItemKey(epoch, index)
+
+	// todo test
+	log.Debug("DelUnDelegateItemStore", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key))
+
+	return db.del(blockHash, item_key)
 }
 
 func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {

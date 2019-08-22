@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -29,7 +28,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -51,7 +49,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -281,54 +278,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
 	return eth, nil
-}
-
-func makeExtraData(blockChain *core.BlockChain, extra []byte) []byte {
-	if len(extra) == 0 {
-		state, err := blockChain.State()
-		if err != nil {
-			log.Error("Cannot get block chain stateDB", "err", err)
-			return nil
-		}
-
-		// create default extradata
-		extra, _ = rlp.EncodeToBytes([]interface{}{
-			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-			xplugin.GovPluginInstance().GetCurrentActiveVersion(state),
-			"platon",
-			runtime.Version(),
-			runtime.GOOS,
-		})
-	}
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
-		extra = nil
-	}
-	return extra
-}
-
-func verifyHeader(blockChain *core.BlockChain, extra []byte) []byte {
-	if len(extra) == 0 {
-		state, err := blockChain.State()
-		if err != nil {
-			log.Error("Cannot get block chain stateDB", "err", err)
-			return nil
-		}
-
-		// create default extradata
-		extra, _ = rlp.EncodeToBytes([]interface{}{
-			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-			xplugin.GovPluginInstance().GetCurrentActiveVersion(state),
-			"platon",
-			runtime.Version(),
-			runtime.GOOS,
-		})
-	}
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
-		extra = nil
-	}
-	return extra
 }
 
 // CreateDB creates the chain database.
