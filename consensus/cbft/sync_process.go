@@ -434,7 +434,7 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 
 		for i := begin; i < end; i++ {
 			size := cbft.state.PrepareVoteLenByIndex(i)
-			if size < cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
+			if size < cbft.threshold(len) {
 				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
 				knownSet := utils.NewBitArray(uint32(len))
 				for i := uint32(0); i < knownSet.Size(); i++ {
