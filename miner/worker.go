@@ -18,8 +18,6 @@ package miner
 
 import (
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -1194,10 +1192,10 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	//}
 
 	// TODO test
-	for _, r := range w.current.receipts {
+	/*for _, r := range w.current.receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}
+	}*/
 
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
@@ -1207,16 +1205,16 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	}
 
 	// todo test
-	root := w.current.state.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))
+	//root := w.current.state.IntermediateRoot(true)
+	//log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
+	//	w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))
 
 	s := w.current.state.Copy()
 
 	// todo test
-	root = s.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
+	//root = s.IntermediateRoot(true)
+	//log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
+	//	w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
@@ -1226,10 +1224,10 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	}
 
 	// TODO test
-	for _, r := range receipts {
+	/*for _, r := range receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}
+	}*/
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
