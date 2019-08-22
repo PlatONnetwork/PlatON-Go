@@ -107,6 +107,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 
 // OnViewChange performs security rule verification, view switching.
 func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError {
+	cbft.log.Debug("Receive ViewChange", "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
@@ -138,7 +139,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError
 // OnViewTimeout performs timeout logic for view.
 func (cbft *Cbft) OnViewTimeout() {
 	cbft.log.Info("Current view timeout", "view", cbft.state.ViewString())
-	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+	node, err := cbft.isCurrentValidator()
 	if err != nil {
 		cbft.log.Error("ViewTimeout local node is not validator")
 		return
@@ -276,6 +277,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
 	// todo sign vote
 	// parentQC added when sending
+	// Determine if the current consensus node is
 	node, err := cbft.validatorPool.GetValidatorByNodeID(number, cbft.config.Option.NodeID)
 	if err != nil {
 		return err
@@ -325,7 +327,9 @@ func (cbft *Cbft) trySendPrepareVote() {
 		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil || block.NumberU64() == 0 {
 			p.ParentQC = qc
 			hadSend.Push(p)
+			//Determine if the current consensus node is
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(p.BlockNum(), cbft.config.Option.NodeID)
+			cbft.log.Debug("Add local prepareVote", "vote", p.String())
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
 
@@ -385,7 +389,7 @@ func (cbft *Cbft) findQCBlock() {
 	size := cbft.state.PrepareVoteLenByIndex(next)
 
 	prepareQC := func() bool {
-		return size >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) && cbft.state.HadSendPrepareVote().Had(next)
+		return size >= cbft.threshold(cbft.currentValidatorLen()) && cbft.state.HadSendPrepareVote().Had(next)
 	}
 
 	if prepareQC() {
@@ -448,7 +452,8 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	enough := func() bool {
-		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount
+		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
+			(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
 	}()
 
 	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
@@ -470,7 +475,7 @@ func (cbft *Cbft) tryChangeView() {
 	}
 
 	viewChangeQC := func() bool {
-		if cbft.state.ViewChangeLen() >= cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64())) {
+		if cbft.state.ViewChangeLen() >= cbft.threshold(cbft.currentValidatorLen()) {
 			return true
 		}
 		cbft.log.Debug("Try change view failed, had receive viewchange", "len", cbft.state.ViewChangeLen(), "view", cbft.state.ViewString())
