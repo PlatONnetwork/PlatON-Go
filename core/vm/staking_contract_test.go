@@ -9,8 +9,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/stretchr/testify/assert"
 
@@ -50,12 +48,12 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	//xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
-	xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22"))
+	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	//xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("30999a0591d350be57ef38ff17babdc73aa8e091532c0a8aafb76375dcb9f0c9"))
 
 	versionSign := common.VersionSign{}
-	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
 	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
+	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(1793))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	fmt.Println("The versionSign", versionSign.Hex())

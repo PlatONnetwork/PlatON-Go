@@ -2432,12 +2432,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	// When the time it was  slashed some nodes.
 	case currLen == int(xcom.ConsValidatorNum()), currLen < int(xcom.ConsValidatorNum()):
 
-		if currLen == int(xcom.ConsValidatorNum()) {
-			log.Info("Normal election logic", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
-		} else {
-			log.Info("The Current len less than config", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
-
-		}
+		log.Info("Call Election by no governed", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
 
 		// In this case, the list of the next round of
 		// certifiers selected will be shortened.
