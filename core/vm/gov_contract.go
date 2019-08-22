@@ -379,7 +379,7 @@ func (gc *GovContract) returnHandler(funcName string, resultValue interface{}, e
 		resultBytes, _ := json.Marshal(res)
 		return resultBytes, nil
 	}
-	log.Debug("call GovContract success", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", "returnValue", string(jsonByte))
+	log.Debug("call GovContract success", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "returnValue", string(jsonByte))
 	res := xcom.Result{true, string(jsonByte), ""}
 	resultBytes, _ := json.Marshal(res)
 	return resultBytes, nil
