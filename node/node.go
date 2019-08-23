@@ -156,11 +156,12 @@ func (n *Node) Start() error {
 	if n.serverConfig.StaticNodes == nil {
 		// 在此处进行限制，提取满足规则进行连接的节点数；
 		// todo: fake point. 1. disable discovery, 2. specified acquisition.
-		n.serverConfig.NoDiscovery = true
-		n.serverConfig.StaticNodes = MockDiscoveryNode(n.serverConfig.PrivateKey, n.config.StaticNodes())
-
-		// normarl
-		//n.serverConfig.StaticNodes = n.config.StaticNodes()
+		if FakeNetEnable {
+			n.serverConfig.NoDiscovery = true
+			n.serverConfig.StaticNodes = MockDiscoveryNode(n.serverConfig.PrivateKey, n.config.StaticNodes())
+		} else {
+			n.serverConfig.StaticNodes = n.config.StaticNodes()
+		}
 	}
 	if n.serverConfig.TrustedNodes == nil {
 		n.serverConfig.TrustedNodes = n.config.TrustedNodes()

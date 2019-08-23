@@ -470,7 +470,9 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
 				// todo: Mock point.
-				srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+				if !node.FakeNetEnable {
+					srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+				}
 			}
 		}
 		s.StartMining()

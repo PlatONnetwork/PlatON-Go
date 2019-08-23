@@ -6,6 +6,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
+var FakeNetEnable bool = false
+
 var indexMock = map[int][]int{
 	1:  []int{2, 3, 4},
 	2:  []int{5, 6, 7},
@@ -19,6 +21,7 @@ var indexMock = map[int][]int{
 	10: []int{23, 24, 25},
 }
 
+// MockDiscoveryNode returns to a specific network topology.
 func MockDiscoveryNode(privateKey *ecdsa.PrivateKey, nodes []*discover.Node) []*discover.Node {
 	selfNodeID := discover.PubkeyID(&privateKey.PublicKey)
 	mockNodes := make([]*discover.Node, 0)
