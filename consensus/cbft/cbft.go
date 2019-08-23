@@ -1494,10 +1494,6 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 }
 
 func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes.QuorumCert) error {
-	defer func(t time.Time) {
-		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
-	}(time.Now())
-
 	if qc == nil {
 		return fmt.Errorf("verify prepare qc failed,qc is nil")
 	}
