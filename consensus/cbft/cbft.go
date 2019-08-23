@@ -558,9 +558,9 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) error {
 
 		case *protocols.ViewChangeQuorumCert:
 			err = cbft.OnViewChangeQuorumCert(id, msg)
+
 		case *protocols.ViewChanges:
 			err = cbft.OnViewChanges(id, msg)
-
 		}
 	}
 	return err
@@ -1285,41 +1285,54 @@ func (cbft *Cbft) currentValidatorLen() int {
 	return length
 }
 
-func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+func (cbft *Cbft) validatorInfo(msg ctypes.ConsensusMsg) (uint64, uint32) {
+	number, index := msg.BlockNum(), msg.NodeIndex()
+	switch cm := msg.(type) {
+	case *protocols.ViewChange:
+		if cm.PrepareQC != nil && cm.PrepareQC.Epoch != cm.Epoch {
+			number, index = cm.BlockNumber+1, cm.ValidatorIndex
+		}
+	}
+	return number, index
+}
+
+func (cbft *Cbft) verifyConsensusSign(msg ctypes.ConsensusMsg) error {
 	digest, err := msg.CannibalizeBytes()
 	if err != nil {
-		return nil, errors.Wrap(err, "get msg's cannibalize bytes failed")
+		return errors.Wrap(err, "get msg's cannibalize bytes failed")
 	}
-
-	getValidator := func() (uint64, uint32) {
-		number, index := msg.BlockNum(), msg.NodeIndex()
-		switch cm := msg.(type) {
-		case *protocols.ViewChange:
-			if cm.PrepareQC != nil && cm.PrepareQC.Epoch != cm.Epoch {
-				number, index = cm.BlockNumber+1, cm.ValidatorIndex
-			}
-		}
-		return number, index
-	}
-
-	blockNumber, blockIndex := getValidator()
 
 	// Verify consensus msg signature
-	if err := cbft.validatorPool.Verify(blockNumber, blockIndex, digest, msg.Sign()); err != nil {
+	baseNumber, baseIndex := cbft.validatorInfo(msg)
+	if err := cbft.validatorPool.Verify(baseNumber, baseIndex, digest, msg.Sign()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+	// Verify consensus msg signature
+	if err := cbft.verifyConsensusSign(msg); err != nil {
 		return nil, err
 	}
 
+	baseNumber, baseIndex := cbft.validatorInfo(msg)
 	// Get validator of signer
-	vnode, err := cbft.validatorPool.GetValidatorByIndex(blockNumber, blockIndex)
+	vnode, err := cbft.validatorPool.GetValidatorByIndex(baseNumber, baseIndex)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "get validator failed")
 	}
 
 	// check if the prepareBlock must take viewChangeQC
-	needViewChangeQC := func(number uint64, hash common.Hash) bool {
-		_, localQC := cbft.blockTree.FindBlockAndQC(hash, number)
+	needViewChangeQC := func(pb *protocols.PrepareBlock) bool {
+		_, localQC := cbft.blockTree.FindBlockAndQC(pb.Block.ParentHash(), pb.Block.NumberU64()-1)
 		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
+	}
+	// check if the prepareBlock base on viewChangeQC maxBlock
+	baseViewChangeQC := func(pb *protocols.PrepareBlock) bool {
+		_, _, _, _, hash, number := pb.ViewChangeQC.MaxBlock()
+		return pb.Block.NumberU64()-1 != number || pb.Block.ParentHash() != hash
 	}
 	var (
 		prepareQC *ctypes.QuorumCert
@@ -1338,10 +1351,13 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		if cm.BlockNum() == 1 || cm.BlockIndex != 0 {
 			return vnode, nil
 		}
-		if needViewChangeQC(cm.Block.NumberU64()-1, cm.Block.ParentHash()) && cm.ViewChangeQC == nil {
+		if needViewChangeQC(cm) && cm.ViewChangeQC == nil {
 			return nil, fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)
 		}
 		if cm.ViewChangeQC != nil {
+			if !baseViewChangeQC(cm) {
+				return nil, fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock")
+			}
 			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
 				return nil, err
 			}
@@ -1498,7 +1514,7 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 		return fmt.Errorf("verify prepare qc failed,qc is nil")
 	}
 	// check signature number
-	threshold := cbft.threshold(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
+	threshold := cbft.threshold(cbft.validatorPool.Len(qc.BlockNumber))
 	signsTotal := qc.Len()
 	if signsTotal < threshold {
 		return fmt.Errorf("block qc has small number of signature total:%d, threshold:%d", signsTotal, threshold)
