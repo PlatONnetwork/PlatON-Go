@@ -363,8 +363,8 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, recovery recovery
 
 		pack := make([]byte, length+10)
 		var (
-			totalNum = 0
-			readNum  = 0
+			totalNum int
+			readNum  int
 		)
 		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+10; {
 			readNum, err = bufReader.Read(pack[totalNum:])

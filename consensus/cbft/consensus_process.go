@@ -430,7 +430,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		blockConfirmedMeter.Mark(1)
 	} else {
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
-		cbft.bridge.UpdateChainState(&protocols.State{qcBlock, qcQC}, nil, nil)
+		cbft.bridge.UpdateChainState(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, nil, nil)
 	}
 }
 
@@ -492,7 +492,7 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	_, _, _, _, hash, number := viewChangeQC.MaxBlock()
+	_, _, blockEpoch, _, hash, number := viewChangeQC.MaxBlock()
 	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
 	_, hc := cbft.blockTree.FindBlockAndQC(hash, number)
 	if block.NumberU64() != 0 && (number > qc.BlockNumber) && hc == nil {
@@ -501,7 +501,7 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return
 	}
 
-	if cbft.validatorPool.EqualSwitchPoint(number) && qc.Epoch == cbft.state.Epoch() {
+	if cbft.validatorPool.EqualSwitchPoint(number) && blockEpoch == cbft.state.Epoch() {
 		// Validator already switch, new epoch
 		cbft.changeView(cbft.state.Epoch()+1, state.DefaultViewNumber, block, qc, viewChangeQC)
 	} else {
