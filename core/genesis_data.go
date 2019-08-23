@@ -246,7 +246,7 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		fiveEpoch  = new(big.Int).Mul(big.NewInt(293636892642603), big.NewInt(1E11))
 		sixEpoch   = new(big.Int).Mul(big.NewInt(222923879336939), big.NewInt(1E11))
 		sevenEpoch = new(big.Int).Mul(big.NewInt(150443040698633), big.NewInt(1E11))
-		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943699), big.NewInt(1E10))
+		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943690), big.NewInt(1E10))
 	)
 	stateDb.SubBalance(vm.PlatONFoundationAddress, zeroEpoch)
 	stateDb.AddBalance(account, zeroEpoch)
