@@ -535,6 +535,10 @@ func (vs *ViewState) AddViewChange(id uint32, vote *protocols.ViewChange) {
 	vs.view.viewChanges.addViewChange(id, vote)
 }
 
+func (vs *ViewState) ViewChangeByIndex(index uint32) *protocols.ViewChange {
+	return vs.view.viewChanges.ViewChanges[index]
+}
+
 func (vs *ViewState) ViewChangeLen() int {
 	return vs.view.viewChanges.len()
 }

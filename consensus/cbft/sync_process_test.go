@@ -2,10 +2,11 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -338,7 +339,7 @@ func TestCbft_OnGetPrepareVote(t *testing.T) {
 		Epoch:      1,
 		ViewNumber: 0,
 		BlockIndex: 1,
-		KnownSet:   knownSet,
+		UnKnownSet: knownSet,
 	}))
 	select {
 	case <-timer.C:

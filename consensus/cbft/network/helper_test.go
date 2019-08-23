@@ -124,7 +124,7 @@ func newFakeGetPrepareVote() *protocols.GetPrepareVote {
 		Epoch:      1,
 		ViewNumber: 1,
 		BlockIndex: 1,
-		KnownSet:   utils.NewBitArray(32),
+		UnKnownSet: utils.NewBitArray(32),
 	}
 }
 
