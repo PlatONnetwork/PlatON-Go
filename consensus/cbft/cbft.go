@@ -1252,17 +1252,6 @@ func (cbft *Cbft) currentValidatorLen() int {
 	return cbft.validatorPool.Len(cbft.state.Epoch())
 }
 
-func (cbft *Cbft) validatorInfo(msg ctypes.ConsensusMsg) (uint64, uint32) {
-	number, index := msg.BlockNum(), msg.NodeIndex()
-	switch cm := msg.(type) {
-	case *protocols.ViewChange:
-		if cm.PrepareQC != nil && cm.PrepareQC.Epoch != cm.Epoch {
-			number, index = cm.BlockNumber+1, cm.ValidatorIndex
-		}
-	}
-	return number, index
-}
-
 func (cbft *Cbft) verifyConsensusSign(msg ctypes.ConsensusMsg) error {
 	digest, err := msg.CannibalizeBytes()
 	if err != nil {
@@ -1271,7 +1260,14 @@ func (cbft *Cbft) verifyConsensusSign(msg ctypes.ConsensusMsg) error {
 
 	// Verify consensus msg signature
 	if err := cbft.validatorPool.Verify(msg.EpochNum(), msg.NodeIndex(), digest, msg.Sign()); err != nil {
+		return err
+	}
+	return nil
+}
 
+func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+	// Verify consensus msg signature
+	if err := cbft.verifyConsensusSign(msg); err != nil {
 		return nil, err
 	}
 
