@@ -220,8 +220,7 @@ func (b *BlockTree) commitBlock(ext *blockExt) (*types.Block, *types.Block) {
 	if lock.Block.Hash() == b.root.Block.Hash() {
 		return b.root.Block, b.root.Block
 	}
-	var commit *blockExt
-	commit = lock.Parent
+	commit := lock.Parent
 	return lock.Block, commit.Block
 }
 

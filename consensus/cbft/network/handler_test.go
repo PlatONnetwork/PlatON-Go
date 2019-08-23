@@ -79,6 +79,12 @@ func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 		ViewNumber: 1,
 	}, nil
 }
+func (s *fakeCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
+	return &protocols.GetPrepareVote{
+		Epoch:      1,
+		ViewNumber: 1,
+	}, nil
+}
 func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
