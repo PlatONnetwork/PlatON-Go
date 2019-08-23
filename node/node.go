@@ -154,7 +154,6 @@ func (n *Node) Start() error {
 	n.serverConfig.Name = n.config.NodeName()
 	n.serverConfig.Logger = n.log
 	if n.serverConfig.StaticNodes == nil {
-		// 在此处进行限制，提取满足规则进行连接的节点数；
 		// todo: fake point. 1. disable discovery, 2. specified acquisition.
 		if FakeNetEnable {
 			n.serverConfig.NoDiscovery = true
