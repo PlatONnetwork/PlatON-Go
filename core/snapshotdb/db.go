@@ -124,7 +124,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	sortFds(fds)
 	baseNum := s.current.BaseNum.Uint64()
 	highestNum := s.current.HighestNum.Uint64()
-	UnRecognizedHash := s.getUnRecognizedHash()
+	//	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]*blockData, 0)
 	s.journalw = make(map[common.Hash]*journalWriter)
 	unCommitBlock := new(unCommitBlocks)
@@ -140,31 +140,32 @@ func (s *snapshotDB) recover(stor storage) error {
 		}
 		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum == 0 && highestNum == 0 && fd.Num == 0) {
 			s.committed = append(s.committed, block)
-		} else if fd.Num > highestNum {
-			if UnRecognizedHash == fd.BlockHash {
-				//1. UnRecognized
-				s.unCommit.blocks[common.ZeroHash] = block
-				//2. open writer
-				w, err := s.storage.Append(fd)
-				if err != nil {
-					return fmt.Errorf("[SnapshotDB.recover]unRecognizedHash open storage fail:%v", err)
-				}
-				s.journalw[fd.BlockHash] = newJournalWriter(w)
-			} else {
-				//1. Recognized
-				s.unCommit.blocks[fd.BlockHash] = block
-				//2. open writer
-				if !block.readOnly {
-					w, err := s.storage.Append(fd)
-					if err != nil {
-						return fmt.Errorf("[SnapshotDB.recover]recognized open storage fail:%v", err)
-					}
-					s.journalw[fd.BlockHash] = newJournalWriter(w)
-				}
-
-			}
-
 		}
+		//else if fd.Num > highestNum {
+		//	if UnRecognizedHash == fd.BlockHash {
+		//		//1. UnRecognized
+		//		s.unCommit.blocks[common.ZeroHash] = block
+		//		//2. open writer
+		//		w, err := s.storage.Append(fd)
+		//		if err != nil {
+		//			return fmt.Errorf("[SnapshotDB.recover]unRecognizedHash open storage fail:%v", err)
+		//		}
+		//		s.journalw[fd.BlockHash] = newJournalWriter(w)
+		//	} else {
+		//		//1. Recognized
+		//		s.unCommit.blocks[fd.BlockHash] = block
+		//		//2. open writer
+		//		if !block.readOnly {
+		//			w, err := s.storage.Append(fd)
+		//			if err != nil {
+		//				return fmt.Errorf("[SnapshotDB.recover]recognized open storage fail:%v", err)
+		//			}
+		//			s.journalw[fd.BlockHash] = newJournalWriter(w)
+		//		}
+		//
+		//	}
+		//
+		//}
 	}
 	return nil
 }
