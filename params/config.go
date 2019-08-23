@@ -255,21 +255,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			Period: 3,
-			PposConfig: &PposConfig{
-				CandidateConfig: &CandidateConfig{
-					Threshold:         "1000000000000000000000000",
-					DepositLimit:      10,
-					Allowed:           512,
-					MaxChair:          10,
-					MaxCount:          100,
-					RefundBlockNumber: 512,
-				},
-				TicketConfig: &TicketConfig{
-					TicketPrice:       "100000000000000000000",
-					MaxCount:          51200,
-					ExpireBlockNumber: 1536000,
-				},
-			},
 		},
 	}
 
