@@ -82,7 +82,7 @@ func NewEngineManger(engine Cbft) *EngineManager {
 		engine:             engine,
 		peers:              NewPeerSet(),
 		sendQueue:          make(chan *types.MsgPackage, sendQueueSize),
-		quitSend:           make(chan struct{}, 0),
+		quitSend:           make(chan struct{}),
 		historyMessageHash: mapset.NewSet(),
 	}
 	handler.blacklist, _ = lru.New(maxBlacklist)
@@ -602,8 +602,6 @@ func (h *EngineManager) handleMsg(p *peer) error {
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
-
-	return nil
 }
 
 // MarkHistoryMessageHash is used to record the hash value of each message from the peer node.
@@ -743,7 +741,7 @@ func (h *EngineManager) synchronize() {
 // bType:
 //  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
 func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
-	if peers == nil || len(peers) == 0 {
+	if len(peers) == 0 {
 		return nil, 0
 	}
 	largerNum := number

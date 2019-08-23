@@ -110,7 +110,7 @@ func TestAgg(t *testing.T) {
 }
 
 func testPrepareQC(t *testing.T, cnode []*Cbft) {
-	pbs := make(map[uint32]*protocols.PrepareVote, 0)
+	pbs := make(map[uint32]*protocols.PrepareVote)
 
 	for i := 0; i < len(cnode); i++ {
 		pb := &protocols.PrepareVote{ValidatorIndex: uint32(i)}
@@ -127,7 +127,7 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 
 }
 func testViewChangeQC(t *testing.T, cnode []*Cbft) {
-	pbs := make(map[uint32]*protocols.ViewChange, 0)
+	pbs := make(map[uint32]*protocols.ViewChange)
 
 	for i := 0; i < len(cnode); i++ {
 		pb := &protocols.ViewChange{BlockHash: common.BigToHash(big.NewInt(int64(i))), BlockNumber: uint64(i), ValidatorIndex: uint32(i)}
@@ -161,11 +161,8 @@ func testSeal(t *testing.T, node, node2 *TestCBFT) {
 	result := make(chan *types.Block, 1)
 
 	node.engine.OnSeal(block, result, nil)
-
-	select {
-	case b := <-result:
-		assert.NotNil(t, b)
-	}
+	b := <-result
+	assert.NotNil(t, b)
 }
 
 func testPrepare(t *testing.T, node, node2 *TestCBFT) {

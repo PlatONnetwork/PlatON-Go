@@ -40,7 +40,7 @@ func (d DuplicatePrepareBlockEvidence) Hash() []byte {
 	var buf []byte
 	if ac, err := d.PrepareA.CannibalizeBytes(); err == nil {
 		if bc, err := d.PrepareB.CannibalizeBytes(); err == nil {
-			buf, err = rlp.EncodeToBytes([]interface{}{
+			buf, _ = rlp.EncodeToBytes([]interface{}{
 				ac,
 				d.PrepareA.Signature.Bytes(),
 				bc,
@@ -125,7 +125,7 @@ func (d DuplicatePrepareVoteEvidence) Hash() []byte {
 	var buf []byte
 	if ac, err := d.VoteA.CannibalizeBytes(); err == nil {
 		if bc, err := d.VoteB.CannibalizeBytes(); err == nil {
-			buf, err = rlp.EncodeToBytes([]interface{}{
+			buf, _ = rlp.EncodeToBytes([]interface{}{
 				ac,
 				d.VoteA.Signature.Bytes(),
 				bc,
@@ -210,7 +210,7 @@ func (d DuplicateViewChangeEvidence) Hash() []byte {
 	var buf []byte
 	if ac, err := d.ViewA.CannibalizeBytes(); err == nil {
 		if bc, err := d.ViewB.CannibalizeBytes(); err == nil {
-			buf, err = rlp.EncodeToBytes([]interface{}{
+			buf, _ = rlp.EncodeToBytes([]interface{}{
 				ac,
 				d.ViewA.Signature.Bytes(),
 				bc,

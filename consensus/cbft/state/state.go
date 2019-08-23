@@ -550,7 +550,7 @@ func (vs *ViewState) HighestBlockString() string {
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
-	if (vs.executing.BlockIndex == 0 && vs.executing.Finish == false) ||
+	if (vs.executing.BlockIndex == 0 && !vs.executing.Finish) ||
 		vs.executing.BlockIndex == math.MaxUint32 {
 		return vs.HighestQCBlock()
 	}
