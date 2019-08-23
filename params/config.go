@@ -333,30 +333,10 @@ type initNode struct {
 }
 
 type CbftConfig struct {
-	Period        uint64      `json:"period,omitempty"`        // Number of seconds between blocks to enforce
-	Amount        uint32      `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
-	InitialNodes  []CbftNode  `json:"initialNodes,omitempty"`  //Genesis consensus node
-	ValidatorMode string      `json:"validatorMode,omitempty"` //Validator mode for easy testing
-	PposConfig    *PposConfig `json:"pposConfig,omitempty"`
-}
-
-type PposConfig struct {
-	CandidateConfig *CandidateConfig
-	TicketConfig    *TicketConfig
-}
-type CandidateConfig struct {
-	Threshold         string
-	DepositLimit      uint32
-	Allowed           uint32
-	MaxCount          uint32
-	MaxChair          uint32
-	RefundBlockNumber uint32
-}
-
-type TicketConfig struct {
-	TicketPrice       string
-	MaxCount          uint32
-	ExpireBlockNumber uint32
+	Period        uint64     `json:"period,omitempty"`        // Number of seconds between blocks to enforce
+	Amount        uint32     `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
+	InitialNodes  []CbftNode `json:"initialNodes,omitempty"`  //Genesis consensus node
+	ValidatorMode string     `json:"validatorMode,omitempty"` //Validator mode for easy testing
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
