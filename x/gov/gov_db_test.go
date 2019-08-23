@@ -269,8 +269,13 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 func TestGovDB_addAccuVerifiers(t *testing.T) {
 	Init()
 	defer snapdbTest.Clear()
-	blockHash := generateHash("addAccuVerifiers")
+
 	proposalID := generateHash("pipID")
+
+	blockHash, e := newblock(snapdbTest, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
 
 	if err := addAccuVerifiers(blockHash, proposalID, NodeIDList); err != nil {
 		t.Fatalf("addAccuVerifiers error...%s", err)
