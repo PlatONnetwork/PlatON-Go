@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -200,6 +202,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	snapshotdb.SetDBBlockChain(eth.blockchain)
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
 
