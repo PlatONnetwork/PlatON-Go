@@ -288,7 +288,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			return err
 		}
 		if should {
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
 			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
 		}
 
@@ -336,7 +336,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			}
 
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.BlockNum(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.Epoch, cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
 		}
 	}
