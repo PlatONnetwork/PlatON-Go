@@ -825,7 +825,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to decode block extra data")
 	}
 
-	if err := cbft.verifyPrepareQC(block.NumberU64(), qc); err != nil {
+	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), qc); err != nil {
 		cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
 		return err
 	}
@@ -1321,7 +1321,11 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		_, localQC := cbft.blockTree.FindBlockAndQC(hash, number)
 		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
 	}
-	var prepareQC *ctypes.QuorumCert
+	var (
+		prepareQC *ctypes.QuorumCert
+		oriNumber uint64
+		oriHash   common.Hash
+	)
 
 	switch cm := msg.(type) {
 	case *protocols.PrepareBlock:
@@ -1334,7 +1338,6 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		if cm.BlockNum() == 1 || cm.BlockIndex != 0 {
 			return vnode, nil
 		}
-		prepareQC = cm.PrepareQC
 		if needViewChangeQC(cm.Block.NumberU64()-1, cm.Block.ParentHash()) && cm.ViewChangeQC == nil {
 			return nil, fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)
 		}
@@ -1343,20 +1346,43 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 				return nil, err
 			}
 		}
+		prepareQC = cm.PrepareQC
+		_, localQC := cbft.blockTree.FindBlockAndQC(cm.Block.ParentHash(), cm.Block.NumberU64()-1)
+		if localQC == nil {
+			return nil, fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", cm.Block.NumberU64()-1, cm.Block.ParentHash())
+		}
+		oriNumber = localQC.BlockNumber
+		oriHash = localQC.BlockHash
+
 	case *protocols.PrepareVote:
 		if cm.BlockNum() == 1 {
 			return vnode, nil
 		}
 		prepareQC = cm.ParentQC
+		if cm.BlockIndex == 0 {
+			_, localQC := cbft.blockTree.FindBlockAndQC(prepareQC.BlockHash, cm.BlockNumber-1)
+			if localQC == nil {
+				return nil, fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", cm.BlockNumber-1, prepareQC.BlockHash)
+			}
+			oriNumber = localQC.BlockNumber
+			oriHash = localQC.BlockHash
+		} else {
+			parentBlock := cbft.state.ViewBlockByIndex(cm.BlockIndex - 1)
+			oriNumber = parentBlock.NumberU64()
+			oriHash = parentBlock.Hash()
+		}
+
 	case *protocols.ViewChange:
 		// Genesis block doesn't has prepareQC
 		if cm.BlockNumber == 0 {
 			return vnode, nil
 		}
 		prepareQC = cm.PrepareQC
+		oriNumber = cm.BlockNumber
+		oriHash = cm.BlockHash
 	}
 
-	if err := cbft.verifyPrepareQC(msg.Original(), prepareQC); err != nil {
+	if err := cbft.verifyPrepareQC(oriNumber, oriHash, prepareQC); err != nil {
 		return nil, err
 	}
 
@@ -1467,7 +1493,7 @@ func (cbft *Cbft) generateViewChangeQC(viewChanges map[uint32]*protocols.ViewCha
 	return qc
 }
 
-func (cbft *Cbft) verifyPrepareQC(original uint64, qc *ctypes.QuorumCert) error {
+func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes.QuorumCert) error {
 	defer func(t time.Time) {
 		cbft.log.Trace("Verify prepare qc", "qc", qc.String(), "duration", time.Since(t))
 	}(time.Now())
@@ -1482,8 +1508,8 @@ func (cbft *Cbft) verifyPrepareQC(original uint64, qc *ctypes.QuorumCert) error 
 		return fmt.Errorf("block qc has small number of signature total:%d, threshold:%d", signsTotal, threshold)
 	}
 	// check if the corresponding block QC
-	if original != qc.BlockNumber {
-		return fmt.Errorf("verify prepare qc failed,not the corresponding qc,oriNum:%d,qcNum:%d", original, qc.BlockNumber)
+	if oriNum != qc.BlockNumber || oriHash != qc.BlockHash {
+		return fmt.Errorf("verify prepare qc failed,not the corresponding qc,oriNum:%d,oriHash:%s,qcNum:%d,qcHash:%s", oriNum, oriHash.String(), qc.BlockNumber, qc.BlockHash.String())
 	}
 
 	var cb []byte

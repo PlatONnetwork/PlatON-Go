@@ -51,7 +51,6 @@ type ConsensusMsg interface {
 	CannibalizeBytes() ([]byte, error)
 	Sign() []byte
 	SetSign([]byte)
-	Original() uint64
 }
 
 type Message interface {

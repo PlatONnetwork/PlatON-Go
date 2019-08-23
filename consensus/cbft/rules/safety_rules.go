@@ -127,6 +127,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 			}
 			return nil
 		}
+		// If block index is greater than 0, query the parent block from the viewBlocks
 		pre := r.viewState.ViewBlockByIndex(block.BlockIndex - 1)
 		if pre == nil {
 			return newError(fmt.Sprintf("previous index block not existed,discard msg(index:%d)", block.BlockIndex-1))

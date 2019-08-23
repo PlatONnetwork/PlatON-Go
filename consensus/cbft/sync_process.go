@@ -50,7 +50,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
 			for i, block := range blockList.Blocks {
-				if err := cbft.verifyPrepareQC(block.NumberU64(), blockList.QC[i]); err != nil {
+				if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
 					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
@@ -148,9 +148,9 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
 	if block == nil {
 		cbft.log.Debug("Block not exist", "msg", msg.String())
-		return fmt.Errorf("Block not exist")
+		return fmt.Errorf("block not exist")
 	}
-	if err := cbft.verifyPrepareQC(block.NumberU64(), msg.BlockQC); err != nil {
+	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), msg.BlockQC); err != nil {
 		return &authFailedError{err}
 	}
 
@@ -209,7 +209,7 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
 		if prepareVoteMap != nil {
 			for k, v := range prepareVoteMap {
-				if !msg.KnownSet.GetIndex(k) {
+				if msg.UnKnownSet.GetIndex(k) {
 					votes = append(votes, v)
 				}
 			}
@@ -431,16 +431,18 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 		begin := cbft.state.MaxQCIndex() + 1
 		end := cbft.state.NextViewBlockIndex()
 		len := cbft.currentValidatorLen()
+		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", len)
 
 		for i := begin; i < end; i++ {
 			size := cbft.state.PrepareVoteLenByIndex(i)
+			cbft.log.Debug("The length of prepare vote", "index", i, "size", size)
 
-			if size < cbft.threshold(len) {
+			if size < cbft.threshold(len) { // need sync prepare votes
 				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
-				knownSet := utils.NewBitArray(uint32(len))
-				for i := uint32(0); i < knownSet.Size(); i++ {
-					if _, ok := knownVotes[i]; ok {
-						knownSet.SetIndex(i, true)
+				unKnownSet := utils.NewBitArray(uint32(len))
+				for i := uint32(0); i < unKnownSet.Size(); i++ {
+					if _, ok := knownVotes[i]; !ok {
+						unKnownSet.SetIndex(i, true)
 					}
 				}
 
@@ -448,9 +450,10 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 					Epoch:      cbft.state.Epoch(),
 					ViewNumber: cbft.state.ViewNumber(),
 					BlockIndex: i,
-					KnownSet:   knownSet,
+					UnKnownSet: unKnownSet,
 				}, nil
 			}
+			cbft.log.Debug("PrepareVotes sync request", "msg", v.String())
 		}
 	}
 	<-result
