@@ -5,6 +5,8 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -145,6 +147,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		"PIPID", pipID,
 		"verifierID", verifier.TerminalString(),
 		"newVersion", newVersion,
+		"newVersionString", xutil.ProgramVersion2Str(newVersion),
 		"endVotingRounds", endVotingRounds)
 
 	if txHash == common.ZeroHash {
@@ -195,12 +198,13 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	}
 
 	p := &gov.CancelProposal{
-		PIPID:        pipID,
-		ProposalType: gov.Cancel,
-		SubmitBlock:  blockNumber,
-		ProposalID:   txHash,
-		Proposer:     verifier,
-		TobeCanceled: tobeCanceledProposalID,
+		PIPID:           pipID,
+		EndVotingRounds: endVotingRounds,
+		ProposalType:    gov.Cancel,
+		SubmitBlock:     blockNumber,
+		ProposalID:      txHash,
+		Proposer:        verifier,
+		TobeCanceled:    tobeCanceledProposalID,
 	}
 	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.errHandler("submitCancel", SubmitCancelEvent, err, SubmitCancelProposalErrorMsg)
@@ -219,6 +223,7 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		"verifierID", verifier.TerminalString(),
 		"option", op,
 		"programVersion", programVersion,
+		"programVersionString", xutil.ProgramVersion2Str(programVersion),
 		"programVersionSign", programVersionSign)
 
 	if txHash == common.ZeroHash {
@@ -252,7 +257,8 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"activeNode", activeNode.TerminalString(),
-		"programVersion", programVersion)
+		"programVersion", programVersion,
+		"programVersionString", xutil.ProgramVersion2Str(programVersion))
 
 	if txHash == common.ZeroHash {
 		log.Warn("current txHash is empty!!")

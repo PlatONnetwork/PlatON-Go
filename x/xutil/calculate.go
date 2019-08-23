@@ -41,6 +41,9 @@ func CheckMinimumThreshold(balance *big.Int) bool {
 
 // eg. 65536 => 1.0.0
 func ProgramVersion2Str(programVersion uint32) string {
+	if programVersion == 0 {
+		return "0.0.0"
+	}
 	major := programVersion << 8
 	major = major >> 24
 
@@ -208,5 +211,5 @@ func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 }
 
 func CalActiveBlock(endVotingBlock uint64) uint64 {
-	return endVotingBlock + xcom.ElectionDistance() + xcom.VersionProposalActive_ConsensusRounds()*ConsensusSize() + 1
+	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
 }
