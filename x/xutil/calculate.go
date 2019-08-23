@@ -41,6 +41,9 @@ func CheckMinimumThreshold(balance *big.Int) bool {
 
 // eg. 65536 => 1.0.0
 func ProgramVersion2Str(programVersion uint32) string {
+	if programVersion == 0 {
+		return "0.0.0"
+	}
 	major := programVersion << 8
 	major = major >> 24
 
