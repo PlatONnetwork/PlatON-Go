@@ -208,5 +208,5 @@ func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 }
 
 func CalActiveBlock(endVotingBlock uint64) uint64 {
-	return endVotingBlock + xcom.ElectionDistance() + xcom.VersionProposalActive_ConsensusRounds()*ConsensusSize() + 1
+	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
 }
