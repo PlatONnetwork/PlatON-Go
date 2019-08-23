@@ -101,7 +101,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 
 // vote for a proposal
 func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, stk Staking, state xcom.StateDB) error {
-	log.Debug("call Vote", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign, "voteInfo", vote)
+	log.Debug("call Vote", "from", from, "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID, "voteOption", vote.VoteOption, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign)
 	if vote.ProposalID == common.ZeroHash || vote.VoteOption == 0 {
 		return common.NewBizError("empty parameter detected.")
 	}
@@ -236,10 +236,9 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 					return common.NewBizError("declared version should be same as proposal's version")
 				} else {
 					//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
-					log.Debug("there's a voting-version-proposal, and declared version equals active version, notify staking immediately.",
-						"blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion)
+					log.Debug("there is a voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
 					if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-						log.Error("notify staking of declared node ID failed", "err", err)
+						log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 						return common.NewBizError("notify staking of declared node ID failed")
 					}
 				}
@@ -261,10 +260,9 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		if declaredVersion>>8 == activeVersion>>8 || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
 			//there's no voting-version-proposal, if the declared version equals either the current active version or preActive version, notify staking immediately
 			//stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
-			log.Debug("there's no voting-version-proposal, the declared version equals either the current active version or preActive version, notify staking immediately.",
-				"blockNumber", blockNumber, "declaredVersion", declaredVersion, "declaredNodeID", declaredNodeID, "activeVersion", activeVersion, "preActiveVersion", preActiveVersion)
+			log.Debug("there is no voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
 			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-				log.Error("notify staking of declared node ID failed", "err", err)
+				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 				return common.NewBizError("notify staking of declared node ID failed")
 			}
 		} else {

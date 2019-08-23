@@ -244,6 +244,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 			}
 		}
 	}
+
 	// sort release list
 	sort.Slice(info.ReleaseList, func(i, j int) bool {
 		return info.ReleaseList[i] < info.ReleaseList[j]

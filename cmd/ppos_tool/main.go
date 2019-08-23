@@ -347,9 +347,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2001:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2001.Verifier)
-			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
+			pipID, _ := rlp.EncodeToBytes(cfg.P2001.PIPID)
 			newVersion, _ := rlp.EncodeToBytes(cfg.P2001.NewVersion)
-			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
+			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2001.EndVotingRounds)
 			params = append(params, verifier)
 			params = append(params, pipID)
 			params = append(params, newVersion)
@@ -358,7 +358,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2005:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2005.Verifier)
-			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
+			pipID, _ := rlp.EncodeToBytes(cfg.P2005.PIPID)
 			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2005.EndVotingRounds)
 			tobeCanceled, _ := rlp.EncodeToBytes(cfg.P2005.TobeCanceled)
 			params = append(params, verifier)
