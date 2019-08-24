@@ -449,7 +449,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
 		return ErrBlockRepeat
 	}
-	if s.current.HighestNum.Cmp(blockNumber) > 0 {
+	if s.current.HighestNum.Cmp(blockNumber) >= 0 {
 		logger.Error("the block is less than commit highest", "commit", s.current.HighestNum, "new", blockNumber)
 		return ErrBlockTooLow
 	}
