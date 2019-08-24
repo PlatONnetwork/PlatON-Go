@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -50,6 +50,7 @@ const (
 	cbftVersion = 1
 
 	maxStatQueuesSize = 200
+	syncCacheTimeout  = 2 * time.Millisecond
 )
 
 type HandleError interface {
@@ -106,8 +107,10 @@ type Cbft struct {
 	// Async call channel
 	asyncCallCh chan func()
 
-	fetcher      *fetcher.Fetcher
-	limitFetcher *fetcher.LimitFetcher
+	fetcher *fetcher.Fetcher
+
+	// Synchronizing request cache to prevent multiple repeat requests
+	syncingCache *ctypes.SyncCache
 	// Control the current view state
 	state *cstate.ViewState
 
@@ -167,7 +170,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		commitErrCh:        make(chan error, 1),
 		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
 		fetcher:            fetcher.NewFetcher(),
-		limitFetcher:       fetcher.NewLimitFetcher(),
+		syncingCache:       ctypes.NewSyncCache(syncCacheTimeout),
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		statQueues:         make(map[common.Hash]map[string]int),
@@ -1286,7 +1289,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	// check if the prepareBlock base on viewChangeQC maxBlock
 	baseViewChangeQC := func(pb *protocols.PrepareBlock) bool {
 		_, _, _, _, hash, number := pb.ViewChangeQC.MaxBlock()
-		return pb.Block.NumberU64()-1 != number || pb.Block.ParentHash() != hash
+		return pb.Block.NumberU64() == number+1 && pb.Block.ParentHash() == hash
 	}
 	var (
 		prepareQC *ctypes.QuorumCert
@@ -1310,7 +1313,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		}
 		if cm.ViewChangeQC != nil {
 			if !baseViewChangeQC(cm) {
-				return nil, fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock")
+				return nil, fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock, viewchangeQC:%s, PrepareBlock:%s", cm.ViewChangeQC.String(), cm.String())
 			}
 			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
 				return nil, err

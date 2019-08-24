@@ -585,6 +585,9 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		}
 		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
 	}
+	// syncingCache is belong to last view request, clear all sync cache
+	cbft.syncingCache.Purge()
+
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
