@@ -52,3 +52,10 @@ type EpochInfo struct {
 	Account common.Address
 	Amount  *big.Int
 }
+
+// for plugin test
+type BalanceResult struct {
+	Account common.Address `json:"account"`
+	FreeBalance *big.Int `json:"freeBalance"`
+	LockBalance *big.Int `json:"lockBalance"`
+}

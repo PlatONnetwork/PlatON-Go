@@ -3,6 +3,8 @@ package plugin
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sort"
 	"strconv"
@@ -24,6 +26,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
+
+var STAKING_DB *StakingDB
+
+type StakingDB struct {
+	HistoryDB ethdb.Database
+}
 
 type StakingPlugin struct {
 	db       *staking.StakingDB
@@ -60,6 +68,9 @@ const (
 
 	EpochValIndexSize = 2
 	RoundValIndexSize = 6
+
+	ValidatorName = "Validator"
+	VerifierName  = "Verifier"
 )
 
 // Instance a global StakingPlugin
@@ -134,7 +145,35 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 
 	log.Info("Call Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
+	numStr := strconv.FormatUint(block.NumberU64(), 10)
+	if block.NumberU64() == uint64(1) {
+		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
+		if nil != err {
+			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
 
+		data, err := rlp.EncodeToBytes(current)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+"0"), data)
+
+		currentVerifier, error := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
+		if nil != error {
+			log.Error("Failed to Query Current Round verifiers on stakingPlugin Confirmed When Settletmetn block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
+		dataVerifier, err := rlp.EncodeToBytes(currentVerifier)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(VerifierName+"0"), dataVerifier)
+	}
 	if xutil.IsElection(block.NumberU64()) {
 
 		next, err := sk.getNextValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
@@ -150,11 +189,34 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
 			return err
 		}
+
+		data, err := rlp.EncodeToBytes(current)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
+			return err
+		}
+		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
+		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
 		result := distinct(next.Arr, current.Arr)
 		if len(result) > 0 {
 			sk.addConsensusNode(result)
 			log.Debug("stakingPlugin addConsensusNode success", "blockNumber", block.NumberU64(), "size", len(result))
 		}
+	}
+
+	if xutil.IsSettlementPeriod(block.NumberU64()) {
+		current, err := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
+		if nil != err {
+			log.Error("Failed to Query Current Round verifiers on stakingPlugin Confirmed When Settletmetn block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
+		data, err := rlp.EncodeToBytes(current)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
 	}
 
 	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
@@ -1843,6 +1905,72 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	return queue, nil
 }
 
+func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
+
+	cs := xutil.CalcBlocksEachEpoch()
+	i := (blockNumber + cs) / cs
+	if xutil.IsSettlementPeriod(blockNumber) {
+		i = i - 1
+	}
+
+	//result := make(staking.ValidatorExQueue, 0)
+	//for i:=1; uint64(i) * cs <= blockNumber; i++  {
+	queryNumber := uint64(i) * cs
+	numStr := strconv.FormatUint(queryNumber, 10)
+	data, err := STAKING_DB.HistoryDB.Get([]byte(VerifierName + numStr))
+	if nil != err {
+		return nil, err
+	}
+	var verifierList staking.Validator_array
+	err = rlp.DecodeBytes(data, &verifierList)
+	if nil != err {
+		return nil, err
+	}
+	//if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
+	//	return nil, common.BizErrorf("GetHistoryVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
+	//		BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
+	//}
+
+	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
+
+	for i, v := range verifierList.Arr {
+
+		//var can *staking.Candidate
+		//if !isCommit {
+		//	c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
+		//	if nil != err {
+		//		return nil, err
+		//	}
+		//	can = c
+		//} else {
+		//	c, err := sk.db.GetCandidateStoreByIrr(v.NodeAddress)
+		//	if nil != err {
+		//		return nil, err
+		//	}
+		//	can = c
+		//}
+
+		shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+
+		valEx := &staking.ValidatorEx{
+			NodeId: v.NodeId,
+			//StakingAddress:  can.StakingAddress,
+			//BenefitAddress:  can.BenefitAddress,
+			//StakingTxIndex:  can.StakingTxIndex,
+			//ProgramVersion:  can.ProgramVersion,
+			//StakingBlockNum: can.StakingBlockNum,
+			Shares: shares,
+			//Description:     can.Description,
+			ValidatorTerm: v.ValidatorTerm,
+		}
+		queue[i] = valEx
+	}
+	//result = append(result, queue...)
+	//}
+
+	return queue, nil
+}
+
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
 	verifierList, err := sk.getVerifierList(blockHash, blockNumber, isCommit)
@@ -1977,16 +2105,81 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			NodeId:          can.NodeId,
 			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
-			BenefitAddress:  can.BenefitAddress,
+			BenefitAddress:  can.BenefitAddress, //
 			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion,
+			ProgramVersion:  can.ProgramVersion, //
 			StakingBlockNum: can.StakingBlockNum,
 			Shares:          shares,
-			Description:     can.Description,
+			Description:     can.Description, //
 			ValidatorTerm:   v.ValidatorTerm,
 		}
 		queue[i] = valEx
 	}
+	return queue, nil
+}
+
+// flag:NOTE
+// 0: 	Query previous round consensus validator
+// 1:  	Query current round consensus validaor
+// 3:  	Query next round consensus validator
+func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
+	staking.ValidatorExQueue, error) {
+
+	cs := xutil.ConsensusSize()
+	i := (blockNumber + cs) / cs
+	if xutil.IsElection(blockNumber) {
+		i = i - 1
+	}
+	//result := make(staking.ValidatorExQueue, 0)
+	//for i:=1; uint64(i) * cs <= blockNumber; i++ {
+	queryNumber := uint64(i) * cs
+	numStr := strconv.FormatUint(queryNumber, 10)
+	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
+	if nil != err {
+		return nil, err
+	}
+	var validatorArr staking.Validator_array
+	err = rlp.DecodeBytes(data, &validatorArr)
+	if nil != err {
+		return nil, err
+	}
+	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
+
+	for i, v := range validatorArr.Arr {
+
+		//var can *staking.Candidate
+		//
+		//if !isCommit {
+		//	c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
+		//	if nil != err {
+		//		return nil, err
+		//	}
+		//	can = c
+		//} else {
+		//	c, err := sk.db.GetCandidateStoreByIrr(v.NodeAddress)
+		//	if nil != err {
+		//		return nil, err
+		//	}
+		//	can = c
+		//}
+
+		shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+
+		valEx := &staking.ValidatorEx{
+			NodeId: v.NodeId,
+			//StakingAddress:  can.StakingAddress,
+			//BenefitAddress:  can.BenefitAddress,
+			//StakingTxIndex:  can.StakingTxIndex,
+			//ProgramVersion:  can.ProgramVersion,
+			//StakingBlockNum: can.StakingBlockNum,
+			Shares: shares,
+			//Description:     can.Description,
+			ValidatorTerm: v.ValidatorTerm,
+		}
+		queue[i] = valEx
+	}
+	//result = append(result, queue...)
+	//}
 	return queue, nil
 }
 
