@@ -131,7 +131,7 @@ func Test_EngineManager_Handle(t *testing.T) {
 	}()
 	//
 	pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-	fakePeer.PingList.PushFront(pingTime)
+	fakePeer.ListPushFront(pingTime)
 	testCases := []struct {
 		msg     types.Message
 		msgType uint64
