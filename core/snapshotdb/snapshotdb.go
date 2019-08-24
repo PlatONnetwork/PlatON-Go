@@ -104,6 +104,7 @@ var (
 	//ErrDBNotInit when db  not init
 	ErrDBNotInit   = errors.New("snapshotDB: not init")
 	ErrBlockRepeat = errors.New("the block is exist in snapshotdb uncommit")
+	ErrBlockTooLow = errors.New("the block is less than commit highest block")
 )
 
 type snapshotDB struct {
@@ -447,6 +448,10 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	if findBlock != nil {
 		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
 		return ErrBlockRepeat
+	}
+	if s.current.HighestNum.Cmp(blockNumber) >= 0 {
+		logger.Error("the block is less than commit highest", "commit", s.current.HighestNum, "new", blockNumber)
+		return ErrBlockTooLow
 	}
 
 	block := new(blockData)
