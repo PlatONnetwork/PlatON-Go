@@ -228,7 +228,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		if nil != err {
 			return err
 		}
-		log.Debug("BeginBlock verifyVrf", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(sealHash), "nodeId", discover.PubkeyID(pk).String())
+		//log.Debug("BeginBlock verifyVrf", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(sealHash), "nodeId", discover.PubkeyID(pk).String())
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
 		}
