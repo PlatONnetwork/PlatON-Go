@@ -1319,7 +1319,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 			return vnode, nil
 		}
 		if needViewChangeQC(cm) && cm.ViewChangeQC == nil {
-			return nil, authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)}
+			return nil, authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC")}
 		}
 		if cm.ViewChangeQC != nil {
 			if !baseViewChangeQC(cm) {
