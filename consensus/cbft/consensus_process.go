@@ -68,7 +68,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
-		if e := err.(*authFailedError); e != nil {
+		if e, ok := err.(*authFailedError); ok {
 			return e
 		}
 		return &handleError{err}
@@ -107,7 +107,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 	var node *cbfttypes.ValidateNode
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		if e := err.(*authFailedError); e != nil {
+		if e, ok := err.(*authFailedError); ok {
 			return e
 		}
 		return &handleError{err}
@@ -143,7 +143,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError
 	var err error
 
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		if e := err.(*authFailedError); e != nil {
+		if e, ok := err.(*authFailedError); ok {
 			return e
 		}
 		return &handleError{err}
