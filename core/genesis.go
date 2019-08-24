@@ -251,6 +251,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
+	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	// Store genesis version into governance data
 	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, params.GenesisVersion); nil != err {
