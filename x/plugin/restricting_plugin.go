@@ -72,7 +72,7 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 		return nil
 	}
 
-	rp.log.Info("begin to release restricting plan", "curr", head.Number, "epoch", expectBlock)
+	rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "curr", head.Number, "epoch", expectBlock)
 	if err := rp.releaseRestricting(expect, state); err != nil {
 		return err
 	}
