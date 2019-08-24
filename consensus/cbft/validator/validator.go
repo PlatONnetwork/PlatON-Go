@@ -269,6 +269,13 @@ func (vp *ValidatorPool) EqualSwitchPoint(number uint64) bool {
 	return vp.switchPoint > 0 && vp.switchPoint == number
 }
 
+func (vp *ValidatorPool) EnableVerifyEpoch(epoch uint64) error {
+	if epoch+1 == vp.epoch || epoch == vp.epoch {
+		return nil
+	}
+	return fmt.Errorf("enable verify epoch:%d,:%d, request:%d", vp.epoch-1, vp.epoch, epoch)
+}
+
 // Update switch validators.
 func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *event.TypeMux) error {
 	vp.lock.Lock()
