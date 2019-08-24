@@ -85,7 +85,6 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 
 	// the block at the end of each year, additional issuance
 	if xutil.IsYearEnd(blockNumber) {
-		log.Debug("Call EndBlock on reward_plugin: increase issuance", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 		rmp.increaseIssuance(thisYear, lastYear, state)
 	}
 
@@ -130,6 +129,8 @@ func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		// Restore the cumulative issue at this year end
 		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
+
 	}
 	rmp.addRewardPoolIncreaseIssuance(state, currIssuance, RewardPoolIncreaseRate)
 
@@ -141,6 +142,7 @@ func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
+
 }
 
 // allocateStakingReward used for reward staking at the settle block

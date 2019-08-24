@@ -3,6 +3,9 @@ package snapshotdb
 import (
 	"bytes"
 	"io"
+	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
@@ -22,6 +25,13 @@ func encode(x interface{}) ([]byte, error) {
 
 func decode(r io.Reader, val interface{}) error {
 	return rlp.Decode(r, val)
+}
+
+func generateHeader(num *big.Int, parentHash common.Hash) *types.Header {
+	h := new(types.Header)
+	h.Number = num
+	h.ParentHash = parentHash
+	return h
 }
 
 func generateHash(n string) common.Hash {
