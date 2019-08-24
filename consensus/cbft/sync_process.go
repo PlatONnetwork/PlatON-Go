@@ -226,8 +226,10 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 	cbft.log.Debug("Received message on OnPrepareVotes", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, vote := range msg.Votes {
-		if err := cbft.OnPrepareVote(id, vote); err != nil && err.AuthFailed() {
-			cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+		if err := cbft.OnPrepareVote(id, vote); err != nil {
+			if e, ok := err.(HandleError); ok && e.AuthFailed() {
+				cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+			}
 			return err
 		}
 	}
@@ -378,8 +380,10 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
 	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, v := range msg.VCs {
-		if err := cbft.OnViewChange(id, v); err != nil && err.AuthFailed() {
-			cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+		if err := cbft.OnViewChange(id, v); err != nil {
+			if e, ok := err.(HandleError); ok && e.AuthFailed() {
+				cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+			}
 			return err
 		}
 	}
