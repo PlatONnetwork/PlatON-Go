@@ -158,7 +158,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		}
 		current := r.viewState.ViewBlockByIndex(block.BlockIndex)
 		if current != nil {
-			return newCommonError(fmt.Sprintf("blockIndex already existed(index:%d)", block.BlockIndex))
+			return newCommonError(fmt.Sprintf("blockIndex already exists(index:%d)", block.BlockIndex))
 		}
 		if isFirstBlock() {
 			if !isQCChild() && !isLockChild() {
@@ -169,7 +169,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		// If block index is greater than 0, query the parent block from the viewBlocks
 		pre := r.viewState.ViewBlockByIndex(block.BlockIndex - 1)
 		if pre == nil {
-			return newFetchPrepareError(fmt.Sprintf("previous index block not existed,discard msg(index:%d)", block.BlockIndex-1))
+			return newFetchPrepareError(fmt.Sprintf("previous index block not exists,discard msg(index:%d)", block.BlockIndex-1))
 		}
 		if pre.NumberU64() != block.BlockNum()-1 || pre.Hash() != block.Block.ParentHash() {
 			return newCommonError(fmt.Sprintf("non contiguous index block(preIndex:%d,preNum:%d,preHash:%s,curIndex:%d,curNum:%d,curParentHash:%s)",
@@ -189,10 +189,10 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 
 		b, _ := r.blockTree.FindBlockAndQC(block.Block.ParentHash(), block.BlockNum()-1)
 		if b == nil {
-			return newCommonError(fmt.Sprintf("epoch higher then local, but not find parent block(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+			return newCommonError(fmt.Sprintf("epoch higher than local, but not find parent block(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
 		}
 
-		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+		return newFetchError(fmt.Sprintf("epoch higher than local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
 	}
 
 	if r.viewState.Epoch() != block.Epoch {
@@ -209,7 +209,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if isNextView() && isFirstBlock() && (isQCChild() || isLockChild()) && acceptViewChangeQC() {
 			return newViewError("need change view")
 		}
-		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
+		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
 	}
 
 	// if local epoch and viewNumber is the same with msg
@@ -288,7 +288,7 @@ func (r *baseSafetyRules) ViewChangeRules(viewChange *protocols.ViewChange) Safe
 	}
 
 	if r.viewState.ViewNumber() < viewChange.ViewNumber {
-		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber))
+		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber))
 	}
 	return nil
 }
