@@ -422,7 +422,7 @@ func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err erro
 }
 
 // MissingPrepareVote returns missing vote.
-func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) {
+func (cbft *Cbft) MissingPrepareVote() (pvs []*protocols.GetPrepareVote) {
 	result := make(chan struct{})
 
 	cbft.asyncCallCh <- func() {
@@ -430,32 +430,33 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 
 		begin := cbft.state.MaxQCIndex() + 1
 		end := cbft.state.NextViewBlockIndex()
-		len := cbft.currentValidatorLen()
-		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", len)
+		length := cbft.currentValidatorLen()
+		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", length)
+		//pvs = make([]*protocols.GetPrepareVote, 0)
 
 		for i := begin; i < end; i++ {
 			size := cbft.state.PrepareVoteLenByIndex(i)
 			cbft.log.Debug("The length of prepare vote", "index", i, "size", size)
 
-			if size < cbft.threshold(len) { // need sync prepare votes
+			if size < cbft.threshold(length) { // need sync prepare votes
 				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
-				unKnownSet := utils.NewBitArray(uint32(len))
+				unKnownSet := utils.NewBitArray(uint32(length))
 				for i := uint32(0); i < unKnownSet.Size(); i++ {
 					if _, ok := knownVotes[i]; !ok {
 						unKnownSet.SetIndex(i, true)
 					}
 				}
 
-				v, err = &protocols.GetPrepareVote{
+				pv := &protocols.GetPrepareVote{
 					Epoch:      cbft.state.Epoch(),
 					ViewNumber: cbft.state.ViewNumber(),
 					BlockIndex: i,
 					UnKnownSet: unKnownSet,
-				}, nil
+				}
+				cbft.log.Debug("PrepareVotes sync request", "msg", pv.String())
+				pvs = append(pvs, pv)
 			}
-			cbft.log.Debug("PrepareVotes sync request", "msg", v.String())
 		}
-		v, err = nil, fmt.Errorf("not need sync prepare vote")
 	}
 	<-result
 	return
