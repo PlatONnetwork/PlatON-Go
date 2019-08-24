@@ -6,8 +6,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -42,13 +40,12 @@ func Test_Decode(t *testing.T) {
 
 	versionSign, err := hex.DecodeString("e9626170e0c02d86c329193af7d2138813596f7bfdad16608015f92873a40b70641130f04f76cb506de059462472f9f0041bdb37e9be18303e2bbab6b6e61d0401")
 	if err != nil {
-		log.Error("Decode hex String", "err", err)
-		return
+		t.Fatal("Decode hex String", "err", err)
 	}
 	if !chandler.IsSignedByNodeID(uint32(1793), versionSign, nodeID) {
-		t.Error("verify sign error")
+		t.Fatal("verify sign error")
 	} else {
-		t.Error("verify sign OK")
+		t.Log("verify sign OK")
 	}
 
 }
