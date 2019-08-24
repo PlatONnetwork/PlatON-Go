@@ -456,6 +456,7 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 					BlockIndex: i,
 					UnKnownSet: unKnownSet,
 				}, nil
+				break
 			}
 		}
 		if v == nil {
