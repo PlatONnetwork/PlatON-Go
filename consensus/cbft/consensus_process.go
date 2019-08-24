@@ -25,34 +25,34 @@ import (
 
 // OnPrepareBlock performs security rule verification，store in blockTree,
 // Whether to start synchronization
-func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleError {
+func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 
 		if err.Common() {
 			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-			return &handleError{err}
+			return err
 		}
 		// verify consensus signature
-		if cbft.verifyConsensusSign(msg) != nil {
+		if err := cbft.verifyConsensusSign(msg); err != nil {
 			signatureCheckFailureMeter.Mark(1)
-			return &authFailedError{err}
+			return err
 		}
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
-			return &handleError{err}
+			return err
 		}
 		if err.FetchPrepare() {
 			cbft.prepareBlockFetchRules(id, msg)
-			return &handleError{err}
+			return err
 		}
 		if err.NewView() {
 			var block *types.Block
 			var qc *ctypes.QuorumCert
 			if msg.ViewChangeQC != nil {
 				if e := cbft.verifyViewChangeQC(msg.ViewChangeQC); e != nil {
-					return &handleError{e}
+					return e
 				}
 				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
@@ -68,16 +68,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
-		if e, ok := err.(*authFailedError); ok {
-			return e
-		}
-		return &handleError{err}
+		return err
 	}
 
 	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
-			return &handleError{err}
+			return err
 		}
 	}
 
@@ -89,34 +86,31 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 
 // OnPrepareVote perform security rule verification，store in blockTree,
 // Whether to start synchronization
-func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleError {
+func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		// verify consensus signature
 		if cbft.verifyConsensusSign(msg) != nil {
 			signatureCheckFailureMeter.Mark(1)
-			return &authFailedError{err}
+			return err
 		}
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		} else if err.FetchPrepare() {
 			cbft.prepareVoteFetchRules(id, msg)
 		}
-		return &handleError{err}
+		return err
 	}
 
 	var node *cbfttypes.ValidateNode
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		if e, ok := err.(*authFailedError); ok {
-			return e
-		}
-		return &handleError{err}
+		return err
 	}
 
 	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
-			return &handleError{err}
+			return err
 		}
 	}
 
@@ -130,29 +124,26 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 }
 
 // OnViewChange performs security rule verification, view switching.
-func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError {
+func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	cbft.log.Debug("Receive ViewChange", "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
-		return &handleError{err}
+		return err
 	}
 
 	var node *cbfttypes.ValidateNode
 	var err error
 
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		if e, ok := err.(*authFailedError); ok {
-			return e
-		}
-		return &handleError{err}
+		return err
 	}
 
 	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
 			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
-			return &handleError{err}
+			return err
 		}
 	}
 
@@ -589,10 +580,17 @@ func (cbft *Cbft) generateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.V
 // change view
 func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
 	interval := func() uint64 {
-		if block.NumberU64() == 0 || qc.ViewNumber+1 != viewNumber {
-			return 1
+		if block.NumberU64() == 0 {
+			return viewNumber - state.DefaultViewNumber + 1
 		}
-		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
+		if qc.ViewNumber+1 == viewNumber {
+			return uint64((cbft.config.Sys.Amount-qc.BlockIndex)/3) + 1
+		}
+		minuend := qc.ViewNumber
+		if qc.Epoch != epoch {
+			minuend = state.DefaultViewNumber
+		}
+		return viewNumber - minuend
 	}
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()

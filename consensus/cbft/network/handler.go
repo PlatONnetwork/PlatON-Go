@@ -680,14 +680,14 @@ func (h *EngineManager) synchronize() {
 	for {
 		select {
 		case <-voteTicker.C:
-			pvs := h.engine.MissingPrepareVote()
-			if len(pvs) > 0 {
-				for _, pv := range pvs {
-					log.Debug("Had new prepareVote sync request", "msg", pv.String())
-					// Only broadcasts without forwarding.
-					h.PartBroadcast(pv)
-				}
+			msg, err := h.engine.MissingPrepareVote()
+			if err != nil {
+				log.Debug("Request missing prepareVote failed", "err", err)
+				break
 			}
+			log.Debug("Had new prepareVote sync request", "msg", msg.String())
+			// Only broadcasts without forwarding.
+			h.PartBroadcast(msg)
 
 		case <-blockNumberTimer.C:
 			// Sent at random.

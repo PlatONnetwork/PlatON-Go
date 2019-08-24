@@ -445,7 +445,7 @@ func (cbft *Cbft) receiveLoop() {
 				if err := cbft.network.Forwarding(msg.PeerID, msg.Msg); err != nil {
 					cbft.log.Debug("Forward message failed", "err", err)
 				}
-			} else if err.AuthFailed() {
+			} else if e, ok := err.(HandleError); ok && e.AuthFailed() {
 				// If the verification signature is abnormal,
 				// the peer node is added to the local blacklist
 				// and disconnected.
@@ -497,13 +497,13 @@ func (cbft *Cbft) receiveLoop() {
 }
 
 // Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
-func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) HandleError {
+func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	if !cbft.running() {
 		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
 		return &handleError{fmt.Errorf("consensus message pause, ignore message")}
 	}
 	msg, id := info.Msg, info.PeerID
-	var err HandleError
+	var err error
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
@@ -1263,6 +1263,9 @@ func (cbft *Cbft) currentValidatorLen() int {
 }
 
 func (cbft *Cbft) verifyConsensusSign(msg ctypes.ConsensusMsg) error {
+	if err := cbft.validatorPool.EnableVerifyEpoch(msg.EpochNum()); err != nil {
+		return err
+	}
 	digest, err := msg.CannibalizeBytes()
 	if err != nil {
 		return errors.Wrap(err, "get msg's cannibalize bytes failed")
@@ -1316,7 +1319,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 			return vnode, nil
 		}
 		if needViewChangeQC(cm) && cm.ViewChangeQC == nil {
-			return nil, authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)}
+			return nil, authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC")}
 		}
 		if cm.ViewChangeQC != nil {
 			if !baseViewChangeQC(cm) {
@@ -1477,6 +1480,9 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 	if qc == nil {
 		return fmt.Errorf("verify prepare qc failed,qc is nil")
 	}
+	if err := cbft.validatorPool.EnableVerifyEpoch(qc.Epoch); err != nil {
+		return err
+	}
 	// check signature number
 	threshold := cbft.threshold(cbft.validatorPool.Len(qc.Epoch))
 
@@ -1503,7 +1509,12 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 }
 
 func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+
 	vcEpoch, _, _, _, _, _ := viewChangeQC.MaxBlock()
+
+	if err := cbft.validatorPool.EnableVerifyEpoch(vcEpoch); err != nil {
+		return err
+	}
 	// check signature number
 	threshold := cbft.threshold(cbft.validatorPool.Len(vcEpoch))
 	signsTotal := viewChangeQC.Len()

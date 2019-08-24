@@ -226,8 +226,10 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 	cbft.log.Debug("Received message on OnPrepareVotes", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, vote := range msg.Votes {
-		if err := cbft.OnPrepareVote(id, vote); err != nil && err.AuthFailed() {
-			cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+		if err := cbft.OnPrepareVote(id, vote); err != nil {
+			if e, ok := err.(HandleError); ok && e.AuthFailed() {
+				cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+			}
 			return err
 		}
 	}
@@ -378,8 +380,10 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
 	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, v := range msg.VCs {
-		if err := cbft.OnViewChange(id, v); err != nil && err.AuthFailed() {
-			cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+		if err := cbft.OnViewChange(id, v); err != nil {
+			if e, ok := err.(HandleError); ok && e.AuthFailed() {
+				cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+			}
 			return err
 		}
 	}
@@ -422,7 +426,7 @@ func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err erro
 }
 
 // MissingPrepareVote returns missing vote.
-func (cbft *Cbft) MissingPrepareVote() (pvs []*protocols.GetPrepareVote) {
+func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) {
 	result := make(chan struct{})
 
 	cbft.asyncCallCh <- func() {
@@ -430,32 +434,33 @@ func (cbft *Cbft) MissingPrepareVote() (pvs []*protocols.GetPrepareVote) {
 
 		begin := cbft.state.MaxQCIndex() + 1
 		end := cbft.state.NextViewBlockIndex()
-		length := cbft.currentValidatorLen()
-		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", length)
-		//pvs = make([]*protocols.GetPrepareVote, 0)
+		len := cbft.currentValidatorLen()
+		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", len)
 
 		for i := begin; i < end; i++ {
 			size := cbft.state.PrepareVoteLenByIndex(i)
 			cbft.log.Debug("The length of prepare vote", "index", i, "size", size)
 
-			if size < cbft.threshold(length) { // need sync prepare votes
+			if size < cbft.threshold(len) { // need sync prepare votes
 				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
-				unKnownSet := utils.NewBitArray(uint32(length))
+				unKnownSet := utils.NewBitArray(uint32(len))
 				for i := uint32(0); i < unKnownSet.Size(); i++ {
 					if _, ok := knownVotes[i]; !ok {
 						unKnownSet.SetIndex(i, true)
 					}
 				}
 
-				pv := &protocols.GetPrepareVote{
+				v, err = &protocols.GetPrepareVote{
 					Epoch:      cbft.state.Epoch(),
 					ViewNumber: cbft.state.ViewNumber(),
 					BlockIndex: i,
 					UnKnownSet: unKnownSet,
-				}
-				cbft.log.Debug("PrepareVotes sync request", "msg", pv.String())
-				pvs = append(pvs, pv)
+				}, nil
+				break
 			}
+		}
+		if v == nil {
+			err = fmt.Errorf("not need sync prepare vote")
 		}
 	}
 	<-result
