@@ -420,15 +420,15 @@ func (vp *ValidatorPool) getIndexByNodeID(epoch uint64, nodeID discover.NodeID) 
 }
 
 // ValidatorList get the validator list.
-func (vp *ValidatorPool) ValidatorList(blockNumber uint64) []discover.NodeID {
+func (vp *ValidatorPool) ValidatorList(epoch uint64) []discover.NodeID {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.validatorList(blockNumber)
+	return vp.validatorList(epoch)
 }
 
-func (vp *ValidatorPool) validatorList(blockNumber uint64) []discover.NodeID {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) validatorList(epoch uint64) []discover.NodeID {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.NodeList()
 	}
 	return vp.currentValidators.NodeList()

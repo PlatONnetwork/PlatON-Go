@@ -568,17 +568,18 @@ func calAverage(latencyList *list.List) int64 {
 }
 
 func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, blockIndex uint32) {
-	msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
-	if cbft.limitFetcher.AddTask(msg.MsgHash()) {
+	if cbft.syncingCache.AddOrReplace(blockIndex) {
+		msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
 		cbft.network.Send(id, msg)
 		cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
 	}
 }
 
 func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash) {
-	msg := &protocols.GetBlockQuorumCert{BlockHash: blockHash, BlockNumber: blockNumber}
-	if cbft.limitFetcher.AddTask(msg.MsgHash()) {
+	if cbft.syncingCache.AddOrReplace(blockHash) {
+		msg := &protocols.GetBlockQuorumCert{BlockHash: blockHash, BlockNumber: blockNumber}
 		cbft.network.Send(id, msg)
 		cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
 	}
+
 }

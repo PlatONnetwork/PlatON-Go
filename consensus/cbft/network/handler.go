@@ -29,7 +29,7 @@ const (
 	CbftProtocolVersion = 1
 
 	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
-	CbftProtocolLength = 20
+	CbftProtocolLength = 40
 
 	// sendQueueSize is maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240

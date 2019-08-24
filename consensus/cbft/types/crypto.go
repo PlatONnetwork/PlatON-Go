@@ -118,7 +118,7 @@ func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
 
 func (q ViewChangeQuorumCert) Len() int {
 	length := 0
-	for i := uint32(0); i < q.ValidatorSet.Bits; i++ {
+	for i := uint32(0); i < q.ValidatorSet.Size(); i++ {
 		if q.ValidatorSet.GetIndex(i) {
 			length++
 		}

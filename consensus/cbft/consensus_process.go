@@ -68,7 +68,10 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
-		return &authFailedError{err}
+		if e, ok := err.(*authFailedError); ok {
+			return e
+		}
+		return &handleError{err}
 	}
 
 	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
@@ -104,7 +107,10 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 	var node *cbfttypes.ValidateNode
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return authFailedError{err}
+		if e, ok := err.(*authFailedError); ok {
+			return e
+		}
+		return &handleError{err}
 	}
 
 	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
@@ -137,7 +143,10 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError
 	var err error
 
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return authFailedError{err}
+		if e, ok := err.(*authFailedError); ok {
+			return e
+		}
+		return &handleError{err}
 	}
 
 	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
@@ -475,7 +484,7 @@ func (cbft *Cbft) tryChangeView() {
 	}()
 
 	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-		if err := cbft.validatorPool.Update(block.NumberU64(), qc.Epoch, cbft.eventMux); err == nil {
+		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.state.Epoch()+1, cbft.eventMux); err == nil {
 			cbft.log.Debug("Update validator success", "number", block.NumberU64())
 		}
 	}
@@ -585,6 +594,9 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		}
 		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
 	}
+	// syncingCache is belong to last view request, clear all sync cache
+	cbft.syncingCache.Purge()
+
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
