@@ -136,7 +136,8 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, 
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
 		protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
 		return r.kMixingRandomNodes(condition)
-	case protocols.PrepareBlockHashMsg, protocols.GetLatestStatusMsg, protocols.GetViewChangeMsg:
+	case protocols.PrepareBlockHashMsg, protocols.GetLatestStatusMsg,
+		protocols.GetViewChangeMsg, protocols.GetPrepareVoteMsg:
 		return r.kConsensusRandomNodes(false, condition)
 	}
 	return nil, fmt.Errorf("does not match the type of the specified message")

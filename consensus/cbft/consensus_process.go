@@ -580,10 +580,17 @@ func (cbft *Cbft) generateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.V
 // change view
 func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
 	interval := func() uint64 {
-		if block.NumberU64() == 0 || qc.ViewNumber+1 != viewNumber {
-			return 1
+		if block.NumberU64() == 0 {
+			return viewNumber - state.DefaultViewNumber + 1
 		}
-		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
+		if qc.ViewNumber+1 == viewNumber {
+			return uint64((cbft.config.Sys.Amount-qc.BlockIndex)/3) + 1
+		}
+		minuend := qc.ViewNumber
+		if qc.Epoch != epoch {
+			minuend = state.DefaultViewNumber
+		}
+		return viewNumber - minuend
 	}
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()
