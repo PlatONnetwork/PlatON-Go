@@ -46,6 +46,8 @@ func ErrResp(code ErrCode, format string, v ...interface{}) error {
 }
 
 type ConsensusMsg interface {
+	EpochNum() uint64
+	ViewNum() uint64
 	BlockNum() uint64
 	NodeIndex() uint32
 	CannibalizeBytes() ([]byte, error)

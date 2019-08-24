@@ -3,6 +3,7 @@ package network
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"math/big"
 	"math/rand"
 	"strconv"
@@ -83,6 +84,7 @@ func (s *fakeCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
 	return &protocols.GetPrepareVote{
 		Epoch:      1,
 		ViewNumber: 1,
+		KnownSet:   utils.NewBitArray(10),
 	}, nil
 }
 func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {

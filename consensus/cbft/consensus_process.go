@@ -247,7 +247,7 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			return false
 		}
 		hasExecuted := func() bool {
-			if cbft.validatorPool.IsValidator(qc.BlockNumber, cbft.config.Option.NodeID) {
+			if cbft.validatorPool.IsValidator(qc.Epoch, cbft.config.Option.NodeID) {
 				return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) && linked(qc.BlockNumber)
 			} else if cbft.validatorPool.IsCandidateNode(cbft.config.Option.NodeID) {
 				blockIndex, finish := cbft.state.Executing()
@@ -296,7 +296,7 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 	// todo sign vote
 	// parentQC added when sending
 	// Determine if the current consensus node is
-	node, err := cbft.validatorPool.GetValidatorByNodeID(number, cbft.config.Option.NodeID)
+	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			p.ParentQC = qc
 			hadSend.Push(p)
 			//Determine if the current consensus node is
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(p.BlockNum(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
 			cbft.log.Debug("Add local prepareVote", "vote", p.String())
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
@@ -475,7 +475,7 @@ func (cbft *Cbft) tryChangeView() {
 	}()
 
 	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+		if err := cbft.validatorPool.Update(block.NumberU64(), qc.Epoch, cbft.eventMux); err == nil {
 			cbft.log.Debug("Update validator success", "number", block.NumberU64())
 		}
 	}

@@ -63,7 +63,7 @@ func TestBls(t *testing.T) {
 	agency := validator.NewStaticAgency(nodes)
 
 	cbft := &Cbft{
-		validatorPool: validator.NewValidatorPool(agency, 0, nodes[0].Node.ID),
+		validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
 		config: ctypes.Config{
 			Option: &ctypes.OptionsConfig{
 				BlsPriKey: owner,
@@ -93,7 +93,7 @@ func TestAgg(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		cnode[i] = &Cbft{
-			validatorPool: validator.NewValidatorPool(agency, 0, nodes[0].Node.ID),
+			validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
 			config: ctypes.Config{
 				Option: &ctypes.OptionsConfig{
 					BlsPriKey: sk[i],

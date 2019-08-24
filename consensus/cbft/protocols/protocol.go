@@ -121,7 +121,12 @@ func (pb *PrepareBlock) MsgHash() common.Hash {
 func (pb *PrepareBlock) BHash() common.Hash {
 	return pb.Block.Hash()
 }
-
+func (pb *PrepareBlock) EpochNum() uint64 {
+	return pb.Epoch
+}
+func (pb *PrepareBlock) ViewNum() uint64 {
+	return pb.ViewNumber
+}
 func (pb *PrepareBlock) BlockNum() uint64 {
 	return pb.Block.NumberU64()
 }
@@ -184,6 +189,12 @@ func (pv *PrepareVote) MsgHash() common.Hash {
 func (pv *PrepareVote) BHash() common.Hash {
 	return pv.BlockHash
 }
+func (pv *PrepareVote) EpochNum() uint64 {
+	return pv.Epoch
+}
+func (pv *PrepareVote) ViewNum() uint64 {
+	return pv.ViewNumber
+}
 
 func (pv *PrepareVote) BlockNum() uint64 {
 	return pv.BlockNumber
@@ -245,6 +256,13 @@ func (vc *ViewChange) MsgHash() common.Hash {
 
 func (vc *ViewChange) BHash() common.Hash {
 	return vc.BlockHash
+}
+
+func (vc *ViewChange) EpochNum() uint64 {
+	return vc.Epoch
+}
+func (vc *ViewChange) ViewNum() uint64 {
+	return vc.ViewNumber
 }
 
 func (vc *ViewChange) BlockNum() uint64 {
