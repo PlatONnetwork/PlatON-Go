@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -27,10 +25,10 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 	initChandlerHandler()
 	version := uint32(1<<16 | 1<<8 | 0)
 	sig := chandler.MustSign(version)
-	t.Log("...", "version", version, "sig", hexutil.Encode(sig))
-
 	if !chandler.IsSignedByNodeID(version, sig, nodeID) {
 		t.Fatal("verify sign error")
+	} else {
+		t.Log("verify sign OK")
 	}
 }
 
