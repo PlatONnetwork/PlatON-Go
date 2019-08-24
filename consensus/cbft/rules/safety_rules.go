@@ -187,6 +187,11 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 			return newViewError("new epoch, need change view")
 		}
 
+		b, _ := r.blockTree.FindBlockAndQC(block.Block.ParentHash(), block.BlockNum()-1)
+		if b == nil {
+			return newCommonError(fmt.Sprintf("epoch higher then local, but not find parent block(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+		}
+
 		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
 	}
 

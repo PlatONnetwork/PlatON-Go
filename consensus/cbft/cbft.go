@@ -1118,6 +1118,13 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 // GetBlockWithoutLock returns the block corresponding to the specified number and hash.
 func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
 	block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+	if block == nil {
+		if eb := cbft.state.HighestExecutedBlock(); eb.Hash() == hash {
+			block = eb
+		} else {
+			cbft.log.Debug("Get block failed", "hash", hash, "number", number, "eb", eb.Hash(), "ebNumber", eb.NumberU64())
+		}
+	}
 	return block
 }
 
@@ -1263,7 +1270,7 @@ func (cbft *Cbft) verifyConsensusSign(msg ctypes.ConsensusMsg) error {
 
 	// Verify consensus msg signature
 	if err := cbft.validatorPool.Verify(msg.EpochNum(), msg.NodeIndex(), digest, msg.Sign()); err != nil {
-		return err
+		return authFailedError{err: err}
 	}
 	return nil
 }
@@ -1278,7 +1285,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	vnode, err := cbft.validatorPool.GetValidatorByIndex(msg.EpochNum(), msg.NodeIndex())
 
 	if err != nil {
-		return nil, errors.Wrap(err, "get validator failed")
+		return nil, authFailedError{err: errors.Wrap(err, "get validator failed")}
 	}
 
 	// check if the prepareBlock must take viewChangeQC
@@ -1309,11 +1316,11 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 			return vnode, nil
 		}
 		if needViewChangeQC(cm) && cm.ViewChangeQC == nil {
-			return nil, fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)
+			return nil, authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC,index:%d", prepareQC.BlockIndex)}
 		}
 		if cm.ViewChangeQC != nil {
 			if !baseViewChangeQC(cm) {
-				return nil, fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock, viewchangeQC:%s, PrepareBlock:%s", cm.ViewChangeQC.String(), cm.String())
+				return nil, authFailedError{err: fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock, viewchangeQC:%s, PrepareBlock:%s", cm.ViewChangeQC.String(), cm.String())}
 			}
 			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
 				return nil, err
@@ -1475,11 +1482,13 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 
 	signsTotal := qc.Len()
 	if signsTotal < threshold {
-		return fmt.Errorf("block qc has small number of signature total:%d, threshold:%d", signsTotal, threshold)
+		return authFailedError{err: fmt.Errorf("block qc has small number of signature total:%d, threshold:%d", signsTotal, threshold)}
 	}
 	// check if the corresponding block QC
 	if oriNum != qc.BlockNumber || oriHash != qc.BlockHash {
-		return fmt.Errorf("verify prepare qc failed,not the corresponding qc,oriNum:%d,oriHash:%s,qcNum:%d,qcHash:%s", oriNum, oriHash.String(), qc.BlockNumber, qc.BlockHash.String())
+		return authFailedError{
+			err: fmt.Errorf("verify prepare qc failed,not the corresponding qc,oriNum:%d,oriHash:%s,qcNum:%d,qcHash:%s",
+				oriNum, oriHash.String(), qc.BlockNumber, qc.BlockHash.String())}
 	}
 
 	var cb []byte
@@ -1488,9 +1497,9 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 		return err
 	}
 	if err = cbft.validatorPool.VerifyAggSigByBA(qc.Epoch, qc.ValidatorSet, cb, qc.Signature.Bytes()); err != nil {
-		return fmt.Errorf("verify prepare qc failed: %v", err)
+		return authFailedError{err: fmt.Errorf("verify prepare qc failed: %v", err)}
 	}
-	return err
+	return nil
 }
 
 func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {

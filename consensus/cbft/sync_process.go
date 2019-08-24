@@ -454,7 +454,9 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 				}, nil
 			}
 		}
-		v, err = nil, fmt.Errorf("not need sync prepare vote")
+		if v == nil {
+			err = fmt.Errorf("not need sync prepare vote")
+		}
 	}
 	<-result
 	return

@@ -479,7 +479,7 @@ type GetPrepareVote struct {
 }
 
 func (s *GetPrepareVote) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d}", s.Epoch, s.ViewNumber, s.BlockIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d,UnKnownSet:%s}", s.Epoch, s.ViewNumber, s.BlockIndex, s.UnKnownSet.String())
 }
 
 func (s *GetPrepareVote) MsgHash() common.Hash {
