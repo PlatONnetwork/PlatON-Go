@@ -76,6 +76,16 @@ func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
 	return crypto.Keccak256(buf), nil
 }
 
+func (q QuorumCert) Len() int {
+	length := 0
+	for i := uint32(0); i < q.ValidatorSet.Size(); i++ {
+		if q.ValidatorSet.GetIndex(i) {
+			length++
+		}
+	}
+	return length
+}
+
 func (q QuorumCert) String() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
 }
@@ -108,7 +118,7 @@ func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {
 
 func (q ViewChangeQuorumCert) Len() int {
 	length := 0
-	for i := uint32(0); i < q.ValidatorSet.Bits; i++ {
+	for i := uint32(0); i < q.ValidatorSet.Size(); i++ {
 		if q.ValidatorSet.GetIndex(i) {
 			length++
 		}

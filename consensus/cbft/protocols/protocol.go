@@ -121,7 +121,12 @@ func (pb *PrepareBlock) MsgHash() common.Hash {
 func (pb *PrepareBlock) BHash() common.Hash {
 	return pb.Block.Hash()
 }
-
+func (pb *PrepareBlock) EpochNum() uint64 {
+	return pb.Epoch
+}
+func (pb *PrepareBlock) ViewNum() uint64 {
+	return pb.ViewNumber
+}
 func (pb *PrepareBlock) BlockNum() uint64 {
 	return pb.Block.NumberU64()
 }
@@ -184,6 +189,12 @@ func (pv *PrepareVote) MsgHash() common.Hash {
 func (pv *PrepareVote) BHash() common.Hash {
 	return pv.BlockHash
 }
+func (pv *PrepareVote) EpochNum() uint64 {
+	return pv.Epoch
+}
+func (pv *PrepareVote) ViewNum() uint64 {
+	return pv.ViewNumber
+}
 
 func (pv *PrepareVote) BlockNum() uint64 {
 	return pv.BlockNumber
@@ -245,6 +256,13 @@ func (vc *ViewChange) MsgHash() common.Hash {
 
 func (vc *ViewChange) BHash() common.Hash {
 	return vc.BlockHash
+}
+
+func (vc *ViewChange) EpochNum() uint64 {
+	return vc.Epoch
+}
+func (vc *ViewChange) ViewNum() uint64 {
+	return vc.ViewNumber
 }
 
 func (vc *ViewChange) BlockNum() uint64 {
@@ -364,7 +382,7 @@ func (s *GetPrepareBlock) MsgHash() common.Hash {
 	if mhash := s.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	v := utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
+	v := utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(common.Uint64ToBytes(s.Epoch), common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
 	s.messageHash.Store(v)
 	return v
 }
@@ -453,56 +471,55 @@ func (s *GetQCBlockList) BHash() common.Hash {
 
 // Message used to get block voting.
 type GetPrepareVote struct {
-	ViewNumber  uint32
-	BlockHash   common.Hash
-	BlockNumber uint64
+	Epoch       uint64
+	ViewNumber  uint64
 	BlockIndex  uint32
-	VoteBits    *utils.BitArray
+	UnKnownSet  *utils.BitArray
 	messageHash atomic.Value `json:"-" rlp:"-"`
 }
 
 func (s *GetPrepareVote) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d,ViewNumber:%d}", s.BlockHash.TerminalString(), s.BlockNumber, s.ViewNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d,UnKnownSet:%s}", s.Epoch, s.ViewNumber, s.BlockIndex, s.UnKnownSet.String())
 }
 
 func (s *GetPrepareVote) MsgHash() common.Hash {
 	if mhash := s.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	v := utils.BuildHash(GetPrepareVoteMsg, utils.MergeBytes(
-		s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber),
-		s.VoteBits.Bytes()))
+	v := utils.BuildHash(GetPrepareVoteMsg, utils.MergeBytes(common.Uint64ToBytes(s.Epoch), common.Uint64ToBytes(s.ViewNumber),
+		common.Uint32ToBytes(s.BlockIndex), s.UnKnownSet.Bytes()))
 	s.messageHash.Store(v)
 	return v
 }
 
 func (s *GetPrepareVote) BHash() common.Hash {
-	return s.BlockHash
+	return common.Hash{}
 }
 
 // Message used to respond to the number of block votes.
 type PrepareVotes struct {
-	BlockHash   common.Hash
-	BlockNumber uint64
+	Epoch       uint64
+	ViewNumber  uint64
+	BlockIndex  uint32
 	Votes       []*PrepareVote // Block voting set.
 	messageHash atomic.Value   `json:"-" rlp:"-"`
 }
 
 func (s *PrepareVotes) String() string {
-	return fmt.Sprintf("{Hash:%s,Number:%d,Votes:%d}", s.BlockHash.TerminalString(), s.BlockNumber, len(s.Votes))
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d}", s.Epoch, s.ViewNumber, s.BlockIndex)
 }
 
 func (s *PrepareVotes) MsgHash() common.Hash {
 	if mhash := s.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	v := utils.BuildHash(PrepareVotesMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
+	v := utils.BuildHash(PrepareVotesMsg, utils.MergeBytes(common.Uint64ToBytes(s.Epoch), common.Uint64ToBytes(s.ViewNumber), common.Uint32ToBytes(s.BlockIndex)))
 	s.messageHash.Store(v)
 	return v
 }
 
 func (s *PrepareVotes) BHash() common.Hash {
-	return s.BlockHash
+	return common.Hash{}
 }
 
 // Represents the hash of the proposed block for secondary propagation.

@@ -63,7 +63,7 @@ func TestBls(t *testing.T) {
 	agency := validator.NewStaticAgency(nodes)
 
 	cbft := &Cbft{
-		validatorPool: validator.NewValidatorPool(agency, 0, nodes[0].Node.ID),
+		validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
 		config: ctypes.Config{
 			Option: &ctypes.OptionsConfig{
 				BlsPriKey: owner,
@@ -93,7 +93,7 @@ func TestAgg(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		cnode[i] = &Cbft{
-			validatorPool: validator.NewValidatorPool(agency, 0, nodes[0].Node.ID),
+			validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
 			config: ctypes.Config{
 				Option: &ctypes.OptionsConfig{
 					BlsPriKey: sk[i],
@@ -119,10 +119,11 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 		pbs[uint32(i)] = pb
 	}
 	qc := cnode[0].generatePrepareQC(pbs)
+	fmt.Println(qc)
 
-	assert.Nil(t, cnode[0].verifyPrepareQC(qc))
+	assert.Nil(t, cnode[0].verifyPrepareQC(qc.BlockNumber, qc.BlockHash, qc))
 	qc.ValidatorSet = nil
-	assert.NotNil(t, cnode[0].verifyPrepareQC(qc))
+	assert.NotNil(t, cnode[0].verifyPrepareQC(qc.BlockNumber, qc.BlockHash, qc))
 
 }
 func testViewChangeQC(t *testing.T, cnode []*Cbft) {

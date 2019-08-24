@@ -402,7 +402,7 @@ func TestValidatorPool(t *testing.T) {
 	nodes := newTestNode()
 	agency := newTestInnerAgency(nodes)
 
-	validatorPool := NewValidatorPool(agency, 0, nodes[0].Node.ID)
+	validatorPool := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
 	assert.False(t, validatorPool.ShouldSwitch(0))
 	assert.True(t, validatorPool.ShouldSwitch(80))
 
@@ -452,9 +452,9 @@ func TestValidatorPool(t *testing.T) {
 
 	eventMux := &event.TypeMux{}
 
-	validatorPool.Update(80, eventMux)
-	assert.True(t, validatorPool.IsValidator(80, nodes[0].Node.ID))
-	assert.False(t, validatorPool.IsValidator(81, nodes[0].Node.ID))
+	validatorPool.Update(80, 1, eventMux)
+	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID))
+	assert.False(t, validatorPool.IsValidator(1, nodes[0].Node.ID))
 }
 
 func TestValidatorPoolVerify(t *testing.T) {
@@ -488,7 +488,7 @@ func TestValidatorPoolVerify(t *testing.T) {
 	nodes = append(nodes, params.CbftNode{Node: *n4, BlsPubKey: *sec4.GetPublicKey()})
 
 	agency := newTestInnerAgency(nodes)
-	vp := NewValidatorPool(agency, 0, nodes[0].Node.ID)
+	vp := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
 
 	m := "test sig"
 

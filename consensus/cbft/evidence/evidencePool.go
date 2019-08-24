@@ -101,7 +101,7 @@ func (pool *baseEvidencePool) AddPrepareBlock(pb *protocols.PrepareBlock, node *
 	id := verifyIdentity(pb)
 	var evidencePrepare *EvidencePrepare
 	if evidencePrepare, err = NewEvidencePrepare(pb, node); err != nil {
-		return fmt.Errorf("CannibalizeBytes error")
+		return fmt.Errorf("cannibalize bytes error")
 	}
 	if err := pool.pb.Add(evidencePrepare, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareBlockEvidence); ok {
@@ -120,7 +120,7 @@ func (pool *baseEvidencePool) AddPrepareVote(pv *protocols.PrepareVote, node *cb
 	id := verifyIdentity(pv)
 	var evidenceVote *EvidenceVote
 	if evidenceVote, err = NewEvidenceVote(pv, node); err != nil {
-		return fmt.Errorf("CannibalizeBytes error")
+		return fmt.Errorf("cannibalize bytes error")
 	}
 	if err := pool.pv.Add(evidenceVote, id); err != nil {
 		if evidence, ok := err.(*DuplicatePrepareVoteEvidence); ok {
@@ -139,7 +139,7 @@ func (pool *baseEvidencePool) AddViewChange(vc *protocols.ViewChange, node *cbft
 	id := verifyIdentity(vc)
 	var evidenceView *EvidenceView
 	if evidenceView, err = NewEvidenceView(vc, node); err != nil {
-		return fmt.Errorf("CannibalizeBytes error")
+		return fmt.Errorf("cannibalize bytes error")
 	}
 	if err := pool.vc.Add(evidenceView, id); err != nil {
 		if evidence, ok := err.(*DuplicateViewChangeEvidence); ok {
