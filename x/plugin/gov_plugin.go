@@ -301,6 +301,9 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 					Abstentions:   0,
 					AccuVerifiers: 0,
 				}
+			} else if tallyResult.Status != gov.Voting {
+				log.Error("the version proposal to be canceled is not at voting stage, but the cancel proposal is passed")
+				return false, err
 			}
 			verifierList, err := gov.ListAccuVerifier(blockHash, cp.TobeCanceled)
 			if err != nil {
