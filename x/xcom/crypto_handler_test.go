@@ -1,7 +1,6 @@
 package xcom
 
 import (
-	"encoding/hex"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -30,20 +29,4 @@ func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 	} else {
 		t.Log("verify sign OK")
 	}
-}
-
-func Test_Decode(t *testing.T) {
-	initChandlerHandler()
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
-	versionSign, err := hex.DecodeString("e9626170e0c02d86c329193af7d2138813596f7bfdad16608015f92873a40b70641130f04f76cb506de059462472f9f0041bdb37e9be18303e2bbab6b6e61d0401")
-	if err != nil {
-		t.Fatal("Decode hex String", "err", err)
-	}
-	if !chandler.IsSignedByNodeID(uint32(1793), versionSign, nodeID) {
-		t.Fatal("verify sign error")
-	} else {
-		t.Log("verify sign OK")
-	}
-
 }
