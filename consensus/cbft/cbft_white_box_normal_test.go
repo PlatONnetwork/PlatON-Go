@@ -63,7 +63,7 @@ func testPrepareRulesCheckIndex(t *testing.T, node *TestCBFT, blocks []*types.Bl
 		ViewNumber:    node.engine.state.ViewNumber(),
 		Block:         blocks[0],
 		BlockIndex:    10,
-		ProposalIndex: 1,
+		ProposalIndex: 0,
 	}
 	err := node.engine.OnPrepareBlock("", prepare)
 	assert.NotNil(t, err)
@@ -80,12 +80,12 @@ func testPrepareRulesCheckIndex(t *testing.T, node *TestCBFT, blocks []*types.Bl
 	}
 
 	// not exist previous index
-	prepare.BlockIndex = uint32(len(blocks) + 1)
-	err = node.engine.OnPrepareBlock("", prepare)
-	assert.NotNil(t, err)
-	if err != nil {
-		assert.True(t, strings.HasPrefix(err.Error(), notExistPreIndex))
-	}
+	//prepare.BlockIndex = uint32(len(blocks) + 1)
+	//err = node.engine.OnPrepareBlock("", prepare)
+	//assert.NotNil(t, err)
+	//if err != nil {
+	//	assert.True(t, strings.HasPrefix(err.Error(), notExistPreIndex))
+	//}
 
 	// different previous index block
 	prepare.BlockIndex = uint32(len(blocks))
@@ -105,7 +105,7 @@ func testPrepareRulesCheckIndex(t *testing.T, node *TestCBFT, blocks []*types.Bl
 		ViewNumber:    node.engine.state.ViewNumber(),
 		Block:         b,
 		BlockIndex:    0,
-		ProposalIndex: 1,
+		ProposalIndex: 0,
 	}
 	err = node.engine.OnPrepareBlock("", prepare)
 	assert.NotNil(t, err)
@@ -165,7 +165,7 @@ func testPrepareNewView(t *testing.T, node *TestCBFT, blocks []*types.Block) {
 		ViewNumber:    node.engine.state.ViewNumber() + 1,
 		Block:         b,
 		BlockIndex:    0,
-		ProposalIndex: 1,
+		ProposalIndex: 0,
 		ViewChangeQC: &ctypes.ViewChangeQC{
 			QCs: []*ctypes.ViewChangeQuorumCert{vqc},
 		},
@@ -191,7 +191,7 @@ func testPrepareFetch(t *testing.T, node *TestCBFT, blocks []*types.Block) {
 		ViewNumber:    node.engine.state.ViewNumber() + 1,
 		Block:         b,
 		BlockIndex:    0,
-		ProposalIndex: 1,
+		ProposalIndex: 0,
 		ViewChangeQC: &ctypes.ViewChangeQC{
 			QCs: []*ctypes.ViewChangeQuorumCert{vqc},
 		},
