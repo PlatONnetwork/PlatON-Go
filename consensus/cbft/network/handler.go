@@ -632,6 +632,16 @@ func (h *EngineManager) ContainsBlacklist(peerID string) bool {
 	return h.blacklist.Contains(peerID)
 }
 
+// RemoveMessageHash removes the specified hash from the peer.
+func (h *EngineManager) RemoveMessageHash(id string, msgHash common.Hash) {
+	peer, err := h.peers.get(id)
+	if err != nil {
+		log.Error("Removing messageHash from peer failed", "err", err)
+		return
+	}
+	peer.RemoveMessageHash(msgHash)
+}
+
 // RemovePeer removes and disconnects a node from
 // a neighbor node.
 func (h *EngineManager) RemovePeer(id string) {
