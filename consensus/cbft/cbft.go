@@ -728,6 +728,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
 
+	cbft.network.Broadcast(prepareBlock)
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
@@ -750,7 +751,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 
 	cbft.validatorPool.Flush(prepareBlock.Block.Header())
 
-	cbft.network.Broadcast(prepareBlock)
 	// Record the number of blocks.
 	minedCounter.Inc(1)
 	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
