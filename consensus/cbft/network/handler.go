@@ -236,14 +236,15 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 		if msgType == protocols.PrepareBlockMsg {
 			// Special treatment.
 			if v, ok := msg.(*protocols.PrepareBlock); ok {
-				h.Broadcast(&protocols.PrepareBlockHash{
+				pbh := &protocols.PrepareBlockHash{
 					Epoch:       v.Epoch,
 					ViewNumber:  v.ViewNumber,
 					BlockIndex:  v.BlockIndex,
 					BlockHash:   v.Block.Hash(),
 					BlockNumber: v.Block.NumberU64(),
-				})
-				log.Trace("PrepareBlockHash is forwarded instead of PrepareBlock done")
+				}
+				h.Broadcast(pbh)
+				log.Debug("PrepareBlockHash is forwarded instead of PrepareBlock", "msgHash", pbh.MsgHash())
 			}
 		} else {
 			// Direct forwarding.
