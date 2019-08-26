@@ -4,11 +4,14 @@ package snapshotdb
 
 import (
 	"fmt"
+	"math/big"
 	"math/rand"
 	"os"
 	"path"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/robfig/cron"
 )
 
@@ -25,6 +28,52 @@ func init() {
 	//	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	logger.Info("begin test")
 	dbpath = path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
+	testChain := new(testchain)
+	header := generateHeader(big.NewInt(1000000000), common.ZeroHash)
+	testChain.h = append(testChain.h, header)
+	blockchain = testChain
+}
+
+type testchain struct {
+	h []*types.Header
+}
+
+func (c *testchain) addBlock() {
+	if len(c.h) == 0 {
+		c.h = make([]*types.Header, 0)
+		c.h = append(c.h, generateHeader(big.NewInt(1), common.ZeroHash))
+		return
+	}
+
+	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
+	c.h = append(c.h, header)
+}
+
+func (c *testchain) CurrentHeader() *types.Header {
+	if len(c.h) != 0 {
+		return c.h[len(c.h)-1]
+	}
+	return nil
+}
+
+func (c *testchain) currentForkHeader() *types.Header {
+	if len(c.h) != 0 {
+		newhead := new(types.Header)
+		newhead.Number = c.h[len(c.h)-1].Number
+		newhead.ParentHash = c.h[len(c.h)-1].ParentHash
+		newhead.GasUsed = rand.Uint64()
+		return newhead
+	}
+	return nil
+}
+
+func (c *testchain) GetHeaderByHash(hash common.Hash) *types.Header {
+	for i := len(c.h) - 1; i >= 0; i-- {
+		if c.h[i].Hash() == hash {
+			return c.h[i]
+		}
+	}
+	return nil
 }
 
 // New  create a new snapshotDB

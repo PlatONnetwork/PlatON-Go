@@ -120,10 +120,10 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	}
 	state.CreateAccount(addr)
 	state.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
-	if err := snapshotdb.Instance().NewBlock(blockNumber, blockHash, common.ZeroHash); nil != err {
+	if err := snapshotdb.Instance().NewBlock(blockNumber2, blockHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, addr, can); nil != err {
 		t.Fatal(err)
 	}
 	runContract(contract, buf.Bytes(), t)

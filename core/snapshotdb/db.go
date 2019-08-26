@@ -166,6 +166,7 @@ func (s *snapshotDB) recover(stor storage) error {
 			if _, ok := commitMap[block.BlockHash]; !ok {
 				continue
 			}
+			//			block.readOnly = true
 			s.committed = append(s.committed, block)
 		}
 		//else if fd.Num > highestNum {

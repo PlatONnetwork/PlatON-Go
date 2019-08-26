@@ -94,9 +94,9 @@ type Ppos_1105 struct {
 
 // submitText
 type Ppos_2000 struct {
-	Verifier        discover.NodeID
-	PIPID           string
-	EndVotingRounds uint64
+	Verifier discover.NodeID
+	PIPID    string
+	//EndVotingRounds uint64
 }
 
 // submitVersion
@@ -339,10 +339,10 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2000.Verifier)
 			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
-			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
+			//endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
 			params = append(params, verifier)
 			params = append(params, pipID)
-			params = append(params, endVotingRounds)
+			//params = append(params, endVotingRounds)
 		}
 	case 2001:
 		{

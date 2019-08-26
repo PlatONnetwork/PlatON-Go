@@ -293,11 +293,39 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 		if tallyResult, err := gov.GetTallyResult(cp.TobeCanceled, state); err != nil {
 			return false, err
 		} else {
+			if tallyResult == nil {
+				tallyResult = &gov.TallyResult{
+					ProposalID:    cp.TobeCanceled,
+					Yeas:          0,
+					Nays:          0,
+					Abstentions:   0,
+					AccuVerifiers: 0,
+				}
+			} else if tallyResult.Status != gov.Voting {
+				log.Error("the version proposal to be canceled is not at voting stage, but the cancel proposal is passed")
+				return false, err
+			}
+			verifierList, err := gov.ListAccuVerifier(blockHash, cp.TobeCanceled)
+			if err != nil {
+				return false, err
+			}
+			verifiersCnt := uint16(len(verifierList))
+
+			voteList, err := gov.ListVoteValue(cp.TobeCanceled, state)
+			if err != nil {
+				return false, err
+			}
+
+			voteCnt := uint16(len(voteList))
+			yeas := voteCnt
+
+			tallyResult.Yeas = yeas
+			tallyResult.AccuVerifiers = verifiersCnt
 			tallyResult.Status = gov.Canceled
 			tallyResult.CanceledBy = cp.ProposalID
 
 			if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-				log.Error("save tally result failed", "tallyResult", tallyResult)
+				log.Error("version proposal is canceled failed, cannot save its tally result", "tallyResult", tallyResult)
 				return false, err
 			}
 

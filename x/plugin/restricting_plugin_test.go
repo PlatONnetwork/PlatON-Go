@@ -80,28 +80,6 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			return
 		}
 	})
-	t.Run("blockChain arrived settle block height, restricting plan exist, debt symbol is false,and debt more or equal than release amount", func(t *testing.T) {
-
-	})
-	t.Run("blockChain arrived settle block height, restricting plan exist, debt symbol is false,and total debt and restricting balance is more than release amount", func(t *testing.T) {
-
-	})
-	t.Run(" blockChain arrived settle block height, restricting plan exist, debt symbol is false,and total debt and restricting balance is less than release amount", func(t *testing.T) {
-
-	})
-
-	// case6: blockChain arrived settle block height, restricting plan exist, debt symbol is true,
-	{
-
-	}
-
-	/*
-	 * path coverage
-	 */
-	// case7: test release genesis allowance
-	{
-
-	}
 }
 
 func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
@@ -439,15 +417,18 @@ func TestRestrictingInstance(t *testing.T) {
 	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 1)
 	if err := plugin.PledgeLockFunds(to, big.NewInt(5E18), mockDB); err != nil {
 		t.Error(err)
 	}
 	if err := plugin.releaseRestricting(2, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 2)
 	if err := plugin.releaseRestricting(3, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 3)
 	plans2 := make([]restricting.RestrictingPlan, 0)
 	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1E18)})
 	if err := plugin.AddRestrictingRecord(from, to, plans2, mockDB); err != nil {
@@ -462,6 +443,8 @@ func TestRestrictingInstance(t *testing.T) {
 	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 4)
+
 	assert.Equal(t, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(1E18)), mockDB.GetBalance(to))
 	assert.Equal(t, true, mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) == 0)
 	assert.Equal(t, true, mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) == 0)
@@ -485,6 +468,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 1)
 
 	if err := plugin.PledgeLockFunds(to, big.NewInt(5E18), mockDB); err != nil {
 		t.Error(err)
@@ -493,10 +477,12 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.releaseRestricting(2, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 2)
 
 	if err := plugin.releaseRestricting(3, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 3)
 
 	mockDB.SubBalance(vm.StakingContractAddr, big.NewInt(1E18))
 	if err := plugin.SlashingNotify(to, big.NewInt(1E18), mockDB); err != nil {
@@ -517,13 +503,19 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 4)
+
 	assert.Equal(t, big.NewInt(9E18), mockDB.GetBalance(to))
-	assert.Equal(t, true, mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) == 0)
-	assert.Equal(t, true, mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) == 0)
-	assert.Equal(t, uint64(4), GetLatestEpoch(mockDB))
+	if mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) != 0 {
+		t.Error("RestrictingContractAddr should compare", vm.RestrictingContractAddr)
+	}
+	if mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) != 0 {
+		t.Error("StakingContractAddr should compare", vm.StakingContractAddr)
+	}
 	if err := plugin.releaseRestricting(5, mockDB); err != nil {
 		t.Error(err)
 	}
+	SetLatestEpoch(mockDB, 5)
 
 }
 
