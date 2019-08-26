@@ -19,6 +19,9 @@ type OptionsConfig struct {
 	MaxPingLatency    int64 // maxPingLatency is the time in milliseconds between Ping and Pong
 	MaxQueuesLimit    int64 // The maximum value that a single node can send a message.
 	BlacklistDeadline int64 // Blacklist expiration time. unit: minute.
+
+	Period uint64
+	Amount uint32
 }
 
 type Config struct {
