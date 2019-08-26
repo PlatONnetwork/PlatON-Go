@@ -323,10 +323,10 @@ func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList [
 }
 
 // Get the total number of all voting verifiers
-func AccuVerifiersLength(blockHash common.Hash, proposalID common.Hash) (uint16, error) {
-	if l, err := getAccuVerifiersLength(blockHash, proposalID); err != nil {
-		log.Error("get accumulated verifiers count failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return 0, common.NewSysError(err.Error())
+func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
+	if l, err := getAccuVerifiers(blockHash, proposalID); err != nil {
+		log.Error("list accumulated verifiers failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		return nil, common.NewSysError(err.Error())
 	} else {
 		return l, nil
 	}

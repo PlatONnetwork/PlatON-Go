@@ -303,15 +303,22 @@ func (p *peer) AsyncSendNewBlockHash(block *types.Block) {
 }
 
 type PPOSStorage struct {
-	KVs    []downloader.PPOSStorageKV
+	KVs   []downloader.PPOSStorageKV
+	KVNum uint64
+	Last  bool
+}
+
+type PPOSInfo struct {
 	Latest *types.Header
 	Pivot  *types.Header
-	KVNum  uint64
-	Last   bool
 }
 
 func (p *peer) SendPPOSStorage(data PPOSStorage) error {
 	return p2p.Send(p.rw, PPOSStorageMsg, data)
+}
+
+func (p *peer) SendPPOSInfo(data PPOSInfo) error {
+	return p2p.Send(p.rw, PPOSInfoMsg, data)
 }
 
 func (p *peer) SendOriginAndPivot(data []*types.Header) error {

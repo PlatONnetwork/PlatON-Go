@@ -2,8 +2,12 @@ package plugin
 
 import (
 	"encoding/hex"
-	"os"
+	"encoding/json"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -77,9 +81,9 @@ func submitText(t *testing.T, pid common.Hash) {
 
 	//state := stateDB.(*state.StateDB)
 	//state.Prepare(txHashArr[0], lastBlockHash, 0)
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	if err != nil {
 		t.Fatalf("submit text proposal err: %s", err)
 	}
@@ -727,10 +731,10 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 
 	build_staking_data_more(endVotingBlock)
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	endBlock(t)
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(3), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	sndb.Commit(lastBlockHash)
 
 	result, err := gov.GetTallyResult(txHashArr[0], stateDB)
@@ -952,7 +956,7 @@ func TestGovPlugin_printVersion(t *testing.T) {
 
 }
 
-func TestNodeID(t *testing.T) {
+func TestGovPlugin_TestNodeID(t *testing.T) {
 	var nodeID discover.NodeID
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
@@ -972,7 +976,7 @@ func TestNodeID(t *testing.T) {
 	t.Error("proposalID is empty", "proposalID", proposalID)
 }*/
 
-func Test_MakeExtraData(t *testing.T) {
+func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 	defer setup(t)()
 
 	lastHeader = types.Header{
@@ -1015,19 +1019,48 @@ func Test_MakeExtraData(t *testing.T) {
 
 }
 
-func Test_version(t *testing.T) {
+func TestGovPlugin_Test_version(t *testing.T) {
 	ver := uint32(66048) //1.2.0
 	t.Log(common.Uint32ToBytes(ver))
 }
 
-func Test_genVersionSign(t *testing.T) {
+func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 
 	ver := uint32(66048) //1.2.0
 	chandler := xcom.GetCryptoHandler()
 
-	for i := 0; i < 18; i++ {
+	for i := 0; i < 4; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
 	}
 
+}
+
+var (
+	chandler *xcom.CryptoHandler
+	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
+	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+)
+
+func initChandlerHandler() {
+	chandler = xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKey)
+}
+
+func TestGovPlugin_Test_Encode(t *testing.T) {
+	initChandlerHandler()
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	sig, err := chandler.Sign(uint32(1792))
+
+	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: hexutil.Encode(sig)}
+
+	jsonByte, err := json.Marshal(value)
+	if nil != err {
+		log.Error("json.Marshal err", "err", err)
+	}
+
+	log.Error("encode result", "sig", hex.EncodeToString(jsonByte))
+	res := xcom.Result{true, string(jsonByte), ""}
+	resultBytes, _ := json.Marshal(res)
+	log.Error("encode result", "bytes", hex.EncodeToString(resultBytes))
 }

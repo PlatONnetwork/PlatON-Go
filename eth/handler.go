@@ -460,19 +460,22 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		f := func(num *big.Int, iter iterator.Iterator) error {
-			var ps PPOSStorage
-			var count int
-			ps.KVs = make([]downloader.PPOSStorageKV, 0)
+			var psInfo PPOSInfo
 			if num == nil {
 				return errors.New("num should not be nil")
 			}
-			ps.Pivot = pm.blockchain.GetHeaderByNumber(num.Uint64())
-			ps.Latest = pm.blockchain.CurrentHeader()
-			if err := p.SendPPOSStorage(ps); err != nil {
+			psInfo.Pivot = pm.blockchain.GetHeaderByNumber(num.Uint64())
+			psInfo.Latest = pm.blockchain.CurrentHeader()
+			if err := p.SendPPOSInfo(psInfo); err != nil {
 				p.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 				return err
 			}
-			var bytes int
+			var (
+				bytes int
+				ps    PPOSStorage
+				count int
+			)
+			ps.KVs = make([]downloader.PPOSStorageKV, 0)
 			for iter.Next() {
 				bytes = bytes + len(iter.Key()) + len(iter.Value())
 				if count >= downloader.PPOSStorageKVSizeFetch || bytes > softResponseLimit {
@@ -500,10 +503,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			return nil
 		}
-
-		if err := snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
-			p.Log().Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
-		}
+		go func() {
+			if err := snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
+				p.Log().Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+			}
+		}()
 
 	case p.version >= eth63 && msg.Code == PPOSStorageMsg:
 		p.Log().Debug("Received a broadcast message[PposStorageMsg]")
@@ -512,7 +516,17 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver all to the downloader
-		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.KVs, data.Last, data.KVNum); err != nil {
+		if err := pm.downloader.DeliverPposStorage(p.id, data.KVs, data.Last, data.KVNum); err != nil {
+			p.Log().Error("Failed to deliver ppos storage data", "err", err)
+		}
+	case p.version >= eth63 && msg.Code == PPOSInfoMsg:
+		p.Log().Debug("Received a broadcast message[PPOSInfoMsg]")
+		var data PPOSInfo
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverPposInfo(p.id, data.Latest, data.Pivot); err != nil {
 			p.Log().Error("Failed to deliver ppos storage data", "err", err)
 		}
 	case msg.Code == BlockHeadersMsg:

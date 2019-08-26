@@ -17,9 +17,6 @@
 package core
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -84,10 +81,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 
-	// todo test
+	/*// todo test
 	root := statedb.IntermediateRoot(true)
 	log.Debug("Before EndBlock StateDB root, On StateProcessor", "blockNumber",
-		block.Number().Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", statedb))
+		block.Number().Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", statedb))*/
 
 	if bcr != nil {
 		// EndBlocker()
@@ -98,11 +95,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		}
 	}
 
-	// TODO test
+	/*// TODO test
 	for _, r := range receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on StateProcessor, Before finalize", "blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "log", string(rbyte))
-	}
+	}*/
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
@@ -142,8 +139,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool, 
 	*usedGas += gas
 
 	// todo test
-	log.Debug("Exec tx, stateDB info", "blockNumber", header.Number.Uint64(), "gasUse", gas,
-		"totalGasUse", *usedGas, "failed", failed, "root", stateRoot.Hex(), "pointer", fmt.Sprintf("%p", statedb))
+	//log.Debug("Exec tx, stateDB info", "blockNumber", header.Number.Uint64(), "gasUse", gas,
+	//	"totalGasUse", *usedGas, "failed", failed, "root", stateRoot.Hex(), "pointer", fmt.Sprintf("%p", statedb))
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
