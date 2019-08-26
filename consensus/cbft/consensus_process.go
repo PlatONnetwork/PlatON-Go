@@ -504,7 +504,6 @@ func (cbft *Cbft) tryChangeView() {
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
 		cbft.tryChangeViewByViewChange(viewChangeQC)
 	}
-
 }
 
 func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {

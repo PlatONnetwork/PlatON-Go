@@ -145,6 +145,16 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		return block.BlockIndex == 0
 	}
 
+	doubtDuplicate := func() bool {
+		for i := 0; i < r.viewState.ViewBlockSize(); i++ {
+			local := r.viewState.ViewBlockByIndex(uint32(i))
+			if local != nil && local.NumberU64() == block.BlockNum() && local.Hash() != block.Block.Hash() {
+				return true
+			}
+		}
+		return false
+	}
+
 	// if local epoch and viewNumber is the same with msg
 	// Note:
 	// 1. block index is greater than or equal to the Amount value, discard the msg.
@@ -155,6 +165,9 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 	acceptIndexBlock := func() SafetyError {
 		if block.BlockIndex >= r.config.Sys.Amount {
 			return newCommonError(fmt.Sprintf("blockIndex higher than amount(index:%d, amount:%d)", block.BlockIndex, r.config.Sys.Amount))
+		}
+		if doubtDuplicate() {
+			return nil
 		}
 		current := r.viewState.ViewBlockByIndex(block.BlockIndex)
 		if current != nil {
@@ -233,9 +246,22 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 		return prepare != nil && prepare.NumberU64() == vote.BlockNumber && prepare.Hash() == vote.BlockHash
 	}
 
+	doubtDuplicate := func() bool {
+		for i := 0; i < r.viewState.ViewVoteSize(); i++ {
+			local := r.viewState.FindPrepareVote(uint32(i), vote.ValidatorIndex)
+			if local != nil && local.BlockNumber == vote.BlockNumber && local.BlockHash != vote.BlockHash {
+				return true
+			}
+		}
+		return false
+	}
+
 	acceptIndexVote := func() SafetyError {
 		if vote.BlockIndex >= r.config.Sys.Amount {
 			return newCommonError(fmt.Sprintf("voteIndex higher than amount(index:%d, amount:%d)", vote.BlockIndex, r.config.Sys.Amount))
+		}
+		if doubtDuplicate() {
+			return nil
 		}
 		if r.viewState.FindPrepareVote(vote.BlockIndex, vote.ValidatorIndex) != nil {
 			return newCommonError(fmt.Sprintf("prepare vote has exist(blockIndex:%d, validatorIndex:%d)", vote.BlockIndex, vote.ValidatorIndex))
@@ -290,6 +316,7 @@ func (r *baseSafetyRules) ViewChangeRules(viewChange *protocols.ViewChange) Safe
 	if r.viewState.ViewNumber() < viewChange.ViewNumber {
 		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber))
 	}
+
 	return nil
 }
 
