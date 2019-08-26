@@ -460,6 +460,10 @@ func TestValidatorPool(t *testing.T) {
 func TestValidatorPoolVerify(t *testing.T) {
 	bls.Init(bls.CurveFp254BNb)
 
+	var blsPub bls.PublicKey
+	err := blsPub.UnmarshalText([]byte("5c5fa09a6caad18b7bd35c3a8991948763df4d7ea11070295b32c0f7d499d041f8645dab84537d85d95811c34faebea42ef4066b3dda6920b5f35e8a163506b7"))
+	assert.Nil(t, err)
+
 	nodes := make([]params.CbftNode, 0)
 
 	n0, _ := discover.ParseNode("enode://e74864b27aecf5cbbfcd523da7657f126b0a5330a970c8264140704d280e6737fd8098d0ee4299706b825771f3d7017aa02f662e4e9a48e9112d93bf05fea66d@127.0.0.1:16789")
