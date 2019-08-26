@@ -558,7 +558,7 @@ func (cbft *Cbft) generateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.V
 		}
 	}
 
-	total := uint32(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
+	total := uint32(cbft.validatorPool.Len(cbft.state.Epoch()))
 	var aggSig bls.Sign
 	if err := aggSig.Deserialize(v.Sign()); err != nil {
 		return nil, err
