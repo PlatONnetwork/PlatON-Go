@@ -563,13 +563,13 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		}
 		for {
 			// Return the first element of list l or nil if the list is empty.
-			frontPing := p.PingList.Front()
+			frontPing := p.ListFront()
 			if frontPing == nil {
-				log.Trace("end of p.PingList")
+				log.Trace("end of p.pingList")
 				break
 			}
-			log.Trace("Front element of p.PingList", "element", frontPing)
-			if t, ok := p.PingList.Remove(frontPing).(string); ok {
+			log.Trace("Front element of p.pingList", "element", frontPing)
+			if t, ok := p.ListRemove(frontPing).(string); ok {
 				if t == pongTime[0] {
 					tInt64, err := strconv.ParseInt(t, 10, 64)
 					if err != nil {
