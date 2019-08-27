@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -397,7 +397,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
+		cbft.log.Debug("Receive synchronization related messages from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	default:
