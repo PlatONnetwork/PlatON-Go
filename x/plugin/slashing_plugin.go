@@ -258,17 +258,13 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
-		if slashAmount.Cmp(common.Big0) > 0 {
-			if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, true, staking.DuplicateSign, caller); nil != err {
-				log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
-				return err
-			}
-			sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), evidence.Type(), stateDB)
-			log.Info("slashing duplicate signature success", "currentBlockNumber", blockNumber, "signBlockNumber", evidence.BlockNumber(), "blockHash", blockHash.TerminalString(),
-				"nodeId", candidate.NodeId.TerminalString(), "dupType", evidence.Type(), "txHash", stateDB.TxHash().TerminalString())
-		} else {
-			log.Warn("candidate deposit is zero", "currentBlockNumber", blockNumber, "nodeId", candidate.NodeId.TerminalString())
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, true, staking.DuplicateSign, caller); nil != err {
+			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
+			return err
 		}
+		sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), evidence.Type(), stateDB)
+		log.Info("slashing duplicate signature success", "currentBlockNumber", blockNumber, "signBlockNumber", evidence.BlockNumber(), "blockHash", blockHash.TerminalString(),
+			"nodeId", candidate.NodeId.TerminalString(), "dupType", evidence.Type(), "txHash", stateDB.TxHash().TerminalString())
 	}
 	return nil
 }
