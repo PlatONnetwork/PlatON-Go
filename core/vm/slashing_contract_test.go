@@ -33,7 +33,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, common.ZeroHash, state),
 	}
-	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
+	plugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	plugin.StakingInstance()
 	plugin.GovPluginInstance()
 
@@ -44,9 +44,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3000))
 	dataStr := `{
-         "duplicate_prepare": [
-          {
-           "PrepareA": {
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0x09c94e00f687891f5de80146d906b55a249408dfd27afcad5a87bdad6fc28957",
@@ -60,7 +58,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
             },
             "signature": "0x13eb58303156f63d8961a916694d3f659d58804ef1d783ee5c8c7fc3ca393b8a"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0xd1fc79053b8e9fd6a7d9061b4e12a282110429bd0e643aa477083f221a8cba8c",
@@ -74,11 +72,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
             },
             "signature": "0x8de9fbb57edf75934b4caf40c95d569d03a75c762343066db737fdb2b818c313"
            }
-          }
-         ],
-         "duplicate_vote": [],
-         "duplicate_viewchange": []
-        }`
+          }`
 	data, _ := rlp.EncodeToBytes(dataStr)
 
 	params = append(params, fnType)
