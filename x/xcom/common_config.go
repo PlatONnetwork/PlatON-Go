@@ -559,6 +559,6 @@ func CancelProposal_SupportRate() float64 {
 
 func PrintEc(blockNUmber *big.Int, blockHash common.Hash) {
 	ecByte, _ := json.Marshal(ec)
-	log.Debug("Current EconomicModel config", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
-	//fmt.Println("Current EconomicModel config", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
+	log.Debug("Current EconomicModel config, config Info", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
+	log.Debug("Current EconomicModel config, window and viewAmount", "window", ec.Common.NodeBlockTimeWindow, "viewAmount", ec.Common.PerRoundBlocks)
 }

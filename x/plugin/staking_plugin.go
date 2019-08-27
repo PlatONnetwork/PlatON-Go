@@ -947,13 +947,16 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		// TODO Withdrew Delegate Adjustment: real_total = total - redution
 
-		if total.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of invalid delegate is not enough",
+		// First need to deduct the von that is being refunded
+		realtotal := new(big.Int).Sub(total, del.Reduction)
+
+		if realtotal.Cmp(amount) < 0 {
+			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of valid delegate is not enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", total,
+				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", realtotal,
 				"withdrew amount", amount)
 			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
-				DelegateVonNotEnough.Error(), total.String(), amount.String())
+				DelegateVonNotEnough.Error(), realtotal.String(), amount.String())
 		}
 
 		refundAmount := common.Big0
