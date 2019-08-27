@@ -216,7 +216,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return common.NewBizError("wrong current active version.")
 	}
 
-	votingVP, err := FindVotingVersionProposal(blockHash, blockNumber, state)
+	votingVP, err := FindVotingVersionProposal(blockHash, state)
 	if err != nil {
 		log.Error("find if there's a voting version proposal failed", "blockHash", blockHash)
 		return err
@@ -257,7 +257,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		}
 	} else {
 		preActiveVersion := GetPreActiveVersion(state)
-		if declaredVersion>>8 == activeVersion>>8 || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
+		if (preActiveVersion == 0 && declaredVersion>>8 == activeVersion>>8) || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
 			//there's no voting-version-proposal, if the declared version equals either the current active version or preActive version, notify staking immediately
 			//stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
 			log.Debug("there is no voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)

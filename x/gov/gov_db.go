@@ -59,7 +59,7 @@ func GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
 	}
 }
 
-// Select proposal id list from snapshot database ,then get propsal detail from statedb one by one
+// Select proposal id list from snapshot database ,then get proposal detail from statedb one by one
 func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
 	proposalIds, err := getAllProposalIDList(blockHash)
 	if err != nil {
@@ -249,7 +249,7 @@ func remove(list []common.Hash, item common.Hash) []common.Hash {
 	return list
 }
 
-func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
+func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) error {
 
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {
@@ -269,7 +269,7 @@ func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, st
 	return nil
 }
 
-func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
+func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) error {
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
 	err := put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
@@ -375,8 +375,8 @@ func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, err
 }
 
 // find a version proposal at voting stage
-func FindVotingVersionProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*VersionProposal, error) {
-	log.Debug("call findVotingVersionProposal", "blockHash", blockHash, "blockNumber", blockNumber)
+func FindVotingVersionProposal(blockHash common.Hash, state xcom.StateDB) (*VersionProposal, error) {
+	log.Debug("call findVotingVersionProposal", "blockHash", blockHash)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting version proposal failed", "blockHash", blockHash)

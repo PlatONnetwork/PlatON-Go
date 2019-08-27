@@ -106,7 +106,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					}
 				}
 
-				if err = gov.MovePreActiveProposalIDToEnd(blockHash, preActiveVersionProposalID, state); err != nil {
+				if err = gov.MovePreActiveProposalIDToEnd(blockHash, preActiveVersionProposalID); err != nil {
 					log.Error("move version proposal ID to EndProposalID list failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
 					return err
 				}
@@ -247,7 +247,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 		}
 
 	} else {
-		if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID, state); err != nil {
+		if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID); err != nil {
 			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
 			return err
 		}
@@ -333,7 +333,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 				return false, err
 			}
 
-			if err := gov.MoveVotingProposalIDToEnd(blockHash, cp.TobeCanceled, state); err != nil {
+			if err := gov.MoveVotingProposalIDToEnd(blockHash, cp.TobeCanceled); err != nil {
 				return false, err
 			}
 
@@ -401,7 +401,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 	}
 
 	//gov.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
-	if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID, state); err != nil {
+	if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID); err != nil {
 		log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
 		return false, err
 	}
