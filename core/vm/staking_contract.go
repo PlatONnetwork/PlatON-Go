@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -48,7 +47,7 @@ const (
 	DescriptionLenErrStr     = "The Description length is wrong"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
 	WithdrewDelegateErrStr   = "Withdrew delegate failed"
-	WrongBlsPubKeyStr        = "The bls public key length is wrong"
+	WrongBlsPubKeyStr        = "The bls public key is wrong"
 )
 
 const (
@@ -210,12 +209,18 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return event, nil
 	}
 
+	// parse bls publickey
+	var blsPk bls.PublicKey
+	if err := blsPk.UnmarshalText([]byte(blsPubKey)); nil != err {
+		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
+	}
+
 	/**
 	init candidate info
 	*/
-	var blsPk bls.PublicKey
-	pkByte, err := hex.DecodeString(blsPubKey)
-	blsPk.Deserialize(pkByte)
 	canNew := &staking.Candidate{
 		NodeId:          nodeId,
 		BlsPubKey:       blsPk,

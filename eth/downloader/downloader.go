@@ -454,13 +454,20 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivot)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
-	if d.mode == FastSync && pivot > origin {
-		// fetch latest ppos storage cache from remote peer
-		latest, pivot, err = d.fetchPPOSInfo(p)
-		if err != nil {
-			return err
+	if d.mode == FastSync {
+		if pivot > origin {
+			// fetch latest ppos storage cache from remote peer
+			latest, pivot, err = d.fetchPPOSInfo(p)
+			if err != nil {
+				return err
+			}
+			d.committed = 0
+		} else if pivot == origin {
+			log.Info("no need synchronising", "peer", p.id, "origin", origin, "pivot", pivot)
+			d.committed = 0
+			return
 		}
-		d.committed = 0
+
 	} else {
 		// Look up the sync boundaries: the common ancestor and the target block
 		latest, err = d.fetchHeight(p)
@@ -984,7 +991,7 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.Header, error) {
 // can fill in the skeleton - not even the origin peer - it's assumed invalid and
 // the origin is dropped.
 func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) error {
-	p.log.Debug("Directing header downloads", "origin", from)
+	p.log.Debug("Directing header downloads", "origin", from, "pivot", pivot)
 	defer p.log.Debug("Header download terminated")
 
 	// Create a timeout timer, and the associated header fetcher
@@ -1028,6 +1035,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 
 			// If the skeleton's finished, pull any remaining head headers directly from the origin
 			if packet.Items() == 0 && skeleton {
+				log.Trace("skeleton's finished", "from", from)
 				skeleton = false
 				getHeaders(from)
 				continue
@@ -1036,7 +1044,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			if packet.Items() == 0 {
 				// Don't abort header fetches while the pivot is downloading
 				if atomic.LoadInt32(&d.committed) == 0 && pivot <= from {
-					p.log.Debug("No headers, waiting for pivot commit")
+					p.log.Debug("No headers, waiting for pivot commit", "P", pivot, "F", from)
 					select {
 					case <-time.After(fsHeaderContCheck):
 						getHeaders(from)
@@ -1069,12 +1077,16 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			// Insert all the new headers and fetch the next batch
 			if len(headers) > 0 {
 				p.log.Trace("Scheduling new headers", "count", len(headers), "from", from)
-				select {
-				case d.headerProcCh <- headers:
-				case <-d.cancelCh:
-					return errCancelHeaderFetch
+				if headers[0].Number.Cmp(big.NewInt(int64(from))) == 0 {
+					select {
+					case d.headerProcCh <- headers:
+					case <-d.cancelCh:
+						return errCancelHeaderFetch
+					}
+					from += uint64(len(headers))
+				} else {
+					p.log.Warn("headers not compare, continue fetchHeaders", "count", len(headers), "from", from, "first header", headers[0].Number)
 				}
-				from += uint64(len(headers))
 			}
 			getHeaders(from)
 
@@ -1411,7 +1423,6 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 
 	// Wait for batches of headers to process
 	gotHeaders := false
-
 	for {
 		select {
 		case <-d.cancelCh:
@@ -1652,7 +1663,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 			log.Debug("wait for pposStorageDoneCh")
 			select {
 			case <-d.pposStorageDoneCh:
-
+				log.Debug("finish pposStorageDoneCh")
 			case <-time.After(time.Second):
 				oldTail = afterP
 				continue
