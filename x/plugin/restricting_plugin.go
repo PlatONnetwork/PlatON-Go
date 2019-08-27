@@ -288,7 +288,10 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 	rp.log.Info("begin to ReturnLockFunds", "account", account.String(), "amount", amount)
-	if amount.Cmp(common.Big0) <= 0 {
+	amountCompareWithZeao := amount.Cmp(common.Big0)
+	if amountCompareWithZeao == 0 {
+		return nil
+	} else if amountCompareWithZeao < 0 {
 		return errAmountLessThanZero
 	}
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
