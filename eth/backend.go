@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -130,6 +132,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
+
+	if nil != chainConfig && nil != chainConfig.Cbft {
+		xcom.SetNodeBlockTimeWindow(chainConfig.Cbft.Period / 1000)
+		xcom.SetPerRoundBlocks(uint64(chainConfig.Cbft.Amount))
+	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	eth := &Ethereum{
@@ -182,6 +189,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	snapshotdb.SetDBBlockChain(eth.blockchain)
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
 
@@ -243,6 +251,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetCrypto_handler(xcom.GetCryptoHandler())
 			handlePlugin(reactor)
 			agency = reactor
 		}
@@ -465,6 +474,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
 
+	log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
 		if flag := cbftEngine.IsConsensusNode(); flag {
@@ -517,7 +527,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.SetPluginEventMux()
 
 	// set rule order
-	reactor.SetBeginRule([]int{xcom.SlashingRule})
+	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})
 	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
 
 }

@@ -637,12 +637,14 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
 	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
 	if len(header.Extra) < 32 {
+		cbft.log.Debug("Prepare, add header-extra byte 0x00 till 32 bytes", "extraLength", len(header.Extra))
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
 	header.Extra = header.Extra[:32]
 
 	//init header.Extra[32: 32+65]
 	header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+	cbft.log.Debug("Prepare, add header-extra ExtraSeal bytes(0x00)", "extraLength", len(header.Extra))
 	return nil
 }
 

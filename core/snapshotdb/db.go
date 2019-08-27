@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"path"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
@@ -103,7 +105,17 @@ func (s *snapshotDB) recover(stor storage) error {
 		return fmt.Errorf("[SnapshotDB.recover]load  current fail:%v", err)
 	}
 	s.path = dbpath
-	s.current = c
+
+	currentHead := blockchain.CurrentHeader()
+
+	if c.HighestNum.Cmp(currentHead.Number) != 0 {
+		s.current = c
+		if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
+			return err
+		}
+	} else {
+		s.current = c
+	}
 
 	//baseDB
 	baseDB, err := leveldb.OpenFile(getBaseDBPath(dbpath), nil)
@@ -124,7 +136,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	sortFds(fds)
 	baseNum := s.current.BaseNum.Uint64()
 	highestNum := s.current.HighestNum.Uint64()
-	UnRecognizedHash := s.getUnRecognizedHash()
+	//	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]*blockData, 0)
 	s.journalw = make(map[common.Hash]*journalWriter)
 	unCommitBlock := new(unCommitBlocks)
@@ -132,39 +144,56 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.unCommit = unCommitBlock
 	s.snapshotLockC = snapshotUnLock
 
+	commitMap := make(map[common.Hash]*big.Int)
+
+	sub := new(big.Int).Sub(s.current.HighestNum, s.current.BaseNum)
+
+	var header *types.Header
+	header = blockchain.CurrentHeader()
+	for i := int64(0); i <= sub.Int64(); i++ {
+		commitMap[header.Hash()] = header.Number
+		header = blockchain.GetHeaderByHash(header.ParentHash)
+	}
+
 	//read Journal
 	for _, fd := range fds {
 		block, err := s.getBlockFromJournal(fd)
 		if err != nil {
 			return err
 		}
+
 		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum == 0 && highestNum == 0 && fd.Num == 0) {
-			s.committed = append(s.committed, block)
-		} else if fd.Num > highestNum {
-			if UnRecognizedHash == fd.BlockHash {
-				//1. UnRecognized
-				s.unCommit.blocks[common.ZeroHash] = block
-				//2. open writer
-				w, err := s.storage.Append(fd)
-				if err != nil {
-					return fmt.Errorf("[SnapshotDB.recover]unRecognizedHash open storage fail:%v", err)
-				}
-				s.journalw[fd.BlockHash] = newJournalWriter(w)
-			} else {
-				//1. Recognized
-				s.unCommit.blocks[fd.BlockHash] = block
-				//2. open writer
-				if !block.readOnly {
-					w, err := s.storage.Append(fd)
-					if err != nil {
-						return fmt.Errorf("[SnapshotDB.recover]recognized open storage fail:%v", err)
-					}
-					s.journalw[fd.BlockHash] = newJournalWriter(w)
-				}
-
+			if _, ok := commitMap[block.BlockHash]; !ok {
+				continue
 			}
-
+			//			block.readOnly = true
+			s.committed = append(s.committed, block)
 		}
+		//else if fd.Num > highestNum {
+		//	if UnRecognizedHash == fd.BlockHash {
+		//		//1. UnRecognized
+		//		s.unCommit.blocks[common.ZeroHash] = block
+		//		//2. open writer
+		//		w, err := s.storage.Append(fd)
+		//		if err != nil {
+		//			return fmt.Errorf("[SnapshotDB.recover]unRecognizedHash open storage fail:%v", err)
+		//		}
+		//		s.journalw[fd.BlockHash] = newJournalWriter(w)
+		//	} else {
+		//		//1. Recognized
+		//		s.unCommit.blocks[fd.BlockHash] = block
+		//		//2. open writer
+		//		if !block.readOnly {
+		//			w, err := s.storage.Append(fd)
+		//			if err != nil {
+		//				return fmt.Errorf("[SnapshotDB.recover]recognized open storage fail:%v", err)
+		//			}
+		//			s.journalw[fd.BlockHash] = newJournalWriter(w)
+		//		}
+		//
+		//	}
+		//
+		//}
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -93,9 +94,9 @@ type Ppos_1105 struct {
 
 // submitText
 type Ppos_2000 struct {
-	Verifier        discover.NodeID
-	PIPID           string
-	EndVotingRounds uint64
+	Verifier discover.NodeID
+	PIPID    string
+	//EndVotingRounds uint64
 }
 
 // submitVersion
@@ -338,17 +339,17 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2000.Verifier)
 			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
-			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
+			//endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
 			params = append(params, verifier)
 			params = append(params, pipID)
-			params = append(params, endVotingRounds)
+			//params = append(params, endVotingRounds)
 		}
 	case 2001:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2001.Verifier)
-			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
+			pipID, _ := rlp.EncodeToBytes(cfg.P2001.PIPID)
 			newVersion, _ := rlp.EncodeToBytes(cfg.P2001.NewVersion)
-			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
+			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2001.EndVotingRounds)
 			params = append(params, verifier)
 			params = append(params, pipID)
 			params = append(params, newVersion)
@@ -357,7 +358,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2005:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2005.Verifier)
-			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
+			pipID, _ := rlp.EncodeToBytes(cfg.P2005.PIPID)
 			endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2005.EndVotingRounds)
 			tobeCanceled, _ := rlp.EncodeToBytes(cfg.P2005.TobeCanceled)
 			params = append(params, verifier)
@@ -381,7 +382,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 20031:
 		{
 			for i := 0; i < len(cfg.P20031); i++ {
-				fnType, _ := rlp.EncodeToBytes(2003)
+				fnType, _ := rlp.EncodeToBytes(uint16(2003))
 				verifier, _ := rlp.EncodeToBytes(cfg.P20031[i].Verifier)
 				proposalID, _ := rlp.EncodeToBytes(cfg.P20031[i].ProposalID.Bytes())
 				op, _ := rlp.EncodeToBytes(cfg.P20031[i].Option)
@@ -473,6 +474,59 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	}
 
 	return rlpData
+}
+
+func main2() {
+	datas := []string{
+		"da82070086706c61746f6e88676f312e31322e388664617277696e0000000000993cb2862467579ec0f452b04bcc50655b1be1fda91ddd5cf3f57750ccdf77cd5c5c7d1375bdcd725fc6ed3afbd608e45cbfcc383bd1894df443d1f7233dccc900",
+		"da82070086706c61746f6e88676f312e31322e388664617277696e0000000000a805c2524f1acde791043a449c56246346a42455e9041cc8fe14a29b0bc794536743c28c371304b21feb7c4c3abad302c7e331d5e197d81323f3129b2bbe42ee01",
+		"da82070086706c61746f6e88676f312e31322e388664617277696e00000000008f2e99ef48013885e07ce585dc61533ddd2fbc198d982886e5c68a828eb714a54a562931b6aaad8239ec5467ad67981e0982841c882298f42a0bb3ef961344d801",
+	}
+	for i, data := range datas {
+		decode, err := hex.DecodeString(data)
+		if err != nil {
+			fmt.Println("decode hex string err:", i)
+		} else {
+			verifyData(decode)
+		}
+	}
+}
+
+func RTrim(decode []byte) []byte {
+	var pos int
+	for pos = len(decode); pos > 0; pos-- {
+		if decode[pos-1] != '\x00' {
+			break
+		}
+	}
+	return decode[:pos]
+}
+func verifyData(decode []byte) {
+	if len(decode) > 0 {
+		var tobeDecoded []byte
+		tobeDecoded = decode
+		if len(decode) <= 32 {
+			tobeDecoded = decode
+		} else {
+			tobeDecoded = decode[:32]
+		}
+
+		dec := RTrim(tobeDecoded)
+		fmt.Println("dec", hex.EncodeToString(dec))
+		var extraData []interface{}
+		err := rlp.DecodeBytes(dec, &extraData)
+		if err != nil {
+			fmt.Println("rlp decode header extra error", err)
+		}
+		//reference to makeExtraData() in gov_plugin.go
+		if len(extraData) == 4 {
+			versionBytes := extraData[0].([]byte)
+			versionInHeader := common.BytesToUint32(versionBytes)
+			fmt.Println("version In Header", versionInHeader)
+		} else {
+			fmt.Println("decode error")
+		}
+	}
 }
 
 func main() {

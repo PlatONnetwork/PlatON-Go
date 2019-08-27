@@ -19,16 +19,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/miner"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"os"
 	"runtime"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -198,7 +201,14 @@ func initGenesis(ctx *cli.Context) error {
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 
+	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
+	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft {
+		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	}
+
 	for _, name := range []string{"chaindata", "lightchaindata"} {
+
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
@@ -207,8 +217,8 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
-		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
 
+		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
 	}
 	snapshotdb.Instance().Close()
 	return nil
