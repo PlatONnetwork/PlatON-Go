@@ -50,7 +50,7 @@ func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
 // Report the double signing behavior of the node
-func (sc *SlashingContract) ReportDuplicateSign(dupType consensus.EvidenceType, data string) ([]byte, error) {
+func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]byte, error) {
 
 	txHash := sc.Evm.StateDB.TxHash()
 	blockNumber := sc.Evm.BlockNumber
@@ -66,7 +66,7 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType consensus.EvidenceType, 
 	}
 
 	sender := sc.Contract.CallerAddress
-	evidence, err := sc.Plugin.DecodeEvidence(dupType, data)
+	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
 
 	if nil != err {
 		log.Error("slashingContract DecodeEvidence fail", "data", data, "err", err)
@@ -90,8 +90,8 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType consensus.EvidenceType, 
 }
 
 // Check if the node has double sign behavior at a certain block height
-func (sc *SlashingContract) CheckDuplicateSign(etype uint32, addr common.Address, blockNumber uint64) ([]byte, error) {
-	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, etype, sc.Evm.StateDB)
+func (sc *SlashingContract) CheckDuplicateSign(dupType uint8, addr common.Address, blockNumber uint64) ([]byte, error) {
+	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
 	data := ""
 	if nil != err {
 		return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, false), err

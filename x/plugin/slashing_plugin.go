@@ -293,7 +293,7 @@ func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64
 func duplicateSignKey(addr common.Address, blockNumber uint64, dupType consensus.EvidenceType) []byte {
 	value := append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...)
 	value = append(value, []byte("_")...)
-	value = append(value, common.Int32ToBytes(int32(dupType))...)
+	value = append(value, common.Uint16ToBytes(uint16(dupType))...)
 	return value
 }
 

@@ -43,6 +43,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3000))
+	dupType, _ := rlp.EncodeToBytes(uint8(1))
 	dataStr := `{
            "prepare_a": {
             "epoch": 1,
@@ -76,6 +77,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	data, _ := rlp.EncodeToBytes(dataStr)
 
 	params = append(params, fnType)
+	params = append(params, dupType)
 	params = append(params, data)
 
 	buf := new(bytes.Buffer)
@@ -139,7 +141,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
-	typ, _ := rlp.EncodeToBytes(uint32(1))
+	typ, _ := rlp.EncodeToBytes(uint8(1))
 	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257"))
 	blockNumber, _ := rlp.EncodeToBytes(uint16(1))
 
