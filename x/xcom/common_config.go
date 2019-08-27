@@ -424,6 +424,7 @@ func SetPerRoundBlocks(amount uint64) {
 }
 
 func Interval() uint64 {
+	log.Debug("EconomicModel Config", "NodeBlockTimeWindow", ec.Common.NodeBlockTimeWindow, "PerRoundBlocks", ec.Common.PerRoundBlocks)
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
 func BlocksWillCreate() uint64 {
@@ -560,5 +561,6 @@ func CancelProposal_SupportRate() float64 {
 func PrintEc(blockNUmber *big.Int, blockHash common.Hash) {
 	ecByte, _ := json.Marshal(ec)
 	log.Debug("Current EconomicModel config", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
+	log.Debug("EconomicModel Config", "NodeBlockTimeWindow", ec.Common.NodeBlockTimeWindow, "PerRoundBlocks", ec.Common.PerRoundBlocks)
 	//fmt.Println("Current EconomicModel config", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
 }

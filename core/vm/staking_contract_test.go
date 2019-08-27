@@ -662,9 +662,9 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 func TestStakingContract_getHistoryVerifierList(t *testing.T) {
 
 	state, genesis, _ := newChainState()
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	//state.Prepare(txHashArr[idx], blockHash, idx)
@@ -741,9 +741,9 @@ func TestStakingContract_getHistoryVerifierList(t *testing.T) {
 func TestStakingContract_getHistoryValidatorList(t *testing.T) {
 
 	state, genesis, _ := newChainState()
-	contract := &vm.StakingContract{
+	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
+		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	//state.Prepare(txHashArr[idx], blockHash, idx)
@@ -781,7 +781,7 @@ func TestStakingContract_getHistoryValidatorList(t *testing.T) {
 	params := make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1107))
-	param0, _ := rlp.EncodeToBytes(big.NewInt(int64(50)))
+	param0, _ := rlp.EncodeToBytes(big.NewInt(int64(1000)))
 
 	params = append(params, fnType)
 	params = append(params, param0)

@@ -265,7 +265,7 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 }
 
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
-	amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
+amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
 
 	log.Debug("Call CreateCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
 		"nodeId", can.NodeId.String())
@@ -502,7 +502,7 @@ func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.I
 }
 
 func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Hash, blockNumber,
-	amount *big.Int, typ uint16, can *staking.Candidate) error {
+amount *big.Int, typ uint16, can *staking.Candidate) error {
 
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -1292,13 +1292,13 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			}
 		}
 
-	/**
-	**
-	**
-	Illegal parameter
-	**
-	**
-	*/
+		/**
+		**
+		**
+		Illegal parameter
+		**
+		**
+		*/
 	case nil != can && stakingBlockNum > can.StakingBlockNum:
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: the stakeBlockNum invalid",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1306,13 +1306,13 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"can.stakeBlockNum", can.StakingBlockNum)
 		return ParamsErr
 
-	/**
-	**
-	**
-	When the delegate is normally revoked
-	**
-	**
-	*/
+		/**
+		**
+		**
+		When the delegate is normally revoked
+		**
+		**
+		*/
 	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
 		// First need to deduct the von that is being refunded
@@ -2647,9 +2647,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			}
 		}
 
-	// TODO
-	// This can only happen if the "ValidatorCount" parameter is governed,
-	// resulting in a smaller value.
+		// TODO
+		// This can only happen if the "ValidatorCount" parameter is governed,
+		// resulting in a smaller value.
 	case currLen > int(xcom.ConsValidatorNum()):
 
 		log.Warn("Maybe the config was governed: the currLen large than config",

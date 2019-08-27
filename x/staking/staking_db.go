@@ -483,7 +483,7 @@ func (db *StakingDB) GetEpochValListByBlockHash(blockHash common.Hash, start, en
 func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, end uint64) error {
 
 	// todo test
-	log.Debug("DelEpochValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)))
+	log.Debug("DelEpochValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)), "start", start, "end", end)
 
 	return db.del(blockHash, GetEpochValArrKey(start, end))
 }
