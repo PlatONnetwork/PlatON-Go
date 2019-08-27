@@ -2432,12 +2432,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	// When the time it was  slashed some nodes.
 	case currLen == int(xcom.ConsValidatorNum()), currLen < int(xcom.ConsValidatorNum()):
 
-		if currLen == int(xcom.ConsValidatorNum()) {
-			log.Info("Normal election logic", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
-		} else {
-			log.Info("The Current len less than config", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
-
-		}
+		log.Info("Call Election by no governed", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
 
 		// In this case, the list of the next round of
 		// certifiers selected will be shortened.
@@ -3198,7 +3193,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 	}
 
 	if nil == err && nil != val_arr {
-		return build_CBFT_Validators(val_arr.Arr), nil
+		return build_cbft_validators(val_arr.Start, val_arr.Arr), nil
 	}
 	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }
@@ -3234,7 +3229,7 @@ label:
 	return isCandidate
 }
 
-func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
+func build_cbft_validators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Validators {
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
@@ -3252,7 +3247,8 @@ func build_CBFT_Validators(arr staking.ValidatorQueue) *cbfttypes.Validators {
 	}
 
 	res := &cbfttypes.Validators{
-		Nodes: valMap,
+		Nodes:            valMap,
+		ValidBlockNumber: start,
 	}
 	return res
 }

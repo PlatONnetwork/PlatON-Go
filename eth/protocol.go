@@ -41,7 +41,7 @@ var ProtocolName = "eth"
 var ProtocolVersions = []uint{eth63, eth62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{21, 8}
+var ProtocolLengths = []uint64{23, 8}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -70,6 +70,7 @@ const (
 	PPOSStorageMsg       = 0x12
 	GetOriginAndPivotMsg = 0x13
 	OriginAndPivotMsg    = 0x14
+	PPOSInfoMsg          = 0x15
 )
 
 type errCode int
