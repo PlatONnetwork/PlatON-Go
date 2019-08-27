@@ -20,8 +20,8 @@ const (
 
 // DuplicatePrepareBlockEvidence recording duplicate blocks
 type DuplicatePrepareBlockEvidence struct {
-	PrepareA *EvidencePrepare
-	PrepareB *EvidencePrepare
+	PrepareA *EvidencePrepare `json:"prepare_a"`
+	PrepareB *EvidencePrepare `json:"prepare_b"`
 }
 
 func (d DuplicatePrepareBlockEvidence) BlockNumber() uint64 {
@@ -103,10 +103,15 @@ func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareBlockType
 }
 
+func (d DuplicatePrepareBlockEvidence) ValidateMsg() bool {
+	return d.PrepareA != nil && d.PrepareA.ValidateNode != nil && d.PrepareA.ValidateNode.BlsPubKey != nil &&
+		d.PrepareB != nil && d.PrepareB.ValidateNode != nil && d.PrepareB.ValidateNode.BlsPubKey != nil
+}
+
 // DuplicatePrepareVoteEvidence recording duplicate vote
 type DuplicatePrepareVoteEvidence struct {
-	VoteA *EvidenceVote
-	VoteB *EvidenceVote
+	VoteA *EvidenceVote `json:"vote_a"`
+	VoteB *EvidenceVote `json:"vote_b"`
 }
 
 func (d DuplicatePrepareVoteEvidence) BlockNumber() uint64 {
@@ -188,10 +193,15 @@ func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareVoteType
 }
 
+func (d DuplicatePrepareVoteEvidence) ValidateMsg() bool {
+	return d.VoteA != nil && d.VoteA.ValidateNode != nil && d.VoteA.ValidateNode.BlsPubKey != nil &&
+		d.VoteB != nil && d.VoteB.ValidateNode != nil && d.VoteB.ValidateNode.BlsPubKey != nil
+}
+
 // DuplicateViewChangeEvidence recording duplicate viewChange
 type DuplicateViewChangeEvidence struct {
-	ViewA *EvidenceView
-	ViewB *EvidenceView
+	ViewA *EvidenceView `json:"view_a"`
+	ViewB *EvidenceView `json:"view_b"`
 }
 
 func (d DuplicateViewChangeEvidence) BlockNumber() uint64 {
@@ -268,6 +278,11 @@ func (d DuplicateViewChangeEvidence) Address() common.Address {
 
 func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {
 	return DuplicateViewChangeType
+}
+
+func (d DuplicateViewChangeEvidence) ValidateMsg() bool {
+	return d.ViewA != nil && d.ViewA.ValidateNode != nil && d.ViewA.ValidateNode.BlsPubKey != nil &&
+		d.ViewB != nil && d.ViewB.ValidateNode != nil && d.ViewB.ValidateNode.BlsPubKey != nil
 }
 
 // EvidenceData encapsulate externally visible duplicate data

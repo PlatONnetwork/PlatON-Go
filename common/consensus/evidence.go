@@ -17,6 +17,7 @@ type Evidence interface {
 	Address() common.Address
 	Validate() error
 	Type() EvidenceType
+	ValidateMsg() bool
 }
 
 type Evidences []Evidence

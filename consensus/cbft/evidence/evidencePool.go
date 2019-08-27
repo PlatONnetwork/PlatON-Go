@@ -191,15 +191,50 @@ func NewEvidences(data string) (consensus.Evidences, error) {
 
 	var res consensus.Evidences
 	for _, e := range eds.DP {
+		if !e.ValidateMsg() {
+			return nil, fmt.Errorf("invalid evidence data")
+		}
 		res = append(res, e)
 	}
 	for _, e := range eds.DV {
+		if !e.ValidateMsg() {
+			return nil, fmt.Errorf("invalid evidence data")
+		}
 		res = append(res, e)
 	}
 	for _, e := range eds.DC {
+		if !e.ValidateMsg() {
+			return nil, fmt.Errorf("invalid evidence data")
+		}
 		res = append(res, e)
 	}
 	return res, nil
+}
+
+// NewEvidences retrieves the duplicate evidence by parsing string
+func NewEvidence(dupType consensus.EvidenceType, data string) (consensus.Evidence, error) {
+	var d consensus.Evidence
+	switch dupType {
+	case DuplicatePrepareBlockType:
+		d = new(DuplicatePrepareBlockEvidence)
+
+	case DuplicatePrepareVoteType:
+		d = new(DuplicatePrepareVoteEvidence)
+
+	case DuplicateViewChangeType:
+		d = new(DuplicateViewChangeEvidence)
+
+	default:
+		return nil, fmt.Errorf("invalid param dupType:%d", dupType)
+	}
+	// unmarshal evidence data
+	if err := json.Unmarshal([]byte(data), &d); err != nil {
+		return nil, err
+	}
+	if !d.ValidateMsg() {
+		return nil, fmt.Errorf("invalid evidence data")
+	}
+	return d, nil
 }
 
 //func (pool *baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
