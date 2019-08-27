@@ -28,7 +28,7 @@ import (
 
 func init() {
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 }
 
 const initGas = 10000000

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SignatureLength = 32
+	SignatureLength = 64
 )
 
 type Signature [SignatureLength]byte

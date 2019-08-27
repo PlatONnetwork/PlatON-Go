@@ -43,6 +43,10 @@ if [ `expr substr $(uname -s) 1 5` != "MINGW" ]; then
         cd $BLS_BUILD/src/bls
         $MAKE clean
     fi
+    if [ -d $BLS_BUILD/src/mcl ]; then
+        cd $BLS_BUILD/src/mcl
+        $MAKE clean
+    fi
     if [ -d "$BLS_BUILD/include" ]; then
 	rm -rf $BLS_BUILD/include/*
     fi
