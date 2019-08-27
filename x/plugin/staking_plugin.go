@@ -1606,11 +1606,6 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 		return nil, err
 	}
 
-	if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
-		return nil, common.BizErrorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
-			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
-	}
-
 	queue := make(staking.CandidateQueue, len(verifierList.Arr))
 
 	for i, v := range verifierList.Arr {
