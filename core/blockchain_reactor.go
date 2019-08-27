@@ -247,7 +247,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
-	// Must exist
+	// This must not be deleted
 	root := state.IntermediateRoot(true)
 	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
@@ -296,7 +296,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 			"pposHash", hex.EncodeToString(pposHash))
 	}
 
-	// Must exist
+	// This must not be deleted
 	root := state.IntermediateRoot(true)
 	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
 		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))

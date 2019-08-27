@@ -292,7 +292,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if blockNumber.Uint64() != can.StakingBlockNum {
-		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking", ParamsErr)
+		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking, current blockNumber: %d, can.stakingNumber: %d", ParamsErr, blockNumber.Uint64(), can.StakingBlockNum)
 	}
 
 	// RollBack Staking
@@ -649,7 +649,8 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 			err := rt.ReturnLockFunds(can.StakingAddress, balance, state)
 			if nil != err {
 				log.Error("Failed to HandleUnCandidateItem on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-					title, balance, "blockHash", blockHash.Hex(), "stakingAddr", can.StakingAddress.Hex(), "err", err)
+					title, balance, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "stakingAddr", can.StakingAddress.Hex(),
+					"err", err)
 				return common.Big0, err
 			}
 			return common.Big0, nil
@@ -672,7 +673,8 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 
 	// delete can info
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
-		log.Error("Failed to HandleUnCandidateItem: Delete candidate info failed", "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
+		log.Error("Failed to HandleUnCandidateItem: Delete candidate info failed",
+			"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
 
@@ -899,7 +901,8 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-						"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+						"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "balance", restrictingPlanTmp,
+						"err", err)
 					return refundTmp, releaseTmp, restrictingPlanTmp, err
 				}
 
@@ -912,7 +915,8 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-						"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+						"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "balance", refundTmp,
+						"err", err)
 					return refundTmp, releaseTmp, restrictingPlanTmp, err
 				}
 
@@ -2540,7 +2544,8 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 			if nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "restrictingPlanHes", can.RestrictingPlanHes, "err", err)
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "stakingAddr", can.StakingAddress.Hex(),
+					"restrictingPlanHes", can.RestrictingPlanHes, "err", err)
 				return err
 			}
 
