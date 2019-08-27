@@ -140,6 +140,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//snapshotdb.SetDBPath(ctx)
 
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
+		chainConfig.Cbft.Period = config.CbftConfig.Period
+		chainConfig.Cbft.Amount = config.CbftConfig.Amount
+	}
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}

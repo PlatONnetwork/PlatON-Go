@@ -145,6 +145,16 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		return block.BlockIndex == 0
 	}
 
+	doubtDuplicate := func() bool {
+		for i := 0; i < r.viewState.ViewBlockSize(); i++ {
+			local := r.viewState.ViewBlockByIndex(uint32(i))
+			if local != nil && local.NumberU64() == block.BlockNum() && local.Hash() != block.Block.Hash() {
+				return true
+			}
+		}
+		return false
+	}
+
 	// if local epoch and viewNumber is the same with msg
 	// Note:
 	// 1. block index is greater than or equal to the Amount value, discard the msg.
@@ -156,9 +166,12 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if block.BlockIndex >= r.config.Sys.Amount {
 			return newCommonError(fmt.Sprintf("blockIndex higher than amount(index:%d, amount:%d)", block.BlockIndex, r.config.Sys.Amount))
 		}
+		if doubtDuplicate() {
+			return nil
+		}
 		current := r.viewState.ViewBlockByIndex(block.BlockIndex)
 		if current != nil {
-			return newCommonError(fmt.Sprintf("blockIndex already existed(index:%d)", block.BlockIndex))
+			return newCommonError(fmt.Sprintf("blockIndex already exists(index:%d)", block.BlockIndex))
 		}
 		if isFirstBlock() {
 			if !isQCChild() && !isLockChild() {
@@ -169,9 +182,9 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		// If block index is greater than 0, query the parent block from the viewBlocks
 		pre := r.viewState.ViewBlockByIndex(block.BlockIndex - 1)
 		if pre == nil {
-			return newFetchPrepareError(fmt.Sprintf("previous index block not existed,discard msg(index:%d)", block.BlockIndex-1))
+			return newFetchPrepareError(fmt.Sprintf("previous index block not exists,discard msg(index:%d)", block.BlockIndex-1))
 		}
-		if pre.NumberU64() != block.BlockNum()-1 || pre.Hash() != block.Block.ParentHash() {
+		if pre.NumberU64()+1 != block.BlockNum() || pre.Hash() != block.Block.ParentHash() {
 			return newCommonError(fmt.Sprintf("non contiguous index block(preIndex:%d,preNum:%d,preHash:%s,curIndex:%d,curNum:%d,curParentHash:%s)",
 				block.BlockIndex-1, pre.NumberU64(), pre.Hash().String(), block.BlockIndex, block.BlockNum(), block.Block.ParentHash().String()))
 		}
@@ -189,10 +202,10 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 
 		b, _ := r.blockTree.FindBlockAndQC(block.Block.ParentHash(), block.BlockNum()-1)
 		if b == nil {
-			return newCommonError(fmt.Sprintf("epoch higher then local, but not find parent block(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+			return newCommonError(fmt.Sprintf("epoch higher than local, but not find parent block(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
 		}
 
-		return newFetchError(fmt.Sprintf("epoch higher then local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
+		return newFetchError(fmt.Sprintf("epoch higher than local(local:%d, msg:%d)", r.viewState.Epoch(), block.Epoch))
 	}
 
 	if r.viewState.Epoch() != block.Epoch {
@@ -209,7 +222,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if isNextView() && isFirstBlock() && (isQCChild() || isLockChild()) && acceptViewChangeQC() {
 			return newViewError("need change view")
 		}
-		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
+		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber))
 	}
 
 	// if local epoch and viewNumber is the same with msg
@@ -233,9 +246,22 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 		return prepare != nil && prepare.NumberU64() == vote.BlockNumber && prepare.Hash() == vote.BlockHash
 	}
 
+	doubtDuplicate := func() bool {
+		for i := 0; i < r.viewState.ViewVoteSize(); i++ {
+			local := r.viewState.FindPrepareVote(uint32(i), vote.ValidatorIndex)
+			if local != nil && local.BlockNumber == vote.BlockNumber && local.BlockHash != vote.BlockHash {
+				return true
+			}
+		}
+		return false
+	}
+
 	acceptIndexVote := func() SafetyError {
 		if vote.BlockIndex >= r.config.Sys.Amount {
 			return newCommonError(fmt.Sprintf("voteIndex higher than amount(index:%d, amount:%d)", vote.BlockIndex, r.config.Sys.Amount))
+		}
+		if doubtDuplicate() {
+			return nil
 		}
 		if r.viewState.FindPrepareVote(vote.BlockIndex, vote.ValidatorIndex) != nil {
 			return newCommonError(fmt.Sprintf("prepare vote has exist(blockIndex:%d, validatorIndex:%d)", vote.BlockIndex, vote.ValidatorIndex))
@@ -288,8 +314,9 @@ func (r *baseSafetyRules) ViewChangeRules(viewChange *protocols.ViewChange) Safe
 	}
 
 	if r.viewState.ViewNumber() < viewChange.ViewNumber {
-		return newFetchError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber))
+		return newFetchError(fmt.Sprintf("viewNumber higher than local(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber))
 	}
+
 	return nil
 }
 
