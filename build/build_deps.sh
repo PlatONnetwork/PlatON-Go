@@ -4,9 +4,10 @@ if [ ! -f "build/build_deps.sh" ]; then
     echo "$0 must be run from the root of the repository."
     exit 2
 fi
-
 root=`pwd`
 root=$root/life/resolver
+
+$root/build_bls.sh
 
 if [ "`ls $root/softfloat`" = "" ]; then
     # pull softfloat
