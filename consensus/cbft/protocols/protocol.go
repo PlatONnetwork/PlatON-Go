@@ -249,7 +249,8 @@ func (vc *ViewChange) MsgHash() common.Hash {
 		return mhash.(common.Hash)
 	}
 	v := utils.BuildHash(ViewChangeMsg, utils.MergeBytes(common.Uint64ToBytes(vc.ViewNumber),
-		vc.BlockHash.Bytes(), common.Uint64ToBytes(vc.BlockNumber)))
+		vc.BlockHash.Bytes(), common.Uint64ToBytes(vc.BlockNumber), common.Uint32ToBytes(vc.ValidatorIndex),
+		vc.Signature.Bytes()))
 	vc.messageHash.Store(v)
 	return v
 }
@@ -540,7 +541,8 @@ func (s *PrepareBlockHash) MsgHash() common.Hash {
 	if mhash := s.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	v := utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
+	v := utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber),
+		common.Uint32ToBytes(s.BlockIndex), common.Uint64ToBytes(s.ViewNumber)))
 	s.messageHash.Store(v)
 	return v
 
@@ -698,7 +700,11 @@ type ViewChangeQuorumCert struct {
 }
 
 func (v *ViewChangeQuorumCert) String() string {
-	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	if v.ViewChangeQC.Len() == 0 {
+		return ""
+	}
+	qc := v.ViewChangeQC.QCs[0]
+	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := qc.Epoch, qc.ViewNumber, qc.BlockEpoch, qc.BlockViewNumber, qc.BlockHash, qc.BlockNumber
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}",
 		epoch, viewNumber, blockEpoch, blockViewNumber, hash.TerminalString(), number)
 }
@@ -707,19 +713,27 @@ func (v *ViewChangeQuorumCert) MsgHash() common.Hash {
 	if mhash := v.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	epoch, viewNumber, blockEpoch, blockViewNumber, hash, number := v.ViewChangeQC.MaxBlock()
+	if v.ViewChangeQC.Len() == 0 {
+		return common.Hash{}
+	}
+	qc := v.ViewChangeQC.QCs[0]
 	mv := utils.BuildHash(ViewChangeQuorumCertMsg, utils.MergeBytes(
-		common.Uint64ToBytes(epoch),
-		common.Uint64ToBytes(viewNumber),
-		common.Uint64ToBytes(blockEpoch),
-		common.Uint64ToBytes(blockViewNumber),
-		hash.Bytes(),
-		common.Uint64ToBytes(number)))
+		common.Uint64ToBytes(qc.Epoch),
+		common.Uint64ToBytes(qc.ViewNumber),
+		common.Uint64ToBytes(qc.BlockEpoch),
+		common.Uint64ToBytes(qc.BlockNumber),
+		qc.BlockHash.Bytes(),
+		common.Uint64ToBytes(qc.BlockNumber),
+		qc.Signature.Bytes()))
 	v.messageHash.Store(mv)
 	return mv
 }
 
 func (v *ViewChangeQuorumCert) BHash() common.Hash {
-	_, _, _, _, hash, _ := v.ViewChangeQC.MaxBlock()
-	return hash
+	if v.ViewChangeQC.Len() == 0 {
+		return common.Hash{}
+	}
+	qc := v.ViewChangeQC.QCs[0]
+	//_, _, _, _, hash, _ := v.ViewChangeQC.MaxBlock()
+	return qc.BlockHash
 }
