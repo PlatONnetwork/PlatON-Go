@@ -17,7 +17,7 @@ fi
 # sudo apt install libssl-dev
 # the above are prerequisites
 
-if [ "`ls $BLS_ROOT/bls_linux_darwin`" = "" ]; then
+if [ ! -d "$BLS_ROOT/bls_linux_darwin" ]; then
     # pull code of bls, mcl and cybozulib_ext
     cd $BLS_ROOT
     mkdir -p bls_linux_darwin

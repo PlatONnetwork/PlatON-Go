@@ -5,9 +5,9 @@ if [ ! -f "build/build_deps.sh" ]; then
     exit 2
 fi
 root=`pwd`
+$root/build/build_bls.sh
 root=$root/life/resolver
 
-$root/build_bls.sh
 
 if [ "`ls $root/softfloat`" = "" ]; then
     # pull softfloat
