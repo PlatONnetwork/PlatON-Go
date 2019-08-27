@@ -199,6 +199,9 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	if vp.ProposalType != Version {
 		return common.NewBizError("Proposal Type error.")
 	}
+	if vp.EndVotingRounds <= 0 {
+		return common.NewBizError("voting consensus rounds should > 0.")
+	}
 
 	if vp.EndVotingRounds > xcom.VersionProposalVote_ConsensusRounds() {
 		return common.NewBizError("voting consensus rounds too large.")
@@ -219,7 +222,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return common.NewBizError("New version should larger than current active version.")
 	}
 
-	if exist, err := FindVotingVersionProposal(blockHash, submitBlock, state); err != nil {
+	if exist, err := FindVotingVersionProposal(blockHash, state); err != nil {
 		return err
 	} else if exist != nil {
 		log.Error("there is another version proposal at voting stage", "proposalID", exist.ProposalID)
@@ -300,6 +303,10 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return err
 	}
 
+	if cp.EndVotingRounds <= 0 {
+		return common.NewBizError("voting consensus rounds should > 0.")
+	}
+
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, cp.EndVotingRounds)
 	cp.EndVotingBlock = endVotingBlock
 
@@ -362,7 +369,6 @@ func verifyBasic(p Proposal, state xcom.StateDB) error {
 	} else if isPIPIDExist(p.GetPIPID(), pipIdList) {
 		return common.NewBizError("PIPID is existing.")
 	}
-
 	return nil
 }
 
