@@ -449,7 +449,8 @@ func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, v
 	}
 
 	// todo test
-	log.Debug("SetEpochValList", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)), "val", hex.EncodeToString(value))
+	log.Debug("SetEpochValList", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)),
+		"val", hex.EncodeToString(value), "start", start, "end", end)
 
 	return db.put(blockHash, GetEpochValArrKey(start, end), value)
 }
@@ -483,7 +484,8 @@ func (db *StakingDB) GetEpochValListByBlockHash(blockHash common.Hash, start, en
 func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, end uint64) error {
 
 	// todo test
-	log.Debug("DelEpochValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)))
+	log.Debug("DelEpochValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetEpochValArrKey(start, end)),
+		"start", start, "end", end)
 
 	return db.del(blockHash, GetEpochValArrKey(start, end))
 }
@@ -532,7 +534,8 @@ func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, v
 	}
 
 	// todo test
-	log.Debug("SetRoundValList", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundValArrKey(start, end)), "val", hex.EncodeToString(value))
+	log.Debug("SetRoundValList", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundValArrKey(start, end)),
+		"val", hex.EncodeToString(value), "start", start, "end", end)
 
 	return db.put(blockHash, GetRoundValArrKey(start, end), value)
 }
@@ -566,7 +569,8 @@ func (db *StakingDB) GetRoundValListByBlockHash(blockHash common.Hash, start, en
 func (db *StakingDB) DelRoundValListByBlockHash(blockHash common.Hash, start, end uint64) error {
 
 	// todo test
-	log.Debug("DelRoundValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundValArrKey(start, end)))
+	log.Debug("DelRoundValListByBlockHash", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(GetRoundValArrKey(start, end)),
+		"start", start, "end", end)
 
 	return db.del(blockHash, GetRoundValArrKey(start, end))
 }
