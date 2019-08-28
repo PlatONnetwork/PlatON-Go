@@ -129,7 +129,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return nil, nil
 	}
 
-	blslen := 128
+	blslen := 192
 
 	//  the bls public key length must be 128 char
 	if len(blsPubKey) != blslen {
