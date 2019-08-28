@@ -2457,6 +2457,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		xcom.PrintObject("Election Remove Withdrew nodeId", withdrewQueue)
 	}
 
+	// TODO SNNSNSNSNSNSNSNS
 	// update candidate status
 	// Must sort
 	for _, nodeId := range slashAddrQueue {
