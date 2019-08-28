@@ -126,6 +126,7 @@ var (
 	blockHash3   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60345")
 
 	sender            = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	anotherSender     = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5233")
 	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
 
 	delegate_sender            = common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5")

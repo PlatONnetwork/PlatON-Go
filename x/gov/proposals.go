@@ -121,7 +121,7 @@ func (tp *TextProposal) GetTallyResult() TallyResult {
 
 func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 	if tp.ProposalType != Text {
-		return common.NewBizError("Proposal Type error.")
+		return ProposalTypeError
 	}
 
 	if err := verifyBasic(tp, state); err != nil {
@@ -197,14 +197,14 @@ func (vp *VersionProposal) GetActiveBlock() uint64 {
 func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 
 	if vp.ProposalType != Version {
-		return common.NewBizError("Proposal Type error.")
+		return ProposalTypeError
 	}
 	if vp.EndVotingRounds <= 0 {
-		return common.NewBizError("voting consensus rounds should > 0.")
+		return EndVotingRoundsTooSmall
 	}
 
 	if vp.EndVotingRounds > xcom.VersionProposalVote_ConsensusRounds() {
-		return common.NewBizError("voting consensus rounds too large.")
+		return EndVotingRoundsTooLarge
 	}
 
 	if err := verifyBasic(vp, state); err != nil {
@@ -218,25 +218,24 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	vp.EndVotingBlock = endVotingBlock
 	vp.ActiveBlock = activeBlock
 
-	if vp.NewVersion>>8 <= uint32(GetCurrentActiveVersion(state))>>8 {
-		return common.NewBizError("New version should larger than current active version.")
+	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= uint32(GetCurrentActiveVersion(state))>>8 {
+		return NewVersionError
 	}
 
 	if exist, err := FindVotingVersionProposal(blockHash, state); err != nil {
 		return err
 	} else if exist != nil {
-		log.Error("there is another version proposal at voting stage", "proposalID", exist.ProposalID)
-		return common.NewBizError("there is another version proposal at voting stage")
+		return VotingVersionProposalExist
 	}
 
 	//another VersionProposal in Pre-active process，exit
 	proposalID, err := GetPreActiveProposalID(blockHash)
 	if err != nil {
-		log.Error("to check if there's a pre-active version proposal failed.", "blockNumber", submitBlock, "blockHash", blockHash)
+		log.Error("check pre-active version proposal error", "blockNumber", submitBlock, "blockHash", blockHash)
 		return err
 	}
 	if proposalID != common.ZeroHash {
-		return common.NewBizError("there is another pre-active version proposal")
+		return PreActiveVersionProposalExist
 	}
 
 	return nil
@@ -296,7 +295,7 @@ func (cp *CancelProposal) GetTallyResult() TallyResult {
 
 func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 	if cp.ProposalType != Cancel {
-		return common.NewBizError("Proposal Type error.")
+		return ProposalTypeError
 	}
 
 	if err := verifyBasic(cp, state); err != nil {
@@ -304,30 +303,33 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 	}
 
 	if cp.EndVotingRounds <= 0 {
-		return common.NewBizError("voting consensus rounds should > 0.")
+		return EndVotingRoundsTooSmall
 	}
 
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, cp.EndVotingRounds)
 	cp.EndVotingBlock = endVotingBlock
 
 	if exist, err := FindVotingCancelProposal(blockHash, submitBlock, state); err != nil {
+		log.Error("find voting cancel proposal error", "err", err)
 		return err
 	} else if exist != nil {
-		log.Error("there is another cancel proposal at voting stage", "proposalID", exist.ProposalID)
-		return common.NewBizError("there is another cancel proposal at voting stage")
+		return VotingCancelProposalExist
 	}
 
-	if tobeCanceled, err := GetExistProposal(cp.TobeCanceled, state); err != nil {
+	if tobeCanceled, err := GetProposal(cp.TobeCanceled, state); err != nil {
 		log.Error("find to be canceled version proposal error", "err", err)
-		return common.NewBizError("find to be canceled version proposal error")
+		return err
+	} else if tobeCanceled == nil {
+		return TobeCanceledProposalNotFound
+	} else if cp.EndVotingBlock >= tobeCanceled.GetEndVotingBlock() {
+		return EndVotingRoundsTooLarge
 	} else if tobeCanceled.GetProposalType() != Version {
-		return common.NewBizError("to be canceled proposal should be version proposal")
+		return TobeCanceledProposalTypeError
 	} else if votingList, err := ListVotingProposal(blockHash); err != nil {
+		log.Error("list voting proposal error", "err", err)
 		return err
 	} else if !xutil.InHashList(cp.TobeCanceled, votingList) {
-		return common.NewBizError("to be canceled version proposal should be at voting stage")
-	} else if cp.EndVotingBlock >= tobeCanceled.GetEndVotingBlock() {
-		return common.NewBizError("voting consensus rounds too large.")
+		return TobeCanceledProposalNotAtVoting
 	}
 	return nil
 }
@@ -352,22 +354,23 @@ func verifyBasic(p Proposal, state xcom.StateDB) error {
 			return err
 		}
 		if nil != p {
-			return common.NewBizError("ProposalID is already used.")
+			return ProposalIDExist
 		}
 	} else {
-		return common.NewBizError("ProposalID is empty.")
+		return ProposalIDEmpty
 	}
 
 	if p.GetProposer() == discover.ZeroNodeID {
-		return common.NewBizError("Proposer is empty.")
+		return ProposerEmpty
 	}
 
 	if len(p.GetPIPID()) == 0 {
-		return common.NewBizError("PIPID is empty.")
+		return PIPIDEmpty
 	} else if pipIdList, err := ListPIPID(state); err != nil {
+		log.Error("list PIPID error", "err", err)
 		return err
 	} else if isPIPIDExist(p.GetPIPID(), pipIdList) {
-		return common.NewBizError("PIPID is existing.")
+		return PIPIDExist
 	}
 	return nil
 }

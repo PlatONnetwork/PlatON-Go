@@ -367,8 +367,8 @@ func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, err
 	if err != nil {
 		return nil, err
 	} else if p == nil {
-		log.Error("Cannot find proposal.", "proposalID", proposalID)
-		return nil, common.NewSysError("Cannot find proposal.")
+		//log.Error("Cannot find proposal.", "proposalID", proposalID)
+		return nil, ProposalNotFound
 	} else {
 		return p, nil
 	}

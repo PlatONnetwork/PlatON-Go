@@ -496,7 +496,7 @@ func TestGovDB_GetExistProposal(t *testing.T) {
 	}
 
 	if _, err := GetExistProposal(common.Hash{0x10}, statedb); err != nil {
-		if err, ok := err.(*common.SysError); ok && err.Error() == "Cannot find proposal." {
+		if err == ProposalNotFound {
 			t.Log("throw exception correctly if not found the proposal")
 		} else {
 			t.Fatal("do not throw exception correctly if not found the proposal")
@@ -618,7 +618,7 @@ func TestGovDB_FindVotingVersionProposal_DataError(t *testing.T) {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 	if p, err := FindVotingVersionProposal(blockHash, statedb); err != nil {
-		if _, ok := err.(*common.SysError); ok && err.Error() == "Cannot find proposal." {
+		if err == ProposalNotFound {
 			t.Log("throw a exception correctly if data error")
 		} else {
 			t.Fatalf("find voting proposal ID error,%s", err)
