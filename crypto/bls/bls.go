@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 	"os"
 	"strings"
@@ -275,6 +276,17 @@ func (pub *PublicKey) UnmarshalText(text []byte) error {
 		return err
 	}
 	return pub.Deserialize(key)
+}
+func (pub *PublicKey) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, pub.Serialize())
+}
+
+func (pub *PublicKey) DecodeRLP(s *rlp.Stream) error {
+	buf, err := s.Bytes()
+	if err != nil {
+		return err
+	}
+	return pub.Deserialize(buf)
 }
 
 // Sign  --

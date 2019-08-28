@@ -37,7 +37,7 @@ set -e
 # Build and test bls lib
 MAKE="make"
 cd $BLS_ROOT/bls_linux_darwin/src/bls
-$MAKE 
+$MAKE -j 4
 
 # copy bls  header and lib files to destination directory
 cp -r $BLS_ROOT/bls_linux_darwin/src/bls/include/bls $BLS_ROOT/bls_linux_darwin/include/
