@@ -488,7 +488,7 @@ func (s *GetPrepareVote) MsgHash() common.Hash {
 		return mhash.(common.Hash)
 	}
 	v := utils.BuildHash(GetPrepareVoteMsg, utils.MergeBytes(common.Uint64ToBytes(s.Epoch), common.Uint64ToBytes(s.ViewNumber),
-		common.Uint32ToBytes(s.BlockIndex), s.UnKnownSet.Bytes()))
+		common.Uint32ToBytes(s.BlockIndex)))
 	s.messageHash.Store(v)
 	return v
 }

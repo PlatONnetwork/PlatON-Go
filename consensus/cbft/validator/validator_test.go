@@ -108,7 +108,7 @@ func newTestNode3() []params.CbftNode {
 }
 
 func TestValidators(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	nodes := newTestNode()
 
 	vds := newValidators(nodes, 0)
@@ -166,7 +166,7 @@ func TestValidators(t *testing.T) {
 }
 
 func TestStaticAgency(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	nodes := newTestNode()
 	vds := newValidators(nodes, 0)
 
@@ -203,7 +203,7 @@ func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 }
 
 func TestInnerAgency(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	testdb := ethdb.NewMemDatabase()
 	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
 	balance := big.NewInt(0)
@@ -398,7 +398,7 @@ func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
 }
 
 func TestValidatorPool(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	nodes := newTestNode()
 	agency := newTestInnerAgency(nodes)
 
@@ -458,7 +458,7 @@ func TestValidatorPool(t *testing.T) {
 }
 
 func TestValidatorPoolVerify(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 
 	nodes := make([]params.CbftNode, 0)
 

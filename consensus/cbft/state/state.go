@@ -432,6 +432,10 @@ func (vs *ViewState) MaxQCIndex() uint32 {
 	return vs.view.viewQCs.maxQCIndex()
 }
 
+func (vs *ViewState) ViewVoteSize() int {
+	return len(vs.viewVotes.Votes)
+}
+
 func (vs *ViewState) PrepareVoteLenByIndex(index uint32) int {
 	ps := vs.viewVotes.index(index)
 	if ps != nil {
@@ -458,6 +462,7 @@ func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
 func (vs *ViewState) ViewBlockSize() int {
 	return len(vs.viewBlocks.Blocks)
 }
+
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
 	return vs.view.hadSendPrepareVote
 }

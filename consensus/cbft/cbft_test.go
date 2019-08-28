@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 }
 func TestThreshold(t *testing.T) {
 	f := &Cbft{}
@@ -48,7 +48,7 @@ func TestThreshold(t *testing.T) {
 }
 
 func TestBls(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	num := 4
 	pk, sk := GenerateKeys(num)
 	owner := sk[0]

@@ -227,7 +227,7 @@ func init() {
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		bls.Init(bls.CurveFp254BNb)
+		bls.Init(bls.BLS12_381)
 
 		logdir := ""
 		if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
