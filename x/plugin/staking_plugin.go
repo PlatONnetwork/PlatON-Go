@@ -2218,7 +2218,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			log.Info("Call Election, VrfElection Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 				"diffQueueLen", diffQueueLength, "ShiftValidatorNum", xcom.ShiftValidatorNum())
 
-			if queue, err := sk.VrfElection(diffArr, header.Nonce.Bytes(), header.ParentHash); nil != err {
+			if queue, err := sk.VrfElection(diffArr, int(xcom.ShiftValidatorNum()), header.Nonce.Bytes(), header.ParentHash); nil != err {
 				log.Error("Failed to VrfElection on Election",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return nil, err
@@ -2338,7 +2338,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			shiftQueue = diffQueue
 		} else {
 
-			if queue, err := sk.VrfElection(diffQueue, header.Nonce.Bytes(), header.ParentHash); nil != err {
+			if queue, err := sk.VrfElection(diffQueue, int(xcom.ShiftValidatorNum()), header.Nonce.Bytes(), header.ParentHash); nil != err {
 				log.Error("Failed to VrfElection on Election, When current validators large than config",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 				return err
@@ -3505,7 +3505,7 @@ func (svs sortValidatorQueue) Swap(i, j int) {
 // validatorList：Waiting for the elected node
 // nonce：Vrf proof of the current block
 // parentHash：Parent block hash
-func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
+func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
 	preNonces, err := xcom.GetVrfHandlerInstance().Load(parentHash)
 	if nil != err {
 		return nil, err
@@ -3517,10 +3517,10 @@ func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, nonce
 	if len(preNonces) > len(validatorList) {
 		preNonces = preNonces[len(preNonces)-len(validatorList):]
 	}
-	return sk.ProbabilityElection(validatorList, vrf.ProofToHash(nonce), preNonces)
+	return sk.ProbabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces)
 }
 
-func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
+func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
 		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
 		return nil, ParamsErr
@@ -3580,7 +3580,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 	sort.Sort(svList)
 	resultValidatorList := make(staking.ValidatorQueue, 0)
 	for index, sv := range svList {
-		if index == int(xcom.ShiftValidatorNum()) {
+		if index == shiftLen {
 			break
 		}
 		resultValidatorList = append(resultValidatorList, sv.v)
