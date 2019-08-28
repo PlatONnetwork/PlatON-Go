@@ -465,7 +465,8 @@ func EffectiveRatio() uint64 {
 }
 
 func ElectionDistance() uint64 {
-	return 20
+	// min need two view
+	return 2 * ec.Common.PerRoundBlocks
 }
 
 func UnStakeFreezeRatio() uint64 {
