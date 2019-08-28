@@ -216,7 +216,7 @@ func Test_Router_KMixingRandomNodes(t *testing.T) {
 	peers, _ := r.peers()
 	excludePeer := peers[1]
 	excludePeer.MarkMessageHash(presetMessageHash)
-	randomPeers, err := r.kMixingRandomNodes(presetMessageHash)
+	randomPeers, err := r.kMixingRandomNodes(presetMessageHash, r.filter)
 	if err != nil {
 		t.Error("kMixingRandomNodes failed", err)
 	}
