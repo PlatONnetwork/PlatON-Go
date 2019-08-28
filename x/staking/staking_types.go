@@ -112,38 +112,22 @@ type Candidate struct {
 	Description
 }
 
+// Display amount field using 0x hex
 type CandidateHex struct {
-	NodeId discover.NodeID
-	// bls public key
-	BlsPubKey bls.PublicKey
-	// The account used to initiate the staking
-	StakingAddress common.Address
-	// The account receive the block rewards and the staking rewards
-	BenefitAddress common.Address
-	// The tx index at the time of staking
-	StakingTxIndex uint32
-	// The version of the node program
-	// (Store Large Verson: the 2.1.x large version is 2.1.0)
-	ProgramVersion uint32
-	// The candidate status
-	// Reference `THE CANDIDATE  STATUS`
-	Status uint32
-	// The epoch number at staking or edit
-	StakingEpoch uint32
-	// Block height at the time of staking
-	StakingBlockNum uint64
-	// All vons of staking and delegated
-	Shares *hexutil.Big
-	// The staking von  is circulating for effective epoch (in effect)
-	Released *hexutil.Big
-	// The staking von  is circulating for hesitant epoch (in hesitation)
-	ReleasedHes *hexutil.Big
-	// The staking von  is RestrictingPlan for effective epoch (in effect)
-	RestrictingPlan *hexutil.Big
-	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
+	NodeId             discover.NodeID
+	BlsPubKey          bls.PublicKey
+	StakingAddress     common.Address
+	BenefitAddress     common.Address
+	StakingTxIndex     uint32
+	ProgramVersion     uint32
+	Status             uint32
+	StakingEpoch       uint32
+	StakingBlockNum    uint64
+	Shares             *hexutil.Big
+	Released           *hexutil.Big
+	ReleasedHes        *hexutil.Big
+	RestrictingPlan    *hexutil.Big
 	RestrictingPlanHes *hexutil.Big
-
-	// Node desc
 	Description
 }
 
@@ -255,39 +239,41 @@ func (val *Validator) GetStakingTxIndex() (uint32, error) {
 
 type ValidatorQueue []*Validator
 
-type SlashCandidate map[discover.NodeID]*Candidate
+type CandidateMap map[discover.NodeID]*Candidate
 
-func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
-	compare func(slashs SlashCandidate, c, can *Validator) int) {
+type NeedRemoveCans map[discover.NodeID]*Candidate
+
+func (arr ValidatorQueue) ValidatorSort(removes NeedRemoveCans,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if len(arr) <= 1 {
 		return
 	}
 
 	if nil == compare {
-		arr.quickSort(slashs, 0, len(arr)-1, CompareDefault)
+		arr.quickSort(removes, 0, len(arr)-1, CompareDefault)
 	} else {
-		arr.quickSort(slashs, 0, len(arr)-1, compare)
+		arr.quickSort(removes, 0, len(arr)-1, compare)
 	}
 }
-func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int,
-	compare func(slashs SlashCandidate, c, can *Validator) int) {
+func (arr ValidatorQueue) quickSort(removes NeedRemoveCans, left, right int,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if left < right {
-		pivot := arr.partition(slashs, left, right, compare)
-		arr.quickSort(slashs, left, pivot-1, compare)
-		arr.quickSort(slashs, pivot+1, right, compare)
+		pivot := arr.partition(removes, left, right, compare)
+		arr.quickSort(removes, left, pivot-1, compare)
+		arr.quickSort(removes, pivot+1, right, compare)
 	}
 }
-func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
-	compare func(slashs SlashCandidate, c, can *Validator) int) int {
+func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) int {
 	for left < right {
-		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
 			right--
 		}
 		if left < right {
 			arr[left], arr[right] = arr[right], arr[left]
 			left++
 		}
-		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
 			left++
 		}
 		if left < right {
@@ -316,7 +302,7 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
+func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
@@ -358,8 +344,8 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	_, leftOk := slashs[left.NodeId]
-	_, rightOk := slashs[right.NodeId]
+	_, leftOk := removes[left.NodeId]
+	_, rightOk := removes[right.NodeId]
 
 	if leftOk && !rightOk {
 		return -1
@@ -403,7 +389,7 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
+func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// some funcs
 
@@ -462,14 +448,67 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	lCan, lOK := slashs[left.NodeId]
-	rCan, rOK := slashs[right.NodeId]
+	compareVersionFunc := func(l, r *Validator) int {
+		lversion, _ := l.GetProgramVersion()
+		rversion, _ := r.GetProgramVersion()
+		switch {
+		case lversion > rversion:
+			return -1
+		case lversion < rversion:
+			return 1
+		default:
+			return compareTermFunc(left, right)
+		}
+	}
+
+	lCan, lOK := removes[left.NodeId]
+	rCan, rOK := removes[right.NodeId]
 
 	/**
 	Start Compare
 	*/
 
-	// 1. has slashed ?
+	switch {
+	case !lOK && rOK: // left need not removed AND right need removed
+		return -1
+	case !lOK && !rOK: // both need not removed
+
+		// 2. ProgramVersion
+		return compareVersionFunc(left, right)
+
+	case lOK && !rOK: // left need removed AND right need not removed
+		return 1
+	default: // both need removed
+
+		// compare slash
+		switch {
+		case Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status):
+			return 1
+		case !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+			return -1
+		case Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+			// compare Shares
+			return compareSharesFunc(left, right)
+		default:
+			// compare low ratio
+			switch {
+			case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
+				return 1
+			case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				return -1
+			case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				// compare Shares
+				return compareSharesFunc(left, right)
+			default:
+				// compare Version
+				return compareVersionFunc(left, right)
+			}
+
+		}
+
+	}
+
+	/*// 1. has slashed ?
 	switch {
 	case !lOK && rOK: // left has not slashed AND right has slashed
 		return -1
@@ -519,7 +558,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 				}
 			}
 		}
-	}
+	}*/
 }
 
 // NOTE: Sort when doing storage
@@ -531,7 +570,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForStore(_ SlashCandidate, left, right *Validator) int {
+func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 	// some funcs
 
 	// 5. TxIndex
