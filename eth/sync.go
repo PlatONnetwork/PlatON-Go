@@ -174,7 +174,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	pHead, pBn := peer.Head()
 	//modified by platon
 	diff := new(big.Int).Sub(pBn, bn)
-	if diff.Cmp(big.NewInt(3)) <= 0 {
+	if diff.Cmp(big.NewInt(3)) < 0 {
 		return
 	}
 	// Otherwise try to sync with the downloader
