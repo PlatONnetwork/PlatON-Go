@@ -2460,7 +2460,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	// TODO SNNSNSNSNSNSNSNS
 	// update candidate status
 	// Must sort
-	for _, nodeId := range slashAddrQueue {
+	/*for _, nodeId := range slashAddrQueue {
 		can := removeCans[nodeId]
 		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
 
@@ -2479,7 +2479,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 				return err
 			}
 		}
-	}
+	}*/
 
 	// todo test
 	if len(slashAddrQueue) == 0 {
