@@ -3,7 +3,6 @@ package cbft
 import (
 	"crypto/ecdsa"
 	"math/big"
-	"runtime"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -71,9 +70,8 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	for i := 0; i < num; i++ {
 
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		if runtime.GOOS != "windows" {
-			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-		}
+		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+
 	}
 	return pk, sk, nodes
 }
