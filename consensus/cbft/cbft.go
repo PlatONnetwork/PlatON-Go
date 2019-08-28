@@ -222,6 +222,12 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	utils.SetTrue(&cbft.loading)
+
+	//Initialize view state
+	cbft.state.SetHighestQCBlock(block)
+	cbft.state.SetHighestLockBlock(block)
+	cbft.state.SetHighestCommitBlock(block)
+
 	if isGenesis() {
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
 		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
@@ -229,11 +235,6 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), qc.Epoch, cbft.config.Option.NodeID)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
-
-	//Initialize view state
-	cbft.state.SetHighestQCBlock(block)
-	cbft.state.SetHighestLockBlock(block)
-	cbft.state.SetHighestCommitBlock(block)
 
 	// Initialize current view
 	if qc != nil {
