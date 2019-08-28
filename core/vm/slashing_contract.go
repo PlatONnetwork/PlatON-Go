@@ -70,7 +70,7 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 
 	if nil != err {
 		log.Error("slashingContract DecodeEvidence fail", "data", data, "err", err)
-		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, err.Error()), err
+		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, err.Error()), nil
 	}
 	if !sc.Contract.UseGas(params.DuplicateEvidencesGas) {
 		return nil, ErrOutOfGas
@@ -83,7 +83,7 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 		if _, ok := err.(*common.BizError); ok {
 			return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, err.Error()), nil
 		} else {
-			return xcom.FailResult("", err.Error()), err
+			return nil, err
 		}
 	}
 	return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", true, ""), nil
@@ -94,7 +94,7 @@ func (sc *SlashingContract) CheckDuplicateSign(dupType uint8, addr common.Addres
 	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
 	data := ""
 	if nil != err {
-		return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, false, err.Error()), err
+		return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, false, err.Error()), nil
 	}
 	if len(txHash) > 0 {
 		data = hexutil.Encode(txHash)
