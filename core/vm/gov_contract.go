@@ -24,8 +24,8 @@ const (
 	SubmitCancelProposalErrorMsg  = "Submit a cancel proposal error"
 	VoteErrorMsg                  = "Vote error"
 	DeclareErrorMsg               = "Declare version error"
-	GetProposalErrorMsg           = "Find a specified proposal error"
-	GetTallyResultErrorMsg        = "Find a specified proposal's tally result error"
+	GetProposalErrorMsg           = "Find proposal error"
+	GetTallyResultErrorMsg        = "Find tally result error"
 	ListProposalErrorMsg          = "List all proposals error"
 	GetActiveVersionErrorMsg      = "Get active version error"
 	GetProgramVersionErrorMsg     = "Get program version error"
@@ -285,7 +285,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	proposal, err := gov.GetProposal(proposalID, gc.Evm.StateDB)
+	proposal, err := gov.GetExistProposal(proposalID, gc.Evm.StateDB)
 
 	return gc.returnHandler("getProposal", proposal, err, GetProposalErrorMsg)
 }
@@ -301,9 +301,12 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	rallyResult, err := gov.GetTallyResult(proposalID, gc.Evm.StateDB)
+	tallyResult, err := gov.GetTallyResult(proposalID, gc.Evm.StateDB)
 
-	return gc.returnHandler("getTallyResult", rallyResult, err, GetTallyResultErrorMsg)
+	if tallyResult == nil {
+		err = common.BizErrorf("tally result not found")
+	}
+	return gc.returnHandler("getTallyResult", tallyResult, err, GetTallyResultErrorMsg)
 }
 
 func (gc *GovContract) listProposal() ([]byte, error) {
@@ -381,7 +384,7 @@ func (gc *GovContract) returnHandler(funcName string, resultValue interface{}, e
 	jsonByte, err := json.Marshal(resultValue)
 	if nil != err {
 		log.Debug("call GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "err", err)
-		res := xcom.Result{false, "", err.Error()}
+		res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
 		resultBytes, _ := json.Marshal(res)
 		return resultBytes, nil
 	}
