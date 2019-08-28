@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -111,6 +112,41 @@ type Candidate struct {
 	Description
 }
 
+type CandidateHex struct {
+	NodeId discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKey
+	// The account used to initiate the staking
+	StakingAddress common.Address
+	// The account receive the block rewards and the staking rewards
+	BenefitAddress common.Address
+	// The tx index at the time of staking
+	StakingTxIndex uint32
+	// The version of the node program
+	// (Store Large Verson: the 2.1.x large version is 2.1.0)
+	ProgramVersion uint32
+	// The candidate status
+	// Reference `THE CANDIDATE  STATUS`
+	Status uint32
+	// The epoch number at staking or edit
+	StakingEpoch uint32
+	// Block height at the time of staking
+	StakingBlockNum uint64
+	// All vons of staking and delegated
+	Shares *hexutil.Big
+	// The staking von  is circulating for effective epoch (in effect)
+	Released *hexutil.Big
+	// The staking von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *hexutil.Big
+	// The staking von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *hexutil.Big
+	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *hexutil.Big
+
+	// Node desc
+	Description
+}
+
 //// EncodeRLP implements rlp.Encoder
 //func (c *Candidate) EncodeRLP(w io.Writer) error {
 //	return rlp.Encode(w, &c)
@@ -161,6 +197,7 @@ func (desc *Description) CheckLength() error {
 }
 
 type CandidateQueue []*Candidate
+type CandidateHexQueue []*CandidateHex
 
 // the Validator info
 // They are Simplified Candidate
@@ -591,7 +628,8 @@ type ValidatorEx struct {
 	// Block height at the time of staking
 	StakingBlockNum uint64
 	// All vons of staking and delegated
-	Shares *big.Int
+	//Shares *big.Int
+	Shares *hexutil.Big
 	// Node desc
 	Description
 	// this is the term of validator in consensus round
@@ -617,11 +655,26 @@ type Delegation struct {
 	Reduction *big.Int
 }
 
+type DelegationHex struct {
+	// The epoch number at delegate or edit
+	DelegateEpoch uint32
+	// The delegate von  is circulating for effective epoch (in effect)
+	Released *hexutil.Big
+	// The delegate von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *hexutil.Big
+	// The delegate von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *hexutil.Big
+	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *hexutil.Big
+	// Total amount in all cancellation plans
+	Reduction *hexutil.Big
+}
+
 type DelegationEx struct {
 	Addr            common.Address
 	NodeId          discover.NodeID
 	StakingBlockNum uint64
-	Delegation
+	DelegationHex
 }
 
 type DelegateRelated struct {
