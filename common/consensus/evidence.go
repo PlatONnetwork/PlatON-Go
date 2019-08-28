@@ -4,7 +4,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
-type EvidenceType int32
+type EvidenceType uint8
 
 type Evidence interface {
 	//Verify(ecdsa.PublicKey) error

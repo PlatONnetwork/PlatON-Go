@@ -104,8 +104,8 @@ type PrepareBlock struct {
 }
 
 func (pb *PrepareBlock) String() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d,ProposalIndex:%d}",
-		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex, pb.ProposalIndex)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d,ProposalIndex:%d,ParentHash:%s}",
+		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex, pb.ProposalIndex, pb.Block.ParentHash().String())
 }
 
 func (pb *PrepareBlock) MsgHash() common.Hash {
