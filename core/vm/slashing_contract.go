@@ -1,9 +1,10 @@
 package vm
 
 import (
-	"encoding/hex"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
@@ -49,7 +50,7 @@ func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 }
 
 // Report the double signing behavior of the node
-func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
+func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]byte, error) {
 
 	txHash := sc.Evm.StateDB.TxHash()
 	blockNumber := sc.Evm.BlockNumber
@@ -65,51 +66,48 @@ func (sc *SlashingContract) ReportDuplicateSign(data string) ([]byte, error) {
 	}
 
 	sender := sc.Contract.CallerAddress
-	evidences, err := sc.Plugin.DecodeEvidence(data)
+	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
+
 	if nil != err {
 		log.Error("slashingContract DecodeEvidence fail", "data", data, "err", err)
-		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false), err
+		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, err.Error()), nil
 	}
-	if len(evidences) == 0 {
-		log.Error("slashing failed decodeEvidence len 0", "blockNumber", sc.Evm.BlockNumber.Uint64(), "blockHash", hex.EncodeToString(sc.Evm.BlockHash.Bytes()), "data", data)
-		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false), common.NewBizError("evidences is nil")
-	}
-	if !sc.Contract.UseGas(params.DuplicateEvidencesGas * uint64(len(evidences))) {
+	if !sc.Contract.UseGas(params.DuplicateEvidencesGas) {
 		return nil, ErrOutOfGas
 	}
 	if txHash == common.ZeroHash {
 		log.Warn("Call ReportDuplicateSign current txHash is empty!!")
 		return nil, nil
 	}
-	if err := sc.Plugin.Slash(evidences, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
+	if err := sc.Plugin.Slash(evidence, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
 		if _, ok := err.(*common.BizError); ok {
-			return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false), err
+			return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, err.Error()), nil
 		} else {
-			return xcom.FailResult("", "fail"), err
+			return nil, err
 		}
 	}
-	return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", true), nil
+	return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", true, ""), nil
 }
 
 // Check if the node has double sign behavior at a certain block height
-func (sc *SlashingContract) CheckDuplicateSign(etype uint32, addr common.Address, blockNumber uint64) ([]byte, error) {
-	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, etype, sc.Evm.StateDB)
+func (sc *SlashingContract) CheckDuplicateSign(dupType uint8, addr common.Address, blockNumber uint64) ([]byte, error) {
+	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
 	data := ""
 	if nil != err {
-		return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, false), err
+		return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, false, err.Error()), nil
 	}
 	if len(txHash) > 0 {
 		data = hexutil.Encode(txHash)
 	}
-	return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, true), nil
+	return sc.buildResult(CheckDuplicateSignEvent, "CheckDuplicateSign", data, true, ""), nil
 }
 
-func (sc *SlashingContract) buildResult(eventType int, callFn, data string, success bool) []byte {
+func (sc *SlashingContract) buildResult(eventType int, callFn, data string, success bool, errMsg string) []byte {
 	var result []byte = nil
 	if success {
-		result = xcom.SuccessResult(data, "success")
+		result = xcom.SuccessResult(data, errMsg)
 	} else {
-		result = xcom.FailResult(data, "fail")
+		result = xcom.FailResult(data, errMsg)
 	}
 	blockNumber := sc.Evm.BlockNumber.Uint64()
 	xcom.AddLog(sc.Evm.StateDB, blockNumber, vm.SlashingContractAddr, strconv.Itoa(eventType), string(result))

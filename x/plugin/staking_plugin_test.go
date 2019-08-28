@@ -1436,7 +1436,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, epoch+xcom.UnStakeFreezeRatio())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.UnStakeFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnCandidateItem:", err)
 		return
@@ -1969,7 +1969,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	/**
 	Start HandleUnDelegateItem
 	*/
-	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
+	err = StakingInstance().HandleUnDelegateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnDelegateItem:", err)
 		return
