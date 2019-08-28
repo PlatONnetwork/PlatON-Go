@@ -244,6 +244,28 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_SubmitText_invalidType(t *testing.T) {
+	defer setup(t)()
+
+	vp := &gov.TextProposal{
+		ProposalID:   txHashArr[0],
+		ProposalType: gov.Version, //error type
+		PIPID:        "textPIPID",
+		SubmitBlock:  1,
+		Proposer:     nodeIdArr[0],
+	}
+
+	state := stateDB.(*mock.MockStateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB) //sender error
+	if err != nil && err.Error() == "Proposal Type error." {
+		t.Log("detected invalid type.", err)
+	} else {
+		t.Fatal("didn't detect invalid type.")
+	}
+}
+
 func TestGovPlugin_SubmitVersion(t *testing.T) {
 	defer setup(t)()
 	submitVersion(t, txHashArr[0])
