@@ -9,8 +9,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
-var SecondsPerYear = uint64(365 * 24 * 3600)
-
 // plugin rule key
 const (
 	DefualtRule = iota
