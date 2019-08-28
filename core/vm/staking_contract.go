@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -48,7 +47,7 @@ const (
 	DescriptionLenErrStr     = "The Description length is wrong"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
 	WithdrewDelegateErrStr   = "Withdrew delegate failed"
-	WrongBlsPubKeyStr        = "The bls public key length is wrong"
+	WrongBlsPubKeyStr        = "The bls public key is wrong"
 )
 
 const (
@@ -210,12 +209,18 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return event, nil
 	}
 
+	// parse bls publickey
+	var blsPk bls.PublicKey
+	if err := blsPk.UnmarshalText([]byte(blsPubKey)); nil != err {
+		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
+	}
+
 	/**
 	init candidate info
 	*/
-	var blsPk bls.PublicKey
-	pkByte, err := hex.DecodeString(blsPubKey)
-	blsPk.Deserialize(pkByte)
 	canNew := &staking.Candidate{
 		NodeId:          nodeId,
 		BlsPubKey:       blsPk,
@@ -753,14 +758,16 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getVerifierList: Query VerifierList is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getVerifierList: Query VerifierList is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
 
 	if nil == arr || err == snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", "VerifierList info is not found"}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getVerifierList: VerifierList info is not found", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to getVerifierList: VerifierList info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
 		return data, nil
 	}
 
@@ -768,7 +775,8 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getVerifierList: VerifierList Marshal json is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getVerifierList: VerifierList Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
 	res := xcom.Result{true, string(arrByte), "ok"}
@@ -790,14 +798,16 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getValidatorList: Query ValidatorList is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getValidatorList: Query ValidatorList is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
 
 	if nil == arr || err == snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", "ValidatorList info is not found"}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getValidatorList: ValidatorList info is not found", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to getValidatorList: ValidatorList info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
 		return data, nil
 	}
 
@@ -805,7 +815,8 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	if nil != err {
 		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getValidatorList: ValidatorList Marshal json is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getValidatorList: ValidatorList Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
 
@@ -828,14 +839,16 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateList: Query CandidateList is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getCandidateList: Query CandidateList is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
 
 	if nil == arr || err == snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", "CandidateList info is not found"}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateList: CandidateList info is not found", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to getCandidateList: CandidateList info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
 		return data, nil
 	}
 
@@ -843,7 +856,8 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	if nil != err {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateList: CandidateList Marshal json is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getCandidateList: CandidateList Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
 	res := xcom.Result{true, string(arrByte), "ok"}
@@ -866,14 +880,16 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getRelatedListByDelAddr: Query RelatedList is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getRelatedListByDelAddr: Query RelatedList is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", addr.Hex(), "err", err)
 		return data, nil
 	}
 
 	if nil == arr || err == snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", "RelatedList info is not found"}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getRelatedListByDelAddr: RelatedList info is not found", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to getRelatedListByDelAddr: RelatedList info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", addr.Hex())
 		return data, nil
 	}
 
@@ -881,13 +897,15 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	if nil != err {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getRelatedListByDelAddr: RelatedList Marshal json is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getRelatedListByDelAddr: RelatedList Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", addr.Hex(), "err", err)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	log.Info("getRelatedListByDelAddr", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "relateArr", string(jsonByte))
+	log.Info("getRelatedListByDelAddr", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"delAddr", addr.Hex(), "relateArr", string(jsonByte))
 	return data, nil
 }
 
@@ -904,14 +922,18 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getDelegateInfo: Query Delegate info is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getDelegateInfo: Query Delegate info is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum, "err", err)
 		return data, nil
 	}
 
 	if nil == del || err == snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", "Delegate info is not found"}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getDelegateInfo: Delegate info is not found", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to getDelegateInfo: Delegate info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum)
 		return data, nil
 	}
 
@@ -919,13 +941,16 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getDelegateInfo: Delegate Marshal json is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getDelegateInfo: Delegate Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum, "err", err)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	log.Info("getDelegateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delinfo", string(jsonByte))
+	log.Info("getDelegateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum, "delinfo", string(jsonByte))
 	return data, nil
 }
 
@@ -941,21 +966,24 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	if nil != err {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateInfo: Parse NodeId to Address is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getCandidateInfo: Parse NodeId to Address is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return data, nil
 	}
 	can, err := stkc.Plugin.GetCandidateCompactInfo(blockHash, blockNumber.Uint64(), canAddr)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateInfo: Query Candidate info is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getCandidateInfo: Query Candidate info is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return data, nil
 	}
 
 	if nil == can || err == snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", "Candidate info is not found"}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateInfo: Candidate info is not found", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to getCandidateInfo: Candidate info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 		return data, nil
 	}
 
@@ -963,13 +991,15 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
-		log.Error("Failed to getCandidateInfo: Candidate Marshal json is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		log.Error("Failed to getCandidateInfo: Candidate Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := json.Marshal(res)
 
-	log.Info("getCandidateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "caninfo", string(jsonByte))
+	log.Info("getCandidateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"nodeId", nodeId.String(), "caninfo", string(jsonByte))
 	return data, nil
 }
 

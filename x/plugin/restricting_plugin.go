@@ -264,8 +264,10 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 		return err
 	}
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if amount.Cmp(common.Big0) < 0 {
 		return errAmountLessThanZero
+	} else if amount.Cmp(common.Big0) == 0 {
+		return nil
 	}
 
 	canStaking := new(big.Int).Sub(info.CachePlanAmount, info.StakingAmount)
@@ -288,7 +290,10 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 	rp.log.Info("begin to ReturnLockFunds", "account", account.String(), "amount", amount)
-	if amount.Cmp(common.Big0) <= 0 {
+	amountCompareWithZeao := amount.Cmp(common.Big0)
+	if amountCompareWithZeao == 0 {
+		return nil
+	} else if amountCompareWithZeao < 0 {
 		return errAmountLessThanZero
 	}
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
@@ -327,8 +332,10 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	if err != nil {
 		return err
 	}
-	if amount.Cmp(common.Big0) <= 0 {
+	if amount.Cmp(common.Big0) < 0 {
 		return errAmountLessThanZero
+	} else if amount.Cmp(common.Big0) == 0 {
+		return nil
 	}
 	if info.StakingAmount.Cmp(common.Big0) <= 0 {
 		rp.log.Error(errStakingAmountEmpty.Error(), "account", account.String(), "Debt", info.StakingAmount, "slashing", amount)
