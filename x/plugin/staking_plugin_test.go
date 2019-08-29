@@ -933,7 +933,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 			// TODO Must be this
 			if xutil.IsElection(header.Number.Uint64()) {
-				err = StakingInstance().Election(curr_Hash, header)
+				err = StakingInstance().Election(curr_Hash, header, state)
 				if nil != err {
 					t.Errorf("Failed to Election, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
 					return
@@ -1446,7 +1446,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = StakingInstance().HandleUnCandidateItem(state, blockHash2, epoch+xcom.UnStakeFreezeRatio())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.UnStakeFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnCandidateItem:", err)
 		return
@@ -1979,7 +1979,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	/**
 	Start HandleUnDelegateItem
 	*/
-	err = StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
+	err = StakingInstance().HandleUnDelegateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
 	if nil != err {
 		t.Error("Failed to HandleUnDelegateItem:", err)
 		return
@@ -2375,7 +2375,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		Nonce:      types.EncodeNonce(currNonce),
 	}
 
-	err = StakingInstance().Election(blockHash2, header)
+	err = StakingInstance().Election(blockHash2, header, state)
 	if nil != err {
 		t.Errorf("Failed to Election, err: %v", err)
 	}
@@ -2554,7 +2554,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Released, false, staking.LowRatio, common.ZeroAddr)
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Released, staking.LowRatio, common.ZeroAddr)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates first can (LowRatio), err: %v", err)
 		return
@@ -2563,7 +2563,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
 
 	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DuplicateSign, caller)
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, staking.DuplicateSign, caller)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err)
 		return
@@ -5714,7 +5714,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	for index, v := range vqList {
 		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight, "nonce", hex.EncodeToString(preNonces[index]))
 	}
-	result, err := StakingInstance().ProbabilityElection(vqList, currentNonce, preNonces)
+	result, err := StakingInstance().ProbabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
 	if nil != err {
 		t.Fatal("Failed to ProbabilityElection, err:", err)
 		return

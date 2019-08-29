@@ -3,6 +3,8 @@ package restricting
 import (
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
@@ -36,16 +38,16 @@ type RestrictingPlan struct {
 
 // for plugin test
 type ReleaseAmountInfo struct {
-	Height uint64   `json:"blockNumber"` // blockNumber representation of the block number at the released epoch
-	Amount *big.Int `json:"amount"`      // amount representation of the released amount
+	Height uint64       `json:"blockNumber"` // blockNumber representation of the block number at the released epoch
+	Amount *hexutil.Big `json:"amount"`      // amount representation of the released amount
 }
 
 // for plugin test
 type Result struct {
-	Balance *big.Int            `json:"balance"`
-	Debt    *big.Int            `json:"debt"`
+	Balance *hexutil.Big        `json:"balance"`
+	Debt    *hexutil.Big        `json:"debt"`
 	Entry   []ReleaseAmountInfo `json:"plans"`
-	Pledge  *big.Int            `json:"Pledge"`
+	Pledge  *hexutil.Big        `json:"Pledge"`
 }
 
 type EpochInfo struct {

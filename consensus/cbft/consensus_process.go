@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -21,17 +25,35 @@ import (
 
 // OnPrepareBlock performs security rule verification，store in blockTree,
 // Whether to start synchronization
-func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleError {
+func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
+
+		if err.Common() {
+			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
+			return err
+		}
+		// verify consensus signature
+		if err := cbft.verifyConsensusSign(msg); err != nil {
+			signatureCheckFailureMeter.Mark(1)
+			return err
+		}
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
-			return &handleError{err}
-		} else if err.NewView() {
+			return err
+		}
+		if err.FetchPrepare() {
+			cbft.prepareBlockFetchRules(id, msg)
+			return err
+		}
+		if err.NewView() {
 			var block *types.Block
 			var qc *ctypes.QuorumCert
 			if msg.ViewChangeQC != nil {
+				if e := cbft.verifyViewChangeQC(msg.ViewChangeQC); e != nil {
+					return e
+				}
 				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
 			} else {
@@ -39,9 +61,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 			}
 			cbft.log.Debug("Receive new view's block, change view", "newEpoch", msg.Epoch, "newView", msg.ViewNumber)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
-		} else {
-			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-			return &handleError{err}
 		}
 	}
 
@@ -49,50 +68,49 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) HandleE
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		signatureCheckFailureMeter.Mark(1)
-		return &authFailedError{err}
+		return err
 	}
 
 	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
-			return &handleError{err}
+			return err
 		}
 	}
 
 	// The new block is notified by the PrepareBlockHash to the nodes in the network.
 	cbft.state.AddPrepareBlock(msg)
-	cbft.prepareBlockFetchRules(id, msg)
 	cbft.findExecutableBlock()
 	return nil
 }
 
 // OnPrepareVote perform security rule verification，store in blockTree,
 // Whether to start synchronization
-func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleError {
+func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
+		// verify consensus signature
+		if cbft.verifyConsensusSign(msg) != nil {
+			signatureCheckFailureMeter.Mark(1)
+			return err
+		}
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+		} else if err.FetchPrepare() {
+			cbft.prepareVoteFetchRules(id, msg)
 		}
-		return &handleError{err}
+		return err
 	}
-
-	if cbft.state.FindPrepareVote(msg.BlockIndex, msg.ValidatorIndex) != nil {
-		cbft.log.Debug("Prepare vote has exist", "vote", msg.String())
-		return &handleError{errors.New("prepare vote has exist")}
-	}
-
-	cbft.prepareVoteFetchRules(id, msg)
 
 	var node *cbfttypes.ValidateNode
 	var err error
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return authFailedError{err}
+		return err
 	}
 
 	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
 			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
-			return &handleError{err}
+			return err
 		}
 	}
 
@@ -106,26 +124,26 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) HandleErr
 }
 
 // OnViewChange performs security rule verification, view switching.
-func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) HandleError {
+func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	cbft.log.Debug("Receive ViewChange", "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
-		return &handleError{err}
+		return err
 	}
 
 	var node *cbfttypes.ValidateNode
 	var err error
 
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
-		return authFailedError{err}
+		return err
 	}
 
 	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
 		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
 			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
-			return &handleError{err}
+			return err
 		}
 	}
 
@@ -229,7 +247,7 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			return false
 		}
 		hasExecuted := func() bool {
-			if cbft.validatorPool.IsValidator(qc.BlockNumber, cbft.config.Option.NodeID) {
+			if cbft.validatorPool.IsValidator(qc.Epoch, cbft.config.Option.NodeID) {
 				return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) && linked(qc.BlockNumber)
 			} else if cbft.validatorPool.IsCandidateNode(cbft.config.Option.NodeID) {
 				blockIndex, finish := cbft.state.Executing()
@@ -278,7 +296,7 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 	// todo sign vote
 	// parentQC added when sending
 	// Determine if the current consensus node is
-	node, err := cbft.validatorPool.GetValidatorByNodeID(number, cbft.config.Option.NodeID)
+	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
 	if err != nil {
 		return err
 	}
@@ -307,6 +325,12 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 // determine whether the parent block has reached QC,
 // and send a signature if it is reached, otherwise exit the sending logic.
 func (cbft *Cbft) trySendPrepareVote() {
+	// Check timeout
+	if cbft.state.IsDeadline() {
+		cbft.log.Debug("Current view had timeout, Refuse to send prepareVotes")
+		return
+	}
+
 	pending := cbft.state.PendingPrepareVote()
 	hadSend := cbft.state.HadSendPrepareVote()
 
@@ -328,7 +352,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			p.ParentQC = qc
 			hadSend.Push(p)
 			//Determine if the current consensus node is
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(p.BlockNum(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
 			cbft.log.Debug("Add local prepareVote", "vote", p.String())
 			cbft.state.AddPrepareVote(uint32(node.Index), p)
 			pending.Pop()
@@ -432,7 +456,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
 		blockConfirmedMeter.Mark(1)
 	} else {
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
-		cbft.bridge.UpdateChainState(&protocols.State{qcBlock, qcQC}, nil, nil)
+		cbft.bridge.UpdateChainState(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, nil, nil)
 	}
 }
 
@@ -457,7 +481,7 @@ func (cbft *Cbft) tryChangeView() {
 	}()
 
 	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.eventMux); err == nil {
+		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.state.Epoch()+1, cbft.eventMux); err == nil {
 			cbft.log.Debug("Update validator success", "number", block.NumberU64())
 		}
 	}
@@ -486,7 +510,6 @@ func (cbft *Cbft) tryChangeView() {
 		viewChangeQC := cbft.generateViewChangeQC(cbft.state.AllViewChange())
 		cbft.tryChangeViewByViewChange(viewChangeQC)
 	}
-
 }
 
 func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
@@ -494,13 +517,28 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	_, _, blockEpoch, _, hash, number := viewChangeQC.MaxBlock()
+	_, _, blockEpoch, blockView, hash, number := viewChangeQC.MaxBlock()
 	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
-	_, hc := cbft.blockTree.FindBlockAndQC(hash, number)
-	if block.NumberU64() != 0 && (number > qc.BlockNumber) && hc == nil {
-		//fixme get qc block
-		cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
-		return
+	b, q := cbft.blockTree.FindBlockAndQC(hash, number)
+	if block.NumberU64() != 0 {
+		if number > qc.BlockNumber || !qc.HigherBlockView(blockEpoch, blockView) {
+			if q == nil {
+				//fixme get qc block
+				cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+				return
+			}
+			block = b
+			qc = q
+			cbft.state.SetHighestQCBlock(block)
+		} else if number < qc.BlockNumber || qc.HigherBlockView(blockEpoch, blockView) {
+			cbft.log.Debug("Local node is ahead other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+			cert, err := cbft.generateViewChangeQuorumCert(qc)
+			cbft.log.Debug("New viewChange quorumCert", "cert", cert.String())
+			if err != nil {
+				return
+			}
+			viewChangeQC.QCs = append(viewChangeQC.QCs, cert)
+		}
 	}
 
 	if cbft.validatorPool.EqualSwitchPoint(number) && blockEpoch == cbft.state.Epoch() {
@@ -511,14 +549,60 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 	}
 }
 
+func (cbft *Cbft) generateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.ViewChangeQuorumCert, error) {
+	node, err := cbft.isCurrentValidator()
+	if err != nil {
+		return nil, errors.Wrap(err, "local node is not validator")
+	}
+	v := &protocols.ViewChange{
+		Epoch:          cbft.state.Epoch(),
+		ViewNumber:     cbft.state.ViewNumber(),
+		BlockHash:      qc.BlockHash,
+		BlockNumber:    qc.BlockNumber,
+		ValidatorIndex: uint32(node.Index),
+		PrepareQC:      qc,
+	}
+	if err := cbft.signMsgByBls(v); err != nil {
+		return nil, errors.Wrap(err, "Sign ViewChange failed")
+	}
+
+	total := uint32(cbft.validatorPool.Len(cbft.state.Epoch()))
+	var aggSig bls.Sign
+	if err := aggSig.Deserialize(v.Sign()); err != nil {
+		return nil, err
+	}
+	cert := &ctypes.ViewChangeQuorumCert{
+		Epoch:           cbft.state.Epoch(),
+		ViewNumber:      cbft.state.ViewNumber(),
+		BlockHash:       qc.BlockHash,
+		BlockNumber:     qc.BlockNumber,
+		BlockEpoch:      qc.Epoch,
+		BlockViewNumber: qc.ViewNumber,
+		ValidatorSet:    utils.NewBitArray(total),
+	}
+	cert.Signature.SetBytes(aggSig.Serialize())
+	cert.ValidatorSet.SetIndex(node.Index, true)
+	return cert, nil
+}
+
 // change view
 func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
 	interval := func() uint64 {
-		if block.NumberU64() == 0 || qc.ViewNumber+1 != viewNumber {
-			return 1
+		if block.NumberU64() == 0 {
+			return viewNumber - state.DefaultViewNumber + 1
 		}
-		return uint64(cbft.config.Sys.Amount - qc.BlockIndex)
+		if qc.ViewNumber+1 == viewNumber {
+			return uint64((cbft.config.Sys.Amount-qc.BlockIndex)/3) + 1
+		}
+		minuend := qc.ViewNumber
+		if qc.Epoch != epoch {
+			minuend = state.DefaultViewNumber
+		}
+		return viewNumber - minuend
 	}
+	// syncingCache is belong to last view request, clear all sync cache
+	cbft.syncingCache.Purge()
+
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
 	cbft.state.SetLastViewChangeQC(viewChangeQC)
@@ -546,16 +630,15 @@ func (cbft *Cbft) clearInvalidBlocks(newBlock *types.Block) {
 		if p.BlockNumber > newBlock.NumberU64() {
 			block := cbft.state.ViewBlockByIndex(p.BlockIndex)
 			rollback = append(rollback, block)
-			cbft.blockCacheWriter.ClearCache(block)
 		}
 	}
 	for _, p := range cbft.state.PendingPrepareVote().Peek() {
 		if p.BlockNumber > newBlock.NumberU64() {
 			block := cbft.state.ViewBlockByIndex(p.BlockIndex)
 			rollback = append(rollback, block)
-			cbft.blockCacheWriter.ClearCache(block)
 		}
 	}
+	cbft.blockCacheWriter.ClearCache(cbft.state.HighestCommitBlock())
 
 	//todo proposer is myself
 	cbft.txPool.ForkedReset(newHead, rollback)

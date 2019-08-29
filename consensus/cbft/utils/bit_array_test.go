@@ -267,7 +267,7 @@ func TestPickRandom(t *testing.T) {
 	assert.Equal(t, isExists, false)
 
 	bA1, _ := randBitArray(51)
-	i, isExists = bA1.PickRandom()
+	i, _ = bA1.PickRandom()
 	assert.NotEqual(t, i, uint32(0))
 	assert.NotEqual(t, i, true)
 }

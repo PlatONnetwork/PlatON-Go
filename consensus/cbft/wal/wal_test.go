@@ -27,6 +27,9 @@ func TestWal(t *testing.T) {
 	tempDir, _ = ioutil.TempDir("", "wal")
 	defer os.RemoveAll(tempDir)
 
+	// Test UpdateViewChangeQC
+	testWalUpdateViewChangeQC(t)
+
 	// Test Wal UpdateChainState
 	chainStateW, err := testWalUpdateChainState()
 	if err != nil {
@@ -128,6 +131,31 @@ func testWalUpdateViewChange() error {
 		Epoch:      epoch,
 		ViewNumber: viewNumber,
 	})
+}
+
+func testWalUpdateViewChangeQC(t *testing.T) {
+	// UpdateViewChangeQC
+	var i, j uint64
+	// write
+	for i = 0; i < 20; i++ {
+		for j = 0; j < 25; j++ {
+			getWal().UpdateViewChangeQC(i, j, buildViewChangeQC())
+			_, err := getWal().GetViewChangeQC(i, j)
+			assert.Nil(t, err)
+		}
+	}
+	// get
+	for i = 0; i < 20; i++ {
+		for j = 0; j < 25; j++ {
+			if i == 19 { // last epoch
+				_, err := getWal().GetViewChangeQC(i, j)
+				assert.Nil(t, err)
+			} else {
+				_, err := getWal().GetViewChangeQC(i, j)
+				assert.NotNil(t, err)
+			}
+		}
+	}
 }
 
 func testWalWrite() (int, error) {

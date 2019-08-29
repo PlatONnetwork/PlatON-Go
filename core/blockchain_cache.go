@@ -198,11 +198,23 @@ func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, err
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) ClearCache(block *types.Block) {
-	log.Debug("Clear Cache block", "sealHash", block.Header().SealHash(), "blockHash", block.Hash())
-	sealHash := block.Header().SealHash()
-	bcc.clearReceipts(sealHash)
-	bcc.clearStateDB(sealHash)
-	bcc.executed.Delete(sealHash)
+	baseNumber := block.NumberU64()
+	if baseNumber < 1 {
+		return
+	}
+	log.Debug("Clear cache", "baseBlockHash", block.Hash(), "baseBlockNumber", baseNumber)
+
+	bcc.executed.Range(func(key, value interface{}) bool {
+		number := value.(uint64)
+		if number < baseNumber-1 {
+			sealHash := key.(common.Hash)
+			bcc.clearReceipts(sealHash)
+			bcc.clearStateDB(sealHash)
+			bcc.executed.Delete(sealHash)
+			log.Debug("Clear Cache block", "sealHash", sealHash, "number", number)
+		}
+		return true
+	})
 }
 
 func (bcc *BlockChainCache) StateDBString() string {

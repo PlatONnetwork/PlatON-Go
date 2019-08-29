@@ -419,6 +419,7 @@ func (s *snapshotDB) Compaction() error {
 		}
 		itr.Release()
 	}
+	logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number)
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		logger.Error("write to baseDB fail", "err", err)
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
@@ -429,10 +430,6 @@ func (s *snapshotDB) Compaction() error {
 		return errors.New("[SnapshotDB]update to current fail:" + err.Error())
 	}
 	s.committed = s.committed[commitNum:len(s.committed)]
-	if err := s.removeJournalLessThanBaseNum(); err != nil {
-		logger.Error("remove journal less than baseNum fail", "err", err)
-		return errors.New("[SnapshotDB]remove journal less than baseNum fail:" + err.Error())
-	}
 	return nil
 }
 
