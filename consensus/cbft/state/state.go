@@ -268,8 +268,8 @@ func newView() *view {
 	}
 }
 func (v *view) Reset() {
-	v.epoch = 0
-	v.viewNumber = 0
+	atomic.StoreUint64(&v.epoch, 0)
+	atomic.StoreUint64(&v.viewNumber, 0)
 	v.executing.BlockIndex = math.MaxUint32
 	v.executing.Finish = false
 	v.viewChanges.clear()
@@ -281,11 +281,11 @@ func (v *view) Reset() {
 }
 
 func (v *view) ViewNumber() uint64 {
-	return v.viewNumber
+	return atomic.LoadUint64(&v.viewNumber)
 }
 
 func (v *view) Epoch() uint64 {
-	return v.epoch
+	return atomic.LoadUint64(&v.epoch)
 }
 
 func (v *view) MarshalJSON() ([]byte, error) {
@@ -302,8 +302,8 @@ func (v *view) MarshalJSON() ([]byte, error) {
 		ViewVotes          *viewVotes           `json:"view_votes"`
 	}
 	vv := &view{
-		Epoch:              v.epoch,
-		ViewNumber:         v.viewNumber,
+		Epoch:              atomic.LoadUint64(&v.epoch),
+		ViewNumber:         atomic.LoadUint64(&v.viewNumber),
 		Executing:          v.executing,
 		ViewChanges:        v.viewChanges,
 		LastViewChangeQC:   v.lastViewChangeQC,
@@ -401,20 +401,20 @@ func NewViewState(period uint64) *ViewState {
 
 func (vs *ViewState) ResetView(epoch uint64, viewNumber uint64) {
 	vs.view.Reset()
-	vs.view.epoch = epoch
-	vs.view.viewNumber = viewNumber
+	atomic.StoreUint64(&vs.view.epoch, epoch)
+	atomic.StoreUint64(&vs.view.viewNumber, viewNumber)
 }
 
 func (vs *ViewState) Epoch() uint64 {
-	return vs.view.epoch
+	return vs.view.Epoch()
 }
 
 func (vs *ViewState) ViewNumber() uint64 {
-	return vs.view.viewNumber
+	return vs.view.ViewNumber()
 }
 
 func (vs *ViewState) ViewString() string {
-	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d}", vs.view.epoch, vs.view.viewNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d}", atomic.LoadUint64(&vs.view.epoch), atomic.LoadUint64(&vs.view.viewNumber))
 }
 func (vs *ViewState) Deadline() time.Time {
 	return vs.viewTimer.deadline
@@ -430,6 +430,10 @@ func (vs *ViewState) NextViewBlockIndex() uint32 {
 
 func (vs *ViewState) MaxQCIndex() uint32 {
 	return vs.view.viewQCs.maxQCIndex()
+}
+
+func (vs *ViewState) ViewVoteSize() int {
+	return len(vs.viewVotes.Votes)
 }
 
 func (vs *ViewState) PrepareVoteLenByIndex(index uint32) int {
@@ -458,6 +462,7 @@ func (vs *ViewState) PrepareBlockByIndex(index uint32) *protocols.PrepareBlock {
 func (vs *ViewState) ViewBlockSize() int {
 	return len(vs.viewBlocks.Blocks)
 }
+
 func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
 	return vs.view.hadSendPrepareVote
 }
@@ -535,6 +540,10 @@ func (vs *ViewState) AddViewChange(id uint32, vote *protocols.ViewChange) {
 	vs.view.viewChanges.addViewChange(id, vote)
 }
 
+func (vs *ViewState) ViewChangeByIndex(index uint32) *protocols.ViewChange {
+	return vs.view.viewChanges.ViewChanges[index]
+}
+
 func (vs *ViewState) ViewChangeLen() int {
 	return vs.view.viewChanges.len()
 }
@@ -550,7 +559,7 @@ func (vs *ViewState) HighestBlockString() string {
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
-	if (vs.executing.BlockIndex == 0 && vs.executing.Finish == false) ||
+	if (vs.executing.BlockIndex == 0 && !vs.executing.Finish) ||
 		vs.executing.BlockIndex == math.MaxUint32 {
 		return vs.HighestQCBlock()
 	}

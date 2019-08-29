@@ -50,7 +50,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
 			for i, block := range blockList.Blocks {
-				if err := cbft.verifyPrepareQC(blockList.QC[i]); err != nil {
+				if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
 					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
@@ -90,9 +90,7 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 		for i := uint32(0); i < pb.BlockIndex; i++ {
 			b, _ := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
-				cbft.network.Send(id, msg)
-				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
 			}
 		}
 	}
@@ -105,13 +103,9 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		for i := uint32(0); i < vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: i}
-				cbft.network.Send(id, msg)
-				cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
-			} else if q != nil {
-				msg := &protocols.GetBlockQuorumCert{BlockHash: b.Hash(), BlockNumber: b.NumberU64()}
-				cbft.network.Send(id, msg)
-				cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
+				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
+			} else if q == nil {
+				cbft.SyncBlockQuorumCert(id, b.NumberU64(), b.Hash())
 			}
 		}
 	}
@@ -150,7 +144,13 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block already exists")
 	}
 
-	if err := cbft.verifyPrepareQC(msg.BlockQC); err != nil {
+	// If blockQC comes the block must exist
+	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
+	if block == nil {
+		cbft.log.Debug("Block not exist", "msg", msg.String())
+		return fmt.Errorf("block not exist")
+	}
+	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), msg.BlockQC); err != nil {
 		return &authFailedError{err}
 	}
 
@@ -203,25 +203,21 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) err
 // PrepareVotes message to the sender.
 func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
 	cbft.log.Debug("Received message on OnGetPrepareVote", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
-	// Get all the received PrepareVote of the block according to the index
-	// position of the block in the view.
-	prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
-
-	// Defining an array for receiving PrepareVote.
-	votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
-	if prepareVoteMap != nil {
-		for k, v := range prepareVoteMap {
-			if !msg.VoteBits.GetIndex(k) {
-				votes = append(votes, v)
+	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
+		// Defining an array for receiving PrepareVote.
+		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
+		if prepareVoteMap != nil {
+			for k, v := range prepareVoteMap {
+				if msg.UnKnownSet.GetIndex(k) {
+					votes = append(votes, v)
+				}
 			}
 		}
-	} else {
-		// Is it necessary to obtain the PrepareVotes from the blockchain
-		// when it is not in the memory?
-	}
-	if len(votes) != 0 {
-		cbft.network.Send(id, &protocols.PrepareVotes{BlockHash: msg.BlockHash, BlockNumber: msg.BlockNumber, Votes: votes})
-		cbft.log.Debug("Send PrepareVotes", "peer", id, "hash", msg.BlockHash, "number", msg.BlockNumber)
+		if len(votes) > 0 {
+			cbft.network.Send(id, &protocols.PrepareVotes{Epoch: msg.Epoch, ViewNumber: msg.ViewNumber, BlockIndex: msg.BlockIndex, Votes: votes})
+			cbft.log.Debug("Send PrepareVotes", "peer", id, "epoch", msg.Epoch, "viewNumber", msg.ViewNumber, "blockIndex", msg.BlockIndex)
+		}
 	}
 	return nil
 }
@@ -231,7 +227,9 @@ func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 	cbft.log.Debug("Received message on OnPrepareVotes", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, vote := range msg.Votes {
 		if err := cbft.OnPrepareVote(id, vote); err != nil {
-			cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+			if e, ok := err.(HandleError); ok && e.AuthFailed() {
+				cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+			}
 			return err
 		}
 	}
@@ -303,12 +301,8 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		block := cbft.state.ViewBlockByIndex(msg.BlockIndex)
 		if block == nil {
-			cbft.log.Debug("Send GetPrepareBlock", "peer", id, "block", msg.String())
-			cbft.network.Send(id, &protocols.GetPrepareBlock{
-				Epoch:      msg.Epoch,
-				ViewNumber: msg.ViewNumber,
-				BlockIndex: msg.BlockIndex,
-			})
+			cbft.network.RemoveMessageHash(id, msg.MsgHash())
+			cbft.SyncPrepareBlock(id, msg.Epoch, msg.ViewNumber, msg.BlockIndex)
 		}
 	}
 	return nil
@@ -327,8 +321,12 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		return msg.ViewNumber == localViewNumber && msg.Epoch == localEpoch
 	}
 
-	isNextView := func() bool {
+	isLastView := func() bool {
 		return msg.ViewNumber+1 == localViewNumber || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
+	}
+
+	isPreviousView := func() bool {
+		return msg.Epoch == localEpoch && msg.ViewNumber+1 < localViewNumber
 	}
 
 	if isEqualLocalView() {
@@ -347,7 +345,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		return nil
 	}
 	// Return view QC in the case of less than 1.
-	if isNextView() {
+	if isLastView() {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
 			cbft.log.Error("Not found lastViewChangeQC")
@@ -362,6 +360,15 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 			ViewChangeQC: lastViewChangeQC,
 		})
 		return nil
+	}
+	// get previous viewChangeQC from wal db
+	if isPreviousView() {
+		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber); err == nil && qc != nil {
+			cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
+				ViewChangeQC: qc,
+			})
+			return nil
+		}
 	}
 
 	return fmt.Errorf("request is not match local view, local:%s,msg:%s", cbft.state.ViewString(), msg.String())
@@ -388,7 +395,9 @@ func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
 	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, v := range msg.VCs {
 		if err := cbft.OnViewChange(id, v); err != nil {
-			cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+			if e, ok := err.(HandleError); ok && e.AuthFailed() {
+				cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+			}
 			return err
 		}
 	}
@@ -425,6 +434,48 @@ func (cbft *Cbft) MissingViewChangeNodes() (v *protocols.GetViewChange, err erro
 			ViewNumber:     cbft.state.ViewNumber(),
 			ViewChangeBits: vbits,
 		}, nil
+	}
+	<-result
+	return
+}
+
+// MissingPrepareVote returns missing vote.
+func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) {
+	result := make(chan struct{})
+
+	cbft.asyncCallCh <- func() {
+		defer func() { result <- struct{}{} }()
+
+		begin := cbft.state.MaxQCIndex() + 1
+		end := cbft.state.NextViewBlockIndex()
+		len := cbft.currentValidatorLen()
+		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", len)
+
+		for i := begin; i < end; i++ {
+			size := cbft.state.PrepareVoteLenByIndex(i)
+			cbft.log.Debug("The length of prepare vote", "index", i, "size", size)
+
+			if size < cbft.threshold(len) { // need sync prepare votes
+				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
+				unKnownSet := utils.NewBitArray(uint32(len))
+				for i := uint32(0); i < unKnownSet.Size(); i++ {
+					if _, ok := knownVotes[i]; !ok {
+						unKnownSet.SetIndex(i, true)
+					}
+				}
+
+				v, err = &protocols.GetPrepareVote{
+					Epoch:      cbft.state.Epoch(),
+					ViewNumber: cbft.state.ViewNumber(),
+					BlockIndex: i,
+					UnKnownSet: unKnownSet,
+				}, nil
+				break
+			}
+		}
+		if v == nil {
+			err = fmt.Errorf("not need sync prepare vote")
+		}
 	}
 	<-result
 	return
@@ -533,4 +584,21 @@ func calAverage(latencyList *list.List) int64 {
 		return sum / counts
 	}
 	return 0
+}
+
+func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, blockIndex uint32) {
+	if cbft.syncingCache.AddOrReplace(blockIndex) {
+		msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
+		cbft.network.Send(id, msg)
+		cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+	}
+}
+
+func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash) {
+	if cbft.syncingCache.AddOrReplace(blockHash) {
+		msg := &protocols.GetBlockQuorumCert{BlockHash: blockHash, BlockNumber: blockNumber}
+		cbft.network.Send(id, msg)
+		cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
+	}
+
 }
