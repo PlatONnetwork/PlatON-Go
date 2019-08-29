@@ -155,9 +155,12 @@ var (
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(101),
 		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(2675000),
+		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialMainNetConsensusNodes),
+			InitialNodes:  convertNodeUrl(initialMainNetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        10000,
 		},
 		VMInterpreter: "wasm",
 	}
