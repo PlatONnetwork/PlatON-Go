@@ -325,6 +325,12 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 // determine whether the parent block has reached QC,
 // and send a signature if it is reached, otherwise exit the sending logic.
 func (cbft *Cbft) trySendPrepareVote() {
+	// Check timeout
+	if cbft.state.IsDeadline() {
+		cbft.log.Debug("Current view had timeout, Refuse to send prepareVotes")
+		return
+	}
+
 	pending := cbft.state.PendingPrepareVote()
 	hadSend := cbft.state.HadSendPrepareVote()
 
