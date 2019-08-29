@@ -69,3 +69,4 @@ crypto/bls/bls_linux_darwin/lib
 
 consensus/cbft/transactions.rlp
 consensus/cbft/transactions.rlp.new
+crypto/bls/bls_win
