@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"runtime"
 	"testing"
 	"time"
 
@@ -33,7 +32,7 @@ var (
 )
 
 func init() {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 }
 func TestThreshold(t *testing.T) {
 	f := &Cbft{}
@@ -48,16 +47,14 @@ func TestThreshold(t *testing.T) {
 }
 
 func TestBls(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	num := 4
 	pk, sk := GenerateKeys(num)
 	owner := sk[0]
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		if runtime.GOOS != "windows" {
-			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-		}
+		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 	}
 
 	agency := validator.NewStaticAgency(nodes)
@@ -82,9 +79,8 @@ func TestAgg(t *testing.T) {
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		if runtime.GOOS != "windows" {
-			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-		}
+		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+
 	}
 
 	agency := validator.NewStaticAgency(nodes[0:num])

@@ -301,6 +301,7 @@ func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash)
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		block := cbft.state.ViewBlockByIndex(msg.BlockIndex)
 		if block == nil {
+			cbft.network.RemoveMessageHash(id, msg.MsgHash())
 			cbft.SyncPrepareBlock(id, msg.Epoch, msg.ViewNumber, msg.BlockIndex)
 		}
 	}

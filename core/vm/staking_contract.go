@@ -48,6 +48,7 @@ const (
 	DescriptionLenErrStr     = "The Description length is wrong"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
 	WithdrewDelegateErrStr   = "Withdrew delegate failed"
+	WrongBlsPubKeyStr        = "The bls public key length is wrong"
 )
 
 const (
@@ -114,7 +115,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
-		"from", from.Hex())
+		"from", from.Hex(), "blsPubKey", blsPubKey)
 
 	// todo test
 	xcom.PrintEc(blockNumber, blockHash)
@@ -128,8 +129,18 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return nil, nil
 	}
 
+	blslen := 192
+
+	//  the bls public key length must be 128 char
+	if len(blsPubKey) != blslen {
+		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), blslen)}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+		return event, nil
+	}
+
 	// validate programVersion sign
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(common.Uint32ToBytes(programVersion), programVersionSign.Bytes(), nodeId) {
+	if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
 		res := xcom.Result{false, "", ProgramVersionSignErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")

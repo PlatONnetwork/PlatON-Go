@@ -18,8 +18,6 @@ package miner
 
 import (
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -395,7 +393,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
-			w.blockChainCache.ClearCache(head.Block)
 
 			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
 			current := w.commitWorkEnv.getCurrentBaseBlock()
@@ -1194,11 +1191,11 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	//	return nil
 	//}
 
-	// TODO test
+	/*// TODO test
 	for _, r := range w.current.receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}
+	}*/
 
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
@@ -1207,17 +1204,18 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		*receipts[i] = *l
 	}
 
-	// todo test
+	/*// todo test
 	root := w.current.state.IntermediateRoot(true)
 	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))*/
 
 	s := w.current.state.Copy()
 
-	// todo test
+	/*// todo test
 	root = s.IntermediateRoot(true)
 	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
 		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
+	*/
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
@@ -1226,11 +1224,11 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		return err
 	}
 
-	// TODO test
+	/*// TODO test
 	for _, r := range receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}
+	}*/
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {

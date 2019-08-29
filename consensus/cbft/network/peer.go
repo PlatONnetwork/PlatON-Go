@@ -188,6 +188,11 @@ func (p *peer) ContainsMessageHash(hash common.Hash) bool {
 	return p.knownMessageHash.Contains(hash)
 }
 
+// RemoveMessageHash remove the msg from knownMessageHash.
+func (p *peer) RemoveMessageHash(hash common.Hash) {
+	p.knownMessageHash.Remove(hash)
+}
+
 // Close terminates the running state of the peer.
 func (p *peer) Close() {
 	close(p.term)

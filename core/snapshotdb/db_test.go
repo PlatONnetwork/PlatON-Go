@@ -10,10 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func TestRecover(t *testing.T) {
+	ch := new(testchain)
+	blockchain = ch
 	os.RemoveAll(dbpath)
 	if err := initDB(); err != nil {
 		t.Error(err)
@@ -21,78 +25,50 @@ func TestRecover(t *testing.T) {
 	}
 	defer dbInstance.Clear()
 	var (
-		recognizedHash                                       = generateHash("recognizedHash")
-		parenthash                                           common.Hash
 		baseDBArr, commitArr, recognizedArr, unrecognizedArr []kv
 		base, high                                           int64
-		commit, recognized, unrecognized                     *blockData
+		commit, recognized                                   *blockData
 	)
 	{
-		commitHash := recognizedHash
-		var str string
-		for i := 0; i < 4; i++ {
-			str += "a"
-			baseDBArr = append(baseDBArr, kv{key: []byte(str), value: []byte(str)})
-		}
-		baseDBArr = append(baseDBArr, kv{key: []byte("d"), value: []byte("d")})
-		if err := newBlockBaseDB(big.NewInt(1), parenthash, commitHash, baseDBArr); err != nil {
+		baseDBArr = generatekv(100)
+		ch.addBlock()
+		if err := newBlockBaseDB(ch.CurrentHeader(), baseDBArr); err != nil {
 			t.Error(err)
 			return
 		}
-		parenthash = commitHash
 	}
 	{
-		commitHash := generateHash("recognizedHash3")
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "c"
-			commitArr = append(commitArr, kv{key: []byte(str), value: []byte(str)})
-		}
-		commitArr = append(commitArr, kv{key: []byte("ddd"), value: []byte("ddd")})
-		if err := newBlockCommited(big.NewInt(2), parenthash, commitHash, commitArr); err != nil {
+		commitArr = generatekv(100)
+		ch.addBlock()
+		if err := newBlockCommited(ch.CurrentHeader(), commitArr); err != nil {
 			t.Error(err)
 			return
 		}
 		commit = dbInstance.committed[0]
-		parenthash = commitHash
 	}
 	{
-		commitHash := generateHash("recognizedHash4")
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "e"
-			recognizedArr = append(recognizedArr, kv{key: []byte(str), value: []byte(str)})
-		}
-		recognizedArr = append(recognizedArr, kv{key: []byte("ee"), value: []byte("ee")})
-
-		if err := newBlockRecognizedDirect(big.NewInt(3), parenthash, commitHash, recognizedArr); err != nil {
+		recognizedArr = generatekv(100)
+		ch.addBlock()
+		if err := newBlockRecognizedDirect(ch.CurrentHeader(), recognizedArr); err != nil {
 			t.Error(err)
 			return
 		}
 
-		rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
+		rg, ok := dbInstance.unCommit.blocks[ch.CurrentHeader().Hash()]
 		if !ok {
 			t.Error("not found recognizedHash4")
 		}
 		recognized = rg
-		parenthash = commitHash
 	}
 	{
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "f"
-			unrecognizedArr = append(unrecognizedArr, kv{key: []byte(str), value: []byte(str)})
-		}
-		unrecognizedArr = append(unrecognizedArr, kv{key: []byte("ff"), value: []byte("ff")})
-
-		if err := newBlockUnRecognized(big.NewInt(4), parenthash, unrecognizedArr); err != nil {
+		unrecognizedArr = generatekv(100)
+		if err := newBlockUnRecognized(ch.CurrentHeader(), unrecognizedArr); err != nil {
 			t.Error(err)
 			return
 		}
-		unrecognized = dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()]
 	}
 	base = dbInstance.current.BaseNum.Int64()
-	high = dbInstance.current.HighestNum.Int64()
+	high = ch.CurrentHeader().Number.Int64()
 	if err := dbInstance.Close(); err != nil {
 		t.Error(err)
 	}
@@ -133,6 +109,10 @@ func TestRecover(t *testing.T) {
 		t.Error("current path is wrong", dbInstance.current.path, getCurrentPath(dbpath))
 		return
 	}
+	if len(dbInstance.unCommit.blocks) != 0 {
+		t.Error("recover uncommit should empty", len(dbInstance.unCommit.blocks))
+		return
+	}
 	for _, value := range baseDBArr {
 		v, err := dbInstance.baseDB.Get(value.key, nil)
 		if err != nil {
@@ -145,32 +125,22 @@ func TestRecover(t *testing.T) {
 		}
 	}
 	oldarr := []*blockData{
-		unrecognized,
 		recognized,
 		commit,
 	}
-	rg, ok := dbInstance.unCommit.blocks[generateHash("recognizedHash4")]
-	if !ok {
-		t.Error("recognizedHash4 not found")
-	}
-	rg2 := rg
 	newarr := []*blockData{
-		dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()],
-		rg2,
+		dbInstance.committed[1],
 		dbInstance.committed[0],
 	}
+	if len(dbInstance.committed) != 2 {
+		t.Error("should recover commit ", len(dbInstance.committed))
+		return
+	}
 
-	for i := 0; i < 3; i++ {
-		if i == 0 {
-			if newarr[i].BlockHash != common.ZeroHash {
-				t.Error("unRecognized block hash must nil", i, newarr[i].BlockHash, oldarr[i].BlockHash)
-				return
-			}
-		} else {
-			if oldarr[i].BlockHash != newarr[i].BlockHash {
-				t.Error("block hash must compare", i, oldarr[i].BlockHash.String(), newarr[i].BlockHash.String())
-				return
-			}
+	for i := 0; i < 2; i++ {
+		if oldarr[i].BlockHash != newarr[i].BlockHash {
+			t.Error("block hash must compare", i, oldarr[i].BlockHash.String(), newarr[i].BlockHash.String())
+			return
 		}
 
 		if oldarr[i].ParentHash != newarr[i].ParentHash {
@@ -181,8 +151,8 @@ func TestRecover(t *testing.T) {
 			t.Error("kvHash  must compare", i)
 			return
 		}
-		if oldarr[i].readOnly != newarr[i].readOnly {
-			t.Error("readOnly  must compare", i, oldarr[i].readOnly, newarr[i].readOnly)
+		if !newarr[i].readOnly {
+			t.Error("readOnly  must true", i, newarr[i].readOnly)
 			return
 		}
 		itr := oldarr[i].data.NewIterator(nil)
@@ -199,109 +169,33 @@ func TestRecover(t *testing.T) {
 		}
 	}
 
-	if err := dbInstance.Put(common.ZeroHash, []byte("dddd"), []byte("dddd")); err != nil {
-		t.Error(err)
-	}
-	if err := dbInstance.Flush(generateHash("flush"), big.NewInt(4)); err != nil {
-		t.Error(err)
-	}
-	if err := dbInstance.Commit(generateHash("recognizedHash4")); err != nil {
-		t.Error(err)
-	}
-	if err := dbInstance.Compaction(); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestRMOldRecognizedBlockData(t *testing.T) {
+	ch := new(testchain)
+	blockchain = ch
 	initDB()
 	defer dbInstance.Clear()
-	var (
-		recognizedHash       = generateHash("recognizedHash")
-		parenthash           common.Hash
-		baseDBArr, commitArr []string
-	)
-	{
-		commitHash := recognizedHash
-		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
-			t.Error(err)
-			return
-		}
-		var str string
-		for i := 0; i < 4; i++ {
-			str += "a"
-			baseDBArr = append(baseDBArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-				return
-			}
-		}
-		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
-			t.Error(err)
-			return
-		}
-		if err := dbInstance.Commit(commitHash); err != nil {
-			t.Error(err)
-			return
-		}
-		parenthash = commitHash
-		dbInstance.Compaction()
+	ch.addBlock()
+	if err := newBlockBaseDB(ch.CurrentHeader(), generatekv(100)); err != nil {
+		t.Error(err)
 	}
-	{
-		commitHash := generateHash("recognizedHash3")
-		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
-			t.Error(err)
-		}
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "c"
-			commitArr = append(commitArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-			}
-		}
-		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
-			t.Error(err)
-		}
-		if err := dbInstance.Commit(commitHash); err != nil {
-			t.Error(err)
-		}
-		parenthash = commitHash
+	ch.addBlock()
+	if err := newBlockCommited(ch.CurrentHeader(), generatekv(100)); err != nil {
+		t.Error(err)
 	}
-	{
-		commitHash := generateHash("recognizedHash4")
-		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
-			t.Error(err)
-		}
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "c"
-			commitArr = append(commitArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-			}
-		}
-		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
-			t.Error(err)
-		}
+
+	ch.addBlock()
+	if err := newBlockRecognizedDirect(ch.currentForkHeader(), generatekv(100)); err != nil {
+		t.Error(err)
 	}
-	{
-		commitHash := generateHash("recognizedHash5")
-		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
-			t.Error(err)
-		}
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "c"
-			commitArr = append(commitArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-			}
-		}
-		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
-			t.Error(err)
-		}
+	if err := newBlockRecognizedDirect(ch.currentForkHeader(), generatekv(100)); err != nil {
+		t.Error(err)
 	}
+	if err := newBlockCommited(ch.CurrentHeader(), generatekv(100)); err != nil {
+		t.Error(err)
+	}
+
 	if err := dbInstance.rmOldRecognizedBlockData(); err != nil {
 		t.Error(err)
 	}
@@ -362,7 +256,10 @@ func generatekvWithPrefix(n int, p string) kvs {
 	return kvs
 }
 
-func newBlockBaseDB(blockNumber *big.Int, parentHash common.Hash, hash common.Hash, kvs []kv) error {
+func newBlockBaseDB(head *types.Header, kvs []kv) error {
+	hash := head.Hash()
+	blockNumber := head.Number
+	parentHash := head.ParentHash
 	if err := dbInstance.NewBlock(blockNumber, parentHash, hash); err != nil {
 		return err
 	}
@@ -377,7 +274,10 @@ func newBlockBaseDB(blockNumber *big.Int, parentHash common.Hash, hash common.Ha
 	return dbInstance.Compaction()
 }
 
-func newBlockCommited(blockNumber *big.Int, parentHash common.Hash, hash common.Hash, kvs []kv) error {
+func newBlockCommited(head *types.Header, kvs []kv) error {
+	hash := head.Hash()
+	blockNumber := head.Number
+	parentHash := head.ParentHash
 	if err := dbInstance.NewBlock(blockNumber, parentHash, hash); err != nil {
 		return err
 	}
@@ -392,7 +292,10 @@ func newBlockCommited(blockNumber *big.Int, parentHash common.Hash, hash common.
 	return nil
 }
 
-func newBlockRecognizedDirect(blockNumber *big.Int, parentHash common.Hash, hash common.Hash, kvs []kv) error {
+func newBlockRecognizedDirect(head *types.Header, kvs []kv) error {
+	hash := head.Hash()
+	blockNumber := head.Number
+	parentHash := head.ParentHash
 	if err := dbInstance.NewBlock(blockNumber, parentHash, hash); err != nil {
 		return err
 	}
@@ -404,14 +307,16 @@ func newBlockRecognizedDirect(blockNumber *big.Int, parentHash common.Hash, hash
 	return nil
 }
 
-func newBlockRecognizedByFlush(blockNumber *big.Int, parentHash common.Hash, hash common.Hash, kvs []kv) error {
-	if err := newBlockUnRecognized(blockNumber, parentHash, kvs); err != nil {
+func newBlockRecognizedByFlush(hash common.Hash, parentHead *types.Header, kvs []kv) error {
+	if err := newBlockUnRecognized(parentHead, kvs); err != nil {
 		return err
 	}
-	return dbInstance.Flush(hash, blockNumber)
+	return dbInstance.Flush(hash, new(big.Int).Add(parentHead.Number, common.Big1))
 }
 
-func newBlockUnRecognized(blockNumber *big.Int, parentHash common.Hash, kvs []kv) error {
+func newBlockUnRecognized(parentHead *types.Header, kvs []kv) error {
+	blockNumber := new(big.Int).Add(parentHead.Number, common.Big1)
+	parentHash := parentHead.Hash()
 	if err := dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash); err != nil {
 		return err
 	}
@@ -424,33 +329,37 @@ func newBlockUnRecognized(blockNumber *big.Int, parentHash common.Hash, kvs []kv
 }
 
 func TestCheckHashChain(t *testing.T) {
+	ch := new(testchain)
+	blockchain = ch
 	initDB()
 	defer dbInstance.Clear()
 
-	//1
-	if err := newBlockBaseDB(big.NewInt(1), generateHash(fmt.Sprint(0)), generateHash(fmt.Sprint(1)), generatekv(1)); err != nil {
+	ch.addBlock()
+	if err := newBlockBaseDB(ch.CurrentHeader(), generatekv(1)); err != nil {
 		t.Error(err)
 	}
 
 	//2-11
 	for i := 2; i < 11; i++ {
-		if err := newBlockCommited(big.NewInt(int64(i)), generateHash(fmt.Sprint(i-1)), generateHash(fmt.Sprint(i)), generatekv(1)); err != nil {
+		ch.addBlock()
+		if err := newBlockCommited(ch.CurrentHeader(), generatekv(1)); err != nil {
 			t.Error(err)
 		}
 	}
 	//12-20
 	for i := 11; i < 21; i++ {
-		if err := newBlockRecognizedDirect(big.NewInt(int64(i)), generateHash(fmt.Sprint(i-1)), generateHash(fmt.Sprint(i)), generatekv(1)); err != nil {
+		ch.addBlock()
+		if err := newBlockRecognizedDirect(ch.CurrentHeader(), generatekv(1)); err != nil {
 			t.Error(err)
 		}
 	}
 
-	if err := newBlockUnRecognized(big.NewInt(int64(21)), generateHash(fmt.Sprint(20)), generatekv(1)); err != nil {
+	if err := newBlockUnRecognized(ch.CurrentHeader(), generatekv(1)); err != nil {
 		t.Error(err)
 	}
 	t.Run("find from recognized", func(t *testing.T) {
 		for i := 11; i < 21; i++ {
-			location, ok := dbInstance.checkHashChain(generateHash(fmt.Sprint(i)))
+			location, ok := dbInstance.checkHashChain(ch.h[i-1].Hash())
 			if !ok {
 				t.Error("should be ok")
 			}
@@ -463,7 +372,7 @@ func TestCheckHashChain(t *testing.T) {
 
 	t.Run("find from commit", func(t *testing.T) {
 		for i := 2; i < 11; i++ {
-			location, ok := dbInstance.checkHashChain(generateHash(fmt.Sprint(i)))
+			location, ok := dbInstance.checkHashChain(ch.h[i-1].Hash())
 			if !ok {
 				t.Error("should be ok")
 			}

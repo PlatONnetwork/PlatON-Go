@@ -26,7 +26,7 @@ const (
 )
 
 func init() {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 }
 
 func TestPrepareRules(t *testing.T) {

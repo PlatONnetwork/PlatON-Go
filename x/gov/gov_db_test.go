@@ -188,7 +188,7 @@ func TestGovDB_SetVote(t *testing.T) {
 	proposal := getVerProposal(common.Hash{0x1})
 	SetProposal(proposal, statedb)
 
-	for _, node := range nodeIdTests {
+	for _, node := range voteValueList {
 		if nil != SetVote(proposal.ProposalID, node.VoteNodeID, node.VoteOption, statedb) {
 			t.Fatalf("set vote error...")
 		}
@@ -196,11 +196,11 @@ func TestGovDB_SetVote(t *testing.T) {
 
 	voteList, err := ListVoteValue(proposal.GetProposalID(), statedb)
 	if err != nil {
-		t.Fatalf("get vote list error, expect count：%d,get count:%d", len(nodeIdTests), len(voteList))
+		t.Fatalf("get vote list error, expect count：%d,get count:%d", len(voteValueList), len(voteList))
 	}
 
-	if len(voteList) != len(nodeIdTests) {
-		t.Fatalf("get vote list error, expect count：%d,get count:%d", len(nodeIdTests), len(voteList))
+	if len(voteList) != len(voteValueList) {
+		t.Fatalf("get vote list error, expect count：%d,get count:%d", len(voteValueList), len(voteList))
 	}
 
 	tallyResult := TallyResult{
@@ -239,7 +239,7 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 	}
 	proposal := getTxtProposal()
 
-	for _, node := range nodeIdTests {
+	for _, node := range voteValueList {
 		if err := AddActiveNode(blockhash, proposal.ProposalID, node.VoteNodeID); err != nil {
 			t.Fatalf("add active node error...%s", err)
 		}
@@ -248,8 +248,8 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 	if ids, err := GetActiveNodeList(blockhash, proposal.ProposalID); err != nil {
 		t.Fatalf("get active node list error...%s", err)
 	} else {
-		if len(ids) != len(nodeIdTests) {
-			t.Fatalf(" get active node list error, expect len:%d,get len:%d", len(nodeIdTests), len(ids))
+		if len(ids) != len(voteValueList) {
+			t.Fatalf(" get active node list error, expect len:%d,get len:%d", len(voteValueList), len(ids))
 		}
 	}
 
@@ -261,6 +261,30 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 		} else {
 			if len(ids) != 0 {
 				t.Fatalf(" get active node list after clear error, expect len:0,get len:%d", len(ids))
+			}
+		}
+	}
+}
+
+func TestGovDB_addAccuVerifiers(t *testing.T) {
+	Init()
+	defer snapdbTest.Clear()
+
+	proposalID := generateHash("pipID")
+
+	blockHash, e := newblock(snapdbTest, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+
+	if err := addAccuVerifiers(blockHash, proposalID, NodeIDList); err != nil {
+		t.Fatalf("addAccuVerifiers error...%s", err)
+	} else {
+		if nodeList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+			t.Fatalf("ListAccuVerifier error...%s", err)
+		} else {
+			if len(nodeList) != 4 {
+				t.Fatalf("node count error")
 			}
 		}
 	}
@@ -315,7 +339,7 @@ func getVerProposal(proposalId common.Hash) *VersionProposal {
 	}
 }
 
-var nodeIdTests = []VoteValue{
+var voteValueList = []VoteValue{
 	{
 		VoteNodeID: discover.MustHexID("0x1dd9d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
 		VoteOption: Yes,
@@ -336,6 +360,13 @@ var nodeIdTests = []VoteValue{
 		VoteNodeID: discover.MustHexID("0x1dd5d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439"),
 		VoteOption: Yes,
 	},
+}
+
+var NodeIDList = []discover.NodeID{
+	discover.MustHexID("5a942bc607d970259e203f5110887d6105cc787f7433c16ce28390fb39f1e67897b0fb445710cc836b89ed7f951c57a1f26a0940ca308d630448b5bd391a8aa6"),
+	discover.MustHexID("c453d29394e613e85999129b8fb93146d584d5a0be16f7d13fd1f44de2d01bae104878eba8e8f6b8d2c162b5a35d5939d38851f856e56186471dd7de57e9bfa9"),
+	discover.MustHexID("2c1733caf5c23086612a309f5ee8e76ca45455351f7cf069bcde59c07175607325cf2bf2485daa0fbf1f9cdee6eea246e5e00b9a0d0bfed0f02b37f3b0c70490"),
+	discover.MustHexID("e7edfb4f9c3e1fe0288ddcf0894535214fa03acea941c7360ccf90e86460aefa118ba9f2573921349c392cd1b5d4db90b4795ab353df3c915b2e8481d241ec57"),
 }
 
 func generateHash(n string) common.Hash {
