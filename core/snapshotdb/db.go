@@ -169,6 +169,11 @@ func (s *snapshotDB) recover(stor storage) error {
 			//			block.readOnly = true
 			s.committed = append(s.committed, block)
 		}
+		if fd.Num < baseNum {
+			if err := s.storage.Remove(fd); err != nil {
+				return err
+			}
+		}
 		//else if fd.Num > highestNum {
 		//	if UnRecognizedHash == fd.BlockHash {
 		//		//1. UnRecognized
@@ -194,27 +199,6 @@ func (s *snapshotDB) recover(stor storage) error {
 		//	}
 		//
 		//}
-	}
-	return nil
-}
-
-func (s *snapshotDB) removeJournalLessThanBaseNum() error {
-	fds, err := s.storage.List(TypeJournal)
-	if err != nil {
-		return err
-	}
-	for _, fd := range fds {
-		if fd.Num <= s.current.BaseNum.Uint64() {
-			if _, ok := s.unCommit.blocks[fd.BlockHash]; ok {
-				delete(s.unCommit.blocks, fd.BlockHash)
-			}
-			if err := s.closeJournalWriter(fd.BlockHash); err != nil {
-				return err
-			}
-			if err := s.storage.Remove(fd); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
