@@ -19,9 +19,11 @@ const (
 	######   ######   ######   ######
 	*/
 	Invalided     = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	LowRatio                  // 0010: The candidate was low package ratio
+	LowRatio                  // 0010: The candidate was low package ratio AND no delete
 	NotEnough                 // 0100: The current candidate's von does not meet the minimum staking threshold
 	DuplicateSign             // 1000: The Duplicate package or Duplicate sign
+	LowRatioDel               // 0001,0000: The lowRatio AND must delete
+	Withdrew                  // 0010,0000: The Active withdrew
 	Valided       = 0         // 0000: The current candidate is in force
 	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
@@ -76,6 +78,30 @@ func Is_Invalid_DuplicateSign(status uint32) bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
+func Is_LowRatioDel(status uint32) bool {
+	return status&LowRatioDel == LowRatioDel
+}
+
+func Is_PureLowRatioDel(status uint32) bool {
+	return status&LowRatioDel == status|LowRatioDel
+}
+
+func Is_Invalid_LowRatioDel(status uint32) bool {
+	return status&(Invalided|LowRatioDel) == (Invalided | LowRatioDel)
+}
+
+func Is_Withdrew(status uint32) bool {
+	return status&Withdrew == Withdrew
+}
+
+func Is_PureWithdrew(status uint32) bool {
+	return status&Withdrew == status|Withdrew
+}
+
+func Is_Invalid_Withdrew(status uint32) bool {
+	return status&(Invalided|Withdrew) == (Invalided | Withdrew)
+}
+
 // The Candidate info
 type Candidate struct {
 	NodeId discover.NodeID
@@ -111,6 +137,10 @@ type Candidate struct {
 	// Node desc
 	Description
 }
+
+//func (can *Candidate) ToString() string {
+//	return fmt.Sprintf(`{"NodeId": %s, "BlsPubKey": %s, }`)
+//}
 
 // Display amount field using 0x hex
 type CandidateHex struct {
@@ -373,12 +403,14 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 // it is slashed and is sorted to the front.
 //
 // The priorities just like that:
-// DuplicateSign > Status Invalid (usually lowratio and balance no enough) > ProgramVersion || LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+// Invalid > ProgramVersion > validaotorTerm  > Shares > BlockNumber > TxIndex
 //
-// DuplicateSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// What is the invalid ?  That are DuplicateSign and lowRatio&invalid and lowVersion and withdrew&NotInEpochValidators
+//
+//
+//
 // Invalid Status: From invalid to valid
 // ProgramVersion: From small to big
-// LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // validaotorTerm: From big to small
 // Shares： From small to big
 // BlockNumber: From big to small
@@ -507,58 +539,6 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 		}
 
 	}
-
-	/*// 1. has slashed ?
-	switch {
-	case !lOK && rOK: // left has not slashed AND right has slashed
-		return -1
-	case !lOK && !rOK: // both has not slashed
-		// 2. ProgramVersion
-		lversion, _ := left.GetProgramVersion()
-		rversion, _ := right.GetProgramVersion()
-		switch {
-		case lversion > rversion:
-			return -1
-		case lversion < rversion:
-			return 1
-		default:
-			return compareTermFunc(left, right)
-		}
-	case lOK && !rOK: // left has slashed AND right has not slashed
-		return 1
-	default: // both  has slashed
-
-		// 2. Duplicate Sign
-		if Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status) { // left DuplicateSign, right is not duplicateSign
-			return 1
-		} else if Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // both DuplicateSign
-			return compareSharesFunc(left, right)
-		} else if !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // left is not duplicateSign, right DuplicateSign
-			return -1
-		} else { // both no duplicateSign
-
-			// 3. status is invalid
-			switch {
-			// left.Status(xxxxx1) && right.Status(xxxxx0)
-			case Is_Invalid(lCan.Status) && !Is_Invalid(rCan.Status):
-				return 1
-			// left.Status(xxxxx0) && right.Status(xxxxx1)
-			case !Is_Invalid(lCan.Status) && Is_Invalid(rCan.Status):
-				return -1
-			// When both valid OR both Invalid
-			default:
-
-				// 4. LowPackageRatio
-				if Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status) { // left is LowRatio AND right is not LowRatio
-					return 1
-				} else if !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status) { // left is not LowRatio AND right is LowRatio
-					return -1
-				} else { // both is LowRatio OR both no LowRatio
-					return compareTermFunc(left, right)
-				}
-			}
-		}
-	}*/
 }
 
 // NOTE: Sort when doing storage
