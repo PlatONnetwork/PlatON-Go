@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -222,6 +222,12 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	cbft.blockTree = ctypes.NewBlockTree(block, qc)
 	utils.SetTrue(&cbft.loading)
+
+	//Initialize view state
+	cbft.state.SetHighestQCBlock(block)
+	cbft.state.SetHighestLockBlock(block)
+	cbft.state.SetHighestCommitBlock(block)
+
 	if isGenesis() {
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
 		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
@@ -229,11 +235,6 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), qc.Epoch, cbft.config.Option.NodeID)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
-
-	//Initialize view state
-	cbft.state.SetHighestQCBlock(block)
-	cbft.state.SetHighestLockBlock(block)
-	cbft.state.SetHighestCommitBlock(block)
 
 	// Initialize current view
 	if qc != nil {
@@ -397,7 +398,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
+		cbft.log.Debug("Receive synchronization related messages from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	default:
@@ -637,12 +638,14 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
 	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
 	if len(header.Extra) < 32 {
+		cbft.log.Debug("Prepare, add header-extra byte 0x00 till 32 bytes", "extraLength", len(header.Extra))
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
 	header.Extra = header.Extra[:32]
 
 	//init header.Extra[32: 32+65]
 	header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+	cbft.log.Debug("Prepare, add header-extra ExtraSeal bytes(0x00)", "extraLength", len(header.Extra))
 	return nil
 }
 

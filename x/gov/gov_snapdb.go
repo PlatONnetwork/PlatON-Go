@@ -163,19 +163,19 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 	return put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)
 }
 
-func getAccuVerifiersLength(blockHash common.Hash, proposalId common.Hash) (uint16, error) {
+func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
 	if err != nil && err != snapshotdb.ErrNotFound {
-		return 0, err
+		return nil, err
 	}
 
 	if len(value) > 0 {
 		var verifiers []discover.NodeID
 		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
-			return 0, err
+			return nil, err
 		} else {
-			return uint16(len(verifiers)), nil
+			return verifiers, nil
 		}
 	}
-	return 0, nil
+	return nil, nil
 }

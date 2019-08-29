@@ -236,14 +236,15 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 		if msgType == protocols.PrepareBlockMsg {
 			// Special treatment.
 			if v, ok := msg.(*protocols.PrepareBlock); ok {
-				h.Broadcast(&protocols.PrepareBlockHash{
+				pbh := &protocols.PrepareBlockHash{
 					Epoch:       v.Epoch,
 					ViewNumber:  v.ViewNumber,
 					BlockIndex:  v.BlockIndex,
 					BlockHash:   v.Block.Hash(),
 					BlockNumber: v.Block.NumberU64(),
-				})
-				log.Trace("PrepareBlockHash is forwarded instead of PrepareBlock done")
+				}
+				h.Broadcast(pbh)
+				log.Debug("PrepareBlockHash is forwarded instead of PrepareBlock", "msgHash", pbh.MsgHash())
 			}
 		} else {
 			// Direct forwarding.
@@ -629,6 +630,16 @@ func (h *EngineManager) MarkBlacklist(peerID string) {
 // ContainsBlacklist returns whether the specified node is blacklisted.
 func (h *EngineManager) ContainsBlacklist(peerID string) bool {
 	return h.blacklist.Contains(peerID)
+}
+
+// RemoveMessageHash removes the specified hash from the peer.
+func (h *EngineManager) RemoveMessageHash(id string, msgHash common.Hash) {
+	peer, err := h.peers.get(id)
+	if err != nil {
+		log.Error("Removing messageHash from peer failed", "err", err)
+		return
+	}
+	peer.RemoveMessageHash(msgHash)
 }
 
 // RemovePeer removes and disconnects a node from

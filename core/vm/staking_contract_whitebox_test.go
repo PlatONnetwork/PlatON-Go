@@ -70,7 +70,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -155,7 +155,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -236,7 +236,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -319,7 +319,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -548,7 +548,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -635,7 +635,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -722,7 +722,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -812,7 +812,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -895,7 +895,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey

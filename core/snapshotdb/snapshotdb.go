@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/event"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -85,6 +87,8 @@ type DB interface {
 var (
 	dbpath string
 
+	blockchain Chain
+
 	dbInstance *snapshotDB
 
 	instance sync.Mutex
@@ -98,7 +102,9 @@ var (
 	ErrNotFound = errors.New("snapshotDB: not found")
 
 	//ErrDBNotInit when db  not init
-	ErrDBNotInit = errors.New("snapshotDB: not init")
+	ErrDBNotInit   = errors.New("snapshotDB: not init")
+	ErrBlockRepeat = errors.New("the block is exist in snapshotdb uncommit")
+	ErrBlockTooLow = errors.New("the block is less than commit highest block")
 )
 
 type snapshotDB struct {
@@ -125,6 +131,11 @@ type snapshotDB struct {
 	closed bool
 }
 
+type Chain interface {
+	CurrentHeader() *types.Header
+	GetHeaderByHash(hash common.Hash) *types.Header
+}
+
 type unCommitBlocks struct {
 	blocks map[common.Hash]*blockData
 	sync.RWMutex
@@ -149,6 +160,11 @@ func (u *unCommitBlocks) Set(key common.Hash, block *blockData) {
 func SetDBPathWithNode(n *node.Node) {
 	dbpath = n.ResolvePath(DBPath)
 	logger.Info("set path", "path", dbpath)
+}
+
+func SetDBBlockChain(n Chain) {
+	blockchain = n
+	logger.Info("set blockchain")
 }
 
 //Instance return the Instance of the db
@@ -378,6 +394,19 @@ func (s *snapshotDB) Compaction() error {
 	if commitNum == 0 {
 		commitNum++
 	}
+
+	header := blockchain.CurrentHeader()
+	var length = commitNum
+	for i := 0; i < length; i++ {
+		if s.committed[i].Number.Cmp(header.Number) > 0 {
+			commitNum--
+		}
+	}
+
+	if commitNum == 0 {
+		return nil
+	}
+
 	batch := new(leveldb.Batch)
 	for i := 0; i < commitNum; i++ {
 		itr := s.committed[i].data.NewIterator(nil)
@@ -415,11 +444,14 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	if blockNumber == nil {
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
 	}
-	if hash == s.getUnRecognizedHash() {
-		block := s.unCommit.Get(hash)
-		if block != nil && block.readOnly {
-			return errors.New("[SnapshotDB]can't  new unRecognized block,it's have value,must flush it before NewBlock ")
-		}
+	findBlock := s.unCommit.Get(hash)
+	if findBlock != nil {
+		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
+		return ErrBlockRepeat
+	}
+	if s.current.HighestNum.Cmp(blockNumber) >= 0 {
+		logger.Error("the block is less than commit highest", "commit", s.current.HighestNum, "new", blockNumber)
+		return ErrBlockTooLow
 	}
 
 	block := new(blockData)
@@ -572,6 +604,16 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	return nil
 }
 
+func (s *snapshotDB) IsBlockSame(block1 *blockData) bool {
+	if block1.Number.Cmp(s.current.HighestNum) != 0 {
+		return false
+	}
+	if block1.BlockHash != s.current.HighestHash {
+		return false
+	}
+	return true
+}
+
 // Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.lock()
@@ -596,14 +638,16 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 			}
 		}
 	}
-	block.readOnly = true
-	s.committed = append(s.committed, block)
-	s.current.HighestNum = block.Number
-	s.current.HighestHash = hash
-	if err := s.current.update(); err != nil {
-		return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
-	}
 
+	if !s.IsBlockSame(block) {
+		block.readOnly = true
+		s.committed = append(s.committed, block)
+		s.current.HighestNum = block.Number
+		s.current.HighestHash = hash
+		if err := s.current.update(); err != nil {
+			return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
+		}
+	}
 	if err := s.closeJournalWriter(hash); err != nil {
 		return err
 	}

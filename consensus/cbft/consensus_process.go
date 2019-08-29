@@ -622,16 +622,15 @@ func (cbft *Cbft) clearInvalidBlocks(newBlock *types.Block) {
 		if p.BlockNumber > newBlock.NumberU64() {
 			block := cbft.state.ViewBlockByIndex(p.BlockIndex)
 			rollback = append(rollback, block)
-			cbft.blockCacheWriter.ClearCache(block)
 		}
 	}
 	for _, p := range cbft.state.PendingPrepareVote().Peek() {
 		if p.BlockNumber > newBlock.NumberU64() {
 			block := cbft.state.ViewBlockByIndex(p.BlockIndex)
 			rollback = append(rollback, block)
-			cbft.blockCacheWriter.ClearCache(block)
 		}
 	}
+	cbft.blockCacheWriter.ClearCache(cbft.state.HighestCommitBlock())
 
 	//todo proposer is myself
 	cbft.txPool.ForkedReset(newHead, rollback)

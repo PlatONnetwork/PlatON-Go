@@ -171,6 +171,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		}
 
 		block, err := genesis.Commit(db)
+		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
 	}
 
@@ -250,6 +251,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
+	log.Debug("genesisIssuance", "amount", genesisIssuance)
+
 	// Store genesis version into governance data
 	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, params.GenesisVersion); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
@@ -263,6 +266,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 
 	root := statedb.IntermediateRoot(false)
+
+	log.Debug("ToBlock IntermediateRoot", "root", root.Hex())
+
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
 		Nonce:      types.EncodeNonce(g.Nonce),
@@ -287,9 +293,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	block := types.NewBlock(head, nil, nil)
 
 	if err := snapdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
-		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
 	}
-
+	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
 	return block
 }
 
@@ -300,6 +306,8 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
+
+	log.Debug("Commit Hash", "hash", block.Hash().Hex(), "number", block.NumberU64())
 
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)

@@ -44,7 +44,7 @@ const (
 )
 
 func init() {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 }
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.

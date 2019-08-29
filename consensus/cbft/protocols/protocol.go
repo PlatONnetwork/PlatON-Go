@@ -249,7 +249,8 @@ func (vc *ViewChange) MsgHash() common.Hash {
 		return mhash.(common.Hash)
 	}
 	v := utils.BuildHash(ViewChangeMsg, utils.MergeBytes(common.Uint64ToBytes(vc.ViewNumber),
-		vc.BlockHash.Bytes(), common.Uint64ToBytes(vc.BlockNumber)))
+		vc.BlockHash.Bytes(), common.Uint64ToBytes(vc.BlockNumber), common.Uint32ToBytes(vc.ValidatorIndex),
+		vc.Signature.Bytes()))
 	vc.messageHash.Store(v)
 	return v
 }
@@ -540,7 +541,8 @@ func (s *PrepareBlockHash) MsgHash() common.Hash {
 	if mhash := s.messageHash.Load(); mhash != nil {
 		return mhash.(common.Hash)
 	}
-	v := utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
+	v := utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber),
+		common.Uint32ToBytes(s.BlockIndex), common.Uint64ToBytes(s.ViewNumber)))
 	s.messageHash.Store(v)
 	return v
 
