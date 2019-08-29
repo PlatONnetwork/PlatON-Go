@@ -19,9 +19,11 @@ const (
 	######   ######   ######   ######
 	*/
 	Invalided     = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	LowRatio                  // 0010: The candidate was low package ratio
+	LowRatio                  // 0010: The candidate was low package ratio AND no delete
 	NotEnough                 // 0100: The current candidate's von does not meet the minimum staking threshold
 	DuplicateSign             // 1000: The Duplicate package or Duplicate sign
+	LowRatioDel               // 0001,0000: The lowRatio AND must delete
+	Withdrew                  // 0010,0000: The Active withdrew
 	Valided       = 0         // 0000: The current candidate is in force
 	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
@@ -76,6 +78,30 @@ func Is_Invalid_DuplicateSign(status uint32) bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
+func Is_LowRatioDel(status uint32) bool {
+	return status&LowRatioDel == LowRatioDel
+}
+
+func Is_PureLowRatioDel(status uint32) bool {
+	return status&LowRatioDel == status|LowRatioDel
+}
+
+func Is_Invalid_LowRatioDel(status uint32) bool {
+	return status&(Invalided|LowRatioDel) == (Invalided | LowRatioDel)
+}
+
+func Is_Withdrew(status uint32) bool {
+	return status&Withdrew == Withdrew
+}
+
+func Is_PureWithdrew(status uint32) bool {
+	return status&Withdrew == status|Withdrew
+}
+
+func Is_Invalid_Withdrew(status uint32) bool {
+	return status&(Invalided|Withdrew) == (Invalided | Withdrew)
+}
+
 // The Candidate info
 type Candidate struct {
 	NodeId discover.NodeID
@@ -112,38 +138,26 @@ type Candidate struct {
 	Description
 }
 
-type CandidateHex struct {
-	NodeId discover.NodeID
-	// bls public key
-	BlsPubKey bls.PublicKey
-	// The account used to initiate the staking
-	StakingAddress common.Address
-	// The account receive the block rewards and the staking rewards
-	BenefitAddress common.Address
-	// The tx index at the time of staking
-	StakingTxIndex uint32
-	// The version of the node program
-	// (Store Large Verson: the 2.1.x large version is 2.1.0)
-	ProgramVersion uint32
-	// The candidate status
-	// Reference `THE CANDIDATE  STATUS`
-	Status uint32
-	// The epoch number at staking or edit
-	StakingEpoch uint32
-	// Block height at the time of staking
-	StakingBlockNum uint64
-	// All vons of staking and delegated
-	Shares *hexutil.Big
-	// The staking von  is circulating for effective epoch (in effect)
-	Released *hexutil.Big
-	// The staking von  is circulating for hesitant epoch (in hesitation)
-	ReleasedHes *hexutil.Big
-	// The staking von  is RestrictingPlan for effective epoch (in effect)
-	RestrictingPlan *hexutil.Big
-	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
-	RestrictingPlanHes *hexutil.Big
+//func (can *Candidate) ToString() string {
+//	return fmt.Sprintf(`{"NodeId": %s, "BlsPubKey": %s, }`)
+//}
 
-	// Node desc
+// Display amount field using 0x hex
+type CandidateHex struct {
+	NodeId             discover.NodeID
+	BlsPubKey          bls.PublicKey
+	StakingAddress     common.Address
+	BenefitAddress     common.Address
+	StakingTxIndex     uint32
+	ProgramVersion     uint32
+	Status             uint32
+	StakingEpoch       uint32
+	StakingBlockNum    uint64
+	Shares             *hexutil.Big
+	Released           *hexutil.Big
+	ReleasedHes        *hexutil.Big
+	RestrictingPlan    *hexutil.Big
+	RestrictingPlanHes *hexutil.Big
 	Description
 }
 
@@ -255,39 +269,41 @@ func (val *Validator) GetStakingTxIndex() (uint32, error) {
 
 type ValidatorQueue []*Validator
 
-type SlashCandidate map[discover.NodeID]*Candidate
+type CandidateMap map[discover.NodeID]*Candidate
 
-func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
-	compare func(slashs SlashCandidate, c, can *Validator) int) {
+type NeedRemoveCans map[discover.NodeID]*Candidate
+
+func (arr ValidatorQueue) ValidatorSort(removes NeedRemoveCans,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if len(arr) <= 1 {
 		return
 	}
 
 	if nil == compare {
-		arr.quickSort(slashs, 0, len(arr)-1, CompareDefault)
+		arr.quickSort(removes, 0, len(arr)-1, CompareDefault)
 	} else {
-		arr.quickSort(slashs, 0, len(arr)-1, compare)
+		arr.quickSort(removes, 0, len(arr)-1, compare)
 	}
 }
-func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int,
-	compare func(slashs SlashCandidate, c, can *Validator) int) {
+func (arr ValidatorQueue) quickSort(removes NeedRemoveCans, left, right int,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if left < right {
-		pivot := arr.partition(slashs, left, right, compare)
-		arr.quickSort(slashs, left, pivot-1, compare)
-		arr.quickSort(slashs, pivot+1, right, compare)
+		pivot := arr.partition(removes, left, right, compare)
+		arr.quickSort(removes, left, pivot-1, compare)
+		arr.quickSort(removes, pivot+1, right, compare)
 	}
 }
-func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
-	compare func(slashs SlashCandidate, c, can *Validator) int) int {
+func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) int {
 	for left < right {
-		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
 			right--
 		}
 		if left < right {
 			arr[left], arr[right] = arr[right], arr[left]
 			left++
 		}
-		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
 			left++
 		}
 		if left < right {
@@ -316,7 +332,7 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
+func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
@@ -358,8 +374,8 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	_, leftOk := slashs[left.NodeId]
-	_, rightOk := slashs[right.NodeId]
+	_, leftOk := removes[left.NodeId]
+	_, rightOk := removes[right.NodeId]
 
 	if leftOk && !rightOk {
 		return -1
@@ -387,12 +403,14 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // it is slashed and is sorted to the front.
 //
 // The priorities just like that:
-// DuplicateSign > Status Invalid (usually lowratio and balance no enough) > ProgramVersion || LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+// Invalid > ProgramVersion > validaotorTerm  > Shares > BlockNumber > TxIndex
 //
-// DuplicateSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// What is the invalid ?  That are DuplicateSign and lowRatio&invalid and lowVersion and withdrew&NotInEpochValidators
+//
+//
+//
 // Invalid Status: From invalid to valid
 // ProgramVersion: From small to big
-// LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // validaotorTerm: From big to small
 // Shares： From small to big
 // BlockNumber: From big to small
@@ -403,7 +421,7 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
+func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// some funcs
 
@@ -462,21 +480,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	lCan, lOK := slashs[left.NodeId]
-	rCan, rOK := slashs[right.NodeId]
-
-	/**
-	Start Compare
-	*/
-
-	// 1. has slashed ?
-	switch {
-	case !lOK && rOK: // left has not slashed AND right has slashed
-		return -1
-	case !lOK && !rOK: // both has not slashed
-		// 2. ProgramVersion
-		lversion, _ := left.GetProgramVersion()
-		rversion, _ := right.GetProgramVersion()
+	compareVersionFunc := func(l, r *Validator) int {
+		lversion, _ := l.GetProgramVersion()
+		rversion, _ := r.GetProgramVersion()
 		switch {
 		case lversion > rversion:
 			return -1
@@ -485,40 +491,53 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		default:
 			return compareTermFunc(left, right)
 		}
-	case lOK && !rOK: // left has slashed AND right has not slashed
+	}
+
+	lCan, lOK := removes[left.NodeId]
+	rCan, rOK := removes[right.NodeId]
+
+	/**
+	Start Compare
+	*/
+
+	switch {
+	case !lOK && rOK: // left need not removed AND right need removed
+		return -1
+	case !lOK && !rOK: // both need not removed
+
+		// 2. ProgramVersion
+		return compareVersionFunc(left, right)
+
+	case lOK && !rOK: // left need removed AND right need not removed
 		return 1
-	default: // both  has slashed
+	default: // both need removed
 
-		// 2. Duplicate Sign
-		if Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status) { // left DuplicateSign, right is not duplicateSign
+		// compare slash
+		switch {
+		case Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status):
 			return 1
-		} else if Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // both DuplicateSign
-			return compareSharesFunc(left, right)
-		} else if !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // left is not duplicateSign, right DuplicateSign
+		case !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
 			return -1
-		} else { // both no duplicateSign
-
-			// 3. status is invalid
+		case Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+			// compare Shares
+			return compareSharesFunc(left, right)
+		default:
+			// compare low ratio
 			switch {
-			// left.Status(xxxxx1) && right.Status(xxxxx0)
-			case Is_Invalid(lCan.Status) && !Is_Invalid(rCan.Status):
+			case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
 				return 1
-			// left.Status(xxxxx0) && right.Status(xxxxx1)
-			case !Is_Invalid(lCan.Status) && Is_Invalid(rCan.Status):
+			case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
 				return -1
-			// When both valid OR both Invalid
+			case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				// compare Shares
+				return compareSharesFunc(left, right)
 			default:
-
-				// 4. LowPackageRatio
-				if Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status) { // left is LowRatio AND right is not LowRatio
-					return 1
-				} else if !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status) { // left is not LowRatio AND right is LowRatio
-					return -1
-				} else { // both is LowRatio OR both no LowRatio
-					return compareTermFunc(left, right)
-				}
+				// compare Version
+				return compareVersionFunc(left, right)
 			}
+
 		}
+
 	}
 }
 
@@ -531,7 +550,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForStore(_ SlashCandidate, left, right *Validator) int {
+func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 	// some funcs
 
 	// 5. TxIndex

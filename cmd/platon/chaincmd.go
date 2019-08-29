@@ -195,17 +195,25 @@ func initGenesis(ctx *cli.Context) error {
 	defer file.Close()
 
 	genesis := new(core.Genesis)
-	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+	// init EconomicModel config
+	genesis.EconomicModel = utils.GetEconomicDefaultConfig(ctx)
+	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	// Open an initialise both full and light databases
-	stack := makeFullNode(ctx)
 
 	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
-	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft {
+	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft && nil != genesis.EconomicModel {
 		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
 	}
+
+	// check EconomicModel configuration
+	if err := xcom.CheckEconomicModel(); nil != err {
+		utils.Fatalf("Failed CheckEconomicModel configuration: %v", err)
+	}
+
+	// Open an initialise both full and light databases
+	stack := makeFullNode(ctx)
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
 
@@ -213,6 +221,7 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
+
 		_, hash, err := core.SetupGenesisBlock(chaindb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)

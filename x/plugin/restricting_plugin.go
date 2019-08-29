@@ -7,6 +7,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -519,14 +521,14 @@ func (rp *RestrictingPlugin) getRestrictingInfo2(account common.Address, state x
 		epoch := info.ReleaseList[i]
 		_, bAmount := rp.getReleaseAmount(state, epoch, account)
 		plan.Height = GetBlockNumberByEpoch(epoch)
-		plan.Amount = bAmount
+		plan.Amount = (*hexutil.Big)(bAmount)
 		plans = append(plans, plan)
 	}
 
-	result.Balance = info.CachePlanAmount
-	result.Debt = info.NeedRelease
+	result.Balance = (*hexutil.Big)(info.CachePlanAmount)
+	result.Debt = (*hexutil.Big)(info.NeedRelease)
 	result.Entry = plans
-	result.Pledge = info.StakingAmount
+	result.Pledge = (*hexutil.Big)(info.StakingAmount)
 	rp.log.Info("get restricting result", "account", account.String(), "result", result)
 	return result, nil
 }
@@ -542,7 +544,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, err
 	}
 
-	rp.log.Info("end to GetRestrictingInfo", "restrictingInfo", bResult)
+	rp.log.Info("end to GetRestrictingInfo")
 
 	return bResult, nil
 }
