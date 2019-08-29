@@ -2,6 +2,7 @@ package xcom
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"sync"
 
@@ -21,8 +22,8 @@ const (
 
 type commonConfig struct {
 	ExpectedMinutes     uint64 // expected minutes every epoch
-	NodeBlockTimeWindow uint64 `json:"-"` // Node block time window (uint: seconds)
-	PerRoundBlocks      uint64 `json:"-"` // blocks each validator will create per consensus epoch
+	NodeBlockTimeWindow uint64 // Node block time window (uint: seconds)
+	PerRoundBlocks      uint64 // blocks each validator will create per consensus epoch
 	ValidatorCount      uint64 // The consensus validators count
 	AdditionalCycleTime uint64 // Additional cycle time (uint: minutes)
 }
@@ -106,22 +107,22 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 	switch netId {
 	case DefaultMainNet:
-		stakeThresholdCount = "10000000000000000000000000" // 1000W von
-		minimumThresholdCount = "10000000000000000000"     // 10 von
+		stakeThresholdCount = "5000000000000000000000000" // 500W von
+		minimumThresholdCount = "10000000000000000000"    // 10 von
 	case DefaultAlphaTestNet:
-		stakeThresholdCount = "10000000000000000000000000"
+		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	case DefaultBetaTestNet:
-		stakeThresholdCount = "10000000000000000000000000"
+		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	case DefaultInnerTestNet:
-		stakeThresholdCount = "10000000000000000000000000"
+		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	case DefaultInnerDevNet:
-		stakeThresholdCount = "10000000000000000000000000"
+		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	default: // DefaultDeveloperNet
-		stakeThresholdCount = "10000000000000000000000000"
+		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
 	}
 
@@ -400,6 +401,84 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	}
 
 	return ec
+}
+
+func CheckEconomicModel() error {
+	if nil == ec {
+		return errors.New("EconomicModel config is nil")
+	}
+	/*
+		if ec.Common.ExpectedMinutes*60%
+			(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) != 0 {
+			return errors.New("The settlement period must be an integer multiple of the time taken for the consensus round")
+		}*/
+	if ec.Common.ExpectedMinutes*60/
+		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) <= 0 {
+		return errors.New("The settlement period must be an integer multiple of the time taken for the consensus round")
+	}
+	if ec.Common.AdditionalCycleTime*60%ec.Common.ExpectedMinutes*60 != 0 ||
+		ec.Common.AdditionalCycleTime*60/ec.Common.ExpectedMinutes*60 < 4 {
+		return errors.New("The issuance period must be integer multiples of the settlement period and multiples must be greater than or equal to 4")
+	}
+	if ec.Staking.EpochValidatorNum < ec.Common.ValidatorCount {
+		return errors.New("The EpochValidatorNum must be greater than or equal to the ValidatorCount")
+	}
+
+	var (
+		success          bool
+		minimumThreshold *big.Int
+		stakeThreshold   *big.Int
+	)
+
+	if minimumThreshold, success = new(big.Int).SetString("10000000000000000000", 10); !success {
+		return errors.New("*big.Int SetString error")
+	}
+
+	if ec.Staking.MinimumThreshold.Cmp(minimumThreshold) < 0 {
+		return errors.New("The MinimumThreshold must be greater than or equal to 10 LAT")
+	}
+
+	if stakeThreshold, success = new(big.Int).SetString("10000000000000000000000000", 10); !success {
+		return errors.New("*big.Int SetString error")
+	}
+
+	if ec.Staking.StakeThreshold.Cmp(stakeThreshold) >= 0 {
+		return errors.New("The StakeThreshold must be less than or equal to 10000000 LAT")
+	}
+
+	if ec.Staking.HesitateRatio < 1 {
+		return errors.New("The HesitateRatio must be greater than or equal to 1")
+	}
+
+	if 1 > ec.Staking.UnStakeFreezeRatio {
+		return errors.New("The UnStakeFreezeRatio must be greater than or equal to 1")
+	}
+
+	if ec.Reward.PlatONFoundationYear < 1 {
+		return errors.New("The PlatONFoundationYear must be greater than or equal to 1")
+	}
+
+	if 0 > ec.Reward.NewBlockRate || 100 < ec.Reward.NewBlockRate {
+		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if 0 > ec.Slashing.PackAmountHighSlashRate || 100 < ec.Slashing.PackAmountHighSlashRate {
+		return errors.New("The PackAmountHighSlashRate must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if 0 > ec.Slashing.PackAmountLowSlashRate || 100 < ec.Slashing.PackAmountLowSlashRate {
+		return errors.New("The PackAmountLowSlashRate must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if ec.Slashing.PackAmountLowSlashRate > ec.Slashing.PackAmountHighSlashRate {
+		return errors.New("The PackAmountHighSlashRate must be greater than or equal to the PackAmountLowSlashRate")
+	}
+
+	if ec.Slashing.PackAmountHighAbnormal >= ec.Slashing.PackAmountAbnormal {
+		return errors.New("The PackAmountHighAbnormal must be less than to the PackAmountAbnormal")
+	}
+
+	return nil
 }
 
 /******
