@@ -146,10 +146,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, genesisErr
 	}
 
-	if nil != chainConfig && nil != chainConfig.Cbft {
-		xcom.SetNodeBlockTimeWindow(chainConfig.Cbft.Period / 1000)
-		xcom.SetPerRoundBlocks(uint64(chainConfig.Cbft.Amount))
-	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	eth := &Ethereum{
