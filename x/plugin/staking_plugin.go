@@ -1734,7 +1734,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 		//	can = c
 		//}
 
-		shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
@@ -1743,7 +1743,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 			//StakingTxIndex:  can.StakingTxIndex,
 			//ProgramVersion:  can.ProgramVersion,
 			//StakingBlockNum: can.StakingBlockNum,
-			Shares: (*hexutil.Big)(shares),
+			//Shares: (*hexutil.Big)(shares),
 			//Description:     can.Description,
 			ValidatorTerm: v.ValidatorTerm,
 		}
@@ -1942,7 +1942,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 		//	can = c
 		//}
 
-		shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
@@ -1951,7 +1951,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 			//StakingTxIndex:  can.StakingTxIndex,
 			//ProgramVersion:  can.ProgramVersion,
 			//StakingBlockNum: can.StakingBlockNum,
-			Shares: (*hexutil.Big)(shares),
+			//Shares: (*hexutil.Big)(shares),
 			//Description:     can.Description,
 			ValidatorTerm: v.ValidatorTerm,
 		}
