@@ -222,6 +222,30 @@ func TestJson(t *testing.T) {
 	evidences, err := NewEvidences(string(b2))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, evidences.Len())
+
+	testNewEvidence(t, evs)
+}
+
+func testNewEvidence(t *testing.T, evs []consensus.Evidence) {
+	for _, e := range evs {
+		b, _ := json.MarshalIndent(e, "", " ")
+		switch e.(type) {
+		case *DuplicatePrepareBlockEvidence:
+			prepare, err := NewEvidence(DuplicatePrepareBlockType, string(b))
+			assert.Nil(t, err)
+			assert.NotNil(t, prepare)
+
+		case *DuplicatePrepareVoteEvidence:
+			vote, err := NewEvidence(DuplicatePrepareVoteType, string(b))
+			assert.Nil(t, err)
+			assert.NotNil(t, vote)
+
+		case *DuplicateViewChangeEvidence:
+			view, err := NewEvidence(DuplicateViewChangeType, string(b))
+			assert.Nil(t, err)
+			assert.NotNil(t, view)
+		}
+	}
 }
 
 func TestDuplicatePrepareBlockEvidence_Equal(t *testing.T) {
