@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	DuplicatePrepareBlockType = 1
-	DuplicatePrepareVoteType  = 2
-	DuplicateViewChangeType   = 3
+	DuplicatePrepareBlockType consensus.EvidenceType = 1
+	DuplicatePrepareVoteType  consensus.EvidenceType = 2
+	DuplicateViewChangeType   consensus.EvidenceType = 3
 )
 
 // DuplicatePrepareBlockEvidence recording duplicate blocks
