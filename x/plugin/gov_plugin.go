@@ -27,6 +27,7 @@ var govp *GovPlugin
 func GovPluginInstance() *GovPlugin {
 	govPluginOnce.Do(func() {
 		log.Info("Init Governance plugin ...")
+		govp = &GovPlugin{}
 	})
 	return govp
 }

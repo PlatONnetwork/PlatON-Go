@@ -937,14 +937,16 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	endVotingBlock := xutil.CalEndVotingBlock(1, xcom.VersionProposalVote_ConsensusRounds())
-	//	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
-
 	buildBlockNoCommit(2)
 
 	allVote(t, txHashArr[0])
-	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+	p, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
 
 	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
@@ -956,18 +958,16 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
-
-	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(endVotingBlock)
+	build_staking_data_more(p.GetEndVotingBlock())
 
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	endBlock(t)
@@ -982,9 +982,9 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	if result == nil {
 		t.Fatal("cannot find the tally result")
 	} else if result.Status == gov.Pass {
-		t.Logf("the result status, %s", result.Status.ToString())
+		t.Log("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
 	} else {
-		t.Fatalf("the result status error, %s", result.Status.ToString())
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
 	}
 }
 

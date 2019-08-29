@@ -3,8 +3,13 @@ package vm
 import (
 	"encoding/json"
 	"math"
+	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/stretchr/testify/assert"
 
@@ -111,6 +116,19 @@ func buildVoteInput(nodeIdx, txIdx int) []byte {
 	return common.MustRlpEncode(input)
 }
 
+func buildVote(nodeIdx, txIdx int, option uint8, programVersion uint32, sign common.VersionSign) []byte {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2003)))       // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[nodeIdx])) // param 1 ...
+	input = append(input, common.MustRlpEncode(txHashArr[txIdx]))
+	input = append(input, common.MustRlpEncode(option))
+	input = append(input, common.MustRlpEncode(programVersion))
+	input = append(input, common.MustRlpEncode(sign))
+
+	return common.MustRlpEncode(input)
+}
+
 func buildDeclareInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
@@ -210,6 +228,8 @@ func setup(t *testing.T) {
 	gc.Plugin = govPlugin
 
 	build_staking_data(genesis.Hash())
+
+	sndb = snapshotdb.Instance()
 }
 
 func clear(t *testing.T) {
@@ -360,7 +380,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 0 {
-		t.Log("in this case, Gov will notify Stakging immediately, so, there's no active node list")
+		t.Log("in this case, Gov will notify Staking immediately, so, there's no active node list")
 	} else {
 		t.Fatal("cannot list ActiveNode")
 	}
@@ -382,7 +402,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *te
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
-		t.Log("in this case, Gov will save the declared node, and notify Stakging if the proposal is passed later")
+		t.Log("in this case, Gov will save the declared node, and notify Staking if the proposal is passed later")
 	} else {
 		t.Fatal("cannot list ActiveNode")
 	}
@@ -435,7 +455,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
-		t.Log("voted, Gov will save the declared node, and notify Stakging if the proposal is passed later")
+		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
 	} else {
 		t.Fatal("cannot list ActiveNode")
 	}
@@ -466,7 +486,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareActiveVersion_ERROR
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
-		t.Log("voted, Gov will save the declared node, and notify Stakging if the proposal is passed later")
+		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
 	} else {
 		t.Fatal("cannot list ActiveNode")
 	}
@@ -497,7 +517,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
-		t.Log("voted, Gov will save the declared node, and notify Stakging if the proposal is passed later")
+		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
 	} else {
 		t.Fatal("cannot list ActiveNode")
 	}
@@ -555,10 +575,12 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
+	//txHash = txHashArr[2] is a text proposal
 	runGovContract(gc, buildSubmitTextInput(), t)
 
 	buildBlock3()
 
+	//try to cancel a text proposal
 	runGovContract(gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[2]), t, gov.TobeCanceledProposalTypeError)
 }
 
@@ -572,16 +594,21 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
+	//move the proposal ID from voting-list to end-list
 	gov.MoveVotingProposalIDToEnd(blockHash2, txHashArr[2])
 
 	buildBlock3()
 
+	//try to cancel a closed version proposal
 	runGovContract(gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[2]), t, gov.TobeCanceledProposalNotAtVoting)
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
 	setup(t)
 	defer clear(t)
+
+	state := gc.Evm.StateDB.(*mock.MockStateDB)
+	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
@@ -593,26 +620,238 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 	runGovContract(gc, buildGetProposalInput(2), t)
 }
 
-func TestGovContract_OneNodeVoteVersionProposal(t *testing.T) {
+func TestGovContract_Vote_VersionProposal(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	//submit a proposal and vote for it.
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(gc, buildVoteInput(0, 2), t)
+
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
+		t.Error("cannot list ActiveNode")
+	} else if len(nodeList) == 1 {
+		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
+}
+
+func TestGovContract_Vote_OptionError(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	//submit a proposal and vote for it.
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+	// vote option = 0, it's wrong
+	runGovContract(gc, buildVote(0, 2, 0, promoteVersion, versionSign), t, gov.VoteOptionError)
+
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
+		t.Error("cannot list ActiveNode")
+	} else if len(nodeList) == 0 {
+		t.Log("option error, this node will not be added to active list")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
+}
+
+func TestGovContract_Vote_VerifyNotUpgraded(t *testing.T) {
 	setup(t)
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	runGovContract(gc, buildVoteInput(0, 2), t)
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[0])
+
+	var sign common.VersionSign
+	sign.SetBytes(chandler.MustSign(initProgramVersion))
+
+	//verify vote new version, but it has not upgraded
+	runGovContract(gc, buildVote(0, 2, 1, initProgramVersion, sign), t, gov.VerifierNotUpgraded)
+
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
+		t.Error("list ActiveNode error", "err", err)
+	} else if len(nodeList) == 0 {
+		t.Log("verifier not upgraded, this node will not be added to active list")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
+}
+
+func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	//submit a proposal and vote for it.
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	chandler := xcom.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[0])
+
+	otherVersion := uint32(1<<16 | 3<<8 | 0)
+	var sign common.VersionSign
+	sign.SetBytes(chandler.MustSign(otherVersion))
+
+	//verify vote new version, but it has not upgraded
+	runGovContract(gc, buildVote(0, 2, 1, otherVersion, sign), t, gov.VerifierNotUpgraded)
+
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
+		t.Error("list ActiveNode error", "err", err)
+	} else if len(nodeList) == 0 {
+		t.Log("verifier program version error, this node will not be added to active list")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
 }
 
 func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 	setup(t)
 	defer clear(t)
-
 	//submit a proposal and vote for it.
 	buildBlock2()
+
+	//submit a proposal and vote for it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
+	chandler := xcom.GetCryptoHandler()
+
 	for i := 0; i < 3; i++ {
-		runGovContract(gc, buildVoteInput(i, 2), t)
+		chandler.SetPrivateKey(priKeyArr[i])
+		var sign common.VersionSign
+		sign.SetBytes(chandler.MustSign(promoteVersion))
+		//verify vote new version, but it has not upgraded
+		runGovContract(gc, buildVote(i, 2, 1, promoteVersion, sign), t)
+	}
+}
+
+func TestGovContract_TextProposal_pass(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitTextInput(), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+	build_staking_data_more(uint64(2))
+
+	allVote(stateDB, t, txHashArr[0])
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+	p, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+
+	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	// build_staking_data_more will build a new block base on sndb.Current
+	build_staking_data_more(p.GetEndVotingBlock())
+	endBlock(stateDB, t)
+	sndb.Commit(lastBlockHash)
+
+	result, err := gov.GetTallyResult(txHashArr[0], stateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.Pass {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+}
+
+func TestGovContract_VersionProposal_Active(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+	build_staking_data_more(uint64(2))
+
+	allVote(stateDB, t, txHashArr[0])
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+	pTemp, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+	p := pTemp.(*gov.VersionProposal)
+
+	// res
+	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	// build_staking_data_more will build a new block base on sndb.Current
+	build_staking_data_more(p.GetEndVotingBlock())
+	endBlock(stateDB, t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	result, err := gov.GetTallyResult(txHashArr[0], stateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.PreActive {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	lastBlockNumber = uint64(p.GetActiveBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	// build_staking_data_more will build a new block base on sndb.Current
+	build_staking_data_more(uint64(p.GetActiveBlock()))
+	beginBlock(stateDB, t)
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	result, err = gov.GetTallyResult(txHashArr[0], stateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.Active {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
 	}
 }
 
@@ -620,10 +859,16 @@ func TestGovContract_ListProposal(t *testing.T) {
 	setup(t)
 	defer clear(t)
 
-	buildBlock2()
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
+	//submit a proposal and vote for it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
 	runGovContract(gc, buildSubmitTextInput(), t)
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
 
 	runGovContract(gc, buildListProposalInput(), t)
 
@@ -662,10 +907,10 @@ func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErr
 			expected = expected || strings.Contains(r.ErrMsg, expectedError.Error())
 		}
 		assert.True(t, true, expected)
-		t.Log("the staking result Msg:", r.ErrMsg)
+		t.Log("the expected result Msg:", r.ErrMsg)
 	} else {
 		assert.Equal(t, true, r.Status)
-		t.Log("the staking result:", r)
+		t.Log("the expected result:", r)
 	}
 }
 
@@ -678,4 +923,42 @@ func Test_ResetVoteOption(t *testing.T) {
 
 	v.VoteOption = gov.Yes
 	t.Log(v)
+}
+
+func allVote(stateDB *mock.MockStateDB, t *testing.T, pid common.Hash) {
+	//for _, nodeID := range nodeIdArr {
+	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
+	voteCount := len(currentValidatorList)
+	chandler := xcom.GetCryptoHandler()
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	for i := 0; i < voteCount; i++ {
+		vote := gov.VoteInfo{
+			ProposalID: pid,
+			VoteNodeID: nodeIdArr[i],
+			VoteOption: gov.Yes,
+		}
+
+		chandler.SetPrivateKey(priKeyArr[i])
+		versionSign := common.VersionSign{}
+		versionSign.SetBytes(chandler.MustSign(promoteVersion))
+
+		err := gov.Vote(sender, vote, lastBlockHash, 1, promoteVersion, versionSign, plugin.StakingInstance(), stateDB)
+		if err != nil {
+			t.Fatalf("vote err: %s.", err)
+		}
+	}
+}
+
+func beginBlock(stateDB *mock.MockStateDB, t *testing.T) {
+	err := govPlugin.BeginBlock(lastBlockHash, &lastHeader, stateDB)
+	if err != nil {
+		t.Fatalf("begin block err... %s", err)
+	}
+}
+
+func endBlock(stateDB *mock.MockStateDB, t *testing.T) {
+	err := govPlugin.EndBlock(lastBlockHash, &lastHeader, stateDB)
+	if err != nil {
+		t.Fatalf("end block err... %s", err)
+	}
 }
