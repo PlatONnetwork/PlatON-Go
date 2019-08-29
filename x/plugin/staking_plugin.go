@@ -1743,7 +1743,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 			//StakingTxIndex:  can.StakingTxIndex,
 			//ProgramVersion:  can.ProgramVersion,
 			//StakingBlockNum: can.StakingBlockNum,
-			Shares: shares,
+			Shares: (*hexutil.Big)(shares),
 			//Description:     can.Description,
 			ValidatorTerm: v.ValidatorTerm,
 		}
@@ -1951,7 +1951,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 			//StakingTxIndex:  can.StakingTxIndex,
 			//ProgramVersion:  can.ProgramVersion,
 			//StakingBlockNum: can.StakingBlockNum,
-			Shares: shares,
+			Shares: (*hexutil.Big)(shares),
 			//Description:     can.Description,
 			ValidatorTerm: v.ValidatorTerm,
 		}
