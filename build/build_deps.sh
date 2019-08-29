@@ -5,7 +5,7 @@ if [ ! -f "build/build_deps.sh" ]; then
     exit 2
 fi
 root=`pwd`
-$root/build/build_bls.sh
+bls_build=$root/build/
 root=$root/life/resolver
 
 
@@ -13,6 +13,8 @@ if [ "`ls $root/softfloat`" = "" ]; then
     # pull softfloat
     git submodule update --init
 fi
+
+$bls_build/build_bls.sh
 
 # Build softfloat
 SF_BUILD=$root/softfloat/build
