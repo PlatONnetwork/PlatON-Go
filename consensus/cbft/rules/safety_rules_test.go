@@ -68,16 +68,19 @@ func newEpochViewNumberState(epoch, viewNumber uint64, amount uint32) (*state.Vi
 			viewState.SetHighestLockBlock(b)
 		}
 		viewState.SetHighestQCBlock(block)
+		parent = block
 	}
 	return viewState, blockTree
 }
 
 func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
 	type testCase struct {
-		err     error
-		fetch   bool
-		newView bool
-		pb      *protocols.PrepareBlock
+		err          error
+		common       bool
+		fetch        bool
+		newView      bool
+		fetchPrepare bool
+		pb           *protocols.PrepareBlock
 	}
 
 	newPrepareBlock := func(epoch, viewNumber uint64, block *types.Block, blockIndex uint32) *protocols.PrepareBlock {
@@ -91,12 +94,12 @@ func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewSta
 
 	qcBlock := viewState.HighestQCBlock()
 	tests := []testCase{
-		{nil, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock, 1)},
-		{newError(""), false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock, amount+1)},
-		{newError(""), true, false, newPrepareBlock(Epoch+1, ViewNumber, qcBlock, 1)},
-		{newError(""), true, false, newPrepareBlock(Epoch, ViewNumber+1, qcBlock, 1)},
-		{newError(""), true, false, newPrepareBlock(Epoch, ViewNumber+1, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()), 0)},
-		{newError(""), false, true, newPrepareBlock(Epoch+1, ViewNumber, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()+1), 0)},
+		{newCommonError(""), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock, 1)},
+		{newCommonError(""), false, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock, amount+1)},
+		{newFetchError(""), false, true, false, false, newPrepareBlock(Epoch+1, ViewNumber, qcBlock, 1)},
+		{newFetchError(""), false, true, false, false, newPrepareBlock(Epoch, ViewNumber+1, qcBlock, 1)},
+		{newFetchError(""), false, true, false, false, newPrepareBlock(Epoch, ViewNumber+1, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()), 0)},
+		{newViewError(""), false, false, true, false, newPrepareBlock(Epoch+1, ViewNumber, NewBlock(qcBlock.Hash(), qcBlock.NumberU64()+1), 0)},
 	}
 	for i, c := range tests {
 		if c.err == nil {
@@ -112,10 +115,12 @@ func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewSta
 
 func testBaseSafetyRulesPrepareVoteRules(t *testing.T, viewState *state.ViewState, blockTree *ctypes.BlockTree, rules SafetyRules, amount uint32) {
 	type testCase struct {
-		err     error
-		fetch   bool
-		newView bool
-		pb      *protocols.PrepareVote
+		err          error
+		common       bool
+		fetch        bool
+		newView      bool
+		fetchPrepare bool
+		pb           *protocols.PrepareVote
 	}
 
 	newPrepareVote := func(epoch, viewNumber uint64, hash common.Hash, number uint64, index uint32) *protocols.PrepareVote {
@@ -131,10 +136,10 @@ func testBaseSafetyRulesPrepareVoteRules(t *testing.T, viewState *state.ViewStat
 	qcBlock := viewState.HighestQCBlock()
 
 	tests := []testCase{
-		{nil, false, false, newPrepareVote(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), amount+1)},
-		{newError(""), true, false, newPrepareVote(Epoch, ViewNumber+1, qcBlock.Hash(), qcBlock.NumberU64(), amount+1)},
-		{newError(""), true, false, newPrepareVote(Epoch+1, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), 1)},
-		{newError(""), false, false, newPrepareVote(Epoch-1, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), 1)},
+		{newCommonError(""), true, false, false, false, newPrepareVote(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), amount+1)},
+		{newFetchError(""), false, true, false, false, newPrepareVote(Epoch, ViewNumber+1, qcBlock.Hash(), qcBlock.NumberU64(), amount+1)},
+		{newFetchError(""), false, true, false, false, newPrepareVote(Epoch+1, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), 1)},
+		{newCommonError(""), false, false, false, false, newPrepareVote(Epoch-1, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), 1)},
 	}
 	for i, c := range tests {
 		if c.err == nil {

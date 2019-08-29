@@ -393,7 +393,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
-			w.blockChainCache.ClearCache(head.Block)
 
 			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
 			current := w.commitWorkEnv.getCurrentBaseBlock()

@@ -83,7 +83,7 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, validator do not match, prepareA:%s, prepareB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
 	if d.PrepareA.BlockHash == d.PrepareB.BlockHash {
-		return fmt.Errorf("DuplicatePrepareBlockEvidence, blockHash is equal, prepareA:%s, prepareB:%s", d.PrepareA.BlockHash, d.PrepareB.BlockHash)
+		return fmt.Errorf("DuplicatePrepareBlockEvidence, blockHash is equal, prepareA:%s, prepareB:%s", d.PrepareA.BlockHash.String(), d.PrepareB.BlockHash.String())
 	}
 	// Verify consensus msg signature
 	if err := d.PrepareA.Verify(); err != nil {
@@ -173,7 +173,7 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, validator do not match, voteA:%s, voteB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
 	if d.VoteA.BlockHash == d.VoteB.BlockHash {
-		return fmt.Errorf("DuplicatePrepareVoteEvidence, blockHash is equal, voteA:%s, voteB:%s", d.VoteA.BlockHash, d.VoteB.BlockHash)
+		return fmt.Errorf("DuplicatePrepareVoteEvidence, blockHash is equal, voteA:%s, voteB:%s", d.VoteA.BlockHash.String(), d.VoteB.BlockHash.String())
 	}
 	// Verify consensus msg signature
 	if err := d.VoteA.Verify(); err != nil {
@@ -260,7 +260,7 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeEvidence, validator do not match, viewA:%s, viewB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
 	if d.ViewA.BlockNumber == d.ViewB.BlockNumber && d.ViewA.BlockHash == d.ViewB.BlockHash {
-		return fmt.Errorf("DuplicateViewChangeEvidence, blockNumber and blockHash is equal, viewANumber:%d, viewAHash:%s, viewANumber:%d, viewBHash:%s", d.ViewA.BlockNumber, d.ViewA.BlockHash, d.ViewB.BlockNumber, d.ViewB.BlockHash)
+		return fmt.Errorf("DuplicateViewChangeEvidence, blockNumber and blockHash is equal, viewANumber:%d, viewAHash:%s, viewANumber:%d, viewBHash:%s", d.ViewA.BlockNumber, d.ViewA.BlockHash.String(), d.ViewB.BlockNumber, d.ViewB.BlockHash.String())
 	}
 	// Verify consensus msg signature
 	if err := d.ViewA.Verify(); err != nil {
