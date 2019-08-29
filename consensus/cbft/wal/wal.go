@@ -2,6 +2,7 @@
 package wal
 
 import (
+	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -23,8 +25,10 @@ const (
 )
 
 var (
-	chainStateKey = []byte("chain-state") // Key of chainState to store leveldb
-	viewChangeKey = []byte("view-change") // Key of viewChange to store leveldb
+	chainStateKey      = []byte("chain-state") // Key of chainState to store leveldb
+	viewChangeKey      = []byte("view-change") // Key of viewChange to store leveldb
+	viewChangeQCSplit  = []byte("qs")
+	viewChangeQCPrefix = []byte("view-change-qc") // viewChangeQCPrefix + epoch (uint64 big endian) + viewChangeQCSplit + viewNumber (uint64 big endian) -> viewChangeQC
 )
 
 var (
@@ -32,6 +36,7 @@ var (
 	errUpdateViewChangeMeta = errors.New("failed to update viewChange meta")
 	errGetViewChangeMeta    = errors.New("failed to get viewChange meta")
 	errGetChainState        = errors.New("failed to get chainState")
+	errGetViewChangeQC      = errors.New("failed to get viewChangeQC")
 )
 
 // recoveryChainStateFn is a callback type for recovery chainState to consensus.
@@ -54,6 +59,8 @@ type Wal interface {
 	Write(msg interface{}) error
 	WriteSync(msg interface{}) error
 	UpdateViewChange(info *ViewChangeMessage) error
+	UpdateViewChangeQC(epoch uint64, viewNumber uint64, viewChangeQC *ctypes.ViewChangeQC) error
+	GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error)
 	Load(fn recoveryConsensusMsgFn) error
 	Close()
 }
@@ -80,6 +87,14 @@ func (w *emptyWal) WriteSync(msg interface{}) error {
 
 func (w *emptyWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return nil
+}
+
+func (w *emptyWal) UpdateViewChangeQC(epoch uint64, viewNumber uint64, viewChangeQC *ctypes.ViewChangeQC) error {
+	return nil
+}
+
+func (w *emptyWal) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
+	return nil, nil
 }
 
 func (w *emptyWal) Load(fn recoveryConsensusMsgFn) error {
@@ -207,25 +222,6 @@ func (wal *baseWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return wal.updateViewChangeMeta(info)
 }
 
-// Load tries to load consensus msg from the local disk journal.
-// recovery is the callback function
-func (wal *baseWal) Load(recovery recoveryConsensusMsgFn) error {
-	// open wal database
-	data, err := wal.metaDB.Get(viewChangeKey)
-	if err != nil {
-		log.Warn("Failed to get viewChange meta from db,may be the first time to run platon")
-		return nil
-	}
-	var vc ViewChangeMessage
-	err = rlp.DecodeBytes(data, &vc)
-	if err != nil {
-		log.Error("Failed to decode viewChange meta")
-		return errGetViewChangeMeta
-	}
-
-	return wal.journal.LoadJournal(vc.FileID, vc.Seq, recovery)
-}
-
 // updateViewChangeMeta update the ViewChange Meta Data to the database.
 func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	fileID, seq, err := wal.journal.CurrentJournal()
@@ -249,6 +245,85 @@ func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	// Delete previous journal logs
 	go wal.journal.ExpireJournalFile(fileID)
 	return nil
+}
+
+// Load tries to load consensus msg from the local disk journal.
+// recovery is the callback function
+func (wal *baseWal) Load(recovery recoveryConsensusMsgFn) error {
+	// open wal database
+	data, err := wal.metaDB.Get(viewChangeKey)
+	if err != nil {
+		log.Warn("Failed to get viewChange meta from db,may be the first time to run platon")
+		return nil
+	}
+	var vc ViewChangeMessage
+	err = rlp.DecodeBytes(data, &vc)
+	if err != nil {
+		log.Error("Failed to decode viewChange meta")
+		return errGetViewChangeMeta
+	}
+
+	return wal.journal.LoadJournal(vc.FileID, vc.Seq, recovery)
+}
+
+// epochKey = viewChangeQCPrefix + epoch (uint64 big endian) + viewChangeQCSplit
+func epochKey(epoch uint64) []byte {
+	e := make([]byte, 8)
+	binary.BigEndian.PutUint64(e, epoch)
+	return append(append(viewChangeQCPrefix, e...), viewChangeQCSplit...)
+}
+
+// viewChangeQCKey = viewChangeQCPrefix + epoch (uint64 big endian) + viewChangeQCSplit + viewNumber (uint64 big endian)
+func viewChangeQCKey(epoch uint64, viewNumber uint64) []byte {
+	e := make([]byte, 8)
+	binary.BigEndian.PutUint64(e, epoch)
+	v := make([]byte, 8)
+	binary.BigEndian.PutUint64(v, viewNumber)
+	return append(append(append(viewChangeQCPrefix, e...), viewChangeQCSplit...), v...)
+}
+
+// UpdateViewChangeQC tries to save consensus confirm viewChangeQC to leveldb
+func (wal *baseWal) UpdateViewChangeQC(epoch uint64, viewNumber uint64, viewChangeQC *ctypes.ViewChangeQC) error {
+	data, err := rlp.EncodeToBytes(viewChangeQC)
+	if err != nil {
+		return err
+	}
+	// Write the ViewChangeQC to the WAL database
+	err = wal.metaDB.Put(viewChangeQCKey(epoch, viewNumber), data, &opt.WriteOptions{Sync: true})
+	if err != nil {
+		return err
+	}
+	log.Debug("Success to update viewChangeQC", "epoch", epoch, "viewNumber", viewNumber, "viewChangeQC", viewChangeQC.String())
+	go wal.deleteViewChangeQC(epoch - 1)
+	return nil
+}
+
+// deleteViewChangeQC tries to delete viewChangeQC by gaving epoch
+// we keep viewChangeQC only one epoch
+// if the higher epoch comes, the lower epoch will be deleted
+func (wal *baseWal) deleteViewChangeQC(epoch uint64) {
+	it := wal.metaDB.NewIterator(epochKey(epoch), nil)
+	for it.Next() {
+		key := it.Key()
+		wal.metaDB.Delete(key)
+	}
+}
+
+// GetViewChangeQC retrieves a viewChangeQC from the database by
+// epoch, viewNumber if found.
+func (wal *baseWal) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
+	// open wal database
+	data, err := wal.metaDB.Get(viewChangeQCKey(epoch, viewNumber))
+	if err != nil {
+		return nil, err
+	}
+	var qc ctypes.ViewChangeQC
+	err = rlp.DecodeBytes(data, &qc)
+	if err != nil {
+		log.Error("Failed to decode viewChangeQC")
+		return nil, errGetViewChangeQC
+	}
+	return &qc, nil
 }
 
 func (wal *baseWal) Close() {

@@ -321,8 +321,12 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		return msg.ViewNumber == localViewNumber && msg.Epoch == localEpoch
 	}
 
-	isNextView := func() bool {
+	isLastView := func() bool {
 		return msg.ViewNumber+1 == localViewNumber || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
+	}
+
+	isPreviousView := func() bool {
+		return msg.Epoch == localEpoch && msg.ViewNumber+1 < localViewNumber
 	}
 
 	if isEqualLocalView() {
@@ -341,7 +345,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 		return nil
 	}
 	// Return view QC in the case of less than 1.
-	if isNextView() {
+	if isLastView() {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
 			cbft.log.Error("Not found lastViewChangeQC")
@@ -356,6 +360,15 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 			ViewChangeQC: lastViewChangeQC,
 		})
 		return nil
+	}
+	// get previous viewChangeQC from wal db
+	if isPreviousView() {
+		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber); err == nil && qc != nil {
+			cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
+				ViewChangeQC: qc,
+			})
+			return nil
+		}
 	}
 
 	return fmt.Errorf("request is not match local view, local:%s,msg:%s", cbft.state.ViewString(), msg.String())
