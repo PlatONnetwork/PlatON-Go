@@ -90,6 +90,11 @@ func (q QuorumCert) String() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex)
 }
 
+// if the two quorumCert have the same blockNumber
+func (q QuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
+	return q.Epoch > blockEpoch || q.ViewNumber > blockView
+}
+
 type ViewChangeQuorumCert struct {
 	Epoch           uint64          `json:"epoch"`
 	ViewNumber      uint64          `json:"view_number"`
@@ -130,6 +135,11 @@ func (q ViewChangeQuorumCert) String() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockEpoch:%d,BlockViewNumber:%d}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockEpoch, q.BlockViewNumber)
 }
 
+// if the two quorumCert have the same blockNumber
+func (q ViewChangeQuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
+	return q.BlockEpoch > blockEpoch || q.BlockViewNumber > blockView
+}
+
 func (q *ViewChangeQuorumCert) Copy() *ViewChangeQuorumCert {
 	return &ViewChangeQuorumCert{
 		Epoch:        q.Epoch,
@@ -161,7 +171,7 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, uint64, uint64, common.Hash, u
 	epoch, view, blockEpoch, blockView, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
 	for _, qc := range v.QCs {
-		if blockEpoch < qc.BlockEpoch || (blockEpoch == qc.BlockEpoch && blockView < qc.BlockViewNumber) {
+		if qc.HigherBlockView(blockEpoch, blockView) {
 			blockEpoch, blockView, hash, number = qc.BlockEpoch, qc.BlockViewNumber, qc.BlockHash, qc.BlockNumber
 		} else if number < qc.BlockNumber {
 			hash, number = qc.BlockHash, qc.BlockNumber

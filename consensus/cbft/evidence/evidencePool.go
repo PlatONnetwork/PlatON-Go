@@ -237,24 +237,6 @@ func NewEvidence(dupType consensus.EvidenceType, data string) (consensus.Evidenc
 	return d, nil
 }
 
-//func (pool *baseEvidencePool) UnmarshalEvidence(data string) (consensus.Evidences, error) {
-//	var ed EvidenceData
-//	if err := json.Unmarshal([]byte(data), &ed); err != nil {
-//		return nil, err
-//	}
-//	evds := make(consensus.Evidences, 0)
-//	for _, e := range ed.DP {
-//		evds = append(evds, e)
-//	}
-//	for _, e := range ed.DV {
-//		evds = append(evds, e)
-//	}
-//	for _, e := range ed.DC {
-//		evds = append(evds, e)
-//	}
-//	return evds, nil
-//}
-
 // Clear tries to clear stale intermediate data
 func (pool *baseEvidencePool) Clear(epoch uint64, viewNumber uint64) {
 	pool.pb.Clear(epoch, viewNumber)
