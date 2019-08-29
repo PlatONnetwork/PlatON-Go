@@ -2,15 +2,15 @@ package cbft
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
-func TestTryViewChange(t *testing.T) {
-
+func TestViewChange(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
@@ -19,6 +19,15 @@ func TestTryViewChange(t *testing.T) {
 
 		nodes = append(nodes, node)
 	}
+
+	// TestTryViewChange
+	testTryViewChange(t, nodes)
+
+	// TestTryChangeViewByViewChange
+	testTryChangeViewByViewChange(t, nodes)
+}
+
+func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
 
 	result := make(chan *types.Block, 1)
 
@@ -75,4 +84,84 @@ func TestTryViewChange(t *testing.T) {
 
 	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
 
+}
+
+func testTryChangeViewByViewChange(t *testing.T, nodes []*TestCBFT) {
+	// note:
+	// node-0 has been successfully switched to view-1, HighestQC blockNumber = 4
+
+	// build a duplicate block-4
+	number, hash := nodes[0].engine.HighestQCBlockBn()
+	block, _ := nodes[0].engine.blockTree.FindBlockAndQC(hash, number)
+	dulBlock := NewBlock(block.ParentHash(), block.NumberU64())
+	_, preQC := nodes[0].engine.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
+	// Vote and generate prepareQC for dulBlock
+	votes := make(map[uint32]*protocols.PrepareVote)
+	for j := 1; j < 3; j++ {
+		vote := &protocols.PrepareVote{
+			Epoch:          nodes[0].engine.state.Epoch(),
+			ViewNumber:     nodes[0].engine.state.ViewNumber(),
+			BlockIndex:     uint32(0),
+			BlockHash:      dulBlock.Hash(),
+			BlockNumber:    dulBlock.NumberU64(),
+			ValidatorIndex: uint32(j),
+			ParentQC:       preQC,
+		}
+		assert.Nil(t, nodes[j].engine.signMsgByBls(vote))
+		votes[uint32(j)] = vote
+	}
+	dulQC := nodes[0].engine.generatePrepareQC(votes)
+	// build new viewChange
+	viewChanges := make(map[uint32]*protocols.ViewChange)
+	for j := 1; j < 3; j++ {
+		viewchange := &protocols.ViewChange{
+			Epoch:          nodes[0].engine.state.Epoch(),
+			ViewNumber:     nodes[0].engine.state.ViewNumber(),
+			BlockHash:      dulBlock.Hash(),
+			BlockNumber:    dulBlock.NumberU64(),
+			ValidatorIndex: uint32(j),
+			PrepareQC:      dulQC,
+		}
+		assert.Nil(t, nodes[j].engine.signMsgByBls(viewchange))
+		viewChanges[uint32(j)] = viewchange
+	}
+	viewChangeQC := nodes[0].engine.generateViewChangeQC(viewChanges)
+
+	// local highestqc is behind other validators and not exist viewChangeQC.maxBlock, sync qc block
+	nodes[0].engine.tryChangeViewByViewChange(viewChangeQC)
+	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
+	assert.Equal(t, hash, nodes[0].engine.state.HighestQCBlock().Hash())
+
+	// local highestqc is behind other validators but exist viewChangeQC.maxBlock, change the view
+	nodes[0].engine.blockTree.InsertQCBlock(dulBlock, dulQC)
+	nodes[0].engine.tryChangeViewByViewChange(viewChangeQC)
+	assert.Equal(t, uint64(2), nodes[0].engine.state.ViewNumber())
+	assert.Equal(t, dulQC.BlockHash, nodes[0].engine.state.HighestQCBlock().Hash())
+
+	// based on the view-2 build a duplicate block-4
+	dulBlock = NewBlock(block.ParentHash(), block.NumberU64())
+	// Vote and generate prepareQC for dulBlock
+	votes = make(map[uint32]*protocols.PrepareVote)
+	for j := 1; j < 3; j++ {
+		vote := &protocols.PrepareVote{
+			Epoch:          nodes[0].engine.state.Epoch(),
+			ViewNumber:     nodes[0].engine.state.ViewNumber(),
+			BlockIndex:     uint32(0),
+			BlockHash:      dulBlock.Hash(),
+			BlockNumber:    dulBlock.NumberU64(),
+			ValidatorIndex: uint32(j),
+			ParentQC:       preQC,
+		}
+		assert.Nil(t, nodes[j].engine.signMsgByBls(vote))
+		votes[uint32(j)] = vote
+	}
+	dulQC = nodes[0].engine.generatePrepareQC(votes)
+	nodes[0].engine.blockTree.InsertQCBlock(dulBlock, dulQC)
+	nodes[0].engine.state.SetHighestQCBlock(dulBlock)
+	// local highestqc is ahead other validators, generate new viewChange quorumCert and change the view
+	nodes[0].engine.tryChangeViewByViewChange(viewChangeQC)
+	assert.Equal(t, uint64(3), nodes[0].engine.state.ViewNumber())
+	assert.Equal(t, dulQC.BlockHash, nodes[0].engine.state.HighestQCBlock().Hash())
+	_, _, _, blockView, _, _ := viewChangeQC.MaxBlock()
+	assert.Equal(t, uint64(2), blockView)
 }

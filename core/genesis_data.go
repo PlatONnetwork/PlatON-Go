@@ -78,6 +78,10 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		return newHash, nil
 	}
 
+	// hard code genesis staking balance
+	// 1000W von
+	geneStakingAmount, _ := new(big.Int).SetString("10000000000000000000000000", 10)
+
 	for index := 0; index < length; index++ {
 
 		node := initQueue[index]
@@ -92,8 +96,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			StakingBlockNum:    uint64(0),
-			Shares:             xcom.StakeThreshold(),
-			Released:           xcom.StakeThreshold(),
+			Shares:             geneStakingAmount,
+			Released:           geneStakingAmount,
 			ReleasedHes:        common.Big0,
 			RestrictingPlan:    common.Big0,
 			RestrictingPlanHes: common.Big0,
@@ -144,8 +148,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		}
 		validatorQueue[index] = validator
 
-		stateDB.SubBalance(vm.PlatONFoundationAddress, xcom.StakeThreshold())
-		stateDB.AddBalance(vm.StakingContractAddr, xcom.StakeThreshold())
+		stateDB.SubBalance(vm.PlatONFoundationAddress, geneStakingAmount)
+		stateDB.AddBalance(vm.StakingContractAddr, geneStakingAmount)
 	}
 
 	// store the account staking Reference Count

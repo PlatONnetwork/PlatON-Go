@@ -5,7 +5,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type IWALDatabase interface {
@@ -13,6 +15,7 @@ type IWALDatabase interface {
 	Delete(key []byte) error
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) (bool, error)
+	NewIterator(key []byte, wo *opt.ReadOptions) iterator.Iterator
 	Close()
 }
 
@@ -86,6 +89,10 @@ func (db *WALDatabase) Put(key []byte, value []byte, wo *opt.WriteOptions) error
 
 func (db *WALDatabase) Has(key []byte) (bool, error) {
 	return db.db.Has(key, nil)
+}
+
+func (db *WALDatabase) NewIterator(key []byte, wo *opt.ReadOptions) iterator.Iterator {
+	return db.db.NewIterator(util.BytesPrefix(key), wo)
 }
 
 // Get returns the given key if it's present.
