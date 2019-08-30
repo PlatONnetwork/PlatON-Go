@@ -499,6 +499,7 @@ func (vp *ValidatorPool) VerifyAggSig(epoch uint64, validatorIndexes []uint32, m
 
 	nodeList, err := validators.NodeListByIndexes(validatorIndexes)
 	if err != nil {
+		vp.lock.RUnlock()
 		return false
 	}
 	vp.lock.RUnlock()
@@ -525,6 +526,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, ms
 
 	nodeList, err := validators.NodeListByBitArray(vSet)
 	if err != nil || len(nodeList) == 0 {
+		vp.lock.RUnlock()
 		return fmt.Errorf("not found validators: %v", err)
 	}
 	vp.lock.RUnlock()

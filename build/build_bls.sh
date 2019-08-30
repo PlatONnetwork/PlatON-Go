@@ -17,20 +17,17 @@ fi
 # sudo apt install libssl-dev
 # the above are prerequisites
 
-if [ ! -d "$BLS_ROOT/bls_linux_darwin" ]; then
-    # pull code of bls, mcl and cybozulib_ext
-    cd $BLS_ROOT
-    mkdir -p bls_linux_darwin
-    cd bls_linux_darwin
-    mkdir -p include
-    mkdir -p lib
-    mkdir -p src
-    cd src
-    git clone https://github.com/herumi/mcl.git
-    git clone https://github.com/herumi/bls.git
-    # below is only for Windows
-    # git clone https://github.com/herumi/cybozulib_ext.git
-fi
+cd $BLS_ROOT
+mkdir -p bls_linux_darwin
+cd bls_linux_darwin
+mkdir -p include
+mkdir -p lib
+mkdir -p src
+#cd src
+#git clone https://github.com/herumi/mcl.git
+#git clone https://github.com/herumi/bls.git
+# below is only for Windows
+# git clone https://github.com/herumi/cybozulib_ext.git
 
 set -e
 

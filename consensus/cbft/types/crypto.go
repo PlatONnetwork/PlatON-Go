@@ -92,7 +92,7 @@ func (q QuorumCert) String() string {
 
 // if the two quorumCert have the same blockNumber
 func (q QuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
-	return q.Epoch > blockEpoch || q.ViewNumber > blockView
+	return q.Epoch > blockEpoch || (q.Epoch == blockEpoch && q.ViewNumber > blockView)
 }
 
 type ViewChangeQuorumCert struct {
@@ -137,7 +137,7 @@ func (q ViewChangeQuorumCert) String() string {
 
 // if the two quorumCert have the same blockNumber
 func (q ViewChangeQuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
-	return q.BlockEpoch > blockEpoch || q.BlockViewNumber > blockView
+	return q.BlockEpoch > blockEpoch || (q.BlockEpoch == blockEpoch && q.BlockViewNumber > blockView)
 }
 
 func (q *ViewChangeQuorumCert) Copy() *ViewChangeQuorumCert {
