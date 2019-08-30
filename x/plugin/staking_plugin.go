@@ -163,6 +163,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+"0"), data)
+		xcom.PrintObject("wow,insert validator  0:", data)
 
 		currentVerifier, error := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != error {
@@ -176,6 +177,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+"0"), dataVerifier)
+		xcom.PrintObject("wow,insert verifier  0:", dataVerifier)
 	}
 	if xutil.IsElection(block.NumberU64()) {
 
@@ -200,6 +202,8 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 		}
 		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
+		log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
+		xcom.PrintObject("wow,insert validator history :", data)
 		result := distinct(next.Arr, current.Arr)
 		if len(result) > 0 {
 			sk.addConsensusNode(result)
@@ -221,6 +225,8 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
+		log.Debug("wow,insert verifier history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", VerifierName+numStr)
+		xcom.PrintObject("wow,insert verifier history :", data)
 	}
 
 	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
@@ -2183,7 +2189,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	// todo test
 	log.Info("Call Election start", "Curr epoch validators length", len(verifiers.Arr), "Curr round validators length", len(curr.Arr))
-	xcom.PrintObject("Call Election Curr validators", curr)
+	log.Debug("wow,Call Election Curr validators","blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
+	xcom.PrintObject("wow,Call Election Curr validators", curr)
 
 	if blockNumber != (curr.End - xcom.ElectionDistance()) {
 		log.Error("Failed to Election: Current blockNumber invalid", "Target blockNumber",
@@ -2549,7 +2556,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
 
 	// todo test
-	xcom.PrintObject("Call Election Next validators", next)
+	log.Debug("wow,Call Election Next validators","blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
+	xcom.PrintObject("wow,Call Election Next validators", next)
 	return nil
 }
 
