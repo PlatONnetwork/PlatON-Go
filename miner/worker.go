@@ -1070,7 +1070,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
-		log.Error("Failed GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
+		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return
 	}
 
@@ -1219,7 +1219,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
-		log.Error("Failed GetReactorInstance EndBlocker on worker", "blockNumber",
+		log.Error("Failed to GetReactorInstance EndBlocker on worker", "blockNumber",
 			w.current.header.Number.Uint64(), "err", err)
 		return err
 	}

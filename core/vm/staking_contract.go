@@ -57,6 +57,7 @@ const (
 	WithdrewCandidateEvent = "1003"
 	DelegateEvent          = "1004"
 	WithdrewDelegateEvent  = "1005"
+	BLSPUBKEYLEN           = 192 //  the bls public key length must be 192 character
 )
 
 type StakingContract struct {
@@ -128,11 +129,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return nil, nil
 	}
 
-	blslen := 192
-
-	//  the bls public key length must be 128 char
-	if len(blsPubKey) != blslen {
-		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), blslen)}
+	if len(blsPubKey) != BLSPUBKEYLEN {
+		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN)}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
@@ -168,8 +166,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	curr_version := gov.GetVersionForStaking(state)
-	currVersion := xutil.CalcVersion(curr_version)
+	originVersion := gov.GetVersionForStaking(state)
+	currVersion := xutil.CalcVersion(originVersion)
 	inputVersion := xutil.CalcVersion(programVersion)
 
 	var isDeclareVersion bool
@@ -178,7 +176,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
-		err := fmt.Errorf("input Version: %s, current valid Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(curr_version))
+		err := fmt.Errorf("input Version: %s, current valid Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion))
 		res := xcom.Result{false, "", ProgramVersionErrStr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
