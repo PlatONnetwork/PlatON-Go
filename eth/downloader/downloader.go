@@ -462,12 +462,11 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 				return err
 			}
 			d.committed = 0
-		} else if pivot == origin {
+		} else {
 			log.Info("no need synchronising", "peer", p.id, "origin", origin, "pivot", pivot)
 			d.committed = 0
 			return
 		}
-
 	} else {
 		// Look up the sync boundaries: the common ancestor and the target block
 		latest, err = d.fetchHeight(p)
