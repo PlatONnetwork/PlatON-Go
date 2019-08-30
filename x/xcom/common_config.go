@@ -407,14 +407,10 @@ func CheckEconomicModel() error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
-	/*
-		if ec.Common.ExpectedMinutes*60%
-			(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) != 0 {
-			return errors.New("The settlement period must be an integer multiple of the time taken for the consensus round")
-		}*/
+
 	if ec.Common.ExpectedMinutes*60/
-		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) <= 0 {
-		return errors.New("The settlement period must be an integer multiple of the time taken for the consensus round")
+		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) < 4 {
+		return errors.New("The settlement period must be more than four times the consensus period")
 	}
 	if ec.Common.AdditionalCycleTime*60%ec.Common.ExpectedMinutes*60 != 0 ||
 		ec.Common.AdditionalCycleTime*60/ec.Common.ExpectedMinutes*60 < 4 {
