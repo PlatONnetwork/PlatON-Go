@@ -2187,12 +2187,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		vrfLen = diffQueueLen
 	}
 
-	if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
-		log.Error("Failed to VrfElection on Election",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return err
-	} else {
-		vrfQueue = queue
+	if vrfLen != 0 {
+		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
+			log.Error("Failed to VrfElection on Election",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+			return err
+		} else {
+			vrfQueue = queue
+		}
 	}
 
 	realDeleteLen, realShiftQueue := deleteLenAndShiftQueue(currLen, invalidLen, vrfLen, vrfQueue)
@@ -2277,30 +2279,30 @@ func deleteLenAndShiftQueue(currLen, invalidLen, vrfLen int, vrfQueue staking.Va
 	remainLen := currLen - invalidLen
 	if remainLen <= int(xcom.ConsValidatorNum()) {
 
-		subOverflow := int(xcom.ShiftValidatorNum()) - invalidLen
+		deleteOverflow := int(xcom.ShiftValidatorNum()) - invalidLen
 		appendLen := remainLen + vrfLen
 		appendOverflow := appendLen - int(xcom.ConsValidatorNum())
 
 		switch {
 
 		// No need to replace old validators
-		case subOverflow <= 0 && appendOverflow <= 0,
-			subOverflow > 0 && appendOverflow <= 0:
+		case deleteOverflow <= 0 && appendOverflow <= 0,
+			deleteOverflow > 0 && appendOverflow <= 0:
 
 			realDeleteLen = invalidLen
 			realShiftQueue = vrfQueue
 
 		// Remove the extra after the addition
-		case subOverflow <= 0 && appendOverflow > 0:
+		case deleteOverflow <= 0 && appendOverflow > 0:
 
 			realDeleteLen = invalidLen
 			realShiftQueue = vrfQueue[:len(vrfQueue)-appendOverflow]
 
-		case subOverflow > 0 && appendOverflow > 0:
+		case deleteOverflow > 0 && appendOverflow > 0:
 
-			if subOverflow <= appendOverflow {
-				realDeleteLen = invalidLen + subOverflow
-				realShiftQueue = vrfQueue[:len(vrfQueue)-(appendOverflow-subOverflow)]
+			if deleteOverflow <= appendOverflow {
+				realDeleteLen = invalidLen + deleteOverflow
+				realShiftQueue = vrfQueue[:len(vrfQueue)-(appendOverflow-deleteOverflow)]
 			} else {
 				realDeleteLen = invalidLen + appendOverflow
 				realShiftQueue = vrfQueue
