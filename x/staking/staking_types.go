@@ -139,7 +139,7 @@ type Candidate struct {
 }
 
 //func (can *Candidate) ToString() string {
-//	return fmt.Sprintf(`{"NodeId": %s, "BlsPubKey": %s, }`)
+//	return fmt.Sprintf(`{"NodeId": %s, "BlsPubKey": %s, "StakingAddress": %s, }`)
 //}
 
 // Display amount field using 0x hex
@@ -522,18 +522,29 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 			// compare Shares
 			return compareSharesFunc(left, right)
 		default:
+			// compare low ratio delete
 			// compare low ratio
 			switch {
-			case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
+			case Is_LowRatioDel(lCan.Status) && !Is_LowRatioDel(rCan.Status):
 				return 1
-			case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+			case !Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
 				return -1
-			case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+			case Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
 				// compare Shares
 				return compareSharesFunc(left, right)
 			default:
-				// compare Version
-				return compareVersionFunc(left, right)
+				switch {
+				case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
+					return 1
+				case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+					return -1
+				case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+					// compare Shares
+					return compareSharesFunc(left, right)
+				default:
+					// compare Version
+					return compareVersionFunc(left, right)
+				}
 			}
 
 		}
