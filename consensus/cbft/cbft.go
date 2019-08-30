@@ -1348,7 +1348,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		if cm.BlockIndex == 0 {
 			_, localQC := cbft.blockTree.FindBlockAndQC(prepareQC.BlockHash, cm.BlockNumber-1)
 			if localQC == nil {
-				return nil, fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", cm.BlockNumber-1, prepareQC.BlockHash)
+				return nil, fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", cm.BlockNumber-1, prepareQC.BlockHash.String())
 			}
 			oriNumber = localQC.BlockNumber
 			oriHash = localQC.BlockHash
