@@ -117,6 +117,7 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 
 	accountList := strings.Split(accounts, ";")
 	if(len(accountList) == 0){
+		log.Error("getRestrictingBalance accountList empty","accountList:",len(accountList))
 		return nil, nil
 	}
 
@@ -134,6 +135,10 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 		address := common.HexToAddress(account)
 		result, err := rc.Plugin.GetRestrictingBalance(address, state)
 		if err != nil {
+			rb := restricting.BalanceResult{
+				Account : address,
+			}
+			rs[i] = rb
 			log.Error("getRestrictingBalance err","account:",account,";err",err)
 		} else {
 			rs[i] = result

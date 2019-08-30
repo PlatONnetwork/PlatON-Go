@@ -556,15 +556,16 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	var (
 		result           restricting.BalanceResult
 	)
+	result.Account = account
+	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
 	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		log.Error("failed to rlp encode the restricting account", "error", err.Error(), "info", info)
-		return result, common.NewSysError(err.Error())
+		return result, nil
 	}
 
-	result.Account = account
 	result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
-	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
+
 	log.Trace("get restricting result", "account", account.String(), "result", result)
 
 	log.Debug("end to GetRestrictingBalance", "GetRestrictingBalance", result)
