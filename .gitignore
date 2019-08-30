@@ -67,4 +67,3 @@ crypto/bls/include
 
 consensus/cbft/transactions.rlp
 consensus/cbft/transactions.rlp.new
-crypto/bls/bls_win
