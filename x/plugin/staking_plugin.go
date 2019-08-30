@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	. "math"
 	"math/big"
 	"sort"
 	"strconv"
@@ -163,7 +164,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+"0"), data)
-		xcom.PrintObject("wow,insert validator  0:", data)
+		xcom.PrintObject("wow,insert validator  0:", current)
 
 		currentVerifier, error := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != error {
@@ -177,7 +178,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 			return err
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+"0"), dataVerifier)
-		xcom.PrintObject("wow,insert verifier  0:", dataVerifier)
+		xcom.PrintObject("wow,insert verifier  0:", currentVerifier)
 	}
 	if xutil.IsElection(block.NumberU64()) {
 
@@ -203,7 +204,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
 		log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
-		xcom.PrintObject("wow,insert validator history :", data)
+		xcom.PrintObject("wow,insert validator history :", current)
 		result := distinct(next.Arr, current.Arr)
 		if len(result) > 0 {
 			sk.addConsensusNode(result)
@@ -226,7 +227,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 		}
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
 		log.Debug("wow,insert verifier history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", VerifierName+numStr)
-		xcom.PrintObject("wow,insert verifier history :", data)
+		xcom.PrintObject("wow,insert verifier history :", current)
 	}
 
 	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
@@ -1697,15 +1698,17 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 
-	cs := xutil.CalcBlocksEachEpoch()
-	i := (blockNumber + cs) / cs
-	if xutil.IsSettlementPeriod(blockNumber) {
-		i = i - 1
-	}
+	i := xutil.CalculateEpoch(blockNumber)
+
+	//cs := xutil.CalcBlocksEachEpoch()
+	//i := (blockNumber + cs) / cs
+	//if xutil.IsSettlementPeriod(blockNumber) {
+	//	i = i - 1
+	//}
 
 	//result := make(staking.ValidatorExQueue, 0)
 	//for i:=1; uint64(i) * cs <= blockNumber; i++  {
-	queryNumber := uint64(i) * cs
+	queryNumber := uint64(i) * xutil.CalcBlocksEachEpoch()
 	numStr := strconv.FormatUint(queryNumber, 10)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(VerifierName + numStr))
 	if nil != err {
@@ -1910,14 +1913,15 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
 	staking.ValidatorExQueue, error) {
 
-	cs := xutil.ConsensusSize()
-	i := (blockNumber + cs) / cs
-	if xutil.IsElection(blockNumber) {
-		i = i - 1
-	}
+	i := xutil.CalculateRound(blockNumber)
+	//cs := xutil.ConsensusSize()
+	//i := (blockNumber + cs) / cs
+	//if xutil.IsElection(blockNumber) {
+	//	i = i - 1
+	//}
 	//result := make(staking.ValidatorExQueue, 0)
 	//for i:=1; uint64(i) * cs <= blockNumber; i++ {
-	queryNumber := uint64(i) * cs
+	queryNumber := uint64(i) * xutil.ConsensusSize()
 	numStr := strconv.FormatUint(queryNumber, 10)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
 	if nil != err {
