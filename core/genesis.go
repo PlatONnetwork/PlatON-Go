@@ -49,13 +49,14 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config    *params.ChainConfig `json:"config"`
-	Nonce     []byte              `json:"nonce"`
-	Timestamp uint64              `json:"timestamp"`
-	ExtraData []byte              `json:"extraData"`
-	GasLimit  uint64              `json:"gasLimit"   gencodec:"required"`
-	Coinbase  common.Address      `json:"coinbase"`
-	Alloc     GenesisAlloc        `json:"alloc"      gencodec:"required"`
+	Config        *params.ChainConfig `json:"config"`
+	EconomicModel *xcom.EconomicModel `json:"EconomicModel"`
+	Nonce         []byte              `json:"nonce"`
+	Timestamp     uint64              `json:"timestamp"`
+	ExtraData     []byte              `json:"extraData"`
+	GasLimit      uint64              `json:"gasLimit"   gencodec:"required"`
+	Coinbase      common.Address      `json:"coinbase"`
+	Alloc         GenesisAlloc        `json:"alloc"      gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -153,6 +154,7 @@ func (e *GenesisMismatchError) Error() string {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -170,6 +172,11 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 			log.Info("Writing custom genesis block")
 		}
 
+		// check EconomicModel configuration
+		if err := xcom.CheckEconomicModel(); nil != err {
+			return nil, common.Hash{}, err
+		}
+
 		block, err := genesis.Commit(db)
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
@@ -183,6 +190,14 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		}
 	}
 
+	// Get the existing EconomicModel configuration.
+	ecCfg := xcom.GetEc(xcom.DefaultMainNet)
+	ecCfg = rawdb.ReadEconomicModel(db, stored, ecCfg)
+	if nil == ecCfg {
+		log.Warn("Found genesis block without EconomicModel config")
+		rawdb.WriteEconomicModel(db, stored, xcom.GetEc(xcom.DefaultMainNet))
+	}
+
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored) // TODO this line Maybe delete
 	storedcfg := rawdb.ReadChainConfig(db, stored)
@@ -191,6 +206,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
+
 	// Sp ecial case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
@@ -320,6 +336,7 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 		config = params.AllEthashProtocolChanges
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
+	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 	return block, nil
 }
 
@@ -356,12 +373,12 @@ func DefaultGenesisBlock() *Genesis {
 
 	// initial balance of staking contract
 	genesisNodesNumber := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	xcom.GetEc(xcom.DefaultMainNet)
 	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
 
 	// initial reserved account balance
 	// reservedAccountIssue := big.NewInt(0)
-
-	return &Genesis{
+	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
 		Timestamp: 0,
@@ -375,7 +392,11 @@ func DefaultGenesisBlock() *Genesis {
 			vm.StakingContractAddr:          {Balance: stakingContractIssue},
 			// vm.ReservedAccount:              {Balance: reservedAccountIssue},
 		},
+		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
 }
 
 // DefaultTestnetGenesisBlock returns the Alpha network genesis block.

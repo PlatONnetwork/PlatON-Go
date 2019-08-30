@@ -99,7 +99,9 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				amount, success := result[nodeId]
 				isSlash := false
 				var rate uint32
-				isDelete := false
+
+				slashType := staking.LowRatio
+
 				if success {
 					// Start to punish nodes with abnormal block rate
 					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
@@ -110,21 +112,21 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 							rate = xcom.PackAmountLowSlashRate()
 						} else if amount <= xcom.PackAmountHighAbnormal() {
 							isSlash = true
-							isDelete = true
+							slashType = staking.LowRatioDel
 							rate = xcom.PackAmountHighSlashRate()
 						}
 					}
 				} else {
 					isSlash = true
-					isDelete = true
+					slashType = staking.LowRatioDel
 					rate = xcom.PackAmountHighSlashRate()
 				}
 				if isSlash && rate > 0 {
 					slashAmount, sumAmount := calcSlashAmount(validator, rate, header.Number.Uint64())
 					log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
-						"nodeId", nodeId.TerminalString(), "packAmount", amount, "isDelete", isDelete, "sumAmount", sumAmount, "slash balance rate of remain", rate, "slashAmount", slashAmount)
+						"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "sumAmount", sumAmount, "slash balance rate of remain", rate, "slashAmount", slashAmount)
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
-					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, isDelete, staking.LowRatio, common.ZeroAddr); nil != err {
+					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, slashType, common.ZeroAddr); nil != err {
 						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
 						return err
 					}
@@ -249,7 +251,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
-		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, true, staking.DuplicateSign, caller); nil != err {
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, staking.DuplicateSign, caller); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return err
 		}
