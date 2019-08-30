@@ -339,6 +339,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		hashMode := query.Origin.Hash != (common.Hash{})
+		log.Debug("[GetBlockHeadersMsg]Received a broadcast message", "val", query)
 		first := true
 		maxNonCanonical := uint64(100)
 
