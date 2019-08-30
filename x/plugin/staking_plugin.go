@@ -2023,8 +2023,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	lowRatioValidQueue := make(staking.CandidateQueue, 0)
 
 	// Query Valid programVersion
-	curr_version := gov.GetVersionForStaking(state)
-	currVersion := xutil.CalcVersion(curr_version)
+	originVersion := gov.GetVersionForStaking(state)
+	currVersion := xutil.CalcVersion(originVersion)
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
 	for _, v := range curr.Arr {
@@ -2172,8 +2172,15 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	*/
 	var nextQueue staking.ValidatorQueue
 
-	// When the consensus round validator width becomes smaller
-	// than ConsValidatorNum by the governance adjustment
+	remainLen := currLen - invalidLen
+	if remainLen <= int(xcom.ConsValidatorNum()) {
+
+	} else {
+
+	}
+
+	//
+	//
 	if currLen <= int(xcom.ConsValidatorNum()) {
 
 		var (
@@ -2808,11 +2815,12 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
-	// check slash status
-	if uint32(slashType) != staking.LowRatio &&
-		uint32(slashType) != staking.LowRatioDel &&
-		uint32(slashType) != staking.DuplicateSign {
-
+	slashTypeIsWrong := func() bool {
+		return uint32(slashType) != staking.LowRatio &&
+			uint32(slashType) != staking.LowRatioDel &&
+			uint32(slashType) != staking.DuplicateSign
+	}
+	if slashTypeIsWrong() {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 		return common.BizErrorf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
@@ -2941,13 +2949,17 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the slashed ramain is not zero, slashAmount:%d, slash remain:%d", amount, slash)
 	}
 
-	// If the status has been modified before, this time it will not be modified.
-	if staking.Is_Invalid_LowRatio_NotEnough(can.Status) ||
-		staking.Is_Invalid_LowRatioDel(can.Status) ||
-		staking.Is_Invalid_DuplicateSign(can.Status) ||
-		staking.Is_Invalid_Withdrew(can.Status) {
+	sharesHaveBeenClean := func() bool {
+		return staking.Is_Invalid_LowRatio_NotEnough(can.Status) ||
+			staking.Is_Invalid_LowRatioDel(can.Status) ||
+			staking.Is_Invalid_DuplicateSign(can.Status) ||
+			staking.Is_Invalid_Withdrew(can.Status)
+	}
 
-		log.Info("Call SlashCandidates end, the can status has been modified",
+	// If the status has been modified before, this time it will not be modified.
+	if sharesHaveBeenClean() {
+
+		log.Info("Call SlashCandidates end, the candidate shares have been clean",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 			"can.Status", can.Status)
 
@@ -3080,7 +3092,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 				if val.NodeId == nodeId {
 
-					log.Info("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
+					log.Info("Call SlashCandidates, Delete the validator", "slashType", slashType,
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
 					validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)
@@ -3208,7 +3220,8 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 func (sk *StakingPlugin) GetLastNumber(blockNumber uint64) uint64 {
 
 	val_arr, err := sk.getCurrValList(common.ZeroHash, blockNumber, QueryStartIrr)
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if nil != err {
+		log.Error("Failed to GetLastNumber", "blockNumber", blockNumber, "err", err)
 		return 0
 	}
 
@@ -3226,7 +3239,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 	}
 
 	if nil == err && nil != val_arr {
-		return build_cbft_validators(val_arr.Start, val_arr.Arr), nil
+		return buildCbftValidators(val_arr.Start, val_arr.Arr), nil
 	}
 	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }
@@ -3262,7 +3275,7 @@ label:
 	return isCandidate
 }
 
-func build_cbft_validators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Validators {
+func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Validators {
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
@@ -3465,12 +3478,12 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	sort.Sort(svList)
-	resultValidatorList := make(staking.ValidatorQueue, 0)
+	resultValidatorList := make(staking.ValidatorQueue, shiftLen)
 	for index, sv := range svList {
 		if index == shiftLen {
 			break
 		}
-		resultValidatorList = append(resultValidatorList, sv.v)
+		resultValidatorList[index] = sv.v
 		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weights, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	return resultValidatorList, nil
@@ -3887,7 +3900,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		targetEpoch = maxEndVoteEpoch
 	}
 
-	log.Debug("Call addUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
+	log.Info("Call addUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
 		"govenance max end vote blokNumber", endVoteNum, "unStakeFreeze Epoch", refundEpoch,
 		"govenance max end vote epoch", maxEndVoteEpoch, "unstake item target Epoch", targetEpoch,
 		"nodeId", nodeId.String())
@@ -3903,7 +3916,7 @@ func (sk *StakingPlugin) addUnDelegateItem(blockNumber uint64, blockHash common.
 
 	targetEpoch := epoch + xcom.ActiveUnDelFreezeRatio()
 
-	log.Debug("Call addUnDelegateItem, AddUnDelegateItemStore start", "current blockNumber",
+	log.Info("Call addUnDelegateItem, AddUnDelegateItemStore start", "current blockNumber",
 		blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "current epoch", epoch,
 		"target epoch", targetEpoch, "stakingBlockNum", stakeBlockNumber, "refundAmount", amount)
 
