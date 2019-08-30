@@ -563,8 +563,8 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	}
 
 	result.Account = account
-	result.LockBalance = info.CachePlanAmount
-	result.FreeBalance = state.GetBalance(account)
+	result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
+	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
 	log.Trace("get restricting result", "account", account.String(), "result", result)
 
 	log.Debug("end to GetRestrictingBalance", "GetRestrictingBalance", result)
