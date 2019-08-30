@@ -310,12 +310,10 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	si.SetDecodeEvidenceFun(evidence.NewEvidences)
+	si.SetDecodeEvidenceFun(evidence.NewEvidence)
 	GovPluginInstance()
 	data := `{
-          "duplicate_prepare": [
-          {
-           "PrepareA": {
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0x09c94e00f687891f5de80146d906b55a249408dfd27afcad5a87bdad6fc28957",
@@ -329,7 +327,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             },
             "signature": "0x13eb58303156f63d8961a916694d3f659d58804ef1d783ee5c8c7fc3ca393b8a"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0xd1fc79053b8e9fd6a7d9061b4e12a282110429bd0e643aa477083f221a8cba8c",
@@ -343,9 +341,9 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             },
             "signature": "0x8de9fbb57edf75934b4caf40c95d569d03a75c762343066db737fdb2b818c313"
            }
-          },
-		  {
-           "PrepareA": {
+          }`
+	data2 := `{
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0x00a452c6116ac9df049016437f8a35b4e29c17d63632314f0266df2b0dcd4bef",
@@ -359,7 +357,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             },
             "signature": "0x554a2a2f1b0d197730c707b595016b5f735ce0df0a5e9efd28a77764f295af1f"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0x3f643f315a72d54815e3b638e53a1f293834e6d9109c4c0f3e5d9c7171bf1cf2",
@@ -373,9 +371,9 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             },
             "signature": "0x9e626bd0fd19290c7ff23a605259735de216f9c26df51ddaf51f66f0aade4097"
            }
-          },
-		  {
-           "PrepareA": {
+          }`
+	data3 := `{
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0x3a9231003fcf850ff47dcf8bb13cc4a711c1c1704393bd1663568acdd2d5d761",
@@ -389,7 +387,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             },
             "signature": "0xf36de5b8008fd9e697e8414bbbca6a943a448bbc69c4e7aac7ffdffd3c051288"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
             "block_hash": "0xb5efd1598ba2ad9ff3ee763fb2cf43a24f64ca56c1efdeca7aad3436a4da7240",
@@ -403,11 +401,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             },
             "signature": "0xaf76685de2b0cc25644d4e5c763065162ff03bc425826dd639c4ee779a200509"
            }
-          }
-         ],
-         "duplicate_vote": [],
-         "duplicate_viewchange": []
-        }`
+          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
 	addr := common.HexToAddress("0x27383a8d350139588daba349dcd6ef1d745da004")
 	nodeId, err := discover.HexID("2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270")
@@ -430,7 +424,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 		Shares:          new(big.Int).SetUint64(1000),
 
-		Released:           common.Big0,
+		Released:           common.Big256,
 		ReleasedHes:        common.Big0,
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
@@ -443,18 +437,33 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Fatal(err)
 	}
-	evidence, err := si.DecodeEvidence(data)
+	evidence1, err := si.DecodeEvidence(1, data)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if err := si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
+	if err := si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
 		t.Fatal(err)
 	}
 	if value, err := si.CheckDuplicateSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
-	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
-	assert.Nil(t, err)
+
+	evidence2, err := si.DecodeEvidence(1, data2)
+	if nil != err {
+		t.Fatal(err)
+	}
+	err = si.Slash(evidence2, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
+
+	evidence3, err := si.DecodeEvidence(1, data3)
+	if nil != err {
+		t.Fatal(err)
+	}
+	err = si.Slash(evidence3, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
+
+	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
 }
 
 func TestSlashingPlugin_CheckMutiSign(t *testing.T) {

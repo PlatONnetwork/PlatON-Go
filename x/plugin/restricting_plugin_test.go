@@ -45,10 +45,10 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		if err = json.Unmarshal(result, &res); err != nil {
 			t.Fatalf("failed to json decode result, result: %s", result)
 		}
-		if res.Balance.Cmp(big.NewInt(5e18)) != 0 {
+		if res.Balance.ToInt().Cmp(big.NewInt(5e18)) != 0 {
 			t.Errorf("balance not cmp")
 		}
-		if res.Debt.Cmp(common.Big0) != 0 {
+		if res.Debt.ToInt().Cmp(common.Big0) != 0 {
 			t.Error("Debt not cmp")
 		}
 		if len(res.Entry) == 0 {
@@ -59,7 +59,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			if entry.Height != uint64(count)*xutil.CalcBlocksEachEpoch() {
 				t.Errorf("release block number not  cmp,want %v ,have %v ", uint64(count)*xutil.CalcBlocksEachEpoch(), entry.Height)
 			}
-			if entry.Amount.Cmp(big.NewInt(int64(1E18))) != 0 {
+			if entry.Amount.ToInt().Cmp(big.NewInt(int64(1E18))) != 0 {
 				t.Errorf("release amount  not  cmp,want %v ,have %v ", big.NewInt(int64(1E18)), entry.Amount)
 			}
 			count++
@@ -373,10 +373,10 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			t.Fatalf("failed to json decode result, result: %s", result)
 		}
 
-		if res.Balance.Cmp(total) != 0 {
+		if res.Balance.ToInt().Cmp(total) != 0 {
 			t.Errorf("Balance num is not cmp,should %v have %v", total, res.Balance)
 		}
-		if res.Debt.Cmp(common.Big0) != 0 {
+		if res.Debt.ToInt().Cmp(common.Big0) != 0 {
 			t.Errorf("Debt num is not cmp,should %v have %v", total, res.Debt)
 		}
 
@@ -387,14 +387,14 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 		if res.Entry[0].Height != uint64(1)*xutil.CalcBlocksEachEpoch() {
 			t.Errorf("release block num is not right,want %v have %v", uint64(1)*xutil.CalcBlocksEachEpoch(), res.Entry[0].Height)
 		}
-		if res.Entry[0].Amount.Cmp(big.NewInt(2E18)) != 0 {
+		if res.Entry[0].Amount.ToInt().Cmp(big.NewInt(2E18)) != 0 {
 			t.Errorf("release amount not compare ,want %v have %v", big.NewInt(2E18), res.Entry[0].Amount)
 		}
 
 		if res.Entry[1].Height != uint64(2)*xutil.CalcBlocksEachEpoch() {
 			t.Errorf("release block num is not right,want %v have %v", uint64(2)*xutil.CalcBlocksEachEpoch(), res.Entry[1].Height)
 		}
-		if res.Entry[1].Amount.Cmp(big.NewInt(1E18)) != 0 {
+		if res.Entry[1].Amount.ToInt().Cmp(big.NewInt(1E18)) != 0 {
 			t.Errorf("release amount not compare ,want %v have %v", big.NewInt(1E18), res.Entry[1].Amount)
 		}
 	})

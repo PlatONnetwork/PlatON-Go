@@ -8,10 +8,16 @@ fi
 PLATON_ROOT=`pwd`
 BLS_ROOT=$PLATON_ROOT/crypto/bls
 
+if [ "`ls $BLS_ROOT/bls_win`" = "" ]; then
+    # pull bls
+    git submodule update --init
+fi
+
 if [ `expr substr $(uname -s) 1 5` == "MINGW" ]; then
     echo "not support system $(uname -s)"
     exit 0
 fi
+
 
 # sudo apt install libgmp-dev
 # sudo apt install libssl-dev
