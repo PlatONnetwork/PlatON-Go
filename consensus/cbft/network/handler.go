@@ -411,7 +411,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// is processing abnormally.
 	for {
 		if err := h.handleMsg(peer); err != nil {
-			p.Log().Error("CBFT message handling failed", "err", err)
+			p.Log().Error("CBFT message handling failed", "peerID", peer.PeerID(), "err", err)
 			return err
 		}
 	}
