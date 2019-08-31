@@ -306,7 +306,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 	vp.switchPoint = nds.ValidBlockNumber - 1
 	vp.lastNumber = vp.agency.GetLastNumber(NextRound(blockNumber))
 	vp.epoch = epoch
-	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch)
+	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
 
 	isValidatorBefore := vp.isValidator(epoch-1, vp.nodeID)
 
