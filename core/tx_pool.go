@@ -257,7 +257,8 @@ type TxPool struct {
 	rstFlag     int32
 	pendingFlag int32
 
-	knowns sync.Map // All know transactions
+	knowns       sync.Map // All know transactions
+	filterKnowns int32
 }
 
 type txExt struct {
@@ -448,7 +449,7 @@ func (pool *TxPool) loop() {
 			pool.mu.RUnlock()
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
-				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "txExtBuffer", len(pool.txExtBuffer))
+				log.Info("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "txExtBuffer", len(pool.txExtBuffer), "filterKnowns", atomic.SwapInt32(&pool.filterKnowns, 0))
 				prevPending, prevQueued, prevStales = pending, queued, stales
 			}
 
@@ -1075,7 +1076,12 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	pool.knowns.Store(tx.Hash(), time.Now())
+	if _, ok := pool.knowns.Load(tx.Hash()); ok {
+		atomic.AddInt32(&pool.filterKnowns, 1)
+		return nil
+	} else {
+		pool.knowns.Store(tx.Hash(), time.Now())
+	}
 	errCh := make(chan interface{}, 1)
 	txExt := &txExt{tx, false, errCh}
 	select {
@@ -1119,6 +1125,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 		hash := tx.Hash()
 
 		if _, ok := pool.knowns.Load(hash); ok {
+			atomic.AddInt32(&pool.filterKnowns, 1)
 			log.Trace("Discarding already known transaction", "hash", hash)
 			continue
 		} else {
