@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -63,7 +64,7 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 
 func GetProgramVersion() (*ProgramVersionValue, error) {
 	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	sig, err := xcom.GetCryptoHandler().Sign(programVersion)
+	sig, err := handler.GetCryptoHandler().Sign(programVersion)
 	if err != nil {
 		log.Error("sign version data error", "err", err)
 		return nil, err
@@ -130,7 +131,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	if proposal.GetProposalType() == Version {
 		if vp, ok := proposal.(*VersionProposal); ok {
 			//The signature should be verified when node vote for a version proposal.
-			if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
+			if !handler.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
 				return VersionSignError
 			}
 
@@ -198,7 +199,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
+	if !handler.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
 		return VersionSignError
 	}
 
