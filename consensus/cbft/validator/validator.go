@@ -447,6 +447,13 @@ func (vp *ValidatorPool) validatorList(epoch uint64) []discover.NodeID {
 	return vp.currentValidators.NodeList()
 }
 
+func (vp *ValidatorPool) Validators(epoch uint64) *cbfttypes.Validators {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
+		return vp.prevValidators
+	}
+	return vp.currentValidators
+}
+
 // VerifyHeader verify block's header.
 func (vp *ValidatorPool) VerifyHeader(header *types.Header) error {
 	_, err := crypto.Ecrecover(header.SealHash().Bytes(), header.Signature())

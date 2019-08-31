@@ -1510,6 +1510,7 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 		return err
 	}
 	if err = cbft.validatorPool.VerifyAggSigByBA(qc.Epoch, qc.ValidatorSet, cb, qc.Signature.Bytes()); err != nil {
+		cbft.log.Debug("verify failed", "qc", qc.String(), "validators", cbft.validatorPool.Validators(qc.Epoch).String())
 		return authFailedError{err: fmt.Errorf("verify prepare qc failed: %v", err)}
 	}
 	return nil
@@ -1548,6 +1549,8 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 		}
 
 		if err = cbft.validatorPool.VerifyAggSigByBA(vc.Epoch, vc.ValidatorSet, cb, vc.Signature.Bytes()); err != nil {
+			cbft.log.Debug("verify failed", "qc", vc.String(), "validators", cbft.validatorPool.Validators(vc.Epoch).String())
+
 			err = authFailedError{err: fmt.Errorf("verify viewchange qc failed:number:%d,validators:%s,msg:%s,signature:%s,err:%v",
 				vc.BlockNumber, vc.ValidatorSet.String(), hexutil.Encode(cb), vc.Signature.String(), err)}
 			break
