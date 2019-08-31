@@ -3,7 +3,6 @@ package plugin
 import (
 	"encoding/json"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -85,7 +84,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
-	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	from, to := addrArr[0], addrArr[1]
 
@@ -175,8 +174,8 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		_, account2 := plugin.getReleaseAccount(mockDB, 2, num2)
 		assert.Equal(t, to, account2)
 		res, _ := plugin.getRestrictingInfo2(to, mockDB)
-		assert.Equal(t, big.NewInt(1E17+1E17+1E18), res.Balance)
-		assert.Equal(t, big.NewInt(0), res.Debt)
+		assert.Equal(t, big.NewInt(1E17+1E17+1E18), res.Balance.ToInt())
+		assert.Equal(t, big.NewInt(0), res.Debt.ToInt())
 
 		balance := mockDB.GetBalance(vm.RestrictingContractAddr)
 		assert.Equal(t, big.NewInt(1E17+1E17+1E18), balance)
@@ -404,7 +403,7 @@ func TestRestrictingInstance(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
-	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(9E18)))
 	plans := make([]restricting.RestrictingPlan, 0)
@@ -454,7 +453,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
-	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(9E18)))
 	plans := make([]restricting.RestrictingPlan, 0)
@@ -536,7 +535,7 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, res.Balance, big.NewInt(6E18))
+	assert.Equal(t, res.Balance.ToInt(), big.NewInt(6E18))
 
 }
 
