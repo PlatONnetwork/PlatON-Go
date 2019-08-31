@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -97,7 +99,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateItem on stakingPlugin EndBlock",
 				"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-			return err //  TODO common.NewSysError(err.Error())
+			return err
 		}
 
 		// hanlde UnDelegate Item
@@ -561,9 +563,6 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 		return nil
 	}
 
-	// todo test
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), blockHash)
-
 	filterAddr := make(map[common.Address]struct{})
 
 	for index := 1; index <= int(unStakeCount); index++ {
@@ -900,9 +899,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	lazyCalcDelegateAmount(epoch, del)
 
-	/**
-	inner Fn
-	*/
+	// inner Fn
 	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
 
 		state.AddBalance(delAddr, sub)
@@ -968,13 +965,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	switch {
 
-	/**
-	**
-	**
-	When the related candidate info does not exist
-	**
-	**
-	*/
+	// When the related candidate info does not exist
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
 		nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Invalid(can.Status):
 
@@ -1006,12 +997,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		realSub := refundAmount
 
-		// todo test
 		log.Debug("Call WithdrewDelegate, the candidate is invalid or no exist", "realSub", realSub, "withdrew amount", amount)
 
-		/**
-		handle delegate on Hesitate period
-		*/
+		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := refundFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes)
 			if nil != err {
@@ -1020,9 +1008,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
-		/**
-		handle delegate on Effective period
-		*/
+		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := refundFn(refundAmount, del.Released, del.RestrictingPlan)
 			if nil != err {
@@ -1062,13 +1048,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			}
 		}
 
-	/**
-	**
-	**
-	Illegal parameter
-	**
-	**
-	*/
+	// Illegal parameter
 	case nil != can && stakingBlockNum > can.StakingBlockNum:
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: the stakeBlockNum invalid",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1076,13 +1056,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"can.stakeBlockNum", can.StakingBlockNum)
 		return ParamsErr
 
-	/**
-	**
-	**
-	When the delegate is normally revoked
-	**
-	**
-	*/
+	// When the delegate is normally revoked
 	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
 		// First need to deduct the von that is being refunded
@@ -1113,13 +1087,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		realSub := refundAmount
 
-		// todo test
 		log.Debug("Call WithdrewDelegate, the candidate is valid", "realSub", realSub, "withdrew amount", amount)
 
-		/**
-		handle delegate on Hesitate period
-		*/
-
+		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := refundFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes)
 			if nil != err {
@@ -1130,9 +1100,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		save_or_del := false // false: save, true: delete
 
-		/**
-		handle delegate on Effective period
-		*/
+		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
 
 			// add a UnDelegateItem
@@ -1183,11 +1151,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return err
 		}
 
-		/**
-		**
-		change candidate shares
-		**
-		*/
+		// change candidate shares
 		if can.Shares.Cmp(realSub) > 0 {
 			can.Shares = new(big.Int).Sub(can.Shares, realSub)
 		} else {
@@ -1231,9 +1195,6 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockNumber ui
 	if unDelegateCount == 0 {
 		return nil
 	}
-
-	// todo test
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), blockHash)
 
 	for index := 1; index <= int(unDelegateCount); index++ {
 		unDelegateItem, err := sk.db.GetUnDelegateItemStore(blockHash, epoch, uint64(index))
@@ -1288,10 +1249,11 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
 	// Maybe equal zero (maybe slashed)
-	// TODO must compare the undelegate amount and contract's balance
-	if contract_balance.Cmp(common.Big0) == 0 {
+	// must compare the undelegate amount and contract's balance
+	if contract_balance.Cmp(common.Big0) == 0 || contract_balance.Cmp(unDel.Amount) < 0 {
 		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contract_balance", contract_balance)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contract_balance", contract_balance,
+			"unDel.Amount", unDel.Amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -1316,7 +1278,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
 
-	if amount.Cmp(del.Reduction) >= 0 && del.Reduction.Cmp(total) == 0 { // full withdrawal
+	if amount.Cmp(del.Reduction) == 0 && del.Reduction.Cmp(total) == 0 { // full withdrawal
 
 		log.Info("Call handleUnDelegate, full withdraw", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr, "full refund", total)
@@ -1330,7 +1292,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance
 		}
 
-		del.ReleasedHes = refundReleaseFn(del.ReleasedHes)
+		//del.ReleasedHes = refundReleaseFn(del.ReleasedHes)
 		del.Released = refundReleaseFn(del.Released)
 
 		refundRestrictingPlanFn := func(title string, balance *big.Int) (*big.Int, error) {
@@ -1349,11 +1311,11 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance, nil
 		}
 
-		if balance, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes); nil != err {
-			return err
-		} else {
-			del.RestrictingPlanHes = balance
-		}
+		//if balance, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes); nil != err {
+		//	return err
+		//} else {
+		//	del.RestrictingPlanHes = balance
+		//}
 
 		if balance, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan); nil != err {
 			return err
@@ -1368,7 +1330,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return err
 		}
 
-	} else { //few withdrawal
+	} else { // few withdrawal
 
 		refund_remain := amount
 
@@ -1396,8 +1358,8 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance, refund
 		}
 
-		hes, rm := refundReleaseFn(del.ReleasedHes, refund_remain)
-		del.ReleasedHes, refund_remain = hes, rm
+		//hes, rm := refundReleaseFn(del.ReleasedHes, refund_remain)
+		//del.ReleasedHes, refund_remain = hes, rm
 		noHes, rm := refundReleaseFn(del.Released, refund_remain)
 		del.Released, refund_remain = noHes, rm
 
@@ -1429,11 +1391,11 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance, refund, nil
 		}
 
-		if balance, re, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes, refund_remain); nil != err {
-			return err
-		} else {
-			del.RestrictingPlanHes, refund_remain = balance, re
-		}
+		//if balance, re, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes, refund_remain); nil != err {
+		//	return err
+		//} else {
+		//	del.RestrictingPlanHes, refund_remain = balance, re
+		//}
 
 		if balance, re, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan, refund_remain); nil != err {
 			return err
@@ -1472,9 +1434,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
-
-	// todo test
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), blockHash)
 
 	// todo test
 	xcom.PrintObject("Call ElectNextVerifierList old verifier list", old_verifierArr)
@@ -1969,9 +1928,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	blockNumber := header.Number.Uint64()
 
-	// todo test
-	xcom.PrintEc(header.Number, blockHash)
-
 	// the validators of Current Epoch
 	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
@@ -1988,7 +1944,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return ValidatorNotExist
 	}
 
-	// todo test
 	log.Info("Call Election start", "Curr epoch validators length", len(verifiers.Arr), "Curr round validators length", len(curr.Arr))
 	xcom.PrintObject("Call Election Curr validators", curr)
 
@@ -2008,29 +1963,30 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	start := curr.End + 1
 	end := curr.End + xutil.ConsensusSize()
 
-	diffQueueLen := 0
 	hasSlashLen := 0 // duplicateSign And lowRatio No enough von
 	needRMwithdrewLen := 0
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
-	currLen := len(curr.Arr)
 
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
+	// TODO test
 	slashAddrQueue := make([]discover.NodeID, 0)
 	withdrewQueue := make([]discover.NodeID, 0)
 	lowVersionQueue := make([]discover.NodeID, 0)
-	lowRatioValidQueue := make(staking.CandidateQueue, 0)
+	// need to clean lowRatio status
+	lowRatioValidAddrs := make([]common.Address, 0)                 // The addr of candidate that need to clean lowRatio status
+	lowRatioValidMap := make(map[common.Address]*staking.Candidate) // The map collect candidate info that need to clean lowRatio status
 
 	// Query Valid programVersion
-	curr_version := gov.GetVersionForStaking(state)
-	currVersion := xutil.CalcVersion(curr_version)
+	originVersion := gov.GetVersionForStaking(state)
+	currVersion := xutil.CalcVersion(originVersion)
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
 	for _, v := range curr.Arr {
 
-		addr, _ := xutil.NodeId2Addr(v.NodeId)
-		can, err := sk.db.GetCandidateStore(blockHash, addr)
+		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
+		can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 		if nil != err {
 			log.Error("Failed to Query Candidate Info on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
@@ -2043,9 +1999,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		//
 		// eg. (lowRatio and must delete) OR (lowRatio and balance no enough) OR duplicateSign
 		//
-		if staking.Is_Invalid_LowRatioDel(can.Status) ||
-			staking.Is_Invalid_LowRatio_NotEnough(can.Status) ||
-			staking.Is_Invalid_DuplicateSign(can.Status) {
+		checkHaveSlash := func() bool {
+			return staking.Is_Invalid_LowRatioDel(can.Status) ||
+				staking.Is_Invalid_LowRatio_NotEnough(can.Status) ||
+				staking.Is_Invalid_DuplicateSign(can.Status)
+		}
+
+		if checkHaveSlash() {
 			// -- if staking.Is_Invalid(can.Status) && !staking.Is_Withdrew(can.Status) {
 
 			removeCans[v.NodeId] = can
@@ -2063,7 +2023,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		// valid AND lowRatio status, that candidate need to clean the lowRatio status
 		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
-			lowRatioValidQueue = append(lowRatioValidQueue, can)
+			lowRatioValidAddrs = append(lowRatioValidAddrs, canAddr)
+			lowRatioValidMap[canAddr] = can
 		}
 
 		// Collect candidate who need to be removed
@@ -2105,7 +2066,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		diffQueue = append(diffQueue, v)
 	}
-	diffQueueLen = len(diffQueue)
 
 	for i := 0; i < len(withdrewQueue); i++ {
 
@@ -2125,171 +2085,46 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
+	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+		currQueue.ValidatorSort(removeCans, staking.CompareForDel)
+		// Increase term of validator
+		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue))
+		copy(copyCurrQueue, currQueue)
+		for i, v := range copyCurrQueue {
+			v.ValidatorTerm++
+			copyCurrQueue[i] = v
+		}
+		// Remove the invalid validators
+		copyCurrQueue = copyCurrQueue[invalidLen:]
+		return shuffleQueue(copyCurrQueue, vrfQueue)
+	}
+
+	var vrfQueue staking.ValidatorQueue
+	var vrfLen int
+	if len(diffQueue) > int(xcom.ConsValidatorNum()) {
+		vrfLen = int(xcom.ConsValidatorNum())
+	} else {
+		vrfLen = len(diffQueue)
+	}
+
+	if vrfLen != 0 {
+		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
+			log.Error("Failed to VrfElection on Election",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+			return err
+		} else {
+			vrfQueue = queue
+		}
+	}
+
 	log.Info("Call Election, statistics need to remove node num",
 		"has slash count", hasSlashLen, "withdrew and need remove count",
 		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
 		"total remove count", invalidLen, "remove map size", len(removeCans),
-		"current validators Size", currLen, "ConsValidatorNum", xcom.ConsValidatorNum())
+		"current validators Size", len(curr.Arr), "ConsValidatorNum", xcom.ConsValidatorNum(),
+		"diffQueueLen", len(diffQueue), "vrfQueueLen", len(vrfQueue))
 
-	// The shuffle function is the list of certifiers
-	// that assemble the new consensus wheel.
-	shuffle := func(deleteLen int, shiftQueue staking.ValidatorQueue) staking.ValidatorQueue {
-
-		// Sort before removal
-		if deleteLen != 0 {
-			curr.Arr.ValidatorSort(removeCans, staking.CompareForDel)
-		}
-
-		// Increase term of validator
-		nextValidators := make(staking.ValidatorQueue, len(curr.Arr))
-		copy(nextValidators, curr.Arr)
-
-		for i, v := range nextValidators {
-			v.ValidatorTerm++
-			nextValidators[i] = v
-		}
-
-		// Replace the validators that can be replaced
-		nextValidators = nextValidators[deleteLen:]
-
-		if len(shiftQueue) != 0 {
-			nextValidators = append(nextValidators, shiftQueue...)
-		}
-		// Sort before storage
-		nextValidators.ValidatorSort(nil, staking.CompareForStore)
-		return nextValidators
-	}
-
-	/**
-	****
-	****
-	Real Election Start
-
-	It must be considered that compatibility control
-	will reduce the parameters for each election.
-	****
-	****
-	*/
-	var nextQueue staking.ValidatorQueue
-
-	// When the consensus round validator width becomes smaller
-	// than ConsValidatorNum by the governance adjustment
-	if currLen <= int(xcom.ConsValidatorNum()) {
-
-		var (
-			realDeleteLen  int
-			realShiftQueue staking.ValidatorQueue
-		)
-
-		remainLen := currLen - invalidLen
-
-		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
-
-			overflowSize := remainLen + diffQueueLen - int(xcom.ConsValidatorNum())
-			if overflowSize <= 0 {
-				realDeleteLen = invalidLen
-			} else {
-				realDeleteLen = invalidLen + overflowSize
-			}
-
-			realShiftQueue = diffQueue
-
-		} else {
-
-			if invalidLen <= diffQueueLen {
-
-				if vrfQueue, err := sk.VrfElection(diffQueue, invalidLen, header.Nonce.Bytes(), header.ParentHash); nil != err {
-					log.Error("Failed to VrfElection on Election",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-					return err
-				} else {
-					realDeleteLen = invalidLen
-					realShiftQueue = vrfQueue
-				}
-
-			} else {
-				realDeleteLen = invalidLen
-				realShiftQueue = diffQueue
-			}
-		}
-
-		log.Info("Call Election, shuffle start on currLen smaller than ConsValidatorNum", "real delete size", realDeleteLen, "real shift size", len(realShiftQueue))
-		nextQueue = shuffle(realDeleteLen, realShiftQueue)
-
-	} else {
-		// When the consensus node list width becomes smaller,
-		// Becouse to governance adjustments
-		var (
-			realDeleteLen  int
-			realShiftQueue staking.ValidatorQueue
-		)
-
-		remainLen := currLen - invalidLen
-
-		if remainLen <= int(xcom.ConsValidatorNum()) {
-
-			overflow := int(xcom.ConsValidatorNum()) - remainLen
-
-			if diffQueueLen <= overflow {
-				realDeleteLen = invalidLen
-				realShiftQueue = diffQueue
-			} else {
-
-				if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
-
-					sub := diffQueueLen - overflow
-					realDeleteLen = invalidLen + sub
-					realShiftQueue = diffQueue
-
-				} else {
-					sub := int(xcom.ShiftValidatorNum()) - overflow
-					if sub <= 0 {
-						if vrfQueue, err := sk.VrfElection(diffQueue, overflow, header.Nonce.Bytes(), header.ParentHash); nil != err {
-							log.Error("Failed to VrfElection on Election",
-								"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-							return err
-						} else {
-							realDeleteLen = invalidLen
-							realShiftQueue = vrfQueue
-						}
-					} else {
-						if vrfQueue, err := sk.VrfElection(diffQueue, int(xcom.ShiftValidatorNum()), header.Nonce.Bytes(), header.ParentHash); nil != err {
-							log.Error("Failed to VrfElection on Election",
-								"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-							return err
-						} else {
-
-							realDeleteLen = invalidLen + sub
-							realShiftQueue = vrfQueue
-						}
-					}
-				}
-
-			}
-
-		} else {
-			overflow := remainLen - int(xcom.ConsValidatorNum())
-
-			if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
-				realDeleteLen = invalidLen + overflow + diffQueueLen
-				realShiftQueue = diffQueue
-			} else {
-				if vrfQueue, err := sk.VrfElection(diffQueue, int(xcom.ShiftValidatorNum()), header.Nonce.Bytes(), header.ParentHash); nil != err {
-					log.Error("Failed to VrfElection on Election",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-					return err
-				} else {
-					realDeleteLen = invalidLen + overflow + len(vrfQueue)
-					realShiftQueue = vrfQueue
-				}
-			}
-
-		}
-
-		log.Info("Call Election, shuffle start on currLen bigger than ConsValidatorNum", "real delete size", realDeleteLen, "real shift size", len(realShiftQueue))
-		nextQueue = shuffle(realDeleteLen, realShiftQueue)
-
-	}
+	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -2330,7 +2165,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	// update candidate status
 	// Must sort
-	for _, can := range lowRatioValidQueue {
+	for _, canAddr := range lowRatioValidAddrs {
+
+		can := lowRatioValidMap[canAddr]
 
 		// clean the low package ratio status
 		can.Status &^= staking.LowRatio
@@ -2340,17 +2177,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		xcom.PrintObject("Call Election, clean lowratio", can)
 
 		addr, _ := xutil.NodeId2Addr(can.NodeId)
-
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
-	}
-
-	// todo test
-	if len(removeCans) == 0 {
-		log.Debug("Election slashed nodeId Done, the slashAddrQueue len is zero ...")
 	}
 
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
@@ -2360,439 +2191,25 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	return nil
 }
 
-//func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) error {
-//
-//	log.Info("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
-//
-//	blockNumber := header.Number.Uint64()
-//
-//	// the validators of Current Epoch
-//	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-//	if nil != err {
-//		log.Error("Failed to call Election: No found current epoch validators", "blockNumber",
-//			blockNumber, "blockHash", blockHash.Hex(), "err", err)
-//		return ValidatorNotExist
-//	}
-//
-//	// the validators of Current Round
-//	curr, err := sk.getCurrValList(blockHash, blockNumber, QueryStartNotIrr)
-//	if nil != err {
-//		log.Error("Failed to Election: No found the current round validators", "blockNumber",
-//			blockNumber, "blockHash", blockHash.Hex(), "err", err)
-//		return ValidatorNotExist
-//	}
-//
-//	// todo test
-//	log.Info("Call Election start", "Curr epoch validators length", len(verifiers.Arr), "Curr round validators length", len(curr.Arr))
-//	xcom.PrintObject("Call Election Curr validators", curr)
-//
-//	if blockNumber != (curr.End - xcom.ElectionDistance()) {
-//		log.Error("Failed to Election: Current blockNumber invalid", "Target blockNumber",
-//			curr.End-xcom.ElectionDistance(), "blockNumber", blockNumber, "blockHash", blockHash.Hex())
-//		return common.BizErrorf("The BlockNumber invalid, Target blockNumber: %d, Current blockNumber: %d",
-//			curr.End-xcom.ElectionDistance(), blockNumber)
-//	}
-//
-//	// Never match, maybe!!!
-//	if nil == verifiers || len(verifiers.Arr) == 0 {
-//		panic("The Current Epoch VerifierList is empty, blockNumber: " + fmt.Sprint(blockNumber))
-//	}
-//
-//	// caculate the next round start and end
-//	start := curr.End + 1
-//	end := curr.End + xutil.ConsensusSize()
-//
-//	//mbn := 1 // Minimum allowed total number of consensus nodes
-//	diffQueueLen := 0
-//	invalidLen := 0 // duplicateSign And lowRatio No enough von
-//	currLen := len(curr.Arr)
-//	zeroLen := 0
-//
-//	slashCans := make(staking.NeedRemoveCans)
-//	slashAddrQueue := make([]discover.NodeID, 0)
-//
-//	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
-//
-//	for _, v := range curr.Arr {
-//
-//		addr, _ := xutil.NodeId2Addr(v.NodeId)
-//		can, err := sk.db.GetCandidateStore(blockHash, addr)
-//		if nil != err {
-//			log.Error("Failed to Get Candidate on Election", "blockNumber", blockNumber,
-//				"blockHash", blockHash.Hex(), "nodeId", v.NodeId.String(), "err", err)
-//			return err
-//		}
-//
-//		if staking.Is_LowRatio(can.Status) || staking.Is_DuplicateSign(can.Status) {
-//			//addr, _ := xutil.NodeId2Addr(v.NodeId)
-//			slashCans[v.NodeId] = can
-//			slashAddrQueue = append(slashAddrQueue, v.NodeId)
-//
-//			if staking.Is_Invalid(can.Status) {
-//				invalidLen++
-//			}
-//		}
-//
-//		currMap[v.NodeId] = struct{}{}
-//	}
-//
-//	// Exclude the current consensus round validators from the validators of the Epoch
-//	diffQueue := make(staking.ValidatorQueue, 0)
-//	for _, v := range verifiers.Arr {
-//		if _, ok := currMap[v.NodeId]; ok {
-//			continue
-//		}
-//		diffQueue = append(diffQueue, v)
-//	}
-//	diffQueueLen = len(diffQueue)
-//
-//	// The shuffle function is the list of certifiers
-//	// that assemble the new consensus wheel.
-//	shuffle := func(deleteLen int, shiftQueue staking.ValidatorQueue) staking.ValidatorQueue {
-//
-//		/*realDeleteLen := 0
-//
-//		if currLen-deleteLen+len(shiftQueue) < mbn {
-//
-//			log.Warn("Warn Election, finally the next round validators num less than Minimum allowed", "blockNumber",
-//				blockNumber, "blockHash", blockHash.Hex(), "next round num will be", currLen-deleteLen+len(shiftQueue),
-//				"Minimum allowed", mbn)
-//
-//			// Must remain one validator TODO (Normally, this should not be the case.)
-//			realDeleteLen = deleteLen - 1
-//		} else {
-//
-//			// Maybe this diffQueue length large than eight,
-//			// But it must less than current validator size.
-//			realDeleteLen = deleteLen
-//		}*/
-//
-//		realDeleteLen := deleteLen
-//
-//		// Sort before removal
-//		if realDeleteLen != 0 {
-//			curr.Arr.ValidatorSort(slashCans, staking.CompareForDel)
-//		}
-//
-//		// Increase term of validator
-//		nextValidators := make(staking.ValidatorQueue, len(curr.Arr))
-//		copy(nextValidators, curr.Arr)
-//
-//		for i, v := range nextValidators {
-//			v.ValidatorTerm++
-//			nextValidators[i] = v
-//		}
-//
-//		// Replace the validators that can be replaced
-//		nextValidators = nextValidators[deleteLen:]
-//
-//		if len(shiftQueue) != 0 {
-//			nextValidators = append(nextValidators, shiftQueue...)
-//		}
-//		// Sort before storage
-//		nextValidators.ValidatorSort(nil, staking.CompareForStore)
-//		return nextValidators
-//	}
-//
-//	var nextQueue staking.ValidatorQueue
-//
-//	/**
-//	****
-//	****
-//	Real Election Start
-//
-//	It must be considered that compatibility control
-//	will reduce the parameters for each election.
-//	****
-//	****
-//	*/
-//
-//	// unGov_ElectionFn mean a function
-//	// that is not governed during the epoch,
-//	// cause make the consensus round validator list smaller
-//	unGov_ElectionFn := func(currLength, invalidLength, diffQueueLength int, diffArr staking.ValidatorQueue) (staking.ValidatorQueue, error) {
-//		var shiftQueue staking.ValidatorQueue
-//		var nextQueueTmp staking.ValidatorQueue
-//
-//		// election shift validators
-//		if diffQueueLength <= int(xcom.ShiftValidatorNum()) {
-//
-//			log.Info("Call Election, diffQueueLen less than ShiftValidatorNum",
-//				"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-//				"diffQueueLen", diffQueueLength, "ShiftValidatorNum", xcom.ShiftValidatorNum())
-//
-//			shiftQueue = diffArr
-//		} else {
-//
-//			log.Info("Call Election, VrfElection Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-//				"diffQueueLen", diffQueueLength, "ShiftValidatorNum", xcom.ShiftValidatorNum())
-//
-//			if queue, err := sk.VrfElection(diffArr, header.Nonce.Bytes(), header.ParentHash); nil != err {
-//				log.Error("Failed to VrfElection on Election",
-//					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-//				return nil, err
-//			} else {
-//				shiftQueue = queue
-//			}
-//		}
-//
-//		// election next validators
-//		if invalidLength == 0 {
-//
-//			log.Info("Call Election, the invalid length is zero", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
-//
-//			overflowSize := (currLength + len(shiftQueue)) - int(xcom.ConsValidatorNum())
-//
-//			if overflowSize <= 0 {
-//
-//				log.Info("Call Election, caculate overflow size will be zero", "blockNumber", blockNumber,
-//					"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
-//					"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
-//
-//				nextQueueTmp = shuffle(zeroLen, shiftQueue)
-//
-//			} else {
-//
-//				log.Info("Call Election, Election will overflow", "blockNumber", blockNumber,
-//					"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
-//					"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
-//
-//				nextQueueTmp = shuffle(overflowSize, shiftQueue)
-//
-//			}
-//
-//		} else {
-//
-//			if invalidLength > len(shiftQueue) {
-//
-//				log.Info("Call Election, the invalid length is large than shiftQueue Size", "blockNumber", blockNumber,
-//					"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue))
-//
-//				nextQueueTmp = shuffle(invalidLength, shiftQueue)
-//			} else {
-//
-//				overflowSize := (currLength - invalidLength + len(shiftQueue)) - int(xcom.ConsValidatorNum())
-//
-//				if overflowSize <= 0 {
-//
-//					log.Info("Call Election, caculate overflow size will be zero", "blockNumber", blockNumber,
-//						"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
-//						"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
-//
-//					nextQueueTmp = shuffle(invalidLength, shiftQueue)
-//				} else {
-//
-//					log.Info("Call Election, Election will overflow", "blockNumber", blockNumber,
-//						"blockHash", blockHash.Hex(), "invalidLength", invalidLength, "shiftQueue Size", len(shiftQueue),
-//						"ValidatorCount of config", int(xcom.ConsValidatorNum()), "caculate overflow size", overflowSize)
-//
-//					nextQueueTmp = shuffle((invalidLength + overflowSize), shiftQueue)
-//				}
-//			}
-//		}
-//
-//		log.Info("Call Election, elect next validators of no gov", "blockNumber", blockNumber,
-//			"blockHash", blockHash.Hex(), "next size", len(nextQueueTmp))
-//
-//		return nextQueueTmp, nil
-//	}
-//
-//	switch {
-//
-//	// Normal election logic
-//	// OR
-//	// Maybe the last time I selected the current round,
-//	// When the time it was  slashed some nodes.
-//	case currLen == int(xcom.ConsValidatorNum()), currLen < int(xcom.ConsValidatorNum()):
-//
-//		log.Info("Call Election by no governed", "currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
-//
-//		// In this case, the list of the next round of
-//		// certifiers selected will be shortened.
-//		if invalidLen > 0 && invalidLen >= diffQueueLen {
-//
-//			log.Warn("Call Election, the invalidLen large than or equal diffQueueLen", "blockNumber",
-//				blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
-//
-//			nextQueue = shuffle(invalidLen, diffQueue)
-//		} else {
-//
-//			// When "invalidLen" is equal to zero,
-//			// or "invalidLen" is smaller than "diffQueueLen",
-//			// the size of "diffQueueLen" is used as the substitution standard.
-//
-//			nextQueue, err = unGov_ElectionFn(currLen, invalidLen, diffQueueLen, diffQueue)
-//			if nil != err {
-//				return err
-//			}
-//		}
-//
-//	// TODO
-//	// This can only happen if the "ValidatorCount" parameter is governed,
-//	// resulting in a smaller value.
-//	case currLen > int(xcom.ConsValidatorNum()):
-//
-//		log.Warn("Maybe the config was governed: the currLen large than config",
-//			"currLen", currLen, "ValidatorCount of config", xcom.ConsValidatorNum())
-//
-//		//
-//		var shiftQueue staking.ValidatorQueue
-//
-//		if diffQueueLen <= int(xcom.ShiftValidatorNum()) {
-//
-//			log.Info("Call Election, diffQueueLen less than ShiftValidatorNum, When current validators large than config",
-//				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
-//				"diffQueueLen", diffQueueLen, "ShiftValidatorNum", xcom.ShiftValidatorNum())
-//
-//			shiftQueue = diffQueue
-//		} else {
-//
-//			if queue, err := sk.VrfElection(diffQueue, header.Nonce.Bytes(), header.ParentHash); nil != err {
-//				log.Error("Failed to VrfElection on Election, When current validators large than config",
-//					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-//				return err
-//			} else {
-//				shiftQueue = queue
-//			}
-//		}
-//
-//		// In this case, the list of the next round of
-//		// certifiers selected will be shortened.
-//		if invalidLen > 0 && invalidLen >= diffQueueLen {
-//
-//			overflowSize := (currLen - invalidLen + len(shiftQueue)) - int(xcom.ConsValidatorNum())
-//
-//			if overflowSize <= 0 {
-//
-//				log.Warn("Call Election, caculate overflow size will be zero, the invalidLen large than or equal diffQueueLen",
-//					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
-//
-//				nextQueue = shuffle(invalidLen, shiftQueue)
-//			} else {
-//
-//				log.Warn("Call Election, Election will overflow, the invalidLen large than or equal diffQueueLen", "blockNumber",
-//					blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen, "diffQueueLen", diffQueueLen)
-//
-//				nextQueue = shuffle((invalidLen + overflowSize), shiftQueue)
-//			}
-//
-//		} else {
-//
-//			// When "invalidLen" is equal to zero,
-//			// or "invalidLen" is smaller than "diffQueueLen",
-//			// we need to recalculate the number of validators replaced this time.
-//
-//			if invalidLen == 0 {
-//
-//				log.Info("Call Election, the invalid length is zero： Maybe the config was governed", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
-//
-//				overflowSize := (currLen + len(shiftQueue)) - int(xcom.ConsValidatorNum())
-//				nextQueue = shuffle((overflowSize + len(shiftQueue)), shiftQueue)
-//			} else {
-//
-//				overflowSize := (currLen - invalidLen + len(shiftQueue)) - int(xcom.ConsValidatorNum())
-//
-//				if invalidLen > len(shiftQueue) {
-//
-//					if overflowSize <= 0 {
-//
-//						log.Info("Call Election, caculate overflow size will be zero: invalid large than shiftQueue Size",
-//							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
-//							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
-//							"caculate overflow size", overflowSize)
-//
-//						nextQueue = shuffle(invalidLen, shiftQueue)
-//					} else {
-//
-//						log.Info("Call Election, Election will overflow: invalid large than shiftQueue Size",
-//							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
-//							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
-//							"caculate overflow size", overflowSize)
-//
-//						nextQueue = shuffle((invalidLen + overflowSize), shiftQueue)
-//					}
-//
-//				} else {
-//
-//					if overflowSize <= 0 {
-//
-//						log.Info("Call Election, caculate overflow size will be zero: invalid less than shiftQueue Size",
-//							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
-//							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
-//							"caculate overflow size", overflowSize)
-//
-//						nextQueue = shuffle(len(shiftQueue), shiftQueue)
-//					} else {
-//
-//						log.Info("Call Election, Election will overflow: invalid less than shiftQueue Size",
-//							"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "invalidLen", invalidLen,
-//							"shiftQueue Size", len(shiftQueue), "ValidatorCount of config", int(xcom.ConsValidatorNum()),
-//							"caculate overflow size", overflowSize)
-//
-//						nextQueue = shuffle((len(shiftQueue) + overflowSize), shiftQueue)
-//					}
-//				}
-//			}
-//		}
-//	}
-//
-//	if len(nextQueue) == 0 {
-//		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
-//	}
-//
-//	next := &staking.Validator_array{
-//		Start: start,
-//		End:   end,
-//		Arr:   nextQueue,
-//	}
-//
-//	if err := sk.setRoundValList(blockHash, next); nil != err {
-//		log.Error("Failed to SetNextValidatorList on Election", "blockNumber", blockNumber,
-//			"blockHash", blockHash.Hex(), "err", err)
-//		return err
-//	}
-//
-//	// todo test
-//	if len(slashAddrQueue) != 0 {
-//		log.Debug("Election Slashing nodeId", "blockNumber", blockNumber,
-//			"blockHash", blockHash.Hex())
-//		xcom.PrintObject("Election Slashing nodeId", slashAddrQueue)
-//	}
-//
-//	// update candidate status
-//	// Must sort
-//	for _, nodeId := range slashAddrQueue {
-//		can := slashCans[nodeId]
-//		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
-//
-//			// clean the low package ratio status
-//			can.Status &^= staking.LowRatio
-//
-//			// TODO test
-//			log.Debug("Election slashed nodeId, clean lowratio", "nodeId", nodeId.String())
-//			xcom.PrintObject("Election slashed nodeId, clean lowratio", can)
-//
-//			addr, _ := xutil.NodeId2Addr(nodeId)
-//
-//			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
-//				log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
-//					"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-//				return err
-//			}
-//		}
-//	}
-//
-//	// todo test
-//	if len(slashAddrQueue) == 0 {
-//		log.Debug("Election slashed nodeId Done, the slashAddrQueue len is zero ...")
-//	}
-//
-//	log.Info("Call Election end", "next round validators length", len(nextQueue))
-//
-//	// todo test
-//	xcom.PrintObject("Call Election Next validators", next)
-//	return nil
-//}
+func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+
+	remainLen := len(remainCurrQueue)
+	totalQueue := append(remainCurrQueue, vrfQueue...)
+
+	for remainLen > int(xcom.ConsValidatorNum()-xcom.ShiftValidatorNum()) && len(totalQueue) > int(xcom.ConsValidatorNum()) {
+		totalQueue = totalQueue[1:]
+		remainLen--
+	}
+
+	if len(totalQueue) > int(xcom.ConsValidatorNum()) {
+		totalQueue = totalQueue[:xcom.ConsValidatorNum()]
+	}
+
+	next := make(staking.ValidatorQueue, len(totalQueue))
+
+	copy(next, totalQueue)
+	return next
+}
 
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
 	nodeId discover.NodeID, amount *big.Int, slashType int, caller common.Address) error {
@@ -2808,11 +2225,12 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
-	// check slash status
-	if uint32(slashType) != staking.LowRatio &&
-		uint32(slashType) != staking.LowRatioDel &&
-		uint32(slashType) != staking.DuplicateSign {
-
+	slashTypeIsWrong := func() bool {
+		return uint32(slashType) != staking.LowRatio &&
+			uint32(slashType) != staking.LowRatioDel &&
+			uint32(slashType) != staking.DuplicateSign
+	}
+	if slashTypeIsWrong() {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 		return common.BizErrorf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
@@ -2941,13 +2359,17 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the slashed ramain is not zero, slashAmount:%d, slash remain:%d", amount, slash)
 	}
 
-	// If the status has been modified before, this time it will not be modified.
-	if staking.Is_Invalid_LowRatio_NotEnough(can.Status) ||
-		staking.Is_Invalid_LowRatioDel(can.Status) ||
-		staking.Is_Invalid_DuplicateSign(can.Status) ||
-		staking.Is_Invalid_Withdrew(can.Status) {
+	sharesHaveBeenClean := func() bool {
+		return staking.Is_Invalid_LowRatio_NotEnough(can.Status) ||
+			staking.Is_Invalid_LowRatioDel(can.Status) ||
+			staking.Is_Invalid_DuplicateSign(can.Status) ||
+			staking.Is_Invalid_Withdrew(can.Status)
+	}
 
-		log.Info("Call SlashCandidates end, the can status has been modified",
+	// If the status has been modified before, this time it will not be modified.
+	if sharesHaveBeenClean() {
+
+		log.Info("Call SlashCandidates end, the candidate shares have been clean",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 			"can.Status", can.Status)
 
@@ -3080,7 +2502,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 				if val.NodeId == nodeId {
 
-					log.Info("Delete the validator when slash candidate on SlashCandidates", "slashType", slashType,
+					log.Info("Call SlashCandidates, Delete the validator", "slashType", slashType,
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
 					validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)
@@ -3208,7 +2630,8 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 func (sk *StakingPlugin) GetLastNumber(blockNumber uint64) uint64 {
 
 	val_arr, err := sk.getCurrValList(common.ZeroHash, blockNumber, QueryStartIrr)
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if nil != err {
+		log.Error("Failed to GetLastNumber", "blockNumber", blockNumber, "err", err)
 		return 0
 	}
 
@@ -3226,7 +2649,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 	}
 
 	if nil == err && nil != val_arr {
-		return build_cbft_validators(val_arr.Start, val_arr.Arr), nil
+		return buildCbftValidators(val_arr.Start, val_arr.Arr), nil
 	}
 	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }
@@ -3262,7 +2685,7 @@ label:
 	return isCandidate
 }
 
-func build_cbft_validators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Validators {
+func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Validators {
 	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
 
 	for i, v := range arr {
@@ -3392,24 +2815,26 @@ func (svs sortValidatorQueue) Swap(i, j int) {
 // validatorList：Waiting for the elected node
 // nonce：Vrf proof of the current block
 // parentHash：Parent block hash
-func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
-	preNonces, err := xcom.GetVrfHandlerInstance().Load(parentHash)
+func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
+	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
 	if nil != err {
 		return nil, err
 	}
 	if len(preNonces) < len(validatorList) {
-		log.Error("vrfElection failed", "validatorListSize", len(validatorList), "nonceSize", len(nonce), "preNoncesSize", len(preNonces), "parentHash", hex.EncodeToString(parentHash.Bytes()))
+		log.Error("vrfElection failed", "validatorListSize", len(validatorList),
+			"nonceSize", len(nonce), "preNoncesSize", len(preNonces), "parentHash", hex.EncodeToString(parentHash.Bytes()))
 		return nil, ParamsErr
 	}
 	if len(preNonces) > len(validatorList) {
 		preNonces = preNonces[len(preNonces)-len(validatorList):]
 	}
-	return sk.ProbabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces)
+	return ProbabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces)
 }
 
-func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
+func ProbabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
-		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
+		log.Error("probabilityElection failed", "validatorListSize", len(validatorList),
+			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
 		return nil, ParamsErr
 	}
 	sumWeights := new(big.Int)
@@ -3448,7 +2873,8 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		return nil, err
 	}
 	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.ConsValidatorNum()) / sumWeightsFloat
-	log.Info("probabilityElection Basic parameter", "validatorListSize", len(validatorList), "p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen, "epochValidatorNum", xcom.EpochValidatorNum())
+	log.Info("probabilityElection Basic parameter", "validatorListSize", len(validatorList),
+		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen, "epochValidatorNum", xcom.EpochValidatorNum())
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
 		target, err := strconv.ParseFloat(resultStr, 64)
@@ -3462,16 +2888,22 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		sv.x = x
-		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()),
+			"addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce",
+			hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]),
+			"target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version,
+			"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	sort.Sort(svList)
-	resultValidatorList := make(staking.ValidatorQueue, 0)
+	resultValidatorList := make(staking.ValidatorQueue, shiftLen)
 	for index, sv := range svList {
 		if index == shiftLen {
 			break
 		}
-		resultValidatorList = append(resultValidatorList, sv.v)
-		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weights, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		resultValidatorList[index] = sv.v
+		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()),
+			"index", index, "weight", sv.weights, "x", sv.x, "version", sv.version,
+			"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	return resultValidatorList, nil
 }
@@ -3887,7 +3319,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		targetEpoch = maxEndVoteEpoch
 	}
 
-	log.Debug("Call addUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
+	log.Info("Call addUnStakeItem, AddUnStakeItemStore start", "current blockNumber", blockNumber,
 		"govenance max end vote blokNumber", endVoteNum, "unStakeFreeze Epoch", refundEpoch,
 		"govenance max end vote epoch", maxEndVoteEpoch, "unstake item target Epoch", targetEpoch,
 		"nodeId", nodeId.String())
@@ -3903,7 +3335,7 @@ func (sk *StakingPlugin) addUnDelegateItem(blockNumber uint64, blockHash common.
 
 	targetEpoch := epoch + xcom.ActiveUnDelFreezeRatio()
 
-	log.Debug("Call addUnDelegateItem, AddUnDelegateItemStore start", "current blockNumber",
+	log.Info("Call addUnDelegateItem, AddUnDelegateItemStore start", "current blockNumber",
 		blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "current epoch", epoch,
 		"target epoch", targetEpoch, "stakingBlockNum", stakeBlockNumber, "refundAmount", amount)
 

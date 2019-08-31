@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/stretchr/testify/assert"
 
@@ -48,11 +50,11 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 	//programVersion, _ := rlp.EncodeToBytes(uint(1793))
 
-	xcom.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 	//xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("6988ba552730892c82f0acd4ea0ac5e630b752c0afe41c35fc1d42e5d2de97e5"))
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
 	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(uint32(1793)))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
@@ -205,7 +207,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 error: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
@@ -269,7 +271,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	t.Log("the editStaking result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit 2 error: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
 
@@ -298,7 +300,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 error: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
@@ -356,7 +358,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	t.Log("the increaseStaking result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit 2 error: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
 
@@ -386,7 +388,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
@@ -440,7 +442,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	t.Log("the withdrew candidate result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit 2 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
 
@@ -470,7 +472,7 @@ func TestStakingContract_delegate(t *testing.T) {
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
@@ -496,7 +498,7 @@ func TestStakingContract_delegate(t *testing.T) {
 	create_delegate(contract2, index, t)
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit 2 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
 
@@ -536,7 +538,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	create_delegate(contract, index, t)
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
@@ -594,7 +596,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	t.Log("the withdelegate result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit 2 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
 
@@ -621,7 +623,12 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 	// init staking data into block 1
 	build_staking_data(genesis.Hash())
 
-	if err := sndb.NewBlock(blockNumber2, genesis.Hash(), blockHash2); nil != err {
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
+		return
+	}
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
@@ -672,7 +679,12 @@ func TestStakingContract_getValidatorList(t *testing.T) {
 	// init staking data into block 1
 	build_staking_data(genesis.Hash())
 
-	if err := sndb.NewBlock(blockNumber2, genesis.Hash(), blockHash2); nil != err {
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
+		return
+	}
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -727,9 +739,10 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
+
 	//sndb.Compaction()
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
@@ -796,7 +809,7 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
@@ -818,7 +831,7 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit 2 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
 
@@ -883,10 +896,9 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	create_delegate(contract, index, t)
 
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Failed to commit block 1, err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
-	//sndb.Compaction()
 
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
@@ -958,10 +970,9 @@ func TestStakingContract_getCandidateInfo(t *testing.T) {
 	state.Prepare(txHashArr[0], blockHash, 0)
 	contract := create_staking(blockNumber, blockHash, state, 1, t)
 	if err := sndb.Commit(blockHash); nil != err {
-		t.Errorf("Commit 1 err: %v", err)
+		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
-	//sndb.Compaction()
 
 	// get candidate Info
 	getCandidate(contract, 1, t)

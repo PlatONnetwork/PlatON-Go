@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -26,8 +28,8 @@ import (
 )
 
 type BlockChainReactor struct {
-	vh            *xcom.VrfHandler
-	chandler      *xcom.CryptoHandler
+	vh            *handler.VrfHandler
+	chandler      *handler.CryptoHandler
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
@@ -134,11 +136,11 @@ func (bcr *BlockChainReactor) setValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
-func (bcr *BlockChainReactor) SetVRF_handler(vher *xcom.VrfHandler) {
+func (bcr *BlockChainReactor) SetVRF_handler(vher *handler.VrfHandler) {
 	bcr.vh = vher
 }
 
-func (bcr *BlockChainReactor) SetCrypto_handler(ch *xcom.CryptoHandler) {
+func (bcr *BlockChainReactor) SetCrypto_handler(ch *handler.CryptoHandler) {
 	bcr.chandler = ch
 }
 

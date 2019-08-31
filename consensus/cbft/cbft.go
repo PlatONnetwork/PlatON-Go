@@ -954,9 +954,13 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
 
-		cbft.validatorPool.Update(block.NumberU64(), qc.Epoch, cbft.eventMux)
+		vEpoch := qc.Epoch
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			vEpoch += 1
+		}
+		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
 
-		result <- nil
+		result <- err
 	}
 	return <-result
 }
@@ -1348,7 +1352,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		if cm.BlockIndex == 0 {
 			_, localQC := cbft.blockTree.FindBlockAndQC(prepareQC.BlockHash, cm.BlockNumber-1)
 			if localQC == nil {
-				return nil, fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", cm.BlockNumber-1, prepareQC.BlockHash)
+				return nil, fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", cm.BlockNumber-1, prepareQC.BlockHash.String())
 			}
 			oriNumber = localQC.BlockNumber
 			oriHash = localQC.BlockHash

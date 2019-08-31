@@ -1,10 +1,12 @@
-package xcom
+package handler
 
 import (
 	"crypto/ecdsa"
 	"math/big"
 	"strconv"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -31,7 +33,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
 	hash := common.ZeroHash
-	for i := 0; i < int(EpochValidatorNum())+10; i++ {
+	for i := 0; i < int(xcom.EpochValidatorNum())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Fatal(err)
 		}
@@ -52,7 +54,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	if value, err := vh.Load(phash); nil != err {
 		t.Fatal(err)
 	} else {
-		assert.Equal(t, len(value), int(EpochValidatorNum()))
+		assert.Equal(t, len(value), int(xcom.EpochValidatorNum()))
 	}
 }
 

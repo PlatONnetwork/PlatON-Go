@@ -31,11 +31,11 @@ var (
 	govPlugin   *plugin.GovPlugin
 	gc          *GovContract
 	versionSign common.VersionSign
-	chandler    *xcom.CryptoHandler
+	chandler    *handler.CryptoHandler
 )
 
 func init() {
-	chandler = xcom.GetCryptoHandler()
+	chandler = handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 }
@@ -460,7 +460,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	var sign common.VersionSign
@@ -486,7 +486,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *te
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(gc, buildDeclareInput(), t)
 
@@ -508,7 +508,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	otherVersion := uint32(1<<16 | 3<<8 | 0)
@@ -531,7 +531,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
@@ -562,7 +562,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareActiveVersion_ERROR
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
@@ -592,7 +592,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
@@ -867,7 +867,7 @@ func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	var sign common.VersionSign
@@ -892,7 +892,7 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	otherVersion := uint32(1<<16 | 3<<8 | 0)
@@ -920,7 +920,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 	//submit a proposal and vote for it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 
 	for i := 0; i < 3; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
@@ -1134,7 +1134,7 @@ func allVote(stateDB *mock.MockStateDB, t *testing.T, pid common.Hash) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{

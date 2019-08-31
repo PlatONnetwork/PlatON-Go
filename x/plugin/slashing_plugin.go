@@ -71,7 +71,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
 	if (header.Number.Uint64()%xutil.ConsensusSize() == 1) && header.Number.Uint64() > 1 {
 		if err := sp.switchEpoch(header.Number.Uint64(), blockHash); nil != err {
-			log.Error("slashingPlugin switchEpoch fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+			log.Error("Failed to slashingPlugin switchEpoch fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
 	}
@@ -87,11 +87,12 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			return err
 		} else {
 			if nil == result {
-				log.Error("slashingPlugin GetPreNodeAmount is nil", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
+				log.Error("Failed to slashingPlugin GetPreNodeAmount is nil", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return common.NewBizError("packAmount data not found")
 			}
 			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), PreviousRound, QueryStartIrr)
 			if nil != err {
+				log.Error("Failed to slashingPlugin BeginBlock, call GetCandidateONRound is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return err
 			}
 			for _, validator := range validatorList {
@@ -127,7 +128,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 						"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "sumAmount", sumAmount, "slash balance rate of remain", rate, "slashAmount", slashAmount)
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
 					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, slashType, common.ZeroAddr); nil != err {
-						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
+						log.Error("Failed to slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
 						return err
 					}
 				}
