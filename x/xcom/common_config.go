@@ -5,9 +5,6 @@ import (
 	"errors"
 	"math/big"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // plugin rule key
@@ -29,14 +26,12 @@ type commonConfig struct {
 }
 
 type stakingConfig struct {
-	StakeThreshold               *big.Int // The Staking minimum threshold allowed
-	MinimumThreshold             *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
-	EpochValidatorNum            uint64   // The epoch (billing cycle) validators count
-	HesitateRatio                uint64   // Each hesitation period is a multiple of the epoch
-	EffectiveRatio               uint64   // Each effective period is a multiple of the epoch
-	UnStakeFreezeRatio           uint64   // The freeze period of the withdrew Staking (unit is  epochs)
-	PassiveUnDelegateFreezeRatio uint64   // The freeze period of the delegate was invalidated due to the withdrawal of the Stake (unit is  epochs)
-	ActiveUnDelegateFreezeRatio  uint64   // The freeze period of the delegate was invalidated due to active withdrew delegate (unit is  epochs)
+	StakeThreshold              *big.Int // The Staking minimum threshold allowed
+	MinimumThreshold            *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
+	EpochValidatorNum           uint64   // The epoch (billing cycle) validators count
+	HesitateRatio               uint64   // Each hesitation period is a multiple of the epoch
+	UnStakeFreezeRatio          uint64   // The freeze period of the withdrew Staking (unit is  epochs)
+	ActiveUnDelegateFreezeRatio uint64   // The freeze period of the delegate was invalidated due to active withdrew delegate (unit is  epochs)
 }
 
 type slashingConfig struct {
@@ -44,8 +39,6 @@ type slashingConfig struct {
 	PackAmountHighAbnormal    uint32 // The number of blocks packed per round, reaching this value is a high degree of abnormality
 	PackAmountLowSlashRate    uint32 // Proportion of deducted quality deposit (when the number of packing blocks is abnormal); 10% -> 10
 	PackAmountHighSlashRate   uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
-	DuplicateSignNum          uint32 // Number of multiple signatures
-	DuplicateSignLowSlashing  uint32 // Deduction ratio when the number of multi-signs is lower than DuplicateSignNum; 10% -> 10
 	DuplicateSignHighSlashing uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
 }
 
@@ -144,22 +137,18 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:               stakeThreshold,
-				MinimumThreshold:             minimumThreshold,
-				EpochValidatorNum:            uint64(101),
-				HesitateRatio:                uint64(1),
-				EffectiveRatio:               uint64(1),
-				UnStakeFreezeRatio:           uint64(28), // freezing 28 epoch
-				PassiveUnDelegateFreezeRatio: uint64(0),
-				ActiveUnDelegateFreezeRatio:  uint64(0),
+				StakeThreshold:              stakeThreshold,
+				MinimumThreshold:            minimumThreshold,
+				EpochValidatorNum:           uint64(101),
+				HesitateRatio:               uint64(1),
+				UnStakeFreezeRatio:          uint64(28), // freezing 28 epoch
+				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
 				PackAmountAbnormal:        uint32(6),
 				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignNum:          uint32(2),
-				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
@@ -188,29 +177,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:               stakeThreshold,
-				MinimumThreshold:             minimumThreshold,
-				EpochValidatorNum:            uint64(21),
-				HesitateRatio:                uint64(1),
-				EffectiveRatio:               uint64(1),
-				UnStakeFreezeRatio:           uint64(1),
-				PassiveUnDelegateFreezeRatio: uint64(0),
-				ActiveUnDelegateFreezeRatio:  uint64(0),
+				StakeThreshold:              stakeThreshold,
+				MinimumThreshold:            minimumThreshold,
+				EpochValidatorNum:           uint64(21),
+				HesitateRatio:               uint64(1),
+				UnStakeFreezeRatio:          uint64(1),
+				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
 				PackAmountAbnormal:        uint32(6),
 				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignNum:          uint32(2),
-				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -232,29 +217,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:               stakeThreshold,
-				MinimumThreshold:             minimumThreshold,
-				EpochValidatorNum:            uint64(21),
-				HesitateRatio:                uint64(1),
-				EffectiveRatio:               uint64(1),
-				UnStakeFreezeRatio:           uint64(1),
-				PassiveUnDelegateFreezeRatio: uint64(0),
-				ActiveUnDelegateFreezeRatio:  uint64(0),
+				StakeThreshold:              stakeThreshold,
+				MinimumThreshold:            minimumThreshold,
+				EpochValidatorNum:           uint64(21),
+				HesitateRatio:               uint64(1),
+				UnStakeFreezeRatio:          uint64(1),
+				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
 				PackAmountAbnormal:        uint32(6),
 				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignNum:          uint32(2),
-				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -276,29 +257,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:               stakeThreshold,
-				MinimumThreshold:             minimumThreshold,
-				EpochValidatorNum:            uint64(51),
-				HesitateRatio:                uint64(1),
-				EffectiveRatio:               uint64(1),
-				UnStakeFreezeRatio:           uint64(1),
-				PassiveUnDelegateFreezeRatio: uint64(0),
-				ActiveUnDelegateFreezeRatio:  uint64(0),
+				StakeThreshold:              stakeThreshold,
+				MinimumThreshold:            minimumThreshold,
+				EpochValidatorNum:           uint64(51),
+				HesitateRatio:               uint64(1),
+				UnStakeFreezeRatio:          uint64(1),
+				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
 				PackAmountAbnormal:        uint32(6),
 				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignNum:          uint32(2),
-				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -320,22 +297,18 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:               stakeThreshold,
-				MinimumThreshold:             minimumThreshold,
-				EpochValidatorNum:            uint64(21),
-				HesitateRatio:                uint64(1),
-				EffectiveRatio:               uint64(1),
-				UnStakeFreezeRatio:           uint64(1),
-				PassiveUnDelegateFreezeRatio: uint64(0),
-				ActiveUnDelegateFreezeRatio:  uint64(0),
+				StakeThreshold:              stakeThreshold,
+				MinimumThreshold:            minimumThreshold,
+				EpochValidatorNum:           uint64(21),
+				HesitateRatio:               uint64(1),
+				UnStakeFreezeRatio:          uint64(1),
+				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
 				PackAmountAbnormal:        uint32(6),
 				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignNum:          uint32(2),
-				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
@@ -358,36 +331,32 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(10), // 10 minutes
-				NodeBlockTimeWindow: uint64(30), // 30 seconds
-				PerRoundBlocks:      uint64(15),
+				ExpectedMinutes:     uint64(3),  // 3 minutes
+				NodeBlockTimeWindow: uint64(10), // 10 seconds
+				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
-				AdditionalCycleTime: uint64(525600),
+				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:               stakeThreshold,
-				MinimumThreshold:             minimumThreshold,
-				EpochValidatorNum:            uint64(21),
-				HesitateRatio:                uint64(1),
-				EffectiveRatio:               uint64(1),
-				UnStakeFreezeRatio:           uint64(1),
-				PassiveUnDelegateFreezeRatio: uint64(0),
-				ActiveUnDelegateFreezeRatio:  uint64(0),
+				StakeThreshold:              stakeThreshold,
+				MinimumThreshold:            minimumThreshold,
+				EpochValidatorNum:           uint64(24),
+				HesitateRatio:               uint64(1),
+				UnStakeFreezeRatio:          uint64(2),
+				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
 				PackAmountAbnormal:        uint32(6),
 				PackAmountHighAbnormal:    uint32(2),
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignNum:          uint32(2),
-				DuplicateSignLowSlashing:  uint32(10),
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(6),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(6),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -407,14 +376,10 @@ func CheckEconomicModel() error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
-	/*
-		if ec.Common.ExpectedMinutes*60%
-			(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) != 0 {
-			return errors.New("The settlement period must be an integer multiple of the time taken for the consensus round")
-		}*/
+
 	if ec.Common.ExpectedMinutes*60/
-		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) <= 0 {
-		return errors.New("The settlement period must be an integer multiple of the time taken for the consensus round")
+		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) < 4 {
+		return errors.New("The settlement period must be more than four times the consensus period")
 	}
 	if ec.Common.AdditionalCycleTime*60%ec.Common.ExpectedMinutes*60 != 0 ||
 		ec.Common.AdditionalCycleTime*60/ec.Common.ExpectedMinutes*60 < 4 {
@@ -537,10 +502,6 @@ func HesitateRatio() uint64 {
 	return ec.Staking.HesitateRatio
 }
 
-func EffectiveRatio() uint64 {
-	return ec.Staking.EffectiveRatio
-}
-
 func ElectionDistance() uint64 {
 	// min need two view
 	return 2 * ec.Common.PerRoundBlocks
@@ -548,10 +509,6 @@ func ElectionDistance() uint64 {
 
 func UnStakeFreezeRatio() uint64 {
 	return ec.Staking.UnStakeFreezeRatio
-}
-
-func PassiveUnDelFreezeRatio() uint64 {
-	return ec.Staking.PassiveUnDelegateFreezeRatio
 }
 
 func ActiveUnDelFreezeRatio() uint64 {
@@ -575,14 +532,6 @@ func PackAmountLowSlashRate() uint32 {
 
 func PackAmountHighSlashRate() uint32 {
 	return ec.Slashing.PackAmountHighSlashRate
-}
-
-func DuplicateSignNum() uint32 {
-	return ec.Slashing.DuplicateSignNum
-}
-
-func DuplicateSignLowSlash() uint32 {
-	return ec.Slashing.DuplicateSignLowSlashing
 }
 
 func DuplicateSignHighSlash() uint32 {
@@ -635,8 +584,11 @@ func CancelProposal_SupportRate() float64 {
 	return ec.Gov.CancelProposal_SupportRate
 }
 
-func PrintEc(blockNUmber *big.Int, blockHash common.Hash) {
-	ecByte, _ := json.Marshal(ec)
-	log.Debug("Current EconomicModel config, config Info", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
-	log.Debug("Current EconomicModel config, window and viewAmount", "window", ec.Common.NodeBlockTimeWindow, "viewAmount", ec.Common.PerRoundBlocks)
+func EconomicString() string {
+	if nil != ec {
+		ecByte, _ := json.Marshal(ec)
+		return string(ecByte)
+	} else {
+		return ""
+	}
 }
