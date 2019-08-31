@@ -353,10 +353,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(20),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(8),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
