@@ -2,6 +2,7 @@ package staking
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"strconv"
 
@@ -138,9 +139,47 @@ type Candidate struct {
 	Description
 }
 
-//func (can *Candidate) ToString() string {
-//	return fmt.Sprintf(`{"NodeId": %s, "BlsPubKey": %s, "StakingAddress": %s, }`)
-//}
+func (can *Candidate) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d, 
+		"Status": %d, 
+		"StakingEpoch": %d, 
+		"StakingBlockNum": %d,
+		"Shares": %d,
+		"Released": %d,
+		"ReleasedHes": %d,
+		"RestrictingPlan": %d,
+		"RestrictingPlanHes": %d,
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s"
+	}`,
+		can.NodeId.String(),
+		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
+		can.StakingTxIndex,
+		can.ProgramVersion,
+		can.Status,
+		can.StakingEpoch,
+		can.StakingBlockNum,
+		can.Shares,
+		can.Released,
+		can.ReleasedHes,
+		can.RestrictingPlan,
+		can.RestrictingPlanHes,
+		can.ExternalId,
+		can.NodeName,
+		can.Website,
+		can.Details)
+}
 
 // Display amount field using 0x hex
 type CandidateHex struct {
@@ -159,6 +198,48 @@ type CandidateHex struct {
 	RestrictingPlan    *hexutil.Big
 	RestrictingPlanHes *hexutil.Big
 	Description
+}
+
+func (can *CandidateHex) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d, 
+		"Status": %d, 
+		"StakingEpoch": %d, 
+		"StakingBlockNum": %d,
+		"Shares": "%s",
+		"Released": "%s",
+		"ReleasedHes": "%s",
+		"RestrictingPlan": "%s",
+		"RestrictingPlanHes": "%s",
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s"
+	}`,
+		can.NodeId.String(),
+		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
+		can.StakingTxIndex,
+		can.ProgramVersion,
+		can.Status,
+		can.StakingEpoch,
+		can.StakingBlockNum,
+		can.Shares,
+		can.Released,
+		can.ReleasedHes,
+		can.RestrictingPlan,
+		can.RestrictingPlanHes,
+		can.ExternalId,
+		can.NodeName,
+		can.Website,
+		can.Details)
 }
 
 //// EncodeRLP implements rlp.Encoder

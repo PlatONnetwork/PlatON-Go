@@ -803,8 +803,11 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	assert.True(t, nil == err)
 
 	assert.True(t, nil != can)
-	canByte, _ := json.Marshal(can)
-	t.Log("Get Candidate Info is:", string(canByte))
+
+	t.Log("Get Candidate Info is:", can)
+
+	//canByte, _ := json.Marshal(can)
+	//t.Log("Get Candidate Info is:", string(canByte))
 
 }
 

@@ -2139,33 +2139,18 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"total remove count", invalidLen, "remove map size", len(removeCans),
 		"current validators Size", currLen, "ConsValidatorNum", xcom.ConsValidatorNum())
 
-	// The shuffle function is the list of certifiers
-	// that assemble the new consensus wheel.
-	shuffle := func(deleteLen int, shiftQueue staking.ValidatorQueue) staking.ValidatorQueue {
-
-		// Sort before removal
-		if deleteLen != 0 {
-			curr.Arr.ValidatorSort(removeCans, staking.CompareForDel)
-		}
-
+	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+		currQueue.ValidatorSort(removeCans, staking.CompareForDel)
 		// Increase term of validator
-		nextValidators := make(staking.ValidatorQueue, len(curr.Arr))
-		copy(nextValidators, curr.Arr)
-
-		for i, v := range nextValidators {
+		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue))
+		copy(copyCurrQueue, currQueue)
+		for i, v := range copyCurrQueue {
 			v.ValidatorTerm++
-			nextValidators[i] = v
+			copyCurrQueue[i] = v
 		}
-
-		// Replace the validators that can be replaced
-		nextValidators = nextValidators[deleteLen:]
-
-		if len(shiftQueue) != 0 {
-			nextValidators = append(nextValidators, shiftQueue...)
-		}
-		// Sort before storage
-		nextValidators.ValidatorSort(nil, staking.CompareForStore)
-		return nextValidators
+		// Remove the invalid validators
+		copyCurrQueue = copyCurrQueue[invalidLen:]
+		return shuffleQueue(copyCurrQueue, vrfQueue)
 	}
 
 	/**
@@ -2197,8 +2182,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 	}
 
-	realDeleteLen, realShiftQueue := deleteLenAndShiftQueue(currLen, invalidLen, vrfLen, vrfQueue)
-	nextQueue := shuffle(realDeleteLen, realShiftQueue)
+	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
 
 	if len(nextQueue) == 0 {
 		panic("The Next Round Validator is empty, blockNumber: " + fmt.Sprint(blockNumber))
@@ -2270,62 +2254,24 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	return nil
 }
 
-func deleteLenAndShiftQueue(currLen, invalidLen, vrfLen int, vrfQueue staking.ValidatorQueue) (int, staking.ValidatorQueue) {
-	var (
-		realDeleteLen  int
-		realShiftQueue staking.ValidatorQueue
-	)
+func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
 
-	remainLen := currLen - invalidLen
-	if remainLen <= int(xcom.ConsValidatorNum()) {
+	remainLen := len(remainCurrQueue)
+	totalQueue := append(remainCurrQueue, vrfQueue...)
 
-		deleteOverflow := int(xcom.ShiftValidatorNum()) - invalidLen
-		appendLen := remainLen + vrfLen
-		appendOverflow := appendLen - int(xcom.ConsValidatorNum())
-
-		switch {
-
-		// No need to replace old validators
-		case deleteOverflow <= 0 && appendOverflow <= 0,
-			deleteOverflow > 0 && appendOverflow <= 0:
-
-			realDeleteLen = invalidLen
-			realShiftQueue = vrfQueue
-
-		// Remove the extra after the addition
-		case deleteOverflow <= 0 && appendOverflow > 0:
-
-			realDeleteLen = invalidLen
-			realShiftQueue = vrfQueue[:len(vrfQueue)-appendOverflow]
-
-		case deleteOverflow > 0 && appendOverflow > 0:
-
-			if deleteOverflow <= appendOverflow {
-				realDeleteLen = invalidLen + deleteOverflow
-				realShiftQueue = vrfQueue[:len(vrfQueue)-(appendOverflow-deleteOverflow)]
-			} else {
-				realDeleteLen = invalidLen + appendOverflow
-				realShiftQueue = vrfQueue
-			}
-
-			//default: never match this case
-			//
-		}
-
-	} else {
-		continueSubLen := remainLen - int(xcom.ConsValidatorNum())
-		if vrfLen > int(xcom.ShiftValidatorNum()) {
-
-			realDeleteLen = invalidLen + continueSubLen + int(xcom.ShiftValidatorNum())
-			realShiftQueue = vrfQueue[:int(xcom.ShiftValidatorNum())]
-
-		} else {
-			realDeleteLen = invalidLen + continueSubLen + vrfLen
-			realShiftQueue = vrfQueue
-		}
-
+	for remainLen > int(xcom.ConsValidatorNum()-xcom.ShiftValidatorNum()) && len(totalQueue) > int(xcom.ConsValidatorNum()) {
+		totalQueue = totalQueue[1:]
+		remainLen--
 	}
-	return realDeleteLen, realShiftQueue
+
+	if len(totalQueue) > int(xcom.ConsValidatorNum()) {
+		totalQueue = totalQueue[:xcom.ConsValidatorNum()]
+	}
+
+	next := make(staking.ValidatorQueue, len(totalQueue))
+
+	copy(next, totalQueue)
+	return next
 }
 
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
