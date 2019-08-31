@@ -67,7 +67,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(uint64(5)))
+	input = append(input, common.MustRlpEncode(uint64(4)))
 
 	return common.MustRlpEncode(input)
 }
@@ -90,7 +90,7 @@ func buildSubmitCancelInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
-	input = append(input, common.MustRlpEncode(uint64(4)))
+	input = append(input, common.MustRlpEncode(uint64(3)))
 	input = append(input, common.MustRlpEncode(txHashArr[2]))
 	return common.MustRlpEncode(input)
 }
@@ -344,7 +344,7 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 5), t, gov.VotingVersionProposalExist)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.VotingVersionProposalExist)
 
 	sndb.Commit(lastBlockHash) //commit
 	sndb.Compaction()          //write to level db
@@ -413,7 +413,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 5), t, gov.PreActiveVersionProposalExist)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.PreActiveVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
@@ -422,7 +422,7 @@ func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), 5), t, gov.NewVersionError)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), 4), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
@@ -441,7 +441,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	buildBlock2()
 
 	//the default rounds is 6 for developer test net
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 7), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 5), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_Float(t *testing.T) {
@@ -636,7 +636,7 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, 6), t)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, 4), t)
 
 	buildBlockNoCommit(1)
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
