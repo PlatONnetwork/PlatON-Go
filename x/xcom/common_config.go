@@ -192,10 +192,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -232,10 +232,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -272,10 +272,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
@@ -331,18 +331,18 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(10), // 10 minutes
-				NodeBlockTimeWindow: uint64(30), // 30 seconds
-				PerRoundBlocks:      uint64(15),
+				ExpectedMinutes:     uint64(3),  // 3 minutes
+				NodeBlockTimeWindow: uint64(10), // 10 seconds
+				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
-				AdditionalCycleTime: uint64(525600),
+				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:              stakeThreshold,
 				MinimumThreshold:            minimumThreshold,
-				EpochValidatorNum:           uint64(21),
+				EpochValidatorNum:           uint64(24),
 				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(1),
+				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
@@ -353,10 +353,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing: uint32(100),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(6),
+				VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(6),
+				TextProposalVote_ConsensusRounds:      uint64(4),
 				TextProposal_VoteRate:                 float64(0.50),
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
