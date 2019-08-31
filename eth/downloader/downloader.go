@@ -627,6 +627,10 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 				p.log.Error("current is larger than pposDada.pivot", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
 				return nil, 0, errors.New("pivotNumber is larger than latestNumber")
 			}
+			if err := d.snapshotDB.SetEmpty(); err != nil {
+				p.log.Error("set  snapshotDB empty fail", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
+				return nil, 0, errors.New("clear snapshotDB fail:" + err.Error())
+			}
 			if err := d.snapshotDB.SetCurrent(common.ZeroHash, *pivotNumber, *pivotNumber); err != nil {
 				p.log.Error("set snapshotdb current fail", "err", err)
 				return nil, 0, errors.New("set current fail")

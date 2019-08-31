@@ -278,12 +278,12 @@ func TestInnerAgency(t *testing.T) {
 	})
 
 	nodes := newTestNode()
-	vds := newValidators(nodes, 0)
+	vds := newValidators(nodes, 1)
 
 	agency := NewInnerAgency(nodes, blockchain, 10, 20)
 
 	assert.True(t, agency.GetLastNumber(0) == 40)
-	assert.True(t, agency.GetLastNumber(80) == 80)
+	assert.True(t, agency.GetLastNumber(80) == 80, fmt.Sprintf("%d", agency.GetLastNumber(80)))
 	assert.True(t, agency.GetLastNumber(81) == 120)
 	assert.True(t, agency.GetLastNumber(110) == 120)
 
