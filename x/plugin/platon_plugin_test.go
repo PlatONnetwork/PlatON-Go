@@ -384,8 +384,8 @@ func build_staking_data_more(block uint64) {
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
-		stakingDB.SetCanPowerStore(blockHash, canAddr, canTmp)
-		stakingDB.SetCandidateStore(blockHash, canAddr, canTmp)
+		stakingDB.SetCanPowerStore(hash, canAddr, canTmp)
+		stakingDB.SetCandidateStore(hash, canAddr, canTmp)
 
 		v := &staking.Validator{
 			NodeAddress: canAddr,

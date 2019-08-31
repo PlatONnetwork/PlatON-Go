@@ -7,6 +7,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -258,14 +260,16 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 // PledgeLockFunds transfer the money from the restricting contract account to the staking contract account
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	rp.log.Debug("begin to PledgeLockFunds", "account", account.String(), "amount", amount)
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return err
 	}
+	rp.log.Debug("begin to PledgeLockFunds", "account", account.String(), "amount", amount, "info", info)
 
-	if amount.Cmp(common.Big0) <= 0 {
+	if amount.Cmp(common.Big0) < 0 {
 		return errAmountLessThanZero
+	} else if amount.Cmp(common.Big0) == 0 {
+		return nil
 	}
 
 	canStaking := new(big.Int).Sub(info.CachePlanAmount, info.StakingAmount)
@@ -281,20 +285,24 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	rp.storeRestrictingInfo(state, restrictingKey, info)
 	rp.transferAmount(state, vm.RestrictingContractAddr, vm.StakingContractAddr, amount)
 
-	rp.log.Info("end to PledgeLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "STKContractBalance", state.GetBalance(vm.StakingContractAddr))
+	rp.log.Info("end to PledgeLockFunds", "info", info, "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "STKContractBalance", state.GetBalance(vm.StakingContractAddr))
 	return nil
 }
 
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
-	rp.log.Info("begin to ReturnLockFunds", "account", account.String(), "amount", amount)
-	if amount.Cmp(common.Big0) <= 0 {
+	amountCompareWithZeao := amount.Cmp(common.Big0)
+	if amountCompareWithZeao == 0 {
+		return nil
+	} else if amountCompareWithZeao < 0 {
 		return errAmountLessThanZero
 	}
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return err
 	}
+	rp.log.Info("begin to ReturnLockFunds", "account", account.String(), "amount", amount, "info", info)
+
 	if info.StakingAmount.Cmp(amount) < 0 {
 		return errStakingAmountInvalid
 	}
@@ -315,7 +323,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	info.StakingAmount.Sub(info.StakingAmount, amount)
 	// save restricting account info
 	rp.storeRestrictingInfo(state, restrictingKey, info)
-	rp.log.Info("end to ReturnLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr))
+	rp.log.Info("end to ReturnLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "info", info)
 	return nil
 }
 
@@ -327,8 +335,10 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	if err != nil {
 		return err
 	}
-	if amount.Cmp(common.Big0) <= 0 {
+	if amount.Cmp(common.Big0) < 0 {
 		return errAmountLessThanZero
+	} else if amount.Cmp(common.Big0) == 0 {
+		return nil
 	}
 	if info.StakingAmount.Cmp(common.Big0) <= 0 {
 		rp.log.Error(errStakingAmountEmpty.Error(), "account", account.String(), "Debt", info.StakingAmount, "slashing", amount)
@@ -439,14 +449,13 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 	for index := numbers; index > 0; index-- {
 		releaseAccountKey, account := rp.getReleaseAccount(state, epoch, index)
 
-		rp.log.Trace("begin to release record", "index", index, "account", account.String())
-
 		restrictingKey, info, err := rp.getRestrictingInfoByDecode(state, account)
 		if err != nil {
 			return err
 		}
 
 		releaseAmountKey, releaseAmount := rp.getReleaseAmount(state, epoch, account)
+		rp.log.Debug("begin to release record", "index", index, "account", account.String(), "info", info, "releaseAmount", releaseAmount)
 
 		if info.NeedRelease.Cmp(common.Big0) > 0 {
 			//info.CachePlanAmount.Sub(info.CachePlanAmount, releaseAmount)
@@ -512,14 +521,14 @@ func (rp *RestrictingPlugin) getRestrictingInfo2(account common.Address, state x
 		epoch := info.ReleaseList[i]
 		_, bAmount := rp.getReleaseAmount(state, epoch, account)
 		plan.Height = GetBlockNumberByEpoch(epoch)
-		plan.Amount = bAmount
+		plan.Amount = (*hexutil.Big)(bAmount)
 		plans = append(plans, plan)
 	}
 
-	result.Balance = info.CachePlanAmount
-	result.Debt = info.NeedRelease
+	result.Balance = (*hexutil.Big)(info.CachePlanAmount)
+	result.Debt = (*hexutil.Big)(info.NeedRelease)
 	result.Entry = plans
-	result.Pledge = info.StakingAmount
+	result.Pledge = (*hexutil.Big)(info.StakingAmount)
 	rp.log.Info("get restricting result", "account", account.String(), "result", result)
 	return result, nil
 }
@@ -535,7 +544,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, err
 	}
 
-	rp.log.Info("end to GetRestrictingInfo", "restrictingInfo", bResult)
+	rp.log.Info("end to GetRestrictingInfo")
 
 	return bResult, nil
 }
