@@ -1281,6 +1281,32 @@ func (cbft *Cbft) verifyConsensusSign(msg ctypes.ConsensusMsg) error {
 	return nil
 }
 
+func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
+	// check if the prepareBlock must take viewChangeQC
+	needViewChangeQC := func(pb *protocols.PrepareBlock) bool {
+		_, localQC := cbft.blockTree.FindBlockAndQC(pb.Block.ParentHash(), pb.Block.NumberU64()-1)
+		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
+	}
+	// check if the prepareBlock base on viewChangeQC maxBlock
+	baseViewChangeQC := func(pb *protocols.PrepareBlock) bool {
+		_, _, _, _, hash, number := pb.ViewChangeQC.MaxBlock()
+		return pb.Block.NumberU64() == number+1 && pb.Block.ParentHash() == hash
+	}
+
+	if needViewChangeQC(pb) && pb.ViewChangeQC == nil {
+		return authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC")}
+	}
+	if pb.ViewChangeQC != nil {
+		if !baseViewChangeQC(pb) {
+			return authFailedError{err: fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock, viewchangeQC:%s, PrepareBlock:%s", pb.ViewChangeQC.String(), pb.String())}
+		}
+		if err := cbft.verifyViewChangeQC(pb.ViewChangeQC); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
 	// Verify consensus msg signature
 	if err := cbft.verifyConsensusSign(msg); err != nil {
@@ -1294,16 +1320,6 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		return nil, authFailedError{err: errors.Wrap(err, "get validator failed")}
 	}
 
-	// check if the prepareBlock must take viewChangeQC
-	needViewChangeQC := func(pb *protocols.PrepareBlock) bool {
-		_, localQC := cbft.blockTree.FindBlockAndQC(pb.Block.ParentHash(), pb.Block.NumberU64()-1)
-		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
-	}
-	// check if the prepareBlock base on viewChangeQC maxBlock
-	baseViewChangeQC := func(pb *protocols.PrepareBlock) bool {
-		_, _, _, _, hash, number := pb.ViewChangeQC.MaxBlock()
-		return pb.Block.NumberU64() == number+1 && pb.Block.ParentHash() == hash
-	}
 	var (
 		prepareQC *ctypes.QuorumCert
 		oriNumber uint64
@@ -1321,16 +1337,8 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 		if cm.BlockNum() == 1 || cm.BlockIndex != 0 {
 			return vnode, nil
 		}
-		if needViewChangeQC(cm) && cm.ViewChangeQC == nil {
-			return nil, authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC")}
-		}
-		if cm.ViewChangeQC != nil {
-			if !baseViewChangeQC(cm) {
-				return nil, authFailedError{err: fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock, viewchangeQC:%s, PrepareBlock:%s", cm.ViewChangeQC.String(), cm.String())}
-			}
-			if err := cbft.verifyViewChangeQC(cm.ViewChangeQC); err != nil {
-				return nil, err
-			}
+		if err := cbft.checkViewChangeQC(cm); err != nil {
+			return nil, err
 		}
 		prepareQC = cm.PrepareQC
 		_, localQC := cbft.blockTree.FindBlockAndQC(cm.Block.ParentHash(), cm.Block.NumberU64()-1)
@@ -1511,11 +1519,37 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 	return nil
 }
 
-func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+	var err error
+	epoch := uint64(0)
+	viewNumber := uint64(0)
+	existHash := make(map[common.Hash]interface{})
+	for i, vc := range viewChangeQC.QCs {
+		// Check if it is the same view
+		if i == 0 {
+			epoch = vc.Epoch
+			viewNumber = vc.ViewNumber
+		} else if epoch != vc.Epoch || viewNumber != vc.ViewNumber {
+			err = fmt.Errorf("has multiple view messages")
+			break
+		}
+		// check if it has the same blockHash
+		if _, ok := existHash[vc.BlockHash]; ok {
+			err = fmt.Errorf("has duplicated blockHash")
+			break
+		}
+		existHash[vc.BlockHash] = struct{}{}
+	}
+	return err
+}
 
+func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	vcEpoch, _, _, _, _, _ := viewChangeQC.MaxBlock()
 
 	if err := cbft.validatorPool.EnableVerifyEpoch(vcEpoch); err != nil {
+		return err
+	}
+	if err := cbft.validateViewChangeQC(viewChangeQC); err != nil {
 		return err
 	}
 	// check signature number
@@ -1526,17 +1560,7 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	}
 
 	var err error
-	epoch := uint64(0)
-	viewNumber := uint64(0)
-	for i, vc := range viewChangeQC.QCs {
-		// Check if it is the same view
-		if i == 0 {
-			epoch = vc.Epoch
-			viewNumber = vc.ViewNumber
-		} else if epoch != vc.Epoch || viewNumber != vc.ViewNumber {
-			err = fmt.Errorf("has multiple view messages")
-			break
-		}
+	for _, vc := range viewChangeQC.QCs {
 		var cb []byte
 		if cb, err = vc.CannibalizeBytes(); err != nil {
 			err = fmt.Errorf("get cannibalize bytes failed")
