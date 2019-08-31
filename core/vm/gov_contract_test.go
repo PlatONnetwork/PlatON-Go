@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"math"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -325,6 +328,94 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 	runGovContract(gc, buildGetProposalInput(2), t)
 }
 
+func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 4), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 5), t, gov.VotingVersionProposalExist)
+
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+}
+
+func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+	build_staking_data_more(uint64(2))
+
+	allVote(stateDB, t, txHashArr[0])
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+	pTemp, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+	p := pTemp.(*gov.VersionProposal)
+
+	// res
+	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	// build_staking_data_more will build a new block base on sndb.Current
+	build_staking_data_more(p.GetEndVotingBlock())
+	endBlock(stateDB, t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	result, err := gov.GetTallyResult(txHashArr[0], stateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.PreActive {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	lastBlockNumber = uint64(p.GetActiveBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 5), t, gov.PreActiveVersionProposalExist)
+}
+
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 	setup(t)
 	defer clear(t)
@@ -535,6 +626,28 @@ func TestGovContract_SubmitCancel(t *testing.T) {
 
 	buildBlock3()
 	runGovContract(gc, buildSubmitCancelInput(), t)
+
+}
+
+func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, 6), t)
+
+	buildBlockNoCommit(1)
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 1)
+	//submit a proposal
+	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", 3, txHashArr[0]), t)
+
+	buildBlockNoCommit(3)
+
+	stateDB.Prepare(txHashArr[3], lastBlockHash, 0)
+	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPIDAnother", 2, txHashArr[0]), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
