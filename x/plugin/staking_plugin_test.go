@@ -3146,6 +3146,8 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	validatorExArr, _ = json.Marshal(validatorExQueue)
 	t.Log("GetValidatorList by QueryStartIrr:", string(validatorExArr))
 
+	t.Log("validatorList[0]", validatorExQueue[0])
+
 }
 
 func TestStakingPlugin_GetVerifierList(t *testing.T) {

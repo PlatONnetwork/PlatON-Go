@@ -97,7 +97,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateItem on stakingPlugin EndBlock",
 				"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-			return err //  TODO common.NewSysError(err.Error())
+			return err
 		}
 
 		// hanlde UnDelegate Item
@@ -900,9 +900,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	lazyCalcDelegateAmount(epoch, del)
 
-	/**
-	inner Fn
-	*/
+	// inner Fn
 	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
 
 		state.AddBalance(delAddr, sub)
@@ -968,13 +966,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	switch {
 
-	/**
-	**
-	**
-	When the related candidate info does not exist
-	**
-	**
-	*/
+	// When the related candidate info does not exist
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
 		nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Invalid(can.Status):
 
@@ -1006,12 +998,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		realSub := refundAmount
 
-		// todo test
 		log.Debug("Call WithdrewDelegate, the candidate is invalid or no exist", "realSub", realSub, "withdrew amount", amount)
 
-		/**
-		handle delegate on Hesitate period
-		*/
+		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := refundFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes)
 			if nil != err {
@@ -1020,9 +1009,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
-		/**
-		handle delegate on Effective period
-		*/
+		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := refundFn(refundAmount, del.Released, del.RestrictingPlan)
 			if nil != err {
@@ -1062,13 +1049,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			}
 		}
 
-	/**
-	**
-	**
-	Illegal parameter
-	**
-	**
-	*/
+	// Illegal parameter
 	case nil != can && stakingBlockNum > can.StakingBlockNum:
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: the stakeBlockNum invalid",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
@@ -1076,13 +1057,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"can.stakeBlockNum", can.StakingBlockNum)
 		return ParamsErr
 
-	/**
-	**
-	**
-	When the delegate is normally revoked
-	**
-	**
-	*/
+	// When the delegate is normally revoked
 	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
 		// First need to deduct the von that is being refunded
@@ -1113,13 +1088,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		realSub := refundAmount
 
-		// todo test
 		log.Debug("Call WithdrewDelegate, the candidate is valid", "realSub", realSub, "withdrew amount", amount)
 
-		/**
-		handle delegate on Hesitate period
-		*/
-
+		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
 			rm, rbalance, lbalance, err := refundFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes)
 			if nil != err {
@@ -1130,9 +1101,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		save_or_del := false // false: save, true: delete
 
-		/**
-		handle delegate on Effective period
-		*/
+		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
 
 			// add a UnDelegateItem
@@ -1183,11 +1152,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return err
 		}
 
-		/**
-		**
-		change candidate shares
-		**
-		*/
+		// change candidate shares
 		if can.Shares.Cmp(realSub) > 0 {
 			can.Shares = new(big.Int).Sub(can.Shares, realSub)
 		} else {
@@ -1288,10 +1253,11 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 
 	contract_balance := state.GetBalance(vm.StakingContractAddr)
 	// Maybe equal zero (maybe slashed)
-	// TODO must compare the undelegate amount and contract's balance
-	if contract_balance.Cmp(common.Big0) == 0 {
+	// must compare the undelegate amount and contract's balance
+	if contract_balance.Cmp(common.Big0) == 0 || contract_balance.Cmp(unDel.Amount) < 0 {
 		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contract_balance", contract_balance)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contract_balance", contract_balance,
+			"unDel.Amount", unDel.Amount)
 		panic("the balance is invalid of stakingContracr Account")
 	}
 
@@ -1316,7 +1282,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
 
-	if amount.Cmp(del.Reduction) >= 0 && del.Reduction.Cmp(total) == 0 { // full withdrawal
+	if amount.Cmp(del.Reduction) == 0 && del.Reduction.Cmp(total) == 0 { // full withdrawal
 
 		log.Info("Call handleUnDelegate, full withdraw", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr, "full refund", total)
@@ -1330,7 +1296,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance
 		}
 
-		del.ReleasedHes = refundReleaseFn(del.ReleasedHes)
+		//del.ReleasedHes = refundReleaseFn(del.ReleasedHes)
 		del.Released = refundReleaseFn(del.Released)
 
 		refundRestrictingPlanFn := func(title string, balance *big.Int) (*big.Int, error) {
@@ -1349,11 +1315,11 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance, nil
 		}
 
-		if balance, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes); nil != err {
-			return err
-		} else {
-			del.RestrictingPlanHes = balance
-		}
+		//if balance, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes); nil != err {
+		//	return err
+		//} else {
+		//	del.RestrictingPlanHes = balance
+		//}
 
 		if balance, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan); nil != err {
 			return err
@@ -1368,7 +1334,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return err
 		}
 
-	} else { //few withdrawal
+	} else { // few withdrawal
 
 		refund_remain := amount
 
@@ -1396,8 +1362,8 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance, refund
 		}
 
-		hes, rm := refundReleaseFn(del.ReleasedHes, refund_remain)
-		del.ReleasedHes, refund_remain = hes, rm
+		//hes, rm := refundReleaseFn(del.ReleasedHes, refund_remain)
+		//del.ReleasedHes, refund_remain = hes, rm
 		noHes, rm := refundReleaseFn(del.Released, refund_remain)
 		del.Released, refund_remain = noHes, rm
 
@@ -1429,11 +1395,11 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 			return balance, refund, nil
 		}
 
-		if balance, re, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes, refund_remain); nil != err {
-			return err
-		} else {
-			del.RestrictingPlanHes, refund_remain = balance, re
-		}
+		//if balance, re, err := refundRestrictingPlanFn("RestrictingPlanHes", del.RestrictingPlanHes, refund_remain); nil != err {
+		//	return err
+		//} else {
+		//	del.RestrictingPlanHes, refund_remain = balance, re
+		//}
 
 		if balance, re, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan, refund_remain); nil != err {
 			return err
@@ -1988,7 +1954,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return ValidatorNotExist
 	}
 
-	// todo test
 	log.Info("Call Election start", "Curr epoch validators length", len(verifiers.Arr), "Curr round validators length", len(curr.Arr))
 	xcom.PrintObject("Call Election Curr validators", curr)
 
@@ -2008,12 +1973,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	start := curr.End + 1
 	end := curr.End + xutil.ConsensusSize()
 
-	diffQueueLen := 0
 	hasSlashLen := 0 // duplicateSign And lowRatio No enough von
 	needRMwithdrewLen := 0
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
-	currLen := len(curr.Arr)
 
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
@@ -2113,7 +2076,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		diffQueue = append(diffQueue, v)
 	}
-	diffQueueLen = len(diffQueue)
 
 	for i := 0; i < len(withdrewQueue); i++ {
 
@@ -2133,12 +2095,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
-	log.Info("Call Election, statistics need to remove node num",
-		"has slash count", hasSlashLen, "withdrew and need remove count",
-		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
-		"total remove count", invalidLen, "remove map size", len(removeCans),
-		"current validators Size", currLen, "ConsValidatorNum", xcom.ConsValidatorNum())
-
 	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
 		currQueue.ValidatorSort(removeCans, staking.CompareForDel)
 		// Increase term of validator
@@ -2153,23 +2109,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return shuffleQueue(copyCurrQueue, vrfQueue)
 	}
 
-	/**
-	****
-	****
-	Real Election Start
-
-	It must be considered that compatibility control
-	will reduce the parameters for each election.
-	****
-	****
-	*/
-	// vrf election
 	var vrfQueue staking.ValidatorQueue
 	var vrfLen int
-	if diffQueueLen > int(xcom.ConsValidatorNum()) {
+	if len(diffQueue) > int(xcom.ConsValidatorNum()) {
 		vrfLen = int(xcom.ConsValidatorNum())
 	} else {
-		vrfLen = diffQueueLen
+		vrfLen = len(diffQueue)
 	}
 
 	if vrfLen != 0 {
@@ -2181,6 +2126,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			vrfQueue = queue
 		}
 	}
+
+	log.Info("Call Election, statistics need to remove node num",
+		"has slash count", hasSlashLen, "withdrew and need remove count",
+		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
+		"total remove count", invalidLen, "remove map size", len(removeCans),
+		"current validators Size", len(curr.Arr), "ConsValidatorNum", xcom.ConsValidatorNum(),
+		"diffQueueLen", len(diffQueue), "vrfQueueLen", len(vrfQueue))
 
 	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
 
@@ -2240,11 +2192,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 				"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
-	}
-
-	// todo test
-	if len(removeCans) == 0 {
-		log.Debug("Election slashed nodeId Done, the slashAddrQueue len is zero ...")
 	}
 
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
