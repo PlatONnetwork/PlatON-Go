@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -180,7 +182,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}()
 
 	// New VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	// build vrf proof
 	// build ancestor nonces
@@ -365,7 +367,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}
 
 	// Store vrf nonces
-	if err := sndb.PutBaseDB(xcom.NonceStorageKey, enValue); nil != err {
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
 		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
 		return
 	}
@@ -485,7 +487,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	}()
 
 	// New VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	// build vrf proof
 	// build ancestor nonces
@@ -669,7 +671,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	}
 
 	// Store vrf nonces
-	if err := sndb.PutBaseDB(xcom.NonceStorageKey, enValue); nil != err {
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
 		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
 		return
 	}
@@ -1683,7 +1685,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 	epoch := xutil.CalculateEpoch(blockNumber2.Uint64())
 
-	amount := common.Big256
+	amount := new(big.Int).Add(c.Released, c.RestrictingPlan)
 
 	delAddr := addrArr[index+1]
 
@@ -1942,7 +1944,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}()
 
 	// Must new VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2096,7 +2098,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		t.Error("Storage previous nonce failed", "err", err)
 		return
 	} else {
-		sndb.Put(blockHash, xcom.NonceStorageKey, enValue)
+		sndb.Put(blockHash, handler.NonceStorageKey, enValue)
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
@@ -2330,7 +2332,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2450,7 +2452,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2596,17 +2598,33 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
+
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -2641,7 +2659,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -2652,96 +2670,163 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	// for count := 0; iterator.Valid() && count < int(maxValidators); iterator.Next() {
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
+	}
+
+	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
 
 	/**
 	Start GetCandidateONEpoch
 	*/
-	canQueue, err := StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), QueryStartNotIrr)
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start GetCandidateONEpoch CurrBlockHash", currentHash.Hex())
+
+	/**
+	Start GetCandidateONEpoch
+	*/
+	canQueue, err := StakingInstance().GetCandidateONEpoch(currentHash, currentNumber.Uint64(), QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONEpoch by QueryStartNotIrr, err: %v", err)
 		return
@@ -2750,7 +2835,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	canArr, _ := json.Marshal(canQueue)
 	t.Log("GetCandidateONEpoch by QueryStartNotIrr:", string(canArr))
 
-	canQueue, err = StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), QueryStartIrr)
+	canQueue, err = StakingInstance().GetCandidateONEpoch(currentHash, currentNumber.Uint64(), QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONEpoch by QueryStartIrr, err: %v", err)
 	}
@@ -2774,19 +2859,33 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -2821,7 +2920,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -2832,109 +2931,163 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
 		End:   xutil.ConsensusSize(),
 	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = setRoundValList(blockHash, new_validatorArr)
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
 		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
 
 	/**
 	Start GetCandidateONRound
 	*/
-	canQueue, err := StakingInstance().GetCandidateONRound(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartNotIrr)
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start GetCandidateONRound CurrBlockHash", currentHash.Hex())
+
+	/**
+	Start GetCandidateONRound
+	*/
+	canQueue, err := StakingInstance().GetCandidateONRound(currentHash, currentNumber.Uint64(), CurrentRound, QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONRound by QueryStartNotIrr, err: %v", err)
 		return
@@ -2943,7 +3096,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	canArr, _ := json.Marshal(canQueue)
 	t.Log("GetCandidateONRound by QueryStartNotIrr:", string(canArr))
 
-	canQueue, err = StakingInstance().GetCandidateONRound(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartIrr)
+	canQueue, err = StakingInstance().GetCandidateONRound(currentHash, currentNumber.Uint64(), CurrentRound, QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONRound by QueryStartIrr, err: %v", err)
 		return
@@ -2969,19 +3122,33 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -3016,7 +3183,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -3027,109 +3194,163 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
-		End:   xutil.ConsensusSize(),
-	}
-
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = setRoundValList(blockHash, new_validatorArr)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-		return
-	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start GetValidatorList
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start GetValidatorList CurrBlockHash", currentHash.Hex())
+
+	/**
 	Start  GetValidatorList
 	*/
-	validatorExQueue, err := StakingInstance().GetValidatorList(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartNotIrr)
+	validatorExQueue, err := StakingInstance().GetValidatorList(currentHash, currentNumber.Uint64(), CurrentRound, QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetValidatorList by QueryStartNotIrr, err: %v", err)
 		return
@@ -3138,13 +3359,15 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	validatorExArr, _ := json.Marshal(validatorExQueue)
 	t.Log("GetValidatorList by QueryStartNotIrr:", string(validatorExArr))
 
-	validatorExQueue, err = StakingInstance().GetValidatorList(blockHash2, blockNumber2.Uint64(), CurrentRound, QueryStartIrr)
+	validatorExQueue, err = StakingInstance().GetValidatorList(currentHash, currentNumber.Uint64(), CurrentRound, QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetValidatorList by QueryStartIrr, err: %v", err)
 		return
 	}
 	validatorExArr, _ = json.Marshal(validatorExQueue)
 	t.Log("GetValidatorList by QueryStartIrr:", string(validatorExArr))
+
+	t.Log("validatorList[0]", validatorExQueue[0])
 
 }
 
@@ -3164,19 +3387,33 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -3211,7 +3448,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -3222,95 +3459,163 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
+	}
+
+	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
 
 	/**
 	Start GetVerifierList
 	*/
-	validatorExQueue, err := StakingInstance().GetVerifierList(blockHash2, blockNumber2.Uint64(), QueryStartNotIrr)
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start GetVerifierLIst CurrBlockHash", currentHash.Hex())
+
+	/**
+	Start GetVerifierList
+	*/
+	validatorExQueue, err := StakingInstance().GetVerifierList(currentHash, currentNumber.Uint64(), QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetVerifierList by QueryStartNotIrr, err: %v", err)
 		return
@@ -3319,7 +3624,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	validatorExArr, _ := json.Marshal(validatorExQueue)
 	t.Log("GetVerifierList by QueryStartNotIrr:", string(validatorExArr))
 
-	validatorExQueue, err = StakingInstance().GetVerifierList(blockHash2, blockNumber2.Uint64(), QueryStartIrr)
+	validatorExQueue, err = StakingInstance().GetVerifierList(currentHash, currentNumber.Uint64(), QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetVerifierList by QueryStartIrr, err: %v", err)
 		return
@@ -3345,19 +3650,33 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -3392,7 +3711,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -3403,109 +3722,163 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
-		End:   xutil.ConsensusSize(),
-	}
-
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = setRoundValList(blockHash, new_validatorArr)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-		return
-	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start ListCurrentValidaotorID
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start ListCurrentValidatorID CurrBlockHash", currentHash.Hex())
+
+	/**
 	Start  ListCurrentValidatorID
 	*/
-	validatorIdQueue, err := StakingInstance().ListCurrentValidatorID(blockHash2, blockNumber2.Uint64())
+	validatorIdQueue, err := StakingInstance().ListCurrentValidatorID(currentHash, currentNumber.Uint64())
 	if nil != err {
 		t.Errorf("Failed to ListCurrentValidatorID, err: %v", err)
 		return
@@ -3532,19 +3905,33 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -3579,7 +3966,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -3590,95 +3977,163 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start ListVerifierNodeId
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start ListVerifierNodeId CurrBlockHash", currentHash.Hex())
+
+	/**
 	Start  ListVerifierNodeID
 	*/
-	validatorIdQueue, err := StakingInstance().ListVerifierNodeID(blockHash2, blockNumber2.Uint64())
+	validatorIdQueue, err := StakingInstance().ListVerifierNodeID(currentHash, currentNumber.Uint64())
 	if nil != err {
 		t.Errorf("Failed to ListVerifierNodeID, err: %v", err)
 		return
@@ -3704,7 +4159,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3824,21 +4279,33 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	nodeIdArr := make([]discover.NodeID, 0)
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-	for i := 0; i < 1000; i++ {
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -3873,7 +4340,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -3884,114 +4351,164 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		if i < 20 {
-			nodeIdArr = append(nodeIdArr, canTmp.NodeId)
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
 			return
+		} else {
+
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
-
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
 		}
-		queue = append(queue, val)
-		count++
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
 		End:   xutil.ConsensusSize(),
 	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = setRoundValList(blockHash, new_validatorArr)
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start IsCurrValidator
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start IsCurrValidator CurrBlockHash", currentHash.Hex())
 
 	/**
 	Start  IsCurrValidator
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := StakingInstance().IsCurrValidator(blockHash2, blockNumber2.Uint64(), nodeId, QueryStartNotIrr)
+		yes, err := StakingInstance().IsCurrValidator(currentHash, currentNumber.Uint64(), nodeId, QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCurrValidator, index: %d, err: %v", i, err)
 			return
@@ -4019,21 +4536,33 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	nodeIdArr := make([]discover.NodeID, 0)
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-	for i := 0; i < 1000; i++ {
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -4068,7 +4597,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -4079,100 +4608,163 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		if i < 20 {
-			nodeIdArr = append(nodeIdArr, canTmp.NodeId)
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
 			return
+		} else {
+
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
-
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
 		}
-		queue = append(queue, val)
-		count++
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start IsCurrVerifier
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start IsCurrVerifier CurrBlockHash", currentHash.Hex())
+	/**
 	Start  IsCurrVerifier
 	*/
 	for i, nodeId := range nodeIdArr {
-		yes, err := StakingInstance().IsCurrVerifier(blockHash2, blockNumber2.Uint64(), nodeId, QueryStartNotIrr)
+		yes, err := StakingInstance().IsCurrVerifier(currentHash, currentNumber.Uint64(), nodeId, QueryStartNotIrr)
 		if nil != err {
 			t.Errorf("Failed to IsCurrVerifier, index: %d, err: %v", i, err)
 			return
@@ -4200,19 +4792,33 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -4247,7 +4853,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -4258,109 +4864,163 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
-		End:   xutil.ConsensusSize(),
-	}
-
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = setRoundValList(blockHash, new_validatorArr)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-		return
-	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start GetLastNumber
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start GetLastNumber CurrBlockHash", currentHash.Hex())
+
+	/**
 	Start  GetLastNumber
 	*/
-	endNumber := StakingInstance().GetLastNumber(blockNumber2.Uint64())
+	endNumber := StakingInstance().GetLastNumber(currentNumber.Uint64())
 
 	t.Log("GetLastNumber the endNumber is:", endNumber)
 
@@ -4382,19 +5042,33 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -4429,7 +5103,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -4440,109 +5114,163 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
-		Start: start,
-		End:   xutil.ConsensusSize(),
-	}
-
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
-
-	err = setRoundValList(blockHash, new_validatorArr)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-		return
-	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start GetValidator
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start GetValidator CurrBlockHash", currentHash.Hex())
+
+	/**
 	Start  GetValidator
 	*/
-	valArr, err := StakingInstance().GetValidator(blockNumber2.Uint64())
+	valArr, err := StakingInstance().GetValidator(currentNumber.Uint64())
 	if nil != err {
 		t.Errorf("Failed to GetValidator, err: %v", err)
 	}
@@ -4568,19 +5296,33 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	// New VrfHandler instance by genesis block Hash
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
+	// build vrf proof
+	// build ancestor nonces
+	_, nonces := build_vrf_Nonce()
+	enValue, err := rlp.EncodeToBytes(nonces)
+	if nil != err {
+		t.Error("Failed to rlp vrf nonces", "err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// new block
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		t.Errorf("Failed to generate random Address private key: %v", err)
+		return
+	}
+	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
+	currentNumber := big.NewInt(1)
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+
+	for j := 0; j < 1000; j++ {
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -4615,7 +5357,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -4626,91 +5368,158 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
-			return
-		}
-	}
-
-	stakingDB := staking.NewStakingDB()
-
-	// build genesis VerifierList
-
-	start := uint64(1)
-	end := xutil.EpochSize() * xutil.ConsensusSize()
-
-	new_verifierArr := &staking.Validator_array{
-		Start: start,
-		End:   end,
-	}
-
-	queue := make(staking.ValidatorQueue, 0)
-
-	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-	if err := iter.Error(); nil != err {
-		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
-		return
-	}
-
-	defer iter.Release()
-
-	count := 0
-	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
-			break
-		}
-		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
-
-		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
 		}
-		queue = append(queue, val)
-		count++
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
+		}
+
 	}
 
-	new_verifierArr.Arr = queue
+	/**
+	*******
+	build genesis epoch validators
+	*******
+	*/
+	verifierIndex := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.CalcBlocksEachEpoch(),
+	}
 
-	err = setVerifierList(blockHash, new_verifierArr)
+	epochIndexArr := make(staking.ValArrIndexQueue, 0)
+	epochIndexArr = append(epochIndexArr, verifierIndex)
+
+	// current epoch start and end indexs
+	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
 	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
+		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
+	epochArr, err := rlp.EncodeToBytes(validatorQueue)
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return
 	}
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
+	// Store Epoch validators
+	if err := sndb.PutBaseDB(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), epochArr); nil != err {
+		t.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
+	/**
+	*******
+	build genesis curr round validators
+	*******
+	*/
+	curr_indexInfo := &staking.ValArrIndex{
+		Start: 1,
+		End:   xutil.ConsensusSize(),
+	}
+	roundIndexArr := make(staking.ValArrIndexQueue, 0)
+	roundIndexArr = append(roundIndexArr, curr_indexInfo)
+
+	// round index
+	round_index, err := rlp.EncodeToBytes(roundIndexArr)
+	if nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+		return
+	}
+	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
+		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	if nil != err {
+		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+		return
+	}
+	// Store Current Round validator
+	if err := sndb.PutBaseDB(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), roundArr); nil != err {
+		t.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// Store vrf nonces
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
+		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
+		return
+	}
+
+	// SetCurrent to snapshotDB
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
+	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
+		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+	}
+
+	/**
+	Start IsCandidateNode
+	*/
+	// new block
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+
+	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	header := &types.Header{
+		ParentHash:  currentHash,
+		Coinbase:    sender,
+		Root:        common.ZeroHash,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+		Number:      currentNumber,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		Nonce:       types.EncodeNonce(nonce),
+	}
+	currentHash = header.Hash()
+
+	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
+		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
+		return
+	}
+
+	fmt.Println("Start IsCandidateNode CurrBlockHash", currentHash.Hex())
 	/**
 	Start  IsCandidateNode
 	*/
@@ -4902,50 +5711,3 @@ func Test_IteratorCandidate(t *testing.T) {
 	t.Log("CandidateList:", string(arrJson))
 	t.Log("Candidate queue length:", len(queue))
 }
-
-//func Test_Iterator(t *testing.T) {
-//
-//	sndb := snapshotdb.Instance()
-//	defer func() {
-//		sndb.Clear()
-//	}()
-//
-//	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-//		t.Error("newBlock err", err)
-//		return
-//	}
-//
-//	initProgramVersion := uint32(1<<16 | 0<<8 | 0) // 65536
-//
-//	for i := 0; i < 1000; i++ {
-//
-//		var index int
-//		if i >= len(balanceStr) {
-//			index = i % (len(balanceStr) - 1)
-//		}
-//
-//		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-//
-//		mrand.Seed(time.Now().UnixNano())
-//
-//		weight := mrand.Intn(1000000000)
-//
-//		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-//
-//		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProgramVersion)
-//		val := fmt.Sprint(initProgramVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
-//		sndb.Put(blockHash, key, []byte(val))
-//	}
-//
-//	// iter
-//	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
-//	if err := iter.Error(); nil != err {
-//		t.Errorf("Failed to interator, err: %v", err)
-//		return
-//	}
-//	defer iter.Release()
-//	for iter.Valid(); iter.Next(); {
-//		t.Log("Value:=", string(iter.Value()))
-//	}
-//
-//}
