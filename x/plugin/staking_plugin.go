@@ -1973,12 +1973,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	start := curr.End + 1
 	end := curr.End + xutil.ConsensusSize()
 
-	diffQueueLen := 0
 	hasSlashLen := 0 // duplicateSign And lowRatio No enough von
 	needRMwithdrewLen := 0
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
-	currLen := len(curr.Arr)
 
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
@@ -2078,7 +2076,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		diffQueue = append(diffQueue, v)
 	}
-	diffQueueLen = len(diffQueue)
 
 	for i := 0; i < len(withdrewQueue); i++ {
 
@@ -2098,12 +2095,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
-	log.Info("Call Election, statistics need to remove node num",
-		"has slash count", hasSlashLen, "withdrew and need remove count",
-		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
-		"total remove count", invalidLen, "remove map size", len(removeCans),
-		"current validators Size", currLen, "ConsValidatorNum", xcom.ConsValidatorNum())
-
 	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
 		currQueue.ValidatorSort(removeCans, staking.CompareForDel)
 		// Increase term of validator
@@ -2120,10 +2111,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	var vrfQueue staking.ValidatorQueue
 	var vrfLen int
-	if diffQueueLen > int(xcom.ConsValidatorNum()) {
+	if len(diffQueue) > int(xcom.ConsValidatorNum()) {
 		vrfLen = int(xcom.ConsValidatorNum())
 	} else {
-		vrfLen = diffQueueLen
+		vrfLen = len(diffQueue)
 	}
 
 	if vrfLen != 0 {
@@ -2135,6 +2126,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			vrfQueue = queue
 		}
 	}
+
+	log.Info("Call Election, statistics need to remove node num",
+		"has slash count", hasSlashLen, "withdrew and need remove count",
+		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
+		"total remove count", invalidLen, "remove map size", len(removeCans),
+		"current validators Size", len(curr.Arr), "ConsValidatorNum", xcom.ConsValidatorNum(),
+		"diffQueueLen", len(diffQueue), "vrfQueueLen", len(vrfQueue))
 
 	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
 
