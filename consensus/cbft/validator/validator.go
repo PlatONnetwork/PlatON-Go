@@ -106,7 +106,7 @@ func NewInnerAgency(nodes []params.CbftNode, chain *core.BlockChain, blocksPerNo
 		defaultBlocksPerRound: uint64(len(nodes) * blocksPerNode),
 		offset:                uint64(offset),
 		blockchain:            chain,
-		defaultValidators:     newValidators(nodes, 0),
+		defaultValidators:     newValidators(nodes, 1),
 	}
 }
 
@@ -161,8 +161,14 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 }
 
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators, err error) {
+	defaultValidators := *ia.defaultValidators
+	baseNumber := blockNumber
+	if blockNumber == 0 {
+		baseNumber = 1
+	}
+	defaultValidators.ValidBlockNumber = ((baseNumber-1)/ia.defaultBlocksPerRound)*ia.defaultBlocksPerRound + 1
 	if blockNumber <= ia.defaultBlocksPerRound {
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 
 	// Otherwise, get validators from inner contract.
@@ -170,22 +176,22 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 	block := ia.blockchain.GetBlockByNumber(vdsCftNum)
 	if block == nil {
 		log.Error("Get the block fail, use default validators", "number", vdsCftNum)
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	state, err := ia.blockchain.StateAt(block.Root())
 	if err != nil {
 		log.Error("Get the state fail, use default validators", "number", block.Number(), "hash", block.Hash(), "error", err)
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	b := state.GetState(cvm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
 	if len(b) == 0 {
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	var vds vm.Validators
 	err = rlp.DecodeBytes(b, &vds)
 	if err != nil {
 		log.Error("RLP decode fail, use default validators", "number", block.Number(), "error", err)
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	var validators cbfttypes.Validators
 	validators.Nodes = make(cbfttypes.ValidateNodeMap, len(vds.ValidateNodes))
@@ -287,8 +293,6 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 		return errors.New("already updated before")
 	}
 
-	isValidatorBefore := vp.isValidator(epoch-1, vp.nodeID)
-
 	nds, err := vp.agency.GetValidator(NextRound(blockNumber))
 	if err != nil {
 		log.Error("Get validator error", "blockNumber", blockNumber, "err", err)
@@ -296,9 +300,11 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 	}
 	vp.prevValidators = vp.currentValidators
 	vp.currentValidators = nds
-	vp.switchPoint = blockNumber
+	vp.switchPoint = nds.ValidBlockNumber - 1
 	vp.epoch = epoch
-	log.Debug("Update validator", "validators", nds.String())
+	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch)
+
+	isValidatorBefore := vp.isValidator(epoch-1, vp.nodeID)
 
 	isValidatorAfter := vp.isValidator(epoch, vp.nodeID)
 
@@ -439,6 +445,13 @@ func (vp *ValidatorPool) validatorList(epoch uint64) []discover.NodeID {
 		return vp.prevValidators.NodeList()
 	}
 	return vp.currentValidators.NodeList()
+}
+
+func (vp *ValidatorPool) Validators(epoch uint64) *cbfttypes.Validators {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
+		return vp.prevValidators
+	}
+	return vp.currentValidators
 }
 
 // VerifyHeader verify block's header.
