@@ -256,13 +256,14 @@ type TxPool struct {
 
 	rstFlag     int32
 	pendingFlag int32
+
+	knowns sync.Map // All know transactions
 }
 
 type txExt struct {
-	tx       interface{} //*types.Transaction
-	local    bool
-	txErr    chan interface{}
-	recvTime time.Time
+	tx    interface{} //*types.Transaction
+	local bool
+	txErr chan interface{}
 }
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
@@ -365,24 +366,25 @@ func (pool *TxPool) txExtBufferReadLoop() {
 			log.Trace("Process txExtBuffer", "txExtBufLen", len(txExtBuf), "pool.txExtBufferLen", len(pool.txExtBuffer), "duration", time.Since(begin))
 
 		case <-timer.C:
-			if len(txExtBuf) > 0 {
-				newTxExtBuf := make([]*txExt, 0)
-				for _, ext := range txExtBuf {
-					if time.Since(ext.recvTime) >= 500*time.Millisecond {
-						if _, ok := ext.tx.(*types.Transaction); ok {
-							ext.txErr <- errors.New("timeout")
-						} else {
-							ext.txErr <- []error{errors.New("timeout")}
+			/*
+				if len(txExtBuf) > 0 {
+					newTxExtBuf := make([]*txExt, 0)
+					for _, ext := range txExtBuf {
+						if time.Since(ext.recvTime) >= 500*time.Millisecond {
+							if _, ok := ext.tx.(*types.Transaction); ok {
+								ext.txErr <- errors.New("timeout")
+							} else {
+								ext.txErr <- []error{errors.New("timeout")}
+							}
+							continue
 						}
+						newTxExtBuf = append(newTxExtBuf, ext)
+					}
+					if len(newTxExtBuf) == 0 {
 						continue
 					}
-					newTxExtBuf = append(newTxExtBuf, ext)
-				}
-				if len(newTxExtBuf) == 0 {
-					continue
-				}
-				txExtBuf = newTxExtBuf
-			}
+					txExtBuf = newTxExtBuf
+				}	*/
 
 			begin := time.Now()
 			rstFlag := atomic.LoadInt32(&pool.rstFlag)
@@ -446,9 +448,17 @@ func (pool *TxPool) loop() {
 			pool.mu.RUnlock()
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
-				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales)
+				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "txExtBuffer", len(pool.txExtBuffer))
 				prevPending, prevQueued, prevStales = pending, queued, stales
 			}
+
+			pool.knowns.Range(func(key interface{}, value interface{}) bool {
+				t := value.(time.Time)
+				if time.Since(t) >= statsReportInterval {
+					pool.knowns.Delete(key)
+				}
+				return true
+			})
 
 		// Handle inactive account transaction eviction
 		case <-evict.C:
@@ -639,7 +649,9 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
+	t0 := time.Now()
 	statedb, err := pool.chain.GetState(newHead)
+	log.Info("Reset txpool in GetState", "number", newHead.Number, "duration", time.Since(t0))
 	if err != nil {
 		log.Error("Failed to reset txpool state", "newHeadHash", newHead.Hash(), "newHeadNumber", newHead.Number.Uint64(), "err", err)
 		return
@@ -1047,8 +1059,9 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
+	pool.knowns.Store(tx.Hash(), time.Now())
 	errCh := make(chan interface{})
-	txExt := &txExt{tx, !pool.config.NoLocals, errCh, time.Now()}
+	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
 	pool.txExtBuffer <- txExt
 	err := <-errCh
 	if e, ok := err.(error); ok {
@@ -1062,8 +1075,9 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
+	pool.knowns.Store(tx.Hash(), time.Now())
 	errCh := make(chan interface{}, 1)
-	txExt := &txExt{tx, false, errCh, time.Now()}
+	txExt := &txExt{tx, false, errCh}
 	select {
 	case <-pool.exitCh:
 		return nil
@@ -1085,7 +1099,7 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 // the local pricing constraints.
 func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 	errCh := make(chan interface{})
-	txExt := &txExt{txs, !pool.config.NoLocals, errCh, time.Now()}
+	txExt := &txExt{txs, !pool.config.NoLocals, errCh}
 	pool.txExtBuffer <- txExt
 	err := <-errCh
 	if e, ok := err.([]error); ok {
@@ -1103,6 +1117,14 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	newTxs := make([]*types.Transaction, 0)
 	for _, tx := range txs {
 		hash := tx.Hash()
+
+		if _, ok := pool.knowns.Load(hash); ok {
+			log.Trace("Discarding already known transaction", "hash", hash)
+			continue
+		} else {
+			pool.knowns.Store(hash, time.Now())
+		}
+
 		if pool.all.Get(hash) != nil {
 			log.Trace("Discarding already known transaction", "hash", hash)
 			knowingTxCounter.Inc(1)
@@ -1116,7 +1138,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	}
 
 	errCh := make(chan interface{}, 1)
-	txExt := &txExt{newTxs, false, errCh, time.Now()}
+	txExt := &txExt{newTxs, false, errCh}
 	select {
 	case <-pool.exitCh:
 		return nil
