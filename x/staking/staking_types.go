@@ -314,6 +314,22 @@ type Validator struct {
 	ValidatorTerm uint32
 }
 
+func (val *Validator) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"NodeAddress": "%s",
+		"BlsPubKey": "%s", 
+		"StakingWeight": %s, 
+		"ValidatorTerm": %d
+	}`,
+		val.NodeId.String(),
+		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
+		fmt.Sprintf("%x", val.BlsPubKey.Serialize()),
+		fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),
+		val.ValidatorTerm)
+}
+
 func (val *Validator) GetProgramVersion() (uint32, error) {
 	version := val.StakingWeight[0]
 	v, err := strconv.Atoi(version)
@@ -748,6 +764,40 @@ type ValidatorEx struct {
 	ValidatorTerm uint32
 }
 
+func (vex *ValidatorEx) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"NodeAddress": "%s",
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d,
+		"StakingBlockNum": %d,
+		"Shares": "%s",
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s",
+		"ValidatorTerm": %d
+	}`,
+		vex.NodeId.String(),
+		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", vex.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", vex.BenefitAddress.Bytes()),
+		vex.StakingTxIndex,
+		vex.ProgramVersion,
+		vex.StakingBlockNum,
+		vex.Shares,
+		vex.ExternalId,
+		vex.NodeName,
+		vex.Website,
+		vex.Details,
+		vex.ValidatorTerm)
+}
+
 type ValidatorExQueue = []*ValidatorEx
 
 // the Delegate information
@@ -766,6 +816,24 @@ type Delegation struct {
 	Reduction *big.Int
 }
 
+func (del *Delegation) String() string {
+	return fmt.Sprintf(`
+	{
+		"DelegateEpoch": "%d", 
+		"Released": "%d", 
+		"ReleasedHes": %d, 
+		"RestrictingPlan": %d,
+		"RestrictingPlanHes": %d,
+		"Reduction": "%d"
+	}`,
+		del.DelegateEpoch,
+		del.Released,
+		del.ReleasedHes,
+		del.RestrictingPlan,
+		del.RestrictingPlanHes,
+		del.Reduction)
+}
+
 type DelegationHex struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint32
@@ -781,6 +849,24 @@ type DelegationHex struct {
 	Reduction *hexutil.Big
 }
 
+func (delHex *DelegationHex) String() string {
+	return fmt.Sprintf(`
+	{
+		"DelegateEpoch": "%d", 
+		"Released": "%s", 
+		"ReleasedHes": %s, 
+		"RestrictingPlan": %s,
+		"RestrictingPlanHes": %s,
+		"Reduction": "%s"
+	}`,
+		delHex.DelegateEpoch,
+		delHex.Released,
+		delHex.ReleasedHes,
+		delHex.RestrictingPlan,
+		delHex.RestrictingPlanHes,
+		delHex.Reduction)
+}
+
 type DelegationEx struct {
 	Addr            common.Address
 	NodeId          discover.NodeID
@@ -788,10 +874,46 @@ type DelegationEx struct {
 	DelegationHex
 }
 
+func (dex *DelegationEx) String() string {
+	return fmt.Sprintf(`
+	{
+		"Addr": "%s", 
+		"NodeId": "%s",
+		"StakingBlockNum": "%d", 
+		"DelegateEpoch": "%d", 
+		"Released": "%s", 
+		"ReleasedHes": %s, 
+		"RestrictingPlan": %s,
+		"RestrictingPlanHes": %s,
+		"Reduction": "%s"
+	}`,
+		dex.Addr.String(),
+		fmt.Sprintf("%x", dex.NodeId.Bytes()),
+		dex.StakingBlockNum,
+		dex.DelegateEpoch,
+		dex.Released,
+		dex.ReleasedHes,
+		dex.RestrictingPlan,
+		dex.RestrictingPlanHes,
+		dex.Reduction)
+}
+
 type DelegateRelated struct {
 	Addr            common.Address
 	NodeId          discover.NodeID
 	StakingBlockNum uint64
+}
+
+func (dr *DelegateRelated) String() string {
+	return fmt.Sprintf(`
+	{
+		"Addr": "%s", 
+		"NodeId": "%s",
+		"StakingBlockNum": "%d"
+	}`,
+		dr.Addr.String(),
+		fmt.Sprintf("%x", dr.NodeId.Bytes()),
+		dr.StakingBlockNum)
 }
 
 type DelRelatedQueue = []*DelegateRelated
