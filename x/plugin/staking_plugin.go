@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -560,9 +562,6 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 	if unStakeCount == 0 {
 		return nil
 	}
-
-	// todo test
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), blockHash)
 
 	filterAddr := make(map[common.Address]struct{})
 
@@ -1197,9 +1196,6 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockNumber ui
 		return nil
 	}
 
-	// todo test
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), blockHash)
-
 	for index := 1; index <= int(unDelegateCount); index++ {
 		unDelegateItem, err := sk.db.GetUnDelegateItemStore(blockHash, epoch, uint64(index))
 
@@ -1438,9 +1434,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
-
-	// todo test
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), blockHash)
 
 	// todo test
 	xcom.PrintObject("Call ElectNextVerifierList old verifier list", old_verifierArr)
@@ -1934,9 +1927,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	log.Info("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
 
 	blockNumber := header.Number.Uint64()
-
-	// todo test
-	xcom.PrintEc(header.Number, blockHash)
 
 	// the validators of Current Epoch
 	verifiers, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
@@ -2826,7 +2816,7 @@ func (svs sortValidatorQueue) Swap(i, j int) {
 // nonce：Vrf proof of the current block
 // parentHash：Parent block hash
 func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
-	preNonces, err := xcom.GetVrfHandlerInstance().Load(parentHash)
+	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
 	if nil != err {
 		return nil, err
 	}

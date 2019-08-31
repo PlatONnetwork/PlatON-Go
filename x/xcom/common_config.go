@@ -5,9 +5,6 @@ import (
 	"errors"
 	"math/big"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // plugin rule key
@@ -587,8 +584,11 @@ func CancelProposal_SupportRate() float64 {
 	return ec.Gov.CancelProposal_SupportRate
 }
 
-func PrintEc(blockNUmber *big.Int, blockHash common.Hash) {
-	ecByte, _ := json.Marshal(ec)
-	log.Debug("Current EconomicModel config, config Info", "blockNumber", blockNUmber, "blockHash", blockHash.Hex(), "ec", string(ecByte))
-	log.Debug("Current EconomicModel config, window and viewAmount", "window", ec.Common.NodeBlockTimeWindow, "viewAmount", ec.Common.PerRoundBlocks)
+func EconomicString() string {
+	if nil != ec {
+		ecByte, _ := json.Marshal(ec)
+		return string(ecByte)
+	} else {
+		return ""
+	}
 }

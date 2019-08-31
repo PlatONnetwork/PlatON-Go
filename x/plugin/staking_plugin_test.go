@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -180,7 +182,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}()
 
 	// New VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	// build vrf proof
 	// build ancestor nonces
@@ -365,7 +367,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}
 
 	// Store vrf nonces
-	if err := sndb.PutBaseDB(xcom.NonceStorageKey, enValue); nil != err {
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
 		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
 		return
 	}
@@ -485,7 +487,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	}()
 
 	// New VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	// build vrf proof
 	// build ancestor nonces
@@ -669,7 +671,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	}
 
 	// Store vrf nonces
-	if err := sndb.PutBaseDB(xcom.NonceStorageKey, enValue); nil != err {
+	if err := sndb.PutBaseDB(handler.NonceStorageKey, enValue); nil != err {
 		t.Errorf("Failed to Store Current Vrf nonces : PutBaseDB failed. error:%s", err.Error())
 		return
 	}
@@ -1942,7 +1944,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}()
 
 	// Must new VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2096,7 +2098,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		t.Error("Storage previous nonce failed", "err", err)
 		return
 	} else {
-		sndb.Put(blockHash, xcom.NonceStorageKey, enValue)
+		sndb.Put(blockHash, handler.NonceStorageKey, enValue)
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
@@ -2330,7 +2332,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2450,7 +2452,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2774,7 +2776,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -2969,7 +2971,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3166,7 +3168,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3347,7 +3349,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3534,7 +3536,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3706,7 +3708,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3826,7 +3828,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -4021,7 +4023,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -4202,7 +4204,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -4384,7 +4386,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -4570,7 +4572,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
