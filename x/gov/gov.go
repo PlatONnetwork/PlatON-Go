@@ -259,7 +259,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 				return NotifyStakingDeclaredVersionError
 			}
-		} else if preActiveVersion != 0 && declaredVersion == preActiveVersion {
+		} else if preActiveVersion != 0 && declaredVersion>>8 == preActiveVersion>>8 {
 			log.Debug("there is a version proposal at voting stage")
 			log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
 			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
