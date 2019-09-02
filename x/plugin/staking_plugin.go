@@ -3346,6 +3346,8 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 
 func (sk *StakingPlugin) setRoundValList(blockNumber uint64, blockHash common.Hash, val_Arr *staking.Validator_array) error {
 
+	log.Debug("Call setRoundValList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "start", val_Arr.Start, "end", val_Arr.End, "arr size", len(val_Arr.Arr))
+
 	queue, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 	if nil != err {
 		log.Error("Failed to setRoundValList: Query round valIndex is failed",
@@ -3464,6 +3466,8 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 }
 
 func (sk *StakingPlugin) setVerifierList(blockNumber uint64, blockHash common.Hash, val_Arr *staking.Validator_array) error {
+
+	log.Debug("Call setVerifierList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "start", val_Arr.Start, "end", val_Arr.End, "arr size", len(val_Arr.Arr))
 
 	queue, err := sk.db.GetEpochValIndexByBlockHash(blockHash)
 	if nil != err {
