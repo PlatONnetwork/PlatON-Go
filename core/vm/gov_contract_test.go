@@ -66,7 +66,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(uint64(5)))
+	input = append(input, common.MustRlpEncode(uint64(4)))
 
 	return common.MustRlpEncode(input)
 }
@@ -89,7 +89,7 @@ func buildSubmitCancelInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
-	input = append(input, common.MustRlpEncode(uint64(4)))
+	input = append(input, common.MustRlpEncode(uint64(3)))
 	input = append(input, common.MustRlpEncode(txHashArr[2]))
 	return common.MustRlpEncode(input)
 }
@@ -327,13 +327,101 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 	runGovContract(gc, buildGetProposalInput(2), t)
 }
 
+func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 4), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.VotingVersionProposalExist)
+
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+}
+
+func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+	build_staking_data_more(uint64(2))
+
+	allVote(stateDB, t, txHashArr[0])
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+	pTemp, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+	p := pTemp.(*gov.VersionProposal)
+
+	// res
+	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	// build_staking_data_more will build a new block base on sndb.Current
+	build_staking_data_more(p.GetEndVotingBlock())
+	endBlock(stateDB, t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	result, err := gov.GetTallyResult(txHashArr[0], stateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.PreActive {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	lastBlockNumber = uint64(p.GetActiveBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.PreActiveVersionProposalExist)
+}
+
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 	setup(t)
 	defer clear(t)
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), 5), t, gov.NewVersionError)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), 4), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
@@ -352,7 +440,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	buildBlock2()
 
 	//the default rounds is 6 for developer test net
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 7), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 5), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_Float(t *testing.T) {
@@ -537,6 +625,28 @@ func TestGovContract_SubmitCancel(t *testing.T) {
 
 	buildBlock3()
 	runGovContract(gc, buildSubmitCancelInput(), t)
+
+}
+
+func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, 4), t)
+
+	buildBlockNoCommit(1)
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	stateDB.Prepare(txHashArr[1], lastBlockHash, 1)
+	//submit a proposal
+	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", 3, txHashArr[0]), t)
+
+	buildBlockNoCommit(3)
+
+	stateDB.Prepare(txHashArr[3], lastBlockHash, 0)
+	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPIDAnother", 2, txHashArr[0]), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
@@ -638,6 +748,22 @@ func TestGovContract_Vote_VersionProposal(t *testing.T) {
 		t.Fatal("cannot list ActiveNode")
 	}
 }
+func TestGovContract_Vote_Duplicated(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	//submit a proposal and vote for it.
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(gc, buildVoteInput(0, 2), t)
+	runGovContract(gc, buildVoteInput(0, 2), t, gov.VoteDuplicated)
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
+		t.Error("cannot list ActiveNode")
+	} else if len(nodeList) == 1 {
+		t.Log("voted duplicated, Gov will count this node once in active node list")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
+}
 
 func TestGovContract_Vote_OptionError(t *testing.T) {
 	setup(t)
@@ -657,7 +783,83 @@ func TestGovContract_Vote_OptionError(t *testing.T) {
 	}
 }
 
-func TestGovContract_Vote_VerifyNotUpgraded(t *testing.T) {
+func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
+	setup(t)
+	defer clear(t)
+	//submit a proposal and vote for it.
+	buildBlock2()
+	runGovContract(gc, buildSubmitVersionInput(), t)
+
+	chandler := handler.GetCryptoHandler()
+	chandler.SetPrivateKey(priKeyArr[0])
+
+	var sign common.VersionSign
+	sign.SetBytes(chandler.MustSign(initProgramVersion))
+
+	//verify vote new version, but it has not upgraded
+	// txIdx=4, not a proposalID
+	runGovContract(gc, buildVote(0, 4, 1, initProgramVersion, sign), t, gov.ProposalNotFound)
+
+	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
+		t.Error("list ActiveNode error", "err", err)
+	} else if len(nodeList) == 0 {
+		t.Log("proposal not found, this node will not be added to active list")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
+}
+
+func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitTextInput(), t)
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+	build_staking_data_more(uint64(2))
+
+	allVote(stateDB, t, txHashArr[0])
+	sndb.Commit(lastBlockHash) //commit
+	sndb.Compaction()          //write to level db
+
+	p, err := gov.GetProposal(txHashArr[0], stateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+
+	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	// build_staking_data_more will build a new block base on sndb.Current
+	build_staking_data_more(p.GetEndVotingBlock())
+	endBlock(stateDB, t)
+	sndb.Commit(lastBlockHash)
+
+	// vote option = 0, it's wrong
+	runGovContract(gc, buildVote(0, 0, 0, promoteVersion, versionSign), t, gov.ProposalNotAtVoting)
+
+	if nodeList, err := gov.GetActiveNodeList(lastBlockHash, txHashArr[0]); err != nil {
+		t.Error("cannot list ActiveNode")
+	} else if len(nodeList) == 0 {
+		t.Log("option error, this node will not be added to active list")
+	} else {
+		t.Fatal("cannot list ActiveNode")
+	}
+
+}
+
+func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	setup(t)
 	defer clear(t)
 	//submit a proposal and vote for it.
