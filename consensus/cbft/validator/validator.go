@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -560,6 +561,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, ms
 		return err
 	}
 	if !sig.Verify(&pub, string(msg)) {
+		log.Debug("Verify signature fail", "epoch", "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
 		return errors.New("bls verifies signature fail")
 	}
 	return nil
