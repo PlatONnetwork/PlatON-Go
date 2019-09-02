@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	. "math"
 	"math/big"
 	"sort"
 	"strconv"
