@@ -533,10 +533,10 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		} else if number < qc.BlockNumber || qc.HigherBlockView(blockEpoch, blockView) {
 			cbft.log.Debug("Local node is ahead other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
 			cert, err := cbft.generateViewChangeQuorumCert(qc)
-			cbft.log.Debug("New viewChange quorumCert", "cert", cert.String())
 			if err != nil {
 				return
 			}
+			cbft.log.Debug("New viewChange quorumCert", "cert", cert.String())
 			viewChangeQC.QCs = append(viewChangeQC.QCs, cert)
 		}
 	}
