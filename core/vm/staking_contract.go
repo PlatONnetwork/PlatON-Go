@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -59,6 +61,7 @@ const (
 	WithdrewCandidateEvent = "1003"
 	DelegateEvent          = "1004"
 	WithdrewDelegateEvent  = "1005"
+	BLSPUBKEYLEN           = 192 //  the bls public key length must be 192 character
 )
 
 type StakingContract struct {
@@ -120,9 +123,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
 		"from", from.Hex(), "blsPubKey", blsPubKey)
 
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
-
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
 	}
@@ -132,18 +132,15 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return nil, nil
 	}
 
-	blslen := 192
-
-	//  the bls public key length must be 128 char
-	if len(blsPubKey) != blslen {
-		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), blslen)}
+	if len(blsPubKey) != BLSPUBKEYLEN {
+		res := xcom.Result{false, "", WrongBlsPubKeyStr + ": " + fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN)}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
 	}
 
 	// validate programVersion sign
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
+	if !handler.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
 		res := xcom.Result{false, "", ProgramVersionSignErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
@@ -172,8 +169,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	curr_version := gov.GetVersionForStaking(state)
-	currVersion := xutil.CalcVersion(curr_version)
+	originVersion := gov.GetVersionForStaking(state)
+	currVersion := xutil.CalcVersion(originVersion)
 	inputVersion := xutil.CalcVersion(programVersion)
 
 	var isDeclareVersion bool
@@ -182,7 +179,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
-		err := fmt.Errorf("input Version: %s, current valid Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(curr_version))
+		err := fmt.Errorf("input Version: %s, current valid Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion))
 		res := xcom.Result{false, "", ProgramVersionErrStr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
@@ -302,9 +299,6 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		"nodeId", nodeId.String(), "externalId", externalId, "nodeName", nodeName,
 		"website", website, "details", details, "from", from.Hex())
 
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
-
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
 	}
@@ -403,9 +397,6 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "typ", typ,
 		"amount", amount, "from", from.Hex())
 
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
-
 	if !stkc.Contract.UseGas(params.IncStakeGas) {
 		return nil, ErrOutOfGas
 	}
@@ -492,9 +483,6 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	log.Info("Call withdrewStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String(), "from", from.Hex())
 
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
-
 	if !stkc.Contract.UseGas(params.WithdrewStakeGas) {
 		return nil, ErrOutOfGas
 	}
@@ -575,9 +563,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	log.Info("Call delegate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "typ", typ,
 		"nodeId", nodeId.String(), "amount", amount)
-
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
 
 	if !stkc.Contract.UseGas(params.DelegateGas) {
 		return nil, ErrOutOfGas
@@ -697,9 +682,6 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
-
 	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
 		return nil, ErrOutOfGas
 	}
@@ -753,9 +735,6 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
-
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
 
 	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
 
@@ -813,9 +792,6 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
-
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
 
 	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -880,9 +856,6 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
-
 	arr, err := stkc.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
@@ -920,9 +893,6 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
-
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -962,9 +932,6 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
-
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
 
 	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -1006,9 +973,6 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
-
-	// todo test
-	xcom.PrintEc(blockNumber, blockHash)
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {

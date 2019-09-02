@@ -50,6 +50,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
 			for i, block := range blockList.Blocks {
+				if block.ParentHash() != parentBlock.Hash() {
+					cbft.log.Debug("Response block's is error",
+						"blockHash", block.Hash(), "blockNumber", block.NumberU64(),
+						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+					return
+				}
 				if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
 					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return

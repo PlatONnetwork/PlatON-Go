@@ -5377,6 +5377,12 @@ var methods = function () {
       params: 0
     });
 
+    var economicConfig = new Method({
+      name: 'economicConfig',
+      call: 'debug_economicConfig',
+      params: 0
+    });
+
     return [
         getBalance,
         getStorageAt,
@@ -5394,6 +5400,7 @@ var methods = function () {
         sendTransaction,
         sign,
         consensusStatus,
+        economicConfig,
         getPrepareQC
     ];
 };

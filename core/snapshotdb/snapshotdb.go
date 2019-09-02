@@ -65,7 +65,7 @@ type DB interface {
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
 	Commit(hash common.Hash) error
 
-	// Clear close db , remove all db file,set dbInstance nil
+	// Clear close db , remove all db file
 	Clear() error
 
 	PutBaseDB(key, value []byte) error
@@ -82,6 +82,7 @@ type DB interface {
 	BaseNum() (*big.Int, error)
 	Close() error
 	Compaction() error
+	SetEmpty() error
 }
 
 var (
@@ -322,6 +323,16 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	} else {
 		return v, nil
 	}
+}
+
+func (s *snapshotDB) SetEmpty() error {
+	if err := s.Clear(); err != nil {
+		return err
+	}
+	if err := initDB(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *snapshotDB) PutBaseDB(key, value []byte) error {
@@ -888,7 +899,9 @@ func (s *snapshotDB) Close() error {
 		return fmt.Errorf("[snapshotdb]close storage fail:%v", err)
 	}
 	if s.current != nil {
-		s.current.f.Close()
+		if err := s.current.f.Close(); err != nil {
+			return fmt.Errorf("[snapshotdb]close current fail:%v", err)
+		}
 	}
 
 	for key := range s.journalw {
