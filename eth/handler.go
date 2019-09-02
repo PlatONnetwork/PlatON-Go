@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -851,8 +852,17 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
 		peers := pm.peers.PeersWithoutTx(tx.Hash())
-		for _, peer := range peers {
-			txset[peer] = append(txset[peer], tx)
+		if len(peers) <= 5 {
+			for _, peer := range peers {
+				txset[peer] = append(txset[peer], tx)
+			}
+		} else {
+			rand.Seed(time.Now().UnixNano())
+			indexes := rand.Perm(len(peers))
+			for i := 0; i < 5; i++ {
+				peer := peers[indexes[i]]
+				txset[peer] = append(txset[peer], tx)
+			}
 		}
 		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
