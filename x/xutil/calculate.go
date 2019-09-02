@@ -106,7 +106,6 @@ func IsSwitch(blockNumber uint64) bool {
 // IsSettlementPeriod checks the block if it is the end of a epoch
 func IsSettlementPeriod(blockNumber uint64) bool {
 	log.Debug("IsSettlementPeriod", "blockNumber", blockNumber)
-	xcom.PrintEc(big.NewInt(int64(blockNumber)), common.ZeroHash)
 
 	size := CalcBlocksEachEpoch()
 	mod := blockNumber % uint64(size)

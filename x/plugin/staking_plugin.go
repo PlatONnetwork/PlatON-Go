@@ -1589,7 +1589,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	new_verifierArr.Arr = queue
 
-	err = sk.setVerifierList(blockHash, new_verifierArr)
+	err = sk.setVerifierList(blockNumber, blockHash, new_verifierArr)
 	if nil != err {
 		log.Error("Failed to ElectNextVerifierList: Set Next Epoch VerifierList is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -2339,7 +2339,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		Arr:   nextQueue,
 	}
 
-	if err := sk.setRoundValList(blockHash, next); nil != err {
+	if err := sk.setRoundValList(blockNumber, blockHash, next); nil != err {
 		log.Error("Failed to SetNextValidatorList on Election", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "err", err)
 		return err
@@ -2718,7 +2718,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 			if dirtyLen != orginLen {
 
-				if err := sk.setVerifierList(blockHash, validators); nil != err {
+				if err := sk.setVerifierList(blockNumber, blockHash, validators); nil != err {
 					log.Error("Failed to SlashCandidates: Store Verifier List is failed", "slashType", slashType,
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 					return err
@@ -3344,12 +3344,13 @@ func (sk *StakingPlugin) getNextValList(blockHash common.Hash, blockNumber uint6
 	}, nil
 }
 
-func (sk *StakingPlugin) setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
+func (sk *StakingPlugin) setRoundValList(blockNumber uint64, blockHash common.Hash, val_Arr *staking.Validator_array) error {
 
 	queue, err := sk.db.GetRoundValIndexByBlockHash(blockHash)
 	if nil != err {
-		log.Error("Failed to setRoundValList: Query round valIndex is failed", "blockHash",
-			blockHash.Hex(), "Start", val_Arr.Start, "End", val_Arr.End, "err", err)
+		log.Error("Failed to setRoundValList: Query round valIndex is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"Start", val_Arr.Start, "End", val_Arr.End, "err", err)
 		return err
 	}
 
@@ -3364,7 +3365,8 @@ func (sk *StakingPlugin) setRoundValList(blockHash common.Hash, val_Arr *staking
 	if nil != shabby {
 		if err := sk.db.DelRoundValListByBlockHash(blockHash, shabby.Start, shabby.End); nil != err {
 			log.Error("Failed to setRoundValList: delete shabby validators is failed",
-				"shabby start", shabby.Start, "shabby end", shabby.End, "blockHash", blockHash.Hex(), "err", err)
+				"shabby start", shabby.Start, "shabby end", shabby.End,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 	}
@@ -3372,14 +3374,14 @@ func (sk *StakingPlugin) setRoundValList(blockHash common.Hash, val_Arr *staking
 	// Store new index Arr
 	if err := sk.db.SetRoundValIndex(blockHash, queue); nil != err {
 		log.Error("Failed to setRoundValList: store round validators new indexArr is failed",
-			"blockHash", blockHash.Hex(), "indexs length", len(queue), "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "indexs length", len(queue), "err", err)
 		return err
 	}
 
 	// Store new round validator Item
 	if err := sk.db.SetRoundValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
 		log.Error("Failed to setRoundValList: store new round validators is failed",
-			"blockHash", blockHash.Hex(), "start", index.Start, "end", index.End,
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "start", index.Start, "end", index.End,
 			"val arr length", len(val_Arr.Arr), "err", err)
 		return err
 	}
@@ -3461,12 +3463,13 @@ func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint
 	}, nil
 }
 
-func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
+func (sk *StakingPlugin) setVerifierList(blockNumber uint64, blockHash common.Hash, val_Arr *staking.Validator_array) error {
 
 	queue, err := sk.db.GetEpochValIndexByBlockHash(blockHash)
 	if nil != err {
-		log.Error("Failed to setVerifierList: Query epoch valIndex is failed", "blockHash",
-			blockHash.Hex(), "Start", val_Arr.Start, "End", val_Arr.End, "err", err)
+		log.Error("Failed to setVerifierList: Query epoch valIndex is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"Start", val_Arr.Start, "End", val_Arr.End, "err", err)
 		return err
 	}
 
@@ -3481,7 +3484,8 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 	if nil != shabby {
 		if err := sk.db.DelEpochValListByBlockHash(blockHash, shabby.Start, shabby.End); nil != err {
 			log.Error("Failed to setVerifierList: delete shabby validators is failed",
-				"shabby start", shabby.Start, "shabby end", shabby.End, "blockHash", blockHash.Hex(), "err", err)
+				"shabby start", shabby.Start, "shabby end", shabby.End,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 	}
@@ -3489,14 +3493,14 @@ func (sk *StakingPlugin) setVerifierList(blockHash common.Hash, val_Arr *staking
 	// Store new index Arr
 	if err := sk.db.SetEpochValIndex(blockHash, queue); nil != err {
 		log.Error("Failed to setVerifierList: store epoch validators new indexArr is failed",
-			"blockHash", blockHash.Hex(), "indexs length", len(queue), "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "indexs length", len(queue), "err", err)
 		return err
 	}
 
 	// Store new epoch validator Item
 	if err := sk.db.SetEpochValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
 		log.Error("Failed to setVerifierList: store new epoch validators is failed",
-			"blockHash", blockHash.Hex(), "start", index.Start, "end", index.End,
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "start", index.Start, "end", index.End,
 			"val arr length", len(val_Arr.Arr), "err", err)
 		return err
 	}

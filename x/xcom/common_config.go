@@ -466,7 +466,6 @@ func SetPerRoundBlocks(amount uint64) {
 }
 
 func Interval() uint64 {
-	log.Debug("EconomicModel Config", "NodeBlockTimeWindow", ec.Common.NodeBlockTimeWindow, "PerRoundBlocks", ec.Common.PerRoundBlocks)
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
 func BlocksWillCreate() uint64 {
