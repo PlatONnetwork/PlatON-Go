@@ -175,19 +175,19 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	queue = append(queue, v2)
 	queue = append(queue, v3)
 
-	epochArr := &staking.Validator_array{
+	epochArr := &staking.ValidatorArray{
 		Start: 1,
 		End:   uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
-	preArr := &staking.Validator_array{
+	preArr := &staking.ValidatorArray{
 		Start: 1,
 		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
-	curArr := &staking.Validator_array{
+	curArr := &staking.ValidatorArray{
 		Start: xutil.ConsensusSize() + 1,
 		End:   xutil.ConsensusSize() * 2,
 		Arr:   queue,

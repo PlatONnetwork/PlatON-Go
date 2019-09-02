@@ -162,7 +162,7 @@ func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) err
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, addr common.Address) error {
+func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, addr common.Address, stakeBlockNumber uint64) error {
 
 	count_key := GetUnStakeCountKey(epoch)
 
@@ -178,17 +178,27 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ad
 	v++
 
 	// todo test
-	log.Debug("AddUnStakeItemStore 1 ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+	log.Debug("AddUnStakeItemStore before put count ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
 
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
 	}
 	item_key := GetUnStakeItemKey(epoch, v)
 
-	// todo test
-	log.Debug("AddUnStakeItemStore 2 ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(addr.Bytes()))
+	unStakeItem := &UnStakeItem{
+		KeySuffix:       addr.Bytes(),
+		StakingBlockNum: stakeBlockNumber,
+	}
 
-	return db.put(blockHash, item_key, addr.Bytes())
+	item, err := rlp.EncodeToBytes(unStakeItem)
+	if nil != err {
+		return err
+	}
+
+	// todo test
+	log.Debug("AddUnStakeItemStore before put item ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(item))
+
+	return db.put(blockHash, item_key, item)
 }
 
 func (db *StakingDB) GetUnStakeCountStore(blockHash common.Hash, epoch uint64) (uint64, error) {
@@ -201,13 +211,18 @@ func (db *StakingDB) GetUnStakeCountStore(blockHash common.Hash, epoch uint64) (
 	return common.BytesToUint64(val), nil
 }
 
-func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uint64) (common.Address, error) {
+func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uint64) (*UnStakeItem, error) {
 	item_key := GetUnStakeItemKey(epoch, index)
-	addrByte, err := db.get(blockHash, item_key)
+	itemByte, err := db.get(blockHash, item_key)
 	if nil != err {
-		return common.ZeroAddr, err
+		return nil, err
 	}
-	return common.BytesToAddress(addrByte), nil
+
+	var unStakeItem UnStakeItem
+	if err := rlp.DecodeBytes(itemByte, &unStakeItem); nil != err {
+		return nil, err
+	}
+	return &unStakeItem, nil
 }
 
 func (db *StakingDB) DelUnStakeCountStore(blockHash common.Hash, epoch uint64) error {
@@ -335,7 +350,7 @@ func (db *StakingDB) AddUnDelegateItemStore(blockHash common.Hash, delAddr commo
 	v++
 
 	// todo test
-	log.Debug("AddUnDelegateItemStore 1 ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
+	log.Debug("AddUnDelegateItemStore before put count ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
 
 	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
 		return err
@@ -355,7 +370,7 @@ func (db *StakingDB) AddUnDelegateItemStore(blockHash common.Hash, delAddr commo
 	}
 
 	// todo test
-	log.Debug("AddUnDelegateItemStore 2 ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(item))
+	log.Debug("AddUnDelegateItemStore before put item ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(item))
 
 	return db.put(blockHash, item_key, item)
 }
@@ -441,9 +456,9 @@ func (db *StakingDB) GetEpochValIndexByIrr() (ValArrIndexQueue, error) {
 	return queue, nil
 }
 
-func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, val_Arr ValidatorQueue) error {
+func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, valArr ValidatorQueue) error {
 
-	value, err := rlp.EncodeToBytes(val_Arr)
+	value, err := rlp.EncodeToBytes(valArr)
 	if nil != err {
 		return err
 	}
@@ -526,9 +541,9 @@ func (db *StakingDB) GetRoundValIndexByIrr() (ValArrIndexQueue, error) {
 	return queue, nil
 }
 
-func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, val_Arr ValidatorQueue) error {
+func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, valArr ValidatorQueue) error {
 
-	value, err := rlp.EncodeToBytes(val_Arr)
+	value, err := rlp.EncodeToBytes(valArr)
 	if nil != err {
 		return err
 	}

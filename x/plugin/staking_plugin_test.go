@@ -1847,7 +1847,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	start := uint64(1)
 	end := xutil.EpochSize() * xutil.ConsensusSize()
 
-	new_verifierArr := &staking.Validator_array{
+	new_verifierArr := &staking.ValidatorArray{
 		Start: start,
 		End:   end,
 	}
@@ -2025,7 +2025,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	start := uint64(1)
 	end := xutil.EpochSize() * xutil.ConsensusSize()
 
-	new_verifierArr := &staking.Validator_array{
+	new_verifierArr := &staking.ValidatorArray{
 		Start: start,
 		End:   end,
 	}
@@ -2079,7 +2079,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}
 
 	// build gensis current validatorList
-	new_validatorArr := &staking.Validator_array{
+	new_validatorArr := &staking.ValidatorArray{
 		Start: start,
 		End:   xutil.ConsensusSize(),
 	}
@@ -2228,7 +2228,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	start := uint64(1)
 	end := xutil.EpochSize() * xutil.ConsensusSize()
 
-	new_verifierArr := &staking.Validator_array{
+	new_verifierArr := &staking.ValidatorArray{
 		Start: start,
 		End:   end,
 	}
@@ -2544,13 +2544,13 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		validatorQueue = append(validatorQueue, v)
 	}
 
-	epoch_Arr := &staking.Validator_array{
+	epoch_Arr := &staking.ValidatorArray{
 		Start: 1,
 		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   validatorQueue,
 	}
 
-	curr_Arr := &staking.Validator_array{
+	curr_Arr := &staking.ValidatorArray{
 		Start: 1,
 		End:   xutil.ConsensusSize(),
 		Arr:   validatorQueue,
