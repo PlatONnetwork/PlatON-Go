@@ -16,7 +16,6 @@ var (
 	PIPIDEmpty = common.NewBizError("PIPID is empty")
 	PIPIDExist = common.NewBizError("PIPID already exists")
 
-	EndVotingRoundsZero     = common.NewBizError("voting consensus rounds should > 0")
 	EndVotingRoundsTooSmall = common.NewBizError("endVotingRounds too small")
 	EndVotingRoundsTooLarge = common.NewBizError("endVotingRounds too large")
 

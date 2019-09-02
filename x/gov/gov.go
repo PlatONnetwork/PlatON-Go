@@ -245,37 +245,6 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 				log.Error("add declared node ID to active node list failed", "err", err)
 				return err
 			}
-
-			/*if declaredVersion>>8 == activeVersion>>8 {
-				nodeList, err := ListVotedVerifier(votingVP.ProposalID, state)
-				if err != nil {
-					log.Error("list voted verifier error", "proposalID", votingVP.ProposalID)
-					return err
-				} else {
-					if xutil.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
-						log.Error("declared version should be new version",
-							"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
-						return common.NewBizError("declared version should be same as proposal's version")
-					} else {
-						//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
-						log.Debug("there is a voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-						if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-							log.Error("call stk.DeclarePromoteNotify failed", "err", err)
-							return common.NewBizError("notify staking of declared node ID failed")
-						}
-					}
-				}
-
-			} else if declaredVersion>>8 == votingVP.GetNewVersion()>>8 {
-				//the declared version equals the new version, will notify staking when the proposal is passed
-				log.Debug("declared version equals the new version.",
-					"newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
-				if err := AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
-					log.Error("add declared node ID to active node list failed", "err", err)
-					return err
-				}
-			*/
-
 		} else {
 			log.Error("declared version should be either active version or new version", "activeVersion", activeVersion, "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
 			return DeclareVersionError
