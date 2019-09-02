@@ -86,7 +86,7 @@ func (r *router) Gossip(m *types.MsgPackage) {
 	// recipients to reduce network consumption.
 	switch m.Mode() {
 	case types.PartMode:
-		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+		transfer := kRandomNodes(int(math.Sqrt(float64(len(peers)))), peers, common.Hash{}, nil)
 		peers = transfer
 	}
 
