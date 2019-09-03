@@ -1164,7 +1164,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 	canAddr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
-	if err := StakingInstance().addUnStakeItem(state, blockNumber.Uint64(), blockHash, epoch, nodeIdArr[index], canAddr); nil != err {
+	if err := StakingInstance().addUnStakeItem(state, blockNumber.Uint64(), blockHash, epoch, nodeIdArr[index], canAddr, blockNumber.Uint64()); nil != err {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}

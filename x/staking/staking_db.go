@@ -162,7 +162,7 @@ func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) err
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, addr common.Address, stakeBlockNumber uint64) error {
+func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.Address, stakeBlockNumber uint64) error {
 
 	count_key := GetUnStakeCountKey(epoch)
 
@@ -186,7 +186,7 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ad
 	item_key := GetUnStakeItemKey(epoch, v)
 
 	unStakeItem := &UnStakeItem{
-		KeySuffix:       addr.Bytes(),
+		KeySuffix:       canAddr.Bytes(),
 		StakingBlockNum: stakeBlockNumber,
 	}
 

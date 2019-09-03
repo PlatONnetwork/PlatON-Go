@@ -290,13 +290,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		return nil
 	}
 
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(amount) < 0 {
-		log.Error("Failed to RollBackStaking: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeAddr", addr.String(),
-			"contractBalance", contractBalance, "rollback amount", amount)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	checkContractBalanceFn("RollBackStaking", state, amount)
 
 	if blockNumber.Uint64() != can.StakingBlockNum {
 		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking, current blockNumber: %d, can.stakingNumber: %d", ParamsErr, blockNumber.Uint64(), can.StakingBlockNum)
@@ -502,13 +496,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 	total := calCanTotalAmount(can)
 
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(total) < 0 {
-		log.Error("Failed to withdrewStakeAmount: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contractBalance",
-			contractBalance, "withdrewStake amount", total)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	checkContractBalanceFn("withdrewStakeAmount", state, total)
 
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
@@ -577,6 +565,9 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 		addrByte := stakeItem.KeySuffix
 		canAddr := common.BytesToAddress(addrByte)
 
+		log.Debug("Call HandleUnCandidateItem: the candidate Addr",
+			"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "addr", canAddr.Hex())
+
 		if _, ok := filterAddr[canAddr]; ok {
 			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: Delete already handle unstakeItem failed",
@@ -606,7 +597,10 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 		}
 
 		// if the item stakingBlockNum is not enough the stakingBlockNum of candidate info
-		if stakeItem.StakingBlockNum < can.StakingBlockNum {
+		if stakeItem.StakingBlockNum != can.StakingBlockNum {
+
+			log.Warn("Call HandleUnCandidateItem: the item stakingBlockNum no equal current candidate stakingBlockNum",
+				"item stakingBlockNum", stakeItem.StakingBlockNum, "candidate stakingBlockNum", can.StakingBlockNum)
 
 			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
 				log.Error("Failed to HandleUnCandidateItem: The Item is invilad, cause the stakingBlockNum is less "+
@@ -652,13 +646,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 
 	total := calCanTotalAmount(can)
 
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(total) < 0 {
-		log.Error("Failed to handleUnStake: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contractBalance",
-			contractBalance, "handle unstake amount", total)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	checkContractBalanceFn("handleUnStake", state, total)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
@@ -885,13 +873,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	log.Debug("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount)
 
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(amount) < 0 {
-		log.Error("Failed to WithdrewDelegate: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"contractBalance", contractBalance, "withdrew del amount", amount)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	checkContractBalanceFn("WithdrewDelegate", state, amount)
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -1265,15 +1247,9 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockNumber ui
 func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64,
 	blockHash common.Hash, epoch uint64, unDel *staking.UnDelegateItem, del *staking.Delegation) error {
 
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
 	// Maybe equal zero (maybe slashed)
 	// must compare the undelegate amount and contract's balance
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(unDel.Amount) < 0 {
-		log.Error("Failed to handleUnDelegate: the balance is invalid of stakingContracr Account",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "contractBalance", contractBalance,
-			"unDel.Amount", unDel.Amount)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	checkContractBalanceFn("handleUnDelegate", state, unDel.Amount)
 
 	// del addr
 	delAddrByte := unDel.KeySuffix[0:common.AddressLength]
@@ -2173,7 +2149,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
 		"total remove count", invalidLen, "remove map size", len(removeCans),
 		"current validators Size", len(curr.Arr), "ConsValidatorNum", xcom.ConsValidatorNum(),
-		"diffQueueLen", len(diffQueue), "vrfQueueLen", len(vrfQueue))
+		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue), "vrfQueueLen", len(vrfQueue))
 
 	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
 
@@ -2195,22 +2171,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	// todo test
 	if len(slashAddrQueue) != 0 {
-		log.Debug("Election Remove Slashing nodeId", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex())
 		xcom.PrintObject("Election Remove Slashing nodeId", slashAddrQueue)
 	}
 
 	// todo test
 	if len(withdrewQueue) != 0 {
-		log.Debug("Election Remove Withdrew nodeId", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex())
 		xcom.PrintObject("Election Remove Withdrew nodeId", withdrewQueue)
 	}
 
 	// todo test
 	if len(lowVersionQueue) != 0 {
-		log.Debug("Election Remove Low version nodeId", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex())
 		xcom.PrintObject("Election Remove Low version nodeId", lowVersionQueue)
 	}
 
@@ -2224,8 +2194,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		can.Status &^= staking.LowRatio
 
 		// TODO test
-		log.Debug("Call Election, clean lowratio", "nodeId", can.NodeId.String())
-		xcom.PrintObject("Call Election, clean lowratio", can)
+		xcom.PrintObject("Call Election, clean lowratio, nodeId:"+can.NodeId.String()+", can Info:", can)
 
 		addr, _ := xutil.NodeId2Addr(can.NodeId)
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
@@ -2270,12 +2239,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		"reporter", caller.Hex())
 
 	// check contract balance is enough
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(amount) < 0 {
-		log.Error("Failed to SlashCandidates: the balance is invalid of stakingContracr Account", "contractBalance",
-			contractBalance, "slash amount", amount)
-		panic("the balance is invalid of stakingContracr Account")
-	}
+	checkContractBalanceFn("SlashCandidates", state, amount)
 
 	// check slash type is right
 	slashTypeIsWrong := func() bool {
@@ -2333,77 +2297,24 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	slashBalance := amount
 
-	slashFunc := func(title string, slashAmount, canBalance *big.Int, isNotify bool) (*big.Int, *big.Int, error) {
-
-		// check zero value
-		// If there is a zero value, no logic is done.
-		if canBalance.Cmp(common.Big0) == 0 || slashAmount.Cmp(common.Big0) == 0 {
-			return slashAmount, canBalance, nil
-		}
-
-		slashAmountTmp := common.Big0
-		balanceTmp := common.Big0
-
-		if slashAmount.Cmp(canBalance) >= 0 {
-
-			state.SubBalance(vm.StakingContractAddr, canBalance)
-
-			if staking.Is_DuplicateSign(uint32(slashType)) {
-				state.AddBalance(caller, canBalance)
-			} else {
-				state.AddBalance(vm.RewardManagerPoolAddr, canBalance)
-			}
-
-			if isNotify {
-				err := rt.SlashingNotify(can.StakingAddress, canBalance, state)
-				if nil != err {
-					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "slashed amount", canBalance,
-						"slash:", title, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-					return slashAmountTmp, balanceTmp, err
-				}
-			}
-
-			slashAmountTmp = new(big.Int).Sub(slashAmount, canBalance)
-			balanceTmp = common.Big0
-
-		} else {
-			state.SubBalance(vm.StakingContractAddr, slashAmount)
-			if staking.Is_DuplicateSign(uint32(slashType)) {
-				state.AddBalance(caller, slashAmount)
-			} else {
-				state.AddBalance(vm.RewardManagerPoolAddr, slashAmount)
-			}
-
-			if isNotify {
-				err := rt.SlashingNotify(can.StakingAddress, slashAmount, state)
-				if nil != err {
-					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "slashed amount", slashAmount,
-						"slash:", title, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-					return slashAmountTmp, balanceTmp, err
-				}
-			}
-
-			slashAmountTmp = common.Big0
-			balanceTmp = new(big.Int).Sub(canBalance, slashAmount)
-		}
-
-		return slashAmountTmp, balanceTmp, nil
-	}
-
 	/**
 	Balance that can only be effective for Slash
 	*/
 	if slashBalance.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc("Released", slashBalance, can.Released, false)
+		val, rval, err := slashBalanceFn(slashBalance, can.Released, false, uint32(slashType), caller, can.StakingAddress, state)
 		if nil != err {
+			log.Error("Failed to SlashCandidates: slash Released", "slashed amount", slashBalance,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
 		slashBalance, can.Released = val, rval
 	}
 
 	if slashBalance.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc("RestrictingPlan", slashBalance, can.RestrictingPlan, true)
+		val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, uint32(slashType), caller, can.StakingAddress, state)
 		if nil != err {
+			log.Error("Failed to SlashCandidates: slash RestrictingPlan", "slashed amount", slashBalance,
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
 		slashBalance, can.RestrictingPlan = val, rval
@@ -2426,10 +2337,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	// If the shares is zero, don't need to sub shares
 	if !sharesHaveBeenClean() {
 
-		log.Info("Call SlashCandidates end, the candidate shares have been clean",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
-			"can.Status", can.Status)
-
 		// first slash and no withdrew
 		// sub Shares to effect power
 		if can.Shares.Cmp(amount) >= 0 {
@@ -2443,29 +2350,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	}
 
-	var needInvalid bool // need invalid candidate status
-	var needRemove bool  // need remove from verifierList
-
-	switch slashType {
-	case staking.LowRatio:
-
-		remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
-		remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
-		canBalance := new(big.Int).Add(remainRelease, remainRestrictingPlan)
-
-		if !xutil.CheckStakeThreshold(canBalance) {
-			can.Status |= staking.NotEnough
-			needInvalid = true
-			needRemove = true
-		}
-	case staking.LowRatioDel:
-		needInvalid = true
-		needRemove = true
-	case staking.DuplicateSign:
-		needInvalid = true
-		needRemove = true
-	}
-	can.Status |= uint32(slashType)
+	// need invalid candidate status
+	// need remove from verifierList
+	needInvalid, needRemove := handleSlashTypeFn(slashType, can)
 
 	if needRemove {
 
@@ -2526,7 +2413,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 					"restrictingPlanHes", can.RestrictingPlanHes, "err", err)
 				return err
 			}
-
 			can.RestrictingPlanHes = common.Big0
 		}
 
@@ -2553,6 +2439,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
+
 	} else if !needInvalid && !staking.Is_Invalid(can.Status) {
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -2566,6 +2453,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
+
 	} else {
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
@@ -2575,6 +2463,93 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	}
 
 	return nil
+}
+
+func handleSlashTypeFn(slashType int, can *staking.Candidate) (bool, bool) {
+
+	var needInvalid bool // need invalid candidate status
+	var needRemove bool  // need remove from verifierList
+
+	switch slashType {
+	case staking.LowRatio:
+
+		remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
+		remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+		canBalance := new(big.Int).Add(remainRelease, remainRestrictingPlan)
+
+		if !xutil.CheckStakeThreshold(canBalance) {
+			can.Status |= staking.NotEnough
+			needInvalid = true
+			needRemove = true
+		}
+	case staking.LowRatioDel:
+		needInvalid = true
+		needRemove = true
+	case staking.DuplicateSign:
+		needInvalid = true
+		needRemove = true
+	}
+	can.Status |= uint32(slashType)
+
+	return needInvalid, needRemove
+}
+
+func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
+	slashType uint32, caller, stakingAddr common.Address, state xcom.StateDB) (*big.Int, *big.Int, error) {
+
+	// check zero value
+	// If there is a zero value, no logic is done.
+	if canBalance.Cmp(common.Big0) == 0 || slashAmount.Cmp(common.Big0) == 0 {
+		return slashAmount, canBalance, nil
+	}
+
+	slashAmountTmp := common.Big0
+	balanceTmp := common.Big0
+
+	if slashAmount.Cmp(canBalance) >= 0 {
+
+		state.SubBalance(vm.StakingContractAddr, canBalance)
+
+		if staking.Is_DuplicateSign(uint32(slashType)) {
+			state.AddBalance(caller, canBalance)
+		} else {
+			state.AddBalance(vm.RewardManagerPoolAddr, canBalance)
+		}
+
+		if isNotify {
+			err := rt.SlashingNotify(stakingAddr, canBalance, state)
+			if nil != err {
+				//log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "slashed amount", canBalance,
+				//	"slash:", title, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return slashAmountTmp, balanceTmp, err
+			}
+		}
+
+		slashAmountTmp = new(big.Int).Sub(slashAmount, canBalance)
+		balanceTmp = common.Big0
+
+	} else {
+		state.SubBalance(vm.StakingContractAddr, slashAmount)
+		if staking.Is_DuplicateSign(uint32(slashType)) {
+			state.AddBalance(caller, slashAmount)
+		} else {
+			state.AddBalance(vm.RewardManagerPoolAddr, slashAmount)
+		}
+
+		if isNotify {
+			err := rt.SlashingNotify(stakingAddr, slashAmount, state)
+			if nil != err {
+				//log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "slashed amount", slashAmount,
+				//	"slash:", title, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+				return slashAmountTmp, balanceTmp, err
+			}
+		}
+
+		slashAmountTmp = common.Big0
+		balanceTmp = new(big.Int).Sub(canBalance, slashAmount)
+	}
+
+	return slashAmountTmp, balanceTmp, nil
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
@@ -3524,5 +3499,15 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 		RestrictingPlan:    (*hexutil.Big)(can.RestrictingPlan),
 		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
 		Description:        can.Description,
+	}
+}
+
+func checkContractBalanceFn(title string, state xcom.StateDB, amount *big.Int) {
+	// check contract balance is enough
+	contractBalance := state.GetBalance(vm.StakingContractAddr)
+	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(amount) < 0 {
+		log.Error("Failed to "+title+": the balance is invalid of stakingContracr Account",
+			"contractBalance", contractBalance, "rollback amount", amount)
+		panic("the balance is invalid of stakingContracr Account")
 	}
 }
