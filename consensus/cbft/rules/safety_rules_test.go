@@ -44,6 +44,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Number:     big.NewInt(int64(number)),
 		ParentHash: parent,
 		Time:       big.NewInt(time.Now().UnixNano()),
+		Coinbase:   common.BytesToAddress(utils.Rand32Bytes(32)),
 	}
 	block := types.NewBlockWithHeader(header)
 	return block
@@ -148,16 +149,16 @@ func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewSta
 	}
 
 	qcBlock := viewState.HighestQCBlock()
-	lockBlock := viewState.HighestLockBlock()
 	commitBlock := viewState.HighestCommitBlock()
 	nextIndex := viewState.NextViewBlockIndex()
 	tests := []testCase{
 		{newCommonError(overIndexLimit), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, amount+1, nil), nil, nil},
 		{newCommonError(existIndex), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64()+1, 1, nil), nil, nil},
-		{newCommonError(notExistPreIndex), false, false, false, true, newPrepareBlock(Epoch, ViewNumber, lockBlock.Hash(), lockBlock.NumberU64()+1, nextIndex+1, nil), nil, nil},
-		{newCommonError(diffPreIndexBlock), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, lockBlock.Hash(), lockBlock.NumberU64()+1, nextIndex, nil), nil, nil},
+		{newCommonError(notExistPreIndex), false, false, false, true, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex+1, nil), nil, nil},
+		{newCommonError(diffPreIndexBlock), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex, nil), nil, nil},
 		{nil, false, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), nextIndex, nil), nil, nil},
 	}
+	//invokePrepareBlockRules(t, rules, tests)
 	invokePrepareBlockRules(t, rules, tests)
 	// change the view
 	viewState.ResetView(Epoch, ViewNumber+1)

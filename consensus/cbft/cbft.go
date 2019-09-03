@@ -115,7 +115,8 @@ type Cbft struct {
 	state *cstate.ViewState
 
 	// Block asyncExecutor, the block responsible for executing the current view
-	asyncExecutor executor.AsyncBlockExecutor
+	asyncExecutor     executor.AsyncBlockExecutor
+	executeStatusHook func(s *executor.BlockExecuteStatus)
 
 	// Verification security rules for proposed blocks and viewchange
 	safetyRules rules.SafetyRules
@@ -485,6 +486,9 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.forgetMessage(msg.PeerID)
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
 			cbft.onAsyncExecuteStatus(msg)
+			if cbft.executeStatusHook != nil {
+				cbft.executeStatusHook(msg)
+			}
 
 		case fn := <-cbft.asyncCallCh:
 			fn()

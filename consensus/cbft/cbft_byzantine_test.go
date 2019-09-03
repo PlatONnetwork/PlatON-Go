@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
@@ -35,6 +37,7 @@ const (
 	missingViewChangeQC = "prepareBlock need ViewChangeQC"
 	dupBlockHash        = "has duplicated blockHash"
 	errorSignature      = "bls verifies signature fail"
+	enableVerifyEpoch   = "enable verify epoch"
 )
 
 func MockNodes(t *testing.T, num int) []*TestCBFT {
@@ -333,6 +336,71 @@ func TestPB08(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.True(t, strings.HasPrefix(err.Error(), dupBlockHash))
+}
+
+func TestPB09(t *testing.T) {
+	nodes := MockNodes(t, 2)
+	ReachBlock(t, nodes, 5)
+	qcBlock := nodes[0].engine.state.HighestQCBlock()
+	_, qc := nodes[0].engine.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+
+	// base lock block seal first index prepare
+	proposalIndex := uint32(1)
+	blockIndex := uint32(0)
+
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, t)
+	err := nodes[0].engine.OnPrepareBlock("id", p)
+
+	err1, ok := err.(rules.SafetyError)
+	assert.True(t, ok)
+	if ok {
+		assert.True(t, err1.Fetch())
+	}
+}
+
+func TestPB10(t *testing.T) {
+	nodes := MockNodes(t, 2)
+	ReachBlock(t, nodes, 5)
+	qcBlock := nodes[0].engine.state.HighestQCBlock()
+	_, qc := nodes[0].engine.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+
+	// base lock block seal first index prepare
+	proposalIndex := uint32(1)
+	blockIndex := uint32(0)
+
+	p := newPrepareBlock(nodes[0].engine.state.Epoch()+1, nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, t)
+	err := nodes[0].engine.OnPrepareBlock("id", p)
+
+	assert.NotNil(t, err)
+	if err != nil {
+		assert.True(t, strings.HasPrefix(err.Error(), enableVerifyEpoch))
+	}
+}
+
+func TestPB11(t *testing.T) {
+	nodes := MockNodes(t, 2)
+	ReachBlock(t, nodes, 5)
+	qcBlock := nodes[0].engine.state.HighestQCBlock()
+	_, qc := nodes[0].engine.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
+
+	viewChangeQC := ChangeView(t, nodes, qc)
+
+	// base qc block seal bad block
+	proposalIndex := uint32(1)
+	blockIndex := uint32(0)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, t)
+
+	result := make(chan interface{}, 1)
+	nodes[0].engine.executeStatusHook = func(status *executor.BlockExecuteStatus) {
+		assert.NotNil(t, status.Err)
+		assert.Equal(t, p.Block.NumberU64(), status.Number)
+		assert.Equal(t, p.Block.Hash(), status.Hash)
+		result <- struct{}{}
+	}
+
+	err := nodes[0].engine.OnPrepareBlock("id", p)
+	assert.Nil(t, err)
+	<-result
 }
 
 func TestVT01(t *testing.T) {
