@@ -7,7 +7,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -416,7 +415,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 		return err
 	} else if len(votingProposalIDList) > 0 {
 		for _, proposalID := range votingProposalIDList {
-			if voteList, err := gov.ListVoteValue(proposalID, state); err != nil {
+			if voteList, err := ListVoteValue(proposalID, state); err != nil {
 				return err
 			} else if len(voteList) > 0 {
 				idx := 0 // output index
@@ -430,7 +429,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 				//UpdateVoteValue(blockHash, voteList)
 			}
 
-			if verifierList, err := gov.ListAccuVerifier(blockHash, proposalID); err != nil {
+			if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
 				return err
 			} else if len(verifierList) > 0 {
 				idx := 0 // output index
