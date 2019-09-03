@@ -1534,7 +1534,10 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 	return nil
 }
 
-func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
+func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC, threshold int) error {
+	if len(viewChangeQC.QCs) > threshold {
+		return fmt.Errorf("viewchangeQC exceed validator threshold limit, total:%d, threshold:%d", len(viewChangeQC.QCs), threshold)
+	}
 	var err error
 	epoch := uint64(0)
 	viewNumber := uint64(0)
@@ -1564,11 +1567,12 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	if err := cbft.validatorPool.EnableVerifyEpoch(vcEpoch); err != nil {
 		return err
 	}
-	if err := cbft.validateViewChangeQC(viewChangeQC); err != nil {
+	// the threshold of validator on current epoch
+	threshold := cbft.threshold(cbft.validatorPool.Len(vcEpoch))
+	if err := cbft.validateViewChangeQC(viewChangeQC, threshold); err != nil {
 		return err
 	}
 	// check signature number
-	threshold := cbft.threshold(cbft.validatorPool.Len(vcEpoch))
 	signsTotal := viewChangeQC.Len()
 	if signsTotal < threshold {
 		return fmt.Errorf("viewchange has small number of signature total:%d, threshold:%d", signsTotal, threshold)
