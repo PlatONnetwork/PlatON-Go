@@ -330,6 +330,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 // FastSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
+
 	// Make sure that both the block as well at its state trie exists
 	block := bc.GetBlockByHash(hash)
 	if block == nil {
@@ -344,6 +345,8 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	bc.mu.Unlock()
 
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
+	bc.engine.Pause()
+	defer bc.engine.Resume()
 	return bc.engine.FastSyncCommitHead(block)
 }
 
@@ -1104,6 +1107,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
 	senderCacher.recoverFromBlocks(types.NewEIP155Signer(bc.chainConfig.ChainID), chain)
+
+	// Pause engine
+	bc.engine.Pause()
+	defer bc.engine.Resume()
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
