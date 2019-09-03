@@ -6,6 +6,9 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -730,7 +733,7 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 }
 
 // some consensus round validators or current epoch validators
-type Validator_array struct {
+type ValidatorArray struct {
 	// the round start blockNumber or epoch start blockNumber
 	Start uint64
 	// the round end blockNumber or epoch blockNumber
@@ -918,11 +921,11 @@ func (dr *DelegateRelated) String() string {
 
 type DelRelatedQueue = []*DelegateRelated
 
-/*type UnStakeItem struct {
+type UnStakeItem struct {
 	// this is the nodeAddress
-	KeySuffix  	[]byte
-	Amount 		*big.Int
-}*/
+	KeySuffix       []byte
+	StakingBlockNum uint64
+}
 
 type UnDelegateItem struct {
 	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
@@ -938,6 +941,11 @@ type ValArrIndex struct {
 type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
+
+	xcom.PrintObject("Call ConstantAppend, queue", queue)
+	xcom.PrintObject("Call ConstantAppend, index", index)
+	log.Debug("Call ConstantAppend", "size", size)
+
 	queue = append(queue, index)
 	if size < len(queue) {
 		return queue[0], queue[1:]
