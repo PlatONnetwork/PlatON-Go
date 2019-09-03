@@ -167,7 +167,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		if nil != err {
 			return err
 		}
-		//todo:make sure blockNumber=N * ConsensusSize() - ElectionDistance
 		if votingProposal.GetEndVotingBlock() == blockNumber {
 			log.Debug("current block is end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
 			//According to the proposal's rules, the end-voting block must not at end of a settlement, so, to accumulate current verifiers for current voting proposal.
@@ -284,7 +283,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 		} else if proposal.GetProposalType() != gov.Version {
 			return false, common.NewBizError("Tobe canceled proposal is not a version proposal.")
 		}
-		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash, blockNumber, state); err != nil {
+		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash); err != nil {
 			return false, err
 		} else if !xutil.InHashList(cp.TobeCanceled, votingProposalIDList) {
 			return false, common.NewBizError("Tobe canceled proposal is not at voting stage.")
