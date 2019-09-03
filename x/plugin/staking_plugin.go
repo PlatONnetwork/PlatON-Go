@@ -1672,7 +1672,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	if nil != err {
 		return nil, err
 	}
-	var verifierList staking.Validator_array
+	var verifierList staking.ValidatorArray
 	err = rlp.DecodeBytes(data, &verifierList)
 	if nil != err {
 		return nil, err
@@ -1897,7 +1897,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	if nil != err {
 		return nil, err
 	}
-	var validatorArr staking.Validator_array
+	var validatorArr staking.ValidatorArray
 	err = rlp.DecodeBytes(data, &validatorArr)
 	if nil != err {
 		return nil, err
