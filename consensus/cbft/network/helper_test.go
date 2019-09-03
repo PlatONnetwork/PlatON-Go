@@ -174,8 +174,11 @@ func newFakeGetLatestStatus() *protocols.GetLatestStatus {
 // Create a new LatestStatus for testing.
 func newFakeLatestStatus() *protocols.LatestStatus {
 	return &protocols.LatestStatus{
-		BlockNumber: 1,
-		LogicType:   TypeForQCBn,
+		BlockNumber:  1,
+		BlockHash:    common.BytesToHash([]byte("qc")),
+		LBlockNumber: 0,
+		LBlockHash:   common.BytesToHash([]byte("lock")),
+		LogicType:    TypeForQCBn,
 	}
 }
 
