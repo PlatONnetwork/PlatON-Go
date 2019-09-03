@@ -617,14 +617,16 @@ func (s *QCBlockList) BHash() common.Hash {
 
 // State synchronization for nodes.
 type GetLatestStatus struct {
-	BlockNumber uint64 // Block height sent by the requester
-	BlockHash   common.Hash
-	LogicType   uint64       // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
-	messageHash atomic.Value `rlp:"-"`
+	BlockNumber  uint64       // QC Block height
+	BlockHash    common.Hash  // QC block hash
+	LBlockNumber uint64       // Locked block height
+	LBlockHash   common.Hash  // Locked block hash
+	LogicType    uint64       // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
+	messageHash  atomic.Value `rlp:"-"`
 }
 
 func (s *GetLatestStatus) String() string {
-	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash.TerminalString(), s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LBlockNumber:%d,LBlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash.TerminalString(), s.LBlockNumber, s.LBlockHash.TerminalString(), s.LogicType)
 }
 
 func (s *GetLatestStatus) MsgHash() common.Hash {
@@ -632,26 +634,30 @@ func (s *GetLatestStatus) MsgHash() common.Hash {
 		return mhash.(common.Hash)
 	}
 	v := utils.BuildHash(GetLatestStatusMsg,
-		utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
+		utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType),
+			common.Uint64ToBytes(s.LBlockNumber), s.BlockHash.Bytes(), s.LBlockHash.Bytes()))
 	s.messageHash.Store(v)
 	return v
 
 }
 
 func (s *GetLatestStatus) BHash() common.Hash {
-	return common.Hash{}
+	return s.BlockHash
 }
 
 // Response message to GetLatestStatus request.
 type LatestStatus struct {
-	BlockNumber uint64       `json:"block_number"` // Block height sent by responder.
-	BlockHash   common.Hash  `json:"block_hash"`
-	LogicType   uint64       `json:"logic_type"` // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
-	messageHash atomic.Value `rlp:"-"`
+	BlockNumber  uint64       `json:"block_number"`   // QC Block height
+	BlockHash    common.Hash  `json:"block_hash"`     // QC block hash
+	LBlockNumber uint64       `json:"l_block_number"` // Locked block height
+	LBlockHash   common.Hash  `json:"l_block_hash"`   // Locked block hash
+	LogicType    uint64       `json:"logic_type"`     // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
+	messageHash  atomic.Value `rlp:"-"`
 }
 
 func (s *LatestStatus) String() string {
-	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LogicType:%d}", s.BlockNumber, s.BlockHash.TerminalString(), s.LogicType)
+	return fmt.Sprintf("{BlockNumber:%d,BlockHash:%s,LBlockNumber:%d,LBlockHash:%s,LogicType:%d}",
+		s.BlockNumber, s.BlockHash.TerminalString(), s.LBlockNumber, s.LBlockHash.TerminalString(), s.LogicType)
 }
 
 func (s *LatestStatus) MsgHash() common.Hash {
@@ -659,13 +665,14 @@ func (s *LatestStatus) MsgHash() common.Hash {
 		return mhash.(common.Hash)
 	}
 	v := utils.BuildHash(LatestStatusMsg,
-		utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType)))
+		utils.MergeBytes(common.Uint64ToBytes(s.BlockNumber), common.Uint64ToBytes(s.LogicType),
+			common.Uint64ToBytes(s.LBlockNumber), s.BlockHash.Bytes(), s.LBlockHash.Bytes()))
 	s.messageHash.Store(v)
 	return v
 }
 
 func (s *LatestStatus) BHash() common.Hash {
-	return common.Hash{}
+	return s.BlockHash
 }
 
 // Used to actively request to get viewChange.

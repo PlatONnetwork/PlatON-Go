@@ -411,7 +411,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// is processing abnormally.
 	for {
 		if err := h.handleMsg(peer); err != nil {
-			p.Log().Error("CBFT message handling failed", "err", err)
+			p.Log().Error("CBFT message handling failed", "peerID", peer.PeerID(), "err", err)
 			return err
 		}
 	}
@@ -680,11 +680,14 @@ func (h *EngineManager) synchronize() {
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
 		qcBn, qcHash := h.engine.HighestQCBlockBn()
+		lockBn, lockHash := h.engine.HighestLockBlockBn()
 		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
 		h.PartBroadcast(&protocols.GetLatestStatus{
-			BlockNumber: qcBn,
-			BlockHash:   qcHash,
-			LogicType:   TypeForQCBn,
+			BlockNumber:  qcBn,
+			BlockHash:    qcHash,
+			LBlockNumber: lockBn,
+			LBlockHash:   lockHash,
+			LogicType:    TypeForQCBn,
 		})
 	}
 

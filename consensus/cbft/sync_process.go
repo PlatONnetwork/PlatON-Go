@@ -264,16 +264,20 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 	//
 	if msg.LogicType == network.TypeForQCBn {
 		localQCNum, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
+		localLockNum, localLockHash := cbft.state.HighestLockBlock().NumberU64(), cbft.state.HighestLockBlock().Hash()
 		if localQCNum == msg.BlockNumber && localQCHash == msg.BlockHash {
 			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum, "remoteHash", msg.BlockHash, "localHash", localQCHash)
 			return nil
 		}
 		if localQCNum < msg.BlockNumber || (localQCNum == msg.BlockNumber && localQCHash != msg.BlockHash) {
 			cbft.log.Debug("Local qcBn is less than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
+			if msg.LBlockNumber == localQCNum && msg.LBlockHash != localQCHash {
+				return launcher(msg.LogicType, id, msg.LBlockNumber, msg.LBlockHash)
+			}
 			return launcher(msg.LogicType, id, msg.BlockNumber, msg.BlockHash)
 		}
 		cbft.log.Debug("Local qcBn is larger than the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum)
-		cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LogicType: msg.LogicType})
+		cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: localQCNum, BlockHash: localQCHash, LBlockNumber: localLockNum, LBlockHash: localLockHash, LogicType: msg.LogicType})
 	}
 	return nil
 }
@@ -291,7 +295,13 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 				return err
 			}
 			cbft.log.Debug("LocalQCBn is lower than sender's", "localBn", localQCBn, "remoteBn", msg.BlockNumber)
-			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+			if localQCBn == msg.LBlockNumber && localQCHash != msg.LBlockHash {
+				cbft.log.Debug("OnLatestStatus ~ fetchBlock by LBlockHash and LBlockNumber")
+				cbft.fetchBlock(id, msg.LBlockHash, msg.LBlockNumber)
+			} else {
+				cbft.log.Debug("OnLatestStatus ~ fetchBlock by QCBlockHash and QCBlockNumber")
+				cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+			}
 		}
 	}
 	return nil

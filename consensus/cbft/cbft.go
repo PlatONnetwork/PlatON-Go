@@ -835,11 +835,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		return errors.New("failed to decode block extra data")
 	}
 
-	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), qc); err != nil {
-		cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
-		return err
-	}
-
 	parent := cbft.GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
 		cbft.log.Warn("Not found the inserted block's parent block",
@@ -860,6 +855,11 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 	// FIXME: needed update highest exection block?
 	result := make(chan error, 1)
 	cbft.asyncCallCh <- func() {
+		if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), qc); err != nil {
+			cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
+			result <- err
+			return
+		}
 		result <- cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{qc})
 	}
 	return <-result
@@ -1391,8 +1391,14 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	return vnode, nil
 }
 
-func (cbft *Cbft) Pause()  { utils.SetTrue(&cbft.syncing) }
-func (cbft *Cbft) Resume() { utils.SetFalse(&cbft.syncing) }
+func (cbft *Cbft) Pause() {
+	cbft.log.Info("Pause cbft consensus")
+	utils.SetTrue(&cbft.syncing)
+}
+func (cbft *Cbft) Resume() {
+	cbft.log.Info("Resume cbft consensus")
+	utils.SetFalse(&cbft.syncing)
+}
 
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {
 	if len(votes) == 0 {
