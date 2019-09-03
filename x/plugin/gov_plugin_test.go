@@ -384,7 +384,7 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 func TestGovPlugin_SubmitVersion_PIPID_empty(t *testing.T) {
 	defer setup(t)()
 
-	vp := buildVersionProposal(txHashArr[0], "", 5, uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "", 4, uint32(1<<16|2<<8|0))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
 		if err == gov.PIPIDEmpty {
@@ -400,7 +400,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 
 	t.Log("CurrentActiveVersion", "version", gov.GetCurrentActiveVersion(stateDB))
 
-	vp := buildVersionProposal(txHashArr[0], "pipID", 5, uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "pipID", 4, uint32(1<<16|2<<8|0))
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
@@ -415,7 +415,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 		t.Log("ListPIPID", "p", p)
 	}
 
-	vp2 := buildVersionProposal(txHashArr[1], "pipID", 5, uint32(1<<16|3<<8|0))
+	vp2 := buildVersionProposal(txHashArr[1], "pipID", 4, uint32(1<<16|3<<8|0))
 
 	err = gov.Submit(sender, vp2, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
@@ -497,7 +497,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 		ProposalType:    gov.Version,
 		PIPID:           "versionPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: 5,
+		EndVotingRounds: 4,
 		Proposer:        nodeIdArr[0],
 		NewVersion:      newVersionErr, //error, less than activeVersion
 	}
