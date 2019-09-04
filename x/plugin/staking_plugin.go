@@ -280,24 +280,11 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
-	amount := common.Big0
-	if typ == FreeOrigin {
-		amount = can.ReleasedHes
-	} else if typ == RestrictingPlanOrigin {
-		amount = can.RestrictingPlanHes
-	} else {
-		// this is never be
-		return nil
-	}
-
-	checkContractBalanceFn("RollBackStaking", state, amount)
-
 	if blockNumber.Uint64() != can.StakingBlockNum {
 		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking, current blockNumber: %d, can.stakingNumber: %d", ParamsErr, blockNumber.Uint64(), can.StakingBlockNum)
 	}
 
 	// RollBack Staking
-
 	if typ == FreeOrigin {
 
 		state.AddBalance(can.StakingAddress, can.ReleasedHes)
@@ -494,9 +481,8 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash common.Hash, blockNumber, epoch uint64,
 	canAddr common.Address, can *staking.Candidate) error {
 
-	total := calCanTotalAmount(can)
-
-	checkContractBalanceFn("withdrewStakeAmount", state, total)
+	//total := calCanTotalAmount(can)
+	//checkContractBalanceFn("withdrewStakeAmount", state, total)
 
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
@@ -644,9 +630,8 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 
 	lazyCalcStakeAmount(epoch, can)
 
-	total := calCanTotalAmount(can)
-
-	checkContractBalanceFn("handleUnStake", state, total)
+	//total := calCanTotalAmount(can)
+	//checkContractBalanceFn("handleUnStake", state, total)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
@@ -873,8 +858,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	log.Debug("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount)
 
-	checkContractBalanceFn("WithdrewDelegate", state, amount)
-
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: nodeId parse addr failed",
@@ -886,7 +869,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
 	can, err := sk.db.GetCandidateStore(blockHash, canAddr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to WithdrewDelegate on stakingPlugin: Query candidate info failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
@@ -897,16 +880,37 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
 
+	// First need to deduct the von that is being refunded
+	realtotal := new(big.Int).Sub(total, del.Reduction)
+	if realtotal.Cmp(amount) < 0 {
+		log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of valid delegate is not enough",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", realtotal,
+			"withdrew amount", amount)
+		return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
+			DelegateVonNotEnough.Error(), realtotal.String(), amount.String())
+	}
+	// check the contract balance and withdrew amount
+	//checkContractBalanceFn("WithdrewDelegate", state, amount)
+
+	refundAmount := common.Big0
+	sub := new(big.Int).Sub(realtotal, amount)
+	// When the sub less than threshold
+	if !xutil.CheckMinimumThreshold(sub) {
+		refundAmount = realtotal
+	} else {
+		refundAmount = amount
+	}
+	realSub := refundAmount
+
 	lazyCalcDelegateAmount(epoch, del)
 
-	// inner Fn
 	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
 
 		state.AddBalance(delAddr, sub)
 		state.SubBalance(vm.StakingContractAddr, sub)
 		return new(big.Int).Sub(source, sub), common.Big0
 	}
-
 	refundFn := func(refund, aboutRelease, aboutRestrictingPlan *big.Int) (*big.Int, *big.Int, *big.Int, error) {
 
 		refundTmp := refund
@@ -960,7 +964,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		return refundTmp, releaseTmp, restrictingPlanTmp, nil
 	}
-
 	del.DelegateEpoch = uint32(epoch)
 
 	switch {
@@ -969,35 +972,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
 		nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Invalid(can.Status):
 
-		// First need to deduct the von that is being refunded
-		realtotal := new(big.Int).Sub(total, del.Reduction)
-
 		log.Info("Call WithdrewDelegate, the candidate is invalid or no exist", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount, "realtotal", realtotal,
-			"total", total, "redution", del.Reduction)
-
-		if realtotal.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of valid delegate is not enough",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", realtotal,
-				"withdrew amount", amount)
-			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
-				DelegateVonNotEnough.Error(), realtotal.String(), amount.String())
-		}
-
-		refundAmount := common.Big0
-		sub := new(big.Int).Sub(realtotal, amount)
-
-		// When the sub less than threshold
-		if !xutil.CheckMinimumThreshold(sub) {
-			refundAmount = realtotal
-		} else {
-			refundAmount = amount
-		}
-
-		realSub := refundAmount
-
-		log.Debug("Call WithdrewDelegate, the candidate is invalid or no exist", "realSub", realSub, "withdrew amount", amount)
+			"total", total, "redution", del.Reduction, "realSub", realSub)
 
 		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
@@ -1059,35 +1036,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	// When the delegate is normally revoked
 	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
 
-		// First need to deduct the von that is being refunded
-		realtotal := new(big.Int).Sub(total, del.Reduction)
-
 		log.Info("Call WithdrewDelegate, the candidate is valid", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount, "realtotal", realtotal,
-			"total", total, "redution", del.Reduction)
-
-		if realtotal.Cmp(amount) < 0 {
-			log.Error("Failed to WithdrewDelegate on stakingPlugin: the amount of valid delegate is not enough",
-				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", realtotal,
-				"withdrew amount", amount)
-			return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
-				DelegateVonNotEnough.Error(), realtotal.String(), amount.String())
-		}
-
-		refundAmount := common.Big0
-		sub := new(big.Int).Sub(realtotal, amount)
-
-		// When the sub less than threshold
-		if !xutil.CheckMinimumThreshold(sub) {
-			refundAmount = realtotal
-		} else {
-			refundAmount = amount
-		}
-
-		realSub := refundAmount
-
-		log.Debug("Call WithdrewDelegate, the candidate is valid", "realSub", realSub, "withdrew amount", amount)
+			"total", total, "redution", del.Reduction, "realSub", realSub)
 
 		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
@@ -1249,7 +1200,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 
 	// Maybe equal zero (maybe slashed)
 	// must compare the undelegate amount and contract's balance
-	checkContractBalanceFn("handleUnDelegate", state, unDel.Amount)
+	//checkContractBalanceFn("handleUnDelegate", state, unDel.Amount)
 
 	// del addr
 	delAddrByte := unDel.KeySuffix[0:common.AddressLength]
@@ -2239,7 +2190,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		"reporter", caller.Hex())
 
 	// check contract balance is enough
-	checkContractBalanceFn("SlashCandidates", state, amount)
+	//checkContractBalanceFn("SlashCandidates", state, amount)
 
 	// check slash type is right
 	slashTypeIsWrong := func() bool {
@@ -3502,12 +3453,12 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 	}
 }
 
-func checkContractBalanceFn(title string, state xcom.StateDB, amount *big.Int) {
-	// check contract balance is enough
-	contractBalance := state.GetBalance(vm.StakingContractAddr)
-	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(amount) < 0 {
-		log.Error("Failed to "+title+": the balance is invalid of stakingContracr Account",
-			"contractBalance", contractBalance, "rollback amount", amount)
-		panic("the balance is invalid of stakingContracr Account")
-	}
-}
+//func checkContractBalanceFn(title string, state xcom.StateDB, amount *big.Int) {
+//	// check contract balance is enough
+//	contractBalance := state.GetBalance(vm.StakingContractAddr)
+//	if contractBalance.Cmp(common.Big0) == 0 || contractBalance.Cmp(amount) < 0 {
+//		log.Error("Failed to "+title+": the balance is invalid of stakingContracr Account",
+//			"contractBalance", contractBalance, "rollback amount", amount)
+//		panic("the balance is invalid of stakingContracr Account")
+//	}
+//}
