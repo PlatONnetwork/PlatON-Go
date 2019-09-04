@@ -132,13 +132,14 @@ func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
 
 	}
-	rmp.addRewardPoolIncreaseIssuance(state, currIssuance, RewardPoolIncreaseRate)
-
+	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
+	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
+	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
-		rmp.addCommunityDeveloperFoundation(state, currIssuance, LessThanFoundationYearDeveloperRate)
+		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 	} else {
-		rmp.addCommunityDeveloperFoundation(state, currIssuance, AfterFoundationYearDeveloperRewardRate)
-		rmp.addPlatONFoundation(state, currIssuance, AfterFoundationYearFoundRewardRate)
+		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
+		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)

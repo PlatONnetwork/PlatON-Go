@@ -488,9 +488,14 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		// info.ReleaseList = info.ReleaseList[1:]
 		info.RemoveEpoch(epoch)
 
-		// just restore restricting info, don't delete
-		if info.CachePlanAmount.Cmp(common.Big0) == 0 && info.NeedRelease.Cmp(common.Big0) == 0 {
-			state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+		if info.CachePlanAmount.Cmp(common.Big0) == 0 {
+			if info.NeedRelease.Cmp(common.Big0) == 0 {
+				//if all is release,remove info
+				state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+			} else if len(info.ReleaseList) == 0 {
+				//if CachePlanAmount is 0 and plan is all release,the NeedRelease is Slashing,remove info
+				state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+			}
 		} else {
 			rp.storeRestrictingInfo(state, restrictingKey, info)
 		}

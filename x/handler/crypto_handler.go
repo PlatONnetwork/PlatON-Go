@@ -1,4 +1,4 @@
-package xcom
+package handler
 
 import (
 	"crypto/ecdsa"

@@ -167,7 +167,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		if nil != err {
 			return err
 		}
-		//todo:make sure blockNumber=N * ConsensusSize() - ElectionDistance
 		if votingProposal.GetEndVotingBlock() == blockNumber {
 			log.Debug("current block is end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
 			//According to the proposal's rules, the end-voting block must not at end of a settlement, so, to accumulate current verifiers for current voting proposal.
@@ -221,6 +220,8 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 
 	status := gov.Failed
 	supportRate := float64(yeas) / float64(verifiersCnt)
+
+	log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposal_SupportRate()))
 
 	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
 		status = gov.PreActive
@@ -284,7 +285,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 		} else if proposal.GetProposalType() != gov.Version {
 			return false, common.NewBizError("Tobe canceled proposal is not a version proposal.")
 		}
-		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash, blockNumber, state); err != nil {
+		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash); err != nil {
 			return false, err
 		} else if !xutil.InHashList(cp.TobeCanceled, votingProposalIDList) {
 			return false, common.NewBizError("Tobe canceled proposal is not at voting stage.")
@@ -378,12 +379,14 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 
 	switch proposalType {
 	case gov.Text:
+		log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposal_SupportRate()))
 		if voteRate > Decimal(xcom.TextProposal_VoteRate()) && supportRate >= Decimal(xcom.TextProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Cancel:
+		log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposal_SupportRate()))
 		if voteRate > Decimal(xcom.CancelProposal_VoteRate()) && supportRate >= Decimal(xcom.CancelProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
