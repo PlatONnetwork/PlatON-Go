@@ -564,13 +564,17 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	cbft.richViewChangeQC(viewChangeQC)
 	_, _, blockEpoch, _, hash, number := viewChangeQC.MaxBlock()
-	block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
-	if block == nil || qc == nil {
-		//fixme get qc block
-		cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
-		return
+	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+	if block.NumberU64() != 0 {
+		cbft.richViewChangeQC(viewChangeQC)
+		_, _, blockEpoch, _, hash, number = viewChangeQC.MaxBlock()
+		block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+		if block == nil || qc == nil {
+			//fixme get qc block
+			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+			return
+		}
 	}
 
 	if cbft.validatorPool.EqualSwitchPoint(number) && blockEpoch == cbft.state.Epoch() {
