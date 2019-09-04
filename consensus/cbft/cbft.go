@@ -202,7 +202,6 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockCacheWriter = blockCacheWriter
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 
-	cbft.state = cstate.NewViewState(cbft.config.Sys.Period)
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
@@ -225,6 +224,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	utils.SetTrue(&cbft.loading)
 
 	//Initialize view state
+	cbft.state = cstate.NewViewState(cbft.config.Sys.Period, cbft.blockTree)
 	cbft.state.SetHighestQCBlock(block)
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
@@ -1534,9 +1534,9 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 	return nil
 }
 
-func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC, threshold int) error {
-	if len(viewChangeQC.QCs) > threshold {
-		return fmt.Errorf("viewchangeQC exceed validator threshold limit, total:%d, threshold:%d", len(viewChangeQC.QCs), threshold)
+func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC, limit int) error {
+	if len(viewChangeQC.QCs) > limit {
+		return fmt.Errorf("viewchangeQC exceed validator max limit, total:%d, threshold:%d", len(viewChangeQC.QCs), limit)
 	}
 	var err error
 	epoch := uint64(0)
@@ -1567,9 +1567,11 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 	if err := cbft.validatorPool.EnableVerifyEpoch(vcEpoch); err != nil {
 		return err
 	}
+
 	// the threshold of validator on current epoch
-	threshold := cbft.threshold(cbft.validatorPool.Len(vcEpoch))
-	if err := cbft.validateViewChangeQC(viewChangeQC, threshold); err != nil {
+	maxLimit := cbft.validatorPool.Len(vcEpoch)
+	threshold := cbft.threshold(maxLimit)
+	if err := cbft.validateViewChangeQC(viewChangeQC, maxLimit); err != nil {
 		return err
 	}
 	// check signature number

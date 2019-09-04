@@ -390,12 +390,15 @@ type ViewState struct {
 
 	//Set the timer of the view time window
 	viewTimer *viewTimer
+
+	blockTree *ctypes.BlockTree
 }
 
-func NewViewState(period uint64) *ViewState {
+func NewViewState(period uint64, blockTree *ctypes.BlockTree) *ViewState {
 	return &ViewState{
 		view:      newView(),
 		viewTimer: newViewTimer(period),
+		blockTree: blockTree,
 	}
 }
 
@@ -559,9 +562,12 @@ func (vs *ViewState) HighestBlockString() string {
 }
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
-	if (vs.executing.BlockIndex == 0 && !vs.executing.Finish) ||
-		vs.executing.BlockIndex == math.MaxUint32 {
-		return vs.HighestQCBlock()
+	if vs.executing.BlockIndex == math.MaxUint32 || (vs.executing.BlockIndex == 0 && !vs.executing.Finish) {
+		if vs.lastViewChangeQC == nil {
+			return vs.HighestQCBlock()
+		}
+		_, _, _, _, hash, _ := vs.lastViewChangeQC.MaxBlock()
+		return vs.blockTree.FindBlockByHash(hash)
 	}
 
 	var block *types.Block

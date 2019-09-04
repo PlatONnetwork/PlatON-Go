@@ -67,7 +67,7 @@ func prepareQC(epoch, viewNumber uint64, hash common.Hash, number uint64, index 
 }
 
 func newEpochViewNumberState(epoch, viewNumber uint64, amount uint32) (*state.ViewState, *ctypes.BlockTree) {
-	viewState := state.NewViewState(Period)
+	viewState := state.NewViewState(Period, nil)
 	viewState.ResetView(epoch, viewNumber)
 	viewState.SetViewTimer(2)
 
