@@ -322,7 +322,11 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	}
 	info.StakingAmount.Sub(info.StakingAmount, amount)
 	// save restricting account info
-	rp.storeRestrictingInfo(state, restrictingKey, info)
+	if info.NeedRelease.Cmp(common.Big0) == 0 && info.StakingAmount.Cmp(common.Big0) == 0 && len(info.ReleaseList) == 0 && info.CachePlanAmount.Cmp(common.Big0) == 0 {
+		state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+	} else {
+		rp.storeRestrictingInfo(state, restrictingKey, info)
+	}
 	rp.log.Info("end to ReturnLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "info", info)
 	return nil
 }
