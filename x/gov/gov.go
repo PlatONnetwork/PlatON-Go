@@ -253,7 +253,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 	} else {
 		log.Debug("there is no version proposal at voting stage")
 		preActiveVersion := GetPreActiveVersion(state)
-		if preActiveVersion == 0 {
+		if preActiveVersion <= 0 {
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
 				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
