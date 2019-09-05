@@ -258,7 +258,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		err := gov.DeclareVersion(canNew.StakingAddress, canNew.NodeId,
 			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), stkc.Plugin, state)
 		if nil != err {
-			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
+			log.Error("Failed to CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 
 			if er := stkc.Plugin.RollBackStaking(state, blockHash, blockNumber, canAddr, typ); nil != er {

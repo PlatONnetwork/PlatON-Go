@@ -131,12 +131,12 @@ var (
 	lastBlockHash   common.Hash
 	lastHeader      types.Header
 
-	sender            = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
-	anotherSender     = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5233")
-	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+	sender        = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	anotherSender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5233")
+	senderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
-	delegate_sender            = common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
-	delegate_sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+	delegateSender        = common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
+	delegateSenderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
 	sndb = snapshotdb.Instance()
 
@@ -257,8 +257,11 @@ func newChainState() (*mock.MockStateDB, *types.Block, error) {
 	chain := mock.NewChain(testGenesis)
 	//	var state *state.StateDB
 
-	chain.StateDB.AddBalance(sender, sender_balance)
-	chain.StateDB.AddBalance(delegate_sender, delegate_sender_balance)
+	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
+	dBalance, _ := new(big.Int).SetString(delegateSenderBalance, 10)
+
+	chain.StateDB.AddBalance(sender, sBalance)
+	chain.StateDB.AddBalance(delegateSender, dBalance)
 	for i, addr := range addrArr {
 		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
 		amount = new(big.Int).Mul(common.Big257, amount)
