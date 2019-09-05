@@ -260,7 +260,6 @@ func genesisAllowancePlan(statedb *state.StateDB, issue *big.Int) error {
 
 	restrictingPlans := make([]restricting.RestrictingPlan, 0)
 	OneYearEpochs := xutil.EpochsPerYear()
-
 	for key, value := range needRelease {
 		epochs := OneYearEpochs * (uint64(key) + 1)
 		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
@@ -272,7 +271,7 @@ func genesisAllowancePlan(statedb *state.StateDB, issue *big.Int) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genesisIssue *big.Int, programVersion uint32) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int, programVersion uint32) error {
 
 	isDone := false
 	switch {
@@ -293,7 +292,6 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 	}
 
 	// Store genesis yearEnd reward balance item
-	plugin.SetYearEndBalance(statedb, 0, genesisReward)
 
 	// Store genesis Issue for LAT
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
@@ -314,6 +312,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 	// Store genesis last Epoch
 	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
 	plugin.SetLatestEpoch(statedb, uint64(0))
+
+	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
+	plugin.SetYearEndBalance(statedb, 0, genesisReward)
+	log.Info("Set SetYearEndBalance", "genesisReward", genesisReward)
+
 	return nil
 }
 

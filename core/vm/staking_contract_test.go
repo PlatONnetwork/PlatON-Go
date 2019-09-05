@@ -492,7 +492,7 @@ func TestStakingContract_delegate(t *testing.T) {
 
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0, delegate_sender),
+		Contract: newContract(common.Big0, delegateSender),
 		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
 
@@ -535,7 +535,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0, delegate_sender),
+		Contract: newContract(common.Big0, delegateSender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -558,7 +558,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0, delegate_sender),
+		Contract: newContract(common.Big0, delegateSender),
 		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
 
@@ -984,7 +984,7 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0, delegate_sender),
+		Contract: newContract(common.Big0, delegateSender),
 		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
 
@@ -1051,7 +1051,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0, delegate_sender),
+		Contract: newContract(common.Big0, delegateSender),
 		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
@@ -1088,7 +1088,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1104))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
-	delAddr, _ := rlp.EncodeToBytes(delegate_sender)
+	delAddr, _ := rlp.EncodeToBytes(delegateSender)
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 
 	params = append(params, fnType)

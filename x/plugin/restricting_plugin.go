@@ -322,7 +322,11 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	}
 	info.StakingAmount.Sub(info.StakingAmount, amount)
 	// save restricting account info
-	rp.storeRestrictingInfo(state, restrictingKey, info)
+	if info.NeedRelease.Cmp(common.Big0) == 0 && info.StakingAmount.Cmp(common.Big0) == 0 && len(info.ReleaseList) == 0 && info.CachePlanAmount.Cmp(common.Big0) == 0 {
+		state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+	} else {
+		rp.storeRestrictingInfo(state, restrictingKey, info)
+	}
 	rp.log.Info("end to ReturnLockFunds", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "info", info)
 	return nil
 }
@@ -488,9 +492,14 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		// info.ReleaseList = info.ReleaseList[1:]
 		info.RemoveEpoch(epoch)
 
-		// just restore restricting info, don't delete
-		if info.CachePlanAmount.Cmp(common.Big0) == 0 && info.NeedRelease.Cmp(common.Big0) == 0 {
-			state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+		if info.CachePlanAmount.Cmp(common.Big0) == 0 {
+			if info.NeedRelease.Cmp(common.Big0) == 0 {
+				//if all is release,remove info
+				state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+			} else if len(info.ReleaseList) == 0 {
+				//if CachePlanAmount is 0 and plan is all release,the NeedRelease is Slashing,remove info
+				state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+			}
 		} else {
 			rp.storeRestrictingInfo(state, restrictingKey, info)
 		}

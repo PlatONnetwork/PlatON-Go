@@ -249,7 +249,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 
 	genesisIssuance := new(big.Int)
-	genesisReward := common.Big0
+	//	genesisReward := common.Big0
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
@@ -261,16 +261,16 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 
 		// ppos add
-		if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
-			genesisReward = account.Balance
-
-		}
+		//if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
+		//	genesisReward = account.Balance
+		//
+		//}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	// Store genesis version into governance data
-	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, params.GenesisVersion); nil != err {
+	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 

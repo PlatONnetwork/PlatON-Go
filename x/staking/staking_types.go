@@ -34,6 +34,10 @@ const (
 
 const SWeightItem = 4
 
+func Is_Valid(status uint32) bool {
+	return !Is_Invalid(status)
+}
+
 func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
 }
