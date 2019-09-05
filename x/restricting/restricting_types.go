@@ -60,4 +60,5 @@ type BalanceResult struct {
 	Account common.Address `json:"account"`
 	FreeBalance *hexutil.Big `json:"freeBalance"`
 	LockBalance *hexutil.Big `json:"lockBalance"`
+	PledgeBalance *hexutil.Big `json:"pledgeBalance"`
 }

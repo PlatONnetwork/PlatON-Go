@@ -565,6 +565,7 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	}
 
 	result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
+	result.PledgeBalance = (*hexutil.Big)(info.StakingAmount)
 
 	log.Trace("get restricting result", "account", account.String(), "result", result)
 
