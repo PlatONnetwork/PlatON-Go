@@ -221,6 +221,8 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	status := gov.Failed
 	supportRate := float64(yeas) / float64(verifiersCnt)
 
+	log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposal_SupportRate()))
+
 	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
 		status = gov.PreActive
 
@@ -377,12 +379,14 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 
 	switch proposalType {
 	case gov.Text:
+		log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposal_SupportRate()))
 		if voteRate > Decimal(xcom.TextProposal_VoteRate()) && supportRate >= Decimal(xcom.TextProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Cancel:
+		log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposal_SupportRate()))
 		if voteRate > Decimal(xcom.CancelProposal_VoteRate()) && supportRate >= Decimal(xcom.CancelProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
