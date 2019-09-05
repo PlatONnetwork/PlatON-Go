@@ -747,8 +747,8 @@ type ValidatorArray struct {
 }
 
 type ValidatorEx struct {
-	NodeAddress common.Address
-	NodeId      discover.NodeID
+	//NodeAddress common.Address
+	NodeId discover.NodeID
 	// bls public key
 	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
