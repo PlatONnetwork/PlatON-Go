@@ -104,6 +104,29 @@ func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, err
 	return voteList, nil
 }
 
+// TallyVoteValue statistics vote option for a proposal
+func TallyVoteValue(proposalID common.Hash, state xcom.StateDB) (yeas, nays, abstentions uint16, e error) {
+	yes := uint16(0)
+	no := uint16(0)
+	abst := uint16(0)
+
+	voteList, err := ListVoteValue(proposalID, state)
+	if err == nil {
+		for _, v := range voteList {
+			if v.VoteOption == Yes {
+				yeas++
+			}
+			if v.VoteOption == No {
+				nays++
+			}
+			if v.VoteOption == Abstention {
+				abstentions++
+			}
+		}
+	}
+	return yes, no, abst, err
+}
+
 func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
 	var voterList []discover.NodeID
 	valueList, err := ListVoteValue(proposalID, state)
