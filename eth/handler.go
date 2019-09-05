@@ -174,8 +174,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return engine.VerifyHeader(blockchain, header, true)
 	}
 	heighter := func() uint64 {
-		//return blockchain.CurrentBlock().NumberU64()
-		return engine.CurrentBlock().NumberU64() + 1
+		return blockchain.CurrentBlock().NumberU64()
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -187,7 +186,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return manager.blockchain.InsertChain(blocks)
 	}
 	getBlockByHash := func(hash common.Hash) *types.Block {
-		return engine.GetBlockByHash(hash)
+		return manager.blockchain.GetBlockByHash(hash)
 	}
 
 	//manager.fetcher = fetcher.New(GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
