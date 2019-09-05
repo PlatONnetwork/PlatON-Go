@@ -368,12 +368,18 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		"proposalID", proposalID)
 
 	list, err := gov.ListAccuVerifier(blockHash, proposalID)
-
 	if err != nil {
 		return gc.returnHandler("getAccuVerifiesCount", 0, err, GetAccuVerifiersCountErrorMsg)
-	} else {
-		return gc.returnHandler("getAccuVerifiesCount", len(list), nil, GetAccuVerifiersCountErrorMsg)
 	}
+
+	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, gc.Evm.StateDB)
+	if err != nil {
+		return gc.returnHandler("getAccuVerifiesCount", 0, err, GetAccuVerifiersCountErrorMsg)
+	}
+
+	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
+
+	return gc.returnHandler("getAccuVerifiesCount", returnValue, nil, GetAccuVerifiersCountErrorMsg)
 }
 
 func (gc *GovContract) errHandler(funcName string, fcode uint16, err error, errorMsg string) ([]byte, error) {
