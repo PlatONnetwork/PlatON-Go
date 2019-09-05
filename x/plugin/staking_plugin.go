@@ -92,8 +92,6 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 
-		log.Info("Call EndBlock on staking plugin, IsSettlementPeriod", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
-
 		// handle UnStaking Item
 		err := sk.HandleUnCandidateItem(state, header.Number.Uint64(), blockHash, epoch)
 		if nil != err {
@@ -120,9 +118,6 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	if xutil.IsElection(header.Number.Uint64()) {
 
-		log.Info("Call EndBlock on staking plugin, IsElection",
-			"blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
-
 		// ELection next round validators
 		err := sk.Election(blockHash, header, state)
 		if nil != err {
@@ -132,13 +127,10 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		}
 
 	}
-	//log.Info("Finished EndBlock on staking plugin", "blockNumber", header.Number, "blockHash", blockHash.String(), "epoch", epoch)
 	return nil
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
-
-	log.Info("Call Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
 
 	if xutil.IsElection(block.NumberU64()) {
 
@@ -876,9 +868,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return err
 	}
 
-	aboutRelease := new(big.Int).Add(del.Released, del.ReleasedHes)
-	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
-	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
+	total := calcDelegateTotalAmount(del)
 
 	// First need to deduct the von that is being refunded
 	realtotal := new(big.Int).Sub(total, del.Reduction)
@@ -893,77 +883,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	// check the contract balance and withdrew amount
 	//checkContractBalanceFn("WithdrewDelegate", state, amount)
 
-	refundAmount := common.Big0
-	sub := new(big.Int).Sub(realtotal, amount)
-	// When the sub less than threshold
-	if !xutil.CheckMinimumThreshold(sub) {
-		refundAmount = realtotal
-	} else {
-		refundAmount = amount
-	}
+	refundAmount := calcRealRefund(realtotal, amount)
 	realSub := refundAmount
 
 	lazyCalcDelegateAmount(epoch, del)
 
-	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
-
-		state.AddBalance(delAddr, sub)
-		state.SubBalance(vm.StakingContractAddr, sub)
-		return new(big.Int).Sub(source, sub), common.Big0
-	}
-	refundFn := func(refund, aboutRelease, aboutRestrictingPlan *big.Int) (*big.Int, *big.Int, *big.Int, error) {
-
-		refundTmp := refund
-		releaseTmp := aboutRelease
-		restrictingPlanTmp := aboutRestrictingPlan
-
-		// When remain is greater than or equal to del.ReleasedHes/del.Released
-		if refundTmp.Cmp(common.Big0) > 0 {
-			if refundTmp.Cmp(releaseTmp) >= 0 && releaseTmp.Cmp(common.Big0) > 0 {
-
-				refundTmp, releaseTmp = subDelegateFn(refundTmp, releaseTmp)
-
-			} else if refundTmp.Cmp(releaseTmp) < 0 {
-				// When remain is less than or equal to del.ReleasedHes/del.Released
-				releaseTmp, refundTmp = subDelegateFn(releaseTmp, refundTmp)
-			}
-		}
-
-		if refundTmp.Cmp(common.Big0) > 0 {
-
-			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
-			if refundTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
-
-				err := rt.ReturnLockFunds(delAddr, restrictingPlanTmp, state)
-				if nil != err {
-					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-						"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "balance", restrictingPlanTmp,
-						"err", err)
-					return refundTmp, releaseTmp, restrictingPlanTmp, err
-				}
-
-				refundTmp = new(big.Int).Sub(refundTmp, restrictingPlanTmp)
-				restrictingPlanTmp = common.Big0
-
-			} else if refundTmp.Cmp(restrictingPlanTmp) < 0 {
-				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
-				err := rt.ReturnLockFunds(delAddr, refundTmp, state)
-				if nil != err {
-					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
-						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
-						"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "balance", refundTmp,
-						"err", err)
-					return refundTmp, releaseTmp, restrictingPlanTmp, err
-				}
-
-				restrictingPlanTmp = new(big.Int).Sub(restrictingPlanTmp, refundTmp)
-				refundTmp = common.Big0
-			}
-		}
-
-		return refundTmp, releaseTmp, restrictingPlanTmp, nil
-	}
 	del.DelegateEpoch = uint32(epoch)
 
 	switch {
@@ -978,8 +902,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
-			rm, rbalance, lbalance, err := refundFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes)
+			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes, delAddr, state)
 			if nil != err {
+				log.Error("Failed  to WithdrewDelegate, refund the hesitate balance is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
+					"refund balance", refundAmount, "releaseHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes, "err", err)
 				return err
 			}
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
@@ -987,8 +914,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		// handle delegate on Effective period
 		if refundAmount.Cmp(common.Big0) > 0 {
-			rm, rbalance, lbalance, err := refundFn(refundAmount, del.Released, del.RestrictingPlan)
+			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, del.Released, del.RestrictingPlan, delAddr, state)
 			if nil != err {
+				log.Error("Failed  to WithdrewDelegate, refund the no hesitate balance is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
+					"refund balance", refundAmount, "release", del.Released, "restrictingPlan", del.RestrictingPlan, "err", err)
 				return err
 			}
 			refundAmount, del.Released, del.RestrictingPlan = rm, rbalance, lbalance
@@ -1034,7 +964,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return ParamsErr
 
 	// When the delegate is normally revoked
-	case nil != can && stakingBlockNum == can.StakingBlockNum && !staking.Is_Invalid(can.Status):
+	case nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Valid(can.Status):
 
 		log.Info("Call WithdrewDelegate, the candidate is valid", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum, "amount", amount, "realtotal", realtotal,
@@ -1042,8 +972,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
-			rm, rbalance, lbalance, err := refundFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes)
+			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes, delAddr, state)
 			if nil != err {
+				log.Error("Failed  to WithdrewDelegate, refund the hesitate balance is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
+					"refund balance", refundAmount, "releaseHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes, "err", err)
 				return err
 			}
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
@@ -1066,12 +999,10 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 		} else {
 
-			hes := new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes)
-			noHes := new(big.Int).Add(del.Released, del.RestrictingPlan)
-			add := new(big.Int).Add(hes, noHes)
+			remain := calcDelegateTotalAmount(del)
 
 			// Need to clean delegate info
-			if del.Reduction.Cmp(common.Big0) == 0 && add.Cmp(common.Big0) == 0 {
+			if del.Reduction.Cmp(common.Big0) == 0 && remain.Cmp(common.Big0) == 0 {
 				save_or_del = true
 			}
 		}
@@ -1129,6 +1060,59 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	}
 
 	return nil
+}
+
+func rufundDelegateFn(refundBalance, aboutRelease, aboutRestrictingPlan *big.Int, delAddr common.Address, state xcom.StateDB) (*big.Int, *big.Int, *big.Int, error) {
+
+	refundTmp := refundBalance
+	releaseTmp := aboutRelease
+	restrictingPlanTmp := aboutRestrictingPlan
+
+	subDelegateFn := func(source, sub *big.Int) (*big.Int, *big.Int) {
+
+		state.AddBalance(delAddr, sub)
+		state.SubBalance(vm.StakingContractAddr, sub)
+		return new(big.Int).Sub(source, sub), common.Big0
+	}
+
+	// When remain is greater than or equal to del.ReleasedHes/del.Released
+	if refundTmp.Cmp(common.Big0) > 0 {
+		if refundTmp.Cmp(releaseTmp) >= 0 && releaseTmp.Cmp(common.Big0) > 0 {
+
+			refundTmp, releaseTmp = subDelegateFn(refundTmp, releaseTmp)
+
+		} else if refundTmp.Cmp(releaseTmp) < 0 {
+			// When remain is less than or equal to del.ReleasedHes/del.Released
+			releaseTmp, refundTmp = subDelegateFn(releaseTmp, refundTmp)
+		}
+	}
+
+	if refundTmp.Cmp(common.Big0) > 0 {
+
+		// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
+		if refundTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
+
+			err := rt.ReturnLockFunds(delAddr, restrictingPlanTmp, state)
+			if nil != err {
+				return refundTmp, releaseTmp, restrictingPlanTmp, err
+			}
+
+			refundTmp = new(big.Int).Sub(refundTmp, restrictingPlanTmp)
+			restrictingPlanTmp = common.Big0
+
+		} else if refundTmp.Cmp(restrictingPlanTmp) < 0 {
+			// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
+			err := rt.ReturnLockFunds(delAddr, refundTmp, state)
+			if nil != err {
+				return refundTmp, releaseTmp, restrictingPlanTmp, err
+			}
+
+			restrictingPlanTmp = new(big.Int).Sub(restrictingPlanTmp, refundTmp)
+			refundTmp = common.Big0
+		}
+	}
+
+	return refundTmp, releaseTmp, restrictingPlanTmp, nil
 }
 
 func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, epoch uint64) error {
@@ -1994,7 +1978,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		// valid AND lowRatio status, that candidate need to clean the lowRatio status
-		if !staking.Is_Invalid(can.Status) && staking.Is_LowRatio(can.Status) {
+		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
 			lowRatioValidAddrs = append(lowRatioValidAddrs, canAddr)
 			lowRatioValidMap[canAddr] = can
 		}
@@ -2100,7 +2084,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
 		"total remove count", invalidLen, "remove map size", len(removeCans),
 		"current validators Size", len(curr.Arr), "ConsValidatorNum", xcom.ConsValidatorNum(),
-		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue), "vrfQueueLen", len(vrfQueue))
+		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
+		"vrfQueueLen", len(vrfQueue))
 
 	nextQueue := shuffle(invalidLen, curr.Arr, vrfQueue)
 
@@ -2207,13 +2192,13 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	canAddr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, canAddr)
 	if nil != err && err != snapshotdb.ErrNotFound {
-		log.Error("Call SlashCandidates: Query can is failed", "blockNumber", blockNumber,
+		log.Error("Failed to SlashCandidates: Query can is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
 
 	if nil == can {
-		log.Error("Call SlashCandidates: the can is empty", "blockNumber", blockNumber,
+		log.Error("Failed to SlashCandidates: the can is empty", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 		return CandidateNotExist
 	}
@@ -2241,7 +2226,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	// clean the candidate power, first
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-		log.Error("Call SlashCandidates: Delete candidate old power is failed", "blockNumber", blockNumber,
+		log.Error("Failed to SlashCandidates: Delete candidate old power is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 		return err
 	}
@@ -2347,7 +2332,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	log.Info("Call SlashCandidates: the status", "needInvalid", needInvalid, "can.Status", can.Status)
 
-	if needInvalid && !staking.Is_Invalid(can.Status) {
+	if needInvalid && staking.Is_Valid(can.Status) {
 
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
 
@@ -2391,7 +2376,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 
-	} else if !needInvalid && !staking.Is_Invalid(can.Status) {
+	} else if !needInvalid && staking.Is_Valid(can.Status) {
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashType,
@@ -2531,7 +2516,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		}
 
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-			log.Error("Call ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
+			log.Error("Failed to ProposalPassedNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
@@ -2539,13 +2524,13 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		can.ProgramVersion = version
 
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
-			log.Error("Call ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
+			log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
-			log.Error("Call ProposalPassedNotify: Store Candidate info is failed", "blockNumber", blockNumber,
+			log.Error("Failed to ProposalPassedNotify: Store Candidate info is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
@@ -2566,21 +2551,21 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err && err != snapshotdb.ErrNotFound {
-		log.Error("Call DeclarePromoteNotify: Query Candidate is failed", "blockNumber", blockNumber,
+		log.Error("Failed to DeclarePromoteNotify: Query Candidate is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
 
 	if (nil != err && err == snapshotdb.ErrNotFound) || nil == can {
 
-		log.Error("Call DeclarePromoteNotify: Promote candidate programVersion failed, the can is empty",
+		log.Error("Failed to DeclarePromoteNotify: Promote candidate programVersion failed, the can is empty",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 			"version", programVersion)
 		return nil
 	}
 
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-		log.Error("Call DeclarePromoteNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
+		log.Error("Failed to DeclarePromoteNotify: Delete Candidate old power is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
@@ -2588,13 +2573,13 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 	can.ProgramVersion = version
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
-		log.Error("Call DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
+		log.Error("Failed to DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
-		log.Error("Call DeclarePromoteNotify: Store Candidate info is failed", "blockNumber", blockNumber,
+		log.Error("Failed to DeclarePromoteNotify: Store Candidate info is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
@@ -3427,10 +3412,35 @@ func (sk *StakingPlugin) HasStake(blockHash common.Hash, addr common.Address) (b
 	return sk.db.HasAccountStakeRc(blockHash, addr)
 }
 
-func calCanTotalAmount(can *staking.Candidate) *big.Int {
-	remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
-	remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
-	return new(big.Int).Add(remainRelease, remainRestrictingPlan)
+func calcCandidateTotalAmount(can *staking.Candidate) *big.Int {
+	release := new(big.Int).Add(can.Released, can.ReleasedHes)
+	restrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+	return new(big.Int).Add(release, restrictingPlan)
+}
+
+func calcDelegateTotalAmount(del *staking.Delegation) *big.Int {
+	release := new(big.Int).Add(del.Released, del.ReleasedHes)
+	restrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+	return new(big.Int).Add(release, restrictingPlan)
+}
+
+func calcDelegateRealTotalAmount(del *staking.Delegation) *big.Int {
+	release := new(big.Int).Add(del.Released, del.ReleasedHes)
+	restrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+	total := new(big.Int).Add(release, restrictingPlan)
+	return new(big.Int).Sub(total, del.Reduction)
+}
+
+func calcRealRefund(realtotal, amount *big.Int) *big.Int {
+	refundAmount := common.Big0
+	sub := new(big.Int).Sub(realtotal, amount)
+	// When the sub less than threshold
+	if !xutil.CheckMinimumThreshold(sub) {
+		refundAmount = realtotal
+	} else {
+		refundAmount = amount
+	}
+	return refundAmount
 }
 
 func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
