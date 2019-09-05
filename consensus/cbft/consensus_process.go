@@ -534,6 +534,7 @@ func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
 			cbft.log.Error("Generate viewChangeQuorumCert error", "err", err)
 			return
 		}
+		cbft.log.Debug("Already send viewChange,append viewChangeQuorumCert to ViewChangeQC", "cert", cert.String())
 		viewChangeQC.AppendQuorumCert(cert)
 	}
 
@@ -552,6 +553,7 @@ func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
 				cbft.log.Error("Generate viewChangeQuorumCert error", "err", err)
 				return
 			}
+			cbft.log.Debug("Not send viewChange,append viewChangeQuorumCert to ViewChangeQC", "cert", cert.String())
 			viewChangeQC.AppendQuorumCert(cert)
 		}
 	}
