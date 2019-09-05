@@ -30,20 +30,21 @@ const (
 	ListProposalErrorMsg          = "List all proposals error"
 	GetActiveVersionErrorMsg      = "Get active version error"
 	GetProgramVersionErrorMsg     = "Get program version error"
-	ListParamErrorMsg             = "List all parameters and values"
+	GetAccuVerifiersCountErrorMsg = "Get accumulated verifiers count error"
 )
 
 const (
-	SubmitText        = uint16(2000)
-	SubmitVersion     = uint16(2001)
-	Vote              = uint16(2003)
-	Declare           = uint16(2004)
-	SubmitCancel      = uint16(2005)
-	GetProposal       = uint16(2100)
-	GetResult         = uint16(2101)
-	ListProposal      = uint16(2102)
-	GetActiveVersion  = uint16(2103)
-	GetProgramVersion = uint16(2104)
+	SubmitText            = uint16(2000)
+	SubmitVersion         = uint16(2001)
+	Vote                  = uint16(2003)
+	Declare               = uint16(2004)
+	SubmitCancel          = uint16(2005)
+	GetProposal           = uint16(2100)
+	GetResult             = uint16(2101)
+	ListProposal          = uint16(2102)
+	GetActiveVersion      = uint16(2103)
+	GetProgramVersion     = uint16(2104)
+	GetAccuVerifiersCount = uint16(2105)
 )
 
 var (
@@ -74,11 +75,12 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		SubmitCancel:  gc.submitCancel,
 
 		// Get
-		GetProposal:       gc.getProposal,
-		GetResult:         gc.getTallyResult,
-		ListProposal:      gc.listProposal,
-		GetActiveVersion:  gc.getActiveVersion,
-		GetProgramVersion: gc.getProgramVersion,
+		GetProposal:           gc.getProposal,
+		GetResult:             gc.getTallyResult,
+		ListProposal:          gc.listProposal,
+		GetActiveVersion:      gc.getActiveVersion,
+		GetProgramVersion:     gc.getProgramVersion,
+		GetAccuVerifiersCount: gc.getAccuVerifiersCount,
 	}
 }
 
@@ -351,6 +353,33 @@ func (gc *GovContract) getProgramVersion() ([]byte, error) {
 	versionValue, err := gov.GetProgramVersion()
 
 	return gc.returnHandler("getProgramVersion", versionValue, err, GetProgramVersionErrorMsg)
+}
+
+func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	//blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
+	log.Debug("call getAccuVerifiesCount of GovContract",
+		"from", from.Hex(),
+		"txHash", txHash,
+		"blockNumber", blockNumber,
+		"blockHash", blockHash,
+		"proposalID", proposalID)
+
+	list, err := gov.ListAccuVerifier(blockHash, proposalID)
+	if err != nil {
+		return gc.returnHandler("getAccuVerifiesCount", 0, err, GetAccuVerifiersCountErrorMsg)
+	}
+
+	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, gc.Evm.StateDB)
+	if err != nil {
+		return gc.returnHandler("getAccuVerifiesCount", 0, err, GetAccuVerifiersCountErrorMsg)
+	}
+
+	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
+
+	return gc.returnHandler("getAccuVerifiesCount", returnValue, nil, GetAccuVerifiersCountErrorMsg)
 }
 
 func (gc *GovContract) errHandler(funcName string, fcode uint16, err error, errorMsg string) ([]byte, error) {

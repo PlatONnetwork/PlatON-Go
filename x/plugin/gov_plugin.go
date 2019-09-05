@@ -355,25 +355,33 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 	verifiersCnt := uint16(len(verifierList))
 
 	status := gov.Voting
-	yeas := uint16(0)
-	nays := uint16(0)
-	abstentions := uint16(0)
 
-	voteList, err := gov.ListVoteValue(proposalID, state)
+	/*
+		yeas := uint16(0)
+		nays := uint16(0)
+		abstentions := uint16(0)
+
+		voteList, err := gov.ListVoteValue(proposalID, state)
+		if err != nil {
+			return false, err
+		}
+		for _, v := range voteList {
+			if v.VoteOption == gov.Yes {
+				yeas++
+			}
+			if v.VoteOption == gov.No {
+				nays++
+			}
+			if v.VoteOption == gov.Abstention {
+				abstentions++
+			}
+		}*/
+
+	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, state)
 	if err != nil {
 		return false, err
 	}
-	for _, v := range voteList {
-		if v.VoteOption == gov.Yes {
-			yeas++
-		}
-		if v.VoteOption == gov.No {
-			nays++
-		}
-		if v.VoteOption == gov.Abstention {
-			abstentions++
-		}
-	}
+
 	voteRate := Decimal(float64(yeas+nays+abstentions) / float64(verifiersCnt))
 	supportRate := Decimal(float64(yeas) / float64(verifiersCnt))
 
