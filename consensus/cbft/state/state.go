@@ -566,6 +566,9 @@ func (vs *ViewState) HighestExecutedBlock() *types.Block {
 		if vs.lastViewChangeQC == nil {
 			return vs.HighestQCBlock()
 		}
+		log.Debug("lastViewChangeQC", "lastViewChangeQC", vs.lastViewChangeQC.String())
+		b, _ := vs.blockTree.MarshalJSON()
+		log.Debug("blockTree", "blockTree", string(b))
 		_, _, _, _, hash, _ := vs.lastViewChangeQC.MaxBlock()
 		return vs.blockTree.FindBlockByHash(hash)
 	}

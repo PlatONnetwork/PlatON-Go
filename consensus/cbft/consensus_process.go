@@ -239,9 +239,7 @@ func (cbft *Cbft) TrySetHighestQCBlock(block *types.Block) {
 	_, qc := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
 	h := cbft.state.HighestQCBlock()
 	_, hqc := cbft.blockTree.FindBlockAndQC(h.Hash(), h.NumberU64())
-	if hqc == nil {
-		cbft.state.SetHighestQCBlock(block)
-	} else if qc.BlockNumber > h.NumberU64() || qc.HigherBlockView(hqc.Epoch, hqc.ViewNumber) {
+	if hqc == nil || qc.HigherQuorumCert(hqc.BlockNumber, hqc.Epoch, hqc.ViewNumber) {
 		cbft.state.SetHighestQCBlock(block)
 	}
 }
@@ -542,7 +540,7 @@ func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
 	_, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
 	_, _, blockEpoch, blockView, _, number := viewChangeQC.MaxBlock()
 
-	if number < qc.BlockNumber || qc.HigherBlockView(blockEpoch, blockView) {
+	if qc.HigherQuorumCert(number, blockEpoch, blockView) {
 		if sendViewChange == nil {
 			v, err := cbft.generateViewChange(qc)
 			if err != nil {
