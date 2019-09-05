@@ -500,6 +500,7 @@ func (vp *ValidatorPool) Verify(epoch uint64, validatorIndex uint32, msg, signat
 	if err != nil {
 		return err
 	}
+
 	return validator.Verify(msg, signature)
 }
 
