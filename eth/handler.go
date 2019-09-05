@@ -339,7 +339,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		hashMode := query.Origin.Hash != (common.Hash{})
-		log.Debug("[GetBlockHeadersMsg]Received a broadcast message", "val", query)
+		p.Log().Debug("[GetBlockHeadersMsg]Received a broadcast message", "origin.Number", query.Origin.Number,
+			"origin.Hash", query.Origin.Hash, "skip", query.Skip, "amount", query.Amount,
+			"reverse", query.Reverse, "number", pm.blockchain.CurrentBlock().Number(),
+			"hash", pm.blockchain.CurrentBlock().Hash())
 		first := true
 		maxNonCanonical := uint64(100)
 
@@ -418,6 +421,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				query.Origin.Number += query.Skip + 1
 			}
 		}
+		p.Log().Debug("Send headers", "headers", len(headers))
 		return p.SendBlockHeaders(headers)
 	case p.version >= eth63 && msg.Code == GetOriginAndPivotMsg:
 		p.Log().Info("[GetOriginAndPivotMsg]Received a broadcast message")
@@ -531,18 +535,21 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			p.Log().Error("Failed to deliver ppos storage data", "err", err)
 		}
 	case msg.Code == BlockHeadersMsg:
+		p.Log().Debug("Receive BlockHeadersMsg")
 		// A batch of headers arrived to one of our previous requests
 		var headers []*types.Header
 		if err := msg.Decode(&headers); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 
+		p.Log().Debug("Receive BlockHeadersMsg, before filter", "headers", len(headers))
 		// Filter out any explicitly requested headers, deliver the rest to the downloader
 		filter := len(headers) == 1
 		if filter {
 			// Irrelevant of the fork checks, send the header to the fetcher just in case
 			headers = pm.fetcher.FilterHeaders(p.id, headers, time.Now())
 		}
+		p.Log().Debug("Receive BlockHeadersMsg, after filter", "headers", len(headers))
 		if len(headers) > 0 || !filter {
 			err := pm.downloader.DeliverHeaders(p.id, headers)
 			if err != nil {
@@ -551,6 +558,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == GetBlockBodiesMsg:
+		p.Log().Debug("Receive GetBlockBodiesMsg", "number", pm.blockchain.CurrentBlock().Number(), "hash", pm.blockchain.CurrentBlock().Hash())
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
