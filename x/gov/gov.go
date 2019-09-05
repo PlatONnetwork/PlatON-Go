@@ -148,7 +148,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if vote.proposalID is in voting
-	votingIDs, err := ListVotingProposalID(blockHash, blockNumber, state)
+	votingIDs, err := ListVotingProposalID(blockHash)
 	if err != nil {
 		log.Error("list voting proposal error", "blockHash", blockHash, "blockNumber", blockNumber, "err", err)
 		return err
@@ -228,7 +228,8 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			return err
 		}
 		if xutil.InNodeIDList(declaredNodeID, votedList) {
-			if declaredVersion != votingVP.GetNewVersion() {
+			if declaredVersion>>8 != votingVP.GetNewVersion()>>8 {
+				log.Error("node voted new version, then declared version, the major is different between the declared version and new version")
 				return DeclareVersionError
 			}
 		} else if declaredVersion>>8 == activeVersion>>8 {
@@ -252,23 +253,30 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 	} else {
 		log.Debug("there is no version proposal at voting stage")
 		preActiveVersion := GetPreActiveVersion(state)
-		if preActiveVersion == 0 && declaredVersion>>8 == activeVersion>>8 {
-			log.Debug("there is no pre-active version proposal")
-			log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
-				return NotifyStakingDeclaredVersionError
-			}
-		} else if preActiveVersion != 0 && declaredVersion == preActiveVersion {
-			log.Debug("there is a version proposal at voting stage")
-			log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
-				return NotifyStakingDeclaredVersionError
+		if preActiveVersion <= 0 {
+			log.Debug("there is no version proposal at pre-active stage")
+			if declaredVersion>>8 == activeVersion>>8 {
+				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
+					return NotifyStakingDeclaredVersionError
+				}
+			} else {
+				log.Error("declared version should be active version", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+				return DeclareVersionError
 			}
 		} else {
-			log.Error("declared version should be either active version or pre-active version", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
-			return DeclareVersionError
+			log.Debug("there is a version proposal at pre-active stage", "preActiveVersion", preActiveVersion)
+			if declaredVersion>>8 == preActiveVersion>>8 {
+				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
+					return NotifyStakingDeclaredVersionError
+				}
+			} else {
+				log.Error("declared version should be pre-active version", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+				return DeclareVersionError
+			}
 		}
 	}
 	return nil
@@ -347,8 +355,8 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 }
 
 // list all proposal IDs at voting stage
-func ListVotingProposalID(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) ([]common.Hash, error) {
-	log.Debug("call ListVotingProposalID", "blockHash", blockHash, "blockNumber", blockNumber)
+func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
+	log.Debug("call ListVotingProposalID", "blockHash", blockHash)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
@@ -403,6 +411,47 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 		}
 		return maxEndVotingBlock, nil
 	}
+}
+
+// NotifyPunishedVerifiers receives punished verifies notification from Staking
+func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover.NodeID, state xcom.StateDB) error {
+	if len(punishedVerifiers) == 0 {
+		return nil
+	}
+	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {
+		return err
+	} else if len(votingProposalIDList) > 0 {
+		for _, proposalID := range votingProposalIDList {
+			if voteList, err := ListVoteValue(proposalID, state); err != nil {
+				return err
+			} else if len(voteList) > 0 {
+				idx := 0 // output index
+				for _, voteValue := range voteList {
+					if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
+						voteList[idx] = voteValue
+						idx++
+					}
+				}
+				voteList = voteList[:idx]
+				//UpdateVoteValue(blockHash, voteList)
+			}
+
+			if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+				return err
+			} else if len(verifierList) > 0 {
+				idx := 0 // output index
+				for _, verifier := range verifierList {
+					if !xutil.InNodeIDList(verifier, punishedVerifiers) {
+						verifierList[idx] = verifier
+						idx++
+					}
+				}
+				verifierList = verifierList[:idx]
+				//UpdateAccuVerifiers(blockHash, voteList)
+			}
+		}
+	}
+	return nil
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
