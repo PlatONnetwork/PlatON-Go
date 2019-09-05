@@ -563,15 +563,17 @@ func (vs *ViewState) HighestBlockString() string {
 
 func (vs *ViewState) HighestExecutedBlock() *types.Block {
 	if vs.executing.BlockIndex == math.MaxUint32 || (vs.executing.BlockIndex == 0 && !vs.executing.Finish) {
-		log.Debug("lastViewChangeQC", "lastViewChangeQC", vs.lastViewChangeQC.String())
-		tmp, _ := vs.blockTree.MarshalJSON()
-		log.Debug("blockTree", "blockTree", string(tmp))
-		_, _, _, _, hash, _ := vs.lastViewChangeQC.MaxBlock()
-		b := vs.blockTree.FindBlockByHash(hash)
-		if vs.lastViewChangeQC == nil || b == nil {
-			return vs.HighestQCBlock()
+		block := vs.HighestQCBlock()
+		if vs.lastViewChangeQC != nil {
+			tmp, _ := vs.blockTree.MarshalJSON()
+			log.Debug("lastViewChangeQC", "lastViewChangeQC", vs.lastViewChangeQC.String())
+			log.Debug("blockTree", "blockTree", string(tmp))
+			_, _, _, _, hash, _ := vs.lastViewChangeQC.MaxBlock()
+			if b := vs.blockTree.FindBlockByHash(hash); b != nil {
+				block = b
+			}
 		}
-		return b
+		return block
 	}
 
 	var block *types.Block
