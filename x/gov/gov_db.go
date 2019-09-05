@@ -114,13 +114,13 @@ func TallyVoteValue(proposalID common.Hash, state xcom.StateDB) (yeas, nays, abs
 	if err == nil {
 		for _, v := range voteList {
 			if v.VoteOption == Yes {
-				yeas++
+				yes++
 			}
 			if v.VoteOption == No {
-				nays++
+				no++
 			}
 			if v.VoteOption == Abstention {
-				abstentions++
+				abst++
 			}
 		}
 	}
