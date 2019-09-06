@@ -55,13 +55,11 @@ type CacheConfig struct {
 	TrieNodeLimit int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit time.Duration // Time limit after which to flush the current in-memory trie to disk
 
-	BodyCacheLimit           int
-	BlockCacheLimit          int
-	MaxFutureBlocks          int
-	BadBlockLimit            int
-	TriesInMemory            int
-	DefaultTxsCacheSize      int
-	DefaultBroadcastInterval time.Duration
+	BodyCacheLimit  int
+	BlockCacheLimit int
+	MaxFutureBlocks int
+	BadBlockLimit   int
+	TriesInMemory   int
 }
 
 // mining related configuration
@@ -146,15 +144,13 @@ type BlockChain struct {
 func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
-			TrieNodeLimit:            256 * 1024 * 1024,
-			TrieTimeLimit:            5 * time.Minute,
-			BodyCacheLimit:           256,
-			BlockCacheLimit:          256,
-			MaxFutureBlocks:          256,
-			BadBlockLimit:            10,
-			TriesInMemory:            128,
-			DefaultTxsCacheSize:      20,
-			DefaultBroadcastInterval: 100 * time.Millisecond,
+			TrieNodeLimit:   256 * 1024 * 1024,
+			TrieTimeLimit:   5 * time.Minute,
+			BodyCacheLimit:  256,
+			BlockCacheLimit: 256,
+			MaxFutureBlocks: 256,
+			BadBlockLimit:   10,
+			TriesInMemory:   128,
 		}
 	}
 	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)

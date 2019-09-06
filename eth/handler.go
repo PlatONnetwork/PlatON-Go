@@ -55,8 +55,8 @@ const (
 
 	numBroadcastTxPeers = 5 // Maximum number of peers for broadcast transactions
 
-//	defaultTxsCacheSize      = 20
-//	defaultBroadcastInterval = 100 * time.Millisecond
+	defaultTxsCacheSize      = 20
+	defaultBroadcastInterval = 100 * time.Millisecond
 )
 
 // errIncompatibleConfig is returned if the requested protocols and configs are
@@ -895,35 +895,17 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {
-	DefaultTxsCacheSize := 20
-	DefaultBroadcastInterval := 100 * time.Millisecond
-	if pm.blockchain != nil {
-		if 0 >= pm.blockchain.CacheConfig().DefaultTxsCacheSize {
-			pm.blockchain.CacheConfig().DefaultTxsCacheSize = DefaultTxsCacheSize
-		} else {
-			DefaultTxsCacheSize = pm.blockchain.CacheConfig().DefaultTxsCacheSize
-		}
-	}
-
-	if pm.blockchain != nil {
-		if 0 >= pm.blockchain.CacheConfig().DefaultBroadcastInterval {
-			pm.blockchain.CacheConfig().DefaultBroadcastInterval = DefaultBroadcastInterval
-		} else {
-			DefaultBroadcastInterval = pm.blockchain.CacheConfig().DefaultBroadcastInterval
-		}
-	}
-
-	timer := time.NewTimer(DefaultBroadcastInterval)
+	timer := time.NewTimer(defaultBroadcastInterval)
 
 	for {
 		select {
 		case event := <-pm.txsCh:
 			pm.txsCache = append(pm.txsCache, event.Txs...)
-			if len(pm.txsCache) >= DefaultTxsCacheSize {
+			if len(pm.txsCache) >= defaultTxsCacheSize {
 				log.Trace("broadcast txs", "count", len(pm.txsCache))
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
-				timer.Reset(DefaultBroadcastInterval)
+				timer.Reset(defaultBroadcastInterval)
 			}
 		case <-timer.C:
 			if len(pm.txsCache) > 0 {
@@ -931,7 +913,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
 			}
-			timer.Reset(DefaultBroadcastInterval)
+			timer.Reset(defaultBroadcastInterval)
 
 			// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():
