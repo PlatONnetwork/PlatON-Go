@@ -76,9 +76,23 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 				}
 			}
 
+			// Remove local forks that already exist.
+			filteredForkedBlocks := make([]*types.Block, 0)
+			filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
+			localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
+			for i, forkedBlock := range blockList.ForkedBlocks {
+				for _, localForkedBlock := range localForkedBlocks {
+					if forkedBlock.Hash() != localForkedBlock.Hash() && forkedBlock.NumberU64() != localForkedBlock.NumberU64() {
+						filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
+						filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
+						break
+					}
+				}
+			}
+
 			// Execution forked block.
 			var forkedParentBlock *types.Block
-			for _, forkedBlock := range blockList.ForkedBlocks {
+			for _, forkedBlock := range filteredForkedBlocks {
 				if forkedBlock.NumberU64() != parentBlock.NumberU64() {
 					cbft.log.Error("Invalid forked block", "lastParentNumber", parentBlock.NumberU64(), "forkedBlockNumber", forkedBlock.NumberU64())
 					break
@@ -93,7 +107,9 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 					break
 				}
 			}
-			for i, forkedBlock := range blockList.ForkedBlocks {
+
+			// Verify forked block and execute.
+			for i, forkedBlock := range filteredForkedBlocks {
 				if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
 					cbft.log.Debug("Response forked block's is error",
 						"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
@@ -111,7 +127,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 			}
 
 			cbft.asyncCallCh <- func() {
-				if err := cbft.OnInsertQCBlock(blockList.ForkedBlocks, blockList.ForkedQC); err != nil {
+				if err := cbft.OnInsertQCBlock(filteredForkedBlocks, filteredForkedQCs); err != nil {
 					cbft.log.Error("Insert forked block failed", "error", err)
 				}
 			}
