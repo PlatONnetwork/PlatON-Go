@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -225,6 +226,7 @@ type ValidatorPool struct {
 
 	// A block number which validators switch point.
 	switchPoint uint64
+	lastNumber  uint64
 
 	epoch uint64
 
@@ -244,9 +246,12 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 	if agency.GetLastNumber(blockNumber) == blockNumber {
 		pool.prevValidators, _ = agency.GetValidator(blockNumber)
 		pool.currentValidators, _ = agency.GetValidator(NextRound(blockNumber))
+		pool.lastNumber = agency.GetLastNumber(NextRound(blockNumber))
+		pool.epoch += 1
 	} else {
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
+		pool.lastNumber = agency.GetLastNumber(blockNumber)
 	}
 	// When validator mode is `static`, the `ValidatorBlockNumber` always 0,
 	// means we are using static validators. Otherwise, represent use current
@@ -266,7 +271,7 @@ func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
 	if blockNumber == vp.switchPoint {
 		return true
 	}
-	return blockNumber == vp.agency.GetLastNumber(blockNumber)
+	return blockNumber == vp.lastNumber
 }
 
 // EqualSwitchPoint returns boolean which representment the switch point
@@ -301,8 +306,9 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 	vp.prevValidators = vp.currentValidators
 	vp.currentValidators = nds
 	vp.switchPoint = nds.ValidBlockNumber - 1
+	vp.lastNumber = vp.agency.GetLastNumber(NextRound(blockNumber))
 	vp.epoch = epoch
-	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch)
+	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
 
 	isValidatorBefore := vp.isValidator(epoch-1, vp.nodeID)
 
@@ -556,6 +562,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, ms
 		return err
 	}
 	if !sig.Verify(&pub, string(msg)) {
+		log.Debug("Verify signature fail", "epoch", "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
 		return errors.New("bls verifies signature fail")
 	}
 	return nil

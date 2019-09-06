@@ -22,6 +22,8 @@ import (
 	"os/user"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -53,7 +55,7 @@ var DefaultConfig = Config{
 	TrieTimeout:   60 * time.Minute,
 	MinerGasFloor: 4000 * 21000 * 1.2,
 	MinerGasCeil:  4000 * 21000 * 1.2,
-	MinerGasPrice: big.NewInt(5e11),
+	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
 
 	MiningLogAtDepth:       7,
@@ -69,14 +71,12 @@ var DefaultConfig = Config{
 	StaleThreshold:         7,
 	DefaultCommitRatio:     0.95,
 
-	BodyCacheLimit:           256,
-	BlockCacheLimit:          256,
-	MaxFutureBlocks:          256,
-	BadBlockLimit:            10,
-	TriesInMemory:            128,
-	BlockChainVersion:        3,
-	DefaultTxsCacheSize:      20,
-	DefaultBroadcastInterval: 100 * time.Millisecond,
+	BodyCacheLimit:    256,
+	BlockCacheLimit:   256,
+	MaxFutureBlocks:   256,
+	BadBlockLimit:     10,
+	TriesInMemory:     128,
+	BlockChainVersion: 3,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{

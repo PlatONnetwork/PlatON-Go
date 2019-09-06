@@ -1070,7 +1070,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
-		log.Error("Failed GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
+		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return
 	}
 
@@ -1182,6 +1182,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
+
+	log.Info("Commit new work", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "pending", txsCount, "txs", w.current.tcount,"diff", txsCount - w.current.tcount, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1219,7 +1221,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
-		log.Error("Failed GetReactorInstance EndBlocker on worker", "blockNumber",
+		log.Error("Failed to GetReactorInstance EndBlocker on worker", "blockNumber",
 			w.current.header.Number.Uint64(), "err", err)
 		return err
 	}

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -155,7 +157,7 @@ func allVote(t *testing.T, pid common.Hash) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{
@@ -178,7 +180,7 @@ func allVote(t *testing.T, pid common.Hash) {
 func halfVote(t *testing.T, pid common.Hash) {
 	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	for i := 0; i < voteCount/2; i++ {
 		vote := gov.VoteInfo{
 			ProposalID: pid,
@@ -382,7 +384,7 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 func TestGovPlugin_SubmitVersion_PIPID_empty(t *testing.T) {
 	defer setup(t)()
 
-	vp := buildVersionProposal(txHashArr[0], "", 5, uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "", 4, uint32(1<<16|2<<8|0))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
 		if err == gov.PIPIDEmpty {
@@ -398,7 +400,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 
 	t.Log("CurrentActiveVersion", "version", gov.GetCurrentActiveVersion(stateDB))
 
-	vp := buildVersionProposal(txHashArr[0], "pipID", 5, uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "pipID", 4, uint32(1<<16|2<<8|0))
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
@@ -413,7 +415,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 		t.Log("ListPIPID", "p", p)
 	}
 
-	vp2 := buildVersionProposal(txHashArr[1], "pipID", 5, uint32(1<<16|3<<8|0))
+	vp2 := buildVersionProposal(txHashArr[1], "pipID", 4, uint32(1<<16|3<<8|0))
 
 	err = gov.Submit(sender, vp2, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
@@ -495,7 +497,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 		ProposalType:    gov.Version,
 		PIPID:           "versionPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: 5,
+		EndVotingRounds: 4,
 		Proposer:        nodeIdArr[0],
 		NewVersion:      newVersionErr, //error, less than activeVersion
 	}
@@ -623,7 +625,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -640,7 +642,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler = xcom.GetCryptoHandler()
+	chandler = handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign = common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -680,7 +682,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -721,7 +723,7 @@ func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -745,7 +747,7 @@ func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
 
 	buildBlockNoCommit(2)
 	nodeIdx := 0
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -775,7 +777,7 @@ func TestGovPlugin_DeclareVersion_wrongSign(t *testing.T) {
 	wrongVersion := uint32(1<<16 | 1<<8 | 1)
 
 	nodeIdx := 0
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(wrongVersion))
@@ -803,7 +805,7 @@ func TestGovPlugin_DeclareVersion_wrongVersion(t *testing.T) {
 	wrongVersion := uint32(1<<16 | 1<<8 | 1)
 
 	nodeIdx := 0
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(wrongVersion))
@@ -835,7 +837,7 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -852,7 +854,7 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler = xcom.GetCryptoHandler()
+	chandler = handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign = common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -894,7 +896,7 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 	buildBlockNoCommit(2)
 
 	nodeIdx := 0
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -1265,7 +1267,7 @@ func TestGovPlugin_Test_version(t *testing.T) {
 func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 
 	ver := uint32(66048) //1.2.0
-	chandler := xcom.GetCryptoHandler()
+	chandler := handler.GetCryptoHandler()
 
 	for i := 0; i < 4; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
@@ -1275,13 +1277,13 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 }
 
 var (
-	chandler *xcom.CryptoHandler
+	chandler *handler.CryptoHandler
 	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
 	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
 
 func initChandlerHandler() {
-	chandler = xcom.GetCryptoHandler()
+	chandler = handler.GetCryptoHandler()
 	chandler.SetPrivateKey(priKey)
 }
 

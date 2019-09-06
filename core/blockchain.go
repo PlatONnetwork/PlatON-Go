@@ -55,13 +55,11 @@ type CacheConfig struct {
 	TrieNodeLimit int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit time.Duration // Time limit after which to flush the current in-memory trie to disk
 
-	BodyCacheLimit           int
-	BlockCacheLimit          int
-	MaxFutureBlocks          int
-	BadBlockLimit            int
-	TriesInMemory            int
-	DefaultTxsCacheSize      int
-	DefaultBroadcastInterval time.Duration
+	BodyCacheLimit  int
+	BlockCacheLimit int
+	MaxFutureBlocks int
+	BadBlockLimit   int
+	TriesInMemory   int
 }
 
 // mining related configuration
@@ -146,15 +144,13 @@ type BlockChain struct {
 func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
-			TrieNodeLimit:            256 * 1024 * 1024,
-			TrieTimeLimit:            5 * time.Minute,
-			BodyCacheLimit:           256,
-			BlockCacheLimit:          256,
-			MaxFutureBlocks:          256,
-			BadBlockLimit:            10,
-			TriesInMemory:            128,
-			DefaultTxsCacheSize:      20,
-			DefaultBroadcastInterval: 100 * time.Millisecond,
+			TrieNodeLimit:   256 * 1024 * 1024,
+			TrieTimeLimit:   5 * time.Minute,
+			BodyCacheLimit:  256,
+			BlockCacheLimit: 256,
+			MaxFutureBlocks: 256,
+			BadBlockLimit:   10,
+			TriesInMemory:   128,
 		}
 	}
 	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)
@@ -330,6 +326,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 // FastSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
+
 	// Make sure that both the block as well at its state trie exists
 	block := bc.GetBlockByHash(hash)
 	if block == nil {
@@ -344,6 +341,8 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	bc.mu.Unlock()
 
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
+	bc.engine.Pause()
+	defer bc.engine.Resume()
 	return bc.engine.FastSyncCommitHead(block)
 }
 
@@ -1079,8 +1078,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
-	bc.chainmu.Lock()
-	defer bc.chainmu.Unlock()
+	//bc.chainmu.Lock()
+	//defer bc.chainmu.Unlock()
 
 	// A queued approach to delivering events. This is generally
 	// faster than direct delivery and requires much less mutex
@@ -1104,6 +1103,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
 	senderCacher.recoverFromBlocks(types.NewEIP155Signer(bc.chainConfig.ChainID), chain)
+
+	// Pause engine
+	bc.engine.Pause()
+	defer bc.engine.Resume()
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
