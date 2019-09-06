@@ -1595,14 +1595,6 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 
 	i := xutil.CalculateEpoch(blockNumber)
 
-	//cs := xutil.CalcBlocksEachEpoch()
-	//i := (blockNumber + cs) / cs
-	//if xutil.IsSettlementPeriod(blockNumber) {
-	//	i = i - 1
-	//}
-
-	//result := make(staking.ValidatorExQueue, 0)
-	//for i:=1; uint64(i) * cs <= blockNumber; i++  {
 	queryNumber := uint64(i) * xutil.CalcBlocksEachEpoch()
 	numStr := strconv.FormatUint(queryNumber, 10)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(VerifierName + numStr))
@@ -1614,31 +1606,11 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	if nil != err {
 		return nil, err
 	}
-	//if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
-	//	return nil, common.BizErrorf("GetHistoryVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
-	//		BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
-	//}
 
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
 	for i, v := range verifierList.Arr {
 
-		//var can *staking.Candidate
-		//if !isCommit {
-		//	c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
-		//	if nil != err {
-		//		return nil, err
-		//	}
-		//	can = c
-		//} else {
-		//	c, err := sk.db.GetCandidateStoreByIrr(v.NodeAddress)
-		//	if nil != err {
-		//		return nil, err
-		//	}
-		//	can = c
-		//}
-
-		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
@@ -1653,8 +1625,6 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 		}
 		queue[i] = valEx
 	}
-	//result = append(result, queue...)
-	//}
 
 	return queue, nil
 }
@@ -1813,21 +1783,11 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	return queue, nil
 }
 
-// flag:NOTE
-// 0: 	Query previous round consensus validator
-// 1:  	Query current round consensus validaor
-// 3:  	Query next round consensus validator
+
 func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
 	staking.ValidatorExQueue, error) {
 
 	i := xutil.CalculateRound(blockNumber)
-	//cs := xutil.ConsensusSize()
-	//i := (blockNumber + cs) / cs
-	//if xutil.IsElection(blockNumber) {
-	//	i = i - 1
-	//}
-	//result := make(staking.ValidatorExQueue, 0)
-	//for i:=1; uint64(i) * cs <= blockNumber; i++ {
 	queryNumber := uint64(i) * xutil.ConsensusSize()
 	numStr := strconv.FormatUint(queryNumber, 10)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
@@ -1843,24 +1803,6 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 
 	for i, v := range validatorArr.Arr {
 
-		//var can *staking.Candidate
-		//
-		//if !isCommit {
-		//	c, err := sk.db.GetCandidateStore(blockHash, v.NodeAddress)
-		//	if nil != err {
-		//		return nil, err
-		//	}
-		//	can = c
-		//} else {
-		//	c, err := sk.db.GetCandidateStoreByIrr(v.NodeAddress)
-		//	if nil != err {
-		//		return nil, err
-		//	}
-		//	can = c
-		//}
-
-		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
-
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
 			//StakingAddress:  can.StakingAddress,
@@ -1874,8 +1816,6 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 		}
 		queue[i] = valEx
 	}
-	//result = append(result, queue...)
-	//}
 	return queue, nil
 }
 
