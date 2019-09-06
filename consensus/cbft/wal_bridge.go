@@ -277,7 +277,7 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 	case protocols.LockState:
 		cbft.state.SetHighestLockBlock(state.Block)
 	case protocols.QCState:
-		cbft.state.SetHighestQCBlock(state.Block)
+		cbft.TrySetHighestQCBlock(state.Block)
 	}
 }
 

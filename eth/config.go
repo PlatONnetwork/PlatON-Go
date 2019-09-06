@@ -45,7 +45,7 @@ var DefaultConfig = Config{
 		MaxPingLatency:    5000,
 		MaxQueuesLimit:    4096,
 		BlacklistDeadline: 60,
-		Period:            10000,
+		Period:            20000,
 		Amount:            10,
 	},
 	NetworkId:     1,
