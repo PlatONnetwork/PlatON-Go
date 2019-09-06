@@ -53,6 +53,8 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
 
+	numBroadcastTxPeers = 5 // Maximum number of peers for broadcast transactions
+
 //	defaultTxsCacheSize      = 20
 //	defaultBroadcastInterval = 100 * time.Millisecond
 )
@@ -859,14 +861,14 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
 		peers := pm.peers.PeersWithoutTx(tx.Hash())
-		if len(peers) <= 5 {
+		if len(peers) <= numBroadcastTxPeers {
 			for _, peer := range peers {
 				txset[peer] = append(txset[peer], tx)
 			}
 		} else {
 			rand.Seed(time.Now().UnixNano())
 			indexes := rand.Perm(len(peers))
-			for i := 0; i < 5; i++ {
+			for i := 0; i < numBroadcastTxPeers; i++ {
 				peer := peers[indexes[i]]
 				txset[peer] = append(txset[peer], tx)
 			}
