@@ -37,6 +37,7 @@ import (
 const (
 	maxLackingHashes  = 4096 // Maximum number of entries allowed on the list or lacking items
 	measurementImpact = 0.1  // The impact a single measurement has on a peer's final throughput value.
+	maxLackTimeout    = 200 * time.Millisecond
 )
 
 var (
@@ -66,7 +67,7 @@ type peerConnection struct {
 	receiptStarted time.Time // Time instance when the last receipt fetch was started
 	stateStarted   time.Time // Time instance when the last node data fetch was started
 
-	lacking map[common.Hash]struct{} // Set of hashes not to request (didn't have previously)
+	lacking map[common.Hash]time.Time // Set of hashes not to request (didn't have previously)
 
 	peer Peer
 
@@ -126,7 +127,7 @@ func (w *lightPeerWrapper) RequestOriginAndPivotByCurrent(uint64) error {
 func newPeerConnection(id string, version int, peer Peer, logger log.Logger) *peerConnection {
 	return &peerConnection{
 		id:      id,
-		lacking: make(map[common.Hash]struct{}),
+		lacking: make(map[common.Hash]time.Time),
 
 		peer: peer,
 
@@ -150,7 +151,7 @@ func (p *peerConnection) Reset() {
 	p.receiptThroughput = 0
 	p.stateThroughput = 0
 
-	p.lacking = make(map[common.Hash]struct{})
+	p.lacking = make(map[common.Hash]time.Time)
 }
 
 // FetchHeaders sends a header retrieval request to the remote peer.
@@ -343,7 +344,7 @@ func (p *peerConnection) MarkLacking(hash common.Hash) {
 			break
 		}
 	}
-	p.lacking[hash] = struct{}{}
+	p.lacking[hash] = time.Now()
 }
 
 // Lacks retrieves whether the hash of a blockchain item is on the peers lacking
@@ -352,7 +353,11 @@ func (p *peerConnection) Lacks(hash common.Hash) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	_, ok := p.lacking[hash]
+	v, ok := p.lacking[hash]
+	if ok && time.Since(v) > maxLackTimeout {
+		delete(p.lacking, hash)
+		return false
+	}
 	return ok
 }
 
