@@ -179,30 +179,34 @@ func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Hea
 
 func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash) error {
 	preCount := 0
-	iter := sp.db.Ranking(blockHash, preAbnormalPrefix, 0)
-	for iter.Next() {
-		log.Debug("slashingPlugin switchEpoch ranking pre", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", common.BytesToUint32(iter.Value()))
-		if err := sp.db.Del(blockHash, iter.Key()); nil != err {
+	preIterator := sp.db.Ranking(blockHash, preAbnormalPrefix, 0)
+	for preIterator.Next() {
+		key := preIterator.Key()
+		value := preIterator.Value()
+		log.Debug("slashingPlugin switchEpoch ranking pre", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(value))
+		if err := sp.db.Del(blockHash, key); nil != err {
 			return err
 		}
 		preCount++
 	}
-
+	preIterator.Release()
 	curCount := 0
-	iter = sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
-	for iter.Next() {
-		key := iter.Key()
-		log.Debug("slashingPlugin switchEpoch ranking cur", "blockNumber", blockNumber, "key", hex.EncodeToString(iter.Key()), "value", common.BytesToUint32(iter.Value()))
+	curIterator := sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
+	for curIterator.Next() {
+		key := curIterator.Key()
+		value := curIterator.Value()
+		log.Debug("slashingPlugin switchEpoch ranking cur", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(value))
 		if err := sp.db.Del(blockHash, key); nil != err {
 			return err
 		}
 		key = preKey(key[len(curAbnormalPrefix):])
-		log.Debug("slashingPlugin switchEpoch ranking change pre", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(iter.Value()))
-		if err := sp.db.Put(blockHash, key, iter.Value()); nil != err {
+		log.Debug("slashingPlugin switchEpoch ranking change pre", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(value))
+		if err := sp.db.Put(blockHash, key, value); nil != err {
 			return err
 		}
 		curCount++
 	}
+	curIterator.Release()
 	log.Info("slashingPlugin switchEpoch success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "preCount", preCount, "curCount", curCount)
 	return nil
 }
@@ -211,6 +215,7 @@ func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash)
 func (sp *SlashingPlugin) GetPreNodeAmount(parentHash common.Hash) (map[discover.NodeID]uint32, error) {
 	result := make(map[discover.NodeID]uint32)
 	iter := sp.db.Ranking(parentHash, preAbnormalPrefix, 0)
+	defer iter.Release()
 	for iter.Next() {
 		key := iter.Key()
 		value := iter.Value()

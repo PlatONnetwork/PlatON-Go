@@ -2788,13 +2788,13 @@ func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byt
 	if len(preNonces) > len(validatorList) {
 		preNonces = preNonces[len(preNonces)-len(validatorList):]
 	}
-	return ProbabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces)
+	return probabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces)
 }
 
-func ProbabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
+func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
 		log.Error("Failed to probabilityElection on Election", "validatorListSize", len(validatorList),
-			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
+			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum())
 		return nil, ParamsErr
 	}
 	sumWeights := new(big.Int)
@@ -2848,8 +2848,8 @@ func ProbabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 			return nil, err
 		}
 		sv.x = x
-		log.Debug("calculated probability on Election", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()),
-			"addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce",
+		log.Debug("calculated probability on Election", "nodeId", sv.v.NodeId.TerminalString(),
+			"addr", sv.v.NodeAddress.Hex(), "index", index, "currentNonce",
 			hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]),
 			"target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version,
 			"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
@@ -2861,8 +2861,8 @@ func ProbabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 			break
 		}
 		resultValidatorList[index] = sv.v
-		log.Debug("sort validator on Election", "nodeId", sv.v.NodeId.String(),
-			"addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()),
+		log.Debug("sort validator on Election", "nodeId", sv.v.NodeId.TerminalString(),
+			"addr", sv.v.NodeAddress.Hex(),
 			"index", index, "weight", sv.weights, "x", sv.x, "version", sv.version,
 			"blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
