@@ -42,6 +42,17 @@ func (suit *ViewChangeTestSuite) insertOneBlock() {
 	}
 }
 
+func (suit *ViewChangeTestSuite) createEvPool(paths []string) {
+	if len(paths) != len(suit.view.allNode) {
+		panic("paths len err")
+	}
+	for i, path := range paths {
+		pool, _ := evidence.NewBaseEvidencePool(path)
+		suit.view.allCbft[i].evPool = pool
+	}
+
+}
+
 func (suit *ViewChangeTestSuite) SetupTest() {
 	suit.view = newTestView(false, testNodeNumber)
 	suit.blockOne = NewBlock(suit.view.genesisBlock.Hash(), 1)
@@ -246,8 +257,11 @@ func (suit *ViewChangeTestSuite) TestCheckCorrectViewChangeRepeat() {
 }
 
 // 同一人，基于不同区块的viewChange消息
-// 校验通过，ViewChangeLen不变
+// 校验不通过，返回双viewChange的错误
 func (suit *ViewChangeTestSuite) TestViewChangeRepeatWithDifBlock() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
 	suit.insertOneBlock()
 	viewChange1 := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
@@ -256,8 +270,13 @@ func (suit *ViewChangeTestSuite) TestViewChangeRepeatWithDifBlock() {
 	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange2); err != nil {
-		suit.T().Fatal(err.Error())
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange2); err == nil {
+		suit.T().Fatal("fail")
+	} else {
+		reg := regexp.MustCompile(`DuplicateViewChangeEvidence`)
+		if len(reg.FindAllString(err.Error(), -1)) == 0 {
+			suit.T().Fatal(err.Error())
+		}
 	}
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
 }

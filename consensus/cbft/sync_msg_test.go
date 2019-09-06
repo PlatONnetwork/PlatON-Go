@@ -87,6 +87,8 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
 // viewNumber落后的
 // blockIndex不存在的
 func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
+	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
+	suit.insertOneBlock(pb)
 	testcases := []struct {
 		name string
 		data *protocols.GetPrepareBlock
@@ -127,8 +129,9 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 		}
 		select {
 		case m := <-suit.msgCh:
-			fmt.Println(m.Message().String())
-			suit.T().Errorf("case %s is failed,msgType%T", testcase.name, m.Message())
+			if v, ok := m.Message().(*protocols.PrepareBlock); ok {
+				suit.T().Error(v.String())
+			}
 		case <-time.After(time.Millisecond * 10):
 		}
 
