@@ -194,17 +194,6 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, uint64, uint64, common.Hash, u
 		}
 	}
 	return maxQC.Epoch, maxQC.ViewNumber, maxQC.BlockEpoch, maxQC.BlockViewNumber, maxQC.BlockHash, maxQC.BlockNumber
-
-	//epoch, view, blockEpoch, blockView, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
-	//
-	//for _, qc := range v.QCs {
-	//	if qc.HigherBlockView(blockEpoch, blockView) {
-	//		blockEpoch, blockView, hash, number = qc.BlockEpoch, qc.BlockViewNumber, qc.BlockHash, qc.BlockNumber
-	//	} else if number < qc.BlockNumber {
-	//		hash, number = qc.BlockHash, qc.BlockNumber
-	//	}
-	//}
-	//return epoch, view, blockEpoch, blockView, hash, number
 }
 
 func (v ViewChangeQC) Len() int {

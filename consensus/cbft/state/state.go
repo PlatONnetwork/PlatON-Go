@@ -565,10 +565,8 @@ func (vs *ViewState) HighestExecutedBlock() *types.Block {
 	if vs.executing.BlockIndex == math.MaxUint32 || (vs.executing.BlockIndex == 0 && !vs.executing.Finish) {
 		block := vs.HighestQCBlock()
 		if vs.lastViewChangeQC != nil {
-			tmp, _ := vs.blockTree.MarshalJSON()
-			log.Debug("lastViewChangeQC", "lastViewChangeQC", vs.lastViewChangeQC.String())
-			log.Debug("blockTree", "blockTree", string(tmp))
 			_, _, _, _, hash, _ := vs.lastViewChangeQC.MaxBlock()
+			// fixme insertQCBlock should also change the state of executing
 			if b := vs.blockTree.FindBlockByHash(hash); b != nil {
 				block = b
 			}
