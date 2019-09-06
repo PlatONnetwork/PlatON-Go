@@ -76,7 +76,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 				}
 			}
 			if blockList.ForkedBlocks == nil || len(blockList.ForkedBlocks) == 0 {
-				cbft.log.Debug("No forked block need to handle")
+				cbft.log.Trace("No forked block need to handle")
 				return
 			}
 			// Remove local forks that already exist.
