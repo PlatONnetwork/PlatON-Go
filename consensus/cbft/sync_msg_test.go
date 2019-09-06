@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -86,8 +87,6 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
 // viewNumber落后的
 // blockIndex不存在的
 func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
-	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
-	suit.insertOneBlock(pb)
 	testcases := []struct {
 		name string
 		data *protocols.GetPrepareBlock
@@ -119,12 +118,17 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 		}},
 	}
 	for _, testcase := range testcases {
+		select {
+		case <-suit.msgCh:
+		case <-time.After(time.Millisecond * 10):
+		}
 		if err := suit.view.firstProposer().OnGetPrepareBlock("", testcase.data); err != nil {
 			suit.T().Errorf("case-%s is failed,reson:%s", testcase.name, err.Error())
 		}
 		select {
-		case <-suit.msgCh:
-			suit.T().Fatal("fail")
+		case m := <-suit.msgCh:
+			fmt.Println(m.Message().String())
+			suit.T().Errorf("case %s is failed,msgType%T", testcase.name, m.Message())
 		case <-time.After(time.Millisecond * 10):
 		}
 
@@ -386,6 +390,12 @@ func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
 	case m := <-suit.msgCh:
 		if msg, ok := m.Message().(*protocols.PrepareVotes); ok {
 			suit.Equal(4, len(msg.Votes))
+			sort.Slice(votes, func(i, j int) bool {
+				return votes[i].ValidatorIndex < votes[j].ValidatorIndex
+			})
+			sort.Slice(msg.Votes, func(i, j int) bool {
+				return msg.Votes[i].ValidatorIndex < msg.Votes[j].ValidatorIndex
+			})
 			suit.EqualValues(votes, msg.Votes)
 		}
 	case <-time.After(time.Millisecond * 10):
