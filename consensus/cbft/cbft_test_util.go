@@ -382,7 +382,9 @@ func mockPrepareQC(total uint32, votes map[uint32]*protocols.PrepareVote) *ctype
 		return nil
 	}
 	var vote *protocols.PrepareVote
-	vote = votes[0]
+	for _, v := range votes {
+		vote = v
+	}
 	vSet := utils.NewBitArray(uint32(total))
 	vSet.SetIndex(vote.NodeIndex(), true)
 	var aggSig bls.Sign

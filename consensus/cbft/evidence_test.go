@@ -53,7 +53,7 @@ func (suit *EvidenceTestSuite) SetupTest() {
 }
 
 // 双viewChange
-func (suit *EvidenceTestSuite) TestViewChangeDup() {
+func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
 	suit.createEvPool(paths)
@@ -70,15 +70,20 @@ func (suit *EvidenceTestSuite) TestViewChangeDup() {
 	}
 	ev := suit.view.firstProposer().Evidences()
 	var duplicateViewChange *evidence.EvidenceData
-	if err := json.Unmarshal([]byte(ev), duplicateViewChange); err != nil {
+	if err := json.Unmarshal([]byte(ev), &duplicateViewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	suit.EqualValues(duplicateViewChange.DC[0].ViewA, viewChange1)
-	suit.EqualValues(duplicateViewChange.DC[0].ViewB, viewChange2)
+	if len(duplicateViewChange.DC) == 0 {
+		suit.T().Fatal("Evidences is empty")
+	}
+	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicateViewChange.DC[0].ViewA.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicateViewChange.DC[0].ViewA.ValidateNode.BlsPubKey.Serialize())
+	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicateViewChange.DC[0].ViewB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicateViewChange.DC[0].ViewB.ValidateNode.BlsPubKey.Serialize())
 }
 
 // 双出
-func (suit *EvidenceTestSuite) TestPrepareBlockDup() {
+func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
 	suit.createEvPool(paths)
@@ -103,6 +108,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDup() {
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
+	// time.Sleep(time.Millisecond * 10)
 	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err == nil {
@@ -110,15 +116,20 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDup() {
 	}
 	ev := suit.view.firstProposer().Evidences()
 	var duplicatePrepareBlock *evidence.EvidenceData
-	if err := json.Unmarshal([]byte(ev), duplicatePrepareBlock); err != nil {
+	if err := json.Unmarshal([]byte(ev), &duplicatePrepareBlock); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	suit.EqualValues(duplicatePrepareBlock.DP[0].PrepareA, prepareBlock1)
-	suit.EqualValues(duplicatePrepareBlock.DP[0].PrepareB, prepareBlock2)
+	if len(duplicatePrepareBlock.DP) == 0 {
+		suit.T().Fatal("Evidences is empty")
+	}
+	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.BlsPubKey.Serialize())
+	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.BlsPubKey.Serialize())
 }
 
 // 双签
-func (suit *EvidenceTestSuite) TestPrepareVoteDup() {
+func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
 	suit.createEvPool(paths)
@@ -138,11 +149,16 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDup() {
 	if err := suit.view.secondProposer().OnPrepareVote(suit.view.firstProposer().NodeID().String(), prepareVote2); err == nil {
 		suit.T().Fatal("FAIL")
 	}
-	ev := suit.view.firstProposer().Evidences()
+	ev := suit.view.secondProposer().Evidences()
 	var duplicatePrepareVote *evidence.EvidenceData
-	if err := json.Unmarshal([]byte(ev), duplicatePrepareVote); err != nil {
+	if err := json.Unmarshal([]byte(ev), &duplicatePrepareVote); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	suit.EqualValues(duplicatePrepareVote.DV[0].VoteA, prepareVote1)
-	suit.EqualValues(duplicatePrepareVote.DV[0].VoteB, prepareVote2)
+	if len(duplicatePrepareVote.DV) == 0 {
+		suit.T().Fatal("Evidences is empty")
+	}
+	suit.EqualValues(suit.view.firstProposer().config.Option.NodeID, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.firstProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareVote.DV[0].VoteB.ValidateNode.BlsPubKey.Serialize())
+	suit.EqualValues(suit.view.firstProposer().config.Option.NodeID, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
+	suit.EqualValues(suit.view.firstProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareVote.DV[0].VoteB.ValidateNode.BlsPubKey.Serialize())
 }
