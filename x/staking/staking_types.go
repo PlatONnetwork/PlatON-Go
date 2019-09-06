@@ -34,6 +34,10 @@ const (
 
 const SWeightItem = 4
 
+func Is_Valid(status uint32) bool {
+	return !Is_Invalid(status)
+}
+
 func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
 }
@@ -743,8 +747,8 @@ type ValidatorArray struct {
 }
 
 type ValidatorEx struct {
-	NodeAddress common.Address
-	NodeId      discover.NodeID
+	//NodeAddress common.Address
+	NodeId discover.NodeID
 	// bls public key
 	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
