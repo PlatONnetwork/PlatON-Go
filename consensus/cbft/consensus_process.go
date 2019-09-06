@@ -226,7 +226,7 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.TrySetHighestQCBlock(block)
 	cbft.txPool.Reset(block)
-	cbft.tryCommitNewBlock(lock, commit)
+	cbft.tryCommitNewBlock(lock, commit, block)
 	cbft.tryChangeView()
 	if cbft.insertBlockQCHook != nil {
 		// test hook
@@ -441,12 +441,13 @@ func (cbft *Cbft) findQCBlock() {
 }
 
 // Try commit a new block
-func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
+func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *types.Block) {
 	if lock == nil || commit == nil {
 		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
 		return
 	}
-	highestqc := cbft.state.HighestQCBlock()
+	//highestqc := cbft.state.HighestQCBlock()
+	highestqc := qc
 	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 
 	// Incremental commit block
