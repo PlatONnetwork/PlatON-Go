@@ -184,7 +184,7 @@ var (
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
-			Period:        10000,
+			Period:        20000,
 		},
 		VMInterpreter: "wasm",
 	}
