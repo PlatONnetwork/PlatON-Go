@@ -43,7 +43,6 @@ const (
 	GetResult             = uint16(2101)
 	ListProposal          = uint16(2102)
 	GetActiveVersion      = uint16(2103)
-	GetProgramVersion     = uint16(2104)
 	GetAccuVerifiersCount = uint16(2105)
 )
 
@@ -79,7 +78,6 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		GetResult:             gc.getTallyResult,
 		ListProposal:          gc.listProposal,
 		GetActiveVersion:      gc.getActiveVersion,
-		GetProgramVersion:     gc.getProgramVersion,
 		GetAccuVerifiersCount: gc.getAccuVerifiersCount,
 	}
 }
@@ -338,21 +336,6 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	activeVersion := gov.GetCurrentActiveVersion(gc.Evm.StateDB)
 
 	return gc.returnHandler("getActiveVersion", activeVersion, nil, GetActiveVersionErrorMsg)
-}
-
-func (gc *GovContract) getProgramVersion() ([]byte, error) {
-	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	//blockHash := gc.Evm.BlockHash
-	txHash := gc.Evm.StateDB.TxHash()
-	log.Debug("call getProgramVersion of GovContract",
-		"from", from.Hex(),
-		"txHash", txHash,
-		"blockNumber", blockNumber)
-
-	versionValue, err := gov.GetProgramVersion()
-
-	return gc.returnHandler("getProgramVersion", versionValue, err, GetProgramVersionErrorMsg)
 }
 
 func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) ([]byte, error) {

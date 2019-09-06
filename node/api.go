@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
@@ -432,4 +434,13 @@ func (s *PublicWeb3API) ClientVersion() string {
 // It assumes the input is hex encoded.
 func (s *PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
 	return crypto.Keccak256(input)
+}
+
+func (s *PublicWeb3API) GetProgramVersion(ctx context.Context, text string) (*params.ProgramVersion, error) {
+	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	sig, err := GetCryptoHandler().Sign(programVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &params.ProgramVersion{Version: programVersion, Sign: hexutil.Encode(sig)}, nil
 }

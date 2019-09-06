@@ -5383,6 +5383,12 @@ var methods = function () {
       params: 0
     });
 
+    var getProgramVersion = new Method({
+      name: 'getProgramVersion',
+      call: 'admin_getProgramVersion',
+      params: 0
+    });
+
     return [
         getBalance,
         getStorageAt,
@@ -5401,7 +5407,8 @@ var methods = function () {
         sign,
         consensusStatus,
         economicConfig,
-        getPrepareQC
+        getPrepareQC,
+        getProgramVersion
     ];
 };
 
