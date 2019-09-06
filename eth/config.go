@@ -71,14 +71,12 @@ var DefaultConfig = Config{
 	StaleThreshold:         7,
 	DefaultCommitRatio:     0.95,
 
-	BodyCacheLimit:           256,
-	BlockCacheLimit:          256,
-	MaxFutureBlocks:          256,
-	BadBlockLimit:            10,
-	TriesInMemory:            128,
-	BlockChainVersion:        3,
-	DefaultTxsCacheSize:      20,
-	DefaultBroadcastInterval: 100 * time.Millisecond,
+	BodyCacheLimit:    256,
+	BlockCacheLimit:   256,
+	MaxFutureBlocks:   256,
+	BadBlockLimit:     10,
+	TriesInMemory:     128,
+	BlockChainVersion: 3,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{

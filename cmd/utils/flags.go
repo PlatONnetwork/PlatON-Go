@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -58,6 +57,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -1468,15 +1468,13 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	cache := &core.CacheConfig{
 		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
-		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
-		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
+		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1509,16 +1507,14 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:                 ctx.GlobalString(GCModeFlag.Name) == "archive",
-		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
-		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
+		Disabled:        ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
