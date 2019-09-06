@@ -143,6 +143,16 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 
+	log.Info("Call Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
+	numStr := strconv.FormatUint(block.NumberU64(), 10)
+	if block.NumberU64() == uint64(1) {
+		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
+		if nil != err {
+			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
+				"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", err)
+			return err
+		}
+
 		data, err := rlp.EncodeToBytes(current)
 		if nil != err {
 			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
