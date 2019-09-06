@@ -436,7 +436,7 @@ func (s *PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
 	return crypto.Keccak256(input)
 }
 
-func (s *PublicWeb3API) GetProgramVersion(ctx context.Context, text string) (*params.ProgramVersion, error) {
+func (api *PublicAdminAPI) GetProgramVersion() (*params.ProgramVersion, error) {
 	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 	sig, err := GetCryptoHandler().Sign(programVersion)
 	if err != nil {
