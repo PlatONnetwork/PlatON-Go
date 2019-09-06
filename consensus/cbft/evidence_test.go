@@ -3,6 +3,7 @@ package cbft
 import (
 	"encoding/json"
 	"math/big"
+	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -12,6 +13,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/stretchr/testify/suite"
 )
+
+func TestEvidenceSuite(t *testing.T) {
+	suite.Run(t, new(EvidenceTestSuite))
+}
 
 type EvidenceTestSuite struct {
 	suite.Suite

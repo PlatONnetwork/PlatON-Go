@@ -381,26 +381,17 @@ func mockPrepareQC(total uint32, votes map[uint32]*protocols.PrepareVote) *ctype
 	if len(votes) == 0 {
 		return nil
 	}
-
 	var vote *protocols.PrepareVote
-
 	for _, v := range votes {
 		vote = v
 	}
-	if vote == nil {
-		return nil
-	}
-	// Validator set prepareQC is the same as highestQC
-	// total := len(votes)
-
+	vote = votes[0]
 	vSet := utils.NewBitArray(uint32(total))
 	vSet.SetIndex(vote.NodeIndex(), true)
-
 	var aggSig bls.Sign
 	if err := aggSig.Deserialize(vote.Sign()); err != nil {
 		return nil
 	}
-
 	qc := &ctypes.QuorumCert{
 		Epoch:        vote.Epoch,
 		ViewNumber:   vote.ViewNumber,
@@ -446,9 +437,7 @@ func genViewChangeQC(total uint32, viewChanges map[uint32]*protocols.ViewChange)
 		ba     *utils.BitArray
 	}
 	// total := uint32(cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()))
-
 	qcs := make(map[common.Hash]*ViewChangeQC)
-
 	for _, v := range viewChanges {
 		var aggSig bls.Sign
 		if err := aggSig.Deserialize(v.Sign()); err != nil {
@@ -480,7 +469,6 @@ func genViewChangeQC(total uint32, viewChanges map[uint32]*protocols.ViewChange)
 			vc.ba.SetIndex(v.NodeIndex(), true)
 		}
 	}
-
 	qc := &ctypes.ViewChangeQC{QCs: make([]*ctypes.ViewChangeQuorumCert, 0)}
 	for _, q := range qcs {
 		q.cert.Signature.SetBytes(q.aggSig.Serialize())
