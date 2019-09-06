@@ -756,7 +756,6 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 		dbInstance.snapshotLockC = snapshotLock
 		go func() {
 			time.Sleep(time.Millisecond * 500)
-			dbInstance.snapshotLock.Send(struct{}{})
 			dbInstance.snapshotLockC = snapshotUnLock
 		}()
 		f2 := func(num *big.Int, iter iterator.Iterator) error {
