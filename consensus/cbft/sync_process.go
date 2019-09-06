@@ -75,7 +75,10 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 					cbft.log.Error("Insert block failed", "error", err)
 				}
 			}
-
+			if blockList.ForkedBlocks == nil || len(blockList.ForkedBlocks) == 0 {
+				cbft.log.Debug("No forked block need to handle")
+				return
+			}
 			// Remove local forks that already exist.
 			filteredForkedBlocks := make([]*types.Block, 0)
 			filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
