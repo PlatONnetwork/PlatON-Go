@@ -50,10 +50,10 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		if err.NewView() {
 			var block *types.Block
 			var qc *ctypes.QuorumCert
+			if e := cbft.checkViewChangeQC(msg); e != nil {
+				return e
+			}
 			if msg.ViewChangeQC != nil {
-				if e := cbft.verifyViewChangeQC(msg.ViewChangeQC); e != nil {
-					return e
-				}
 				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
 			} else {
@@ -230,7 +230,7 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	}
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
-	cbft.state.SetHighestQCBlock(block)
+	cbft.TrySetHighestQCBlock(block)
 	isOwn := func() bool {
 		node, err := cbft.isCurrentValidator()
 		if err != nil {
@@ -253,6 +253,15 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		cbft.insertBlockQCHook(block, qc)
 	}
 	cbft.trySendPrepareVote()
+}
+
+func (cbft *Cbft) TrySetHighestQCBlock(block *types.Block) {
+	_, qc := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+	h := cbft.state.HighestQCBlock()
+	_, hqc := cbft.blockTree.FindBlockAndQC(h.Hash(), h.NumberU64())
+	if hqc == nil || qc.HigherQuorumCert(hqc.BlockNumber, hqc.Epoch, hqc.ViewNumber) {
+		cbft.state.SetHighestQCBlock(block)
+	}
 }
 
 func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
@@ -452,12 +461,13 @@ func (cbft *Cbft) findQCBlock() {
 }
 
 // Try commit a new block
-func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block) {
+func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *types.Block) {
 	if lock == nil || commit == nil {
 		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
 		return
 	}
-	highestqc := cbft.state.HighestQCBlock()
+	//highestqc := cbft.state.HighestQCBlock()
+	highestqc := qc
 	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 
 	// Incremental commit block
@@ -535,32 +545,59 @@ func (cbft *Cbft) tryChangeView() {
 	}
 }
 
+func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
+	node, err := cbft.isCurrentValidator()
+	if err != nil {
+		cbft.log.Error("Local node is not validator")
+		return
+	}
+	hadSend := cbft.state.ViewChangeByIndex(uint32(node.Index))
+	if hadSend != nil && !viewChangeQC.ExistViewChange(hadSend.Epoch, hadSend.ViewNumber, hadSend.BlockHash) {
+		cert, err := cbft.generateViewChangeQuorumCert(hadSend)
+		if err != nil {
+			cbft.log.Error("Generate viewChangeQuorumCert error", "err", err)
+			return
+		}
+		cbft.log.Debug("Already send viewChange,append viewChangeQuorumCert to ViewChangeQC", "cert", cert.String())
+		viewChangeQC.AppendQuorumCert(cert)
+	}
+
+	_, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
+	_, _, blockEpoch, blockView, _, number := viewChangeQC.MaxBlock()
+
+	if qc.HigherQuorumCert(number, blockEpoch, blockView) {
+		if hadSend == nil {
+			v, err := cbft.generateViewChange(qc)
+			if err != nil {
+				cbft.log.Error("Generate viewChange error", "err", err)
+				return
+			}
+			cert, err := cbft.generateViewChangeQuorumCert(v)
+			if err != nil {
+				cbft.log.Error("Generate viewChangeQuorumCert error", "err", err)
+				return
+			}
+			cbft.log.Debug("Not send viewChange,append viewChangeQuorumCert to ViewChangeQC", "cert", cert.String())
+			viewChangeQC.AppendQuorumCert(cert)
+		}
+	}
+}
+
 func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 	increasing := func() uint64 {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	_, _, blockEpoch, blockView, hash, number := viewChangeQC.MaxBlock()
+	_, _, blockEpoch, _, hash, number := viewChangeQC.MaxBlock()
 	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
-	b, q := cbft.blockTree.FindBlockAndQC(hash, number)
 	if block.NumberU64() != 0 {
-		if number > qc.BlockNumber || !qc.HigherBlockView(blockEpoch, blockView) {
-			if q == nil {
-				//fixme get qc block
-				cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
-				return
-			}
-			block = b
-			qc = q
-			cbft.state.SetHighestQCBlock(block)
-		} else if number < qc.BlockNumber || qc.HigherBlockView(blockEpoch, blockView) {
-			cbft.log.Debug("Local node is ahead other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
-			cert, err := cbft.generateViewChangeQuorumCert(qc)
-			if err != nil {
-				return
-			}
-			cbft.log.Debug("New viewChange quorumCert", "cert", cert.String())
-			viewChangeQC.QCs = append(viewChangeQC.QCs, cert)
+		cbft.richViewChangeQC(viewChangeQC)
+		_, _, blockEpoch, _, hash, number = viewChangeQC.MaxBlock()
+		block, qc := cbft.blockTree.FindBlockAndQC(hash, number)
+		if block == nil || qc == nil {
+			// fixme get qc block
+			cbft.log.Warn("Local node is behind other validators", "blockState", cbft.state.HighestBlockString(), "viewChangeQC", viewChangeQC.String())
+			return
 		}
 	}
 
@@ -572,7 +609,36 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 	}
 }
 
-func (cbft *Cbft) generateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.ViewChangeQuorumCert, error) {
+func (cbft *Cbft) generateViewChangeQuorumCert(v *protocols.ViewChange) (*ctypes.ViewChangeQuorumCert, error) {
+	node, err := cbft.isCurrentValidator()
+	if err != nil {
+		return nil, errors.Wrap(err, "local node is not validator")
+	}
+	total := uint32(cbft.validatorPool.Len(cbft.state.Epoch()))
+	var aggSig bls.Sign
+	if err := aggSig.Deserialize(v.Sign()); err != nil {
+		return nil, err
+	}
+
+	blockEpoch, blockView := uint64(0), uint64(0)
+	if v.PrepareQC != nil {
+		blockEpoch, blockView = v.PrepareQC.Epoch, v.PrepareQC.ViewNumber
+	}
+	cert := &ctypes.ViewChangeQuorumCert{
+		Epoch:           v.Epoch,
+		ViewNumber:      v.ViewNumber,
+		BlockHash:       v.BlockHash,
+		BlockNumber:     v.BlockNumber,
+		BlockEpoch:      blockEpoch,
+		BlockViewNumber: blockView,
+		ValidatorSet:    utils.NewBitArray(total),
+	}
+	cert.Signature.SetBytes(aggSig.Serialize())
+	cert.ValidatorSet.SetIndex(node.Index, true)
+	return cert, nil
+}
+
+func (cbft *Cbft) generateViewChange(qc *ctypes.QuorumCert) (*protocols.ViewChange, error) {
 	node, err := cbft.isCurrentValidator()
 	if err != nil {
 		return nil, errors.Wrap(err, "local node is not validator")
@@ -589,23 +655,7 @@ func (cbft *Cbft) generateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.V
 		return nil, errors.Wrap(err, "Sign ViewChange failed")
 	}
 
-	total := uint32(cbft.validatorPool.Len(cbft.state.Epoch()))
-	var aggSig bls.Sign
-	if err := aggSig.Deserialize(v.Sign()); err != nil {
-		return nil, err
-	}
-	cert := &ctypes.ViewChangeQuorumCert{
-		Epoch:           cbft.state.Epoch(),
-		ViewNumber:      cbft.state.ViewNumber(),
-		BlockHash:       qc.BlockHash,
-		BlockNumber:     qc.BlockNumber,
-		BlockEpoch:      qc.Epoch,
-		BlockViewNumber: qc.ViewNumber,
-		ValidatorSet:    utils.NewBitArray(total),
-	}
-	cert.Signature.SetBytes(aggSig.Serialize())
-	cert.ValidatorSet.SetIndex(node.Index, true)
-	return cert, nil
+	return v, nil
 }
 
 // change view

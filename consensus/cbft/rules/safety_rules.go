@@ -122,9 +122,14 @@ type baseSafetyRules struct {
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) SafetyError {
 	isQCChild := func() bool {
-		return block.BlockNum() == r.viewState.HighestQCBlock().NumberU64()+1 &&
-			block.Block.ParentHash() == r.viewState.HighestQCBlock().Hash() &&
-			r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
+		//return block.BlockNum() == r.viewState.HighestQCBlock().NumberU64()+1 &&
+		//	block.Block.ParentHash() == r.viewState.HighestQCBlock().Hash() &&
+		//	r.blockTree.FindBlockByHash(block.Block.ParentHash()) != nil
+		parent := r.blockTree.FindBlockByHash(block.Block.ParentHash())
+		if parent == nil {
+			return false
+		}
+		return parent.NumberU64() == r.viewState.HighestQCBlock().NumberU64()
 	}
 
 	isLockChild := func() bool {
