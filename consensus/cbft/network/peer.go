@@ -62,7 +62,8 @@ type peer struct {
 	// record is popped up and then added.
 	knownMessageHash mapset.Set
 
-	PingList *list.List
+	pingList *list.List
+	listLock sync.RWMutex
 }
 
 // newPeer creates a new peer.
@@ -77,7 +78,7 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		lockedBn:         new(big.Int),
 		commitBn:         new(big.Int),
 		knownMessageHash: mapset.NewSet(),
-		PingList:         list.New(),
+		pingList:         list.New(),
 	}
 }
 
@@ -89,6 +90,47 @@ func (p *peer) PeerID() string {
 // Return p2p.MsgReadWriter from peer.
 func (p *peer) ReadWriter() p2p.MsgReadWriter {
 	return p.rw
+}
+
+// ListLen returns the number of elements of list l.
+// The complexity is O(1).
+func (p *peer) ListLen() int {
+	p.listLock.Lock()
+	defer p.listLock.Unlock()
+	return p.pingList.Len()
+}
+
+// ListFront returns the first element of list l
+// or nil if the list is empty.
+func (p *peer) ListFront() *list.Element {
+	p.listLock.Lock()
+	defer p.listLock.Unlock()
+	return p.pingList.Front()
+}
+
+// ListRemove removes e from l if e is an element of list l.
+// It returns the element value e.Value.
+// The element must not be nil.
+func (p *peer) ListRemove(e *list.Element) interface{} {
+	p.listLock.Lock()
+	defer p.listLock.Unlock()
+	return p.pingList.Remove(e)
+}
+
+// ListPushFront inserts a new element e with value v at the
+// front of list l and returns e.
+func (p *peer) ListPushFront(v interface{}) *list.Element {
+	p.listLock.Lock()
+	defer p.listLock.Unlock()
+	return p.pingList.PushFront(v)
+}
+
+// ListPushBack inserts a new element e with value v at the
+// back of list l and returns e.
+func (p *peer) ListPushBack(v interface{}) *list.Element {
+	p.listLock.Lock()
+	defer p.listLock.Unlock()
+	return p.pingList.PushBack(v)
 }
 
 // Handshake passes each other's status data and verifies the protocol version,
@@ -266,13 +308,13 @@ func (p *peer) pingLoop() {
 			// Send a ping message directly and the response message
 			// is processed at the CBFT layer.
 			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-			if p.PingList.Len() > 5 {
-				front := p.PingList.Front()
-				p.PingList.Remove(front)
+			if p.ListLen() > 5 {
+				front := p.ListFront()
+				p.ListRemove(front)
 			}
-			p.PingList.PushBack(pingTime)
+			p.ListPushBack(pingTime)
 
-			log.Trace("Send a ping message", "peerID", p.ID(), "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
+			log.Trace("Send a ping message", "peerID", p.ID(), "pingTimeNano", pingTime, "pingList.Len", p.pingList.Len())
 			if err := p2p.SendItems(p.rw, protocols.PingMsg, pingTime); err != nil {
 				log.Error("Send ping message failed", "err", err)
 				return
