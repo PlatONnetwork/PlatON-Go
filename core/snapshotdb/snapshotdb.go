@@ -65,7 +65,7 @@ type DB interface {
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
 	Commit(hash common.Hash) error
 
-	// Clear close db , remove all db file,set dbInstance nil
+	// Clear close db , remove all db file
 	Clear() error
 
 	PutBaseDB(key, value []byte) error
@@ -82,6 +82,7 @@ type DB interface {
 	BaseNum() (*big.Int, error)
 	Close() error
 	Compaction() error
+	SetEmpty() error
 }
 
 var (
@@ -324,6 +325,16 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	}
 }
 
+func (s *snapshotDB) SetEmpty() error {
+	if err := s.Clear(); err != nil {
+		return err
+	}
+	if err := initDB(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *snapshotDB) PutBaseDB(key, value []byte) error {
 	err := s.baseDB.Put(key, value, nil)
 	if err != nil {
@@ -419,7 +430,8 @@ func (s *snapshotDB) Compaction() error {
 		}
 		itr.Release()
 	}
-	logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number)
+	logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number, "len", len(s.committed), "commitNum", commitNum)
+
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		logger.Error("write to baseDB fail", "err", err)
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
@@ -429,7 +441,14 @@ func (s *snapshotDB) Compaction() error {
 		logger.Error("update to current fail", "err", err)
 		return errors.New("[SnapshotDB]update to current fail:" + err.Error())
 	}
+	for i := 0; i < commitNum; i++ {
+		if err := s.rmJournalFile(s.committed[i].Number, s.committed[i].BlockHash); err != nil {
+			logger.Error("rm Journal File  fail", "err", err)
+		}
+	}
+
 	s.committed = s.committed[commitNum:len(s.committed)]
+
 	return nil
 }
 
@@ -601,11 +620,11 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	return nil
 }
 
-func (s *snapshotDB) IsBlockSame(block1 *blockData) bool {
-	if block1.Number.Cmp(s.current.HighestNum) != 0 {
+func (s *snapshotDB) IsBlockSame(block *blockData) bool {
+	if block.Number.Cmp(s.current.HighestNum) != 0 {
 		return false
 	}
-	if block1.BlockHash != s.current.HighestHash {
+	if block.BlockHash != s.current.HighestHash {
 		return false
 	}
 	return true
@@ -620,9 +639,8 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	if !ok {
 		return errors.New("[snapshotdb]commit fail, not found block from recognized :" + hash.String())
 	}
-	if s.current.HighestNum.Int64() == 0 && block.Number.Int64() == 0 {
-
-	} else {
+	isFirstBlock := s.current.HighestNum.Int64() == 0 && block.Number.Int64() == 0
+	if !isFirstBlock {
 		if s.current.HighestNum.Cmp(block.Number) >= 0 {
 			return fmt.Errorf("[snapshotdb]commit fail,the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
 		}
@@ -888,7 +906,9 @@ func (s *snapshotDB) Close() error {
 		return fmt.Errorf("[snapshotdb]close storage fail:%v", err)
 	}
 	if s.current != nil {
-		s.current.f.Close()
+		if err := s.current.f.Close(); err != nil {
+			return fmt.Errorf("[snapshotdb]close current fail:%v", err)
+		}
 	}
 
 	for key := range s.journalw {

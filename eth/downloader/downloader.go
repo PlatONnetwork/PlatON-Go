@@ -462,12 +462,11 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 				return err
 			}
 			d.committed = 0
-		} else if pivot == origin {
+		} else {
 			log.Info("no need synchronising", "peer", p.id, "origin", origin, "pivot", pivot)
 			d.committed = 0
 			return
 		}
-
 	} else {
 		// Look up the sync boundaries: the common ancestor and the target block
 		latest, err = d.fetchHeight(p)
@@ -627,6 +626,10 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 			if current.NumberU64() >= pposDada.pivot.Number.Uint64() {
 				p.log.Error("current is larger than pposDada.pivot", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
 				return nil, 0, errors.New("pivotNumber is larger than latestNumber")
+			}
+			if err := d.snapshotDB.SetEmpty(); err != nil {
+				p.log.Error("set  snapshotDB empty fail", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
+				return nil, 0, errors.New("clear snapshotDB fail:" + err.Error())
 			}
 			if err := d.snapshotDB.SetCurrent(common.ZeroHash, *pivotNumber, *pivotNumber); err != nil {
 				p.log.Error("set snapshotdb current fail", "err", err)

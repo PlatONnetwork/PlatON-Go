@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -63,7 +64,7 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 
 func GetProgramVersion() (*ProgramVersionValue, error) {
 	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	sig, err := xcom.GetCryptoHandler().Sign(programVersion)
+	sig, err := handler.GetCryptoHandler().Sign(programVersion)
 	if err != nil {
 		log.Error("sign version data error", "err", err)
 		return nil, err
@@ -130,7 +131,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	if proposal.GetProposalType() == Version {
 		if vp, ok := proposal.(*VersionProposal); ok {
 			//The signature should be verified when node vote for a version proposal.
-			if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
+			if !handler.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
 				return VersionSignError
 			}
 
@@ -147,7 +148,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if vote.proposalID is in voting
-	votingIDs, err := ListVotingProposalID(blockHash, blockNumber, state)
+	votingIDs, err := ListVotingProposalID(blockHash)
 	if err != nil {
 		log.Error("list voting proposal error", "blockHash", blockHash, "blockNumber", blockNumber, "err", err)
 		return err
@@ -198,7 +199,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
+	if !handler.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
 		return VersionSignError
 	}
 
@@ -227,7 +228,8 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 			return err
 		}
 		if xutil.InNodeIDList(declaredNodeID, votedList) {
-			if declaredVersion != votingVP.GetNewVersion() {
+			if declaredVersion>>8 != votingVP.GetNewVersion()>>8 {
+				log.Error("node voted new version, then declared version, the major is different between the declared version and new version")
 				return DeclareVersionError
 			}
 		} else if declaredVersion>>8 == activeVersion>>8 {
@@ -244,37 +246,6 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 				log.Error("add declared node ID to active node list failed", "err", err)
 				return err
 			}
-
-			/*if declaredVersion>>8 == activeVersion>>8 {
-				nodeList, err := ListVotedVerifier(votingVP.ProposalID, state)
-				if err != nil {
-					log.Error("list voted verifier error", "proposalID", votingVP.ProposalID)
-					return err
-				} else {
-					if xutil.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
-						log.Error("declared version should be new version",
-							"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
-						return common.NewBizError("declared version should be same as proposal's version")
-					} else {
-						//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
-						log.Debug("there is a voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-						if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-							log.Error("call stk.DeclarePromoteNotify failed", "err", err)
-							return common.NewBizError("notify staking of declared node ID failed")
-						}
-					}
-				}
-
-			} else if declaredVersion>>8 == votingVP.GetNewVersion()>>8 {
-				//the declared version equals the new version, will notify staking when the proposal is passed
-				log.Debug("declared version equals the new version.",
-					"newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
-				if err := AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
-					log.Error("add declared node ID to active node list failed", "err", err)
-					return err
-				}
-			*/
-
 		} else {
 			log.Error("declared version should be either active version or new version", "activeVersion", activeVersion, "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
 			return DeclareVersionError
@@ -289,7 +260,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
 				return NotifyStakingDeclaredVersionError
 			}
-		} else if preActiveVersion != 0 && declaredVersion == preActiveVersion {
+		} else if preActiveVersion != 0 && declaredVersion>>8 == preActiveVersion>>8 {
 			log.Debug("there is a version proposal at voting stage")
 			log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
 			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
@@ -377,8 +348,8 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 }
 
 // list all proposal IDs at voting stage
-func ListVotingProposalID(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) ([]common.Hash, error) {
-	log.Debug("call ListVotingProposalID", "blockHash", blockHash, "blockNumber", blockNumber)
+func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
+	log.Debug("call ListVotingProposalID", "blockHash", blockHash)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
@@ -433,6 +404,47 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 		}
 		return maxEndVotingBlock, nil
 	}
+}
+
+// NotifyPunishedVerifiers receives punished verifies notification from Staking
+func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover.NodeID, state xcom.StateDB) error {
+	if len(punishedVerifiers) == 0 {
+		return nil
+	}
+	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {
+		return err
+	} else if len(votingProposalIDList) > 0 {
+		for _, proposalID := range votingProposalIDList {
+			if voteList, err := ListVoteValue(proposalID, state); err != nil {
+				return err
+			} else if len(voteList) > 0 {
+				idx := 0 // output index
+				for _, voteValue := range voteList {
+					if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
+						voteList[idx] = voteValue
+						idx++
+					}
+				}
+				voteList = voteList[:idx]
+				//UpdateVoteValue(blockHash, voteList)
+			}
+
+			if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+				return err
+			} else if len(verifierList) > 0 {
+				idx := 0 // output index
+				for _, verifier := range verifierList {
+					if !xutil.InNodeIDList(verifier, punishedVerifiers) {
+						verifierList[idx] = verifier
+						idx++
+					}
+				}
+				verifierList = verifierList[:idx]
+				//UpdateAccuVerifiers(blockHash, voteList)
+			}
+		}
+	}
+	return nil
 }
 
 // check if the node a candidate, and the caller address is same as the staking address

@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -12,8 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +23,7 @@ func TestRewardPlugin(t *testing.T) {
 	mockDB := buildStateDB(t)
 
 	t.Run("CalculateExpectReward", func(t *testing.T) {
-		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+		//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 		yearBalance := big.NewInt(1E18)
 		rate := xcom.NewBlockRewardRate()
