@@ -367,26 +367,6 @@ func (pool *TxPool) txExtBufferReadLoop() {
 			log.Trace("Process txExtBuffer", "txExtBufLen", len(txExtBuf), "pool.txExtBufferLen", len(pool.txExtBuffer), "duration", time.Since(begin))
 
 		case <-timer.C:
-			/*
-				if len(txExtBuf) > 0 {
-					newTxExtBuf := make([]*txExt, 0)
-					for _, ext := range txExtBuf {
-						if time.Since(ext.recvTime) >= 500*time.Millisecond {
-							if _, ok := ext.tx.(*types.Transaction); ok {
-								ext.txErr <- errors.New("timeout")
-							} else {
-								ext.txErr <- []error{errors.New("timeout")}
-							}
-							continue
-						}
-						newTxExtBuf = append(newTxExtBuf, ext)
-					}
-					if len(newTxExtBuf) == 0 {
-						continue
-					}
-					txExtBuf = newTxExtBuf
-				}	*/
-
 			begin := time.Now()
 			rstFlag := atomic.LoadInt32(&pool.rstFlag)
 			pendingFlag := atomic.LoadInt32(&pool.pendingFlag)
@@ -449,7 +429,7 @@ func (pool *TxPool) loop() {
 			pool.mu.RUnlock()
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
-				log.Info("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "txExtBuffer", len(pool.txExtBuffer), "filterKnowns", atomic.SwapInt32(&pool.filterKnowns, 0))
+				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "txExtBuffer", len(pool.txExtBuffer), "filterKnowns", atomic.SwapInt32(&pool.filterKnowns, 0))
 				prevPending, prevQueued, prevStales = pending, queued, stales
 			}
 
@@ -650,9 +630,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	t0 := time.Now()
 	statedb, err := pool.chain.GetState(newHead)
-	log.Info("Reset txpool in GetState", "number", newHead.Number, "duration", time.Since(t0))
 	if err != nil {
 		log.Error("Failed to reset txpool state", "newHeadHash", newHead.Hash(), "newHeadNumber", newHead.Number.Uint64(), "err", err)
 		return
