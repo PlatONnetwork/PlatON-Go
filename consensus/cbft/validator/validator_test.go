@@ -404,7 +404,7 @@ func TestValidatorPool(t *testing.T) {
 
 	validatorPool := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
 	assert.False(t, validatorPool.ShouldSwitch(0))
-	assert.True(t, validatorPool.ShouldSwitch(80))
+	assert.True(t, validatorPool.ShouldSwitch(40))
 
 	node, err := validatorPool.GetValidatorByNodeID(0, nodes[0].Node.ID)
 	assert.Nil(t, err)
