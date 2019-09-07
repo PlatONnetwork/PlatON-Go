@@ -5566,7 +5566,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	for index, v := range vqList {
 		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight, "nonce", hex.EncodeToString(preNonces[index]))
 	}
-	result, err := ProbabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
+	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
 	if nil != err {
 		t.Fatal("Failed to ProbabilityElection, err:", err)
 		return
