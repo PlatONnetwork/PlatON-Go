@@ -79,7 +79,8 @@ func (d DuplicatePrepareBlockEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, blockNumber is different, prepareA:%d, prepareB:%d", d.PrepareA.BlockNumber, d.PrepareB.BlockNumber)
 	}
 	validateNodeA, validateNodeB := d.PrepareA.ValidateNode, d.PrepareB.ValidateNode
-	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address {
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address ||
+		validateNodeA.NodeID != validateNodeB.NodeID || !bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
 		return fmt.Errorf("DuplicatePrepareBlockEvidence, validator do not match, prepareA:%s, prepareB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
 	if d.PrepareA.BlockHash == d.PrepareB.BlockHash {
@@ -169,7 +170,8 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, blockNumber is different, voteA:%d, voteB:%d", d.VoteA.BlockNumber, d.VoteB.BlockNumber)
 	}
 	validateNodeA, validateNodeB := d.VoteA.ValidateNode, d.VoteB.ValidateNode
-	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address {
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address ||
+		validateNodeA.NodeID != validateNodeB.NodeID || !bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence, validator do not match, voteA:%s, voteB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
 	if d.VoteA.BlockHash == d.VoteB.BlockHash {
@@ -256,7 +258,8 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeEvidence, viewNumber is different, viewA:%d, viewB:%d", d.ViewA.ViewNumber, d.ViewB.ViewNumber)
 	}
 	validateNodeA, validateNodeB := d.ViewA.ValidateNode, d.ViewB.ValidateNode
-	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address {
+	if validateNodeA.Index != validateNodeB.Index || validateNodeA.Address != validateNodeB.Address ||
+		validateNodeA.NodeID != validateNodeB.NodeID || !bytes.Equal(validateNodeA.BlsPubKey.Serialize(), validateNodeB.BlsPubKey.Serialize()) {
 		return fmt.Errorf("DuplicateViewChangeEvidence, validator do not match, viewA:%s, viewB:%s", validateNodeA.Address, validateNodeB.Address)
 	}
 	if d.ViewA.BlockNumber == d.ViewB.BlockNumber && d.ViewA.BlockHash == d.ViewB.BlockHash {

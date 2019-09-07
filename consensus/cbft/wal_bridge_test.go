@@ -113,6 +113,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	var appendQC *types.Block
 	node.engine.state.SetExecuting(1, true) // lockBlock
 
+	// base lock seal duplicate qc
 	block := NewBlock(lock.Hash(), lock.NumberU64()+1)
 	assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 	node.engine.OnSeal(block, result, nil)

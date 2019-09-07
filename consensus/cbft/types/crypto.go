@@ -91,8 +91,17 @@ func (q QuorumCert) String() string {
 }
 
 // if the two quorumCert have the same blockNumber
-func (q QuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
+func (q *QuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
 	return q.Epoch > blockEpoch || (q.Epoch == blockEpoch && q.ViewNumber > blockView)
+}
+
+func (q *QuorumCert) HigherQuorumCert(blockNumber uint64, blockEpoch, blockView uint64) bool {
+	if q.BlockNumber > blockNumber {
+		return true
+	} else if q.BlockNumber == blockNumber {
+		return q.HigherBlockView(blockEpoch, blockView)
+	}
+	return false
 }
 
 type ViewChangeQuorumCert struct {
@@ -136,8 +145,17 @@ func (q ViewChangeQuorumCert) String() string {
 }
 
 // if the two quorumCert have the same blockNumber
-func (q ViewChangeQuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
+func (q *ViewChangeQuorumCert) HigherBlockView(blockEpoch, blockView uint64) bool {
 	return q.BlockEpoch > blockEpoch || (q.BlockEpoch == blockEpoch && q.BlockViewNumber > blockView)
+}
+
+func (q *ViewChangeQuorumCert) HigherQuorumCert(c *ViewChangeQuorumCert) bool {
+	if q.BlockNumber > c.BlockNumber {
+		return true
+	} else if q.BlockNumber == c.BlockNumber {
+		return q.HigherBlockView(c.BlockEpoch, c.BlockViewNumber)
+	}
+	return false
 }
 
 func (q *ViewChangeQuorumCert) Copy() *ViewChangeQuorumCert {
@@ -168,16 +186,14 @@ func (v ViewChangeQC) MaxBlock() (uint64, uint64, uint64, uint64, common.Hash, u
 	if len(v.QCs) == 0 {
 		return 0, 0, 0, 0, common.Hash{}, 0
 	}
-	epoch, view, blockEpoch, blockView, hash, number := v.QCs[0].Epoch, v.QCs[0].ViewNumber, v.QCs[0].BlockEpoch, v.QCs[0].BlockViewNumber, v.QCs[0].BlockHash, v.QCs[0].BlockNumber
 
+	maxQC := v.QCs[0]
 	for _, qc := range v.QCs {
-		if qc.HigherBlockView(blockEpoch, blockView) {
-			blockEpoch, blockView, hash, number = qc.BlockEpoch, qc.BlockViewNumber, qc.BlockHash, qc.BlockNumber
-		} else if number < qc.BlockNumber {
-			hash, number = qc.BlockHash, qc.BlockNumber
+		if qc.HigherQuorumCert(maxQC) {
+			maxQC = qc
 		}
 	}
-	return epoch, view, blockEpoch, blockView, hash, number
+	return maxQC.Epoch, maxQC.ViewNumber, maxQC.BlockEpoch, maxQC.BlockViewNumber, maxQC.BlockHash, maxQC.BlockNumber
 }
 
 func (v ViewChangeQC) Len() int {
@@ -191,4 +207,17 @@ func (v ViewChangeQC) Len() int {
 func (v ViewChangeQC) String() string {
 	epoch, view, blockEpoch, blockViewNumber, hash, number := v.MaxBlock()
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockEpoch:%d,BlockViewNumber:%d,Hash:%s,Number:%d}", epoch, view, blockEpoch, blockViewNumber, hash.TerminalString(), number)
+}
+
+func (v ViewChangeQC) ExistViewChange(epoch, viewNumber uint64, blockHash common.Hash) bool {
+	for _, vc := range v.QCs {
+		if vc.Epoch == epoch && vc.ViewNumber == viewNumber && vc.BlockHash == blockHash {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *ViewChangeQC) AppendQuorumCert(viewChangeQC *ViewChangeQuorumCert) {
+	v.QCs = append(v.QCs, viewChangeQC)
 }

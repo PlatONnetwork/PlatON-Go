@@ -256,6 +256,9 @@ type TxPool struct {
 
 	rstFlag     int32
 	pendingFlag int32
+
+	knowns       sync.Map // All know transactions
+	filterKnowns int32
 }
 
 type txExt struct {
@@ -426,9 +429,17 @@ func (pool *TxPool) loop() {
 			pool.mu.RUnlock()
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
-				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales)
+				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "txExtBuffer", len(pool.txExtBuffer), "filterKnowns", atomic.SwapInt32(&pool.filterKnowns, 0))
 				prevPending, prevQueued, prevStales = pending, queued, stales
 			}
+
+			pool.knowns.Range(func(key interface{}, value interface{}) bool {
+				t := value.(time.Time)
+				if time.Since(t) >= statsReportInterval {
+					pool.knowns.Delete(key)
+				}
+				return true
+			})
 
 		// Handle inactive account transaction eviction
 		case <-evict.C:
@@ -838,10 +849,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
-		/*from, _ := types.Sender(pool.signer, tx)
-		if local && from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
-			log.Debug("Nonce tracking, validate tx", "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
-		}*/
 		return ErrNonceTooLow
 	}
 	// Transactor should have enough funds to cover the costs
@@ -1031,6 +1038,7 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
+	pool.knowns.Store(tx.Hash(), time.Now())
 	errCh := make(chan interface{})
 	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
 	pool.txExtBuffer <- txExt
@@ -1046,6 +1054,12 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
+	if _, ok := pool.knowns.Load(tx.Hash()); ok {
+		atomic.AddInt32(&pool.filterKnowns, 1)
+		return nil
+	} else {
+		pool.knowns.Store(tx.Hash(), time.Now())
+	}
 	errCh := make(chan interface{}, 1)
 	txExt := &txExt{tx, false, errCh}
 	select {
@@ -1087,6 +1101,15 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	newTxs := make([]*types.Transaction, 0)
 	for _, tx := range txs {
 		hash := tx.Hash()
+
+		if _, ok := pool.knowns.Load(hash); ok {
+			atomic.AddInt32(&pool.filterKnowns, 1)
+			log.Trace("Discarding already known transaction", "hash", hash)
+			continue
+		} else {
+			pool.knowns.Store(hash, time.Now())
+		}
+
 		if pool.all.Get(hash) != nil {
 			log.Trace("Discarding already known transaction", "hash", hash)
 			knowingTxCounter.Inc(1)

@@ -129,6 +129,11 @@ type Engine interface {
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
+
+	// Pause consensus
+	Pause()
+	// Resume consensus
+	Resume()
 }
 
 // PoW is a consensus engine based on proof-of-work.
@@ -182,8 +187,4 @@ type Bft interface {
 
 	// NodeID is temporary.
 	NodeID() discover.NodeID
-	// Pause consensus
-	Pause()
-	// Resume consensus
-	Resume()
 }
