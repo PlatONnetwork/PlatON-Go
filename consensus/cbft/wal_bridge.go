@@ -265,7 +265,7 @@ func (cbft *Cbft) recoveryQCState(qcs []*protocols.State, parent *types.Block) e
 
 // recoveryChainStateProcess tries to recovery the corresponding state to cbft consensus.
 func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.State) {
-	cbft.trySwitch(state.Block.NumberU64())
+	cbft.trySwitchValidator(state.Block.NumberU64())
 	cbft.tryWalChangeView(state.QuorumCert.Epoch, state.QuorumCert.ViewNumber, state.Block, state.QuorumCert, nil)
 	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
 	cbft.state.AddQC(state.QuorumCert)
@@ -283,10 +283,10 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 }
 
 // trySwitch tries to switch next validator.
-func (cbft *Cbft) trySwitch(blockNumber uint64) {
+func (cbft *Cbft) trySwitchValidator(blockNumber uint64) {
 	if cbft.validatorPool.ShouldSwitch(blockNumber) {
 		if err := cbft.validatorPool.Update(blockNumber, cbft.state.Epoch()+1, cbft.eventMux); err != nil {
-			panic(fmt.Sprintf("update validator success error: %s", err.Error()))
+			panic(fmt.Sprintf("update validator error: %s", err.Error()))
 		}
 	}
 }
@@ -305,7 +305,6 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 	switch m := msg.(type) {
 	case *protocols.ConfirmedViewChange:
 		cbft.log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "confirmedViewChange", m.String())
-		cbft.trySwitch(m.Block.NumberU64())
 		cbft.tryWalChangeView(m.Epoch, m.ViewNumber, m.Block, m.QC, m.ViewChangeQC)
 
 	case *protocols.SendViewChange:
@@ -336,7 +335,6 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				}
 				cbft.state.SetExecuting(m.Prepare.BlockIndex, true)
 			}
-			cbft.trySwitch(m.Prepare.BlockNum())
 			cbft.signMsgByBls(m.Prepare)
 			cbft.state.AddPrepareBlock(m.Prepare)
 		}
@@ -364,7 +362,6 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 				})
 			}
 
-			cbft.trySwitch(block.NumberU64())
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.Epoch, cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
