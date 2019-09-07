@@ -225,6 +225,17 @@ func (r *router) kMixingRandomNodes(condition common.Hash, filterFn func(*peer, 
 func kRandomNodes(k int, peers []*peer, condition common.Hash, filterFn func(*peer, common.Hash) bool) []*peer {
 	n := len(peers)
 	kNodes := make([]*peer, 0, k)
+
+	if n <= k/2 {
+		for i := 0; i < n; i++ {
+			if filterFn != nil && filterFn(peers[i], condition) {
+				continue
+			}
+			kNodes = append(kNodes, peers[i])
+		}
+		return kNodes
+	}
+
 OUTER:
 	// Probe up to 3*n times, with large n this is not necessary
 	// since k << n, but with small n we want search to be
@@ -241,7 +252,7 @@ OUTER:
 
 		// Check if we have this node already
 		for j := 0; j < len(kNodes); j++ {
-			if node == kNodes[j] {
+			if node.id == kNodes[j].id {
 				continue OUTER
 			}
 		}
