@@ -610,9 +610,9 @@ var (
 		Value: 1024,
 	}
 
-	CbftWalEnabledFlag = cli.BoolFlag{
-		Name:  "cbft.wal",
-		Usage: "Enable the Wal server",
+	CbftWalDisabledFlag = cli.BoolFlag{
+		Name:  "cbft.wal.disabled",
+		Usage: "Disable the Wal server",
 	}
 
 	CbftEvidenceDir = cli.StringFlag{
@@ -1164,8 +1164,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	//setMpcPool(ctx, &cfg.MPCPool)
 	//setVcPool(ctx, &cfg.VCPool)
 
-	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
-		cfg.CbftConfig.WalMode = true
+	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
+		cfg.CbftConfig.WalMode = false
 	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1317,8 +1317,8 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 		cfg.BlsPriKey = priKey
 	}
 
-	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
-		cfg.WalMode = ctx.GlobalBool(CbftWalEnabledFlag.Name)
+	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
+		cfg.WalMode = !ctx.GlobalBool(CbftWalDisabledFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(CbftPeerMsgQueueSize.Name) {

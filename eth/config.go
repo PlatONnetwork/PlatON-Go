@@ -39,7 +39,7 @@ const (
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
 	CbftConfig: types.OptionsConfig{
-		WalMode:           false,
+		WalMode:           true,
 		PeerMsgQueueSize:  1024,
 		EvidenceDir:       "evidence",
 		MaxPingLatency:    5000,
