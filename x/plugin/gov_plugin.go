@@ -41,6 +41,13 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
+	if xutil.IsBeginOfSettlement(blockNumber) {
+		if err := accuVerifiersAtBeginOfSettlement(blockHash, blockNumber); err != nil {
+			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
+			return err
+		}
+	}
+
 	//check if there's a pre-active version proposal that can be activated
 	preActiveVersionProposalID, err := gov.GetPreActiveProposalID(blockHash)
 	if err != nil {
@@ -124,11 +131,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			}
 		}
 	}
-
 	return nil
 }
 
 //implement BasePlugin
+
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
@@ -142,23 +149,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return nil
 	}
 
-	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
-	if err != nil {
-		return err
-	}
-	log.Debug("get verifier nodes from staking", "verifierCount", len(verifierList))
-
-	//if current block is a settlement block, to accumulate current verifiers for each voting proposal.
-	if xutil.IsSettlementPeriod(blockNumber) {
-		log.Debug("current block is at end of a settlement", "blockNumber", blockNumber, "blockHash", blockHash)
-		for _, votingProposalID := range votingProposalIDs {
-			if err := gov.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
-				return err
-			}
-		}
-		//According to the proposal's rules, the settlement block must not be the end-voting block, so, just return.
-		return nil
-	}
 	//iterate each voting proposal, to check if current block is proposal's end-voting block.
 	for _, votingProposalID := range votingProposalIDs {
 		log.Debug("iterate each voting proposal", "proposalID", votingProposalID)
@@ -169,10 +159,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		}
 		if votingProposal.GetEndVotingBlock() == blockNumber {
 			log.Debug("current block is end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
-			//According to the proposal's rules, the end-voting block must not at end of a settlement, so, to accumulate current verifiers for current voting proposal.
-			if err := gov.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
-				return err
-			}
 			//tally the results
 			if votingProposal.GetProposalType() == gov.Text {
 				_, err := tallyText(votingProposal.GetProposalID(), blockHash, blockNumber, state)
@@ -194,6 +180,32 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				err = errors.New("invalid proposal type")
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// According to the proposal's rules, the submit block maybe is the begin block of a settlement, even then, it's ok, gov.AccuVerifiers will remove the duplicated verifiers.
+func accuVerifiersAtBeginOfSettlement(blockHash common.Hash, blockNumber uint64) error {
+	votingProposalIDs, err := gov.ListVotingProposal(blockHash)
+	if err != nil {
+		return err
+	}
+	if len(votingProposalIDs) == 0 {
+		log.Debug("there's no voting proposal", "blockNumber", blockNumber, "blockHash", blockHash)
+		return nil
+	}
+
+	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
+	if err != nil {
+		return err
+	}
+	log.Debug("get verifier nodes from staking", "verifierCount", len(verifierList))
+
+	//note: if the proposal's submit block == blockNumber, it's ok, gov.AccuVerifiers will remove the duplicated verifiers
+	for _, votingProposalID := range votingProposalIDs {
+		if err := gov.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
+			return err
 		}
 	}
 	return nil

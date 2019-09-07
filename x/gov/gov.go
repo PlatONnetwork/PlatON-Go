@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -88,6 +89,17 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 		log.Error("add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
+
+	verifierList, err := plugin.StakingInstance().ListVerifierNodeID(blockHash, blockNumber)
+	if err != nil {
+		return err
+	}
+	log.Debug("verifiers count of current settlement", "verifierCount", len(verifierList))
+
+	if err := AccuVerifiers(blockHash, proposal.GetProposalID(), verifierList); err != nil {
+		return err
+	}
+
 	return nil
 }
 

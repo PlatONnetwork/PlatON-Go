@@ -336,10 +336,10 @@ func ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 	return nil
 }
 
-// All verifiers who can vote accumulatively in the settlement cycle
+// AccuVerifiers accumulates all distinct verifiers those can vote this proposal ID
 func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
 	if err := addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
-		log.Error("save accumulated verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("accumulates verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
 		return common.NewSysError(err.Error())
 	}
 	return nil
