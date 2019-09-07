@@ -284,6 +284,13 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 // check if the node a verifier, and the caller address is same as the staking address
 func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+
+	_, err := xutil.NodeId2Addr(nodeID)
+	if nil != err {
+		log.Error("parse nodeID error", "err", err)
+		return err
+	}
+
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("list verifiers error", "blockHash", blockHash, "err", err)
@@ -456,6 +463,13 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 // check if the node a candidate, and the caller address is same as the staking address
 func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+
+	_, err := xutil.NodeId2Addr(nodeID)
+	if nil != err {
+		log.Error("parse nodeID error", "err", err)
+		return err
+	}
+
 	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
 	if err != nil {
 		log.Error("list candidates error", "blockHash", blockHash)
