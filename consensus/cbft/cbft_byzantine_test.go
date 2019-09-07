@@ -392,7 +392,7 @@ func TestPB10(t *testing.T) {
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
 
-	p := newPrepareBlock(nodes[0].engine.state.Epoch()+1, nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch()+2, nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	assert.NotNil(t, err)

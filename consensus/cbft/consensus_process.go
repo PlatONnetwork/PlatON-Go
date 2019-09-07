@@ -246,7 +246,7 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	if !isOwn {
 		cbft.txPool.Reset(block)
 	}
-	cbft.tryCommitNewBlock(lock, commit)
+	cbft.tryCommitNewBlock(lock, commit, block)
 	cbft.tryChangeView()
 	if cbft.insertBlockQCHook != nil {
 		// test hook
