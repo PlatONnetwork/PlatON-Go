@@ -80,21 +80,42 @@ func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
 // If the write fails, the process will stop
 // lockChainState or commitChainState may be nil, if it is nil, we only append qc to the qcChain array
 func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
-	if lockState == nil || commitState == nil {
-		if err := b.addQCState(qcState); err != nil {
+	var chainState *protocols.ChainState
+	var err error
+	// load current consensus state
+	b.cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
+		chainState = cs
+		return nil
+	})
+
+	if chainState == nil {
+		log.Trace("ChainState is empty,may be the first time to update chainState")
+		if err = b.newChainState(commitState, lockState, qcState); err != nil {
 			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 		}
-	} else {
-		if err := b.newChainState(commitState, lockState, qcState); err != nil {
-			panic(fmt.Sprintf("update chain state error: %s", err.Error()))
-		}
+		return
 	}
+	if !chainState.ValidChainState() {
+		panic(fmt.Sprintf("Invalid chain state from wal"))
+	}
+
+	if chainState.Commit.EqualState(commitState) && chainState.Lock.EqualState(lockState) && chainState.QC[0].QuorumCert.BlockNumber == qcState.QuorumCert.BlockNumber {
+		err = b.addQCState(qcState, chainState)
+	} else {
+		err = b.newChainState(commitState, lockState, qcState)
+	}
+
+	if err != nil {
+		panic(fmt.Sprintf("update chain state error: %s", err.Error()))
+	}
+	log.Debug("Success to update chainState", "commitState", commitState.String(), "lockState", lockState.String(), "qcState", qcState.String())
 }
 
 // newChainState tries to update consensus state to wal
 // Need to do continuous block check before writing.
 func (b *baseBridge) newChainState(commit *protocols.State, lock *protocols.State, qc *protocols.State) error {
-	if commit == nil || commit.Block == nil || lock == nil || lock.Block == nil || qc == nil || qc.Block == nil {
+	log.Debug("New chainState", "commitState", commit.String(), "lockState", lock.String(), "qcState", qc.String())
+	if !commit.ValidState() || !lock.ValidState() || !qc.ValidState() {
 		return errNonContiguous
 	}
 	// check continuous block chain
@@ -111,16 +132,8 @@ func (b *baseBridge) newChainState(commit *protocols.State, lock *protocols.Stat
 
 // addQCState tries to add consensus qc state to wal
 // Need to do continuous block check before writing.
-func (b *baseBridge) addQCState(qc *protocols.State) error {
-	var chainState *protocols.ChainState
-	// load current consensus state
-	b.cbft.wal.LoadChainState(func(cs *protocols.ChainState) error {
-		chainState = cs
-		return nil
-	})
-	if chainState == nil || chainState.Commit == nil || chainState.Lock == nil || len(chainState.QC) <= 0 {
-		return nil
-	}
+func (b *baseBridge) addQCState(qc *protocols.State, chainState *protocols.ChainState) error {
+	log.Debug("Add qcState", "qcState", qc.String())
 	lock := chainState.Lock
 	// check continuous block chain
 	if !contiguousChainBlock(lock.Block, qc.Block) {
@@ -372,7 +385,11 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 
 // contiguousChainBlock check if the two incoming blocks are continuous.
 func contiguousChainBlock(p *types.Block, s *types.Block) bool {
-	return p.NumberU64() == s.NumberU64()-1 && p.Hash() == s.ParentHash()
+	contiguous := p.NumberU64()+1 == s.NumberU64() && p.Hash() == s.ParentHash()
+	if !contiguous {
+		log.Error("Non contiguous block", "sNumber", s.NumberU64(), "sParentHash", s.ParentHash(), "pNumber", p.NumberU64(), "pHash", p.Hash())
+	}
+	return contiguous
 }
 
 // executeBlock call blockCacheWriter to execute block.
