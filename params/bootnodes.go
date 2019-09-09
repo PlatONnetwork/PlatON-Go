@@ -18,15 +18,23 @@ package params
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 // the main Ethereum network.
-var MainnetBootnodes = []string{}
+var MainnetBootnodes = []string{
+	"enode://cdf324ff821c314bb12949f99f7728c3600b1f4c4e384d8f4fa92a8df9fdc15ab36b0446ad6689a379daa3cd451f10b7030c7423305712d935a70f7690c7c5bb@40.113.90.184:16789",
+	"enode://b00fbdcf21e9c9a983fa5fd3a3f1146c4c876f68bf074d6afdceef8df6d05b11cb914626d2b05dc5aebc3a5882e705315e1cb707b058065d906e71a06a711fa6@52.236.129.182:16789",
+	"enode://50c64b8a047dc5dc76688bc45730d76b2d1fbdb886b964136188c0d8b4c45f44770efb109853714afc1111193fdffdcae039ad695afa6a886de636e8da77862d@52.228.24.46:16789",
+	"enode://630ba358cef8c91e45718c19a42009ec65901b66787cd6410bbde4bef13f1279ae7d9dd4195b42c11a77039b49529b0825b820a20f64ccc3b296a0304c67dda9@51.105.52.146:16789",
+	"enode://4a64b067c13e44ac582476322a7858498281e616fdc47424c89e1a13d6d8e703554255daeb3bf6e6799882d1e80d3c1d3e3df9007f6ccd3b5d637a901d97ed8c@18.196.12.156:16789",
+	"enode://532382159638cd5fb87b03e6abaae2281f2b389439eb5b2e02cbd0f30d23cfb414b88833e504bd90defe3ca279cbb20949866a8c38b9bf002b809807f50293e6@13.235.239.114:16789",
+	"enode://7028f8508eb6b65eba30b1a50b83411e96b05b00dcf26cedb1af30c24a4061189a0556c8e17386a50fbd643aa11fee66ec82a3b194c1aadd89a442a6bad3c64f@18.139.233.254:16789",
+}
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Alpha test network.
 var TestnetBootnodes = []string{
-	"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16791", //TEST-SEA
-	"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16792",  //TEST-SG
-	"enode://24b0c456ae5cad46c4fb9bc02c867b997e22f30696e6e330926f785ca2e7410baf1eb34ffd9b5b07b5ba6e02b693faf57afb33f7c66cfbcf4c9186b4bfac737d@test-na.platon.network:16791",  //TEST-NA
-	"enode://c7fc34d6d8b3d894a35895aaf2f788ed445e03b7673f7ce820aa6fdc02908eeab6982b7eb97e983cc708bcec093b3bc512b0b1fbf668e6ab94cd91f2d642e591@test-us.platon.network:16792",  //TEST-US
+	"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16791",       //TEST-SEA
+	"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16792",        //TEST-SG
+	"enode://24b0c456ae5cad46c4fb9bc02c867b997e22f30696e6e330926f785ca2e7410baf1eb34ffd9b5b07b5ba6e02b693faf57afb33f7c66cfbcf4c9186b4bfac737d@test-na.platon.network:16791",        //TEST-NA
+	"enode://c7fc34d6d8b3d894a35895aaf2f788ed445e03b7673f7ce820aa6fdc02908eeab6982b7eb97e983cc708bcec093b3bc512b0b1fbf668e6ab94cd91f2d642e591@test-us.platon.network:16792",        //TEST-US
 	"enode://9871adb2f926dffa3ff6060e07ae85295ce4184d5881cc761e465ca59597a7c5fa46b589557b0be62b759344fec50313a69b5fbda8b420f058ede85dadcecc4a@test-sg-soga.platon.network:16791",   //TEST-SEA-SOGA
 	"enode://73323061805daa21ad07aa31cf0cc8c2295b05cff47c9ecb25c7a215c1c720df6c8698e94632346654cc4d8c0e99688f367626f20db9be85f29e9f41c29ffb92@test-siga-soga.platon.network:16792", //TEST-SG-SOGA
 	"enode://23aa343260d06e04107d1cd9a7d12c54cc238719a1523ffe42640210c913218b5940d41511c5adb716da38844a85cdab8b7db0600d242e24168d7df10aebd324@test-si-syde.platon.network:16790",   //TEST-SI-SYDE

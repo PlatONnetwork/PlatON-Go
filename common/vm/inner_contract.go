@@ -11,5 +11,5 @@ var (
 	GovContractAddr              = common.HexToAddress("0x1000000000000000000000000000000000000005") // The PlatON Precompiled contract addr for governance
 	ValidatorInnerContractAddr   = common.HexToAddress("0x2000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 	CommunityDeveloperFoundation = common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219") // Community development Foundation addr
-	PlatONFoundationAddress      = common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821") // PlatON Foundation addr
+	PlatONFoundationAddress      = common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05") // PlatON Foundation addr
 )

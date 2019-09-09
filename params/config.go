@@ -45,8 +45,32 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 var (
 	initialMainNetConsensusNodes = []initNode{
 		{
-			"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
-			"15e87df4d48d1294c7ca6485cd42b5f5d66b9f5561fd0f78b091ad6a43613921cab55951a6aa9289cdb76f80d6c42dedc673e03ff7e4b3f1b996db12351f3109",
+			"enode://b95630ee516effebd04c40eff7a4ea695947ed10e9e310ce01a12338f90748fcced68ba548a8261f7fce784e33e1ca7e0e6d7c54ef6d9887ed64f01727d72512@137.135.187.49:16789",
+			"4d861e581b94b0b3e94a2be8f2e141e67fac978bd62344d424e0ba35113edb97bcb7966e6cae997f9bfdf4a5b229c407cb6879c6cefeff39223bcb2b1ef6b9f520ebfdd147dfa9f96285107be780076aab0a854beac882408beee1ba4deef105",
+		},
+		{
+			"enode://3d0f7b74358a07562e89919ca274ec140ebc8cf6db4a241a6ddda6f896f0cfc37028a433e0efe5e6bd91b02d91883fd2c46f68cf77d08aa8f1f1c30ffcb2f614@52.236.129.246:16789",
+			"7b7888e8cf571e297b7c4955386281e934b3136364af1560907eb95f70b212c9d47357e56e284f81014a624a08969f11c4257c10f6b056c3cadf544c649d2f32d5e3846b06f6cd34e9e6930a3dac5aaf41fd05c4b11212314f9f7177e9901114",
+		},
+		{
+			"enode://2b2c71e0f5a5ce2f1fa8b16c429b7dbc2e3c5a9cb890e05dbbaf274959df1937c5c5cff1c613d017c1b06b2c24dc9ff464ee6fa03934a96be8a2faa3c7c08a0f@52.228.38.97:16789",
+			"efecd9acb2fb1343e1be8c0bc8e879033bb670b26bee56526a15e9b31cc9ee2eb90ad2ffca175b0c6d047f1f681dbc00bf1c40a5172bd7ddc777438ca7e12442688f6dfc918b5261a6eb2ba43c0c49a5769d9b22f836eec2ebc682fd24245f89",
+		},
+		{
+			"enode://60f682356cdac0d0a9b5cae8b5ffd2ae051e0767a059afd537aa1d47cd407925b1bdba25060d01af21a47089ac38f0b09d816f4ff71fcf3d570e71f1ef1f870b@51.105.52.194:16789",
+			"76b1f46d2c488f26f12b2aea82bc84bacf1de2f85acc99780940f3b8845f802ce1dc7b5987acac7d82067221fa6d7106f47d986631899eeacaa5eadf4ba80b34b8dbf020ba26af3118c610f973962cfad7706435b84ae1caf5ac44cafb224b83",
+		},
+		{
+			"enode://4ea4cdbf8c6e1141e4aec3a6ad7dec3a6988fcd31b6ceb9dddd8c23b4f9557e2b771d4c29b301f796f74da2c6f4e7415e1aa7ba3eaa9147b7ab9995751486685@3.120.24.72:16789",
+			"988096ea81e13e8c7f4c080f076d9a0583a0fe11b72a5264e2c6b6bb96c2aa5e76c219f56a2cd32d24c0dd2218d7fd0369f0d184315a65c49f075a68fc3c103459401cb4570da7905e69c3bb33df1f0d22bd762bbace3ba90134406a4400b511",
+		},
+		{
+			"enode://5c28c6443fd1bdd3ae02625cb54c0c8b739cde1c137ed50a4f03103a77a5936abe7c1327db2b9439f429568ca0aace7b8da5f47c6b2bf6ede1eb128eb0ea9201@13.126.189.133:16789",
+			"7a3fa7022ba9e9b8ada7b0d273f00999c3f3c32a6db13615c9b1a57dd4abeee6814ae0c1ac2601e9839255d793c503060b7a43d9d1b144f0ab69ddd1972d2e80ed29e3e407b5bd9b7860d77a34ba693ff5393714fa1d377da3cba78d5256fc89",
+		},
+		{
+			"enode://f2afba5553cf79eef374e900fec4c3ab3d6223a4fe91ded26872cea6d01caea1a8394f4f09faa6d24b9f3c6105e342c075b82d806b187798cb875381c88e29a2@18.140.124.104:16789",
+			"	cb6490c888a683ac2a707c51c733be20621be21192fe5b80b008920ad6fc52cba26969479f567d3ecf1259819691eb0356ca89317176779c1d5002a6a306ba14c284e14ed6c8bbcb3a4b5bc8100168c6c0f7cbe3289337cf47771cb2a1098a95",
 		},
 	}
 
@@ -157,10 +181,10 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
-			InitialNodes:  convertNodeUrl(initialMainNetConsensusNodes),
+			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
-			Period:        10000,
+			Period:        20000,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -180,7 +204,7 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -199,7 +223,7 @@ var (
 		ChainID:     big.NewInt(203),
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialInnerTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -218,7 +242,7 @@ var (
 		ChainID:     big.NewInt(204),
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialInnerDevnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -238,7 +262,7 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialBetanetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -479,7 +503,8 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 	}
 }
 
-func convertNodeUrl(initialNodes []initNode) []CbftNode {
+func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
+	bls.Init(bls.BLS12_381)
 	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, n := range initialNodes {
 
@@ -489,12 +514,12 @@ func convertNodeUrl(initialNodes []initNode) []CbftNode {
 			cbftNode.Node = *node
 		}
 
-		//var blsPk bls.PublicKey
-		//
-		//if pkByte, err := hex.DecodeString(n.BlsPubkey); nil == err {
-		//	blsPk.Deserialize(pkByte)
-		//	cbftNode.BlsPubKey = blsPk
-		//}
+		if n.BlsPubkey != "" {
+			var blsPk bls.PublicKey
+			if err := blsPk.UnmarshalText([]byte(n.BlsPubkey)); nil == err {
+				cbftNode.BlsPubKey = blsPk
+			}
+		}
 
 		NodeList = append(NodeList, *cbftNode)
 	}
