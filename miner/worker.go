@@ -1153,7 +1153,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	for _, raccTxs := range remoteTxs {
 		remoteTxsCount = remoteTxsCount + len(raccTxs)
 	}
-	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
+	log.Debug("execute pending transactions", "number", header.Number, "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1167,7 +1167,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	commitLocalTxCount := w.current.tcount
-	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
@@ -1177,13 +1177,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
 
-	log.Info("Commit new work", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "pending", txsCount, "txs", w.current.tcount,"diff", txsCount - w.current.tcount, "duration", time.Since(tstart))
+	log.Info("Commit new work", "nubmer", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
