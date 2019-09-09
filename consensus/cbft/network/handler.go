@@ -29,16 +29,19 @@ const (
 	CbftProtocolVersion = 1
 
 	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
-	CbftProtocolLength = 20
+	CbftProtocolLength = 40
 
 	// sendQueueSize is maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
 
 	// QCBnMonitorInterval is Qc block synchronization detection interval.
-	QCBnMonitorInterval = 2
+	QCBnMonitorInterval = 1
 
 	// SyncViewChangeInterval is ViewChange synchronization detection interval.
-	SyncViewChangeInterval = 2
+	SyncViewChangeInterval = 1
+
+	// SyncPrepareVoteInterval is PrepareVote synchronization detection interval.
+	SyncPrepareVoteInterval = 1
 
 	// removeBlacklistInterval is remove blacklist detection interval.
 	removeBlacklistInterval = 20
@@ -79,7 +82,7 @@ func NewEngineManger(engine Cbft) *EngineManager {
 		engine:             engine,
 		peers:              NewPeerSet(),
 		sendQueue:          make(chan *types.MsgPackage, sendQueueSize),
-		quitSend:           make(chan struct{}, 0),
+		quitSend:           make(chan struct{}),
 		historyMessageHash: mapset.NewSet(),
 	}
 	handler.blacklist, _ = lru.New(maxBlacklist)
@@ -233,14 +236,15 @@ func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 		if msgType == protocols.PrepareBlockMsg {
 			// Special treatment.
 			if v, ok := msg.(*protocols.PrepareBlock); ok {
-				h.Broadcast(&protocols.PrepareBlockHash{
+				pbh := &protocols.PrepareBlockHash{
 					Epoch:       v.Epoch,
 					ViewNumber:  v.ViewNumber,
 					BlockIndex:  v.BlockIndex,
 					BlockHash:   v.Block.Hash(),
 					BlockNumber: v.Block.NumberU64(),
-				})
-				log.Trace("PrepareBlockHash is forwarded instead of PrepareBlock done")
+				}
+				h.Broadcast(pbh)
+				log.Debug("PrepareBlockHash is forwarded instead of PrepareBlock", "msgHash", pbh.MsgHash())
 			}
 		} else {
 			// Direct forwarding.
@@ -407,7 +411,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// is processing abnormally.
 	for {
 		if err := h.handleMsg(peer); err != nil {
-			p.Log().Error("CBFT message handling failed", "err", err)
+			p.Log().Error("CBFT message handling failed", "peerID", peer.PeerID(), "err", err)
 			return err
 		}
 	}
@@ -560,13 +564,13 @@ func (h *EngineManager) handleMsg(p *peer) error {
 		}
 		for {
 			// Return the first element of list l or nil if the list is empty.
-			frontPing := p.PingList.Front()
+			frontPing := p.ListFront()
 			if frontPing == nil {
-				log.Trace("end of p.PingList")
+				log.Trace("end of p.pingList")
 				break
 			}
-			log.Trace("Front element of p.PingList", "element", frontPing)
-			if t, ok := p.PingList.Remove(frontPing).(string); ok {
+			log.Trace("Front element of p.pingList", "element", frontPing)
+			if t, ok := p.ListRemove(frontPing).(string); ok {
 				if t == pongTime[0] {
 					tInt64, err := strconv.ParseInt(t, 10, 64)
 					if err != nil {
@@ -599,8 +603,6 @@ func (h *EngineManager) handleMsg(p *peer) error {
 	default:
 		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
-
-	return nil
 }
 
 // MarkHistoryMessageHash is used to record the hash value of each message from the peer node.
@@ -628,6 +630,16 @@ func (h *EngineManager) MarkBlacklist(peerID string) {
 // ContainsBlacklist returns whether the specified node is blacklisted.
 func (h *EngineManager) ContainsBlacklist(peerID string) bool {
 	return h.blacklist.Contains(peerID)
+}
+
+// RemoveMessageHash removes the specified hash from the peer.
+func (h *EngineManager) RemoveMessageHash(id string, msgHash common.Hash) {
+	peer, err := h.peers.get(id)
+	if err != nil {
+		log.Error("Removing messageHash from peer failed", "err", err)
+		return
+	}
+	peer.RemoveMessageHash(msgHash)
 }
 
 // RemovePeer removes and disconnects a node from
@@ -663,20 +675,34 @@ func (h *EngineManager) synchronize() {
 	blockNumberTimer := time.NewTimer(QCBnMonitorInterval * time.Second)
 	viewTicker := time.NewTicker(SyncViewChangeInterval * time.Second)
 	pureBlacklistTicker := time.NewTicker(removeBlacklistInterval * time.Second)
+	voteTicker := time.NewTicker(SyncPrepareVoteInterval * time.Second)
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
 		qcBn, qcHash := h.engine.HighestQCBlockBn()
+		lockBn, lockHash := h.engine.HighestLockBlockBn()
 		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
 		h.PartBroadcast(&protocols.GetLatestStatus{
-			BlockNumber: qcBn,
-			BlockHash:   qcHash,
-			LogicType:   TypeForQCBn,
+			BlockNumber:  qcBn,
+			BlockHash:    qcHash,
+			LBlockNumber: lockBn,
+			LBlockHash:   lockHash,
+			LogicType:    TypeForQCBn,
 		})
 	}
 
 	for {
 		select {
+		case <-voteTicker.C:
+			msg, err := h.engine.MissingPrepareVote()
+			if err != nil {
+				log.Debug("Request missing prepareVote failed", "err", err)
+				break
+			}
+			log.Debug("Had new prepareVote sync request", "msg", msg.String())
+			// Only broadcasts without forwarding.
+			h.PartBroadcast(msg)
+
 		case <-blockNumberTimer.C:
 			// Sent at random.
 			syncQCBnFunc()
@@ -729,7 +755,7 @@ func (h *EngineManager) synchronize() {
 // bType:
 //  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
 func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
-	if peers == nil || len(peers) == 0 {
+	if len(peers) == 0 {
 		return nil, 0
 	}
 	largerNum := number

@@ -24,6 +24,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -53,19 +57,6 @@ import (
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
-
-var indexMock = map[int][]int{
-	1:  []int{2, 3, 4},
-	2:  []int{5, 6, 7},
-	3:  []int{8, 9, 10},
-	4:  []int{11, 12, 13},
-	5:  []int{14, 15, 16},
-	6:  []int{17, 18, 19},
-	7:  []int{},
-	8:  []int{20, 21, 22},
-	9:  []int{},
-	10: []int{23, 24, 25},
-}
 
 type LesServer interface {
 	Start(srvr *p2p.Server)
@@ -126,7 +117,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 || config.MinerGasPrice.Cmp(DefaultConfig.MinerGasPrice) <= 0 {
+	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", DefaultConfig.MinerGasPrice)
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
@@ -140,14 +131,14 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//snapshotdb.SetDBPath(ctx)
 
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
+		chainConfig.Cbft.Period = config.CbftConfig.Period
+		chainConfig.Cbft.Amount = config.CbftConfig.Amount
+	}
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
 
-	if nil != chainConfig && nil != chainConfig.Cbft {
-		xcom.SetNodeBlockTimeWindow(chainConfig.Cbft.Period / 1000)
-		xcom.SetPerRoundBlocks(uint64(chainConfig.Cbft.Amount))
-	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	eth := &Ethereum{
@@ -164,7 +155,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
 
-	log.Info("Initialising Ethereum protocol", "versions", ProtocolVersions, "network", config.NetworkId)
+	log.Info("Initialising PlatON protocol", "versions", ProtocolVersions, "network", config.NetworkId)
 
 	if !config.SkipBcVersionCheck {
 		bcVersion := rawdb.ReadDatabaseVersion(chainDb)
@@ -183,8 +174,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
-			TriesInMemory: config.TriesInMemory, DefaultTxsCacheSize: config.DefaultTxsCacheSize,
-			DefaultBroadcastInterval: config.DefaultBroadcastInterval,
+			TriesInMemory: config.TriesInMemory,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
@@ -200,6 +190,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	snapshotdb.SetDBBlockChain(eth.blockchain)
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
 
@@ -260,8 +251,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.INNER_VALIDATOR_MODE)
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
-			reactor.SetVRF_handler(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
-			reactor.SetCrypto_handler(xcom.GetCryptoHandler())
+			reactor.SetVRF_handler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetCrypto_handler(handler.GetCryptoHandler())
 			handlePlugin(reactor)
 			agency = reactor
 		}
@@ -488,23 +479,11 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
 		if flag := cbftEngine.IsConsensusNode(); flag {
-			// self: s.chainConfig.Cbft.NodeID
-			// list: s.chainConfig.Cbft.InitialNodes
-			// dep: test
-			/*ok, idxs := needAdd(s.chainConfig.Cbft.NodeID, s.chainConfig.Cbft.InitialNodes)
-			for idx, n := range s.chainConfig.Cbft.InitialNodes {
-				if idxs == nil {
-					break
-				}
-				for _, i := range idxs {
-					if ok && i == (idx+1) {
-						srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
-						break
-					}
-				}
-			}*/
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
-				srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+				// todo: Mock point.
+				if !node.FakeNetEnable {
+					srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+				}
 			}
 		}
 		s.StartMining()
@@ -515,22 +494,6 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		s.lesServer.Start(srvr)
 	}
 	return nil
-}
-
-// mock
-func needAdd(self discover.NodeID, nodes []discover.Node) (bool, []int) {
-	selfIndex := -1
-	for idx, n := range nodes {
-		if n.ID.TerminalString() == self.TerminalString() {
-			selfIndex = idx
-			break
-		}
-	}
-	if selfIndex == -1 {
-		return false, nil
-	}
-	selfIndex++
-	return true, indexMock[selfIndex]
 }
 
 // Stop implements node.Service, terminating all internal goroutines used by the
@@ -556,7 +519,7 @@ func (s *Ethereum) Stop() error {
 // RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
-	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidences)
+	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())

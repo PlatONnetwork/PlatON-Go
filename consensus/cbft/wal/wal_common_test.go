@@ -54,7 +54,7 @@ func buildQuorumCert() *ctypes.QuorumCert {
 		BlockNumber:  blockNumber,
 		BlockIndex:   blockIndex,
 		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
-		ValidatorSet: utils.NewBitArray(110),
+		ValidatorSet: utils.NewBitArray(25),
 	}
 }
 
@@ -66,7 +66,21 @@ func buildViewChangeQC() *ctypes.ViewChangeQC {
 			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
 			BlockNumber:  blockNumber,
 			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
-			ValidatorSet: utils.NewBitArray(110),
+			ValidatorSet: utils.NewBitArray(25),
+		}, {
+			Epoch:        epoch,
+			ViewNumber:   viewNumber,
+			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
+			BlockNumber:  blockNumber,
+			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+			ValidatorSet: utils.NewBitArray(25),
+		}, {
+			Epoch:        epoch,
+			ViewNumber:   viewNumber,
+			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
+			BlockNumber:  blockNumber,
+			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+			ValidatorSet: utils.NewBitArray(25),
 		}},
 	}
 }

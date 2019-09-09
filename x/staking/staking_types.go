@@ -2,9 +2,14 @@ package staking
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -18,14 +23,20 @@ const (
 	######   ######   ######   ######
 	*/
 	Invalided     = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	LowRatio                  // 0010: The candidate was low package ratio
+	LowRatio                  // 0010: The candidate was low package ratio AND no delete
 	NotEnough                 // 0100: The current candidate's von does not meet the minimum staking threshold
 	DuplicateSign             // 1000: The Duplicate package or Duplicate sign
+	LowRatioDel               // 0001,0000: The lowRatio AND must delete
+	Withdrew                  // 0010,0000: The Active withdrew
 	Valided       = 0         // 0000: The current candidate is in force
 	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
 
 const SWeightItem = 4
+
+func Is_Valid(status uint32) bool {
+	return !Is_Invalid(status)
+}
 
 func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
@@ -75,6 +86,30 @@ func Is_Invalid_DuplicateSign(status uint32) bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
+func Is_LowRatioDel(status uint32) bool {
+	return status&LowRatioDel == LowRatioDel
+}
+
+func Is_PureLowRatioDel(status uint32) bool {
+	return status&LowRatioDel == status|LowRatioDel
+}
+
+func Is_Invalid_LowRatioDel(status uint32) bool {
+	return status&(Invalided|LowRatioDel) == (Invalided | LowRatioDel)
+}
+
+func Is_Withdrew(status uint32) bool {
+	return status&Withdrew == Withdrew
+}
+
+func Is_PureWithdrew(status uint32) bool {
+	return status&Withdrew == status|Withdrew
+}
+
+func Is_Invalid_Withdrew(status uint32) bool {
+	return status&(Invalided|Withdrew) == (Invalided | Withdrew)
+}
+
 // The Candidate info
 type Candidate struct {
 	NodeId discover.NodeID
@@ -109,6 +144,109 @@ type Candidate struct {
 
 	// Node desc
 	Description
+}
+
+func (can *Candidate) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d, 
+		"Status": %d, 
+		"StakingEpoch": %d, 
+		"StakingBlockNum": %d,
+		"Shares": %d,
+		"Released": %d,
+		"ReleasedHes": %d,
+		"RestrictingPlan": %d,
+		"RestrictingPlanHes": %d,
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s"
+	}`,
+		can.NodeId.String(),
+		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
+		can.StakingTxIndex,
+		can.ProgramVersion,
+		can.Status,
+		can.StakingEpoch,
+		can.StakingBlockNum,
+		can.Shares,
+		can.Released,
+		can.ReleasedHes,
+		can.RestrictingPlan,
+		can.RestrictingPlanHes,
+		can.ExternalId,
+		can.NodeName,
+		can.Website,
+		can.Details)
+}
+
+// Display amount field using 0x hex
+type CandidateHex struct {
+	NodeId             discover.NodeID
+	BlsPubKey          bls.PublicKey
+	StakingAddress     common.Address
+	BenefitAddress     common.Address
+	StakingTxIndex     uint32
+	ProgramVersion     uint32
+	Status             uint32
+	StakingEpoch       uint32
+	StakingBlockNum    uint64
+	Shares             *hexutil.Big
+	Released           *hexutil.Big
+	ReleasedHes        *hexutil.Big
+	RestrictingPlan    *hexutil.Big
+	RestrictingPlanHes *hexutil.Big
+	Description
+}
+
+func (can *CandidateHex) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d, 
+		"Status": %d, 
+		"StakingEpoch": %d, 
+		"StakingBlockNum": %d,
+		"Shares": "%s",
+		"Released": "%s",
+		"ReleasedHes": "%s",
+		"RestrictingPlan": "%s",
+		"RestrictingPlanHes": "%s",
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s"
+	}`,
+		can.NodeId.String(),
+		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
+		can.StakingTxIndex,
+		can.ProgramVersion,
+		can.Status,
+		can.StakingEpoch,
+		can.StakingBlockNum,
+		can.Shares,
+		can.Released,
+		can.ReleasedHes,
+		can.RestrictingPlan,
+		can.RestrictingPlanHes,
+		can.ExternalId,
+		can.NodeName,
+		can.Website,
+		can.Details)
 }
 
 //// EncodeRLP implements rlp.Encoder
@@ -161,6 +299,7 @@ func (desc *Description) CheckLength() error {
 }
 
 type CandidateQueue []*Candidate
+type CandidateHexQueue []*CandidateHex
 
 // the Validator info
 // They are Simplified Candidate
@@ -180,6 +319,22 @@ type Validator struct {
 	StakingWeight [SWeightItem]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
+}
+
+func (val *Validator) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"NodeAddress": "%s",
+		"BlsPubKey": "%s", 
+		"StakingWeight": %s, 
+		"ValidatorTerm": %d
+	}`,
+		val.NodeId.String(),
+		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
+		fmt.Sprintf("%x", val.BlsPubKey.Serialize()),
+		fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),
+		val.ValidatorTerm)
 }
 
 func (val *Validator) GetProgramVersion() (uint32, error) {
@@ -218,39 +373,41 @@ func (val *Validator) GetStakingTxIndex() (uint32, error) {
 
 type ValidatorQueue []*Validator
 
-type SlashCandidate map[discover.NodeID]*Candidate
+type CandidateMap map[discover.NodeID]*Candidate
 
-func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
-	compare func(slashs SlashCandidate, c, can *Validator) int) {
+type NeedRemoveCans map[discover.NodeID]*Candidate
+
+func (arr ValidatorQueue) ValidatorSort(removes NeedRemoveCans,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if len(arr) <= 1 {
 		return
 	}
 
 	if nil == compare {
-		arr.quickSort(slashs, 0, len(arr)-1, CompareDefault)
+		arr.quickSort(removes, 0, len(arr)-1, CompareDefault)
 	} else {
-		arr.quickSort(slashs, 0, len(arr)-1, compare)
+		arr.quickSort(removes, 0, len(arr)-1, compare)
 	}
 }
-func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int,
-	compare func(slashs SlashCandidate, c, can *Validator) int) {
+func (arr ValidatorQueue) quickSort(removes NeedRemoveCans, left, right int,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
 	if left < right {
-		pivot := arr.partition(slashs, left, right, compare)
-		arr.quickSort(slashs, left, pivot-1, compare)
-		arr.quickSort(slashs, pivot+1, right, compare)
+		pivot := arr.partition(removes, left, right, compare)
+		arr.quickSort(removes, left, pivot-1, compare)
+		arr.quickSort(removes, pivot+1, right, compare)
 	}
 }
-func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
-	compare func(slashs SlashCandidate, c, can *Validator) int) int {
+func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
+	compare func(slashs NeedRemoveCans, c, can *Validator) int) int {
 	for left < right {
-		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
 			right--
 		}
 		if left < right {
 			arr[left], arr[right] = arr[right], arr[left]
 			left++
 		}
-		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
+		for left < right && compare(removes, arr[left], arr[right]) >= 0 {
 			left++
 		}
 		if left < right {
@@ -279,7 +436,7 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
+func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
@@ -321,8 +478,8 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	_, leftOk := slashs[left.NodeId]
-	_, rightOk := slashs[right.NodeId]
+	_, leftOk := removes[left.NodeId]
+	_, rightOk := removes[right.NodeId]
 
 	if leftOk && !rightOk {
 		return -1
@@ -350,12 +507,14 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // it is slashed and is sorted to the front.
 //
 // The priorities just like that:
-// DuplicateSign > Status Invalid (usually lowratio and balance no enough) > ProgramVersion || LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+// Invalid > ProgramVersion > validaotorTerm  > Shares > BlockNumber > TxIndex
 //
-// DuplicateSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// What is the invalid ?  That are DuplicateSign and lowRatio&invalid and lowVersion and withdrew&NotInEpochValidators
+//
+//
+//
 // Invalid Status: From invalid to valid
 // ProgramVersion: From small to big
-// LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // validaotorTerm: From big to small
 // Shares： From small to big
 // BlockNumber: From big to small
@@ -366,7 +525,7 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
+func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// some funcs
 
@@ -425,21 +584,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	lCan, lOK := slashs[left.NodeId]
-	rCan, rOK := slashs[right.NodeId]
-
-	/**
-	Start Compare
-	*/
-
-	// 1. has slashed ?
-	switch {
-	case !lOK && rOK: // left has not slashed AND right has slashed
-		return -1
-	case !lOK && !rOK: // both has not slashed
-		// 2. ProgramVersion
-		lversion, _ := left.GetProgramVersion()
-		rversion, _ := right.GetProgramVersion()
+	compareVersionFunc := func(l, r *Validator) int {
+		lversion, _ := l.GetProgramVersion()
+		rversion, _ := r.GetProgramVersion()
 		switch {
 		case lversion > rversion:
 			return -1
@@ -448,40 +595,64 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		default:
 			return compareTermFunc(left, right)
 		}
-	case lOK && !rOK: // left has slashed AND right has not slashed
+	}
+
+	lCan, lOK := removes[left.NodeId]
+	rCan, rOK := removes[right.NodeId]
+
+	/**
+	Start Compare
+	*/
+
+	switch {
+	case !lOK && rOK: // left need not removed AND right need removed
+		return -1
+	case !lOK && !rOK: // both need not removed
+
+		// 2. ProgramVersion
+		return compareVersionFunc(left, right)
+
+	case lOK && !rOK: // left need removed AND right need not removed
 		return 1
-	default: // both  has slashed
+	default: // both need removed
 
-		// 2. Duplicate Sign
-		if Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status) { // left DuplicateSign, right is not duplicateSign
+		// compare slash
+		switch {
+		case Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status):
 			return 1
-		} else if Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // both DuplicateSign
-			return compareSharesFunc(left, right)
-		} else if !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status) { // left is not duplicateSign, right DuplicateSign
+		case !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
 			return -1
-		} else { // both no duplicateSign
-
-			// 3. status is invalid
+		case Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+			// compare Shares
+			return compareSharesFunc(left, right)
+		default:
+			// compare low ratio delete
+			// compare low ratio
 			switch {
-			// left.Status(xxxxx1) && right.Status(xxxxx0)
-			case Is_Invalid(lCan.Status) && !Is_Invalid(rCan.Status):
+			case Is_LowRatioDel(lCan.Status) && !Is_LowRatioDel(rCan.Status):
 				return 1
-			// left.Status(xxxxx0) && right.Status(xxxxx1)
-			case !Is_Invalid(lCan.Status) && Is_Invalid(rCan.Status):
+			case !Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
 				return -1
-			// When both valid OR both Invalid
+			case Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
+				// compare Shares
+				return compareSharesFunc(left, right)
 			default:
-
-				// 4. LowPackageRatio
-				if Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status) { // left is LowRatio AND right is not LowRatio
+				switch {
+				case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
 					return 1
-				} else if !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status) { // left is not LowRatio AND right is LowRatio
+				case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
 					return -1
-				} else { // both is LowRatio OR both no LowRatio
-					return compareTermFunc(left, right)
+				case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+					// compare Shares
+					return compareSharesFunc(left, right)
+				default:
+					// compare Version
+					return compareVersionFunc(left, right)
 				}
 			}
+
 		}
+
 	}
 }
 
@@ -494,7 +665,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForStore(_ SlashCandidate, left, right *Validator) int {
+func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 	// some funcs
 
 	// 5. TxIndex
@@ -566,7 +737,7 @@ func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 }
 
 // some consensus round validators or current epoch validators
-type Validator_array struct {
+type ValidatorArray struct {
 	// the round start blockNumber or epoch start blockNumber
 	Start uint64
 	// the round end blockNumber or epoch blockNumber
@@ -576,8 +747,8 @@ type Validator_array struct {
 }
 
 type ValidatorEx struct {
-	NodeAddress common.Address
-	NodeId      discover.NodeID
+	//NodeAddress common.Address
+	NodeId discover.NodeID
 	// bls public key
 	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
@@ -591,12 +762,47 @@ type ValidatorEx struct {
 	// Block height at the time of staking
 	StakingBlockNum uint64
 	// All vons of staking and delegated
-	Shares *big.Int
+	//Shares *big.Int
+	Shares *hexutil.Big
 	// Node desc
 	Description
 	// this is the term of validator in consensus round
 	// [0, N]
 	ValidatorTerm uint32
+}
+
+func (vex *ValidatorEx) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"NodeAddress": "%s",
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d,
+		"StakingBlockNum": %d,
+		"Shares": "%s",
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s",
+		"ValidatorTerm": %d
+	}`,
+		vex.NodeId.String(),
+		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", vex.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", vex.BenefitAddress.Bytes()),
+		vex.StakingTxIndex,
+		vex.ProgramVersion,
+		vex.StakingBlockNum,
+		vex.Shares,
+		vex.ExternalId,
+		vex.NodeName,
+		vex.Website,
+		vex.Details,
+		vex.ValidatorTerm)
 }
 
 type ValidatorExQueue = []*ValidatorEx
@@ -617,11 +823,86 @@ type Delegation struct {
 	Reduction *big.Int
 }
 
+func (del *Delegation) String() string {
+	return fmt.Sprintf(`
+	{
+		"DelegateEpoch": "%d", 
+		"Released": "%d", 
+		"ReleasedHes": %d, 
+		"RestrictingPlan": %d,
+		"RestrictingPlanHes": %d,
+		"Reduction": "%d"
+	}`,
+		del.DelegateEpoch,
+		del.Released,
+		del.ReleasedHes,
+		del.RestrictingPlan,
+		del.RestrictingPlanHes,
+		del.Reduction)
+}
+
+type DelegationHex struct {
+	// The epoch number at delegate or edit
+	DelegateEpoch uint32
+	// The delegate von  is circulating for effective epoch (in effect)
+	Released *hexutil.Big
+	// The delegate von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *hexutil.Big
+	// The delegate von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *hexutil.Big
+	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *hexutil.Big
+	// Total amount in all cancellation plans
+	Reduction *hexutil.Big
+}
+
+func (delHex *DelegationHex) String() string {
+	return fmt.Sprintf(`
+	{
+		"DelegateEpoch": "%d", 
+		"Released": "%s", 
+		"ReleasedHes": %s, 
+		"RestrictingPlan": %s,
+		"RestrictingPlanHes": %s,
+		"Reduction": "%s"
+	}`,
+		delHex.DelegateEpoch,
+		delHex.Released,
+		delHex.ReleasedHes,
+		delHex.RestrictingPlan,
+		delHex.RestrictingPlanHes,
+		delHex.Reduction)
+}
+
 type DelegationEx struct {
 	Addr            common.Address
 	NodeId          discover.NodeID
 	StakingBlockNum uint64
-	Delegation
+	DelegationHex
+}
+
+func (dex *DelegationEx) String() string {
+	return fmt.Sprintf(`
+	{
+		"Addr": "%s", 
+		"NodeId": "%s",
+		"StakingBlockNum": "%d", 
+		"DelegateEpoch": "%d", 
+		"Released": "%s", 
+		"ReleasedHes": %s, 
+		"RestrictingPlan": %s,
+		"RestrictingPlanHes": %s,
+		"Reduction": "%s"
+	}`,
+		dex.Addr.String(),
+		fmt.Sprintf("%x", dex.NodeId.Bytes()),
+		dex.StakingBlockNum,
+		dex.DelegateEpoch,
+		dex.Released,
+		dex.ReleasedHes,
+		dex.RestrictingPlan,
+		dex.RestrictingPlanHes,
+		dex.Reduction)
 }
 
 type DelegateRelated struct {
@@ -630,13 +911,25 @@ type DelegateRelated struct {
 	StakingBlockNum uint64
 }
 
+func (dr *DelegateRelated) String() string {
+	return fmt.Sprintf(`
+	{
+		"Addr": "%s", 
+		"NodeId": "%s",
+		"StakingBlockNum": "%d"
+	}`,
+		dr.Addr.String(),
+		fmt.Sprintf("%x", dr.NodeId.Bytes()),
+		dr.StakingBlockNum)
+}
+
 type DelRelatedQueue = []*DelegateRelated
 
-/*type UnStakeItem struct {
+type UnStakeItem struct {
 	// this is the nodeAddress
-	KeySuffix  	[]byte
-	Amount 		*big.Int
-}*/
+	KeySuffix       []byte
+	StakingBlockNum uint64
+}
 
 type UnDelegateItem struct {
 	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
@@ -652,6 +945,11 @@ type ValArrIndex struct {
 type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
+
+	xcom.PrintObject("Call ConstantAppend, queue", queue)
+	xcom.PrintObject("Call ConstantAppend, index", index)
+	log.Debug("Call ConstantAppend", "size", size)
+
 	queue = append(queue, index)
 	if size < len(queue) {
 		return queue[0], queue[1:]

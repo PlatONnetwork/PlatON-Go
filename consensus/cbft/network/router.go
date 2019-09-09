@@ -86,7 +86,7 @@ func (r *router) Gossip(m *types.MsgPackage) {
 	// recipients to reduce network consumption.
 	switch m.Mode() {
 	case types.PartMode:
-		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+		transfer := kRandomNodes(int(math.Sqrt(float64(len(peers)))), peers, common.Hash{}, nil)
 		peers = transfer
 	}
 
@@ -135,9 +135,10 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, 
 	switch msgType {
 	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
 		protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
-		return r.kMixingRandomNodes(condition)
-	case protocols.PrepareBlockHashMsg, protocols.GetLatestStatusMsg, protocols.GetViewChangeMsg:
-		return r.kConsensusRandomNodes(false, condition)
+		return r.kMixingRandomNodes(condition, r.filter)
+	case protocols.PrepareBlockHashMsg, protocols.GetLatestStatusMsg,
+		protocols.GetViewChangeMsg, protocols.GetPrepareVoteMsg:
+		return r.kMixingRandomNodes(condition, nil)
 	}
 	return nil, fmt.Errorf("does not match the type of the specified message")
 }
@@ -180,7 +181,7 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 }
 
 // kMixingRandomNodes returns all consensus nodes and k randomly generated non-consensus nodes.
-func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
+func (r *router) kMixingRandomNodes(condition common.Hash, filterFn func(*peer, common.Hash) bool) ([]*peer, error) {
 	// all consensus nodes + a number of k non-consensus nodes
 	cNodes, err := r.consensusNodes()
 	log.Debug("consensusNodes in kMixingRandomNodes", "cNodes", len(cNodes), "ids", FormatNodes(cNodes))
@@ -202,7 +203,7 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 				break
 			}
 		}
-		if peer.ContainsMessageHash(condition) {
+		if filterFn != nil && filterFn(peer, condition) {
 			continue
 		}
 		if isConsensus {
@@ -211,8 +212,9 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 			nonconsensusPeers = append(nonconsensusPeers, peer)
 		}
 	}
+	log.Debug("kMixingRandomNodes select node", "msgHash", condition, "cNodesLen", len(cNodes), "ncNodesLen", len(nonconsensusPeers), "peerSetLen", len(existsPeers))
 	// Obtain random nodes from non-consensus nodes.
-	kNonconsensusNodes := kRandomNodes(DefaultFanOut, nonconsensusPeers, condition, r.filter)
+	kNonconsensusNodes := kRandomNodes(DefaultFanOut, nonconsensusPeers, condition, filterFn)
 	// Summary target peers and return.
 	consensusPeers = append(consensusPeers, kNonconsensusNodes...)
 	return consensusPeers, nil

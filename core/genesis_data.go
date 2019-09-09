@@ -78,6 +78,10 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		return newHash, nil
 	}
 
+	// hard code genesis staking balance
+	// 1000W von
+	geneStakingAmount, _ := new(big.Int).SetString("10000000000000000000000000", 10)
+
 	for index := 0; index < length; index++ {
 
 		node := initQueue[index]
@@ -92,8 +96,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			StakingBlockNum:    uint64(0),
-			Shares:             xcom.StakeThreshold(),
-			Released:           xcom.StakeThreshold(),
+			Shares:             geneStakingAmount,
+			Released:           geneStakingAmount,
 			ReleasedHes:        common.Big0,
 			RestrictingPlan:    common.Big0,
 			RestrictingPlanHes: common.Big0,
@@ -144,8 +148,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		}
 		validatorQueue[index] = validator
 
-		stateDB.SubBalance(vm.PlatONFoundationAddress, xcom.StakeThreshold())
-		stateDB.AddBalance(vm.StakingContractAddr, xcom.StakeThreshold())
+		stateDB.SubBalance(vm.PlatONFoundationAddress, geneStakingAmount)
+		stateDB.AddBalance(vm.StakingContractAddr, geneStakingAmount)
 	}
 
 	// store the account staking Reference Count
@@ -230,12 +234,13 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	log.Info("Call genesisStakingData, Store genesis pposHash by stake data", "pposHash", lastHash.Hex())
 
 	stateDB.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), lastHash.Bytes())
+
 	return nil
 }
 
 // genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
-func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
+func genesisAllowancePlan(statedb *state.StateDB, issue *big.Int) error {
 	account := vm.RewardManagerPoolAddr
 	var (
 		zeroEpoch  = new(big.Int).Mul(big.NewInt(622157424869165), big.NewInt(1E11))
@@ -243,29 +248,30 @@ func genesisAllowancePlan(stateDb *state.StateDB, issue *big.Int) error {
 		twoEpoch   = new(big.Int).Mul(big.NewInt(495594924869165), big.NewInt(1E11))
 		threeEpoch = new(big.Int).Mul(big.NewInt(429930862369165), big.NewInt(1E11))
 		fourEpoch  = new(big.Int).Mul(big.NewInt(362625198306666), big.NewInt(1E11))
-		fiveEpoch  = new(big.Int).Mul(big.NewInt(293636892642603), big.NewInt(1E11))
+		fiveEpoch  = new(big.Int).Mul(big.NewInt(293636892642633), big.NewInt(1E11))
 		sixEpoch   = new(big.Int).Mul(big.NewInt(222923879336939), big.NewInt(1E11))
 		sevenEpoch = new(big.Int).Mul(big.NewInt(150443040698633), big.NewInt(1E11))
-		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943699), big.NewInt(1E10))
+		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943690), big.NewInt(1E10))
 	)
-	stateDb.SubBalance(vm.PlatONFoundationAddress, zeroEpoch)
-	stateDb.AddBalance(account, zeroEpoch)
+
+	statedb.SubBalance(vm.PlatONFoundationAddress, zeroEpoch)
+	statedb.AddBalance(account, zeroEpoch)
 	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
 
 	restrictingPlans := make([]restricting.RestrictingPlan, 0)
 	OneYearEpochs := xutil.EpochsPerYear()
-
 	for key, value := range needRelease {
 		epochs := OneYearEpochs * (uint64(key) + 1)
 		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
 	}
-	if err := plugin.RestrictingInstance().AddRestrictingRecord(vm.PlatONFoundationAddress, vm.RewardManagerPoolAddr, restrictingPlans, stateDb); err != nil {
+
+	if err := plugin.RestrictingInstance().AddRestrictingRecord(vm.PlatONFoundationAddress, vm.RewardManagerPoolAddr, restrictingPlans, statedb); err != nil {
 		return err
 	}
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genesisIssue *big.Int, programVersion uint32) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int, programVersion uint32) error {
 
 	isDone := false
 	switch {
@@ -286,7 +292,6 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 	}
 
 	// Store genesis yearEnd reward balance item
-	plugin.SetYearEndBalance(statedb, 0, genesisReward)
 
 	// Store genesis Issue for LAT
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
@@ -307,6 +312,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisReward, genes
 	// Store genesis last Epoch
 	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
 	plugin.SetLatestEpoch(statedb, uint64(0))
+
+	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
+	plugin.SetYearEndBalance(statedb, 0, genesisReward)
+	log.Info("Set SetYearEndBalance", "genesisReward", genesisReward)
+
 	return nil
 }
 

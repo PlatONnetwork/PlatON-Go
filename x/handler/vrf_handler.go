@@ -1,4 +1,4 @@
-package xcom
+package handler
 
 import (
 	"crypto/ecdsa"
@@ -8,10 +8,12 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -113,8 +115,8 @@ func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 			copy(nonces, value)
 			log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
 				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "valueLength",
-				len(value), "EpochValidatorNum", EpochValidatorNum())
-			if uint64(len(nonces)) == EpochValidatorNum() {
+				len(value), "EpochValidatorNum", xcom.EpochValidatorNum())
+			if uint64(len(nonces)) == xcom.EpochValidatorNum() {
 				nonces = nonces[1:]
 			}
 		}
@@ -134,7 +136,7 @@ func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 		}
 		log.Info("Storage previous nonce Success", "current blockNumber", currentBlockNumber.Uint64(),
 			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
-			"valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum(), "nonce", hex.EncodeToString(nonce),
+			"valueLength", len(nonces), "EpochValidatorNum", xcom.EpochValidatorNum(), "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil

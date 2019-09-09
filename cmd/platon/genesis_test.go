@@ -31,73 +31,261 @@ var customGenesisTests = []struct {
 	// Plain genesis file without anything extra
 	{
 		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00"
-		}`,
+    "alloc":{
+        "1000000000000000000000000000000000000001":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000002":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000003":{
+            "balance":"200000000000000000000000000"
+        },
+        "1000000000000000000000000000000000000004":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000005":{
+            "balance":"0"
+        },
+        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+            "balance":"8050000000000000000000000000"
+        },
+        "493301712671ada506ba6ca7891f436d29185821":{
+            "balance":"2000000000000000000000000000"
+        }
+    },
+    "EconomicModel":{
+        "Common":{
+            "ExpectedMinutes":4,
+            "ValidatorCount":4,
+            "AdditionalCycleTime":16
+        },
+        "Staking":{
+            "StakeThreshold":               5000000000000000000000000,
+            "MinimumThreshold":             10000000000000000000,
+            "EpochValidatorNum":            24,
+            "HesitateRatio":                1,
+            "UnStakeFreezeRatio":           2,
+            "ActiveUnDelegateFreezeRatio":  0
+        },
+        "Slashing":{
+           "PackAmountAbnormal":   6,
+           "PackAmountHighAbnormal":  2,
+           "PackAmountLowSlashRate":  10,
+           "PackAmountHighSlashRate":  50,
+           "DuplicateSignHighSlashing": 100
+        },
+        "Gov": {
+            "VersionProposalVote_ConsensusRounds": 4,
+            "VersionProposalActive_ConsensusRounds": 5,
+            "VersionProposal_SupportRate": 0.667,
+            "TextProposalVote_ConsensusRounds": 4,
+            "TextProposal_VoteRate": 0.5,
+            "TextProposal_SupportRate": 0.667,          
+            "CancelProposal_VoteRate": 0.50,
+            "CancelProposal_SupportRate": 0.667
+        },
+        "Reward":{
+            "NewBlockRate": 50,
+            "PlatONFoundationYear": 10 
+        }
+    },
+    "coinbase":"0x0000000000000000000000000000000000000000",
+    "extraData":"",
+    "gasLimit":"0x2fefd8",
+    "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp":"0x00",
+    "config":{
+        "cbft":{
+            "initialNodes":[
+                {
+                    "node":"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+                    "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
+                }
+            ],
+            "epoch":1,
+            "amount":10,
+            "validatorMode":"ppos",
+            "period":10000
+        }
+    }
+}`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		result: "0xd31d37efa7b9e9d7df775d9a6f9ddb6f5e3d6dd6b87b471b71ed9be9a69b7b871c71cd1d7f46f96b7f5ed76f7bedad9f71ddb7000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with only cbft config
 	{
 		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00",
-			"config"     : {
-               "cbft":  {
-     				"initialNodes": [
-     				  {
-     				    "node": "enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
-     				    "blsPubKey":"15e87df4d48d1294c7ca6485cd42b5f5d66b9f5561fd0f78b091ad6a43613921cab55951a6aa9289cdb76f80d6c42dedc673e03ff7e4b3f1b996db12351f3109"
-     				  }
-     				],
-     				"epoch": 1,
-     				"amount": 10,
-     				"validatorMode": "ppos",
-     				"period": 10000
-    			}
-			}
-		}`,
+    "alloc":{
+        "1000000000000000000000000000000000000001":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000002":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000003":{
+            "balance":"200000000000000000000000000"
+        },
+        "1000000000000000000000000000000000000004":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000005":{
+            "balance":"0"
+        },
+        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+            "balance":"8050000000000000000000000000"
+        },
+        "493301712671ada506ba6ca7891f436d29185821":{
+            "balance":"2000000000000000000000000000"
+        }
+    },
+    "EconomicModel":{
+        "Common":{
+            "ExpectedMinutes":4,
+            "ValidatorCount":4,
+            "AdditionalCycleTime":16
+        },
+        "Staking":{
+            "StakeThreshold":               5000000000000000000000000,
+            "MinimumThreshold":             10000000000000000000,
+            "EpochValidatorNum":            24,
+            "HesitateRatio":                1,
+            "UnStakeFreezeRatio":           2,
+            "ActiveUnDelegateFreezeRatio":  0
+        },
+        "Slashing":{
+           "PackAmountAbnormal":   6,
+           "PackAmountHighAbnormal":  2,
+           "PackAmountLowSlashRate":  10,
+           "PackAmountHighSlashRate":  50,
+           "DuplicateSignHighSlashing": 100
+        },
+        "Gov": {
+            "VersionProposalVote_ConsensusRounds": 4,
+            "VersionProposalActive_ConsensusRounds": 5,
+            "VersionProposal_SupportRate": 0.667,
+            "TextProposalVote_ConsensusRounds": 4,
+            "TextProposal_VoteRate": 0.5,
+            "TextProposal_SupportRate": 0.667,          
+            "CancelProposal_VoteRate": 0.50,
+            "CancelProposal_SupportRate": 0.667
+        },
+        "Reward":{
+            "NewBlockRate": 50,
+            "PlatONFoundationYear": 10 
+        }
+    },
+    "coinbase":"0x0000000000000000000000000000000000000000",
+    "extraData":"",
+    "gasLimit":"0x2fefd8",
+    "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp":"0x00",
+    "config":{
+        "cbft":{
+            "initialNodes":[
+                {
+                    "node":"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+                    "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
+                }
+            ],
+            "epoch":1,
+            "amount":10,
+            "validatorMode":"ppos",
+            "period":10000
+        }
+    }
+}`,
 		query:  "platon.getBlock(0).nonce",
 		result: "0xd31d37efa7b9e9d7df775d9a6f9ddb6f5e3d6dd6b87b471b71ed9be9a69b7b871c71cd1d7f46f96b7f5ed76f7bedad9f71ddb7000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with specific chain configurations
 	{
 		genesis: `{
-			"alloc"      : {},
-			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00",
-			"config"     : {
-               "chainId": 101,
-               "eip155Block": 0,
-               "interpreter":"wasm",
-               "cbft":  {
-     				"initialNodes": [
-     				  {
-     				    "node": "enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
-     				    "blsPubKey":"15e87df4d48d1294c7ca6485cd42b5f5d66b9f5561fd0f78b091ad6a43613921cab55951a6aa9289cdb76f80d6c42dedc673e03ff7e4b3f1b996db12351f3109"
-     				  }
-     				],
-     				"epoch": 1,
-     				"amount": 10,
-     				"validatorMode": "ppos",
-     				"period": 10000
-    			}
-			}
-		}`,
+    "alloc":{
+        "1000000000000000000000000000000000000001":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000002":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000003":{
+            "balance":"200000000000000000000000000"
+        },
+        "1000000000000000000000000000000000000004":{
+            "balance":"0"
+        },
+        "1000000000000000000000000000000000000005":{
+            "balance":"0"
+        },
+        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+            "balance":"8050000000000000000000000000"
+        },
+        "493301712671ada506ba6ca7891f436d29185821":{
+            "balance":"2000000000000000000000000000"
+        }
+    },
+    "EconomicModel":{
+        "Common":{
+            "ExpectedMinutes":4,
+            "ValidatorCount":4,
+            "AdditionalCycleTime":16
+        },
+        "Staking":{
+            "StakeThreshold":               5000000000000000000000000,
+            "MinimumThreshold":             10000000000000000000,
+            "EpochValidatorNum":            24,
+            "HesitateRatio":                1,
+            "UnStakeFreezeRatio":           2,
+            "ActiveUnDelegateFreezeRatio":  0
+        },
+        "Slashing":{
+           "PackAmountAbnormal":   6,
+           "PackAmountHighAbnormal":  2,
+           "PackAmountLowSlashRate":  10,
+           "PackAmountHighSlashRate":  50,
+           "DuplicateSignHighSlashing": 100
+        },
+        "Gov": {
+            "VersionProposalVote_ConsensusRounds": 4,
+            "VersionProposalActive_ConsensusRounds": 5,
+            "VersionProposal_SupportRate": 0.667,
+            "TextProposalVote_ConsensusRounds": 4,
+            "TextProposal_VoteRate": 0.5,
+            "TextProposal_SupportRate": 0.667,          
+            "CancelProposal_VoteRate": 0.50,
+            "CancelProposal_SupportRate": 0.667
+        },
+        "Reward":{
+            "NewBlockRate": 50,
+            "PlatONFoundationYear": 10 
+        }
+    },
+    "coinbase":"0x0000000000000000000000000000000000000000",
+    "extraData":"",
+    "gasLimit":"0x2fefd8",
+    "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp":"0x00",
+    "config":{
+        "chainId":101,
+        "eip155Block":0,
+        "interpreter":"wasm",
+        "cbft":{
+            "initialNodes":[
+                {
+                    "node":"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
+                    "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
+                }
+            ],
+            "epoch":1,
+            "amount":10,
+            "validatorMode":"ppos",
+            "period":10000
+        }
+    }
+}`,
 		query:  "platon.getBlock(0).nonce",
 		result: "0xd31d37efa7b9e9d7df775d9a6f9ddb6f5e3d6dd6b87b471b71ed9be9a69b7b871c71cd1d7f46f96b7f5ed76f7bedad9f71ddb7000000000000000000000000000000000000000000000000000000000000",
 	},

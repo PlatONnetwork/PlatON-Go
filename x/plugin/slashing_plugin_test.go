@@ -175,19 +175,19 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	queue = append(queue, v2)
 	queue = append(queue, v3)
 
-	epochArr := &staking.Validator_array{
+	epochArr := &staking.ValidatorArray{
 		Start: 1,
 		End:   uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
-	preArr := &staking.Validator_array{
+	preArr := &staking.ValidatorArray{
 		Start: 1,
 		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
-	curArr := &staking.Validator_array{
+	curArr := &staking.ValidatorArray{
 		Start: xutil.ConsensusSize() + 1,
 		End:   xutil.ConsensusSize() * 2,
 		Arr:   queue,
@@ -310,112 +310,106 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	si.SetDecodeEvidenceFun(evidence.NewEvidences)
+	si.SetDecodeEvidenceFun(evidence.NewEvidence)
 	GovPluginInstance()
 	data := `{
-          "duplicate_prepare": [
-          {
-           "PrepareA": {
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x09c94e00f687891f5de80146d906b55a249408dfd27afcad5a87bdad6fc28957",
+            "block_hash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
-             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
-             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
+             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
+             "NodeID": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0x13eb58303156f63d8961a916694d3f659d58804ef1d783ee5c8c7fc3ca393b8a"
+            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0xd1fc79053b8e9fd6a7d9061b4e12a282110429bd0e643aa477083f221a8cba8c",
+            "block_hash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
-             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
-             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
+             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
+             "NodeID": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0x8de9fbb57edf75934b4caf40c95d569d03a75c762343066db737fdb2b818c313"
+            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
            }
-          },
-		  {
-           "PrepareA": {
+          }`
+	data2 := `{
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x00a452c6116ac9df049016437f8a35b4e29c17d63632314f0266df2b0dcd4bef",
+            "block_hash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
             "block_number": 2,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
-             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
-             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
+             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
+             "NodeID": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0x554a2a2f1b0d197730c707b595016b5f735ce0df0a5e9efd28a77764f295af1f"
+            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x3f643f315a72d54815e3b638e53a1f293834e6d9109c4c0f3e5d9c7171bf1cf2",
+            "block_hash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
             "block_number": 2,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257",
-             "NodeID": "bf1c6f0159513755be9bbb12da983c0743f0e8553c07f40e5e3c07eba84c6584aec141ed2e87e94ababee483e7d4809e85f9e2d043d0cb73bd46149fbc2f2f8c",
-             "blsPubKey": "f3ee4cb60b04358c21460b9dd0832028959a6d0052218d796c96a5eac01b541f88595d62ee52880e0a77ecf8ffde63966a5d0d70028c08dfca622827563df99e"
+             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
+             "NodeID": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0x9e626bd0fd19290c7ff23a605259735de216f9c26df51ddaf51f66f0aade4097"
+            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
            }
-          },
-		  {
-           "PrepareA": {
+          }`
+	data3 := `{
+           "prepare_a": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x3a9231003fcf850ff47dcf8bb13cc4a711c1c1704393bd1663568acdd2d5d761",
+            "block_hash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x0c6d62d98f6f7906b414dfed2368ab6a5ce36dca",
-             "NodeID": "4c85a9eab0f1d8bdd6f211e7a751373efd54c09fb7857d556325c064a63dd05b3590efc09f5b14194d34ab8e94e51a3160e0c685a67ea862a3c9a046e1225b44",
-             "blsPubKey": "af3a4411370ad2ec97cd8a02c9d730e9dd5e90c509294bc947a5f1de0aeedf22c5dc551481f43e40d65cf5341485c9fff087361b03ece46e99aed43b54efaf1d"
+             "address": "0x00cbcfbbe9e33c3196c2d6efd54012964e0b8753",
+             "NodeID": "7eeef507c70ad0847bed7666c33cc972a997d9175350a84f45a933110b40ffed18a55af0aaa7a519ab531724dc9568e20ab7df54b5e2c71a1931366cd6be7ff1",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0xf36de5b8008fd9e697e8414bbbca6a943a448bbc69c4e7aac7ffdffd3c051288"
+            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
            },
-           "PrepareB": {
+           "prepare_b": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0xb5efd1598ba2ad9ff3ee763fb2cf43a24f64ca56c1efdeca7aad3436a4da7240",
+            "block_hash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x0c6d62d98f6f7906b414dfed2368ab6a5ce36dca",
-             "NodeID": "4c85a9eab0f1d8bdd6f211e7a751373efd54c09fb7857d556325c064a63dd05b3590efc09f5b14194d34ab8e94e51a3160e0c685a67ea862a3c9a046e1225b44",
-             "blsPubKey": "af3a4411370ad2ec97cd8a02c9d730e9dd5e90c509294bc947a5f1de0aeedf22c5dc551481f43e40d65cf5341485c9fff087361b03ece46e99aed43b54efaf1d"
+             "address": "0x00cbcfbbe9e33c3196c2d6efd54012964e0b8753",
+             "NodeID": "7eeef507c70ad0847bed7666c33cc972a997d9175350a84f45a933110b40ffed18a55af0aaa7a519ab531724dc9568e20ab7df54b5e2c71a1931366cd6be7ff1",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0xaf76685de2b0cc25644d4e5c763065162ff03bc425826dd639c4ee779a200509"
+            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
            }
-          }
-         ],
-         "duplicate_vote": [],
-         "duplicate_viewchange": []
-        }`
+          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	addr := common.HexToAddress("0x27383a8d350139588daba349dcd6ef1d745da004")
-	nodeId, err := discover.HexID("2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270")
+	addr := common.HexToAddress("0x076c72c53c569df9998448832a61371ac76d0d05")
+	nodeId, err := discover.HexID("b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511")
 	if nil != err {
 		t.Fatal(err)
 	}
 	var blsKey bls.SecretKey
-	skbyte, err := hex.DecodeString("328146a789365c846b1da23f89bc178a32febf217fb496153efe9e34ac4fa621")
+	skbyte, err := hex.DecodeString("155b9a6f5575b9b5a4d8658f616660a549674b36c858e6c606d08ec5c20c4637")
 	if nil != err {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}
@@ -430,7 +424,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 		Shares:          new(big.Int).SetUint64(1000),
 
-		Released:           common.Big0,
+		Released:           common.Big256,
 		ReleasedHes:        common.Big0,
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
@@ -443,18 +437,33 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Fatal(err)
 	}
-	evidence, err := si.DecodeEvidence(data)
+	evidence1, err := si.DecodeEvidence(1, data)
 	if nil != err {
 		t.Fatal(err)
 	}
-	if err := si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
+	if err := si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
 		t.Fatal(err)
 	}
 	if value, err := si.CheckDuplicateSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
-	err = si.Slash(evidence, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
-	assert.Nil(t, err)
+
+	evidence2, err := si.DecodeEvidence(1, data2)
+	if nil != err {
+		t.Fatal(err)
+	}
+	err = si.Slash(evidence2, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
+
+	evidence3, err := si.DecodeEvidence(1, data3)
+	if nil != err {
+		t.Fatal(err)
+	}
+	err = si.Slash(evidence3, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
+
+	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
 }
 
 func TestSlashingPlugin_CheckMutiSign(t *testing.T) {

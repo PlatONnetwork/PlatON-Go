@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -14,7 +15,7 @@ import (
 
 type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
-	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateQueue, error)
+	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateHexQueue, error)
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
@@ -63,9 +64,9 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 
 func GetProgramVersion() (*ProgramVersionValue, error) {
 	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	sig, err := xcom.GetCryptoHandler().Sign(programVersion)
+	sig, err := handler.GetCryptoHandler().Sign(programVersion)
 	if err != nil {
-		log.Error("sign version data error")
+		log.Error("sign version data error", "err", err)
 		return nil, err
 	}
 	value := &ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: hexutil.Encode(sig)}
@@ -78,8 +79,12 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 
 	//param check
 	if err := proposal.Verify(blockNumber, blockHash, state); err != nil {
-		log.Error("verify proposal parameters failed", "err", err)
-		return common.NewBizError(err.Error())
+		if bizError, ok := err.(*common.BizError); ok {
+			return bizError
+		} else {
+			log.Error("verify proposal parameters failed", "err", err)
+			return common.NewBizError(err.Error())
+		}
 	}
 
 	//check caller and proposer
@@ -102,17 +107,20 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 // vote for a proposal
 func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, stk Staking, state xcom.StateDB) error {
 	log.Debug("call Vote", "from", from, "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID, "voteOption", vote.VoteOption, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign)
-	if vote.ProposalID == common.ZeroHash || vote.VoteOption == 0 {
-		return common.NewBizError("empty parameter detected.")
+	if vote.ProposalID == common.ZeroHash {
+		return ProposalIDEmpty
+	}
+
+	if vote.VoteOption != Yes && vote.VoteOption != No && vote.VoteOption != Abstention {
+		return VoteOptionError
 	}
 
 	proposal, err := GetProposal(vote.ProposalID, state)
 	if err != nil {
-		log.Error("cannot find proposal by ID", "proposalID", vote.ProposalID)
+		log.Error("find proposal error", "proposalID", vote.ProposalID)
 		return err
 	} else if proposal == nil {
-		log.Error("incorrect proposal ID.", "proposalID", vote.ProposalID)
-		return common.NewBizError("incorrect proposal ID.")
+		return ProposalNotFound
 	}
 
 	//check caller and voter
@@ -120,38 +128,33 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 		return err
 	}
 
-	//voteOption range check
-	if !(vote.VoteOption >= Yes && vote.VoteOption <= Abstention) {
-		return common.NewBizError("vote option is error.")
-	}
-
 	if proposal.GetProposalType() == Version {
 		if vp, ok := proposal.(*VersionProposal); ok {
 			//The signature should be verified when node vote for a version proposal.
-			if !xcom.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
-				return common.NewBizError("version sign error.")
+			if !handler.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
+				return VersionSignError
 			}
 
 			//vote option can only be Yes for version proposal
 			if vote.VoteOption != Yes {
-				return common.NewBizError("vote option error.")
+				return VoteOptionError
 			}
 
 			if vp.GetNewVersion() != programVersion {
 				log.Error("cannot vote for version proposal until node upgrade to a new version", "newVersion", vp.GetNewVersion(), "programVersion", programVersion)
-				return common.NewBizError("node have not upgraded to a new version")
+				return VerifierNotUpgraded
 			}
 		}
 	}
 
 	//check if vote.proposalID is in voting
-	votingIDs, err := ListVotingProposalID(blockHash, blockNumber, state)
+	votingIDs, err := ListVotingProposalID(blockHash)
 	if err != nil {
-		log.Error("list all voting proposal IDs failed", "blockHash", blockHash)
+		log.Error("list voting proposal error", "blockHash", blockHash, "blockNumber", blockNumber, "err", err)
 		return err
 	} else if len(votingIDs) == 0 {
-		log.Error("there's no voting proposal ID.", "blockHash", blockHash)
-		return err
+		log.Error("there's no voting proposal ID", "blockHash", blockHash, "blockNumber", blockNumber)
+		return ProposalNotAtVoting
 	} else {
 		var isVoting = false
 		for _, votingID := range votingIDs {
@@ -160,33 +163,31 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 			}
 		}
 		if !isVoting {
-			log.Error("proposal is not at voting stage", "proposalID", vote.ProposalID)
-			return common.NewBizError("Proposal is not at voting stage.")
+			return ProposalNotAtVoting
 		}
 	}
 
 	//check if node has voted
 	verifierList, err := ListVotedVerifier(vote.ProposalID, state)
 	if err != nil {
-		log.Error("list voted verifiers failed", "proposalID", vote.ProposalID)
+		log.Error("list voted verifier error", "proposalID", vote.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
 		return err
 	}
 
 	if xutil.InNodeIDList(vote.VoteNodeID, verifierList) {
-		log.Error("node has voted this proposal", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
-		return common.NewBizError("node has voted this proposal.")
+		return VoteDuplicated
 	}
 
 	//handle storage
 	if err := SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
-		log.Error("save vote failed", "proposalID", vote.ProposalID)
+		log.Error("save vote error", "proposalID", vote.ProposalID)
 		return err
 	}
 
 	//the proposal is version type, so add the node ID to active node list.
 	if proposal.GetProposalType() == Version {
 		if err := AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
-			log.Error("add nodeID to active node list failed", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
+			log.Error("add nodeID to active node list error", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
 			return err
 		}
 	}
@@ -196,15 +197,10 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 
 // node declares it's version
 func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
-
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
-	//check caller is a Verifier or Candidate
-	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
-		return err
-	}*/
 
-	if !xcom.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
-		return common.NewBizError("version sign error.")
+	if !handler.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
+		return VersionSignError
 	}
 
 	if err := checkCandidate(from, declaredNodeID, blockHash, blockNumber, stk); err != nil {
@@ -213,61 +209,74 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 
 	activeVersion := GetCurrentActiveVersion(state)
 	if activeVersion <= 0 {
-		return common.NewBizError("wrong current active version.")
+		return ActiveVersionError
 	}
 
-	votingVP, err := FindVotingVersionProposal(blockHash, blockNumber, state)
+	votingVP, err := FindVotingVersionProposal(blockHash, state)
 	if err != nil {
-		log.Error("find if there's a voting version proposal failed", "blockHash", blockHash)
+		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
 	}
 
 	//there is a voting version proposal
 	if votingVP != nil {
-		if declaredVersion>>8 == activeVersion>>8 {
-			nodeList, err := ListVotedVerifier(votingVP.ProposalID, state)
-			if err != nil {
-				log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
-				return err
-			} else {
-				if xutil.InNodeIDList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
-					log.Error("declared version should be new version",
-						"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
-					return common.NewBizError("declared version should be same as proposal's version")
-				} else {
-					//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
-					log.Debug("there is a voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-					if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-						log.Error("call stk.DeclarePromoteNotify failed", "err", err)
-						return common.NewBizError("notify staking of declared node ID failed")
-					}
-				}
+		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
+
+		votedList, err := ListVotedVerifier(votingVP.ProposalID, state)
+		if err != nil {
+			log.Error("list voted verifier error", "proposalID", votingVP.ProposalID)
+			return err
+		}
+		if xutil.InNodeIDList(declaredNodeID, votedList) {
+			if declaredVersion>>8 != votingVP.GetNewVersion()>>8 {
+				log.Error("node voted new version, then declared version, the major is different between the declared version and new version")
+				return DeclareVersionError
+			}
+		} else if declaredVersion>>8 == activeVersion>>8 {
+			//there's a voting-version-proposal, if the declared version equals the current active version, notify staking immediately
+			log.Debug("call stk.DeclarePromoteNotify(not voted, declaredVersion==activeVersion)", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
+			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
+				return NotifyStakingDeclaredVersionError
 			}
 		} else if declaredVersion>>8 == votingVP.GetNewVersion()>>8 {
 			//the declared version equals the new version, will notify staking when the proposal is passed
-			log.Debug("declared version equals the new version.",
-				"newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
+			log.Debug("add node to activeNodeList(not voted, declaredVersion==newVersion.", "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
 			if err := AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
 				log.Error("add declared node ID to active node list failed", "err", err)
 				return err
 			}
 		} else {
-			log.Error("declared version neither equals active version nor new version.", "activeVersion", activeVersion, "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
-			return common.NewBizError("declared version neither equals active version nor new version.")
+			log.Error("declared version should be either active version or new version", "activeVersion", activeVersion, "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
+			return DeclareVersionError
 		}
 	} else {
+		log.Debug("there is no version proposal at voting stage")
 		preActiveVersion := GetPreActiveVersion(state)
-		if declaredVersion>>8 == activeVersion>>8 || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
-			//there's no voting-version-proposal, if the declared version equals either the current active version or preActive version, notify staking immediately
-			//stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
-			log.Debug("there is no voting-version-proposal, call stk.DeclarePromoteNotify.", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
-			if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
-				log.Error("call stk.DeclarePromoteNotify failed", "err", err)
-				return common.NewBizError("notify staking of declared node ID failed")
+		if preActiveVersion <= 0 {
+			log.Debug("there is no version proposal at pre-active stage")
+			if declaredVersion>>8 == activeVersion>>8 {
+				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
+					return NotifyStakingDeclaredVersionError
+				}
+			} else {
+				log.Error("declared version should be active version", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+				return DeclareVersionError
 			}
 		} else {
-			log.Error("there's no version proposal at voting stage, declared version should be active or pre-active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
-			return common.NewBizError("there's no version proposal at voting stage, declared version should be active version.")
+			log.Debug("there is a version proposal at pre-active stage", "preActiveVersion", preActiveVersion)
+			if declaredVersion>>8 == preActiveVersion>>8 {
+				log.Debug("call stk.DeclarePromoteNotify", "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "activeVersion", activeVersion, "blockHash", blockHash, "blockNumber", blockNumber)
+				if err := stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion); err != nil {
+					log.Error("call stk.DeclarePromoteNotify failed", "err", err)
+					return NotifyStakingDeclaredVersionError
+				}
+			} else {
+				log.Error("declared version should be pre-active version", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+				return DeclareVersionError
+			}
 		}
 	}
 	return nil
@@ -277,9 +286,8 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
-
 	if err != nil {
-		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
+		log.Error("list verifiers error", "blockHash", blockHash, "err", err)
 		return err
 	}
 
@@ -291,19 +299,19 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 				nodeAddress, _ := xutil.NodeId2Addr(verifier.NodeId)
 				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
 				if err != nil {
-					return common.NewBizError("cannot get verifier's detail info.")
+					return VerifierInfoNotFound
 				} else if staking.Is_Invalid(candidate.Status) {
-					return common.NewBizError("verifier's status is invalid.")
+					return VerifierStatusInvalid
 				}
 				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
-				return common.NewBizError("tx sender should be node's staking address.")
+				return TxSenderDifferFromStaking
 			}
 		}
 	}
-	log.Error("tx sender is not a verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	return common.NewBizError("tx sender is not a verifier.")
+	log.Error("tx sender is not a verifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+	return TxSenderIsNotVerifier
 }
 
 // query proposal list
@@ -314,18 +322,18 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 
 	votingProposals, err := ListVotingProposal(blockHash)
 	if err != nil {
-		log.Error("list voting proposals failed.", "blockHash", blockHash)
+		log.Error("list voting proposal error", "blockHash", blockHash)
 		return nil, err
 	}
 	endProposals, err := ListEndProposalID(blockHash)
 	if err != nil {
-		log.Error("list end proposals failed.", "blockHash", blockHash)
+		log.Error("list end proposals error", "blockHash", blockHash)
 		return nil, err
 	}
 
 	preActiveProposals, err := GetPreActiveProposalID(blockHash)
 	if err != nil {
-		log.Error("find pre-active proposal failed.", "blockHash", blockHash)
+		log.Error("find pre-active proposal error", "blockHash", blockHash)
 		return nil, err
 	}
 
@@ -338,7 +346,7 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 	for _, proposalID := range proposalIDs {
 		proposal, err := GetExistProposal(proposalID, state)
 		if err != nil {
-			log.Error("find proposal failed.", "proposalID", proposalID)
+			log.Error("find proposal error", "proposalID", proposalID)
 			return nil, err
 		}
 		proposals = append(proposals, proposal)
@@ -347,11 +355,11 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 }
 
 // list all proposal IDs at voting stage
-func ListVotingProposalID(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) ([]common.Hash, error) {
-	log.Debug("call ListVotingProposalID", "blockHash", blockHash, "blockNumber", blockNumber)
+func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
+	log.Debug("call ListVotingProposalID", "blockHash", blockHash)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
-		log.Error("find voting version proposal failed", "blockHash", blockHash)
+		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return nil, err
 	}
 	return idList, nil
@@ -362,7 +370,7 @@ func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state x
 	log.Debug("call findVotingCancelProposal", "blockHash", blockHash, "blockNumber", blockNumber)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
-		log.Error("find voting proposal failed", "blockHash", blockHash)
+		log.Error("find voting proposal error", "blockHash", blockHash)
 		return nil, err
 	}
 	for _, proposalID := range idList {
@@ -405,24 +413,65 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 	}
 }
 
+// NotifyPunishedVerifiers receives punished verifies notification from Staking
+func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover.NodeID, state xcom.StateDB) error {
+	if len(punishedVerifiers) == 0 {
+		return nil
+	}
+	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {
+		return err
+	} else if len(votingProposalIDList) > 0 {
+		for _, proposalID := range votingProposalIDList {
+			if voteList, err := ListVoteValue(proposalID, state); err != nil {
+				return err
+			} else if len(voteList) > 0 {
+				idx := 0 // output index
+				for _, voteValue := range voteList {
+					if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
+						voteList[idx] = voteValue
+						idx++
+					}
+				}
+				voteList = voteList[:idx]
+				//UpdateVoteValue(blockHash, voteList)
+			}
+
+			if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+				return err
+			} else if len(verifierList) > 0 {
+				idx := 0 // output index
+				for _, verifier := range verifierList {
+					if !xutil.InNodeIDList(verifier, punishedVerifiers) {
+						verifierList[idx] = verifier
+						idx++
+					}
+				}
+				verifierList = verifierList[:idx]
+				//UpdateAccuVerifiers(blockHash, voteList)
+			}
+		}
+	}
+	return nil
+}
+
 // check if the node a candidate, and the caller address is same as the staking address
 func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
 	if err != nil {
-		log.Error("list candidates failed", "blockHash", blockHash)
+		log.Error("list candidates error", "blockHash", blockHash)
 		return err
 	}
 
 	for _, candidate := range candidateList {
 		if candidate.NodeId == nodeID {
 			if candidate.StakingAddress == from {
-				log.Debug("tx sender is a candidate.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+				//log.Debug("tx sender is a candidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
-				return common.NewBizError("tx sender should be node's staking address.")
+				return TxSenderDifferFromStaking
 			}
 		}
 	}
-	return common.NewBizError("tx sender is not candidate.")
+	return TxSenderIsNotCandidate
 }

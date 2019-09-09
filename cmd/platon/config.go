@@ -26,7 +26,6 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -79,12 +78,11 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Eth           eth.Config
-	Shh           whisper.Config
-	Node          node.Config
-	Ethstats      ethstatsConfig
-	Dashboard     dashboard.Config
-	EconomicModel *xcom.EconomicModel
+	Eth       eth.Config
+	Shh       whisper.Config
+	Node      node.Config
+	Ethstats  ethstatsConfig
+	Dashboard dashboard.Config
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -130,12 +128,13 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:           eth.DefaultConfig,
-		Shh:           whisper.DefaultConfig,
-		Node:          defaultNodeConfig(),
-		Dashboard:     dashboard.DefaultConfig,
-		EconomicModel: utils.GetEconomicDefaultConfig(ctx),
+		Eth:       eth.DefaultConfig,
+		Shh:       whisper.DefaultConfig,
+		Node:      defaultNodeConfig(),
+		Dashboard: dashboard.DefaultConfig,
 	}
+
+	//
 
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {

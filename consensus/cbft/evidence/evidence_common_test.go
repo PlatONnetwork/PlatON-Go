@@ -3,7 +3,6 @@ package evidence
 import (
 	"crypto/ecdsa"
 	"math/big"
-	"runtime"
 	"testing"
 	"time"
 
@@ -59,9 +58,8 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 			PubKey:  &pk[i].PublicKey,
 			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
 		}
-		if runtime.GOOS != "windows" {
-			nodes[i].BlsPubKey = sk[i].GetPublicKey()
-		}
+		nodes[i].BlsPubKey = sk[i].GetPublicKey()
+
 	}
 	return nodes, sk
 }

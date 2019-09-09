@@ -155,9 +155,12 @@ var (
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(101),
 		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(2675000),
+		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialMainNetConsensusNodes),
+			InitialNodes:  convertNodeUrl(initialMainNetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        10000,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -255,21 +258,6 @@ var (
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			Period: 3,
-			PposConfig: &PposConfig{
-				CandidateConfig: &CandidateConfig{
-					Threshold:         "1000000000000000000000000",
-					DepositLimit:      10,
-					Allowed:           512,
-					MaxChair:          10,
-					MaxCount:          100,
-					RefundBlockNumber: 512,
-				},
-				TicketConfig: &TicketConfig{
-					TicketPrice:       "100000000000000000000",
-					MaxCount:          51200,
-					ExpireBlockNumber: 1536000,
-				},
-			},
 		},
 	}
 
@@ -286,7 +274,7 @@ var (
 	// adding flags to the config to also have to set these fields.
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), ""}
 
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), nil, nil, new(CbftConfig), ""}
 	TestRules              = TestChainConfig.Rules(new(big.Int))
@@ -333,30 +321,10 @@ type initNode struct {
 }
 
 type CbftConfig struct {
-	Period        uint64      `json:"period,omitempty"`        // Number of seconds between blocks to enforce
-	Amount        uint32      `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
-	InitialNodes  []CbftNode  `json:"initialNodes,omitempty"`  //Genesis consensus node
-	ValidatorMode string      `json:"validatorMode,omitempty"` //Validator mode for easy testing
-	PposConfig    *PposConfig `json:"pposConfig,omitempty"`
-}
-
-type PposConfig struct {
-	CandidateConfig *CandidateConfig
-	TicketConfig    *TicketConfig
-}
-type CandidateConfig struct {
-	Threshold         string
-	DepositLimit      uint32
-	Allowed           uint32
-	MaxCount          uint32
-	MaxChair          uint32
-	RefundBlockNumber uint32
-}
-
-type TicketConfig struct {
-	TicketPrice       string
-	MaxCount          uint32
-	ExpireBlockNumber uint32
+	Period        uint64     `json:"period,omitempty"`        // Number of seconds between blocks to enforce
+	Amount        uint32     `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
+	InitialNodes  []CbftNode `json:"initialNodes,omitempty"`  //Genesis consensus node
+	ValidatorMode string     `json:"validatorMode,omitempty"` //Validator mode for easy testing
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.

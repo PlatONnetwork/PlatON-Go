@@ -21,6 +21,11 @@ var (
 	errNonContiguous = errors.New("non contiguous chain block state")
 )
 
+var (
+	viewChangeQCPrefix = []byte("qc") // viewChangeQCPrefix + epoch (uint64 big endian) + viewNumber (uint64 big endian) -> viewChangeQC
+	epochPrefix        = []byte("e")
+)
+
 // Bridge encapsulates functions required to update consensus state and consensus msg.
 // As a bridge layer for cbft and wal.
 type Bridge interface {
@@ -29,6 +34,7 @@ type Bridge interface {
 	SendViewChange(view *protocols.ViewChange)
 	SendPrepareBlock(pb *protocols.PrepareBlock)
 	SendPrepareVote(block *types.Block, vote *protocols.PrepareVote)
+	GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error)
 }
 
 // emptyBridge is a empty implementation for Bridge
@@ -48,6 +54,10 @@ func (b *emptyBridge) SendPrepareBlock(pb *protocols.PrepareBlock) {
 }
 
 func (b *emptyBridge) SendPrepareVote(block *types.Block, vote *protocols.PrepareVote) {
+}
+
+func (b *emptyBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
+	return nil, nil
 }
 
 // baseBridge is a default implementation for Bridge
@@ -141,6 +151,9 @@ func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Bl
 	if err := b.cbft.wal.WriteSync(vc); err != nil {
 		panic(fmt.Sprintf("write confirmed viewChange error, err:%s", err.Error()))
 	}
+	if viewChangeQC != nil {
+		b.cbft.wal.UpdateViewChangeQC(epoch, viewNumber, viewChangeQC)
+	}
 }
 
 // SendViewChange tries to update SendViewChange consensus msg to wal.
@@ -172,6 +185,10 @@ func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepare
 	if err := b.cbft.wal.WriteSync(s); err != nil {
 		panic(fmt.Sprintf("write send prepareVote error, err:%s", err.Error()))
 	}
+}
+
+func (b *baseBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
+	return b.cbft.wal.GetViewChangeQC(epoch, viewNumber)
 }
 
 // recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
@@ -248,6 +265,7 @@ func (cbft *Cbft) recoveryQCState(qcs []*protocols.State, parent *types.Block) e
 
 // recoveryChainStateProcess tries to recovery the corresponding state to cbft consensus.
 func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.State) {
+	cbft.trySwitchValidator(state.Block.NumberU64())
 	cbft.tryWalChangeView(state.QuorumCert.Epoch, state.QuorumCert.ViewNumber, state.Block, state.QuorumCert, nil)
 	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
 	cbft.state.AddQC(state.QuorumCert)
@@ -260,7 +278,16 @@ func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.S
 	case protocols.LockState:
 		cbft.state.SetHighestLockBlock(state.Block)
 	case protocols.QCState:
-		cbft.state.SetHighestQCBlock(state.Block)
+		cbft.TrySetHighestQCBlock(state.Block)
+	}
+}
+
+// trySwitch tries to switch next validator.
+func (cbft *Cbft) trySwitchValidator(blockNumber uint64) {
+	if cbft.validatorPool.ShouldSwitch(blockNumber) {
+		if err := cbft.validatorPool.Update(blockNumber, cbft.state.Epoch()+1, cbft.eventMux); err != nil {
+			cbft.log.Debug("Update validator error", "err", err.Error())
+		}
 	}
 }
 
@@ -288,7 +315,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			return err
 		}
 		if should {
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
 			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
 		}
 
@@ -336,7 +363,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			}
 
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.BlockNum(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.Epoch, cbft.config.Option.NodeID)
 			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
 		}
 	}

@@ -84,12 +84,12 @@ func TestUpdateChainState(t *testing.T) {
 	assert.Equal(t, qc.Hash().String(), qcQC.BlockHash.String())
 
 	// check blockTree
-	commitBlock, commitQC = restartNode.engine.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
+	commitBlock, _ = restartNode.engine.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
 	assert.Equal(t, commit.NumberU64(), commitBlock.NumberU64())
 	assert.Equal(t, commit.Hash(), commitBlock.Hash())
-	lockBlock, lockQC = restartNode.engine.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
+	lockBlock, _ = restartNode.engine.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
 	assert.Equal(t, lock.NumberU64(), lockBlock.NumberU64())
-	qcBlock, qcQC = restartNode.engine.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
+	qcBlock, _ = restartNode.engine.blockTree.FindBlockAndQC(qc.Hash(), qc.NumberU64())
 	assert.Equal(t, qc.NumberU64(), qcBlock.NumberU64())
 
 	// check highest
@@ -113,6 +113,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	var appendQC *types.Block
 	node.engine.state.SetExecuting(1, true) // lockBlock
 
+	// base lock seal duplicate qc
 	block := NewBlock(lock.Hash(), lock.NumberU64()+1)
 	assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 	node.engine.OnSeal(block, result, nil)

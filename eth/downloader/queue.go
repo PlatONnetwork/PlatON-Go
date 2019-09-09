@@ -22,7 +22,6 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -650,7 +649,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	// Iterate over the expired requests and return each to the queue
 	expiries := make(map[string]int)
 	for id, request := range pendPool {
-		log.Debug("queue expire", "id", id, "time.Since(request.Time)", time.Since(request.Time), "timeout", timeout, "len(request.Headers)", len(request.Headers))
+		//log.Debug("queue expire", "id", id, "time.Since(request.Time)", time.Since(request.Time), "timeout", timeout, "len(request.Headers)", len(request.Headers))
 		if time.Since(request.Time) > timeout {
 			// Update the metrics with the timeout
 			timeoutMeter.Mark(1)
@@ -665,7 +664,7 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 				headers = append(headers, header.Number.String())
 				headers = append(headers, header.Hash().Hex())
 			}
-			log.Debug("queue expire expiries add", "id", id, "len(request.Headers)", len(request.Headers), "headers", strings.Join(headers, ","))
+			//log.Debug("queue expire expiries add", "id", id, "len(request.Headers)", len(request.Headers), "headers", strings.Join(headers, ","))
 			// Add the peer to the expiry report along the number of failed requests
 			expiries[id] = len(request.Headers)
 		}

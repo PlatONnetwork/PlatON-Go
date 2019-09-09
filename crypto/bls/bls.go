@@ -1,10 +1,6 @@
-// +build  darwin
-
 package bls
 
 /*
-#cgo CFLAGS:-DMCLBN_FP_UNIT_SIZE=6
-#cgo LDFLAGS:-lbls384 -lgmpxx -lstdc++ -lgmp -lcrypto
 #include <bls/bls.h>
 */
 import "C"
@@ -13,22 +9,26 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 	"os"
 	"strings"
 	"unsafe"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Init --
 // call this function before calling all the other operations
 // this function is not thread safe
 func Init(curve int) error {
-	err := C.blsInit(C.int(curve), C.MCLBN_FP_UNIT_SIZE)
+	err := C.blsInit(C.int(curve), C.MCLBN_COMPILED_TIME_VAR)
 	if err != 0 {
 		return fmt.Errorf("ERR Init curve=%d", curve)
+	}
+	err = C.mclBn_init(C.int(curve), C.MCLBN_COMPILED_TIME_VAR)
+	if err != 0 {
+		return fmt.Errorf("ERR mclBn_init curve=%d", curve)
 	}
 	return nil
 }
@@ -244,18 +244,6 @@ func (pub *PublicKey) IsEqual(rhs *PublicKey) bool {
 	return pub.v.IsEqual(&rhs.v)
 }
 
-func (pub *PublicKey) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%x", pub.Serialize())), nil
-}
-
-func (pub *PublicKey) UnmarshalText(text []byte) error {
-	key, err := hex.DecodeString(string(text))
-	if err != nil {
-		return err
-	}
-	return pub.Deserialize(key)
-}
-
 // Add --
 func (pub *PublicKey) Add(rhs *PublicKey) {
 	G2Add(&pub.v, &pub.v, &rhs.v)
@@ -278,6 +266,17 @@ func (pub *PublicKey) Recover(pubVec []PublicKey, idVec []ID) error {
 	return G2LagrangeInterpolation(&pub.v, *(*[]Fr)(unsafe.Pointer(&idVec)), *(*[]G2)(unsafe.Pointer(&pubVec)))
 }
 
+func (pub *PublicKey) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("%x", pub.Serialize())), nil
+}
+
+func (pub *PublicKey) UnmarshalText(text []byte) error {
+	key, err := hex.DecodeString(string(text))
+	if err != nil {
+		return err
+	}
+	return pub.Deserialize(key)
+}
 func (pub *PublicKey) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, pub.Serialize())
 }
@@ -375,7 +374,7 @@ func DHKeyExchange(sec *SecretKey, pub *PublicKey) (out PublicKey) {
 //get G2
 func GetGeneratorOfG2() (pub *PublicKey) {
 	pub = new(PublicKey)
-	C.blsGetGeneratorOfG2(pub.getPointer())
+	C.blsGetGeneratorOfPublicKey(pub.getPointer())
 	return pub
 }
 

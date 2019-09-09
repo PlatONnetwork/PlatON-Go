@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -106,7 +107,7 @@ func NewInnerAgency(nodes []params.CbftNode, chain *core.BlockChain, blocksPerNo
 		defaultBlocksPerRound: uint64(len(nodes) * blocksPerNode),
 		offset:                uint64(offset),
 		blockchain:            chain,
-		defaultValidators:     newValidators(nodes, 0),
+		defaultValidators:     newValidators(nodes, 1),
 	}
 }
 
@@ -161,8 +162,14 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 }
 
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators, err error) {
+	defaultValidators := *ia.defaultValidators
+	baseNumber := blockNumber
+	if blockNumber == 0 {
+		baseNumber = 1
+	}
+	defaultValidators.ValidBlockNumber = ((baseNumber-1)/ia.defaultBlocksPerRound)*ia.defaultBlocksPerRound + 1
 	if blockNumber <= ia.defaultBlocksPerRound {
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 
 	// Otherwise, get validators from inner contract.
@@ -170,22 +177,22 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 	block := ia.blockchain.GetBlockByNumber(vdsCftNum)
 	if block == nil {
 		log.Error("Get the block fail, use default validators", "number", vdsCftNum)
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	state, err := ia.blockchain.StateAt(block.Root())
 	if err != nil {
 		log.Error("Get the state fail, use default validators", "number", block.Number(), "hash", block.Hash(), "error", err)
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	b := state.GetState(cvm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
 	if len(b) == 0 {
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	var vds vm.Validators
 	err = rlp.DecodeBytes(b, &vds)
 	if err != nil {
 		log.Error("RLP decode fail, use default validators", "number", block.Number(), "error", err)
-		return ia.defaultValidators, nil
+		return &defaultValidators, nil
 	}
 	var validators cbfttypes.Validators
 	validators.Nodes = make(cbfttypes.ValidateNodeMap, len(vds.ValidateNodes))
@@ -219,6 +226,9 @@ type ValidatorPool struct {
 
 	// A block number which validators switch point.
 	switchPoint uint64
+	lastNumber  uint64
+
+	epoch uint64
 
 	prevValidators    *cbfttypes.Validators // Previous validators
 	currentValidators *cbfttypes.Validators // Current validators
@@ -226,18 +236,22 @@ type ValidatorPool struct {
 }
 
 // NewValidatorPool new a validator pool.
-func NewValidatorPool(agency consensus.Agency, blockNumber uint64, nodeID discover.NodeID) *ValidatorPool {
+func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64, nodeID discover.NodeID) *ValidatorPool {
 	pool := &ValidatorPool{
 		agency: agency,
 		nodeID: nodeID,
+		epoch:  epoch,
 	}
 	// FIXME: Check `GetValidator` return error
 	if agency.GetLastNumber(blockNumber) == blockNumber {
 		pool.prevValidators, _ = agency.GetValidator(blockNumber)
 		pool.currentValidators, _ = agency.GetValidator(NextRound(blockNumber))
+		pool.lastNumber = agency.GetLastNumber(NextRound(blockNumber))
+		pool.epoch += 1
 	} else {
 		pool.currentValidators, _ = agency.GetValidator(blockNumber)
 		pool.prevValidators = pool.currentValidators
+		pool.lastNumber = agency.GetLastNumber(blockNumber)
 	}
 	// When validator mode is `static`, the `ValidatorBlockNumber` always 0,
 	// means we are using static validators. Otherwise, represent use current
@@ -257,7 +271,7 @@ func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
 	if blockNumber == vp.switchPoint {
 		return true
 	}
-	return blockNumber == vp.agency.GetLastNumber(blockNumber)
+	return blockNumber == vp.lastNumber
 }
 
 // EqualSwitchPoint returns boolean which representment the switch point
@@ -266,8 +280,15 @@ func (vp *ValidatorPool) EqualSwitchPoint(number uint64) bool {
 	return vp.switchPoint > 0 && vp.switchPoint == number
 }
 
+func (vp *ValidatorPool) EnableVerifyEpoch(epoch uint64) error {
+	if epoch+1 == vp.epoch || epoch == vp.epoch {
+		return nil
+	}
+	return fmt.Errorf("enable verify epoch:%d,:%d, request:%d", vp.epoch-1, vp.epoch, epoch)
+}
+
 // Update switch validators.
-func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) error {
+func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *event.TypeMux) error {
 	vp.lock.Lock()
 	defer vp.lock.Unlock()
 
@@ -277,8 +298,6 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 		return errors.New("already updated before")
 	}
 
-	isValidatorBefore := vp.isValidator(blockNumber, vp.nodeID)
-
 	nds, err := vp.agency.GetValidator(NextRound(blockNumber))
 	if err != nil {
 		log.Error("Get validator error", "blockNumber", blockNumber, "err", err)
@@ -286,10 +305,14 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 	}
 	vp.prevValidators = vp.currentValidators
 	vp.currentValidators = nds
-	vp.switchPoint = blockNumber
-	log.Debug("Update validator", "validators", nds.String())
+	vp.switchPoint = nds.ValidBlockNumber - 1
+	vp.lastNumber = vp.agency.GetLastNumber(NextRound(blockNumber))
+	vp.epoch = epoch
+	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
 
-	isValidatorAfter := vp.isValidator(blockNumber, vp.nodeID)
+	isValidatorBefore := vp.isValidator(epoch-1, vp.nodeID)
+
+	isValidatorAfter := vp.isValidator(epoch, vp.nodeID)
 
 	if isValidatorBefore {
 		// If we are still a consensus node, that adding
@@ -342,92 +365,99 @@ func (vp *ValidatorPool) Update(blockNumber uint64, eventMux *event.TypeMux) err
 }
 
 // GetValidatorByNodeID get the validator by node id.
-func (vp *ValidatorPool) GetValidatorByNodeID(blockNumber uint64, nodeID discover.NodeID) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) GetValidatorByNodeID(epoch uint64, nodeID discover.NodeID) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
-	return vp.getValidatorByNodeID(blockNumber, nodeID)
+	return vp.getValidatorByNodeID(epoch, nodeID)
 }
 
-func (vp *ValidatorPool) getValidatorByNodeID(blockNumber uint64, nodeID discover.NodeID) (*cbfttypes.ValidateNode, error) {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) getValidatorByNodeID(epoch uint64, nodeID discover.NodeID) (*cbfttypes.ValidateNode, error) {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByID(nodeID)
 	}
 	return vp.currentValidators.FindNodeByID(nodeID)
 }
 
 // GetValidatorByAddr get the validator by address.
-func (vp *ValidatorPool) GetValidatorByAddr(blockNumber uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) GetValidatorByAddr(epoch uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.getValidatorByAddr(blockNumber, addr)
+	return vp.getValidatorByAddr(epoch, addr)
 }
 
-func (vp *ValidatorPool) getValidatorByAddr(blockNumber uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) getValidatorByAddr(epoch uint64, addr common.Address) (*cbfttypes.ValidateNode, error) {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByAddress(addr)
 	}
 	return vp.currentValidators.FindNodeByAddress(addr)
 }
 
 // GetValidatorByIndex get the validator by index.
-func (vp *ValidatorPool) GetValidatorByIndex(blockNumber uint64, index uint32) (*cbfttypes.ValidateNode, error) {
+func (vp *ValidatorPool) GetValidatorByIndex(epoch uint64, index uint32) (*cbfttypes.ValidateNode, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.getValidatorByIndex(blockNumber, index)
+	return vp.getValidatorByIndex(epoch, index)
 }
 
-func (vp *ValidatorPool) getValidatorByIndex(blockNumber uint64, index uint32) (*cbfttypes.ValidateNode, error) {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) getValidatorByIndex(epoch uint64, index uint32) (*cbfttypes.ValidateNode, error) {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.FindNodeByIndex(int(index))
 	}
 	return vp.currentValidators.FindNodeByIndex(int(index))
 }
 
 // GetNodeIDByIndex get the node id by index.
-func (vp *ValidatorPool) GetNodeIDByIndex(blockNumber uint64, index int) discover.NodeID {
+func (vp *ValidatorPool) GetNodeIDByIndex(epoch uint64, index int) discover.NodeID {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.getNodeIDByIndex(blockNumber, index)
+	return vp.getNodeIDByIndex(epoch, index)
 }
 
-func (vp *ValidatorPool) getNodeIDByIndex(blockNumber uint64, index int) discover.NodeID {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) getNodeIDByIndex(epoch uint64, index int) discover.NodeID {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.NodeID(index)
 	}
 	return vp.currentValidators.NodeID(index)
 }
 
 // GetIndexByNodeID get the index by node id.
-func (vp *ValidatorPool) GetIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (uint32, error) {
+func (vp *ValidatorPool) GetIndexByNodeID(epoch uint64, nodeID discover.NodeID) (uint32, error) {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.getIndexByNodeID(blockNumber, nodeID)
+	return vp.getIndexByNodeID(epoch, nodeID)
 }
 
-func (vp *ValidatorPool) getIndexByNodeID(blockNumber uint64, nodeID discover.NodeID) (uint32, error) {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) getIndexByNodeID(epoch uint64, nodeID discover.NodeID) (uint32, error) {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.Index(nodeID)
 	}
 	return vp.currentValidators.Index(nodeID)
 }
 
 // ValidatorList get the validator list.
-func (vp *ValidatorPool) ValidatorList(blockNumber uint64) []discover.NodeID {
+func (vp *ValidatorPool) ValidatorList(epoch uint64) []discover.NodeID {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.validatorList(blockNumber)
+	return vp.validatorList(epoch)
 }
 
-func (vp *ValidatorPool) validatorList(blockNumber uint64) []discover.NodeID {
-	if blockNumber <= vp.switchPoint {
+func (vp *ValidatorPool) validatorList(epoch uint64) []discover.NodeID {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.NodeList()
 	}
 	return vp.currentValidators.NodeList()
+}
+
+func (vp *ValidatorPool) Validators(epoch uint64) *cbfttypes.Validators {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
+		return vp.prevValidators
+	}
+	return vp.currentValidators
 }
 
 // VerifyHeader verify block's header.
@@ -441,15 +471,15 @@ func (vp *ValidatorPool) VerifyHeader(header *types.Header) error {
 }
 
 // IsValidator check if the node is validator.
-func (vp *ValidatorPool) IsValidator(blockNumber uint64, nodeID discover.NodeID) bool {
+func (vp *ValidatorPool) IsValidator(epoch uint64, nodeID discover.NodeID) bool {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	return vp.isValidator(blockNumber, nodeID)
+	return vp.isValidator(epoch, nodeID)
 }
 
-func (vp *ValidatorPool) isValidator(blockNumber uint64, nodeID discover.NodeID) bool {
-	_, err := vp.getValidatorByNodeID(blockNumber, nodeID)
+func (vp *ValidatorPool) isValidator(epoch uint64, nodeID discover.NodeID) bool {
+	_, err := vp.getValidatorByNodeID(epoch, nodeID)
 	return err == nil
 }
 
@@ -459,19 +489,19 @@ func (vp *ValidatorPool) IsCandidateNode(nodeID discover.NodeID) bool {
 }
 
 // Len return number of validators.
-func (vp *ValidatorPool) Len(blockNumber uint64) int {
+func (vp *ValidatorPool) Len(epoch uint64) int {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 
-	if blockNumber <= vp.switchPoint {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		return vp.prevValidators.Len()
 	}
 	return vp.currentValidators.Len()
 }
 
 // Verify verifies signature using the specified validator's bls public key.
-func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, signature []byte) error {
-	validator, err := vp.GetValidatorByIndex(blockNumber, validatorIndex)
+func (vp *ValidatorPool) Verify(epoch uint64, validatorIndex uint32, msg, signature []byte) error {
+	validator, err := vp.GetValidatorByIndex(epoch, validatorIndex)
 	if err != nil {
 		return err
 	}
@@ -479,15 +509,16 @@ func (vp *ValidatorPool) Verify(blockNumber uint64, validatorIndex uint32, msg, 
 }
 
 // VerifyAggSig verifies aggregation signature using the specified validators' public keys.
-func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uint32, msg, signature []byte) bool {
+func (vp *ValidatorPool) VerifyAggSig(epoch uint64, validatorIndexes []uint32, msg, signature []byte) bool {
 	vp.lock.RLock()
 	validators := vp.currentValidators
-	if blockNumber <= vp.switchPoint {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		validators = vp.prevValidators
 	}
 
 	nodeList, err := validators.NodeListByIndexes(validatorIndexes)
 	if err != nil {
+		vp.lock.RUnlock()
 		return false
 	}
 	vp.lock.RUnlock()
@@ -505,15 +536,16 @@ func (vp *ValidatorPool) VerifyAggSig(blockNumber uint64, validatorIndexes []uin
 	return sig.Verify(&pub, string(msg))
 }
 
-func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArray, msg, signature []byte) error {
+func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, msg, signature []byte) error {
 	vp.lock.RLock()
 	validators := vp.currentValidators
-	if blockNumber <= vp.switchPoint {
+	if vp.epochToBlockNumber(epoch) <= vp.switchPoint {
 		validators = vp.prevValidators
 	}
 
 	nodeList, err := validators.NodeListByBitArray(vSet)
 	if err != nil || len(nodeList) == 0 {
+		vp.lock.RUnlock()
 		return fmt.Errorf("not found validators: %v", err)
 	}
 	vp.lock.RUnlock()
@@ -530,11 +562,21 @@ func (vp *ValidatorPool) VerifyAggSigByBA(blockNumber uint64, vSet *utils.BitArr
 		return err
 	}
 	if !sig.Verify(&pub, string(msg)) {
+		log.Debug("Verify signature fail", "epoch", "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
 		return errors.New("bls verifies signature fail")
 	}
 	return nil
 }
 
+func (vp *ValidatorPool) epochToBlockNumber(epoch uint64) uint64 {
+	if epoch > vp.epoch {
+		panic(fmt.Sprintf("get unknown epoch, current:%d, request:%d", vp.epoch, epoch))
+	}
+	if epoch+1 == vp.epoch {
+		return vp.switchPoint
+	}
+	return vp.switchPoint + 1
+}
 func (vp *ValidatorPool) Flush(header *types.Header) error {
 	return vp.agency.Flush(header)
 }

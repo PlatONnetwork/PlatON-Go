@@ -1,15 +1,11 @@
 package bls
 
+import "testing"
 import (
 	"bytes"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"strconv"
-	"testing"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/stretchr/testify/assert"
+	"strconv"
 )
 
 var unitN = 0
@@ -74,11 +70,11 @@ func testPre(t *testing.T) {
 	}
 }
 
-func TestByCs(t *testing.T) {
-	err := Init(CurveFp254BNb)
+func testByCs(t *testing.T) {
+	/*err := Init(CurveFp254BNb)
 	if err != nil {
 		t.Fatal(err)
-	}
+	}*/
 	sec := make([]SecretKey, 3)
 	for i := 0; i < len(sec); i++ {
 		sec[i].SetByCSPRNG()
@@ -121,7 +117,7 @@ func testRecoverSecretKey(t *testing.T) {
 	t.Logf("sec=%s\n", sec.GetHexString())
 
 	// make master secret key
-	msk := sec.GetMasterSecretKey(k) //获取k个随机私钥
+	msk := sec.GetMasterSecretKey(k)
 
 	n := k
 	secVec := make([]SecretKey, n)
@@ -313,6 +309,9 @@ func testOrder(t *testing.T, c int) {
 	} else if c == CurveFp382_2 {
 		curve = "5541245505022739011583672869577435255026888277144126952448297309161979278754528049907713682488818304329661351460877"
 		field = "5541245505022739011583672869577435255026888277144126952450651294188487038640194767986566260919128250811286032482323"
+	} else if c == BLS12_381 {
+		curve = "52435875175126190479447740508185965837690552500527637822603658699938581184513"
+		field = "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787"
 	} else {
 		t.Fatal("bad c", c)
 	}
@@ -339,40 +338,6 @@ func testDHKeyExchange(t *testing.T) {
 	}
 }
 
-func testMarshal(t *testing.T) {
-	var sec SecretKey
-	sec.SetByCSPRNG()
-	pub := sec.GetPublicKey()
-
-	buf, err := pub.MarshalText()
-	assert.Nil(t, err)
-
-	var pub1 PublicKey
-	err = pub1.UnmarshalText(buf)
-	assert.Nil(t, err)
-	assert.True(t, pub.IsEqual(&pub1))
-
-	key := hex.EncodeToString(pub.Serialize())
-	assert.Equal(t, key, string(buf))
-
-	var pub2 PublicKey
-	err = pub2.UnmarshalText([]byte(key))
-	assert.Nil(t, err)
-	assert.True(t, pub.IsEqual(&pub2))
-
-	key1, _ := pub2.MarshalText()
-	assert.Equal(t, key, string(key1))
-
-	type TestPubMarshal struct {
-		Pub *PublicKey `json:"pub"`
-	}
-
-	tpm := TestPubMarshal{
-		Pub: &pub2,
-	}
-	json.Marshal(tpm)
-}
-
 func test(t *testing.T, c int) {
 	err := Init(c)
 	if err != nil {
@@ -380,7 +345,7 @@ func test(t *testing.T, c int) {
 	}
 	unitN = GetOpUnitSize()
 	t.Logf("unitN=%d\n", unitN)
-	//testPairing(t)
+	testPairing(t)
 	testPre(t)
 	testRecoverSecretKey(t)
 	testAdd(t)
@@ -390,18 +355,29 @@ func test(t *testing.T, c int) {
 	testStringConversion(t)
 	testOrder(t, c)
 	testDHKeyExchange(t)
-	testMarshal(t)
+	//add
+	testByCs(t)
+	testAggregateSign(t, c)
+	testSchnorr_test(t, c)
+	testSchnorrNIZk(t, c)
+
 }
 
 func TestNmain(t *testing.T) {
 	t.Logf("GetMaxOpUnitSize() = %d\n", GetMaxOpUnitSize())
+	t.Logf("GetFrUnitSize() = %d\n", GetFrUnitSize())
 	t.Log("CurveFp254BNb")
 	test(t, CurveFp254BNb)
 	if GetMaxOpUnitSize() == 6 {
-		t.Log("CurveFp382_1")
-		test(t, CurveFp382_1)
-		t.Log("CurveFp382_2")
-		test(t, CurveFp382_2)
+		if GetFrUnitSize() == 6 {
+			t.Log("CurveFp382_1")
+			test(t, CurveFp382_1)
+			t.Log("CurveFp382_2")
+			test(t, CurveFp382_2)
+		} else {
+			t.Log("BLS12_381")
+			test(t, BLS12_381)
+		}
 	}
 }
 
@@ -417,12 +393,17 @@ func testGetGOfG2(t *testing.T, c int) {
 
 func TestForGetG(t *testing.T) {
 	testGetGOfG2(t, CurveFp254BNb)
-	testGetGOfG2(t, CurveFp382_1)
-	testGetGOfG2(t, CurveFp382_2)
+	if GetMaxOpUnitSize() == 6 {
+		if GetFrUnitSize() == 6 {
+			testGetGOfG2(t, CurveFp382_1)
+			testGetGOfG2(t, CurveFp382_2)
+		}
+		testGetGOfG2(t, BLS12_381)
+	}
 }
 
-func TestAggregateSign(t *testing.T) {
-	err := Init(CurveFp254BNb)
+func testAggregateSign(t *testing.T, c int) {
+	err := Init(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -448,7 +429,7 @@ func TestAggregateSign(t *testing.T) {
 	}
 	fmt.Printf("sig=%s\n", sig.GetHexString())
 
-	err = BatchVerifySameMsg(CurveFp254BNb, m, mpk, sig)
+	err = BatchVerifySameMsg(c, m, mpk, sig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,14 +452,14 @@ func TestAggregateSign(t *testing.T) {
 	}
 	fmt.Printf("sig1=%s\n", sig1.GetHexString())
 
-	err = BatchVerifyDistinctMsg(CurveFp254BNb, mpk, p_hm, sig1)
+	err = BatchVerifyDistinctMsg(c, mpk, p_hm, sig1)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestSchnorr_test(t *testing.T) {
-	err := Init(CurveFp254BNb)
+func testSchnorr_test(t *testing.T, cu int) {
+	err := Init(cu)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -529,34 +510,34 @@ func TestSchnorr_test(t *testing.T) {
 	fmt.Printf("P is valid=%v\n", G2IsValid(P))
 	fmt.Printf("V is valid=%v\n", G2IsValid(V))
 
-	err = Schnorr_test(CurveFp254BNb, r, c, *G, *V, *P)
+	err = Schnorr_test(cu, r, c, *G, *V, *P)
 	if err != nil {
 		fmt.Println("test fail")
 		t.Error(err)
 	}
 }
 
-func TestSchnorrNIZk(t *testing.T) {
-	err := Init(CurveFp254BNb)
+func testSchnorrNIZk(t *testing.T, c int) {
+	err := Init(c)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var a SecretKey
 	a.SetByCSPRNG()
-	proof, err := SchnorrNIZKProve(CurveFp254BNb, a)
+	proof, err := SchnorrNIZKProve(c, a)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	P := a.GetPublicKey()
-	err = SchnorrNIZKVerify(CurveFp254BNb, *proof, *P)
+	err = SchnorrNIZKVerify(c, *proof, *P)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestSynthSameMsg(t *testing.T) {
-	err := Init(CurveFp254BNb)
+func testSynthSameMsg(t *testing.T, c int) {
+	err := Init(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -577,7 +558,7 @@ func TestSynthSameMsg(t *testing.T) {
 	input[4] = "test5"
 	input[7] = "test5"
 
-	pk, msg, index, err := SynthSameMsg(CurveFp254BNb, mpk, input)
+	pk, msg, index, err := SynthSameMsg(c, mpk, input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -591,6 +572,30 @@ func TestSynthSameMsg(t *testing.T) {
 		fmt.Printf("index[%d]=%s\n", m, index[m])
 	}
 
+}
+
+func TestBlsInit(t *testing.T) {
+	fmt.Println("bls MCLBN_FP_UNIT_SIZE:", GetMaxOpUnitSize())
+	fmt.Println("bls MCLBN_FR_UNIT_SIZE:", GetFrUnitSize())
+	err := Init(CurveFp254BNb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("exc bls CurveFp254BNb")
+	if GetMaxOpUnitSize() == 6 {
+		if GetFrUnitSize() == 6 {
+			err := Init(CurveFp382_1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fmt.Println("exc bls CurveFp382_1")
+		}
+		err := Init(BLS12_381)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Println("exc bls BLS12_381")
+	}
 }
 
 // Benchmarks
@@ -615,9 +620,9 @@ func BenchmarkBatchVerifyDistinctMsg(b *testing.B) {
 		msk[i].SetByCSPRNG()
 		mpk[i] = *msk[i].GetPublicKey()
 		msig[i] = *msk[i].Sign(input[i])
-		fmt.Printf("msk[%d]=%s\n", i, msk[i].GetHexString())
-		fmt.Printf("mpk[%d]=%s\n", i, mpk[i].GetHexString())
-		fmt.Printf("msig[%d]=%s\n", i, msig[i].GetHexString())
+		//fmt.Printf("msk[%d]=%s\n", i, msk[i].GetHexString())
+		//fmt.Printf("mpk[%d]=%s\n", i, mpk[i].GetHexString())
+		//fmt.Printf("msig[%d]=%s\n", i, msig[i].GetHexString())
 		if !msig[i].Verify(&mpk[i], input[i]) {
 			fmt.Println("verify fail")
 		}
@@ -630,7 +635,7 @@ func BenchmarkBatchVerifyDistinctMsg(b *testing.B) {
 	for i := 0; i < len(msig); i++ {
 		sig.Add(&msig[i])
 	}
-	fmt.Printf("sig=%s\n", sig.GetHexString())
+	//fmt.Printf("sig=%s\n", sig.GetHexString())
 
 	for n := 0; n < b.N; n++ {
 		b.StartTimer()

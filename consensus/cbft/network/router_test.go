@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -95,7 +96,7 @@ func Test_Router_Gossip(t *testing.T) {
 			case protocols.PrepareBlockHashMsg:
 				t.Log("gossip message success.")
 			default:
-				t.Fatal("Error message code")
+				t.Error("Error message code")
 			}
 			msg.Discard()
 			t.Logf("messageType: %d", msg.Code)
@@ -136,7 +137,7 @@ func Test_Router_SendMessage(t *testing.T) {
 			case protocols.GetLatestStatusMsg, protocols.LatestStatusMsg:
 				t.Log("send message success.")
 			default:
-				t.Fatal("Error message code")
+				t.Error("Error message code")
 			}
 			t.Logf("messageType: %d", msg.Code)
 			msg.Discard()
@@ -177,8 +178,10 @@ func Test_Router_FilteredPeers(t *testing.T) {
 			protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
 			if v.cond == (common.Hash{}) {
 				//assert.Equal(t, testingPeerCount, len(peers))
+				t.Log(testingPeerCount)
 			} else {
 				//assert.Equal(t, testingPeerCount-1, len(peers))
+				t.Log(len(peers))
 			}
 		case protocols.PrepareBlockHashMsg:
 			if v.cond == (common.Hash{}) {
@@ -214,7 +217,7 @@ func Test_Router_KMixingRandomNodes(t *testing.T) {
 	peers, _ := r.peers()
 	excludePeer := peers[1]
 	excludePeer.MarkMessageHash(presetMessageHash)
-	randomPeers, err := r.kMixingRandomNodes(presetMessageHash)
+	randomPeers, err := r.kMixingRandomNodes(presetMessageHash, r.filter)
 	if err != nil {
 		t.Error("kMixingRandomNodes failed", err)
 	}
@@ -225,6 +228,21 @@ func Test_Router_KMixingRandomNodes(t *testing.T) {
 		if v.id == excludePeer.id {
 			t.Errorf("should not be contain the peer :{%s}", excludePeer.id)
 		}
+	}
+}
+
+func Test_Router_KRandomNodes(t *testing.T) {
+	r, _ := newTestRouter(t)
+	peers, _ := r.peers()
+	if len(peers) < 2 {
+		return
+	}
+	spec_peers := make([]*peer, 2)
+	spec_peers[0] = peers[0]
+	spec_peers[1] = peers[1]
+	t.Log(formatPeers(spec_peers))
+	for i := 0; i < 20; i++ {
+		t.Log(formatPeers(kRandomNodes(int(math.Sqrt(float64(len(spec_peers)))), spec_peers, common.Hash{}, nil)))
 	}
 }
 

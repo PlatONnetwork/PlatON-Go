@@ -393,7 +393,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
-			w.blockChainCache.ClearCache(head.Block)
 
 			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
 			current := w.commitWorkEnv.getCurrentBaseBlock()
@@ -829,7 +828,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
-			log.Warn("Gas limit exceeded for current block", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, w.current.state)
+			log.Warn("Gas limit exceeded for current block", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "state", w.current.state)
 			txs.Pop()
 
 		case core.ErrNonceTooLow:
@@ -1071,7 +1070,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// BeginBlocker()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
-		log.Error("Failed GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
+		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return
 	}
 
@@ -1183,6 +1182,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
+
+	log.Info("Commit new work", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "pending", txsCount, "txs", w.current.tcount,"diff", txsCount - w.current.tcount, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1192,8 +1193,8 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	//	return nil
 	//}
 
-	// TODO test
-	/*for _, r := range w.current.receipts {
+	/*// TODO test
+	for _, r := range w.current.receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
 	}*/
@@ -1205,27 +1206,28 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		*receipts[i] = *l
 	}
 
-	// todo test
-	//root := w.current.state.IntermediateRoot(true)
-	//log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
-	//	w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))
+	/*// todo test
+	root := w.current.state.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))*/
 
 	s := w.current.state.Copy()
 
-	// todo test
-	//root = s.IntermediateRoot(true)
-	//log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
-	//	w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
+	/*// todo test
+	root = s.IntermediateRoot(true)
+	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
+		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
+	*/
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
-		log.Error("Failed GetReactorInstance EndBlocker on worker", "blockNumber",
+		log.Error("Failed to GetReactorInstance EndBlocker on worker", "blockNumber",
 			w.current.header.Number.Uint64(), "err", err)
 		return err
 	}
 
-	// TODO test
-	/*for _, r := range receipts {
+	/*// TODO test
+	for _, r := range receipts {
 		rbyte, _ := json.Marshal(r.Logs)
 		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
 	}*/

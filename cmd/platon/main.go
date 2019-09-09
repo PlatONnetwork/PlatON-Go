@@ -169,7 +169,7 @@ var (
 
 	cbftFlags = []cli.Flag{
 		utils.CbftPeerMsgQueueSize,
-		utils.CbftWalEnabledFlag,
+		utils.CbftWalDisabledFlag,
 		utils.CbftEvidenceDir,
 		utils.CbftMaxPingLatency,
 		utils.CbftBlsPriKeyFileFlag,
@@ -227,7 +227,10 @@ func init() {
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		bls.Init(bls.CurveFp254BNb)
+		err := bls.Init(int(bls.BLS12_381))
+		if err != nil {
+			return err
+		}
 
 		logdir := ""
 		if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {

@@ -108,7 +108,7 @@ func newTestNode3() []params.CbftNode {
 }
 
 func TestValidators(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	nodes := newTestNode()
 
 	vds := newValidators(nodes, 0)
@@ -120,7 +120,7 @@ func TestValidators(t *testing.T) {
 	assert.True(t, err == nil, "get node idex fail")
 	assert.True(t, validator.Index == 2)
 
-	pubkey, err := nodes[1].Node.ID.Pubkey()
+	pubkey, _ := nodes[1].Node.ID.Pubkey()
 	addrN1 := crypto.PubkeyToAddress(*pubkey)
 
 	validator, err = vds.FindNodeByID(nodes[1].Node.ID)
@@ -166,7 +166,7 @@ func TestValidators(t *testing.T) {
 }
 
 func TestStaticAgency(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	nodes := newTestNode()
 	vds := newValidators(nodes, 0)
 
@@ -203,7 +203,7 @@ func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 }
 
 func TestInnerAgency(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	testdb := ethdb.NewMemDatabase()
 	balanceBytes, _ := hexutil.Decode("0x2000000000000000000000000000000000000000000000000000000000000")
 	balance := big.NewInt(0)
@@ -239,7 +239,7 @@ func TestInnerAgency(t *testing.T) {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -263,7 +263,7 @@ func TestInnerAgency(t *testing.T) {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -278,12 +278,12 @@ func TestInnerAgency(t *testing.T) {
 	})
 
 	nodes := newTestNode()
-	vds := newValidators(nodes, 0)
+	vds := newValidators(nodes, 1)
 
 	agency := NewInnerAgency(nodes, blockchain, 10, 20)
 
 	assert.True(t, agency.GetLastNumber(0) == 40)
-	assert.True(t, agency.GetLastNumber(80) == 80)
+	assert.True(t, agency.GetLastNumber(80) == 80, fmt.Sprintf("%d", agency.GetLastNumber(80)))
 	assert.True(t, agency.GetLastNumber(81) == 120)
 	assert.True(t, agency.GetLastNumber(110) == 120)
 
@@ -355,7 +355,7 @@ func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -379,7 +379,7 @@ func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
 				panic(err)
 			}
 			signer := types.NewEIP155Signer(chainConfig.ChainID)
-			tx, err := types.SignTx(
+			tx, _ := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
 					vm2.ValidatorInnerContractAddr,
@@ -398,13 +398,13 @@ func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {
 }
 
 func TestValidatorPool(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	nodes := newTestNode()
 	agency := newTestInnerAgency(nodes)
 
-	validatorPool := NewValidatorPool(agency, 0, nodes[0].Node.ID)
+	validatorPool := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
 	assert.False(t, validatorPool.ShouldSwitch(0))
-	assert.True(t, validatorPool.ShouldSwitch(80))
+	assert.True(t, validatorPool.ShouldSwitch(40))
 
 	node, err := validatorPool.GetValidatorByNodeID(0, nodes[0].Node.ID)
 	assert.Nil(t, err)
@@ -452,13 +452,13 @@ func TestValidatorPool(t *testing.T) {
 
 	eventMux := &event.TypeMux{}
 
-	validatorPool.Update(80, eventMux)
-	assert.True(t, validatorPool.IsValidator(80, nodes[0].Node.ID))
-	assert.False(t, validatorPool.IsValidator(81, nodes[0].Node.ID))
+	validatorPool.Update(80, 1, eventMux)
+	assert.True(t, validatorPool.IsValidator(0, nodes[0].Node.ID))
+	assert.False(t, validatorPool.IsValidator(1, nodes[0].Node.ID))
 }
 
 func TestValidatorPoolVerify(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 
 	nodes := make([]params.CbftNode, 0)
 
@@ -488,7 +488,7 @@ func TestValidatorPoolVerify(t *testing.T) {
 	nodes = append(nodes, params.CbftNode{Node: *n4, BlsPubKey: *sec4.GetPublicKey()})
 
 	agency := newTestInnerAgency(nodes)
-	vp := NewValidatorPool(agency, 0, nodes[0].Node.ID)
+	vp := NewValidatorPool(agency, 0, 0, nodes[0].Node.ID)
 
 	m := "test sig"
 

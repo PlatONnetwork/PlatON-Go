@@ -8,6 +8,7 @@ if [ ! -f "build/clean_deps.sh" ]; then
 fi
 
 root=`pwd`
+BLS_BUILD=$root/crypto/bls/bls_linux_darwin
 root=$root/life/resolver
 
 # Build softfloat
@@ -34,3 +35,22 @@ cd ..; rm -f libsoftfloatlib.a
 
 cd $root/builtins/
 rm -rf build
+
+
+
+if [ `expr substr $(uname -s) 1 5` != "MINGW" ]; then
+    if [ -d $BLS_BUILD/src/bls ]; then
+        cd $BLS_BUILD/src/bls
+        $MAKE clean
+    fi
+    if [ -d $BLS_BUILD/src/mcl ]; then
+        cd $BLS_BUILD/src/mcl
+        $MAKE clean
+    fi
+    if [ -d "$BLS_BUILD/include" ]; then
+	rm -rf $BLS_BUILD/include/*
+    fi
+    if [ -d "$BLS_BUILD/lib" ]; then
+	rm -rf $BLS_BUILD/lib/*
+    fi
+fi

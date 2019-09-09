@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"runtime"
 	"testing"
 	"time"
 
@@ -33,7 +32,7 @@ var (
 )
 
 func init() {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 }
 func TestThreshold(t *testing.T) {
 	f := &Cbft{}
@@ -48,22 +47,20 @@ func TestThreshold(t *testing.T) {
 }
 
 func TestBls(t *testing.T) {
-	bls.Init(bls.CurveFp254BNb)
+	bls.Init(bls.BLS12_381)
 	num := 4
 	pk, sk := GenerateKeys(num)
 	owner := sk[0]
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		if runtime.GOOS != "windows" {
-			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-		}
+		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 	}
 
 	agency := validator.NewStaticAgency(nodes)
 
 	cbft := &Cbft{
-		validatorPool: validator.NewValidatorPool(agency, 0, nodes[0].Node.ID),
+		validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
 		config: ctypes.Config{
 			Option: &ctypes.OptionsConfig{
 				BlsPriKey: owner,
@@ -76,15 +73,15 @@ func TestBls(t *testing.T) {
 	msg, _ := pb.CannibalizeBytes()
 	assert.Nil(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
 }
+
 func TestAgg(t *testing.T) {
 	num := 4
 	pk, sk := GenerateKeys(num)
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
 		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
-		if runtime.GOOS != "windows" {
-			nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-		}
+		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
+
 	}
 
 	agency := validator.NewStaticAgency(nodes[0:num])
@@ -93,13 +90,13 @@ func TestAgg(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		cnode[i] = &Cbft{
-			validatorPool: validator.NewValidatorPool(agency, 0, nodes[0].Node.ID),
+			validatorPool: validator.NewValidatorPool(agency, 0, 0, nodes[0].Node.ID),
 			config: ctypes.Config{
 				Option: &ctypes.OptionsConfig{
 					BlsPriKey: sk[i],
 				},
 			},
-			state: state.NewViewState(BaseMs),
+			state: state.NewViewState(BaseMs, nil),
 		}
 
 		cnode[i].state.SetHighestQCBlock(NewBlock(common.Hash{}, 1))
@@ -110,7 +107,7 @@ func TestAgg(t *testing.T) {
 }
 
 func testPrepareQC(t *testing.T, cnode []*Cbft) {
-	pbs := make(map[uint32]*protocols.PrepareVote, 0)
+	pbs := make(map[uint32]*protocols.PrepareVote)
 
 	for i := 0; i < len(cnode); i++ {
 		pb := &protocols.PrepareVote{ValidatorIndex: uint32(i)}
@@ -119,14 +116,16 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 		pbs[uint32(i)] = pb
 	}
 	qc := cnode[0].generatePrepareQC(pbs)
+	fmt.Println(qc)
 
-	assert.Nil(t, cnode[0].verifyPrepareQC(qc))
+	assert.Nil(t, cnode[0].verifyPrepareQC(qc.BlockNumber, qc.BlockHash, qc))
 	qc.ValidatorSet = nil
-	assert.NotNil(t, cnode[0].verifyPrepareQC(qc))
+	assert.NotNil(t, cnode[0].verifyPrepareQC(qc.BlockNumber, qc.BlockHash, qc))
 
 }
+
 func testViewChangeQC(t *testing.T, cnode []*Cbft) {
-	pbs := make(map[uint32]*protocols.ViewChange, 0)
+	pbs := make(map[uint32]*protocols.ViewChange)
 
 	for i := 0; i < len(cnode); i++ {
 		pb := &protocols.ViewChange{BlockHash: common.BigToHash(big.NewInt(int64(i))), BlockNumber: uint64(i), ValidatorIndex: uint32(i)}
@@ -160,11 +159,8 @@ func testSeal(t *testing.T, node, node2 *TestCBFT) {
 	result := make(chan *types.Block, 1)
 
 	node.engine.OnSeal(block, result, nil)
-
-	select {
-	case b := <-result:
-		assert.NotNil(t, b)
-	}
+	b := <-result
+	assert.NotNil(t, b)
 }
 
 func testPrepare(t *testing.T, node, node2 *TestCBFT) {

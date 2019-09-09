@@ -19,6 +19,13 @@ package node
 import (
 	"errors"
 	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -27,12 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/prometheus/prometheus/util/flock"
-	"net"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"sync"
 )
 
 // Node is a container on which services can be registered.
@@ -153,7 +154,13 @@ func (n *Node) Start() error {
 	n.serverConfig.Name = n.config.NodeName()
 	n.serverConfig.Logger = n.log
 	if n.serverConfig.StaticNodes == nil {
-		n.serverConfig.StaticNodes = n.config.StaticNodes()
+		// todo: fake point. 1. disable discovery, 2. specified acquisition.
+		if FakeNetEnable {
+			n.serverConfig.NoDiscovery = true
+			n.serverConfig.StaticNodes = MockDiscoveryNode(n.serverConfig.PrivateKey, n.config.StaticNodes())
+		} else {
+			n.serverConfig.StaticNodes = n.config.StaticNodes()
+		}
 	}
 	if n.serverConfig.TrustedNodes == nil {
 		n.serverConfig.TrustedNodes = n.config.TrustedNodes()

@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
@@ -79,6 +81,13 @@ func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 		ViewNumber: 1,
 	}, nil
 }
+func (s *fakeCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
+	return &protocols.GetPrepareVote{
+		Epoch:      1,
+		ViewNumber: 1,
+		UnKnownSet: utils.NewBitArray(10),
+	}, nil
+}
 func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
@@ -131,7 +140,7 @@ func Test_EngineManager_Handle(t *testing.T) {
 	}()
 	//
 	pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-	fakePeer.PingList.PushFront(pingTime)
+	fakePeer.ListPushFront(pingTime)
 	testCases := []struct {
 		msg     types.Message
 		msgType uint64
@@ -242,7 +251,7 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 	assert.Equal(t, checkedPeer.id, p.id)
 
 	// Should return an error if an empty string is passed in.
-	p, err = handle.getPeer("")
+	_, err = handle.getPeer("")
 	assert.NotNil(t, err)
 
 	// blacklist
@@ -255,7 +264,7 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 	assert.True(t, handle.ContainsBlacklist(p2))
 
 	// The length of ConsensusNodes not equal to 0.
-	ds, err := handle.ConsensusNodes()
+	ds, _ := handle.ConsensusNodes()
 	assert.NotEqual(t, 0, len(ds))
 	go func() {
 		handle.synchronize()
@@ -304,6 +313,6 @@ func Test_EngineManager_LargerPeer(t *testing.T) {
 	assert.Equal(t, uint64(12), largeBn)
 	assert.Equal(t, p.id, peers[3].id)
 
-	p, largeBn = largerPeer(TypeForCommitBn, nil, 9)
+	_, largeBn = largerPeer(TypeForCommitBn, nil, 9)
 	assert.Equal(t, uint64(0), largeBn)
 }
