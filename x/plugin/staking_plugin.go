@@ -2168,6 +2168,9 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 	next := make(staking.ValidatorQueue, len(totalQueue))
 
 	copy(next, totalQueue)
+
+	// re sort before store next validators
+	next.ValidatorSort(nil, staking.CompareForStore)
 	return next
 }
 
