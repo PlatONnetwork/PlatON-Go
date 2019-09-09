@@ -450,7 +450,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 			OrgStakingAddr6:            {Balance: OrgStakingBalance},
 			OrgStakingAddr7:            {Balance: OrgStakingBalance},
 		},
-		EconomicModel: xcom.GetEc(xcom.DefaultAlphaTestNet),
+		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
 	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
