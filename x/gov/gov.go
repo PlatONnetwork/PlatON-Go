@@ -6,7 +6,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -14,6 +13,7 @@ import (
 
 type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
+	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
 	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateHexQueue, error)
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
@@ -90,7 +90,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 		return err
 	}
 
-	verifierList, err := plugin.StakingInstance().ListVerifierNodeID(blockHash, blockNumber)
+	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
 	if err != nil {
 		return err
 	}
