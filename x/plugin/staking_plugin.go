@@ -1424,7 +1424,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		if can.ProgramVersion < currVersion {
 
-			log.Debug("Call ElectNextVerifierList: the can ProgramVersion is less than currVersion",
+			log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
 				"nodeId", can.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
 				can.ProgramVersion, "currVersion", currVersion)
