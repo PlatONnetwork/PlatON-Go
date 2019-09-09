@@ -1,6 +1,9 @@
 package cbft
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -9,8 +12,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"io/ioutil"
-	"os"
 )
 
 const (
@@ -176,16 +177,37 @@ func (tv *testView) setBlockQC(number int) {
 		block = proposerNode.state.HighestQCBlock()
 	}
 	_, blockQC := proposerNode.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
-	qc := *blockQC
-	for i := uint64(1); i <= uint64(number); i++ {
-		b := NewBlock(block.Hash(), block.NumberU64()+1)
-		newBlockQC := mockBlockQC(tv.allNode, b, proposerNode.state.NextViewBlockIndex(), &qc)
-		qc = *newBlockQC.BlockQC
-		for _, cbft := range tv.allCbft {
-			insertBlock(cbft, b, &qc)
+	var qc *ctypes.QuorumCert
+	if blockQC != nil {
+		qc = &ctypes.QuorumCert{
+			Epoch:        blockQC.Epoch,
+			ViewNumber:   blockQC.ViewNumber,
+			BlockHash:    blockQC.BlockHash,
+			BlockNumber:  blockQC.BlockNumber,
+			BlockIndex:   blockQC.BlockIndex,
+			Signature:    blockQC.Signature,
+			ValidatorSet: blockQC.ValidatorSet,
 		}
-		bTmp := *b
-		block = &bTmp
+	}
+	blockHash := block.Hash()
+	blockNumber := block.NumberU64()
+	for i := uint64(1); i <= uint64(number); i++ {
+		b := NewBlock(blockHash, blockNumber+1)
+		newBlockQC := mockBlockQC(tv.allNode, b, proposerNode.state.NextViewBlockIndex(), qc)
+		qc = &ctypes.QuorumCert{
+			Epoch:        newBlockQC.BlockQC.Epoch,
+			ViewNumber:   newBlockQC.BlockQC.ViewNumber,
+			BlockHash:    newBlockQC.BlockQC.BlockHash,
+			BlockNumber:  newBlockQC.BlockQC.BlockNumber,
+			BlockIndex:   newBlockQC.BlockQC.BlockIndex,
+			Signature:    newBlockQC.BlockQC.Signature,
+			ValidatorSet: newBlockQC.BlockQC.ValidatorSet,
+		}
+		for _, cbft := range tv.allCbft {
+			insertBlock(cbft, b, qc)
+		}
+		blockHash = b.Hash()
+		blockNumber = b.NumberU64()
 	}
 }
 
@@ -195,7 +217,6 @@ func (tv *testView) ResetView(start bool, nodeNumber int) {
 
 func insertBlock(cbft *Cbft, block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.AddQCBlock(block, qc)
-	cbft.state.AddQC(qc)
 	cbft.insertQCBlock(block, qc)
 }
 func mockNodeOfNumber(start bool, nodeNumber int) ([]*TestCBFT, []params.CbftNode) {

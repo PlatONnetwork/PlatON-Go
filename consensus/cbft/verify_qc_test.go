@@ -2,7 +2,6 @@ package cbft
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 	"unsafe"
@@ -43,41 +42,32 @@ func (suit *VerifyQCTestSuite) insertOneBlock() {
 	}
 }
 
-func (cbft *Cbft) mockGenerateViewChangeQuorumCert(qc *ctypes.QuorumCert) (*ctypes.ViewChangeQuorumCert, error) {
-	i := rand.Uint32()
-	var v *protocols.ViewChange
-	v = &protocols.ViewChange{
-		Epoch:          cbft.state.Epoch(),
-		ViewNumber:     qc.ViewNumber,
-		BlockHash:      qc.BlockHash,
-		BlockNumber:    qc.BlockNumber,
-		ValidatorIndex: uint32(i),
-		PrepareQC:      qc,
-	}
-
-	if err := cbft.signMsgByBls(v); err != nil {
-		return nil, errors.Wrap(err, "Sign ViewChange failed")
-	}
-
+func (cbft *Cbft) mockGenerateViewChangeQuorumCert(v *protocols.ViewChange, index uint32) (*ctypes.ViewChangeQuorumCert, error) {
+	// node, err := cbft.isCurrentValidator()
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "local node is not validator")
+	// }
 	total := uint32(cbft.validatorPool.Len(cbft.state.Epoch()))
 	var aggSig bls.Sign
 	if err := aggSig.Deserialize(v.Sign()); err != nil {
 		return nil, err
 	}
-	var cert *ctypes.ViewChangeQuorumCert
 
-	cert = &ctypes.ViewChangeQuorumCert{
-		Epoch:           cbft.state.Epoch(),
-		ViewNumber:      qc.ViewNumber,
-		BlockHash:       qc.BlockHash,
-		BlockNumber:     qc.BlockNumber,
-		BlockEpoch:      qc.Epoch,
-		BlockViewNumber: qc.ViewNumber,
+	blockEpoch, blockView := uint64(0), uint64(0)
+	if v.PrepareQC != nil {
+		blockEpoch, blockView = v.PrepareQC.Epoch, v.PrepareQC.ViewNumber
+	}
+	cert := &ctypes.ViewChangeQuorumCert{
+		Epoch:           v.Epoch,
+		ViewNumber:      v.ViewNumber,
+		BlockHash:       v.BlockHash,
+		BlockNumber:     v.BlockNumber,
+		BlockEpoch:      blockEpoch,
+		BlockViewNumber: blockView,
 		ValidatorSet:    utils.NewBitArray(total),
 	}
-
 	cert.Signature.SetBytes(aggSig.Serialize())
-	cert.ValidatorSet.SetIndex(i, true)
+	cert.ValidatorSet.SetIndex(index, true)
 	return cert, nil
 }
 func (cbft *Cbft) mockGenerateViewChangeQuorumCertWithViewNumber(qc *ctypes.QuorumCert) (*ctypes.ViewChangeQuorumCert, error) {
@@ -140,9 +130,10 @@ func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCErrNum() {
 // 校验无法通过
 func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCErrNodeNum() {
 	suit.insertOneBlock()
+	view := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber, suit.blockOne.Hash(), suit.blockOne.NumberU64(), 0, suit.blockOneQC.BlockQC)
 	vs := &ctypes.ViewChangeQC{}
 	for i := 0; i <= 4; i++ {
-		qc, err := suit.view.secondProposer().generateViewChangeQuorumCert(suit.blockOneQC.BlockQC)
+		qc, err := suit.view.secondProposer().generateViewChangeQuorumCert(view)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -189,9 +180,10 @@ func (suit *VerifyQCTestSuite) TestVerifyChangeQCViewChangeDifViewNumber() {
 func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCErrData() {
 	suit.insertOneBlock()
 	nodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	view := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber, suit.blockOne.Hash(), suit.blockOne.NumberU64(), 0, suit.blockOneQC.BlockQC)
 	vs := &ctypes.ViewChangeQC{}
 	for i := 0; i < 4; i++ {
-		cert, err := nodes[i].engine.mockGenerateViewChangeQuorumCert(suit.blockOneQC.BlockQC)
+		cert, err := nodes[i].engine.mockGenerateViewChangeQuorumCert(view, uint32(i))
 		if err != nil {
 			panic(err.Error())
 		}
@@ -208,10 +200,11 @@ func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCErrData() {
 // 执行时间小于等于10ms
 func (suit *VerifyQCTestSuite) TestSyncViewChangeQCTooBig() {
 	suit.insertOneBlock()
+	view := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber, suit.blockOne.Hash(), suit.blockOne.NumberU64(), 0, suit.blockOneQC.BlockQC)
 	vs := &ctypes.ViewChangeQC{}
 	var qcs [1000]*ctypes.ViewChangeQuorumCert
 	for i := 0; i < len(qcs); i++ {
-		qc, err := suit.view.secondProposer().generateViewChangeQuorumCert(suit.blockOneQC.BlockQC)
+		qc, err := suit.view.secondProposer().generateViewChangeQuorumCert(view)
 		if err != nil {
 			panic(err.Error())
 		}
