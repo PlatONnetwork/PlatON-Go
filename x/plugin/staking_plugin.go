@@ -1210,7 +1210,9 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 	if amount.Cmp(del.Reduction) == 0 && del.Reduction.Cmp(total) == 0 { // full withdrawal
 
 		log.Info("Call handleUnDelegate, full withdraw", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr, "full refund", total)
+			"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.String(),
+			"nodeId", nodeId.String(), "stakeBlockNum", num, "full refund", amount,
+			"total", total, "redution", del.Reduction)
 
 		refundReleaseFn := func(balance *big.Int) *big.Int {
 			if balance.Cmp(common.Big0) > 0 {
@@ -1261,10 +1263,12 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 
 	} else { // few withdrawal
 
-		refund_remain := amount
+		refundRemain := amount
 
 		log.Info("Call handleUnDelegate, few withdraw", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr, "few refund", refund_remain)
+			"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.String(),
+			"nodeId", nodeId.String(), "stakeBlockNum", num, "few refund", amount,
+			"total", total, "redution", del.Reduction)
 
 		refundReleaseFn := func(balance, refund *big.Int) (*big.Int, *big.Int) {
 
@@ -1289,8 +1293,8 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 
 		//hes, rm := refundReleaseFn(del.ReleasedHes, refund_remain)
 		//del.ReleasedHes, refund_remain = hes, rm
-		noHes, rm := refundReleaseFn(del.Released, refund_remain)
-		del.Released, refund_remain = noHes, rm
+		noHes, rm := refundReleaseFn(del.Released, refundRemain)
+		del.Released, refundRemain = noHes, rm
 
 		refundRestrictingPlanFn := func(title string, balance, refund *big.Int) (*big.Int, *big.Int, error) {
 
@@ -1326,16 +1330,16 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64
 		//	del.RestrictingPlanHes, refund_remain = balance, re
 		//}
 
-		if balance, re, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan, refund_remain); nil != err {
+		if balance, re, err := refundRestrictingPlanFn("RestrictingPlan", del.RestrictingPlan, refundRemain); nil != err {
 			return err
 		} else {
-			del.RestrictingPlan, refund_remain = balance, re
+			del.RestrictingPlan, refundRemain = balance, re
 		}
 
-		if refund_remain.Cmp(common.Big0) > 0 {
+		if refundRemain.Cmp(common.Big0) > 0 {
 			log.Error("Failed to call handleUnDelegate: remain is not zero", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "epoch", epoch, "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
-				"stakeBlockNumber", num, "refund amount", amount, "refund remain", refund_remain)
+				"stakeBlockNumber", num, "refund amount", amount, "refund remain", refundRemain)
 			return VonAmountNotRight
 		}
 
