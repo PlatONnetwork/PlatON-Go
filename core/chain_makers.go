@@ -214,16 +214,14 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		config = params.TestChainConfig
 	}
 	cacheConfig := &CacheConfig{
-		Disabled:                 true,
-		TrieNodeLimit:            256 * 1024 * 1024,
-		TrieTimeLimit:            5 * time.Minute,
-		BodyCacheLimit:           256,
-		BlockCacheLimit:          256,
-		MaxFutureBlocks:          256,
-		BadBlockLimit:            10,
-		TriesInMemory:            128,
-		DefaultTxsCacheSize:      20,
-		DefaultBroadcastInterval: 100 * time.Millisecond,
+		Disabled:        true,
+		TrieNodeLimit:   256 * 1024 * 1024,
+		TrieTimeLimit:   5 * time.Minute,
+		BodyCacheLimit:  256,
+		BlockCacheLimit: 256,
+		MaxFutureBlocks: 256,
+		BadBlockLimit:   10,
+		TriesInMemory:   128,
 	}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
@@ -268,16 +266,14 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		config = params.TestChainConfig
 	}
 	cacheConfig := &CacheConfig{
-		Disabled:                 true,
-		TrieNodeLimit:            256 * 1024 * 1024,
-		TrieTimeLimit:            5 * time.Minute,
-		BodyCacheLimit:           256,
-		BlockCacheLimit:          256,
-		MaxFutureBlocks:          256,
-		BadBlockLimit:            10,
-		TriesInMemory:            128,
-		DefaultTxsCacheSize:      20,
-		DefaultBroadcastInterval: 100 * time.Millisecond,
+		Disabled:        true,
+		TrieNodeLimit:   256 * 1024 * 1024,
+		TrieTimeLimit:   5 * time.Minute,
+		BodyCacheLimit:  256,
+		BlockCacheLimit: 256,
+		MaxFutureBlocks: 256,
+		BadBlockLimit:   10,
+		TriesInMemory:   128,
 	}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
