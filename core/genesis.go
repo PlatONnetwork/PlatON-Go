@@ -249,7 +249,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 
 	genesisIssuance := new(big.Int)
-	genesisReward := common.Big0
+	//	genesisReward := common.Big0
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
@@ -261,16 +261,16 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 
 		// ppos add
-		if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
-			genesisReward = account.Balance
-
-		}
+		//if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
+		//	genesisReward = account.Balance
+		//
+		//}
 		genesisIssuance = genesisIssuance.Add(genesisIssuance, account.Balance)
 	}
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	// Store genesis version into governance data
-	if err := genesisPluginState(g, statedb, genesisReward, genesisIssuance, params.GenesisVersion); nil != err {
+	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 
@@ -358,26 +358,35 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-
 	// initial PlatON Foundation
-	platONFoundationIssue, _ := new(big.Int).SetString("905000000000000000000000000", 10)
+	//	platONFoundationIssue, _ := new(big.Int).SetString("905000000000000000000000000", 10)
+	platONFoundationIssue, _ := new(big.Int).SetString("2000000000000000000000000000", 10)
 
 	// initial reward pool issuance, first year can be used is 4.5% of the genesis issuance
-	rewardMgrPoolIssue, _ := new(big.Int).SetString("45000000000000000000000000", 10)
+	//	rewardMgrPoolIssue, _ := new(big.Int).SetString("45000000000000000000000000", 10)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
 	// initial balance of restricting contract, it is total the second year allowance and the third year allowance
-	restrictingIssue, _ := new(big.Int).SetString("20000000000000000000000000", 10)
+	//restrictingIssue, _ := new(big.Int).SetString("20000000000000000000000000", 10)
 
 	// initial developer Foundation Issue
-	developerFoundationIssue, _ := new(big.Int).SetString("5000000000000000000000000", 10)
+	//	developerFoundationIssue, _ := new(big.Int).SetString("5000000000000000000000000", 10)
 
 	// initial balance of staking contract
-	genesisNodesNumber := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
-	xcom.GetEc(xcom.DefaultMainNet)
-	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
-
+	//genesisNodesNumber := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	//	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
 	// initial reserved account balance
 	// reservedAccountIssue := big.NewInt(0)
+	var GeneralAddr = common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
+	OrgStakingBalance, _ := new(big.Int).SetString("10000000000000000000000000", 10)
+	var OrgStakingAddr1 = common.HexToAddress("0xD9545144cabd45CB02b61848F2A406c82AC5EFA0")
+	var OrgStakingAddr2 = common.HexToAddress("0x7259B934Ed785A20fcAb62246EfB24390203bC5D")
+	var OrgStakingAddr3 = common.HexToAddress("0xFae1A3365eed440Fb83313Ca391e3DCD75626711")
+	var OrgStakingAddr4 = common.HexToAddress("0x2451eF89D9bC2222897A3c9c895c6F7fbA040e28")
+	var OrgStakingAddr5 = common.HexToAddress("0xE110C0D3f86A9D5150A766182592fBAB2dd94178")
+	var OrgStakingAddr6 = common.HexToAddress("0x508725d0f60ce53e332D6584E637e5934F553894")
+	var OrgStakingAddr7 = common.HexToAddress("0x1597896DEd47F911f5D46418C61fb5F780ba4EBd")
+	generalBalance, _ := new(big.Int).SetString("8050000000000000000000000000", 10)
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
@@ -385,12 +394,20 @@ func DefaultGenesisBlock() *Genesis {
 		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:  3150000000,
 		Alloc: map[common.Address]GenesisAccount{
-			vm.PlatONFoundationAddress:      {Balance: platONFoundationIssue},
-			vm.RewardManagerPoolAddr:        {Balance: rewardMgrPoolIssue},
-			vm.RestrictingContractAddr:      {Balance: restrictingIssue},
-			vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
-			vm.StakingContractAddr:          {Balance: stakingContractIssue},
+			vm.PlatONFoundationAddress: {Balance: platONFoundationIssue},
+			vm.RewardManagerPoolAddr:   {Balance: rewardMgrPoolIssue},
+			vm.RestrictingContractAddr: {Balance: common.Big0},
+			//	vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
+			vm.StakingContractAddr: {Balance: common.Big0},
 			// vm.ReservedAccount:              {Balance: reservedAccountIssue},
+			GeneralAddr:     {Balance: generalBalance},
+			OrgStakingAddr1: {Balance: OrgStakingBalance},
+			OrgStakingAddr2: {Balance: OrgStakingBalance},
+			OrgStakingAddr3: {Balance: OrgStakingBalance},
+			OrgStakingAddr4: {Balance: OrgStakingBalance},
+			OrgStakingAddr5: {Balance: OrgStakingBalance},
+			OrgStakingAddr6: {Balance: OrgStakingBalance},
+			OrgStakingAddr7: {Balance: OrgStakingBalance},
 		},
 		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
@@ -401,30 +418,43 @@ func DefaultGenesisBlock() *Genesis {
 
 // DefaultTestnetGenesisBlock returns the Alpha network genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
-
-	initAddress1 := new(big.Int)
-	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
-
-	initBalance1 := new(big.Int)
-	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
-
-	initAddress2 := new(big.Int)
-	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
-
-	initBalance2 := new(big.Int)
-	initBalance2.SetString("295be96e640669720000000", 16)
-
-	return &Genesis{
+	platONFoundationIssue, _ := new(big.Int).SetString("2000000000000000000000000000", 10)
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
+	var GeneralAddr = common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
+	OrgStakingBalance, _ := new(big.Int).SetString("10000000000000000000000000", 10)
+	var OrgStakingAddr1 = common.HexToAddress("0xD9545144cabd45CB02b61848F2A406c82AC5EFA0")
+	var OrgStakingAddr2 = common.HexToAddress("0x7259B934Ed785A20fcAb62246EfB24390203bC5D")
+	var OrgStakingAddr3 = common.HexToAddress("0xFae1A3365eed440Fb83313Ca391e3DCD75626711")
+	var OrgStakingAddr4 = common.HexToAddress("0x2451eF89D9bC2222897A3c9c895c6F7fbA040e28")
+	var OrgStakingAddr5 = common.HexToAddress("0xE110C0D3f86A9D5150A766182592fBAB2dd94178")
+	var OrgStakingAddr6 = common.HexToAddress("0x508725d0f60ce53e332D6584E637e5934F553894")
+	var OrgStakingAddr7 = common.HexToAddress("0x1597896DEd47F911f5D46418C61fb5F780ba4EBd")
+	generalBalance, _ := new(big.Int).SetString("8050000000000000000000000000", 10)
+	genesis := Genesis{
 		Config:    params.TestnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
 		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  0x99947b760,
 		Timestamp: 1546300800000,
 		Alloc: map[common.Address]GenesisAccount{
-			common.BigToAddress(initAddress1): {Balance: initBalance1},
-			common.BigToAddress(initAddress2): {Balance: initBalance2},
+			vm.PlatONFoundationAddress: {Balance: platONFoundationIssue},
+			vm.RewardManagerPoolAddr:   {Balance: rewardMgrPoolIssue},
+			vm.RestrictingContractAddr: {Balance: common.Big0},
+			vm.StakingContractAddr:     {Balance: common.Big0},
+			GeneralAddr:                {Balance: generalBalance},
+			OrgStakingAddr1:            {Balance: OrgStakingBalance},
+			OrgStakingAddr2:            {Balance: OrgStakingBalance},
+			OrgStakingAddr3:            {Balance: OrgStakingBalance},
+			OrgStakingAddr4:            {Balance: OrgStakingBalance},
+			OrgStakingAddr5:            {Balance: OrgStakingBalance},
+			OrgStakingAddr6:            {Balance: OrgStakingBalance},
+			OrgStakingAddr7:            {Balance: OrgStakingBalance},
 		},
+		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
+	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	return &genesis
 }
 
 // DefaultBetanetGenesisBlock returns the Beta network genesis block.

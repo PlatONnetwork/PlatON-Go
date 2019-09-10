@@ -45,27 +45,63 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 var (
 	initialMainNetConsensusNodes = []initNode{
 		{
-			"enode://4fcc251cf6bf3ea53a748971a223f5676225ee4380b65c7889a2b491e1551d45fe9fcc19c6af54dcf0d5323b5aa8ee1d919791695082bae1f86dd282dba4150f@0.0.0.0:16789",
-			"15e87df4d48d1294c7ca6485cd42b5f5d66b9f5561fd0f78b091ad6a43613921cab55951a6aa9289cdb76f80d6c42dedc673e03ff7e4b3f1b996db12351f3109",
+			"enode://b95630ee516effebd04c40eff7a4ea695947ed10e9e310ce01a12338f90748fcced68ba548a8261f7fce784e33e1ca7e0e6d7c54ef6d9887ed64f01727d72512@137.135.187.49:16789",
+			"4d861e581b94b0b3e94a2be8f2e141e67fac978bd62344d424e0ba35113edb97bcb7966e6cae997f9bfdf4a5b229c407cb6879c6cefeff39223bcb2b1ef6b9f520ebfdd147dfa9f96285107be780076aab0a854beac882408beee1ba4deef105",
+		},
+		{
+			"enode://3d0f7b74358a07562e89919ca274ec140ebc8cf6db4a241a6ddda6f896f0cfc37028a433e0efe5e6bd91b02d91883fd2c46f68cf77d08aa8f1f1c30ffcb2f614@52.236.129.246:16789",
+			"7b7888e8cf571e297b7c4955386281e934b3136364af1560907eb95f70b212c9d47357e56e284f81014a624a08969f11c4257c10f6b056c3cadf544c649d2f32d5e3846b06f6cd34e9e6930a3dac5aaf41fd05c4b11212314f9f7177e9901114",
+		},
+		{
+			"enode://2b2c71e0f5a5ce2f1fa8b16c429b7dbc2e3c5a9cb890e05dbbaf274959df1937c5c5cff1c613d017c1b06b2c24dc9ff464ee6fa03934a96be8a2faa3c7c08a0f@52.228.38.97:16789",
+			"efecd9acb2fb1343e1be8c0bc8e879033bb670b26bee56526a15e9b31cc9ee2eb90ad2ffca175b0c6d047f1f681dbc00bf1c40a5172bd7ddc777438ca7e12442688f6dfc918b5261a6eb2ba43c0c49a5769d9b22f836eec2ebc682fd24245f89",
+		},
+		{
+			"enode://60f682356cdac0d0a9b5cae8b5ffd2ae051e0767a059afd537aa1d47cd407925b1bdba25060d01af21a47089ac38f0b09d816f4ff71fcf3d570e71f1ef1f870b@51.105.52.194:16789",
+			"76b1f46d2c488f26f12b2aea82bc84bacf1de2f85acc99780940f3b8845f802ce1dc7b5987acac7d82067221fa6d7106f47d986631899eeacaa5eadf4ba80b34b8dbf020ba26af3118c610f973962cfad7706435b84ae1caf5ac44cafb224b83",
+		},
+		{
+			"enode://4ea4cdbf8c6e1141e4aec3a6ad7dec3a6988fcd31b6ceb9dddd8c23b4f9557e2b771d4c29b301f796f74da2c6f4e7415e1aa7ba3eaa9147b7ab9995751486685@3.120.24.72:16789",
+			"988096ea81e13e8c7f4c080f076d9a0583a0fe11b72a5264e2c6b6bb96c2aa5e76c219f56a2cd32d24c0dd2218d7fd0369f0d184315a65c49f075a68fc3c103459401cb4570da7905e69c3bb33df1f0d22bd762bbace3ba90134406a4400b511",
+		},
+		{
+			"enode://5c28c6443fd1bdd3ae02625cb54c0c8b739cde1c137ed50a4f03103a77a5936abe7c1327db2b9439f429568ca0aace7b8da5f47c6b2bf6ede1eb128eb0ea9201@13.126.189.133:16789",
+			"7a3fa7022ba9e9b8ada7b0d273f00999c3f3c32a6db13615c9b1a57dd4abeee6814ae0c1ac2601e9839255d793c503060b7a43d9d1b144f0ab69ddd1972d2e80ed29e3e407b5bd9b7860d77a34ba693ff5393714fa1d377da3cba78d5256fc89",
+		},
+		{
+			"enode://f2afba5553cf79eef374e900fec4c3ab3d6223a4fe91ded26872cea6d01caea1a8394f4f09faa6d24b9f3c6105e342c075b82d806b187798cb875381c88e29a2@18.140.124.104:16789",
+			"cb6490c888a683ac2a707c51c733be20621be21192fe5b80b008920ad6fc52cba26969479f567d3ecf1259819691eb0356ca89317176779c1d5002a6a306ba14c284e14ed6c8bbcb3a4b5bc8100168c6c0f7cbe3289337cf47771cb2a1098a95",
 		},
 	}
 
 	initialTestnetConsensusNodes = []initNode{
 		{
-			"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16791", //TEST-SEA
-			"",
+			"enode://e0c521bc365d6e4be8e7c57eef4d82c41fa679f3531f4860a0a9bd10f1d03772a600f293f36baa037f2378a32aeed015b8781c17ca80eb93b33d15f0b8d6b0eb@137.135.187.49:16789", //TEST-SEA
+			"1fae6a56386e6ca3f9bc3727105adff78c4822c5cdca8594edac3d5f4e145b3ee6b3fe995072cdf3bf40e7decfb35013d330676ac516e09d74695d8a5248a585279172447e1855bc28e04efea1efc7ae54a60ac4445dd168d3be3836d4ecb304",
 		},
 		{
-			"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16792", //TEST-SG
-			"",
+			"enode://6d53868800442172dad019e11e46f2c311e82fa43d8b6673800d1ba96b4ccdfc79d2ed0e76bc2f3adc79e92ea2d66123bb8ff7229a0a62b3dacd2fe3f292f237@52.236.129.246:16789", //TEST-SG
+			"7638475108d18c280516ab0afd8991bb7d300e174cefa568530c7812158a29906009a63a37b590904f1639919bbeb909f5e871efd062aa11444dfe8f28ef3646fe260d91d8b27087884f6b678309bf4c639a4e3f7ce6fbbb2c247f3515c2750e",
 		},
 		{
-			"enode://24b0c456ae5cad46c4fb9bc02c867b997e22f30696e6e330926f785ca2e7410baf1eb34ffd9b5b07b5ba6e02b693faf57afb33f7c66cfbcf4c9186b4bfac737d@test-na.platon.network:16791", //TEST-NA
-			"",
+			"enode://3241190f8f9cc4daa6ad82b703719a9c374d681e99f74085f86c1ee7f8a8d2ec7ca2a691182441c250a376917d4e41342bb168f7172b2b73d24cd2d1cbaaa13c@52.228.38.97:16789", //TEST-NA
+			"2cf585988d27aca716e33f30eeb2b5f7f5d146aca2f1a854e4667bb305bc0b8e73f756c6e81ac5c90690b36ecab89f15621ff49cdcaadcdfa6c78f28aeda0c498cc3502f1a59d0366e4bf767801649a1ca96cfe8eb663147721ca98840a43300",
 		},
 		{
-			"enode://c7fc34d6d8b3d894a35895aaf2f788ed445e03b7673f7ce820aa6fdc02908eeab6982b7eb97e983cc708bcec093b3bc512b0b1fbf668e6ab94cd91f2d642e591@test-us.platon.network:16792", //TEST-US
-			"",
+			"enode://8823be50eeaec8b4091b1e6874d0ca62b339d10e4fffb2bb335910bad1461818b10e121ede9cc76d7ecc666f70037ba8538a893c4c41f031577745cd281ce4cd@51.105.52.194:16789", //TEST-US
+			"2db52bc9ec0ab826fb64aafb179284fe5b2a5a2263d95a9a44cf7d5bf81e913aca4e745d109a02e44612f04c633d350f4f3992ddd250901487618f9534178949859c1fbdf40af2959161de73ef48abf3adb7b6ebcdc0890f76c9447ed10d6b8a",
+		},
+		{
+			"enode://3da6f3dd87b6ab69933df5c8c7ce3384f96e31993b31120f6dd60e48f5454b1deeedf65708617b7b7aa3b4d2852379197ece293ae2d37bf80488bbf8305f9538@3.120.24.72:16789", //TEST-US
+			"e5c17a1ec1dbbc0805086e7e3b47ec7356726b5afffc827d3ddbbd4021d8b5c7301b9a6316ea99c713bc42edad77ae0e625be6dad67558f638891b093051b963608b58b831732916f9973a65f18fdb65429c39a0ce7b96d6d86ac14d333fdf91",
+		},
+		{
+			"enode://c51941700cda66534a951d54431c81bbc2859a17bf6fd2dd5be9dbc0e1d6b2858146a3919b8ab3ef2eeb7b6c89e632616537d94301f8dd4a3f7d9d0cb15eabf8@13.126.189.133:16789", //TEST-US
+			"f9374427202567be87a1397cb018e66b1d695453bd9fba4b7e4ab13d4a730b83251ed48bdc0e35e581715ee1dcc7d00cef04ab4e02acfef826c8c130989461063a324f68f10610dd6c6edd03293c7b082dad41c1d8941b2ad28f85cb70fc5594",
+		},
+		{
+			"enode://93bdcf7dd8e579e61bf1d8d1c6be9ffdfc492b9828321ea41d61c3f00f1f6d957310b63abf4b93f03738b7ce9cf141637ce8eaefcbd12e06a528dd9233ac8bc5@18.140.124.104:16789", //TEST-US
+			"5135e6790ed70084f74f8daa8ad3a84980d8571c8b793ee19d634677571716e4cf42af46f3af53e3eea342440c62e60586751c7d2a86d59f3e09adab6b76399db1e3200afe315043ee895f5ad963fa6bfbebd8739b7d3a0f19ad60903a4b9793",
 		},
 	}
 
@@ -157,10 +193,10 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
-			InitialNodes:  convertNodeUrl(initialMainNetConsensusNodes),
+			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
-			Period:        10000,
+			Period:        20000,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -178,9 +214,12 @@ var (
 	TestnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(103),
 		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(3),
+		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
+			Amount:        10,
+			ValidatorMode: "ppos",
+			Period:        20000,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -199,7 +238,7 @@ var (
 		ChainID:     big.NewInt(203),
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialInnerTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -218,7 +257,7 @@ var (
 		ChainID:     big.NewInt(204),
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialInnerDevnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -238,7 +277,7 @@ var (
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
+			InitialNodes: ConvertNodeUrl(initialBetanetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -479,7 +518,8 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 	}
 }
 
-func convertNodeUrl(initialNodes []initNode) []CbftNode {
+func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
+	bls.Init(bls.BLS12_381)
 	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, n := range initialNodes {
 
@@ -489,12 +529,12 @@ func convertNodeUrl(initialNodes []initNode) []CbftNode {
 			cbftNode.Node = *node
 		}
 
-		//var blsPk bls.PublicKey
-		//
-		//if pkByte, err := hex.DecodeString(n.BlsPubkey); nil == err {
-		//	blsPk.Deserialize(pkByte)
-		//	cbftNode.BlsPubKey = blsPk
-		//}
+		if n.BlsPubkey != "" {
+			var blsPk bls.PublicKey
+			if err := blsPk.UnmarshalText([]byte(n.BlsPubkey)); nil == err {
+				cbftNode.BlsPubKey = blsPk
+			}
+		}
 
 		NodeList = append(NodeList, *cbftNode)
 	}

@@ -131,12 +131,12 @@ var (
 	lastBlockHash   common.Hash
 	lastHeader      types.Header
 
-	sender            = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
-	anotherSender     = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5233")
-	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+	sender        = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	anotherSender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5233")
+	senderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
-	delegate_sender            = common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
-	delegate_sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+	delegateSender        = common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
+	delegateSenderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
 	sndb = snapshotdb.Instance()
 
@@ -257,8 +257,11 @@ func newChainState() (*mock.MockStateDB, *types.Block, error) {
 	chain := mock.NewChain(testGenesis)
 	//	var state *state.StateDB
 
-	chain.StateDB.AddBalance(sender, sender_balance)
-	chain.StateDB.AddBalance(delegate_sender, delegate_sender_balance)
+	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
+	dBalance, _ := new(big.Int).SetString(delegateSenderBalance, 10)
+
+	chain.StateDB.AddBalance(sender, sBalance)
+	chain.StateDB.AddBalance(delegateSender, dBalance)
 	for i, addr := range addrArr {
 		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
 		amount = new(big.Int).Mul(common.Big257, amount)
@@ -429,19 +432,19 @@ func build_staking_data(genesisHash common.Hash) {
 	queue = append(queue, v2)
 	queue = append(queue, v3)
 
-	epoch_Arr := &staking.Validator_array{
+	epoch_Arr := &staking.ValidatorArray{
 		Start: 1,
 		End:   uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
-	pre_Arr := &staking.Validator_array{
+	pre_Arr := &staking.ValidatorArray{
 		Start: 0,
 		End:   0,
 		Arr:   queue,
 	}
 
-	curr_Arr := &staking.Validator_array{
+	curr_Arr := &staking.ValidatorArray{
 		Start: 1,
 		End:   uint64(xutil.ConsensusSize()),
 		Arr:   queue,
@@ -569,7 +572,7 @@ func build_staking_data_more(block uint64) {
 
 	queue := validatorArr[:25]
 
-	epoch_Arr := &staking.Validator_array{
+	epoch_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/22000)*22000 + 1,
 		//End:   ((block-1)/22000)*22000 + 22000,
 		Start: ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + 1,
@@ -577,13 +580,13 @@ func build_staking_data_more(block uint64) {
 		Arr:   queue,
 	}
 
-	pre_Arr := &staking.Validator_array{
+	pre_Arr := &staking.ValidatorArray{
 		Start: 0,
 		End:   0,
 		Arr:   queue,
 	}
 
-	curr_Arr := &staking.Validator_array{
+	curr_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/250)*250 + 1,
 		//End:   ((block-1)/250)*250 + 250,
 		Start: ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + 1,
@@ -648,22 +651,22 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 	stateDB.AddBalance(cvm.RestrictingContractAddr, lockAmount)
 }
 
-func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
+func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
 
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetRoundValIndexByBlockHash(blockHash)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to setRoundValList: Query round valIndex is failed", "blockHash",
-			blockHash.Hex(), "Start", val_Arr.Start, "End", val_Arr.End, "err", err)
+			blockHash.Hex(), "Start", valArr.Start, "End", valArr.End, "err", err)
 		return err
 	}
 
 	var indexQueue staking.ValArrIndexQueue
 
 	index := &staking.ValArrIndex{
-		Start: val_Arr.Start,
-		End:   val_Arr.End,
+		Start: valArr.Start,
+		End:   valArr.End,
 	}
 
 	if len(queue) == 0 {
@@ -673,7 +676,7 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 
 		has := false
 		for _, indexInfo := range queue {
-			if indexInfo.Start == val_Arr.Start && indexInfo.End == val_Arr.End {
+			if indexInfo.Start == valArr.Start && indexInfo.End == valArr.End {
 				has = true
 				break
 			}
@@ -701,7 +704,7 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 	}
 
 	// Store new round validator Item
-	if err := stakeDB.SetRoundValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
+	if err := stakeDB.SetRoundValList(blockHash, index.Start, index.End, valArr.Arr); nil != err {
 		log.Error("Failed to setRoundValList: store new round validators is failed", "blockHash", blockHash.Hex())
 		return err
 	}
@@ -709,22 +712,22 @@ func setRoundValList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 	return nil
 }
 
-func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) error {
+func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
 
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetEpochValIndexByBlockHash(blockHash)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to setVerifierList: Query epoch valIndex is failed", "blockHash",
-			blockHash.Hex(), "Start", val_Arr.Start, "End", val_Arr.End, "err", err)
+			blockHash.Hex(), "Start", valArr.Start, "End", valArr.End, "err", err)
 		return err
 	}
 
 	var indexQueue staking.ValArrIndexQueue
 
 	index := &staking.ValArrIndex{
-		Start: val_Arr.Start,
-		End:   val_Arr.End,
+		Start: valArr.Start,
+		End:   valArr.End,
 	}
 
 	if len(queue) == 0 {
@@ -734,7 +737,7 @@ func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 
 		has := false
 		for _, indexInfo := range queue {
-			if indexInfo.Start == val_Arr.Start && indexInfo.End == val_Arr.End {
+			if indexInfo.Start == valArr.Start && indexInfo.End == valArr.End {
 				has = true
 				break
 			}
@@ -762,7 +765,7 @@ func setVerifierList(blockHash common.Hash, val_Arr *staking.Validator_array) er
 	}
 
 	// Store new epoch validator Item
-	if err := stakeDB.SetEpochValList(blockHash, index.Start, index.End, val_Arr.Arr); nil != err {
+	if err := stakeDB.SetEpochValList(blockHash, index.Start, index.End, valArr.Arr); nil != err {
 		log.Error("Failed to setVerifierList: store new epoch validators is failed", "blockHash", blockHash.Hex())
 		return err
 	}

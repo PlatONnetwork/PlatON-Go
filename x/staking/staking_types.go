@@ -6,6 +6,9 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -30,6 +33,10 @@ const (
 )
 
 const SWeightItem = 4
+
+func Is_Valid(status uint32) bool {
+	return !Is_Invalid(status)
+}
 
 func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
@@ -730,7 +737,7 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 }
 
 // some consensus round validators or current epoch validators
-type Validator_array struct {
+type ValidatorArray struct {
 	// the round start blockNumber or epoch start blockNumber
 	Start uint64
 	// the round end blockNumber or epoch blockNumber
@@ -740,8 +747,8 @@ type Validator_array struct {
 }
 
 type ValidatorEx struct {
-	NodeAddress common.Address
-	NodeId      discover.NodeID
+	//NodeAddress common.Address
+	NodeId discover.NodeID
 	// bls public key
 	BlsPubKey bls.PublicKey
 	// The account used to initiate the staking
@@ -918,11 +925,11 @@ func (dr *DelegateRelated) String() string {
 
 type DelRelatedQueue = []*DelegateRelated
 
-/*type UnStakeItem struct {
+type UnStakeItem struct {
 	// this is the nodeAddress
-	KeySuffix  	[]byte
-	Amount 		*big.Int
-}*/
+	KeySuffix       []byte
+	StakingBlockNum uint64
+}
 
 type UnDelegateItem struct {
 	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
@@ -938,6 +945,11 @@ type ValArrIndex struct {
 type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
+
+	xcom.PrintObject("Call ConstantAppend, queue", queue)
+	xcom.PrintObject("Call ConstantAppend, index", index)
+	log.Debug("Call ConstantAppend", "size", size)
+
 	queue = append(queue, index)
 	if size < len(queue) {
 		return queue[0], queue[1:]

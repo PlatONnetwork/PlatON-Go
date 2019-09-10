@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -227,6 +228,21 @@ func Test_Router_KMixingRandomNodes(t *testing.T) {
 		if v.id == excludePeer.id {
 			t.Errorf("should not be contain the peer :{%s}", excludePeer.id)
 		}
+	}
+}
+
+func Test_Router_KRandomNodes(t *testing.T) {
+	r, _ := newTestRouter(t)
+	peers, _ := r.peers()
+	if len(peers) < 2 {
+		return
+	}
+	spec_peers := make([]*peer, 2)
+	spec_peers[0] = peers[0]
+	spec_peers[1] = peers[1]
+	t.Log(formatPeers(spec_peers))
+	for i := 0; i < 20; i++ {
+		t.Log(formatPeers(kRandomNodes(int(math.Sqrt(float64(len(spec_peers)))), spec_peers, common.Hash{}, nil)))
 	}
 }
 

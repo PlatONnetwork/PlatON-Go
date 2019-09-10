@@ -39,13 +39,13 @@ const (
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
 	CbftConfig: types.OptionsConfig{
-		WalMode:           false,
+		WalMode:           true,
 		PeerMsgQueueSize:  1024,
 		EvidenceDir:       "evidence",
 		MaxPingLatency:    5000,
 		MaxQueuesLimit:    4096,
 		BlacklistDeadline: 60,
-		Period:            10000,
+		Period:            20000,
 		Amount:            10,
 	},
 	NetworkId:     1,
@@ -71,14 +71,12 @@ var DefaultConfig = Config{
 	StaleThreshold:         7,
 	DefaultCommitRatio:     0.95,
 
-	BodyCacheLimit:           256,
-	BlockCacheLimit:          256,
-	MaxFutureBlocks:          256,
-	BadBlockLimit:            10,
-	TriesInMemory:            128,
-	BlockChainVersion:        3,
-	DefaultTxsCacheSize:      20,
-	DefaultBroadcastInterval: 100 * time.Millisecond,
+	BodyCacheLimit:    256,
+	BlockCacheLimit:   256,
+	MaxFutureBlocks:   256,
+	BadBlockLimit:     10,
+	TriesInMemory:     128,
+	BlockChainVersion: 3,
 
 	TxPool: core.DefaultTxPoolConfig,
 	GPO: gasprice.Config{

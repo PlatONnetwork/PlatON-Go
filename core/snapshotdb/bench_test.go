@@ -153,6 +153,7 @@ func (p *dbBench) putsRecognized() {
 		b.Fatal(err)
 	}
 	for i := range p.recognizedkeys {
+		db.GetLastKVHash(recognizedHash)
 		err := db.Put(recognizedHash, p.recognizedkeys[i], p.recognizedvalues[i])
 		if err != nil {
 			b.Fatal("put failed: ", err)

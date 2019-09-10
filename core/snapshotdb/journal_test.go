@@ -24,20 +24,22 @@ func TestJournal(t *testing.T) {
 	blockHash := generateHash("a")
 	parentHash := generateHash("b")
 	blockNumber := big.NewInt(100)
-	if err := db.writeJournalHeader(blockNumber, blockHash, parentHash, journalHeaderFromRecognized); err != nil {
+
+	err := dbInstance.NewBlock(blockNumber, parentHash, blockHash)
+	if err != nil {
 		t.Error(err)
 	}
 
-	str := []string{"abcdefghijk", "kjhiughdjdi"}
+	str := []string{"abcdefghijk", "kjhiughdjdi", "acadadwdfqwrwq"}
 
-	if err := db.writeJournalBody(blockHash, []byte(str[0])); err != nil {
+	if err := db.unCommit.blocks[blockHash].writeJournalBody([]byte(str[0])); err != nil {
 		t.Error(err)
 	}
 
-	if err := db.writeJournalBody(blockHash, []byte(str[1])); err != nil {
+	if err := db.unCommit.blocks[blockHash].writeJournalBody([]byte(str[1])); err != nil {
 		t.Error(err)
 	}
-	if err := db.closeJournalWriter(blockHash); err != nil {
+	if err := db.unCommit.blocks[blockHash].writeJournalBody([]byte(str[2])); err != nil {
 		t.Error(err)
 	}
 	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: blockHash}

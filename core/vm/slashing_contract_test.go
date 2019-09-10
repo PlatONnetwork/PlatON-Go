@@ -48,30 +48,30 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
            "prepare_a": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0x09c94e00f687891f5de80146d906b55a249408dfd27afcad5a87bdad6fc28957",
+            "block_hash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
-             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
-             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
+             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
+             "NodeID": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0x13eb58303156f63d8961a916694d3f659d58804ef1d783ee5c8c7fc3ca393b8a"
+            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
            },
            "prepare_b": {
             "epoch": 1,
             "view_number": 1,
-            "block_hash": "0xd1fc79053b8e9fd6a7d9061b4e12a282110429bd0e643aa477083f221a8cba8c",
+            "block_hash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
             "block_number": 1,
             "block_index": 1,
             "validate_node": {
              "index": 0,
-             "address": "0x27383a8d350139588daba349dcd6ef1d745da004",
-             "NodeID": "2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270",
-             "blsPubKey": "8d0638bb1e58c33c12ea5735a5635cd51a26305ffda44f99f2190a28fa3ebd175db279caefd5f3b385d1fa04e7094499e78355efdd9fd96a08bc817963b42486"
+             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
+             "NodeID": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
+             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
             },
-            "signature": "0x8de9fbb57edf75934b4caf40c95d569d03a75c762343066db737fdb2b818c313"
+            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
            }
           }`
 	data, _ := rlp.EncodeToBytes(dataStr)
@@ -88,13 +88,13 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	addr := common.HexToAddress("0x27383a8d350139588daba349dcd6ef1d745da004")
-	nodeId, err := discover.HexID("2560887689ce96e8a8361684c6b54061b6e4c667357284e8e301f8f51ff26efe4d7202708fda6fe4d5593188dacb5ce7114087d4c6840b529c48f617c6dff270")
+	addr := common.HexToAddress("0x076c72c53c569df9998448832a61371ac76d0d05")
+	nodeId, err := discover.HexID("b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511")
 	if nil != err {
 		t.Fatal(err)
 	}
 	var blsKey bls.SecretKey
-	skbyte, err := hex.DecodeString("328146a789365c846b1da23f89bc178a32febf217fb496153efe9e34ac4fa621")
+	skbyte, err := hex.DecodeString("155b9a6f5575b9b5a4d8658f616660a549674b36c858e6c606d08ec5c20c4637")
 	if nil != err {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}

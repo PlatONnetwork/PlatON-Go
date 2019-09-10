@@ -30,11 +30,11 @@ func newDB(stor storage) (*snapshotDB, error) {
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	return &snapshotDB{
-		path:          dbpath,
-		storage:       stor,
-		unCommit:      unCommitBlock,
-		committed:     make([]*blockData, 0),
-		journalw:      make(map[common.Hash]*journalWriter),
+		path:      dbpath,
+		storage:   stor,
+		unCommit:  unCommitBlock,
+		committed: make([]*blockData, 0),
+		//		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
 		current:       newCurrent(dbpath),
 		snapshotLockC: snapshotUnLock,
@@ -138,7 +138,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	highestNum := s.current.HighestNum.Uint64()
 	//	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]*blockData, 0)
-	s.journalw = make(map[common.Hash]*journalWriter)
+	//	s.journalw = make(map[common.Hash]*journalWriter)
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	s.unCommit = unCommitBlock
@@ -163,57 +163,28 @@ func (s *snapshotDB) recover(stor storage) error {
 		}
 
 		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum == 0 && highestNum == 0 && fd.Num == 0) {
-			if _, ok := commitMap[block.BlockHash]; !ok {
+			if _, ok := commitMap[block.BlockHash]; ok {
+				s.committed = append(s.committed, block)
 				continue
 			}
-			//			block.readOnly = true
-			s.committed = append(s.committed, block)
 		}
-		if fd.Num < baseNum {
-			if err := s.storage.Remove(fd); err != nil {
-				return err
-			}
+		if err := s.storage.Remove(fd); err != nil {
+			return err
 		}
-		//else if fd.Num > highestNum {
-		//	if UnRecognizedHash == fd.BlockHash {
-		//		//1. UnRecognized
-		//		s.unCommit.blocks[common.ZeroHash] = block
-		//		//2. open writer
-		//		w, err := s.storage.Append(fd)
-		//		if err != nil {
-		//			return fmt.Errorf("[SnapshotDB.recover]unRecognizedHash open storage fail:%v", err)
-		//		}
-		//		s.journalw[fd.BlockHash] = newJournalWriter(w)
-		//	} else {
-		//		//1. Recognized
-		//		s.unCommit.blocks[fd.BlockHash] = block
-		//		//2. open writer
-		//		if !block.readOnly {
-		//			w, err := s.storage.Append(fd)
-		//			if err != nil {
-		//				return fmt.Errorf("[SnapshotDB.recover]recognized open storage fail:%v", err)
-		//			}
-		//			s.journalw[fd.BlockHash] = newJournalWriter(w)
-		//		}
-		//
-		//	}
-		//
-		//}
 	}
 	return nil
 }
 
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
-	var err error
 	for key, value := range s.unCommit.blocks {
 		if s.current.HighestNum.Int64() >= value.Number.Int64() {
-			delete(s.unCommit.blocks, key)
-			err = s.closeJournalWriter(key)
-			if err != nil {
-				return err
+			if !value.readOnly {
+				if err := value.jWriter.Close(); err != nil {
+					return err
+				}
 			}
-			err := s.rmJournalFile(value.Number, key)
-			if err != nil {
+			delete(s.unCommit.blocks, key)
+			if err := s.rmJournalFile(value.Number, key); err != nil {
 				return err
 			}
 		}
@@ -233,17 +204,18 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 	return common.ZeroHash
 }
 
-func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
-	s.journalWriterLock.Lock()
-	defer s.journalWriterLock.Unlock()
-	if j, ok := s.journalw[hash]; ok {
-		if err := j.Close(); err != nil {
-			return errors.New("[snapshotdb]close  journal writer fail:" + err.Error())
-		}
-		delete(s.journalw, hash)
-	}
-	return nil
-}
+//
+//func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
+//	s.journalWriterLock.Lock()
+//	defer s.journalWriterLock.Unlock()
+//	if j, ok := s.journalw[hash]; ok {
+//		if err := j.Close(); err != nil {
+//			return errors.New("[snapshotdb]close  journal writer fail:" + err.Error())
+//		}
+//		delete(s.journalw, hash)
+//	}
+//	return nil
+//}
 
 const (
 	hashLocationUnCommitted = 2
@@ -315,7 +287,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if err != nil {
 		return errors.New("encode fail:" + err.Error())
 	}
-	if err := s.writeJournalBody(hash, body); err != nil {
+	if err := block.writeJournalBody(body); err != nil {
 		return errors.New("write journalBody fail:" + err.Error())
 	}
 	if err := block.data.Put(key, value); err != nil {
