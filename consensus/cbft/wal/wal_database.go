@@ -77,11 +77,6 @@ func newWALDatabase(file string, cache int, handles int) (*WALDatabase, error) {
 	}, nil
 }
 
-// Path returns the path to the database directory.
-func (db *WALDatabase) Path() string {
-	return db.fn
-}
-
 // Put puts the given key / value to the queue
 func (db *WALDatabase) Put(key []byte, value []byte, wo *opt.WriteOptions) error {
 	return db.db.Put(key, value, wo)
