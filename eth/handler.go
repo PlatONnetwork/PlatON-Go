@@ -721,7 +721,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
 		for _, block := range announces {
-			if !pm.blockchain.HasBlock(block.Hash, block.Number) {
+			if !pm.blockchain.Engine().HasBlock(block.Hash, block.Number) {
 				unknown = append(unknown, block)
 			}
 		}
@@ -743,7 +743,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
-		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+		if pm.blockchain.Engine().HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
 			return nil
 		}
 		pm.fetcher.Enqueue(p.id, request.Block)
