@@ -1,4 +1,4 @@
-package xcom
+package math
 
 import (
 	"errors"

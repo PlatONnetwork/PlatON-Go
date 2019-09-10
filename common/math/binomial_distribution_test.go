@@ -1,4 +1,4 @@
-package xcom
+package math
 
 import "testing"
 
@@ -22,10 +22,10 @@ func TestBinomialDistribution(t *testing.T) {
 			t.Error(err)
 		}
 		if tp > 0 && tp < 1 {
-			t.Log( "x", i, "tp", tp)
+			t.Log("x", i, "tp", tp)
 		}
 	}
-	bd = NewBinomialDistribution((1 << 63)-1, p)
+	bd = NewBinomialDistribution((1<<63)-1, p)
 	tp, err := bd.CumulativeProbability(int64(10000000))
 	if nil != err {
 		t.Error(err)
