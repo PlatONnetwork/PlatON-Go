@@ -156,6 +156,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 	}
 	// pre-check
 	{
+
 		if totalAmount.Cmp(big.NewInt(1e18)) < 0 {
 			rp.log.Error("total restricting amount need more than 1 LAT", "from", from, "amount", totalAmount)
 			return errLockedAmountTooLess
