@@ -50,7 +50,7 @@ const (
 	cbftVersion = 1
 
 	maxStatQueuesSize = 200
-	syncCacheTimeout  = 2 * time.Millisecond
+	syncCacheTimeout  = 100 * time.Millisecond
 )
 
 type HandleError interface {
