@@ -742,7 +742,7 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		return data, nil
 	}
 
-	if nil == arr || err == snapshotdb.ErrNotFound {
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == arr {
 		res := xcom.Result{false, "", "VerifierList info is not found"}
 		data, _ := json.Marshal(res)
 		log.Error("Failed to getVerifierList: VerifierList info is not found",
@@ -779,7 +779,7 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 		return data, nil
 	}
 
-	if nil == arr || err == snapshotdb.ErrNotFound {
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == arr {
 		res := xcom.Result{false, "", "ValidatorList info is not found"}
 		data, _ := json.Marshal(res)
 		log.Error("Failed to getValidatorList: ValidatorList info is not found",
@@ -817,7 +817,7 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 		return data, nil
 	}
 
-	if nil == arr || err == snapshotdb.ErrNotFound {
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == arr {
 		res := xcom.Result{false, "", "CandidateList info is not found"}
 		data, _ := json.Marshal(res)
 		log.Error("Failed to getCandidateList: CandidateList info is not found",
@@ -855,7 +855,7 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 		return data, nil
 	}
 
-	if nil == arr || err == snapshotdb.ErrNotFound {
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == arr {
 		res := xcom.Result{false, "", "RelatedList info is not found"}
 		data, _ := json.Marshal(res)
 		log.Error("Failed to getRelatedListByDelAddr: RelatedList info is not found",
@@ -895,7 +895,7 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 		return data, nil
 	}
 
-	if nil == del || err == snapshotdb.ErrNotFound {
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == del {
 		res := xcom.Result{false, "", "Delegate info is not found"}
 		data, _ := json.Marshal(res)
 		log.Error("Failed to getDelegateInfo: Delegate info is not found",
@@ -943,7 +943,7 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 		return data, nil
 	}
 
-	if nil == can || err == snapshotdb.ErrNotFound {
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == can {
 		res := xcom.Result{false, "", "Candidate info is not found"}
 		data, _ := json.Marshal(res)
 		log.Error("Failed to getCandidateInfo: Candidate info is not found",
