@@ -170,7 +170,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, downloader.NewBlockChainWrapper(blockchain, engine), nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, blockchain, nil, manager.removePeer)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
@@ -721,7 +721,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
 		for _, block := range announces {
-			if !pm.blockchain.Engine().HasBlock(block.Hash, block.Number) {
+			if !pm.blockchain.HasBlock(block.Hash, block.Number) {
 				unknown = append(unknown, block)
 			}
 		}
@@ -743,7 +743,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
-		if pm.blockchain.Engine().HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
 			return nil
 		}
 		pm.fetcher.Enqueue(p.id, request.Block)
@@ -761,7 +761,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
-			currentBlock := pm.engine.CurrentBlock()
+			currentBlock := pm.blockchain.CurrentBlock()
 			if trueBn.Cmp(currentBlock.Number()) > 0 {
 				go pm.synchronise(p)
 			}
