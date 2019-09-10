@@ -96,7 +96,13 @@ func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols
 		return
 	}
 	if !chainState.ValidChainState() {
-		panic(fmt.Sprintf("Invalid chain state from wal"))
+		panic(fmt.Sprintf("invalid chain state from wal"))
+	}
+	walCommitNumber := chainState.Commit.QuorumCert.BlockNumber
+	commitNumber := commitState.QuorumCert.BlockNumber
+	if walCommitNumber != commitNumber && walCommitNumber+1 != commitNumber {
+		log.Warn("The chainState of wal and updating are discontinuous,ignore this updating", "walCommit", chainState.Commit.String(), "updateCommit", commitState.String())
+		return
 	}
 
 	if chainState.Commit.EqualState(commitState) && chainState.Lock.EqualState(lockState) && chainState.QC[0].QuorumCert.BlockNumber == qcState.QuorumCert.BlockNumber {
