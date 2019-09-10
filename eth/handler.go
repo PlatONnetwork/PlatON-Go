@@ -56,7 +56,7 @@ const (
 	numBroadcastTxPeers = 5 // Maximum number of peers for broadcast transactions
 
 	defaultTxsCacheSize      = 20
-	defaultBroadcastInterval = 50 * time.Millisecond
+	defaultBroadcastInterval = 100 * time.Millisecond
 )
 
 // errIncompatibleConfig is returned if the requested protocols and configs are
