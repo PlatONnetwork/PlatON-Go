@@ -284,7 +284,7 @@ func (vp *ValidatorPool) EnableVerifyEpoch(epoch uint64) error {
 	if epoch+1 == vp.epoch || epoch == vp.epoch {
 		return nil
 	}
-	return fmt.Errorf("enable verify epoch:%d,:%d, request:%d", vp.epoch-1, vp.epoch, epoch)
+	return fmt.Errorf("enable verify epoch:%d,%d, request:%d", vp.epoch-1, vp.epoch, epoch)
 }
 
 // Update switch validators.

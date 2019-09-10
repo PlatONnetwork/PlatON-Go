@@ -656,8 +656,8 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 // Finalize implements consensus.Engine, no block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
-	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(true)
+	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts), "root", header.Root.String())
 	return types.NewBlock(header, txs, receipts), nil
 }
 

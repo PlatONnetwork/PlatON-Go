@@ -139,7 +139,7 @@ func (b *BlockTree) PruneBlock(hash common.Hash, number uint64, clearFn func(*ty
 
 func (b *BlockTree) NewRoot(block *types.Block) {
 	hash, number := block.Hash(), block.NumberU64()
-	for i := number; i < block.NumberU64(); i++ {
+	for i := b.root.Block.NumberU64(); i < block.NumberU64(); i++ {
 		delete(b.blocks, i)
 	}
 	b.root = b.findBlockExt(hash, number)
