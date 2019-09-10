@@ -136,8 +136,10 @@ func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 	} else {
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
 		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
 	}
