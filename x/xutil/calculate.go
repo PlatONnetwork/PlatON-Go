@@ -203,6 +203,7 @@ func InHashList(hash common.Hash, hashList []common.Hash) bool {
 	return false
 }
 
+// end-voting-block = the end block of a consensus period - electionDistance
 func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 	electionDistance := xcom.ElectionDistance()
 	consensusSize := ConsensusSize()
@@ -210,6 +211,13 @@ func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
 }
 
+// active-block = the begin of a consensus period, so, It's possible that active-block is the begin block of a settlement epoch
 func CalActiveBlock(endVotingBlock uint64) uint64 {
 	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
+}
+
+func IsBeginOfSettlement(blockNumber uint64) bool {
+	size := CalcBlocksEachEpoch()
+	mod := blockNumber % uint64(size)
+	return mod == 1
 }

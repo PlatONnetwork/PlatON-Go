@@ -42,15 +42,15 @@ var (
 )
 
 var (
-	AccountVonNotEnough        = common.NewBizError("The von of account is not enough")
-	BalanceOperationTypeErr    = common.NewBizError("Balance OperationType is wrong")
-	DelegateVonNotEnough       = common.NewBizError("The von of delegate is not enough")
-	WithdrewDelegateVonCalcErr = common.NewBizError("Withdrew delegate von calculate err")
-	ParamsErr                  = common.NewBizError("The fn params err")
-	BlockNumberDisordered      = common.NewBizError("The blockNumber is disordered")
-	VonAmountNotRight          = common.NewBizError("The amount of von is not right")
-	CandidateNotExist          = common.NewBizError("The candidate is not exist")
-	ValidatorNotExist          = common.NewBizError("The validator is not exist")
+	AccountVonNotEnough        = common.NewBizError(125, "The von of account is not enough")
+	BalanceOperationTypeErr    = common.NewBizError(126, "Balance OperationType is wrong")
+	DelegateVonNotEnough       = common.NewBizError(127, "The von of delegate is not enough")
+	WithdrewDelegateVonCalcErr = common.NewBizError(128, "Withdrew delegate von calculate err")
+	ParamsErr                  = common.NewBizError(129, "The fn params err")
+	BlockNumberDisordered      = common.NewBizError(130, "The blockNumber is disordered")
+	VonAmountNotRight          = common.NewBizError(131, "The amount of von is not right")
+	CandidateNotExist          = common.NewBizError(132, "The candidate is not exist")
+	ValidatorNotExist          = common.NewBizError(133, "The validator is not exist")
 )
 
 const (
@@ -234,7 +234,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		}
 		can.RestrictingPlanHes = amount
 	} else {
-		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+		return BalanceOperationTypeErr.Wrapf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
 			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
@@ -275,7 +275,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if blockNumber.Uint64() != can.StakingBlockNum {
-		return common.BizErrorf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking, current blockNumber: %d, can.stakingNumber: %d", ParamsErr, blockNumber.Uint64(), can.StakingBlockNum)
+		return common.InvalidParameter.Wrapf("%v: current blockNumber is not equal stakingBlockNumber, can not rollback staking, current blockNumber: %d, can.stakingNumber: %d", ParamsErr, blockNumber.Uint64(), can.StakingBlockNum)
 	}
 
 	// RollBack Staking
@@ -294,7 +294,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 	} else {
-		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+		return common.InvalidParameter.Wrapf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
 			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
@@ -384,7 +384,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 
 		can.RestrictingPlanHes = new(big.Int).Add(can.RestrictingPlanHes, amount)
 	} else {
-		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+		return common.InvalidParameter.Wrapf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
 			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
@@ -805,7 +805,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
 	} else {
-		return common.BizErrorf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
+		return BalanceOperationTypeErr.Wrapf("%s, got type is: %d, need type: %d or %d", BalanceOperationTypeErr.Error(),
 			typ, FreeOrigin, RestrictingPlanOrigin)
 	}
 
@@ -879,7 +879,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "delegate amount", realtotal,
 			"withdrew amount", amount)
-		return common.BizErrorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
+		return DelegateVonNotEnough.Wrapf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
 			DelegateVonNotEnough.Error(), realtotal.String(), amount.String())
 	}
 	// check the contract balance and withdrew amount
@@ -1376,7 +1376,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	if oldVerifierArr.End != blockNumber {
 		log.Error("Failed to ElectNextVerifierList: this blockNumber invalid", "Old Epoch End blockNumber",
 			oldVerifierArr.End, "Current blockNumber", blockNumber)
-		return common.BizErrorf("The BlockNumber invalid, Old Epoch End blockNumber: %d, Current blockNumber: %d",
+		return common.InternalError.Wrapf("The BlockNumber invalid, Old Epoch End blockNumber: %d, Current blockNumber: %d",
 			oldVerifierArr.End, blockNumber)
 	}
 
@@ -1451,7 +1451,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	}
 
 	if len(queue) == 0 {
-		panic(common.BizErrorf("Failed to ElectNextVerifierList: Select zero size validators~"))
+		panic(common.InternalError.Wrapf("Failed to ElectNextVerifierList: Select zero size validators~"))
 	}
 
 	newVerifierArr.Arr = queue
@@ -1478,7 +1478,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	}
 
 	if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
-		return nil, common.BizErrorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
+		return nil, BlockNumberDisordered.Wrapf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
 
@@ -1552,7 +1552,7 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 	}
 
 	if blockNumber < verifierList.Start || blockNumber > verifierList.End {
-		return nil, common.BizErrorf("ListVerifierNodeID failed: %s, start: %d, end: %d, currentNumer: %d",
+		return nil, BlockNumberDisordered.Wrapf("ListVerifierNodeID failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
 
@@ -1633,7 +1633,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	default:
 		log.Error("Failed to call GetValidatorList", "err", ParamsErr, "flag", flag)
 
-		return nil, common.NewBizError(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
+		return nil, common.InvalidParameter.Wrap(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
 	}
 
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
@@ -1708,7 +1708,7 @@ func (sk *StakingPlugin) GetCandidateONRound(blockHash common.Hash, blockNumber 
 	default:
 		log.Error("Failed to call GetCandidateONRound", "err", ParamsErr, "flag", flag)
 
-		return nil, common.NewBizError(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
+		return nil, common.InvalidParameter.Wrap(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
 	}
 
 	queue := make(staking.CandidateQueue, len(validatorArr.Arr))
@@ -1911,7 +1911,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	if blockNumber != (curr.End - xcom.ElectionDistance()) {
 		log.Error("Failed to Election: Current blockNumber invalid", "Target blockNumber",
 			curr.End-xcom.ElectionDistance(), "blockNumber", blockNumber, "blockHash", blockHash.Hex())
-		return common.BizErrorf("The BlockNumber invalid, Target blockNumber: %d, Current blockNumber: %d",
+		return common.InternalError.Wrapf("The BlockNumber invalid, Target blockNumber: %d, Current blockNumber: %d",
 			curr.End-xcom.ElectionDistance(), blockNumber)
 	}
 
@@ -2195,7 +2195,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	if slashTypeIsWrong() {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-		return common.BizErrorf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
+		return common.InternalError.Wrapf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
 	}
 
 	canAddr, _ := xutil.NodeId2Addr(nodeId)
@@ -2227,7 +2227,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			"candidate total amount", total, "slashing amount", amount, "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 
-		return common.BizErrorf("Failed to SlashCandidates: the candidate total effective staking amount is not enough"+
+		return common.InternalError.Wrapf("Failed to SlashCandidates: the candidate total effective staking amount is not enough"+
 			", candidate total amount:%s, slashing amount: %s", total, amount)
 
 		//return nil
@@ -2269,7 +2269,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	if slashBalance.Cmp(common.Big0) != 0 {
 		log.Error("Failed to SlashCandidates: the ramain is not zero", "slashed remain", slashBalance,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-		return common.BizErrorf("Failed to SlashCandidates: the slashed ramain is not zero, slashAmount:%d, slash remain:%d", amount, slashBalance)
+		return common.InternalError.Wrapf("Failed to SlashCandidates: the slashed ramain is not zero, slashAmount:%d, slash remain:%d", amount, slashBalance)
 	}
 
 	sharesHaveBeenClean := func() bool {
@@ -2620,7 +2620,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 	if nil == err && nil != valArr {
 		return buildCbftValidators(valArr.Start, valArr.Arr), nil
 	}
-	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
+	return nil, common.InternalError.Wrapf("No Found Validators by blockNumber: %d", blockNumber)
 }
 
 // NOTE: Verify that it is the validator of the current Epoch

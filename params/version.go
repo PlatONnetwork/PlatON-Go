@@ -63,3 +63,8 @@ func VersionWithCommit(gitCommit string) string {
 	}
 	return vsn
 }
+
+type ProgramVersion struct {
+	Version uint32
+	Sign    string
+}

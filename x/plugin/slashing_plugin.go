@@ -3,7 +3,6 @@ package plugin
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"errors"
 	"math/big"
 	"sync"
 
@@ -27,8 +26,8 @@ var (
 	// Identifies the prefix of the previous round
 	preAbnormalPrefix = []byte("SlashPb")
 
-	errDuplicateSignVerify = errors.New("duplicate signature verification failed")
-	errSlashExist          = errors.New("punishment has been implemented")
+	errDuplicateSignVerify = common.NewBizError(401, "duplicate signature verification failed")
+	errSlashExist          = common.NewBizError(402, "punishment has been implemented")
 
 	once = sync.Once{}
 )
@@ -88,7 +87,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 		} else {
 			if nil == result {
 				log.Error("Failed to slashingPlugin GetPreNodeAmount is nil", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
-				return common.NewBizError("packAmount data not found")
+				return common.InternalError.Wrap("packAmount data not found")
 			}
 			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), PreviousRound, QueryStartIrr)
 			if nil != err {
@@ -232,7 +231,7 @@ func (sp *SlashingPlugin) GetPreNodeAmount(parentHash common.Hash) (map[discover
 
 func (sp *SlashingPlugin) DecodeEvidence(dupType consensus.EvidenceType, data string) (consensus.Evidence, error) {
 	if sp.decodeEvidence == nil {
-		return nil, common.NewBizError("decodeEvidence function is nil")
+		return nil, common.InternalError.Wrap("decodeEvidence function is nil")
 	}
 	return sp.decodeEvidence(dupType, data)
 }
@@ -240,19 +239,19 @@ func (sp *SlashingPlugin) DecodeEvidence(dupType consensus.EvidenceType, data st
 func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
 	if err := evidence.Validate(); nil != err {
 		log.Warn("slashing evidence validate failed", "blockNumber", blockNumber, "err", err)
-		return common.NewBizError(err.Error())
+		return common.InternalError.Wrap(err.Error())
 	}
 	if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), evidence.Type(), stateDB); len(value) > 0 {
 		log.Error("slashing failed", "evidenceBlockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type(), "err", errSlashExist.Error())
-		return common.NewBizError(errSlashExist.Error())
+		return errSlashExist
 	}
 	if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
 		log.Error("slashing failed", "blockNumber", evidence.BlockNumber(), "blockHash", blockHash.TerminalString(), "addr", hex.EncodeToString(evidence.Address().Bytes()), "err", err)
-		return common.NewBizError(err.Error())
+		return common.InternalError.Wrap(err.Error())
 	} else {
 		if nil == candidate {
 			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
-			return common.NewBizError(errDuplicateSignVerify.Error())
+			return errDuplicateSignVerify
 		}
 		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
