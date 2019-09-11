@@ -3,12 +3,13 @@ package staking
 import "github.com/PlatONnetwork/PlatON-Go/common"
 
 var (
-	ErrWrongBlsPubKey            = common.NewBizError(302000, "The bls public key is wrong")
-	ErrDescriptionLen            = common.NewBizError(302001, "The Description length is wrong")
-	ErrWrongProgramVersionSign   = common.NewBizError(302002, "The program version sign is wrong")
-	ErrProgramVersionTooLow      = common.NewBizError(302003, "The program version of the relates node's is too low")
-	ErrDeclVsFialedCreateCan     = common.NewBizError(302004, "DeclareVersion is failed on create staking")
-	ErrNoSameStakingAddr         = common.NewBizError(302005, "The address must be the same as initiated staking")
+	ErrWrongBlsPubKeyLen         = common.NewBizError(302000, "The bls public key len is wrong")
+	ErrWrongBlsPubKeyProof       = common.NewBizError(302001, "The bls public key proof is wrong")
+	ErrDescriptionLen            = common.NewBizError(302002, "The Description length is wrong")
+	ErrWrongProgramVersionSign   = common.NewBizError(302003, "The program version sign is wrong")
+	ErrProgramVersionTooLow      = common.NewBizError(302004, "The program version of the relates node's is too low")
+	ErrDeclVsFialedCreateCan     = common.NewBizError(302005, "DeclareVersion is failed on create staking")
+	ErrNoSameStakingAddr         = common.NewBizError(302006, "The address must be the same as initiated staking")
 	ErrStakeVonTooLow            = common.NewBizError(302100, "Staking deposit too low")
 	ErrCanAlreadyExist           = common.NewBizError(302101, "This candidate is already exist")
 	ErrCanNoExist                = common.NewBizError(302102, "This candidate is not exist")
