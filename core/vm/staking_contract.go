@@ -37,6 +37,8 @@ const (
 	EditCanErrStr            = "Edit candidate failed"
 	GetVerifierListErrStr    = "Getting verifierList is failed"
 	GetValidatorListErrStr   = "Getting validatorList is failed"
+	GetHistoryVerifierListErrStr = "Getting verifierList history is failed"
+	GetHistoryValidatorListErrStr = "Getting validatorList history is failed"
 	GetCandidateListErrStr   = "Getting candidateList is failed"
 	GetDelegateRelatedErrStr = "Getting related of delegate is failed"
 	IncreaseStakingErrStr    = "IncreaseStaking failed"
@@ -97,6 +99,8 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		1103: stkc.getRelatedListByDelAddr,
 		1104: stkc.getDelegateInfo,
 		1105: stkc.getCandidateInfo,
+		1106: stkc.getHistoryVerifierList,
+		1107: stkc.getHistoryValidatorList,
 	}
 }
 
@@ -765,6 +769,25 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	return data, nil
 }
 
+func (stkc *StakingContract) getHistoryVerifierList(blockNumber *big.Int) ([]byte, error) {
+
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetHistoryVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
+	if nil != err {
+		res := xcom.Result{false, "", GetHistoryVerifierListErrStr + ": " + err.Error()}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+	arrByte, _ := json.Marshal(arr)
+	res := xcom.Result{true, string(arrByte), "ok"}
+	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getHistoryVerifierList", "valArr", string(arrByte))
+	return data, nil
+}
+
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	blockNumber := stkc.Evm.BlockNumber
@@ -800,6 +823,31 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	data, _ := json.Marshal(res)
 
 	log.Info("getValidatorList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "valArr", string(arrByte))
+	return data, nil
+}
+
+func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]byte, error) {
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetHistoryValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	if nil != err {
+		res := xcom.Result{false, "", GetHistoryValidatorListErrStr + ": " + err.Error()}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
+	if nil == arr {
+		res := xcom.Result{false, "", "ValidatorList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
+	arrByte, _ := json.Marshal(arr)
+	res := xcom.Result{true, string(arrByte), "ok"}
+	data, _ := json.Marshal(res)
+
+	// todo test
+	log.Debug("getHistoryValidatorList", "valArr", string(arrByte))
 	return data, nil
 }
 

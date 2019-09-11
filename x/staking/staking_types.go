@@ -3,11 +3,11 @@ package staking
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	. "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -946,8 +946,8 @@ type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
 
-	xcom.PrintObject("Call ConstantAppend, queue", queue)
-	xcom.PrintObject("Call ConstantAppend, index", index)
+	PrintObject("Call ConstantAppend, queue", queue)
+	PrintObject("Call ConstantAppend, index", index)
 	log.Debug("Call ConstantAppend", "size", size)
 
 	queue = append(queue, index)
