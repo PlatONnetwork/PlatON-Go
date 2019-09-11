@@ -190,7 +190,7 @@ func buildGetProgramVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", 0, ""}))
+var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{0, "", ""}))
 
 func buildBlock2() {
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
@@ -1096,15 +1096,15 @@ func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErr
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	if expectedErrors != nil {
-		assert.Equal(t, false, r.Status)
+		assert.NotEqual(t, common.SuccessCode, r.Code)
 		var expected = false
 		for _, expectedError := range expectedErrors {
-			expected = expected || strings.Contains(r.ErrMsg, expectedError.Error())
+			expected = expected || strings.Contains(r.Message, expectedError.Error())
 		}
 		assert.True(t, true, expected)
-		t.Log("the expected result Msg:", r.ErrMsg)
+		t.Log("the expected result Msg:", r.Message)
 	} else {
-		assert.Equal(t, true, r.Status)
+		assert.Equal(t, common.SuccessCode, r.Code)
 		t.Log("the expected result:", r)
 	}
 }

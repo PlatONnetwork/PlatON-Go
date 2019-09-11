@@ -93,7 +93,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, 0, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 	return contract
@@ -130,7 +130,7 @@ func create_delegate(contract *StakingContract, index int, t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, 0, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the delegate result Msg:", r.Message)
 
 }
@@ -160,7 +160,7 @@ func getCandidate(contract *StakingContract, index int, t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, 0, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the Candidate info:", r.Data)
 
 }
@@ -267,7 +267,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the editStaking result Msg:", r.Message)
 
 	if err := sndb.Commit(blockHash2); nil != err {
@@ -354,7 +354,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the increaseStaking result Msg:", r.Message)
 
 	if err := sndb.Commit(blockHash2); nil != err {
@@ -438,7 +438,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the withdrew candidate result Msg:", r.Message)
 
 	if err := sndb.Commit(blockHash2); nil != err {
@@ -592,7 +592,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the withdelegate result Msg:", r.Message)
 
 	if err := sndb.Commit(blockHash2); nil != err {
@@ -655,7 +655,7 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the getVerifierList result Data:", r.Data)
 
 }
@@ -711,7 +711,7 @@ func TestStakingContract_getValidatorList(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the getValidatorList result Data:", r.Data)
 
 }
@@ -783,7 +783,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the getCandidateList result Data:", r.Data)
 
 }
@@ -861,7 +861,7 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the getRelatedListByDelAddr result Data:", r.Data)
 }
 
@@ -948,7 +948,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Code)
+	assert.Equal(t, common.SuccessCode, r.Code)
 	t.Log("the getDelegateInfo result Data:", r.Data)
 }
 

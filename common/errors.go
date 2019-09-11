@@ -3,7 +3,8 @@ package common
 import "fmt"
 
 var (
-	Success          = &BizError{Code: 0, Msg: "Success"}
+	SuccessCode      = uint16(0)
+	Success          = &BizError{Code: SuccessCode, Msg: "Success"}
 	InternalError    = &BizError{Code: 1, Msg: "System error"}
 	NotFound         = &BizError{Code: 2, Msg: "Object not found"}
 	InvalidParameter = &BizError{Code: 3, Msg: "Invalid parameter"}
