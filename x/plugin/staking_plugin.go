@@ -2234,7 +2234,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
 			"candidate total amount", total, "slashing amount", amount)
 
-		return staking.ErrSlashVonTooLarge
+		return staking.ErrSlashVonOverflow
 	}
 
 	// clean the candidate power, first

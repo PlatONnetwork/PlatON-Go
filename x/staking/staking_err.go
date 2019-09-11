@@ -28,7 +28,7 @@ var (
 	ErrValidatorNoExist          = common.NewBizError(302115, "The validator is not exist")
 	ErrWrongFuncParams           = common.NewBizError(302116, "The fn params is wrong")
 	ErrWrongSlashType            = common.NewBizError(302117, "The slash type is wrong")
-	ErrSlashVonTooLarge          = common.NewBizError(302118, "Slash amount is too large")
+	ErrSlashVonOverflow          = common.NewBizError(302118, "Slash amount is overflow")
 	ErrWrongSlashVonCalc         = common.NewBizError(302119, "Slash candidate von calculate is wrong")
 	ErrGetVerifierList           = common.NewBizError(302200, "Getting verifierList is failed")
 	ErrGetValidatorList          = common.NewBizError(302201, "Getting validatorList is failed")
