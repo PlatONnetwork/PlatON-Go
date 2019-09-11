@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"path"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
@@ -144,26 +142,16 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.unCommit = unCommitBlock
 	s.snapshotLockC = snapshotUnLock
 
-	commitMap := make(map[common.Hash]*big.Int)
-
-	sub := new(big.Int).Sub(s.current.HighestNum, s.current.BaseNum)
-
-	var header *types.Header
-	header = blockchain.CurrentHeader()
-	for i := int64(0); i <= sub.Int64(); i++ {
-		commitMap[header.Hash()] = header.Number
-		header = blockchain.GetHeaderByHash(header.ParentHash)
-	}
-
 	//read Journal
 	for _, fd := range fds {
 		if baseNum < fd.Num && fd.Num <= highestNum {
-			if _, ok := commitMap[fd.BlockHash]; ok {
+			if header := blockchain.GetHeaderByHash(fd.BlockHash); header != nil {
 				block, err := s.getBlockFromJournal(fd)
 				if err != nil {
 					return err
 				}
 				s.committed = append(s.committed, block)
+				logger.Debug("recover block ", "num", block.Number, "hash", block.BlockHash.String())
 				continue
 			}
 		}
