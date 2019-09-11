@@ -1597,10 +1597,14 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 
-	i := xutil.CalculateEpoch(blockNumber)
+	i := uint64(0)
+	if blockNumber != i {
+		i = xutil.CalculateEpoch(blockNumber)
+	}
 
-	queryNumber := uint64(i) * xutil.CalcBlocksEachEpoch()
+	queryNumber := i * xutil.CalcBlocksEachEpoch()
 	numStr := strconv.FormatUint(queryNumber, 10)
+	log.Debug("wow,GetHistoryVerifierList query number:","num string", numStr)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(VerifierName + numStr))
 	if nil != err {
 		return nil, err
@@ -1610,6 +1614,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	if nil != err {
 		return nil, err
 	}
+	xcom.PrintObject("wow,GetHistoryVerifierList", verifierList)
 
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
@@ -1791,9 +1796,13 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
 	staking.ValidatorExQueue, error) {
 
-	i := xutil.CalculateRound(blockNumber)
-	queryNumber := uint64(i) * xutil.ConsensusSize()
+	i := uint64(0)
+	if blockNumber != i {
+		i = xutil.CalculateRound(blockNumber)
+	}
+	queryNumber := i * xutil.ConsensusSize()
 	numStr := strconv.FormatUint(queryNumber, 10)
+	log.Debug("wow,GetHistoryValidatorList query number:","num string", numStr)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
 	if nil != err {
 		return nil, err
@@ -1803,6 +1812,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	if nil != err {
 		return nil, err
 	}
+	xcom.PrintObject("wow,GetHistoryValidatorList", validatorArr)
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
 
 	for i, v := range validatorArr.Arr {
