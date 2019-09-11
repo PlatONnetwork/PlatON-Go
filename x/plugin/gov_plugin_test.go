@@ -2,16 +2,11 @@ package plugin
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -1285,22 +1280,4 @@ var (
 func initChandlerHandler() {
 	chandler = node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKey)
-}
-
-func TestGovPlugin_Test_Encode(t *testing.T) {
-	initChandlerHandler()
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	sig, err := chandler.Sign(uint32(1792))
-
-	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: hexutil.Encode(sig)}
-
-	jsonByte, err := json.Marshal(value)
-	if nil != err {
-		log.Error("json.Marshal err", "err", err)
-	}
-
-	log.Error("encode result", "sig", hex.EncodeToString(jsonByte))
-	res := xcom.Result{true, string(jsonByte), ""}
-	resultBytes, _ := json.Marshal(res)
-	log.Error("encode result", "bytes", hex.EncodeToString(resultBytes))
 }

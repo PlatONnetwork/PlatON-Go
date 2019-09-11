@@ -440,7 +440,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	buildBlock2()
 
 	//the default rounds is 6 for developer test net
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 5), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 55), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_Float(t *testing.T) {
@@ -1085,15 +1085,6 @@ func TestGovContract_GetActiveVersion(t *testing.T) {
 	buildBlock2()
 
 	runGovContract(gc, buildGetActiveVersionInput(), t)
-}
-
-func TestGovContract_GetProgramVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
-	buildBlock2()
-
-	runGovContract(gc, buildGetProgramVersionInput(), t)
 }
 
 func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErrors ...error) {

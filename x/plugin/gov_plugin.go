@@ -293,12 +293,12 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 		if proposal, err := gov.GetExistProposal(cp.TobeCanceled, state); err != nil {
 			return false, err
 		} else if proposal.GetProposalType() != gov.Version {
-			return false, common.NewBizError("Tobe canceled proposal is not a version proposal.")
+			return false, gov.TobeCanceledProposalTypeError
 		}
 		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash); err != nil {
 			return false, err
 		} else if !xutil.InHashList(cp.TobeCanceled, votingProposalIDList) {
-			return false, common.NewBizError("Tobe canceled proposal is not at voting stage.")
+			return false, gov.TobeCanceledProposalNotAtVoting
 		}
 
 		if tallyResult, err := gov.GetTallyResult(cp.TobeCanceled, state); err != nil {

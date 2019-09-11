@@ -73,7 +73,7 @@ type StateDB interface {
 type Result struct {
 	Status  bool
 	Data    string
-	ErrCode int
+	ErrCode uint16
 	ErrMsg  string
 }
 

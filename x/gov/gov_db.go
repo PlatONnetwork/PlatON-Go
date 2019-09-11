@@ -17,7 +17,7 @@ var (
 func SetProposal(proposal Proposal, state xcom.StateDB) error {
 	bytes, e := json.Marshal(proposal)
 	if e != nil {
-		return common.NewSysError(e.Error())
+		return e
 	}
 
 	value := append(bytes, byte(proposal.GetProposalType()))
@@ -37,25 +37,25 @@ func GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
 		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			log.Error("cannot parse data to text proposal")
-			return nil, common.NewSysError(e.Error())
+			return nil, e
 		}
 		return &proposal, nil
 	} else if pType == byte(Version) {
 		var proposal VersionProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			log.Error("cannot parse data to version proposal")
-			return nil, common.NewSysError(e.Error())
+			return nil, e
 		}
 		return &proposal, nil
 	} else if pType == byte(Cancel) {
 		var proposal CancelProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			log.Error("cannot parse data to cancel proposal")
-			return nil, common.NewSysError(e.Error())
+			return nil, e
 		}
 		return &proposal, nil
 	} else {
-		return nil, common.NewSysError("Incorrect proposal type.")
+		return nil, common.InternalError.Wrap("Incorrect proposal type.")
 	}
 }
 
@@ -63,7 +63,7 @@ func GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
 func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
 	proposalIds, err := getAllProposalIDList(blockHash)
 	if err != nil {
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 	var proposls []Proposal
 	for _, proposalId := range proposalIds {
@@ -81,7 +81,7 @@ func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, err
 func SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) error {
 	voteValueList, err := ListVoteValue(proposalID, state)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 	voteValueList = append(voteValueList, VoteValue{voter, option})
 
@@ -99,7 +99,7 @@ func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, err
 	}
 	var voteList []VoteValue
 	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
-		return nil, common.NewSysError(err.Error()) //errors.New("Unmarshal VoteValue error")
+		return nil, err
 	}
 	return voteList, nil
 }
@@ -131,7 +131,7 @@ func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.N
 	var voterList []discover.NodeID
 	valueList, err := ListVoteValue(proposalID, state)
 	if err != nil {
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 	for _, value := range valueList {
 		voterList = append(voterList, value.VoteNodeID)
@@ -143,7 +143,7 @@ func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.N
 func SetTallyResult(tallyResult TallyResult, state xcom.StateDB) error {
 	value, err := json.Marshal(tallyResult)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 	state.SetState(vm.GovContractAddr, KeyTallyResult(tallyResult.ProposalID), value)
 	return nil
@@ -158,7 +158,7 @@ func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, e
 
 	var tallyResult TallyResult
 	if err := json.Unmarshal(value, &tallyResult); err != nil {
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 	return &tallyResult, nil
 
@@ -196,7 +196,7 @@ func ListVotingProposal(blockHash common.Hash) ([]common.Hash, error) {
 	value, err := getVotingIDList(blockHash)
 	if err != nil {
 		log.Error("List voting proposal ID error")
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 	return value, nil
 }
@@ -204,7 +204,7 @@ func ListVotingProposal(blockHash common.Hash) ([]common.Hash, error) {
 func ListEndProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	value, err := getEndIDList(blockHash)
 	if err != nil {
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 
 	return value, nil
@@ -214,7 +214,7 @@ func GetPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	value, err := getPreActiveProposalID(blockHash)
 	if err != nil {
 		//log.Error("Get pre-active proposal ID error")
-		return common.ZeroHash, common.NewSysError(err.Error())
+		return common.ZeroHash, err
 	}
 	return value, nil
 }
@@ -222,7 +222,7 @@ func GetPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 func AddVotingProposalID(blockHash common.Hash, proposalID common.Hash) error {
 	if err := addProposalByKey(blockHash, KeyVotingProposals(), proposalID); err != nil {
 		//log.Error("add voting proposal to snapshot db error:%s", err)
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	return nil
@@ -231,7 +231,7 @@ func AddVotingProposalID(blockHash common.Hash, proposalID common.Hash) error {
 func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash) error {
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 	voting = remove(voting, proposalID)
 
@@ -244,12 +244,12 @@ func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Ha
 
 	err = put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	err = put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	return nil
@@ -276,17 +276,17 @@ func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) er
 
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 	voting = remove(voting, proposalID)
 	err = put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	return nil
@@ -296,12 +296,12 @@ func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash)
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
 	err := put(blockHash, KeyPreActiveProposal(), common.Hash{})
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
 	if err != nil {
-		return common.NewSysError(err.Error())
+		return err
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash)
 func AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) error {
 	if err := addActiveNode(blockHash, nodeID, proposalID); err != nil {
 		log.Error("add active node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return common.NewSysError(err.Error())
+		return err
 	}
 	return nil
 }
@@ -321,7 +321,7 @@ func GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discove
 	nodes, err := getActiveNodeList(blockHash, proposalID)
 	if err != nil {
 		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 	return nodes, nil
 }
@@ -331,7 +331,7 @@ func ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 	err := deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
 		log.Error("clear active nodes in snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return common.NewSysError(err.Error())
+		return err
 	}
 	return nil
 }
@@ -340,7 +340,7 @@ func ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
 	if err := addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
 		log.Error("accumulates verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return common.NewSysError(err.Error())
+		return err
 	}
 	return nil
 }
@@ -349,7 +349,7 @@ func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList [
 func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
 	if l, err := getAccuVerifiers(blockHash, proposalID); err != nil {
 		log.Error("list accumulated verifiers failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	} else {
 		return l, nil
 	}
@@ -377,7 +377,7 @@ func ListPIPID(state xcom.StateDB) ([]string, error) {
 	if len(pipIDListBytes) > 0 {
 		var pipIDList []string
 		if err := json.Unmarshal(pipIDListBytes, &pipIDList); err != nil {
-			return nil, common.NewSysError(err.Error())
+			return nil, err
 		}
 		return pipIDList, nil
 	} else {
@@ -425,7 +425,7 @@ func ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
 	}
 	var avList []ActiveVersionValue
 	if err := json.Unmarshal(avListBytes, &avList); err != nil {
-		return nil, common.NewSysError(err.Error())
+		return nil, err
 	}
 	return avList, nil
 }

@@ -71,7 +71,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 			return bizError
 		} else {
 			log.Error("verify proposal parameters failed", "err", err)
-			return common.NewBizError(err.Error())
+			return common.InvalidParameter.Wrap(err.Error())
 		}
 	}
 

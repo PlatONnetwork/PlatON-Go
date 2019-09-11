@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -70,10 +70,10 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -157,10 +157,10 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -240,10 +240,10 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -325,10 +325,10 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -383,10 +383,10 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	amount2, _ := rlp.EncodeToBytes(StakeThreshold2)
 	programVersion2, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign2 := common.VersionSign{}
-	versionSign2.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign2.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersionBytes))
 	sign2, _ := rlp.EncodeToBytes(versionSign2)
 
 	var blsKey2 bls.SecretKey
@@ -474,10 +474,10 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersionBytes))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -559,10 +559,10 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -648,10 +648,10 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -737,10 +737,10 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(initBalance)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -828,10 +828,10 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -913,10 +913,10 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
@@ -1001,10 +1001,10 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
 	programVersion, _ := rlp.EncodeToBytes(version)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(version))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(version))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
