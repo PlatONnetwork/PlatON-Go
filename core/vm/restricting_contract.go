@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -72,13 +71,15 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
 	switch err.(type) {
 	case nil:
-		res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
-		event, _ := json.Marshal(res)
+		//res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
+		//event, _ := json.Marshal(res)
+		event := xcom.NewDefaultSuccessResult
 		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	case *common.BizError:
-		res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
-		event, _ := json.Marshal(res)
+		//res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
+		//event, _ := json.Marshal(res)
+		event := xcom.NewFailResult(err)
 		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	default:
@@ -98,17 +99,19 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	log.Info("Call getRestrictingInfo of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
 
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
-	var res xcom.Result
+	//var res xcom.Result
 	if err != nil {
-		res.Status = false
-		res.Data = ""
-		res.ErrMsg = "get restricting info:" + err.Error()
+		//res.Status = false
+		//res.Data = ""
+		//res.ErrMsg = "get restricting info:" + err.Error()
+		return xcom.NewFailResult(err), nil
 	} else {
-		res.Status = true
-		res.Data = string(result)
-		res.ErrMsg = "ok"
+		//res.Status = true
+		//res.Data = string(result)
+		//res.ErrMsg = "ok"
+		return xcom.NewSuccessResult(string(result)), nil
 	}
-	return json.Marshal(res)
+	//return json.Marshal(res)
 }
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {

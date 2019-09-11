@@ -71,13 +71,12 @@ type StateDB interface {
 
 // inner contract event data
 type Result struct {
-	Status  bool
+	Code    uint16
+	Message string
 	Data    string
-	ErrCode uint16
-	ErrMsg  string
 }
 
-func SuccessResult(data string, errMsg string) []byte {
+func SuccessResult(data string, message string) []byte {
 	return BuildResult(true, data, common.Success)
 }
 
@@ -86,7 +85,7 @@ func FailResult(data string, errMsg string) []byte {
 }
 
 func BuildResult(status bool, data string, err *common.BizError) []byte {
-	res := Result{status, data, err.Code, err.Msg}
+	res := Result{err.Code, err.Msg, data}
 	bs, _ := json.Marshal(res)
 	return bs
 }
@@ -95,64 +94,34 @@ func NewResult(data string, err *common.BizError) []byte {
 	if err == nil {
 		err = common.Success
 	}
-	res := &Result{err.Code == 0, data, err.Code, err.Msg}
+	res := &Result{err.Code, err.Msg, data}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 var (
-	NewDefaultSuccessResult, _ = json.Marshal(&Result{true, "", common.Success.Code, common.Success.Msg})
+	NewDefaultSuccessResult, _ = json.Marshal(&Result{common.Success.Code, common.Success.Msg, ""})
 )
 
 func NewSuccessResult(data string) []byte {
-	res := &Result{true, data, common.Success.Code, common.Success.Msg}
+	res := &Result{common.Success.Code, common.Success.Msg, data}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 func NewFailResult(err error) []byte {
 	code, message := common.DecodeError(err)
-	res := &Result{false, "", code, message}
+	res := &Result{code, message, ""}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 func NewFailResultString(errorMessage string) []byte {
 	err := common.InternalError.Wrap(errorMessage)
-	res := &Result{false, "", err.Code, err.Msg}
+	res := &Result{err.Code, err.Msg, ""}
 	bs, _ := json.Marshal(res)
 	return bs
 }
-
-/*// EncodeRLP implements rlp.Encoder
-func (r *Result) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, Result{
-		Status:    	r.Status,
-		Data:       r.Data,
-		ErrMsg: 	r.ErrMsg,
-	})
-}
-
-
-// DecodeRLP implements rlp.Decoder
-func (r *Result) DecodeRLP(s *rlp.Stream) error {
-	var rs Result
-	if err := s.Decode(&rs); err != nil {
-		return err
-	}
-
-	ty := reflect.ValueOf(r.Data).Elem()
-
-	if dByte, err := rlp.EncodeToBytes(r.Data); nil != err {
-		return err
-	}else {
-		if err := rlp.DecodeBytes(dByte, &ty); nil != err {
-			return err
-		}
-	}
-	r.Status, r.Data, r.ErrMsg = rs.Status, ty, rs.ErrMsg
-	return nil
-}*/
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {

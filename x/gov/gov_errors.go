@@ -26,7 +26,7 @@ var (
 	VotingCancelProposalExist       = common.NewBizError(213, "another cancel proposal at voting stage")
 	TobeCanceledProposalNotFound    = common.NewBizError(214, "to be canceled proposal not found")
 	TobeCanceledProposalTypeError   = common.NewBizError(215, "to be canceled proposal not version type")
-	TobeCanceledProposalNotAtVoting = common.NewBizError(206, "to be canceled proposal not at voting stage")
+	TobeCanceledProposalNotAtVoting = common.NewBizError(216, "to be canceled proposal not at voting stage")
 
 	ProposerEmpty = common.NewBizError(217, "proposer is empty")
 
