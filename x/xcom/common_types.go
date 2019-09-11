@@ -71,54 +71,53 @@ type StateDB interface {
 
 // inner contract event data
 type Result struct {
-	Code    uint16
-	Message string
-	Data    string
+	Code   uint32
+	Data   string
+	ErrMsg string
 }
 
-func SuccessResult(data string, message string) []byte {
-	return BuildResult(true, data, common.Success)
+func SuccessResult(data string) []byte {
+	return BuildResult(data, common.NoErr)
 }
 
-func FailResult(data string, errMsg string) []byte {
-	return BuildResult(false, data, common.InternalError.Wrap(errMsg))
+func FailResult(data string, err *common.BizError) []byte {
+	return BuildResult(data, err)
 }
 
-func BuildResult(status bool, data string, err *common.BizError) []byte {
-	res := Result{err.Code, err.Msg, data}
+func BuildResult(data string, err *common.BizError) []byte {
+	res := Result{err.Code, data, err.Msg}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 func NewResult(data string, err *common.BizError) []byte {
 	if err == nil {
-		err = common.Success
+		err = common.NoErr
 	}
-	res := &Result{err.Code, err.Msg, data}
+	res := &Result{err.Code, data, err.Msg}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 var (
-	NewDefaultSuccessResult, _ = json.Marshal(&Result{common.Success.Code, common.Success.Msg, ""})
+	OkResultByte, _ = json.Marshal(&Result{common.NoErr.Code, "", common.NoErr.Msg})
 )
 
 func NewSuccessResult(data string) []byte {
-	res := &Result{common.Success.Code, common.Success.Msg, data}
+	res := &Result{common.NoErr.Code, data, common.NoErr.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+func NewFailResultByBiz(err *common.BizError) []byte {
+	res := &Result{err.Code, "", err.Msg}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 func NewFailResult(err error) []byte {
 	code, message := common.DecodeError(err)
-	res := &Result{code, message, ""}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-func NewFailResultString(errorMessage string) []byte {
-	err := common.InternalError.Wrap(errorMessage)
-	res := &Result{err.Code, err.Msg, ""}
+	res := &Result{code, "", message}
 	bs, _ := json.Marshal(res)
 	return bs
 }

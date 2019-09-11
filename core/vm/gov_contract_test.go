@@ -1096,7 +1096,7 @@ func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErr
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	if expectedErrors != nil {
-		assert.NotEqual(t, common.SuccessCode, r.Code)
+		assert.NotEqual(t, common.OkCode, r.Code)
 		var expected = false
 		for _, expectedError := range expectedErrors {
 			expected = expected || strings.Contains(r.Message, expectedError.Error())
@@ -1104,7 +1104,7 @@ func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErr
 		assert.True(t, true, expected)
 		t.Log("the expected result Msg:", r.Message)
 	} else {
-		assert.Equal(t, common.SuccessCode, r.Code)
+		assert.Equal(t, common.OkCode, r.Code)
 		t.Log("the expected result:", r)
 	}
 }
