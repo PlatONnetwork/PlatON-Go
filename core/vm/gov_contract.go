@@ -362,8 +362,8 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 		}
 	} else {
 		log.Debug("Execute GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash())
-		xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(xcom.NewDefaultSuccessResult))
-		return xcom.NewDefaultSuccessResult, nil
+		xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(xcom.OkResultByte))
+		return xcom.OkResultByte, nil
 	}
 }
 
