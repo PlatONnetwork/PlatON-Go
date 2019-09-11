@@ -159,7 +159,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		Details:    details,
 	}
 	if err := desc.CheckLength(); nil != err {
-		event := xcom.NewFailResult(staking.ErrDescriptionLen)
+		err := common.NewBizError(staking.ErrDescriptionLen.Code, staking.ErrDescriptionLen.Msg+":"+err.Error())
+		event := xcom.NewFailResult(err)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event),
 			err.Error(), "createStaking")
 		return event, nil
@@ -354,8 +355,8 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		Details:    details,
 	}
 	if err := desc.CheckLength(); nil != err {
-
-		event := xcom.NewFailResult(staking.ErrDescriptionLen)
+		err := common.NewBizError(staking.ErrDescriptionLen.Code, staking.ErrDescriptionLen.Msg+":"+err.Error())
+		event := xcom.NewFailResult(err)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event),
 			err.Error(), "editCandidate")
 		return event, nil
