@@ -17,7 +17,7 @@ var (
 	ErrIncreaseStakeVonTooLow    = common.NewBizError(302104, "IncreaseStake von is too low")
 	ErrDelegateVonTooLow         = common.NewBizError(302105, "Delegate deposit too low")
 	ErrAccountNoAllowToDelegate  = common.NewBizError(302106, "The account is not allowed to be used for delegating")
-	ErrCanNoAllowDelegate        = common.NewBizError(302107, "This candidate is not allow to delegate")
+	ErrCanNoAllowDelegate        = common.NewBizError(302107, "The candidate does not accept the delegation")
 	ErrWithdrewDelegateVonTooLow = common.NewBizError(302108, "Withdrew delegate von is too low")
 	ErrDelegateNoExist           = common.NewBizError(302109, "This is delegate is not exist")
 	ErrWrongVonOptType           = common.NewBizError(302110, "The von operationType is wrong")
