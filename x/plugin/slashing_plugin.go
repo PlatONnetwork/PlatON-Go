@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
@@ -239,26 +240,65 @@ func (sp *SlashingPlugin) DecodeEvidence(dupType consensus.EvidenceType, data st
 
 func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
 	if err := evidence.Validate(); nil != err {
-		log.Warn("slashing evidence validate failed", "blockNumber", blockNumber, "err", err)
+		log.Error("slashing failed evidence validate failed", "blockNumber", blockNumber, "err", err)
 		return common.NewBizError(err.Error())
 	}
+	if evidence.BlockNumber() > blockNumber {
+		log.Warn("slashing failed Evidence is higher than the current block height", "currBlockNumber", blockNumber, "evidenceBlockNumber", evidence.BlockNumber())
+		return common.NewBizError("blockNumber too high")
+	}
+	epoch := xutil.CalculateEpoch(evidence.BlockNumber())
+	blockAmount := xutil.CalcBlocksEachEpoch()
+	evidenceEpochEndBlockNumber := epoch * blockAmount
+	if evidenceEpochEndBlockNumber < blockNumber {
+		if (blockNumber - evidenceEpochEndBlockNumber) > (blockAmount * uint64(xcom.EvidenceValidEpoch())) {
+			log.Warn("slashing failed Evidence time expired", "currBlockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "evidenceBlockNumber", evidence.BlockNumber(),
+				"EpochBlockAmount", blockAmount, "evidenceEpochEndBlockNumber", evidenceEpochEndBlockNumber)
+			return common.NewBizError("Evidence interval is too long")
+		}
+	}
 	if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), evidence.Type(), stateDB); len(value) > 0 {
-		log.Error("slashing failed", "evidenceBlockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type(), "err", errSlashExist.Error())
+		log.Warn("slashing failed", "evidenceBlockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()),
+			"addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type(), "err", errSlashExist.Error())
 		return common.NewBizError(errSlashExist.Error())
 	}
 	if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
-		log.Error("slashing failed", "blockNumber", evidence.BlockNumber(), "blockHash", blockHash.TerminalString(), "addr", hex.EncodeToString(evidence.Address().Bytes()), "err", err)
+		log.Error("slashing failed", "evidenceBlockNumber", evidence.BlockNumber(), "blockHash", blockHash.TerminalString(), "addr", hex.EncodeToString(evidence.Address().Bytes()), "err", err)
 		return common.NewBizError(err.Error())
 	} else {
 		if nil == candidate {
-			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
+			log.Error("slashing failed GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
+			return common.NewBizError(errDuplicateSignVerify.Error())
+		}
+		pk, err := candidate.NodeId.Pubkey()
+		if nil != err {
+			log.Error("slashing failed candidate nodeId parse fail", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"nodeId", candidate.NodeId.TerminalString(), "type", evidence.Type(), "err", err)
+			return common.NewBizError(err.Error())
+		}
+		addr := crypto.PubkeyToAddress(*pk)
+		if !bytes.Equal(addr.Bytes(), evidence.Address().Bytes()) {
+			log.Error("slashing failed Mismatch addr", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "candidateNodeId", candidate.NodeId.TerminalString(),
+				"candidateAddr", addr.Hex(), "evidenceAddr", evidence.Address().Hex(), "type", evidence.Type())
+			return common.NewBizError(errDuplicateSignVerify.Error())
+		}
+		if !bytes.Equal(candidate.NodeId.Bytes(), evidence.NodeID().Bytes()) {
+			log.Error("slashing failed Mismatch nodeId", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"candidateNodeId", candidate.NodeId.TerminalString(), "evidenceAddr", evidence.NodeID().TerminalString(), "type", evidence.Type())
+			return common.NewBizError(errDuplicateSignVerify.Error())
+		}
+		if !bytes.Equal(candidate.BlsPubKey.Serialize(), evidence.BlsPubKey().Serialize()) {
+			log.Error("slashing failed Mismatch blsPubKey", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "candidateNodeId", candidate.NodeId.TerminalString(),
+				"candidateBlsPubKey", hex.EncodeToString(candidate.BlsPubKey.Serialize()), "evidenceBlsPubKey", hex.EncodeToString(evidence.BlsPubKey().Serialize()), "type", evidence.Type())
 			return common.NewBizError(errDuplicateSignVerify.Error())
 		}
 		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, slashAmount, staking.DuplicateSign, caller); nil != err {
-			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
+			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return err
 		}
 		sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), evidence.Type(), stateDB)

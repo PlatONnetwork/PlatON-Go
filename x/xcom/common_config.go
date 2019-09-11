@@ -40,6 +40,7 @@ type slashingConfig struct {
 	PackAmountLowSlashRate    uint32 // Proportion of deducted quality deposit (when the number of packing blocks is abnormal); 10% -> 10
 	PackAmountHighSlashRate   uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
 	DuplicateSignHighSlashing uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
+	EvidenceValidEpoch        uint32 // Validity period of evidence, number of settlement periods
 }
 
 type governanceConfig struct {
@@ -150,6 +151,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignHighSlashing: uint32(100),
+				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_ConsensusRounds:   uint64(2419),
@@ -190,6 +192,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignHighSlashing: uint32(100),
+				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_ConsensusRounds:   uint64(4),
@@ -230,6 +233,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignHighSlashing: uint32(100),
+				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_ConsensusRounds:   uint64(4),
@@ -270,6 +274,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignHighSlashing: uint32(100),
+				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_ConsensusRounds:   uint64(4),
@@ -310,6 +315,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignHighSlashing: uint32(100),
+				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_ConsensusRounds:   uint64(2419),
@@ -351,6 +357,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PackAmountLowSlashRate:    uint32(10),
 				PackAmountHighSlashRate:   uint32(50),
 				DuplicateSignHighSlashing: uint32(100),
+				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_ConsensusRounds:   uint64(4),
@@ -536,6 +543,10 @@ func PackAmountHighSlashRate() uint32 {
 
 func DuplicateSignHighSlash() uint32 {
 	return ec.Slashing.DuplicateSignHighSlashing
+}
+
+func EvidenceValidEpoch() uint32 {
+	return ec.Slashing.EvidenceValidEpoch
 }
 
 /******
