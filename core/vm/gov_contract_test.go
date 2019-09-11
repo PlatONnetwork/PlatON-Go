@@ -190,7 +190,7 @@ func buildGetProgramVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
+var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", 0, ""}))
 
 func buildBlock2() {
 	state := gc.Evm.StateDB.(*mock.MockStateDB)

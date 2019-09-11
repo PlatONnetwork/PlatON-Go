@@ -71,23 +71,57 @@ type StateDB interface {
 
 // inner contract event data
 type Result struct {
-	Status bool
-	Data   string
-	ErrMsg string
+	Status  bool
+	Data    string
+	ErrCode int
+	ErrMsg  string
 }
 
 func SuccessResult(data string, errMsg string) []byte {
-	return BuildResult(true, data, errMsg)
+	return BuildResult(true, data, common.Success)
 }
 
 func FailResult(data string, errMsg string) []byte {
-	return BuildResult(false, data, errMsg)
+	return BuildResult(false, data, common.InternalError.Wrap(errMsg))
 }
 
-func BuildResult(status bool, data string, errMsg string) []byte {
-	res := Result{status, data, errMsg}
-	bytes, _ := json.Marshal(res)
-	return bytes
+func BuildResult(status bool, data string, err *common.BizError) []byte {
+	res := Result{status, data, err.Code, err.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+func NewResult(data string, err *common.BizError) []byte {
+	if err == nil {
+		err = common.Success
+	}
+	res := &Result{err.Code == 0, data, err.Code, err.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+var (
+	NewDefaultSuccessResult, _ = json.Marshal(&Result{true, "", common.Success.Code, common.Success.Msg})
+)
+
+func NewSuccessResult(data string) []byte {
+	res := &Result{true, data, common.Success.Code, common.Success.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+func NewFailResult(err error) []byte {
+	code, message := common.DecodeError(err)
+	res := &Result{false, "", code, message}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+func NewFailResultString(errorMessage string) []byte {
+	err := common.InternalError.Wrap(errorMessage)
+	res := &Result{false, "", err.Code, err.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
 }
 
 /*// EncodeRLP implements rlp.Encoder
