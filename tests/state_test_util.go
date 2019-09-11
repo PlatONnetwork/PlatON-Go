@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -125,7 +127,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	if !ok {
 		return nil, UnsupportedForkError{subtest.Fork}
 	}
-	block := t.genesis(config).ToBlock(nil)
+	block := t.genesis(config).ToBlock(nil, snapshotdb.Instance())
 	statedb := MakePreState(ethdb.NewMemDatabase(), t.json.Pre)
 
 	post := t.json.Post[subtest.Fork][subtest.Index]
