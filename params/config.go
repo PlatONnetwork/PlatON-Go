@@ -70,7 +70,7 @@ var (
 		},
 		{
 			"enode://f2afba5553cf79eef374e900fec4c3ab3d6223a4fe91ded26872cea6d01caea1a8394f4f09faa6d24b9f3c6105e342c075b82d806b187798cb875381c88e29a2@18.140.124.104:16789",
-			"	cb6490c888a683ac2a707c51c733be20621be21192fe5b80b008920ad6fc52cba26969479f567d3ecf1259819691eb0356ca89317176779c1d5002a6a306ba14c284e14ed6c8bbcb3a4b5bc8100168c6c0f7cbe3289337cf47771cb2a1098a95",
+			"cb6490c888a683ac2a707c51c733be20621be21192fe5b80b008920ad6fc52cba26969479f567d3ecf1259819691eb0356ca89317176779c1d5002a6a306ba14c284e14ed6c8bbcb3a4b5bc8100168c6c0f7cbe3289337cf47771cb2a1098a95",
 		},
 	}
 
@@ -219,7 +219,7 @@ var (
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
 			Amount:        10,
 			ValidatorMode: "ppos",
-			Period:        10000,
+			Period:        20000,
 		},
 		VMInterpreter: "wasm",
 	}

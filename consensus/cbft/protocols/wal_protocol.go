@@ -27,11 +27,30 @@ type State struct {
 	QuorumCert *ctypes.QuorumCert
 }
 
+func (s *State) ValidState() bool {
+	return s.Block != nil && s.QuorumCert != nil && s.Block.NumberU64() == s.QuorumCert.BlockNumber && s.Block.Hash() == s.QuorumCert.BlockHash
+}
+
+func (s *State) EqualState(c *State) bool {
+	return s.QuorumCert.BlockNumber == c.QuorumCert.BlockNumber && s.QuorumCert.BlockHash == c.QuorumCert.BlockHash
+}
+
+func (s *State) String() string {
+	if s == nil {
+		return ""
+	}
+	return fmt.Sprintf("[number:%d, hash:%s]", s.QuorumCert.BlockNumber, s.QuorumCert.BlockHash.String())
+}
+
 // ChainState indicates the latest consensus state.
 type ChainState struct {
 	Commit *State
 	Lock   *State
 	QC     []*State
+}
+
+func (cs *ChainState) ValidChainState() bool {
+	return cs != nil && cs.Commit != nil && cs.Lock != nil && len(cs.QC) > 0 && cs.Commit.ValidState() && cs.Lock.ValidState()
 }
 
 func (cs *ChainState) String() string {

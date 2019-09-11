@@ -2,36 +2,57 @@ package common
 
 import "fmt"
 
+var (
+	SuccessCode      = uint16(0)
+	Success          = &BizError{Code: SuccessCode, Msg: "Success"}
+	InternalError    = &BizError{Code: 1, Msg: "System error"}
+	NotFound         = &BizError{Code: 2, Msg: "Object not found"}
+	InvalidParameter = &BizError{Code: 3, Msg: "Invalid parameter"}
+)
+
 // business error, Gas will not be returned back to caller
 type BizError struct {
-	s string
+	Code uint16
+	Msg  string
+	Err  error
 }
 
 func (e *BizError) Error() string {
-	return e.s
+	return e.Msg
 }
 
-func NewBizError(text string) error {
-	return &BizError{text}
+func NewBizError(code uint16, text string) *BizError {
+	return &BizError{Code: code, Msg: text}
 }
 
-func BizErrorf(format string, a ...interface{}) error {
-	return NewBizError(fmt.Sprintf(format, a...))
+func NewBizErrorf(code uint16, format string, a ...interface{}) *BizError {
+	return NewBizError(code, fmt.Sprintf(format, a...))
 }
 
-// system error, Gas will be returned back to caller
-type SysError struct {
-	s string
+func NewBizErrorw(code uint16, text string, err error) *BizError {
+	return &BizError{Code: code, Msg: text, Err: err}
 }
 
-func (e *SysError) Error() string {
-	return e.s
+func (be *BizError) Wrap(text string) *BizError {
+
+	return &BizError{Code: be.Code, Msg: be.Msg + " " + text, Err: be.Err}
+
 }
 
-func NewSysError(text string) error {
-	return &SysError{text}
+func (be *BizError) Wrapf(format string, a ...interface{}) *BizError {
+
+	return &BizError{Code: be.Code, Msg: be.Msg + " " + fmt.Sprintf(format, a), Err: be.Err}
+
 }
 
-func SysErrorf(format string, a ...interface{}) error {
-	return NewSysError(fmt.Sprintf(format, a...))
+func DecodeError(err error) (uint16, string) {
+	if err == nil {
+		return Success.Code, Success.Msg
+	}
+	switch typed := err.(type) {
+	case *BizError:
+		return typed.Code, typed.Msg
+	default:
+	}
+	return InternalError.Code, err.Error()
 }
