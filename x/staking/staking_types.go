@@ -284,16 +284,16 @@ type Description struct {
 func (desc *Description) CheckLength() error {
 
 	if len(desc.ExternalId) > MaxExternalIdLen {
-		return common.BizErrorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen))
 	}
 	if len(desc.NodeName) > MaxNodeNameLen {
-		return common.BizErrorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen))
 	}
 	if len(desc.Website) > MaxWebsiteLen {
-		return common.BizErrorf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen))
 	}
 	if len(desc.Details) > MaxDetailsLen {
-		return common.BizErrorf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen))
 	}
 	return nil
 }

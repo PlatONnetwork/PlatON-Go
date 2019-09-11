@@ -2,16 +2,11 @@ package plugin
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -157,7 +152,7 @@ func allVote(t *testing.T, pid common.Hash) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{
@@ -180,7 +175,7 @@ func allVote(t *testing.T, pid common.Hash) {
 func halfVote(t *testing.T, pid common.Hash) {
 	currentValidatorList, _ := stk.ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	for i := 0; i < voteCount/2; i++ {
 		vote := gov.VoteInfo{
 			ProposalID: pid,
@@ -625,7 +620,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -642,7 +637,7 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler = handler.GetCryptoHandler()
+	chandler = node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign = common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -682,7 +677,7 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -723,7 +718,7 @@ func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -747,7 +742,7 @@ func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
 
 	buildBlockNoCommit(2)
 	nodeIdx := 0
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -777,7 +772,7 @@ func TestGovPlugin_DeclareVersion_wrongSign(t *testing.T) {
 	wrongVersion := uint32(1<<16 | 1<<8 | 1)
 
 	nodeIdx := 0
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(wrongVersion))
@@ -805,7 +800,7 @@ func TestGovPlugin_DeclareVersion_wrongVersion(t *testing.T) {
 	wrongVersion := uint32(1<<16 | 1<<8 | 1)
 
 	nodeIdx := 0
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(wrongVersion))
@@ -837,7 +832,7 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -854,7 +849,7 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 		gov.Yes,
 	}
 
-	chandler = handler.GetCryptoHandler()
+	chandler = node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign = common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -896,7 +891,7 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 	buildBlockNoCommit(2)
 
 	nodeIdx := 0
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[nodeIdx])
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
@@ -1267,7 +1262,7 @@ func TestGovPlugin_Test_version(t *testing.T) {
 func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 
 	ver := uint32(66048) //1.2.0
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 
 	for i := 0; i < 4; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
@@ -1277,30 +1272,12 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 }
 
 var (
-	chandler *handler.CryptoHandler
+	chandler *node.CryptoHandler
 	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
 	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
 
 func initChandlerHandler() {
-	chandler = handler.GetCryptoHandler()
+	chandler = node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKey)
-}
-
-func TestGovPlugin_Test_Encode(t *testing.T) {
-	initChandlerHandler()
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	sig, err := chandler.Sign(uint32(1792))
-
-	value := &gov.ProgramVersionValue{ProgramVersion: uint32(1792), ProgramVersionSign: hexutil.Encode(sig)}
-
-	jsonByte, err := json.Marshal(value)
-	if nil != err {
-		log.Error("json.Marshal err", "err", err)
-	}
-
-	log.Error("encode result", "sig", hex.EncodeToString(jsonByte))
-	res := xcom.Result{true, string(jsonByte), ""}
-	resultBytes, _ := json.Marshal(res)
-	log.Error("encode result", "bytes", hex.EncodeToString(resultBytes))
 }
