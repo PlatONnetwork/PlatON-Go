@@ -167,7 +167,7 @@ func (b *BlockTree) findBlockExt(hash common.Hash, number uint64) *blockExt {
 
 func (b *BlockTree) IsForked(hash common.Hash, number uint64) (common.Hash, uint64, bool) {
 	ext := b.findForkedBlockExts(hash, number)
-	if ext != nil {
+	if ext != nil && len(ext) != 0 {
 		return ext[0].Block.Hash(), ext[0].Block.NumberU64(), true
 	}
 	return common.Hash{}, 0, false
@@ -177,8 +177,8 @@ func (b *BlockTree) IsForked(hash common.Hash, number uint64) (common.Hash, uint
 func (b *BlockTree) FindForkedBlocksAndQCs(hash common.Hash, number uint64) ([]*types.Block, []*QuorumCert) {
 	ext := b.findForkedBlockExts(hash, number)
 	if ext != nil {
-		forkedBlocks := make([]*types.Block, len(ext))
-		forkedQuorumCerts := make([]*QuorumCert, len(ext))
+		forkedBlocks := make([]*types.Block, 0, len(ext))
+		forkedQuorumCerts := make([]*QuorumCert, 0, len(ext))
 		for _, v := range ext {
 			forkedBlocks = append(forkedBlocks, v.Block)
 			forkedQuorumCerts = append(forkedQuorumCerts, v.QC)
@@ -193,7 +193,7 @@ func (b *BlockTree) findForkedBlockExts(hash common.Hash, number uint64) []*bloc
 		if len(extMap) == 1 {
 			return nil
 		}
-		bes := make([]*blockExt, len(extMap)-1)
+		bes := make([]*blockExt, 0, len(extMap)-1)
 		for h, ext := range extMap {
 			if hash != h {
 				bes = append(bes, ext)
