@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -2849,7 +2851,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 			return nil, err
 		}
 		targetP := target / maxValue
-		bd := xcom.NewBinomialDistribution(sv.weights, p)
+		bd := math.NewBinomialDistribution(sv.weights, p)
 		x, err := bd.InverseCumulativeProbability(targetP)
 		if nil != err {
 			return nil, err
