@@ -1130,7 +1130,7 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
 	block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
 	if block == nil {
-		if eb := cbft.state.HighestExecutedBlock(); eb.Hash() == hash {
+		if eb := cbft.state.FindBlock(hash, number); eb != nil {
 			block = eb
 		} else {
 			cbft.log.Debug("Get block failed", "hash", hash, "number", number, "eb", eb.Hash(), "ebNumber", eb.NumberU64())

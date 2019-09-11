@@ -588,6 +588,15 @@ func (vs *ViewState) HighestExecutedBlock() *types.Block {
 	return block
 }
 
+func (vs *ViewState) FindBlock(hash common.Hash, number uint64) *types.Block {
+	for _, b := range vs.viewBlocks.Blocks {
+		if b.hash() == hash && b.number() == number {
+			return b.block()
+		}
+	}
+	return nil
+}
+
 func (vs *ViewState) SetHighestQCBlock(ext *types.Block) {
 	vs.highestQCBlock.Store(ext)
 }
