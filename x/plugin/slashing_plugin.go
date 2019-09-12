@@ -119,8 +119,8 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				if slashAmount.Cmp(sumAmount) > 0 {
 					slashAmount = sumAmount
 				}
-				log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
-					"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
+				log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
+					"packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "sumAmount", sumAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
 				// If there is no record of the node, it means that there is no block, then the penalty is directly
 				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, slashType, common.ZeroAddr); nil != err {
 					log.Error("Failed to slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
