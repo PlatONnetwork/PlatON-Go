@@ -163,19 +163,25 @@ func (s *snapshotDB) recover(stor storage) error {
 }
 
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
+	var keys []common.Hash
 	for key, value := range s.unCommit.blocks {
-		if s.current.HighestNum.Int64() >= value.Number.Int64() {
+		if s.current.HighestNum.Cmp(value.Number) >= 0 {
 			if !value.readOnly {
 				if err := value.jWriter.Close(); err != nil {
 					return err
 				}
 			}
-			delete(s.unCommit.blocks, key)
+			keys = append(keys, key)
 			if err := s.rmJournalFile(value.Number, key); err != nil {
 				return err
 			}
 		}
 	}
+	s.unCommit.Lock()
+	for _, value := range keys {
+		delete(s.unCommit.blocks, value)
+	}
+	s.unCommit.Unlock()
 	return nil
 }
 
@@ -203,60 +209,60 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 //	}
 //	return nil
 //}
+//
+//const (
+//	hashLocationUnCommitted = 2
+//	hashLocationCommitted   = 3
+//	hashLocationNotFound    = 4
+//)
 
-const (
-	hashLocationUnCommitted = 2
-	hashLocationCommitted   = 3
-	hashLocationNotFound    = 4
-)
-
-func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
-	var (
-		lastBlockNumber = big.NewInt(0)
-		lastParentHash  = hash
-	)
-	// find from unCommit
-	for {
-		if block, ok := s.unCommit.blocks[lastParentHash]; ok {
-			if lastParentHash == block.ParentHash {
-				logger.Error("loop error")
-				return 0, false
-			}
-			lastParentHash = block.ParentHash
-			lastBlockNumber = block.Number
-		} else {
-			break
-		}
-	}
-
-	//check  last block find from unCommit is right
-	if lastBlockNumber.Int64() > 0 {
-		if s.current.HighestNum.Int64() != lastBlockNumber.Int64()-1 {
-			logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastBlockNumber.Int64()-1)
-			return 0, false
-		}
-		if s.current.HighestHash == common.ZeroHash {
-			return hashLocationUnCommitted, true
-		}
-		if s.current.HighestHash != lastParentHash {
-			logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParentHash.String())
-			return 0, false
-		}
-		return hashLocationUnCommitted, true
-	}
-	// if not find from unCommit, find from committed
-	for _, value := range s.committed {
-		if value.BlockHash == hash {
-			return hashLocationCommitted, true
-		}
-	}
-	return hashLocationNotFound, true
-}
+//
+//func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
+//	var (
+//		lastBlockNumber = big.NewInt(0)
+//		lastParentHash  = hash
+//	)
+//	// find from unCommit
+//	for {
+//		if block, ok := s.unCommit.Load(lastParentHash); ok {
+//			if lastParentHash == block.ParentHash {
+//				logger.Error("loop error")
+//				return 0, false
+//			}
+//			lastParentHash = block.ParentHash
+//			lastBlockNumber = block.Number
+//		} else {
+//			break
+//		}
+//	}
+//
+//	//check  last block find from unCommit is right
+//	if lastBlockNumber.Int64() > 0 {
+//		if s.current.HighestNum.Int64() != lastBlockNumber.Int64()-1 {
+//			logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastBlockNumber.Int64()-1)
+//			return 0, false
+//		}
+//		if s.current.HighestHash == common.ZeroHash {
+//			return hashLocationUnCommitted, true
+//		}
+//		if s.current.HighestHash != lastParentHash {
+//			logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParentHash.String())
+//			return 0, false
+//		}
+//		return hashLocationUnCommitted, true
+//	}
+//	// if not find from unCommit, find from committed
+//	for _, value := range s.committed {
+//		if value.BlockHash == hash {
+//			return hashLocationCommitted, true
+//		}
+//	}
+//	return hashLocationNotFound, true
+//}
 
 func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	s.unCommit.Lock()
 	defer s.unCommit.Unlock()
-
 	block, ok := s.unCommit.blocks[hash]
 	if !ok {
 		return fmt.Errorf("not find the block by hash:%v", hash.String())
