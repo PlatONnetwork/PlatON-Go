@@ -3,6 +3,7 @@ package xutil
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -58,6 +59,7 @@ func ProgramVersion2Str(programVersion uint32) string {
 
 // ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
+	log.Debug("config PerRoundBlocks", "BlocksWillCreate", xcom.BlocksWillCreate(), "ConsValidatorNum", xcom.ConsValidatorNum())
 	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
 }
 
@@ -68,6 +70,8 @@ func EpochSize() uint64 {
 	i := xcom.Interval()
 
 	epochSize := em * 60 / (i * consensusSize)
+
+	log.Debug("EpochSize", "consensusSize", consensusSize, "em", em, "Interval", i, "epochSize", epochSize)
 	return epochSize
 }
 
@@ -101,8 +105,12 @@ func IsSwitch(blockNumber uint64) bool {
 
 // IsSettlementPeriod checks the block if it is the end of a epoch
 func IsSettlementPeriod(blockNumber uint64) bool {
+	log.Debug("IsSettlementPeriod", "blockNumber", blockNumber)
+
 	size := CalcBlocksEachEpoch()
 	mod := blockNumber % uint64(size)
+
+	log.Debug("IsSettlementPeriod", "size", size, "mod", mod)
 	return mod == 0
 }
 

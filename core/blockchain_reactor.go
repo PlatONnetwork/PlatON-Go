@@ -112,11 +112,11 @@ func (bcr *BlockChainReactor) loop() {
 			}
 
 			log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
+		// stop this routine
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 				continue
 			}
-		// stop this routine
 		case <-bcr.exitCh:
 			return
 		}
