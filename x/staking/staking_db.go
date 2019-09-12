@@ -2,6 +2,7 @@ package staking
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -686,6 +687,6 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 	} else if v > 0 {
 		return true, nil
 	} else {
-		return false, common.SysErrorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
+		return false, common.InvalidParameter.Wrap(fmt.Sprintf("Account Stake Reference Count cannot be negative, account: %s", addr.String()))
 	}
 }

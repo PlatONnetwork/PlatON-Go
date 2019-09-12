@@ -8,9 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -40,6 +38,13 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
+
+	if xutil.IsBeginOfSettlement(blockNumber) {
+		if err := accuVerifiersAtBeginOfSettlement(blockHash, blockNumber); err != nil {
+			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
+			return err
+		}
+	}
 
 	//check if there's a pre-active version proposal that can be activated
 	preActiveVersionProposalID, err := gov.GetPreActiveProposalID(blockHash)
@@ -124,11 +129,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 			}
 		}
 	}
-
 	return nil
 }
 
 //implement BasePlugin
+
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
@@ -142,23 +147,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return nil
 	}
 
-	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
-	if err != nil {
-		return err
-	}
-	log.Debug("get verifier nodes from staking", "verifierCount", len(verifierList))
-
-	//if current block is a settlement block, to accumulate current verifiers for each voting proposal.
-	if xutil.IsSettlementPeriod(blockNumber) {
-		log.Debug("current block is at end of a settlement", "blockNumber", blockNumber, "blockHash", blockHash)
-		for _, votingProposalID := range votingProposalIDs {
-			if err := gov.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
-				return err
-			}
-		}
-		//According to the proposal's rules, the settlement block must not be the end-voting block, so, just return.
-		return nil
-	}
 	//iterate each voting proposal, to check if current block is proposal's end-voting block.
 	for _, votingProposalID := range votingProposalIDs {
 		log.Debug("iterate each voting proposal", "proposalID", votingProposalID)
@@ -169,10 +157,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		}
 		if votingProposal.GetEndVotingBlock() == blockNumber {
 			log.Debug("current block is end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
-			//According to the proposal's rules, the end-voting block must not at end of a settlement, so, to accumulate current verifiers for current voting proposal.
-			if err := gov.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
-				return err
-			}
 			//tally the results
 			if votingProposal.GetProposalType() == gov.Text {
 				_, err := tallyText(votingProposal.GetProposalID(), blockHash, blockNumber, state)
@@ -194,6 +178,32 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				err = errors.New("invalid proposal type")
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// According to the proposal's rules, the submit block maybe is the begin block of a settlement, even then, it's ok, gov.AccuVerifiers will remove the duplicated verifiers.
+func accuVerifiersAtBeginOfSettlement(blockHash common.Hash, blockNumber uint64) error {
+	votingProposalIDs, err := gov.ListVotingProposal(blockHash)
+	if err != nil {
+		return err
+	}
+	if len(votingProposalIDs) == 0 {
+		log.Debug("there's no voting proposal", "blockNumber", blockNumber, "blockHash", blockHash)
+		return nil
+	}
+
+	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
+	if err != nil {
+		return err
+	}
+	log.Debug("get verifier nodes from staking", "verifierCount", len(verifierList))
+
+	//note: if the proposal's submit block == blockNumber, it's ok, gov.AccuVerifiers will remove the duplicated verifiers
+	for _, votingProposalID := range votingProposalIDs {
+		if err := gov.AccuVerifiers(blockHash, votingProposalID, verifierList); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -283,12 +293,12 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 		if proposal, err := gov.GetExistProposal(cp.TobeCanceled, state); err != nil {
 			return false, err
 		} else if proposal.GetProposalType() != gov.Version {
-			return false, common.NewBizError("Tobe canceled proposal is not a version proposal.")
+			return false, gov.TobeCanceledProposalTypeError
 		}
 		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash); err != nil {
 			return false, err
 		} else if !xutil.InHashList(cp.TobeCanceled, votingProposalIDList) {
-			return false, common.NewBizError("Tobe canceled proposal is not at voting stage.")
+			return false, gov.TobeCanceledProposalNotAtVoting
 		}
 
 		if tallyResult, err := gov.GetTallyResult(cp.TobeCanceled, state); err != nil {
@@ -356,27 +366,6 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 
 	status := gov.Voting
 
-	/*
-		yeas := uint16(0)
-		nays := uint16(0)
-		abstentions := uint16(0)
-
-		voteList, err := gov.ListVoteValue(proposalID, state)
-		if err != nil {
-			return false, err
-		}
-		for _, v := range voteList {
-			if v.VoteOption == gov.Yes {
-				yeas++
-			}
-			if v.VoteOption == gov.No {
-				nays++
-			}
-			if v.VoteOption == gov.Abstention {
-				abstentions++
-			}
-		}*/
-
 	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, state)
 	if err != nil {
 		return false, err
@@ -424,58 +413,6 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 
 	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return status == gov.Pass, nil
-}
-
-// check if the node a verifier, and the caller address is same as the staking address
-func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
-	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	if err != nil {
-		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
-		return err
-	}
-
-	for _, verifier := range verifierList {
-		if verifier != nil && verifier.NodeId == nodeID {
-			if verifier.StakingAddress == from {
-				nodeAddress, _ := xutil.NodeId2Addr(verifier.NodeId)
-				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
-				if err != nil {
-					return common.NewBizError("cannot get verifier's detail info.")
-				} else if staking.Is_Invalid(candidate.Status) {
-					return common.NewBizError("verifier's status is invalid.")
-				}
-				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-				return nil
-			} else {
-				return common.NewBizError("tx sender should be node's staking address.")
-			}
-		}
-	}
-	log.Error("tx sender is not a verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	return common.NewBizError("tx sender is not a verifier.")
-}
-
-// check if the node a candidate, and the caller address is same as the staking address
-func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
-	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
-	if err != nil {
-		log.Error("list candidates failed", "blockHash", blockHash)
-		return err
-	}
-
-	for _, candidate := range candidateList {
-		if candidate.NodeId == nodeID {
-			if candidate.StakingAddress == from {
-				log.Debug("tx sender is a candidate.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
-				return nil
-			} else {
-				return common.NewBizError("tx sender should be node's staking address.")
-			}
-		}
-	}
-	return common.NewBizError("tx sender is not candidate.")
 }
 
 func Decimal(value float64) int {

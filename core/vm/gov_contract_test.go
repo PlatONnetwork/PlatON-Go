@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -30,11 +30,11 @@ var (
 	govPlugin   *plugin.GovPlugin
 	gc          *GovContract
 	versionSign common.VersionSign
-	chandler    *handler.CryptoHandler
+	chandler    *node.CryptoHandler
 )
 
 func init() {
-	chandler = handler.GetCryptoHandler()
+	chandler = node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 	versionSign.SetBytes(chandler.MustSign(promoteVersion))
 }
@@ -190,7 +190,7 @@ func buildGetProgramVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
-var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
+var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{0, "", ""}))
 
 func buildBlock2() {
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
@@ -440,7 +440,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	buildBlock2()
 
 	//the default rounds is 6 for developer test net
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 5), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 55), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_Float(t *testing.T) {
@@ -459,7 +459,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	var sign common.VersionSign
@@ -485,7 +485,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *te
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(gc, buildDeclareInput(), t)
 
@@ -507,7 +507,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	otherVersion := uint32(1<<16 | 3<<8 | 0)
@@ -530,7 +530,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
@@ -561,7 +561,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareActiveVersion_ERROR
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
@@ -591,7 +591,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 	//submit a proposal and get it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
@@ -790,7 +790,7 @@ func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	var sign common.VersionSign
@@ -866,7 +866,7 @@ func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	var sign common.VersionSign
@@ -891,7 +891,7 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	buildBlock2()
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	otherVersion := uint32(1<<16 | 3<<8 | 0)
@@ -919,7 +919,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 	//submit a proposal and vote for it.
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 
 	for i := 0; i < 3; i++ {
 		chandler.SetPrivateKey(priKeyArr[i])
@@ -1087,15 +1087,6 @@ func TestGovContract_GetActiveVersion(t *testing.T) {
 	runGovContract(gc, buildGetActiveVersionInput(), t)
 }
 
-func TestGovContract_GetProgramVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
-
-	buildBlock2()
-
-	runGovContract(gc, buildGetProgramVersionInput(), t)
-}
-
 func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErrors ...error) {
 	res, err := contract.Run(buf)
 
@@ -1105,15 +1096,15 @@ func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErr
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	if expectedErrors != nil {
-		assert.Equal(t, false, r.Status)
+		assert.NotEqual(t, common.OkCode, r.Code)
 		var expected = false
 		for _, expectedError := range expectedErrors {
-			expected = expected || strings.Contains(r.ErrMsg, expectedError.Error())
+			expected = expected || strings.Contains(r.Message, expectedError.Error())
 		}
 		assert.True(t, true, expected)
-		t.Log("the expected result Msg:", r.ErrMsg)
+		t.Log("the expected result Msg:", r.Message)
 	} else {
-		assert.Equal(t, true, r.Status)
+		assert.Equal(t, common.OkCode, r.Code)
 		t.Log("the expected result:", r)
 	}
 }
@@ -1133,7 +1124,7 @@ func allVote(stateDB *mock.MockStateDB, t *testing.T, pid common.Hash) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(lastBlockHash, lastBlockNumber)
 	voteCount := len(currentValidatorList)
-	chandler := handler.GetCryptoHandler()
+	chandler := node.GetCryptoHandler()
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{

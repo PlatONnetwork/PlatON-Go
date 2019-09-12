@@ -157,13 +157,12 @@ func (s *snapshotDB) recover(stor storage) error {
 
 	//read Journal
 	for _, fd := range fds {
-		block, err := s.getBlockFromJournal(fd)
-		if err != nil {
-			return err
-		}
-
-		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum == 0 && highestNum == 0 && fd.Num == 0) {
-			if _, ok := commitMap[block.BlockHash]; ok {
+		if baseNum < fd.Num && fd.Num <= highestNum {
+			if _, ok := commitMap[fd.BlockHash]; ok {
+				block, err := s.getBlockFromJournal(fd)
+				if err != nil {
+					return err
+				}
 				s.committed = append(s.committed, block)
 				continue
 			}

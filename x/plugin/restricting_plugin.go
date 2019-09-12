@@ -20,16 +20,27 @@ import (
 )
 
 var (
-	errParamEpochInvalid     = common.NewBizError("param epoch can't be zero")
-	errRestrictAmountInvalid = common.NewBizError("the number of the restricting plan can't be zero or more than 36")
-	errLockedAmountTooLess   = common.NewBizError("total restricting amount need more than 1 LAT")
-	errBalanceNotEnough      = common.NewBizError("the balance is not enough in restrict")
-	errAccountNotFound       = common.NewBizError("account is not found on restricting contract")
-	errSlashingTooMuch       = common.NewBizError("slashing amount is larger than staking amount")
-	errStakingAmountEmpty    = common.NewBizError("staking amount is 0")
-	errAmountLessThanZero    = common.NewBizError("Amount can't less than 0")
-	errStakingAmountInvalid  = common.NewBizError("staking return amount is wrong")
+	/*
+		errParamEpochInvalid     = common.NewBizError("param epoch can't be zero")
+		errRestrictAmountInvalid = common.NewBizError("the number of the restricting plan can't be zero or more than 36")
+		errLockedAmountTooLess   = common.NewBizError("total restricting amount need more than 1 LAT")
+		errBalanceNotEnough      = common.NewBizError("the balance is not enough in restrict")
+		errAccountNotFound       = common.NewBizError("account is not found on restricting contract")
+		errSlashingTooMuch       = common.NewBizError("slashing amount is larger than staking amount")
+		errStakingAmountEmpty    = common.NewBizError("staking amount is 0")
+		errAmountLessThanZero    = common.NewBizError("Amount can't less than 0")
+		errStakingAmountInvalid  = common.NewBizError("staking return amount is wrong")
+	*/
 	monthOfThreeYear         = 12 * 3
+	errParamEpochInvalid     = common.NewBizError(400, "param epoch can't be zero")
+	errRestrictAmountInvalid = common.NewBizError(401, "the number of the restricting plan can't be zero or more than 36")
+	errLockedAmountTooLess   = common.NewBizError(402, "total restricting amount need more than 1 LAT")
+	errBalanceNotEnough      = common.NewBizError(403, "the balance is not enough in restrict")
+	errAccountNotFound       = common.NewBizError(404, "account is not found on restricting contract")
+	errSlashingTooMuch       = common.NewBizError(405, "slashing amount is larger than staking amount")
+	errStakingAmountEmpty    = common.NewBizError(406, "staking amount is 0")
+	errAmountLessThanZero    = common.NewBizError(407, "Amount can't less than 0")
+	errStakingAmountInvalid  = common.NewBizError(408, "staking return amount is wrong")
 )
 
 type RestrictingPlugin struct {
@@ -136,33 +147,6 @@ func (rp *RestrictingPlugin) transferAmount(state xcom.StateDB, from, to common.
 	state.AddBalance(to, mount)
 }
 
-//
-//func CreateRestrictingRecord(account common.Address, state xcom.StateDB, plans []restricting.RestrictingPlan) {
-//	rt := RestrictingInstance()
-//	epochList := make([]uint64, 0)
-//	totalAmount := new(big.Int)
-//	for _, plan := range plans {
-//		rt.storeAccount2ReleaseAccount(state, plan.Epoch, 1, account)
-//		// store release amount record
-//		rt.storeAmount2ReleaseAmount(state, plan.Epoch, account, plan.Amount)
-//		// store release epoch record
-//		releaseEpochKey := restricting.GetReleaseEpochKey(plan.Epoch)
-//		rt.storeNumber2ReleaseEpoch(state, releaseEpochKey, 1)
-//		epochList = append(epochList, plan.Epoch)
-//		totalAmount.Add(totalAmount, plan.Amount)
-//	}
-//	state.AddBalance(vm.RestrictingContractAddr, totalAmount)
-//
-//	// build restricting account info
-//	var restrictInfo restricting.RestrictingInfo
-//	restrictInfo.CachePlanAmount = totalAmount
-//	restrictInfo.StakingAmount = big.NewInt(0)
-//	restrictInfo.NeedRelease = big.NewInt(0)
-//	restrictInfo.ReleaseList = epochList
-//	restrictingKey := restricting.GetRestrictingKey(account)
-//	rt.storeRestrictingInfo(state, restrictingKey, restrictInfo)
-//}
-
 // AddRestrictingRecord stores four K-V record in StateDB:
 // RestrictingInfo: the account info to be released
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
@@ -183,7 +167,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 	}
 	// pre-check
 	{
-		if totalAmount.Cmp(big.NewInt(1E18)) < 0 {
+
+		if totalAmount.Cmp(big.NewInt(1e18)) < 0 {
 			rp.log.Error("total restricting amount need more than 1 LAT", "from", from, "amount", totalAmount)
 			return errLockedAmountTooLess
 		}
@@ -216,7 +201,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 		rp.log.Info("restricting record exist", "account", account.String())
 		if err = rlp.DecodeBytes(bAccInfo, &info); err != nil {
 			rp.log.Error("failed to rlp decode the restricting account", "err", err.Error())
-			return common.NewSysError(err.Error())
+			return common.InternalError.Wrap(err.Error())
 		}
 		if info.NeedRelease.Cmp(common.Big0) > 0 {
 			if info.NeedRelease.Cmp(totalAmount) >= 0 {
@@ -391,7 +376,7 @@ func (rp *RestrictingPlugin) mustGetRestrictingInfoByDecode(state xcom.StateDB, 
 	}
 	if err := rlp.DecodeBytes(bAccInfo, &info); err != nil {
 		rp.log.Error("failed to rlp decode restricting account", "error", err.Error())
-		return restrictingKey, info, common.NewSysError(err.Error())
+		return restrictingKey, info, common.InternalError.Wrap(err.Error())
 	}
 	return restrictingKey, info, nil
 }
@@ -401,7 +386,7 @@ func (rp *RestrictingPlugin) getRestrictingInfoByDecode(state xcom.StateDB, acco
 	var info restricting.RestrictingInfo
 	if err := rlp.DecodeBytes(bAccInfo, &info); err != nil {
 		rp.log.Error("failed to rlp decode restricting account", "error", err.Error(), "info", bAccInfo)
-		return restrictingKey, info, common.NewSysError(err.Error())
+		return restrictingKey, info, common.InternalError.Wrap(err.Error())
 	}
 	return restrictingKey, info, nil
 }

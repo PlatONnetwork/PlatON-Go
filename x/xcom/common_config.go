@@ -44,9 +44,11 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
+	VersionProposalVote_DurationSeconds   uint64  // max Consensus-Round counts for version proposal's vote duration.
 	VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
 	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
 	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
+	TextProposalVote_DurationSeconds      uint64  // default Consensus-Round counts for text proposal's vote duration.
 	TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
 	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
 	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
@@ -154,14 +156,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalVote_ConsensusRounds:   uint64(2419),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(14 * 24 * 3600),
+				//TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -195,14 +199,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -236,14 +242,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -277,14 +285,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -318,14 +328,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalVote_ConsensusRounds:   uint64(2419),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(14 * 24 * 3600),
+				//TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -360,14 +372,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:        uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -564,7 +578,8 @@ func PlatONFoundationYear() uint32 {
  * Governance config
  ******/
 func VersionProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.VersionProposalVote_ConsensusRounds
+	//return ec.Gov.VersionProposalVote_ConsensusRounds
+	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks)
 }
 
 func VersionProposalActive_ConsensusRounds() uint64 {
@@ -576,7 +591,8 @@ func VersionProposal_SupportRate() float64 {
 }
 
 func TextProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.TextProposalVote_ConsensusRounds
+	//return ec.Gov.TextProposalVote_ConsensusRounds
+	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks)
 }
 
 func TextProposal_VoteRate() float64 {
