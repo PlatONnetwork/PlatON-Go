@@ -243,15 +243,15 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 func genesisAllowancePlan(statedb *state.StateDB, issue *big.Int) error {
 	account := vm.RewardManagerPoolAddr
 	var (
-		zeroEpoch  = new(big.Int).Mul(big.NewInt(622157424869165), big.NewInt(1E11))
-		oneEpoch   = new(big.Int).Mul(big.NewInt(559657424869165), big.NewInt(1E11))
-		twoEpoch   = new(big.Int).Mul(big.NewInt(495594924869165), big.NewInt(1E11))
-		threeEpoch = new(big.Int).Mul(big.NewInt(429930862369165), big.NewInt(1E11))
-		fourEpoch  = new(big.Int).Mul(big.NewInt(362625198306666), big.NewInt(1E11))
-		fiveEpoch  = new(big.Int).Mul(big.NewInt(293636892642633), big.NewInt(1E11))
-		sixEpoch   = new(big.Int).Mul(big.NewInt(222923879336939), big.NewInt(1E11))
-		sevenEpoch = new(big.Int).Mul(big.NewInt(150443040698633), big.NewInt(1E11))
-		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943690), big.NewInt(1E10))
+		zeroEpoch  = new(big.Int).Mul(big.NewInt(622157424869165), big.NewInt(1e11))
+		oneEpoch   = new(big.Int).Mul(big.NewInt(559657424869165), big.NewInt(1e11))
+		twoEpoch   = new(big.Int).Mul(big.NewInt(495594924869165), big.NewInt(1e11))
+		threeEpoch = new(big.Int).Mul(big.NewInt(429930862369165), big.NewInt(1e11))
+		fourEpoch  = new(big.Int).Mul(big.NewInt(362625198306666), big.NewInt(1e11))
+		fiveEpoch  = new(big.Int).Mul(big.NewInt(293636892642633), big.NewInt(1e11))
+		sixEpoch   = new(big.Int).Mul(big.NewInt(222923879336939), big.NewInt(1e11))
+		sevenEpoch = new(big.Int).Mul(big.NewInt(150443040698633), big.NewInt(1e11))
+		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943690), big.NewInt(1e10))
 	)
 
 	statedb.SubBalance(vm.PlatONFoundationAddress, zeroEpoch)
