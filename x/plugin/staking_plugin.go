@@ -1376,8 +1376,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	if oldVerifierArr.End != blockNumber {
 		log.Error("Failed to ElectNextVerifierList: this blockNumber invalid", "Old Epoch End blockNumber",
 			oldVerifierArr.End, "Current blockNumber", blockNumber)
-		return common.InternalError.Wrapf("The BlockNumber invalid, Old Epoch End blockNumber: %d, Current blockNumber: %d",
-			oldVerifierArr.End, blockNumber)
+		return staking.ErrBlockNumberDisordered
 	}
 
 	// caculate the new epoch start and end
@@ -1451,7 +1450,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	}
 
 	if len(queue) == 0 {
-		panic(common.InternalError.Wrapf("Failed to ElectNextVerifierList: Select zero size validators~"))
+		panic("Failed to ElectNextVerifierList: Select zero size validators~")
 	}
 
 	newVerifierArr.Arr = queue
@@ -2625,7 +2624,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 	if nil == err && nil != valArr {
 		return buildCbftValidators(valArr.Start, valArr.Arr), nil
 	}
-	return nil, common.InternalError.Wrapf("No Found Validators by blockNumber: %d", blockNumber)
+	return nil, fmt.Errorf("No Found Validators by blockNumber: %d", blockNumber)
 }
 
 // NOTE: Verify that it is the validator of the current Epoch
