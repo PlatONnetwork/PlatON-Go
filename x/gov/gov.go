@@ -178,7 +178,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//handle storage
-	if err := SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
+	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
 		log.Error("save vote error", "proposalID", vote.ProposalID)
 		return err
 	}
@@ -428,21 +428,21 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 		return err
 	} else if len(votingProposalIDList) > 0 {
 		for _, proposalID := range votingProposalIDList {
-			if voteList, err := ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
 				return err
-			} else if len(voteList) > 0 {
+			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
-				for _, voteValue := range voteList {
+				for _, voteValue := range voteValueList {
 					if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
-						voteList[idx] = voteValue
+						voteValueList[idx] = voteValue
 						idx++
 					}
 				}
-				voteList = voteList[:idx]
-				//UpdateVoteValue(blockHash, voteList)
+				voteValueList = voteValueList[:idx]
+				UpdateVoteValue(blockHash, voteValueList, state)
 			}
 
-			if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+			/*if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
 				return err
 			} else if len(verifierList) > 0 {
 				idx := 0 // output index
@@ -454,7 +454,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 				}
 				verifierList = verifierList[:idx]
 				//UpdateAccuVerifiers(blockHash, voteList)
-			}
+			}*/
 		}
 	}
 	return nil

@@ -77,18 +77,14 @@ func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, err
 	return proposls, nil
 }
 
-//Save the Vote detail
-func SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) error {
+//Add the Vote detail
+func AddVoteValue(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) error {
 	voteValueList, err := ListVoteValue(proposalID, state)
 	if err != nil {
 		return err
 	}
 	voteValueList = append(voteValueList, VoteValue{voter, option})
-
-	voteListBytes, _ := json.Marshal(voteValueList)
-
-	state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
-	return nil
+	return UpdateVoteValue(proposalID, voteValueList, state)
 }
 
 //list vote detail
@@ -102,6 +98,12 @@ func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, err
 		return nil, err
 	}
 	return voteList, nil
+}
+
+func UpdateVoteValue(proposalID common.Hash, voteValueList []VoteValue, state xcom.StateDB) error {
+	voteListBytes, _ := json.Marshal(voteValueList)
+	state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
+	return nil
 }
 
 // TallyVoteValue statistics vote option for a proposal

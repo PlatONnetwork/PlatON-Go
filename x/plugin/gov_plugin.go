@@ -262,6 +262,9 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
 			return err
 		}
+		if err := gov.ClearActiveNodes(blockHash, proposalID); err != nil {
+			return err
+		}
 	}
 
 	tallyResult := &gov.TallyResult{
@@ -390,7 +393,6 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 			status = gov.Failed
 		}
 	}
-
 	tallyResult := &gov.TallyResult{
 		ProposalID:    proposalID,
 		Yeas:          yeas,
@@ -399,18 +401,18 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 		AccuVerifiers: verifiersCnt,
 		Status:        status,
 	}
-
+	if err := gov.SetTallyResult(*tallyResult, state); err != nil {
+		log.Error("save tally result failed", "tallyResult", tallyResult)
+		return false, err
+	}
 	//gov.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
 	if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID); err != nil {
 		log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
 		return false, err
 	}
-
-	if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-		log.Error("save tally result failed", "tallyResult", tallyResult)
+	if err := gov.ClearActiveNodes(blockHash, proposalID); err != nil {
 		return false, err
 	}
-
 	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return status == gov.Pass, nil
 }
