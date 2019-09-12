@@ -419,7 +419,6 @@ func PubkeyBatchAdd(pkVec []PublicKey) (pub PublicKey) {
 	for i := 0; i < len(pkVec); i++ {
 		pk.Add(&pkVec[i])
 	}
-	fmt.Printf("pk=%s\n", pk.GetHexString())
 	return pk
 }
 
@@ -429,7 +428,6 @@ func SeckeyBatchAdd(secVec []SecretKey) (sec SecretKey) {
 	for i := 0; i < len(secVec); i++ {
 		sk.Add(&secVec[i])
 	}
-	fmt.Printf("sec=%s\n", sk.GetHexString())
 	return sk
 }
 
@@ -438,7 +436,6 @@ func AggregateSign(sigVec []Sign) (sig Sign) {
 	for i := 0; i < len(sigVec); i++ {
 		sign.Add(&sigVec[i])
 	}
-	fmt.Printf("sig=%s\n", sign.GetHexString())
 	return sign
 }
 
@@ -450,7 +447,6 @@ func GTBatchMul(eVec []GT) (e GT) {
 		GTMul(&e2, &e1, &e2)
 		e1 = e2
 	}
-	fmt.Printf("e=%s\n", e2.GetString(16))
 	return e2
 }
 
@@ -462,7 +458,6 @@ func GTBatchAdd(eVec []GT) (e GT) {
 		GTAdd(&e2, &e1, &e2)
 		e1 = e2
 	}
-	fmt.Printf("e=%s\n", e2.GetString(16))
 	return e2
 }
 
@@ -474,7 +469,6 @@ func MsgsToHashToG1(mVec []string) ([]Sign, error) {
 		if err != nil {
 			return []Sign{}, err
 		}
-		fmt.Printf("p_Hm=%s\n", p_Hm[i].GetHexString())
 	}
 	return p_Hm, nil
 }
@@ -493,8 +487,6 @@ func BatchVerifySameMsg(curve int, msg string, pkVec []PublicKey, sign Sign) err
 		pk.Add(&pkVec[i])
 		//		sig.Add(&signVec[i])
 	}
-	fmt.Printf("pk=%s\n", pk.GetHexString())
-	//	fmt.Printf("sig=%s\n", sig.GetHexString())
 	if !sign.Verify(&pk, msg) {
 		return errors.New("signature verification failed")
 	}
@@ -513,12 +505,9 @@ func BatchVerifyDistinctMsg(curve int, pkVec []PublicKey, msgVec []Sign, sign Si
 	for i := 0; i < len(pkVec); i++ {
 		sig.Add(&signVec[i])
 	}*/
-	//	fmt.Printf("sig=%s\n", sig.GetHexString())
 	P := GetGeneratorOfG2()
-	fmt.Printf("G=%s\n", P.GetHexString())
 	var e, e1, e2 GT
 	Pairing(&e, &(sign.v), &(P.v))
-	fmt.Printf("e=%s\n", e.GetString(16))
 
 	n := len(msgVec)
 	Pairing(&e1, &(msgVec[0].v), &(pkVec[0].v))
@@ -527,7 +516,6 @@ func BatchVerifyDistinctMsg(curve int, pkVec []PublicKey, msgVec []Sign, sign Si
 		GTMul(&e2, &e1, &e2)
 		e1 = e2
 	}
-	fmt.Printf("e2=%s\n", e2.GetString(16))
 	if !e.IsEqual(&e2) {
 		errors.New("not equal pairing\n")
 	}
@@ -580,11 +568,6 @@ func Schnorr_test(curve int, r, c SecretKey, G, V, P PublicKey) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("r=%s\n", r.GetHexString())
-	fmt.Printf("c=%s\n", c.GetHexString())
-	fmt.Printf("G=%s\n", G.GetHexString())
-	fmt.Printf("V=%s\n", V.GetHexString())
-	fmt.Printf("P=%s\n", P.GetHexString())
 	if !G2IsValid(&P) {
 		return errors.New("P isnot valid")
 	}
@@ -594,7 +577,6 @@ func Schnorr_test(curve int, r, c SecretKey, G, V, P PublicKey) error {
 	Pc.Mul(&c)
 	Psum := Pr
 	Psum.Add(&Pc)
-	fmt.Printf("Psum=%s\n", Psum.GetHexString())
 	if !V.IsEqual(&Psum) {
 		return errors.New("V = G*[r] + P*[c] not equal")
 	}
@@ -719,7 +701,6 @@ func SchnorrNIZKVerify(curve int, proof Proof, P PublicKey) error {
 	c := proof.C
 	r := proof.R
 	G := GetGeneratorOfG2()
-	fmt.Printf("G=%s\n", G.GetHexString())
 	//	V1 = G * r + A * c     c = H(G || pk || V’)
 	var Pr PublicKey
 	Pr = *G
@@ -728,28 +709,21 @@ func SchnorrNIZKVerify(curve int, proof Proof, P PublicKey) error {
 	Pc.Mul(&c)
 	V1 := Pr
 	V1.Add(&Pc)
-	fmt.Printf("V1=%s\n", V1.GetHexString())
-	fmt.Printf("P=%s\n", P.GetHexString())
 
 	input1 := G.Serialize()
 	input2 := P.Serialize()
 	input3 := V1.Serialize()
-	fmt.Printf("input1=%x\n", input1)
-	fmt.Printf("input2=%x\n", input2)
-	fmt.Printf("input3=%x\n", input3)
 	var buffer bytes.Buffer
 	buffer.Write(input1)
 	buffer.Write(input2)
 	buffer.Write(input3)
 	output := buffer.Bytes()
 	h := crypto.Keccak256(output)
-	fmt.Printf("h=%x\n", h)
 	var c1 SecretKey
 	err = c1.SetLittleEndian(h)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("c1=%s\n", c1.GetHexString())
 	if !c.IsEqual(&c1) {
 		return errors.New("not same c = H(G || pk || V’)")
 	}
