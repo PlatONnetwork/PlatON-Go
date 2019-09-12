@@ -386,14 +386,6 @@ func DefaultGenesisBlock() *Genesis {
 	// initial reserved account balance
 	// reservedAccountIssue := big.NewInt(0)
 	var GeneralAddr = common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
-	OrgStakingBalance, _ := new(big.Int).SetString("10000000000000000000000000", 10)
-	var OrgStakingAddr1 = common.HexToAddress("0xD9545144cabd45CB02b61848F2A406c82AC5EFA0")
-	var OrgStakingAddr2 = common.HexToAddress("0x7259B934Ed785A20fcAb62246EfB24390203bC5D")
-	var OrgStakingAddr3 = common.HexToAddress("0xFae1A3365eed440Fb83313Ca391e3DCD75626711")
-	var OrgStakingAddr4 = common.HexToAddress("0x2451eF89D9bC2222897A3c9c895c6F7fbA040e28")
-	var OrgStakingAddr5 = common.HexToAddress("0xE110C0D3f86A9D5150A766182592fBAB2dd94178")
-	var OrgStakingAddr6 = common.HexToAddress("0x508725d0f60ce53e332D6584E637e5934F553894")
-	var OrgStakingAddr7 = common.HexToAddress("0x1597896DEd47F911f5D46418C61fb5F780ba4EBd")
 	generalBalance, _ := new(big.Int).SetString("8050000000000000000000000000", 10)
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
@@ -408,14 +400,7 @@ func DefaultGenesisBlock() *Genesis {
 			//	vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
 			vm.StakingContractAddr: {Balance: common.Big0},
 			// vm.ReservedAccount:              {Balance: reservedAccountIssue},
-			GeneralAddr:     {Balance: generalBalance},
-			OrgStakingAddr1: {Balance: OrgStakingBalance},
-			OrgStakingAddr2: {Balance: OrgStakingBalance},
-			OrgStakingAddr3: {Balance: OrgStakingBalance},
-			OrgStakingAddr4: {Balance: OrgStakingBalance},
-			OrgStakingAddr5: {Balance: OrgStakingBalance},
-			OrgStakingAddr6: {Balance: OrgStakingBalance},
-			OrgStakingAddr7: {Balance: OrgStakingBalance},
+			GeneralAddr: {Balance: generalBalance},
 		},
 		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
@@ -429,14 +414,6 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	platONFoundationIssue, _ := new(big.Int).SetString("2000000000000000000000000000", 10)
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 	var GeneralAddr = common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
-	OrgStakingBalance, _ := new(big.Int).SetString("10000000000000000000000000", 10)
-	var OrgStakingAddr1 = common.HexToAddress("0xD9545144cabd45CB02b61848F2A406c82AC5EFA0")
-	var OrgStakingAddr2 = common.HexToAddress("0x7259B934Ed785A20fcAb62246EfB24390203bC5D")
-	var OrgStakingAddr3 = common.HexToAddress("0xFae1A3365eed440Fb83313Ca391e3DCD75626711")
-	var OrgStakingAddr4 = common.HexToAddress("0x2451eF89D9bC2222897A3c9c895c6F7fbA040e28")
-	var OrgStakingAddr5 = common.HexToAddress("0xE110C0D3f86A9D5150A766182592fBAB2dd94178")
-	var OrgStakingAddr6 = common.HexToAddress("0x508725d0f60ce53e332D6584E637e5934F553894")
-	var OrgStakingAddr7 = common.HexToAddress("0x1597896DEd47F911f5D46418C61fb5F780ba4EBd")
 	generalBalance, _ := new(big.Int).SetString("8050000000000000000000000000", 10)
 	genesis := Genesis{
 		Config:    params.TestnetChainConfig,
@@ -450,13 +427,6 @@ func DefaultTestnetGenesisBlock() *Genesis {
 			vm.RestrictingContractAddr: {Balance: common.Big0},
 			vm.StakingContractAddr:     {Balance: common.Big0},
 			GeneralAddr:                {Balance: generalBalance},
-			OrgStakingAddr1:            {Balance: OrgStakingBalance},
-			OrgStakingAddr2:            {Balance: OrgStakingBalance},
-			OrgStakingAddr3:            {Balance: OrgStakingBalance},
-			OrgStakingAddr4:            {Balance: OrgStakingBalance},
-			OrgStakingAddr5:            {Balance: OrgStakingBalance},
-			OrgStakingAddr6:            {Balance: OrgStakingBalance},
-			OrgStakingAddr7:            {Balance: OrgStakingBalance},
 		},
 		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
 	}
