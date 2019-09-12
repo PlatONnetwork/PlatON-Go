@@ -3,8 +3,12 @@ package cbft
 import (
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -187,4 +191,78 @@ func TestRecordCbftMsg(t *testing.T) {
 	block := restartNode.engine.state.ViewBlockByIndex(9)
 	assert.Equal(t, parent.NumberU64(), block.NumberU64())
 	assert.Equal(t, parent.Hash().String(), block.Hash().String())
+}
+
+func TestInsertQCBlock_fork_priority(t *testing.T) {
+	tempDir, _ := ioutil.TempDir("", "wal")
+	defer os.RemoveAll(tempDir)
+
+	pk, sk, cbftnodes := GenerateCbftNode(1)
+	nodes := make([]*TestCBFT, 0)
+	for i := 0; i < 1; i++ {
+		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 20)
+		assert.Nil(t, node.Start())
+
+		node.engine.wal, _ = wal.NewWal(nil, tempDir)
+		node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
+		node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
+		nodes = append(nodes, node)
+	}
+
+	parent := nodes[0].chain.Genesis()
+
+	var forkBlock *types.Block
+	var forkQC *ctypes.QuorumCert
+	for i := 0; i < 10; i++ {
+		if i == 9 {
+			nodes[0].engine.updateChainStateDelayHook = func(qcState, lockState, commitState *protocols.State) {
+				time.Sleep(1 * time.Second)
+				nodes[0].engine.bridge.UpdateChainState(qcState, lockState, commitState)
+			}
+		}
+		block, qc := makePrepareQC(nodes[0], parent, uint32(i), nodes[0].engine.state.ViewNumber())
+		nodes[0].engine.insertQCBlock(block, qc)
+		if i == 9 {
+			// moke fork block
+			forkBlock, forkQC = makePrepareQC(nodes[0], parent, uint32(i), nodes[0].engine.state.ViewNumber()+1)
+			nodes[0].engine.insertQCBlock(forkBlock, forkQC)
+		}
+		parent = block
+	}
+
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, forkBlock.NumberU64(), nodes[0].engine.state.HighestQCBlock().NumberU64())
+	assert.Equal(t, forkBlock.Hash(), nodes[0].engine.state.HighestQCBlock().Hash())
+
+	var chainState *protocols.ChainState
+	assert.Nil(t, nodes[0].engine.wal.LoadChainState(func(cs *protocols.ChainState) error {
+		chainState = cs
+		return nil
+	}))
+
+	assert.Equal(t, 2, len(chainState.QC))
+	assert.Equal(t, forkBlock.NumberU64(), chainState.QC[0].QuorumCert.BlockNumber)
+	assert.Equal(t, forkBlock.Hash(), chainState.QC[0].QuorumCert.BlockHash)
+}
+
+func makePrepareQC(node *TestCBFT, parent *types.Block, blockIndex uint32, viewNumber uint64) (*types.Block, *ctypes.QuorumCert) {
+	header := &types.Header{
+		Number:      big.NewInt(int64(parent.NumberU64() + 1)),
+		ParentHash:  parent.Hash(),
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 77),
+		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
+		Root:        common.BytesToHash(utils.Rand32Bytes(32)),
+	}
+	block := types.NewBlockWithHeader(header)
+	qc := &ctypes.QuorumCert{
+		Epoch:        node.engine.state.Epoch(),
+		ViewNumber:   viewNumber,
+		BlockHash:    block.Hash(),
+		BlockNumber:  block.NumberU64(),
+		BlockIndex:   blockIndex,
+		Signature:    ctypes.Signature{},
+		ValidatorSet: utils.NewBitArray(32),
+	}
+	return block, qc
 }

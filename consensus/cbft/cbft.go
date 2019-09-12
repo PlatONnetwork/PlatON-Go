@@ -131,11 +131,12 @@ type Cbft struct {
 	blockTree *ctypes.BlockTree
 
 	// wal
-	nodeServiceContext   *node.ServiceContext
-	wal                  wal.Wal
-	bridge               Bridge
-	loading              int32
-	updateChainStateHook cbfttypes.UpdateChainStateFn
+	nodeServiceContext        *node.ServiceContext
+	wal                       wal.Wal
+	bridge                    Bridge
+	loading                   int32
+	updateChainStateHook      cbfttypes.UpdateChainStateFn
+	updateChainStateDelayHook func(qcState, lockState, commitState *protocols.State)
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -1185,12 +1186,17 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 
 	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-	if cbft.updateChainStateHook != nil {
-		cbft.updateChainStateHook(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, &protocols.State{Block: lockBlock, QuorumCert: lockQC}, &protocols.State{Block: commitBlock, QuorumCert: commitQC})
-	}
+
 	qcState := &protocols.State{Block: qcBlock, QuorumCert: qcQC}
 	lockState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
 	commitState := &protocols.State{Block: commitBlock, QuorumCert: commitQC}
+	if cbft.updateChainStateDelayHook != nil {
+		go cbft.updateChainStateDelayHook(qcState, lockState, commitState)
+		return
+	}
+	if cbft.updateChainStateHook != nil {
+		cbft.updateChainStateHook(qcState, lockState, commitState)
+	}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,

@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -184,7 +186,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Check whether the genesis block is already written.
 	if genesis != nil {
-		hash := genesis.ToBlock(nil).Hash()
+		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
@@ -243,11 +245,19 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 
 // ToBlock creates the genesis block and writes state of a genesis specification
 // to the given database (or discards it if nil).
-func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
+func (g *Genesis) ToBlock(db ethdb.Database, snapDB snapshotdb.DB) *types.Block {
 	if db == nil {
 		db = ethdb.NewMemDatabase()
 	}
-
+	if snapDB == nil {
+		var err error
+		log.Info("begin open snapshotDB in tmp")
+		snapDB, err = snapshotdb.Open(path.Join(os.TempDir(), snapshotdb.DBPath))
+		if err != nil {
+			panic(err)
+		}
+		defer snapDB.Clear()
+	}
 	genesisIssuance := new(big.Int)
 	//	genesisReward := common.Big0
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
@@ -274,10 +284,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 
-	snapdb := snapshotdb.Instance()
-
 	// Store genesis staking data
-	if err := genesisStakingData(snapdb, g, statedb, params.GenesisVersion); nil != err {
+	if err := genesisStakingData(snapDB, g, statedb, params.GenesisVersion); nil != err {
 		panic("Failed Store staking: " + err.Error())
 	}
 
@@ -308,7 +316,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 
 	block := types.NewBlock(head, nil, nil)
 
-	if err := snapdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
+	if err := snapDB.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
 	}
 	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
@@ -318,7 +326,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
-	block := g.ToBlock(db)
+	block := g.ToBlock(db, snapshotdb.Instance())
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
