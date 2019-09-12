@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"encoding/json"
 	"math/big"
 	"strings"
 
@@ -130,9 +131,6 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 
 	log.Info("Call getRestrictingBalance of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
 
-	var res xcom.Result
-	res.Status = true
-	res.ErrMsg = "ok"
 	rs := make([]restricting.BalanceResult, len(accountList))
 	for i, account := range accountList {
 		address := common.HexToAddress(account)
@@ -148,8 +146,7 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 		}
 	}
 	resByte, _ := json.Marshal(rs)
-	res.Data = string(resByte)
-	return json.Marshal(res)
+	return xcom.NewSuccessResult(string(resByte)), nil
 }
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
