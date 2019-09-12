@@ -73,7 +73,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	case nil:
 		//res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
 		//event, _ := json.Marshal(res)
-		event := xcom.NewDefaultSuccessResult
+		event := xcom.OkResultByte
 		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	case *common.BizError:

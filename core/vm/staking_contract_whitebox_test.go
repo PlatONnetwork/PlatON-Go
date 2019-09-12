@@ -109,7 +109,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, common.SuccessCode, r.Code)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -196,7 +196,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, common.SuccessCode, r.Code)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -279,7 +279,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, common.SuccessCode, r.Code)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 }
 
@@ -364,7 +364,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, common.SuccessCode, r.Code)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 	// repeat stake
@@ -422,7 +422,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	var r2 xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r2.Code)
+	assert.NotEqual(t, common.OkCode, r2.Code)
 	t.Log("the staking result Msg:", r2.Message)
 
 }
@@ -513,7 +513,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -598,7 +598,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -687,7 +687,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -776,7 +776,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -867,7 +867,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -952,7 +952,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -1040,7 +1040,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.SuccessCode, r.Code)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.Message)
 
 }
@@ -1102,7 +1102,7 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, common.SuccessCode, r.Code)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the edit result Msg:", r.Message)
 
 }
