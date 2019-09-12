@@ -153,10 +153,6 @@ func (api *PrivateAdminAPI) ImportChain(file string) (bool, error) {
 	return true, nil
 }
 
-//func (api *PrivateAdminAPI) GetProgramVersion() {
-//
-//}
-
 // PublicDebugAPI is the collection of Ethereum full node APIs exposed
 // over the public debugging endpoint.
 type PublicDebugAPI struct {

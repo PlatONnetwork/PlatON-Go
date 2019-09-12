@@ -678,20 +678,14 @@ func SchnorrNIZKProve(curve int, sec SecretKey) (*Proof, error) {
 		return nil, err
 	}
 	P := sec.GetPublicKey()
-	fmt.Printf("P=%s\n", P.GetHexString())
 	var v SecretKey
 	v.SetByCSPRNG()
 	V := v.GetPublicKey()
-	fmt.Printf("V=%s\n", V.GetHexString())
 	G := GetGeneratorOfG2()
-	fmt.Printf("G=%s\n", G.GetHexString())
 
 	input1 := G.Serialize()
 	input2 := P.Serialize()
 	input3 := V.Serialize()
-	fmt.Printf("input1=%x\n", input1)
-	fmt.Printf("input2=%x\n", input2)
-	fmt.Printf("input3=%x\n", input3)
 
 	var buffer bytes.Buffer
 	buffer.Write(input1)
@@ -699,19 +693,15 @@ func SchnorrNIZKProve(curve int, sec SecretKey) (*Proof, error) {
 	buffer.Write(input3)
 	output := buffer.Bytes()
 	h := crypto.Keccak256(output)
-	fmt.Printf("h=%x\n", h)
 	var c SecretKey
 	err = c.SetLittleEndian(h)
 	if err != nil {
-		fmt.Println("Deserialize fail")
 		return nil, err
 	}
 	temp := sec
 	temp.Mul(&c)
 	r := v
 	r.Sub(&temp)
-	fmt.Printf("r=%s\n", r.GetHexString())
-	fmt.Printf("c=%s\n", c.GetHexString())
 	proof := new(Proof)
 	proof.C = c
 	proof.R = r
