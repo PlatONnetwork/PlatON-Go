@@ -341,11 +341,11 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 
 	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, gc.Evm.StateDB)
 	if err != nil {
-		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
+		return gc.callHandler("getAccuVerifiesCount", []uint16{uint16(0), uint16(0), uint16(0), uint16(0)}, common.InternalError.Wrap(err.Error()))
 	}
 
 	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
-	return gc.callHandler("getAccuVerifiesCount", returnValue, common.InternalError.Wrap(err.Error()))
+	return gc.callHandler("getAccuVerifiesCount", returnValue, nil)
 }
 
 func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) ([]byte, error) {
