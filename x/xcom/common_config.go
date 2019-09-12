@@ -44,16 +44,16 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
-	VersionProposalVote_DurationSeconds   uint64  // max Consensus-Round counts for version proposal's vote duration.
-	VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
+	VersionProposalVote_DurationSeconds uint64 // max Consensus-Round counts for version proposal's vote duration.
+	//VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
 	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
 	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
 	TextProposalVote_DurationSeconds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
-	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
-	CancelProposal_VoteRate               float64 // the cancel proposal will pass if the vote rate exceeds this value.
-	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
+	//TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
+	TextProposal_VoteRate      float64 // the text proposal will pass if the vote rate exceeds this value.
+	TextProposal_SupportRate   float64 // the text proposal will pass if the vote support reaches this value.
+	CancelProposal_VoteRate    float64 // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposal_SupportRate float64 // the cancel proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
