@@ -115,6 +115,10 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					slashType = staking.LowRatio
 				}
 				slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+				sumAmount := calcSumAmount(header.Number.Uint64(), validator)
+				if slashAmount.Cmp(sumAmount) > 0 {
+					slashAmount = sumAmount
+				}
 				log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
 					"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
 				// If there is no record of the node, it means that there is no block, then the penalty is directly
@@ -375,11 +379,16 @@ func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	}
 }
 
-func calcSlashAmount(candidate *staking.Candidate, rate uint32, blockNumber uint64) (*big.Int, *big.Int) {
+func calcSumAmount(blockNumber uint64, candidate *staking.Candidate) *big.Int {
 	// Recalculate the quality deposit
 	lazyCalcStakeAmount(xutil.CalculateEpoch(blockNumber), candidate)
 	sumAmount := new(big.Int)
 	sumAmount.Add(candidate.Released, candidate.RestrictingPlan)
+	return sumAmount
+}
+
+func calcSlashAmount(candidate *staking.Candidate, rate uint32, blockNumber uint64) (*big.Int, *big.Int) {
+	sumAmount := calcSumAmount(blockNumber, candidate)
 	if sumAmount.Cmp(common.Big0) > 0 {
 		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
 		return amount.Div(amount, new(big.Int).SetUint64(100)), sumAmount
