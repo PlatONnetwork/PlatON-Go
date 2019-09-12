@@ -32,15 +32,15 @@ var (
 		errStakingAmountInvalid  = common.NewBizError("staking return amount is wrong")
 	*/
 	monthOfThreeYear         = 12 * 3
-	errParamEpochInvalid     = common.NewBizError(400, "param epoch can't be zero")
-	errRestrictAmountInvalid = common.NewBizError(401, "the number of the restricting plan can't be zero or more than 36")
-	errLockedAmountTooLess   = common.NewBizError(402, "total restricting amount need more than 1 LAT")
-	errBalanceNotEnough      = common.NewBizError(403, "the balance is not enough in restrict")
-	errAccountNotFound       = common.NewBizError(404, "account is not found on restricting contract")
-	errSlashingTooMuch       = common.NewBizError(405, "slashing amount is larger than staking amount")
-	errStakingAmountEmpty    = common.NewBizError(406, "staking amount is 0")
-	errAmountLessThanZero    = common.NewBizError(407, "Amount can't less than 0")
-	errStakingAmountInvalid  = common.NewBizError(408, "staking return amount is wrong")
+	errParamEpochInvalid     = common.NewBizError(304001, "param epoch can't be zero")
+	errRestrictAmountInvalid = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
+	errLockedAmountTooLess   = common.NewBizError(304003, "total restricting amount need more than 1 LAT")
+	errBalanceNotEnough      = common.NewBizError(304004, "the balance is not enough in restrict")
+	errAccountNotFound       = common.NewBizError(304005, "account is not found on restricting contract")
+	errSlashingTooMuch       = common.NewBizError(304006, "slashing amount is larger than staking amount")
+	errStakingAmountEmpty    = common.NewBizError(304007, "staking amount is 0")
+	errAmountLessThanZero    = common.NewBizError(304008, "Amount can't less than 0")
+	errStakingAmountInvalid  = common.NewBizError(304009, "staking return amount is wrong")
 )
 
 type RestrictingPlugin struct {
@@ -276,10 +276,10 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
-	amountCompareWithZeao := amount.Cmp(common.Big0)
-	if amountCompareWithZeao == 0 {
+	amountCompareWithZero := amount.Cmp(common.Big0)
+	if amountCompareWithZero == 0 {
 		return nil
-	} else if amountCompareWithZeao < 0 {
+	} else if amountCompareWithZero < 0 {
 		return errAmountLessThanZero
 	}
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)

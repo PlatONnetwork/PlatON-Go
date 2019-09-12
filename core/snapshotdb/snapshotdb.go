@@ -111,7 +111,8 @@ type snapshotDB struct {
 	//	snapshotLock  event.Feed
 
 	current *current
-	baseDB  *leveldb.DB
+
+	baseDB *leveldb.DB
 
 	unCommit *unCommitBlocks
 
@@ -508,33 +509,9 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 	return nil
 }
 
-func (s *snapshotDB) lock() {
-	s.unCommit.Lock()
-	s.commitLock.Lock()
-}
-
-func (s *snapshotDB) unLock() {
-	s.unCommit.Unlock()
-	s.commitLock.Unlock()
-}
-
-func (s *snapshotDB) rLock() {
+func (s *snapshotDB) getFromUnCommit(hash common.Hash, key []byte) ([]byte, error) {
 	s.unCommit.RLock()
-	s.commitLock.RLock()
-}
-
-func (s *snapshotDB) rUnLock() {
-	s.unCommit.RUnlock()
-	s.commitLock.RUnlock()
-}
-
-// Get get key,val from  snapshotDB
-// if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
-// if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
-func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	s.rLock()
-	defer s.rUnLock()
-	//blocks := make([]*blockData, 0)
+	defer s.unCommit.RUnlock()
 	for {
 		if block, ok := s.unCommit.blocks[hash]; ok {
 			if hash == block.ParentHash {
@@ -542,9 +519,6 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 			}
 			v, err := block.data.Get(key)
 			if err == nil {
-				if v == nil || len(v) == 0 {
-					return v, ErrNotFound
-				}
 				return v, nil
 			}
 			if err == memdb.ErrNotFound {
@@ -556,13 +530,16 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 			break
 		}
 	}
+	return nil, ErrNotFound
+}
+
+func (s *snapshotDB) getFromCommit(key []byte) ([]byte, error) {
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
 	if len(s.committed) > 0 {
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			v, err := s.committed[i].data.Get(key)
 			if err == nil {
-				if v == nil || len(v) == 0 {
-					return v, ErrNotFound
-				}
 				return v, nil
 			}
 			if err == memdb.ErrNotFound {
@@ -570,6 +547,33 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 			}
 			return nil, err
 		}
+	}
+	return nil, ErrNotFound
+}
+
+// Get get key,val from  snapshotDB
+// if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
+// if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
+func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
+	v, err := s.getFromUnCommit(hash, key)
+	if err != nil && err != ErrNotFound {
+		return nil, err
+	}
+	if err == nil {
+		if v == nil || len(v) == 0 {
+			return nil, ErrNotFound
+		}
+		return v, nil
+	}
+	v2, err2 := s.getFromCommit(key)
+	if err2 != nil && err2 != ErrNotFound {
+		return nil, err2
+	}
+	if err2 == nil {
+		if v2 == nil || len(v2) == 0 {
+			return nil, ErrNotFound
+		}
+		return v2, nil
 	}
 	return s.GetBaseDB(key)
 }
@@ -599,21 +603,26 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
-	s.unCommit.Lock()
-	defer s.unCommit.Unlock()
+	logger.Debug("begin flush")
+	s.unCommit.RLock()
 	block, ok := s.unCommit.blocks[s.getUnRecognizedHash()]
 	if !ok {
+		s.unCommit.RUnlock()
 		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
 	}
+	if _, ok := s.unCommit.blocks[hash]; ok {
+		s.unCommit.RUnlock()
+		return errors.New("the hash is exist in recognized data")
+	}
+	s.unCommit.RUnlock()
+
 	if block.Number == nil {
 		return errors.New("[snapshotdb]the unRecognized Number is nil, can't flush")
 	}
 	if blocknumber.Uint64() != block.Number.Uint64() {
 		return fmt.Errorf("[snapshotdb]blocknumber not compare the unRecognized blocknumber=%v,unRecognizedNumber=%v", blocknumber.Uint64(), block.Number.Uint64())
 	}
-	if _, ok := s.unCommit.blocks[hash]; ok {
-		return errors.New("the hash is exist in recognized data")
-	}
+
 	currentHash := s.getUnRecognizedHash()
 	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: currentHash}
 	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Uint64(), BlockHash: hash}
@@ -625,8 +634,11 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	}
 	block.BlockHash = hash
 	block.readOnly = true
+	s.unCommit.Lock()
 	s.unCommit.blocks[hash] = block
 	delete(s.unCommit.blocks, common.ZeroHash)
+	s.unCommit.Unlock()
+	logger.Debug("end flush")
 	return nil
 }
 
@@ -642,10 +654,9 @@ func (s *snapshotDB) IsBlockSame(block *blockData) bool {
 
 // Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) error {
-	s.lock()
-	defer s.unLock()
-
+	s.unCommit.RLock()
 	block, ok := s.unCommit.blocks[hash]
+	s.unCommit.RUnlock()
 	if !ok {
 		return errors.New("[snapshotdb]commit fail, not found block from recognized :" + hash.String())
 	}
@@ -672,13 +683,17 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 
 	if !s.IsBlockSame(block) {
 		block.readOnly = true
+		s.commitLock.Lock()
 		s.committed = append(s.committed, block)
+		s.commitLock.Unlock()
 		s.current.HighestNum = block.Number
 		s.current.HighestHash = hash
-		if err := s.current.update(); err != nil {
-			return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
-		}
+		//if err := s.current.update(); err != nil {
+		//	return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
+		//}
+		s.unCommit.Lock()
 		delete(s.unCommit.blocks, hash)
+		s.unCommit.Unlock()
 	}
 
 	if err := s.rmOldRecognizedBlockData(); err != nil {
@@ -701,26 +716,6 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 // slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
 	logger.Info("begin walkbase db")
-	//if atomic.LoadInt32(&s.snapshotLockC) == snapshotLock {
-	//	logger.Info("wait for snapshot unlock")
-	//	c := make(chan struct{})
-	//	defer close(c)
-	//	d := time.NewTimer(10 * time.Second)
-	//	sub := s.snapshotLock.Subscribe(c)
-	//	select {
-	//	case <-c:
-	//	case err := <-sub.Err():
-	//		logger.Error("sub err", "err", err)
-	//		sub.Unsubscribe()
-	//		return err
-	//	case <-d.C:
-	//		logger.Error("wait for snapshot unlock time out")
-	//		sub.Unsubscribe()
-	//		return errors.New("[snapshotDB]timeout for wait WalkBaseDB")
-	//	}
-	//	sub.Unsubscribe()
-	//	d.Stop()
-	//}
 	snapshot, err := s.baseDB.GetSnapshot()
 	if err != nil {
 		return errors.New("[snapshotdb] get snapshot fail:" + err.Error())
@@ -752,40 +747,30 @@ func (s *snapshotDB) Clear() error {
 // The iterator must be released after use, by calling Release method.t
 // Also read Iterator documentation of the leveldb/iterator package.
 func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iterator.Iterator {
-	s.rLock()
-	location, ok := s.checkHashChain(hash)
-	if !ok {
-		s.rUnLock()
-		return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + hash.String()))
-	}
 	prefix := util.BytesPrefix(key)
 	var itrs []iterator.Iterator
 	var parentHash common.Hash
-	switch location {
-	case hashLocationUnCommitted:
-		parentHash = hash
-		for {
-			if block, ok := s.unCommit.blocks[parentHash]; ok {
-				itrs = append(itrs, block.data.NewIterator(prefix))
-				parentHash = block.ParentHash
-			} else {
-				break
-			}
-		}
-		for i := len(s.committed) - 1; i >= 0; i-- {
-			block := s.committed[i]
+	parentHash = hash
+	s.unCommit.RLock()
+	for {
+		if block, ok := s.unCommit.blocks[parentHash]; ok {
 			itrs = append(itrs, block.data.NewIterator(prefix))
-		}
-	case hashLocationCommitted:
-		for i := len(s.committed) - 1; i >= 0; i-- {
-			block := s.committed[i]
-			if block.BlockHash == hash || block.BlockHash == parentHash {
-				itrs = append(itrs, block.data.NewIterator(prefix))
-				parentHash = block.ParentHash
-			}
+			parentHash = block.ParentHash
+		} else {
+			break
 		}
 	}
-	s.rUnLock()
+	s.unCommit.RUnlock()
+
+	s.commitLock.RLock()
+	for i := len(s.committed) - 1; i >= 0; i-- {
+		block := s.committed[i]
+		if block.BlockHash == hash || block.BlockHash == parentHash {
+			itrs = append(itrs, block.data.NewIterator(prefix))
+			parentHash = block.ParentHash
+		}
+	}
+	s.commitLock.RUnlock()
 
 	//put  unCommit and commit itr to heap
 	rankingHeap := newRankingHeap(rangeNumber)
@@ -925,11 +910,6 @@ func (s *snapshotDB) Close() error {
 		}
 	}
 
-	//for key := range s.journalw {
-	//	if err := s.journalw[key].Close(); err != nil {
-	//		return fmt.Errorf("[snapshotdb]close journalw fail:%v", err)
-	//	}
-	//}
 	for _, value := range s.unCommit.blocks {
 		if !value.readOnly {
 			if err := value.jWriter.Close(); err != nil {
