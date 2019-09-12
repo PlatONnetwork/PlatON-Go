@@ -26,8 +26,8 @@ var (
 	// Identifies the prefix of the previous round
 	preAbnormalPrefix = []byte("SlashPb")
 
-	errDuplicateSignVerify = common.NewBizError(401, "duplicate signature verification failed")
-	errSlashExist          = common.NewBizError(402, "punishment has been implemented")
+	errDuplicateSignVerify = common.NewBizError(303001, "duplicate signature verification failed")
+	errSlashExist          = common.NewBizError(303002, "punishment has been implemented")
 
 	once = sync.Once{}
 )
@@ -96,41 +96,59 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			}
 			for _, validator := range validatorList {
 				nodeId := validator.NodeId
-				amount, success := result[nodeId]
-				isSlash := false
-				var rate uint32
-
-				slashType := staking.LowRatio
-
-				if success {
-					// Start to punish nodes with abnormal block rate
-					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
-						"nodeId", nodeId.TerminalString(), "amount", amount)
-					if isAbnormal(amount) {
-						if amount <= xcom.PackAmountAbnormal() && amount > xcom.PackAmountHighAbnormal() {
-							isSlash = true
-							rate = xcom.PackAmountLowSlashRate()
-						} else if amount <= xcom.PackAmountHighAbnormal() {
-							isSlash = true
-							slashType = staking.LowRatioDel
-							rate = xcom.PackAmountHighSlashRate()
-						}
-					}
-				} else {
-					isSlash = true
+				amount := result[nodeId]
+				if amount > xcom.PackAmountAbnormal() {
+					continue
+				}
+				var slashType int
+				if amount == 0 {
 					slashType = staking.LowRatioDel
-					rate = xcom.PackAmountHighSlashRate()
+				} else {
+					slashType = staking.LowRatio
 				}
-				if isSlash && rate > 0 {
-					slashAmount, sumAmount := calcSlashAmount(validator, rate, header.Number.Uint64())
-					log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
-						"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "sumAmount", sumAmount, "slash balance rate of remain", rate, "slashAmount", slashAmount)
-					// If there is no record of the node, it means that there is no block, then the penalty is directly
-					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, slashType, common.ZeroAddr); nil != err {
-						log.Error("Failed to slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
-						return err
-					}
+				slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+				log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
+					"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
+				// If there is no record of the node, it means that there is no block, then the penalty is directly
+				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, slashType, common.ZeroAddr); nil != err {
+					log.Error("Failed to slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
+					return err
 				}
+				//
+				//isSlash := false
+				//var rate uint32
+				//
+				//slashType := staking.LowRatio
+				//
+				//if success {
+				//	// Start to punish nodes with abnormal block rate
+				//	log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
+				//		"nodeId", nodeId.TerminalString(), "amount", amount)
+				//	if isAbnormal(amount) {
+				//		if amount <= xcom.PackAmountAbnormal() && amount > xcom.PackAmountHighAbnormal() {
+				//			isSlash = true
+				//			rate = xcom.PackAmountLowSlashRate()
+				//		} else if amount <= xcom.PackAmountHighAbnormal() {
+				//			isSlash = true
+				//			slashType = staking.LowRatioDel
+				//			rate = xcom.PackAmountHighSlashRate()
+				//		}
+				//	}
+				//} else {
+				//	isSlash = true
+				//	slashType = staking.LowRatioDel
+				//	rate = xcom.PackAmountHighSlashRate()
+				//}
+				//if isSlash && rate > 0 {
+				//	slashAmount, sumAmount := calcSlashAmount(validator, rate, header.Number.Uint64())
+				//	log.Info("Call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(),
+				//		"nodeId", nodeId.TerminalString(), "packAmount", amount, "slashType", slashType, "sumAmount", sumAmount, "slash balance rate of remain", rate, "slashAmount", slashAmount)
+				//	// If there is no record of the node, it means that there is no block, then the penalty is directly
+				//	if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, slashAmount, slashType, common.ZeroAddr); nil != err {
+				//		log.Error("Failed to slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(), "err", err)
+				//		return err
+				//	}
+				//}
 			}
 		}
 	}
@@ -184,6 +202,7 @@ func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash)
 		value := preIterator.Value()
 		log.Debug("slashingPlugin switchEpoch ranking pre", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(value))
 		if err := sp.db.Del(blockHash, key); nil != err {
+			preIterator.Release()
 			return err
 		}
 		preCount++
@@ -308,9 +327,10 @@ func getNodeId(prefix []byte, key []byte) (discover.NodeID, error) {
 	return nodeId, nil
 }
 
-func isAbnormal(amount uint32) bool {
-	return uint64(amount) < (xutil.ConsensusSize() / xcom.ConsValidatorNum())
-}
+//
+//func isAbnormal(amount uint32) bool {
+//	return uint64(amount) < (xutil.ConsensusSize() / xcom.ConsValidatorNum())
+//}
 
 func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	if xutil.IsWorker(header.Extra) {
@@ -335,4 +355,15 @@ func calcSlashAmount(candidate *staking.Candidate, rate uint32, blockNumber uint
 		return amount.Div(amount, new(big.Int).SetUint64(100)), sumAmount
 	}
 	return common.Big0, common.Big0
+}
+
+func calcEndBlockSlashAmount(blockNumber uint64, state xcom.StateDB) *big.Int {
+	thisYear := xutil.CalculateYear(blockNumber)
+	var lastYear uint32
+	if thisYear != 0 {
+		lastYear = thisYear - 1
+	}
+	_, newBlockReward := RewardMgrInstance().calculateExpectReward(thisYear, lastYear, state)
+	num := xcom.NumberOfBlockRewardForSlashing()
+	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(uint64(num)))
 }
