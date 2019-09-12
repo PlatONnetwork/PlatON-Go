@@ -874,7 +874,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		result <- cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{qc})
 	}
 
-	timer := time.NewTimer(checkBlockSyncInterval * time.Millisecond)
+	timer := time.NewTimer(checkBlockSyncInterval)
 	defer timer.Stop()
 	for {
 		select {
@@ -883,7 +883,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 				cbft.log.Debug("The inserted block has exists in block tree", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t))
 				return nil
 			}
-			timer.Reset(checkBlockSyncInterval * time.Millisecond)
+			timer.Reset(checkBlockSyncInterval)
 		case err := <-result:
 			return err
 		}
