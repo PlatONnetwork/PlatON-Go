@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -23,16 +25,20 @@ var Bytes2X_CMD = map[string]interface{}{
 	"uint32": BytesToUint32,
 	"uint64": BytesToUint64,
 
-	"*big.Int":             BytesToBigInt,
-	"[]*big.Int":           BytesToBigIntArr,
-	"discover.NodeID":      BytesToNodeId,
-	"[]discover.NodeID":    BytesToNodeIdArr,
-	"common.Hash":          BytesToHash,
-	"[]common.Hash":        BytesToHashArr,
-	"common.Address":       BytesToAddress,
-	"[]common.Address":     BytesToAddressArr,
-	"common.VersionSign":   BytesToVersionSign,
-	"[]common.VersionSign": BytesToVersionSignArr,
+	"*big.Int":               BytesToBigInt,
+	"[]*big.Int":             BytesToBigIntArr,
+	"discover.NodeID":        BytesToNodeId,
+	"[]discover.NodeID":      BytesToNodeIdArr,
+	"common.Hash":            BytesToHash,
+	"[]common.Hash":          BytesToHashArr,
+	"common.Address":         BytesToAddress,
+	"[]common.Address":       BytesToAddressArr,
+	"common.VersionSign":     BytesToVersionSign,
+	"[]common.VersionSign":   BytesToVersionSignArr,
+	"bls.PublicKeyEntries":   BytesToPublicKeyEntries,
+	"[]bls.PublicKeyEntries": BytesToPublicKeyEntriesArr,
+	"bls.ProofEntries":       BytesToProofEntries,
+	"[]bls.ProofEntries":     BytesToProofEntriesArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 }
@@ -224,6 +230,38 @@ func BytesToVersionSignArr(currByte []byte) []common.VersionSign {
 	var arr []common.VersionSign
 	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
 		panic("BytesToVersionSignArr:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToPublicKeyEntries(currByte []byte) bls.PublicKeyEntries {
+	var pub bls.PublicKeyEntries
+	if err := rlp.DecodeBytes(currByte, &pub); nil != err {
+		panic("BytesToPublicKeyEntries:" + err.Error())
+	}
+	return pub
+}
+
+func BytesToPublicKeyEntriesArr(currByte []byte) []bls.PublicKeyEntries {
+	var arr []bls.PublicKeyEntries
+	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
+		panic("BytesToPublicKeyEntriesArr:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToProofEntries(currByte []byte) bls.ProofEntries {
+	var proof bls.ProofEntries
+	if err := rlp.DecodeBytes(currByte, &proof); nil != err {
+		panic("BytesToProofEntries:" + err.Error())
+	}
+	return proof
+}
+
+func BytesToProofEntriesArr(currByte []byte) []bls.ProofEntries {
+	var arr []bls.ProofEntries
+	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
+		panic("BytesToProofEntriesArr:" + err.Error())
 	}
 	return arr
 }

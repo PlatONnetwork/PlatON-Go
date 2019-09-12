@@ -169,6 +169,10 @@ web3._extend({
 			name: 'stopWS',
 			call: 'admin_stopWS'
 		}),
+		new web3._extend.Method({
+			name: 'getSchnorrNIZKProve',
+			getter: 'admin_getSchnorrNIZKProve'
+		}),
 	],
 	properties: [
 		new web3._extend.Property({

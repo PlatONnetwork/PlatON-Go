@@ -9,11 +9,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 	"os"
 	"strings"
 	"unsafe"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
@@ -101,6 +102,16 @@ func LoadBLS(file string) (*SecretKey, error) {
 	}
 	err = sec.SetLittleEndian(key)
 	return &sec, err
+}
+
+// Serialize --
+func (sec *SecretKey) Serialize() []byte {
+	return sec.v.Serialize()
+}
+
+// Deserialize --
+func (sec *SecretKey) Deserialize(buf []byte) error {
+	return sec.v.Deserialize(buf)
 }
 
 // getPointer --
@@ -206,6 +217,30 @@ func (sec *SecretKey) GetPop() (sign *Sign) {
 // PublicKey --
 type PublicKey struct {
 	v G2
+}
+
+// Match only 192 hex char length public keys
+type PublicKeyEntries [96]byte
+
+// MarshalText implements the encoding.TextMarshaler interface.
+func (pe PublicKeyEntries) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(pe[:])), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (pe *PublicKeyEntries) UnmarshalText(text []byte) error {
+
+	var p PublicKeyEntries
+	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
+	if err != nil {
+		return err
+	} else if len(b) != len(p) {
+		return fmt.Errorf("wrong length, want %d hex chars", len(p)*2)
+	}
+	copy(p[:], b)
+
+	*pe = p
+	return nil
 }
 
 func (pub *PublicKey) getQ() (p *C.blsPublicKey) {
@@ -568,6 +603,73 @@ func Schnorr_test(curve int, r, c SecretKey, G, V, P PublicKey) error {
 
 type Proof struct {
 	C, R SecretKey
+}
+
+// Match only 128 hex char length proof
+type ProofEntries [64]byte
+
+// MarshalText implements the encoding.TextMarshaler interface.
+func (pfe ProofEntries) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(pfe[:])), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (pfe *ProofEntries) UnmarshalText(text []byte) error {
+
+	var p ProofEntries
+	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
+	if err != nil {
+		return err
+	} else if len(b) != len(p) {
+		return fmt.Errorf("wrong length, want %d hex chars", len(p)*2)
+	}
+	copy(p[:], b)
+
+	*pfe = p
+	return nil
+}
+
+// Serialize --
+func (pf *Proof) Serialize() []byte {
+	return append(pf.C.Serialize(), (pf.R.Serialize())...)
+
+}
+
+// Deserialize --
+func (pf *Proof) Deserialize(buf []byte) error {
+	if len(buf)%2 != 0 {
+		return errors.New("the length of C and R not equal in proof")
+	}
+
+	pivot := len(buf) / 2
+
+	pf.C.Deserialize(buf[:pivot])
+	pf.R.Deserialize(buf[pivot:])
+	return nil
+}
+
+func (pf *Proof) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("%x", pf.Serialize())), nil
+}
+
+func (pf *Proof) UnmarshalText(text []byte) error {
+	key, err := hex.DecodeString(string(text))
+	if err != nil {
+		return err
+	}
+	return pf.Deserialize(key)
+}
+
+func (pf *Proof) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, pf.Serialize())
+}
+
+func (pf *Proof) DecodeRLP(s *rlp.Stream) error {
+	buf, err := s.Bytes()
+	if err != nil {
+		return err
+	}
+	return pf.Deserialize(buf)
 }
 
 func SchnorrNIZKProve(curve int, sec SecretKey) (*Proof, error) {
