@@ -39,6 +39,9 @@ const (
 
 	// Heartbeat detection interval (unit: second).
 	pingInterval = 15 * time.Second
+
+	// maxQueueSize is maximum threshold for the queue of messages waiting to sent.
+	maxQueueSize = 128
 )
 
 // Peer represents a node in the network.
@@ -64,6 +67,8 @@ type peer struct {
 
 	pingList *list.List
 	listLock sync.RWMutex
+
+	sendQueue chan *types.MsgPackage
 }
 
 // newPeer creates a new peer.
@@ -79,6 +84,7 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		commitBn:         new(big.Int),
 		knownMessageHash: mapset.NewSet(),
 		pingList:         list.New(),
+		sendQueue:        make(chan *types.MsgPackage, maxQueueSize),
 	}
 }
 
@@ -294,7 +300,13 @@ func (p *peer) CommitBn() uint64 {
 // Start the loop that the peer uses to maintain its
 // own functions.
 func (p *peer) Run() {
-	p.pingLoop()
+	go p.pingLoop()
+	go p.sendLoop()
+}
+
+// Send send the message
+func (p *peer) Send(msg *types.MsgPackage) {
+	p.sendQueue <- msg
 }
 
 // The loop of heartbeat detection is mainly responsible for
@@ -322,6 +334,21 @@ func (p *peer) pingLoop() {
 			ping.Reset(pingInterval)
 		case <-p.term:
 			log.Trace("Ping loop term", "peerID", p.ID().TerminalString())
+			return
+		}
+	}
+}
+
+// sendLoop the loop reads data from message queue and sends it.
+func (p *peer) sendLoop() {
+	for {
+		select {
+		case msg := <-p.sendQueue:
+			msgType := protocols.MessageType(msg.Message())
+			if err := p2p.Send(p.rw, msgType, msg.Message()); err != nil {
+				log.Error("Send message fail", "peer", p.PeerID(), "msg", msg.Message().String(), "err", err)
+			}
+		case <-p.term:
 			return
 		}
 	}
