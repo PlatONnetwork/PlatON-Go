@@ -2182,29 +2182,12 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 }
 
 // NotifyPunishedVerifiers
-func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
-	slashType int, reporter common.Address, queue ...*staking.SlashNodeItem) error {
-
-	log.Info("Call SlashCandidates start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"slashType", slashType, "slashItem Size", len(queue), "reporter", reporter.Hex())
-
-	// check slash type is right
-	slashTypeIsWrong := func() bool {
-		return uint32(slashType) != staking.LowRatio &&
-			uint32(slashType) != staking.LowRatioDel &&
-			uint32(slashType) != staking.DuplicateSign
-	}
-	if slashTypeIsWrong() {
-		log.Error("Failed to SlashCandidates: the slashType is wrong", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "slashType", slashType, "slashItemSize", len(queue))
-
-		return staking.ErrWrongSlashType
-	}
+func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
 	invalidNodeIds := make([]discover.NodeID, 0)
 
 	for _, slashItem := range queue {
-		needRemove, err := sk.toSlash(state, blockNumber, blockHash, slashItem, slashType, reporter)
+		needRemove, err := sk.toSlash(state, blockNumber, blockHash, slashItem)
 		if nil != err {
 			return err
 		}
@@ -2212,7 +2195,6 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		if needRemove {
 			invalidNodeIds = append(invalidNodeIds, slashItem.NodeId)
 		}
-
 	}
 
 	// remove the validator from epoch verifierList
@@ -2229,13 +2211,26 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, slashItem *staking.SlashNodeItem,
-	slashType int, reporter common.Address) (bool, error) {
+func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, slashItem *staking.SlashNodeItem) (bool, error) {
 
 	log.Info("Call SlashCandidates: call toSlash", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"nodeId", slashItem.NodeId.String(), "amount", slashItem.Amount, "reporter", reporter.Hex())
+		"nodeId", slashItem.NodeId.String(), "amount", slashItem.Amount, "slashType", slashItem.SlashType,
+		"benefitAddr", slashItem.BenefitAddr.Hex())
 
 	var needRemove bool
+
+	// check slash type is right
+	slashTypeIsWrong := func() bool {
+		return uint32(slashItem.SlashType) != staking.LowRatio &&
+			uint32(slashItem.SlashType) != staking.LowRatioDel &&
+			uint32(slashItem.SlashType) != staking.DuplicateSign
+	}
+	if slashTypeIsWrong() {
+		log.Error("Failed to SlashCandidates: the slashType is wrong", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "slashType", slashItem.SlashType, "benefitAddr", slashItem.BenefitAddr.Hex())
+
+		return needRemove, staking.ErrWrongSlashType
+	}
 
 	canAddr, _ := xutil.NodeId2Addr(slashItem.NodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, canAddr)
@@ -2255,9 +2250,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	lazyCalcStakeAmount(epoch, can)
 
-	/**
-	Balance that can only be effective for Slash
-	*/
+	// Balance that can only be effective for Slash
 	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
 
 	if total.Cmp(slashItem.Amount) < 0 {
@@ -2278,11 +2271,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	slashBalance := slashItem.Amount
 
-	/**
-	Balance that can only be effective for Slash
-	*/
+	// slash the balance
 	if slashBalance.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
-		val, rval, err := slashBalanceFn(slashBalance, can.Released, false, uint32(slashType), reporter, can.StakingAddress, state)
+		val, rval, err := slashBalanceFn(slashBalance, can.Released, false, uint32(slashItem.SlashType),
+			slashItem.BenefitAddr, can.StakingAddress, state)
 		if nil != err {
 			log.Error("Failed to SlashCandidates: slash Released", "slashed amount", slashBalance,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2290,9 +2282,9 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 		slashBalance, can.Released = val, rval
 	}
-
 	if slashBalance.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, uint32(slashType), reporter, can.StakingAddress, state)
+		val, rval, err := slashBalanceFn(slashBalance, can.RestrictingPlan, true, uint32(slashItem.SlashType),
+			slashItem.BenefitAddr, can.StakingAddress, state)
 		if nil != err {
 			log.Error("Failed to SlashCandidates: slash RestrictingPlan", "slashed amount", slashBalance,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2324,7 +2316,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		if can.Shares.Cmp(slashItem.Amount) >= 0 {
 			can.Shares = new(big.Int).Sub(can.Shares, slashItem.Amount)
 		} else {
-			log.Error("Failed to SlashCandidates: the candidate shares is no enough", "slashType", slashType,
+			log.Error("Failed to SlashCandidates: the candidate shares is no enough", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "candidate shares",
 				can.Shares, "slash amount", slashItem.Amount)
 			panic("the candidate shares is no enough")
@@ -2334,9 +2326,9 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	// need invalid candidate status
 	// need remove from verifierList
-	needInvalid, needRemove := handleSlashTypeFn(slashType, can)
+	needInvalid, needRemove := handleSlashTypeFn(slashItem.SlashType, can)
 
-	log.Info("Call SlashCandidates: the status", "needInvalid", needInvalid, "can.Status", can.Status)
+	log.Info("Call SlashCandidates: the status", "needInvalid", needInvalid, "needRemove", needRemove, "can.Status", can.Status)
 
 	if needInvalid && staking.Is_Valid(can.Status) {
 
@@ -2360,7 +2352,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 		// need to sub account rc
 		if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
-			log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashType,
+			log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
 			return needRemove, err
 		}
@@ -2385,20 +2377,20 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	} else if !needInvalid && staking.Is_Valid(can.Status) {
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
-			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashType,
+			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
 			return needRemove, err
 		}
 
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
-			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
+			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
 			return needRemove, err
 		}
 
 	} else {
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
-			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashType,
+			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
 			return needRemove, err
 		}
@@ -2480,7 +2472,7 @@ func handleSlashTypeFn(slashType int, can *staking.Candidate) (bool, bool) {
 }
 
 func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
-	slashType uint32, caller, stakingAddr common.Address, state xcom.StateDB) (*big.Int, *big.Int, error) {
+	slashType uint32, benefitAddr, stakingAddr common.Address, state xcom.StateDB) (*big.Int, *big.Int, error) {
 
 	// check zero value
 	// If there is a zero value, no logic is done.
@@ -2496,7 +2488,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 		state.SubBalance(vm.StakingContractAddr, canBalance)
 
 		if staking.Is_DuplicateSign(uint32(slashType)) {
-			state.AddBalance(caller, canBalance)
+			state.AddBalance(benefitAddr, canBalance)
 		} else {
 			state.AddBalance(vm.RewardManagerPoolAddr, canBalance)
 		}
@@ -2504,8 +2496,6 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 		if isNotify {
 			err := rt.SlashingNotify(stakingAddr, canBalance, state)
 			if nil != err {
-				//log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "slashed amount", canBalance,
-				//	"slash:", title, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 				return slashAmountTmp, balanceTmp, err
 			}
 		}
@@ -2516,7 +2506,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 	} else {
 		state.SubBalance(vm.StakingContractAddr, slashAmount)
 		if staking.Is_DuplicateSign(uint32(slashType)) {
-			state.AddBalance(caller, slashAmount)
+			state.AddBalance(benefitAddr, slashAmount)
 		} else {
 			state.AddBalance(vm.RewardManagerPoolAddr, slashAmount)
 		}
@@ -2524,8 +2514,6 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 		if isNotify {
 			err := rt.SlashingNotify(stakingAddr, slashAmount, state)
 			if nil != err {
-				//log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "slashed amount", slashAmount,
-				//	"slash:", title, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 				return slashAmountTmp, balanceTmp, err
 			}
 		}

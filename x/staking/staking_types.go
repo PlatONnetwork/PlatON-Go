@@ -960,10 +960,10 @@ type SlashNodeItem struct {
 	NodeId discover.NodeID
 	// the amount of von with slashed
 	Amount *big.Int
-	//// slash type
-	//SlashType int
-	//// the benefit adrr who will receive the slash amount of von
-	//Caller common.Address
+	// slash type
+	SlashType int
+	// the benefit adrr who will receive the slash amount of von
+	BenefitAddr common.Address
 }
 
-//type SlashQueue []*SlashNodeItem
+type SlashQueue []*SlashNodeItem
