@@ -1575,19 +1575,19 @@ func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
 	// Override any default Economic configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net
+		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net: --testnet
 
 	case ctx.GlobalBool(BetanetFlag.Name):
-		networkId = xcom.DefaultBetaTestNet // Beta Test Net
+		networkId = xcom.DefaultBetaTestNet // Beta Test Net: --betanet
 
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net
+		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net: --innertestnet
 
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net
+		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net: --innerdevnet
 
 	case ctx.GlobalBool(DeveloperFlag.Name):
-		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration
+		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration: --dev
 
 	default:
 		networkId = xcom.DefaultMainNet // main net

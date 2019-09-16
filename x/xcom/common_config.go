@@ -41,7 +41,7 @@ type slashingConfig struct {
 	//	PackAmountHighSlashRate        uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
 	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
 	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
-	EvidenceValidEpoch        	   uint32 // Validity period of evidence, number of settlement periods
+	EvidenceValidEpoch             uint32 // Validity period of evidence, number of settlement periods
 }
 
 type governanceConfig struct {
@@ -155,7 +155,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:        		uint32(27),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
@@ -199,7 +199,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:        		uint32(27),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -243,7 +243,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:        		uint32(27),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -287,7 +287,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:        		uint32(27),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -331,7 +331,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:        		uint32(27),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
@@ -355,11 +355,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(3),  // 3 minutes
-				NodeBlockTimeWindow: uint64(10), // 10 seconds
+				//ExpectedMinutes:     uint64(3),  // 3 minutes
+				//NodeBlockTimeWindow: uint64(10), // 10 seconds
+				//PerRoundBlocks:      uint64(10),
+				//ValidatorCount:      uint64(4),
+				//AdditionalCycleTime: uint64(28),
+				ExpectedMinutes:     uint64(10), // 3 minutes
+				NodeBlockTimeWindow: uint64(20), // 20 seconds
 				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
-				AdditionalCycleTime: uint64(28),
+				AdditionalCycleTime: uint64(40),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:              stakeThreshold,
@@ -376,7 +381,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:        		uint32(27),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),

@@ -158,6 +158,7 @@ func (e *GenesisMismatchError) Error() string {
 func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 
 	if genesis != nil && genesis.Config == nil {
+		log.Info("return 1")
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
 
@@ -188,6 +189,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	if genesis != nil {
 		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
+			log.Info("return 3")
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 	}
@@ -206,6 +208,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
+		log.Info("return 4")
 		return newcfg, stored, nil
 	}
 
@@ -213,6 +216,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
 	if genesis == nil && stored != params.MainnetGenesisHash {
+		log.Info("return 5")
 		return storedcfg, stored, nil
 	}
 
@@ -220,6 +224,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	// are returned to the caller unless we're already at block zero.
 	height := rawdb.ReadHeaderNumber(db, rawdb.ReadHeadHeaderHash(db))
 	if height == nil {
+		log.Info("return 6")
 		return newcfg, stored, fmt.Errorf("missing block number for head header hash")
 	}
 	compatErr := storedcfg.CheckCompatible(newcfg, *height)
@@ -227,6 +232,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		return newcfg, stored, compatErr
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
+	log.Info("return 7")
 	return newcfg, stored, nil
 }
 
