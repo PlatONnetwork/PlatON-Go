@@ -66,7 +66,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(uint64(4)))
+	input = append(input, common.MustRlpEncode(xcom.VersionProposalVote_ConsensusRounds()))
 
 	return common.MustRlpEncode(input)
 }
@@ -89,7 +89,7 @@ func buildSubmitCancelInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
-	input = append(input, common.MustRlpEncode(uint64(3)))
+	input = append(input, common.MustRlpEncode(xcom.VersionProposalVote_ConsensusRounds()-1))
 	input = append(input, common.MustRlpEncode(txHashArr[2]))
 	return common.MustRlpEncode(input)
 }
@@ -334,7 +334,7 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 4), t)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xcom.VersionProposalVote_ConsensusRounds()), t)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -635,18 +635,18 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, 4), t)
+	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xcom.VersionProposalVote_ConsensusRounds()), t)
 
 	buildBlockNoCommit(1)
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 1)
 	//submit a proposal
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", 3, txHashArr[0]), t)
+	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xcom.VersionProposalVote_ConsensusRounds()-1, txHashArr[0]), t)
 
 	buildBlockNoCommit(3)
 
 	stateDB.Prepare(txHashArr[3], lastBlockHash, 0)
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPIDAnother", 2, txHashArr[0]), t, gov.VotingCancelProposalExist)
+	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPIDAnother", xcom.VersionProposalVote_ConsensusRounds()-1, txHashArr[0]), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
