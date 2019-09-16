@@ -593,7 +593,7 @@ func PlatONFoundationYear() uint32 {
  ******/
 func VersionProposalVote_ConsensusRounds() uint64 {
 	//return ec.Gov.VersionProposalVote_ConsensusRounds
-	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks)
+	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
 func VersionProposalActive_ConsensusRounds() uint64 {
@@ -606,7 +606,7 @@ func VersionProposal_SupportRate() float64 {
 
 func TextProposalVote_ConsensusRounds() uint64 {
 	//return ec.Gov.TextProposalVote_ConsensusRounds
-	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks)
+	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
 func TextProposal_VoteRate() float64 {
