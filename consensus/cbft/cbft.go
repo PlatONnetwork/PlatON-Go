@@ -798,6 +798,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   NewPublicConsensusAPI(cbft),
 			Public:    true,
 		},
+		{
+			Namespace: "admin",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
 	}
 }
 
@@ -1623,4 +1629,8 @@ func (cbft *Cbft) avgRTT() time.Duration {
 		rtt = cbft.DefaultAvgLatency() * 2
 	}
 	return rtt
+}
+
+func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.SchnorrProof, error) {
+	return cbft.config.Option.BlsPriKey.MakeSchnorrNIZKP()
 }

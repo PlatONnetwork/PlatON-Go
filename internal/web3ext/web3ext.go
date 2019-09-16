@@ -187,6 +187,10 @@ web3._extend({
 			name: 'getProgramVersion',
 			getter: 'admin_getProgramVersion'
 		}),
+		new web3._extend.Property({
+			name: 'getSchnorrNIZKProve',
+			getter: 'admin_getSchnorrNIZKProve'
+		}),
 	]
 });
 `

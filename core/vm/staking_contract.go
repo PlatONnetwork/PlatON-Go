@@ -59,7 +59,8 @@ const (
 	WithdrewCandidateEvent = "1003"
 	DelegateEvent          = "1004"
 	WithdrewDelegateEvent  = "1005"
-	BLSPUBKEYLEN           = 192 //  the bls public key length must be 192 character
+	BLSPUBKEYLEN           = 96 //  the bls public key length must be 96 byte
+	BLSPROOFLEN            = 64 // the bls proof length must be 64 byte
 )
 
 type StakingContract struct {
@@ -102,7 +103,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32,
-	programVersionSign common.VersionSign, blsPubKey string) ([]byte, error) {
+	programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex, blsProof bls.SchnorrProofHex) ([]byte, error) {
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
 	blockNumber := stkc.Evm.BlockNumber
@@ -117,7 +118,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
-		"from", from.Hex(), "blsPubKey", blsPubKey)
+		"from", from.Hex(), "blsPubKey", blsPubKey, "blsProof", blsProof)
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
@@ -132,6 +133,32 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKey)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event),
 			fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN), "createStaking")
+		return event, nil
+	}
+
+	if len(blsProof) != BLSPROOFLEN {
+		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKeyProof)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event),
+			fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN), "createStaking")
+		return event, nil
+	}
+
+	// parse bls publickey
+	blsPk, err := parseBlsPubKey(blsPubKey)
+	if nil != err {
+
+		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKey)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event),
+			fmt.Sprintf("failed to parse blspubkey: %s", err.Error()), "createStaking")
+		return event, nil
+	}
+
+	// verify bls proof
+	if err := verifyBlsProof(blsProof, blsPk); nil != err {
+
+		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKeyProof)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event),
+			fmt.Sprintf("failed to verify bls proof: %s", err.Error()), "createStaking")
 		return event, nil
 	}
 
@@ -209,22 +236,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return event, nil
 	}
 
-	// parse bls publickey
-	var blsPk bls.PublicKey
-	if err := blsPk.UnmarshalText([]byte(blsPubKey)); nil != err {
-
-		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKey)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event),
-			fmt.Sprintf("failed to unmarshal blspubkey: %s", err.Error()), "createStaking")
-		return event, nil
-	}
-
 	/**
 	init candidate info
 	*/
 	canNew := &staking.Candidate{
 		NodeId:          nodeId,
-		BlsPubKey:       blsPk,
+		BlsPubKey:       *blsPk,
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
@@ -278,6 +295,37 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	event := xcom.OkResultByte
 	stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 	return event, nil
+}
+
+func parseBlsPubKey(entries bls.PublicKeyHex) (*bls.PublicKey, error) {
+	pubKeyByte, err := entries.MarshalText()
+	if nil != err {
+		return nil, err
+	}
+
+	var blsPk bls.PublicKey
+	if err := blsPk.UnmarshalText(pubKeyByte); nil != err {
+
+		return nil, err
+	}
+	return &blsPk, nil
+}
+
+func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
+
+	proofByte, err := proofHex.MarshalText()
+	if nil != err {
+		return err
+	}
+
+	// proofEntries to proof
+	proof := new(bls.SchnorrProof)
+	if err = proof.UnmarshalText(proofByte); nil != err {
+		return err
+	}
+
+	// real to verify proof
+	return proof.VerifySchnorrNIZK(*pubKey)
 }
 
 func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID,

@@ -240,7 +240,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 // genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
-func genesisAllowancePlan(statedb *state.StateDB, issue *big.Int) error {
+func genesisAllowancePlan(statedb *state.StateDB) error {
+
 	account := vm.RewardManagerPoolAddr
 	var (
 		zeroEpoch  = new(big.Int).Mul(big.NewInt(622157424869165), big.NewInt(1e11))
@@ -306,7 +307,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 	// Store restricting plans for increase issue for second and third year
-	if err := genesisAllowancePlan(statedb, genesisIssue); nil != err {
+	if err := genesisAllowancePlan(statedb); nil != err {
 		return err
 	}
 	// Store genesis last Epoch

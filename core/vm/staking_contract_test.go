@@ -63,7 +63,19 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -77,6 +89,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -94,7 +107,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 	return contract
 }
@@ -131,7 +144,7 @@ func create_delegate(contract *StakingContract, index int, t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the delegate result Msg:", r.Message)
+	t.Log("the delegate result Msg:", r.ErrMsg)
 
 }
 
@@ -268,7 +281,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the editStaking result Msg:", r.Message)
+	t.Log("the editStaking result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
@@ -355,7 +368,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the increaseStaking result Msg:", r.Message)
+	t.Log("the increaseStaking result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
@@ -439,7 +452,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the withdrew candidate result Msg:", r.Message)
+	t.Log("the withdrew candidate result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
@@ -593,7 +606,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the withdelegate result Msg:", r.Message)
+	t.Log("the withdelegate result Msg:", r.ErrMsg)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)

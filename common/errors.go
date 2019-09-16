@@ -39,7 +39,7 @@ func (be *BizError) Wrap(text string) *BizError {
 }
 
 func (be *BizError) Wrapf(format string, a ...interface{}) *BizError {
-	return &BizError{Code: be.Code, Msg: be.Msg + ":" + fmt.Sprintf(format, a), Err: be.Err}
+	return &BizError{Code: be.Code, Msg: be.Msg + ":" + fmt.Sprintf(format, a...), Err: be.Err}
 
 }
 

@@ -78,7 +78,19 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -92,6 +104,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -110,7 +123,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -165,7 +178,19 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -179,6 +204,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -197,7 +223,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -248,7 +274,19 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -262,6 +300,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -280,7 +319,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 }
 
 /**
@@ -333,7 +372,19 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -347,6 +398,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -365,7 +417,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 	// repeat stake
 	var args [][]byte
@@ -386,12 +438,24 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign2 := common.VersionSign{}
-	versionSign2.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign2.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign2, _ := rlp.EncodeToBytes(versionSign2)
 
 	var blsKey2 bls.SecretKey
 	blsKey2.SetByCSPRNG()
-	blsPkm2, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey2.GetPublicKey().Serialize()))
+
+	var keyEntries2 bls.PublicKeyHex
+	blsHex2 := hex.EncodeToString(blsKey2.GetPublicKey().Serialize())
+	keyEntries2.UnmarshalText([]byte(blsHex2))
+
+	blsPkm2, _ := rlp.EncodeToBytes(keyEntries2)
+
+	// generate the bls proof
+	proof2, _ := blsKey2.MakeSchnorrNIZKP()
+	proofByte2, _ := proof2.MarshalText()
+	var proofHex2 bls.SchnorrProofHex
+	proofHex2.UnmarshalText(proofByte2)
+	proofRlp2, _ := rlp.EncodeToBytes(proofHex2)
 
 	args = append(args, fnType2)
 	args = append(args, typ2)
@@ -405,6 +469,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	args = append(args, programVersion2)
 	args = append(args, sign2)
 	args = append(args, blsPkm2)
+	args = append(args, proofRlp2)
 
 	buf2 := new(bytes.Buffer)
 	err = rlp.Encode(buf2, args)
@@ -420,10 +485,10 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	assert.True(t, nil == err)
 
 	var r2 xcom.Result
-	err = json.Unmarshal(res, &r)
+	err = json.Unmarshal(res, &r2)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r2.Code)
-	t.Log("the staking result Msg:", r2.Message)
+	t.Log("the staking result Msg:", r2.ErrMsg)
 
 }
 
@@ -482,7 +547,19 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -496,6 +573,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -514,7 +592,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -567,7 +645,19 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -581,6 +671,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -599,7 +690,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -656,7 +747,19 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -670,6 +773,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -688,7 +792,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -745,7 +849,19 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -759,6 +875,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -777,7 +894,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -836,7 +953,19 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -850,6 +979,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -868,7 +998,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -921,7 +1051,19 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -935,6 +1077,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -953,7 +1096,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -1009,7 +1152,19 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -1023,6 +1178,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -1041,7 +1197,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.Message)
+	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
@@ -1103,6 +1259,6 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the edit result Msg:", r.Message)
+	t.Log("the edit result Msg:", r.ErrMsg)
 
 }
