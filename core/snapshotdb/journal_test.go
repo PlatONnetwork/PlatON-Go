@@ -1,99 +1,6 @@
 package snapshotdb
 
-import (
-	"io"
-	"io/ioutil"
-	"math/big"
-	"os"
-	"strings"
-	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/journal"
-)
-
-func TestJournal(t *testing.T) {
-	initDB()
-	db := dbInstance
-	defer func() {
-		err := db.Clear()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-	blockHash := generateHash("a")
-	parentHash := generateHash("b")
-	blockNumber := big.NewInt(100)
-
-	err := dbInstance.NewBlock(blockNumber, parentHash, blockHash)
-	if err != nil {
-		t.Error(err)
-	}
-
-	str := []string{"abcdefghijk", "kjhiughdjdi", "acadadwdfqwrwq"}
-
-	if err := db.unCommit.blocks[blockHash].writeJournalBody([]byte(str[0])); err != nil {
-		t.Error(err)
-	}
-
-	if err := db.unCommit.blocks[blockHash].writeJournalBody([]byte(str[1])); err != nil {
-		t.Error(err)
-	}
-	if err := db.unCommit.blocks[blockHash].writeJournalBody([]byte(str[2])); err != nil {
-		t.Error(err)
-	}
-	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: blockHash}
-	file, err := db.storage.Open(fd)
-	if err != nil {
-		t.Error(err)
-	}
-	journals := journal.NewReader(file, nil, true, true)
-	r, err := journals.Next()
-	if err != nil {
-		t.Error(err)
-	}
-	var jHead journalHeader
-	if err := rlp.Decode(r, &jHead); err != nil {
-		t.Error(err)
-	}
-	if jHead.From != journalHeaderFromRecognized {
-		t.Error("from is wrong", jHead.From)
-	}
-	if jHead.ParentHash != parentHash {
-		t.Error("parent hash is wrong", jHead.ParentHash)
-	}
-	if jHead.BlockNumber.Int64() != blockNumber.Int64() {
-		t.Error("block number is wrong", jHead.BlockNumber)
-	}
-	i := 0
-	for {
-		jo, err := journals.Next()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			t.Fatal("next", err)
-		}
-		x, err := ioutil.ReadAll(jo)
-		b := string(x)
-		if strings.Compare(str[i], b) != 0 {
-			t.Errorf("should eq:%v,%v", str[i], b)
-		}
-		i++
-	}
-	if err := file.Close(); err != nil {
-		t.Error(err)
-	}
-	if err := db.rmJournalFile(blockNumber, blockHash); err != nil {
-		t.Error(err)
-	}
-	_, err = db.storage.Open(fd)
-	if !os.IsNotExist(os.ErrNotExist) {
-		t.Error(err)
-	}
-
-}
-
+/*
 func TestCloseJournalWriter(t *testing.T) {
 	f, err := ioutil.TempFile(os.TempDir(), "test_close*.log")
 	if err != nil {
@@ -117,7 +24,7 @@ func TestCloseJournalWriter(t *testing.T) {
 		t.Error("should have be closed")
 	}
 }
-
+*/
 //
 //func TestRMthan(t *testing.T) {
 //	Instance()
