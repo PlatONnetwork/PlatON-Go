@@ -1099,10 +1099,10 @@ func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErr
 		assert.NotEqual(t, common.OkCode, r.Code)
 		var expected = false
 		for _, expectedError := range expectedErrors {
-			expected = expected || strings.Contains(r.Message, expectedError.Error())
+			expected = expected || strings.Contains(r.ErrMsg, expectedError.Error())
 		}
 		assert.True(t, true, expected)
-		t.Log("the expected result Msg:", r.Message)
+		t.Log("the expected result Msg:", r.ErrMsg)
 	} else {
 		assert.Equal(t, common.OkCode, r.Code)
 		t.Log("the expected result:", r)
