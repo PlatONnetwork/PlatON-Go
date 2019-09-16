@@ -161,8 +161,8 @@ func (ev *EvidenceView) Verify() error {
 type EvidenceNode struct {
 	Index     uint32          `json:"index"`
 	Address   common.Address  `json:"address"`
-	NodeID    discover.NodeID `json:"NodeID"`
-	BlsPubKey *bls.PublicKey  `json:"blsPubKey"`
+	NodeID    discover.NodeID `json:"node_id"`
+	BlsPubKey *bls.PublicKey  `json:"bls_pub_key"`
 }
 
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
