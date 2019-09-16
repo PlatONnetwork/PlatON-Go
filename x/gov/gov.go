@@ -439,7 +439,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 					}
 				}
 				voteValueList = voteValueList[:idx]
-				UpdateVoteValue(blockHash, voteValueList, state)
+				UpdateVoteValue(proposalID, voteValueList, state)
 			}
 
 			/*if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
