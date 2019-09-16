@@ -41,19 +41,20 @@ type slashingConfig struct {
 	//	PackAmountHighSlashRate        uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
 	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
 	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
+	EvidenceValidEpoch        	   uint32 // Validity period of evidence, number of settlement periods
 }
 
 type governanceConfig struct {
-	VersionProposalVote_DurationSeconds   uint64  // max Consensus-Round counts for version proposal's vote duration.
-	VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
+	VersionProposalVote_DurationSeconds uint64 // max Consensus-Round counts for version proposal's vote duration.
+	//VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
 	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
 	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
 	TextProposalVote_DurationSeconds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
-	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
-	CancelProposal_VoteRate               float64 // the cancel proposal will pass if the vote rate exceeds this value.
-	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
+	//TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
+	TextProposal_VoteRate      float64 // the text proposal will pass if the vote rate exceeds this value.
+	TextProposal_SupportRate   float64 // the text proposal will pass if the vote support reaches this value.
+	CancelProposal_VoteRate    float64 // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposal_SupportRate float64 // the cancel proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
@@ -154,6 +155,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:        		uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
@@ -197,6 +199,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:        		uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -240,6 +243,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:        		uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -283,6 +287,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:        		uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -326,6 +331,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:        		uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
@@ -370,6 +376,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				//PackAmountHighSlashRate:        uint32(50),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:        		uint32(27),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -566,6 +573,10 @@ func NumberOfBlockRewardForSlashing() uint32 {
 	return ec.Slashing.NumberOfBlockRewardForSlashing
 }
 
+func EvidenceValidEpoch() uint32 {
+	return ec.Slashing.EvidenceValidEpoch
+}
+
 /******
  * Reward config
  ******/
@@ -582,7 +593,7 @@ func PlatONFoundationYear() uint32 {
  ******/
 func VersionProposalVote_ConsensusRounds() uint64 {
 	//return ec.Gov.VersionProposalVote_ConsensusRounds
-	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks)
+	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
 func VersionProposalActive_ConsensusRounds() uint64 {
@@ -595,7 +606,7 @@ func VersionProposal_SupportRate() float64 {
 
 func TextProposalVote_ConsensusRounds() uint64 {
 	//return ec.Gov.TextProposalVote_ConsensusRounds
-	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks)
+	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
 func TextProposal_VoteRate() float64 {
