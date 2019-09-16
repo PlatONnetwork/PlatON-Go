@@ -1631,6 +1631,6 @@ func (cbft *Cbft) avgRTT() time.Duration {
 	return rtt
 }
 
-func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.Proof, error) {
-	return bls.SchnorrNIZKProve(bls.BLS12_381, *cbft.config.Option.BlsPriKey)
+func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.SchnorrProof, error) {
+	return cbft.config.Option.BlsPriKey.MakeSchnorrNIZKP()
 }

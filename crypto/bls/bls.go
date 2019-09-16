@@ -220,17 +220,21 @@ type PublicKey struct {
 }
 
 // Match only 192 hex char length public keys
-type PublicKeyEntries [96]byte
+type PublicKeyHex [96]byte
+
+func (pe PublicKeyHex) String() string {
+	return hex.EncodeToString(pe[:])
+}
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (pe PublicKeyEntries) MarshalText() ([]byte, error) {
+func (pe PublicKeyHex) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(pe[:])), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
-func (pe *PublicKeyEntries) UnmarshalText(text []byte) error {
+func (pe *PublicKeyHex) UnmarshalText(text []byte) error {
 
-	var p PublicKeyEntries
+	var p PublicKeyHex
 	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
 	if err != nil {
 		return err
@@ -583,22 +587,27 @@ func Schnorr_test(curve int, r, c SecretKey, G, V, P PublicKey) error {
 	return nil
 }
 
+// Deprecated: use SchnorrProof
 type Proof struct {
 	C, R SecretKey
 }
 
 // Match only 128 hex char length proof
-type ProofEntries [64]byte
+type ProofHex [64]byte
+
+func (pfe ProofHex) String() string {
+	return hex.EncodeToString(pfe[:])
+}
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (pfe ProofEntries) MarshalText() ([]byte, error) {
+func (pfe ProofHex) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(pfe[:])), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
-func (pfe *ProofEntries) UnmarshalText(text []byte) error {
+func (pfe *ProofHex) UnmarshalText(text []byte) error {
 
-	var p ProofEntries
+	var p ProofHex
 	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
 	if err != nil {
 		return err

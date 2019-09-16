@@ -140,7 +140,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 
 		} else {
 			t.Logf("%v", res.Code)
-			t.Logf("%v", res.Message)
+			t.Logf("%v", res.ErrMsg)
 			t.Logf("%v", res.Data)
 		}
 		t.Log("test pass!")

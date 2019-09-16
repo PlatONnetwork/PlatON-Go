@@ -634,29 +634,29 @@ func TestProofText(t *testing.T) {
 	t.Log("proof: ", string(textByte))
 	t.Log("\n")
 
-	// proof to proofEntries
-	var prentries ProofEntries
-	prentries.UnmarshalText(textByte)
+	// proof to proofhex
+	var proofhex ProofHex
+	proofhex.UnmarshalText(textByte)
 
-	t.Log("prentries: ", string(prentries[:]))
+	t.Log("proofhex: ", string(proofhex[:]))
 	t.Log("\n")
-	// proofEntries rlp encode
-	pentriesRlp, err := rlp.EncodeToBytes(prentries)
+	// proofhex rlp encode
+	proofhexRlp, err := rlp.EncodeToBytes(proofhex)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log("proofentires rlp:", string(pentriesRlp))
+	t.Log("proofhex rlp:", string(proofhexRlp))
 	t.Log("\n")
 
-	// proofEntries rlp decode
-	var prentries2 ProofEntries
-	err = rlp.DecodeBytes(pentriesRlp, &prentries2)
+	// proofhex rlp decode
+	var proofhex2 ProofHex
+	err = rlp.DecodeBytes(proofhexRlp, &proofhex2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	textByte2, err := prentries2.MarshalText()
+	textByte2, err := proofhex2.MarshalText()
 	if err != nil {
 		t.Fatal(err)
 	}

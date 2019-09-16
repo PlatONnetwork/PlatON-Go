@@ -103,7 +103,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32,
-	programVersionSign common.VersionSign, blsPubKey bls.PublicKeyEntries, blsProof bls.ProofEntries) ([]byte, error) {
+	programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex, blsProof bls.SchnorrProofHex) ([]byte, error) {
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
 	blockNumber := stkc.Evm.BlockNumber
@@ -118,7 +118,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(), "externalId", externalId,
 		"nodeName", nodeName, "website", website, "details", details, "amount", amount,
 		"programVersion", programVersion, "programVersionSign", programVersionSign.Hex(),
-		"from", from.Hex(), "blsPubKey", blsPubKey)
+		"from", from.Hex(), "blsPubKey", blsPubKey, "blsProof", blsProof)
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
 		return nil, ErrOutOfGas
@@ -297,7 +297,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	return event, nil
 }
 
-func parseBlsPubKey(entries bls.PublicKeyEntries) (*bls.PublicKey, error) {
+func parseBlsPubKey(entries bls.PublicKeyHex) (*bls.PublicKey, error) {
 	pubKeyByte, err := entries.MarshalText()
 	if nil != err {
 		return nil, err
@@ -311,21 +311,21 @@ func parseBlsPubKey(entries bls.PublicKeyEntries) (*bls.PublicKey, error) {
 	return &blsPk, nil
 }
 
-func verifyBlsProof(entries bls.ProofEntries, pubKey *bls.PublicKey) error {
+func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
 
-	proofByte, err := entries.MarshalText()
+	proofByte, err := proofHex.MarshalText()
 	if nil != err {
 		return err
 	}
 
 	// proofEntries to proof
-	proof := new(bls.Proof)
+	proof := new(bls.SchnorrProof)
 	if err = proof.UnmarshalText(proofByte); nil != err {
 		return err
 	}
 
 	// real to verify proof
-	return bls.SchnorrNIZKVerify(bls.BLS12_381, *proof, *pubKey)
+	return proof.VerifySchnorrNIZK(*pubKey)
 }
 
 func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID,

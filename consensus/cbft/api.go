@@ -10,7 +10,7 @@ type API interface {
 	Status() string
 	Evidences() string
 	GetPrepareQC(number uint64) *types.QuorumCert
-	GetSchnorrNIZKProve() (*bls.Proof, error)
+	GetSchnorrNIZKProve() (*bls.SchnorrProof, error)
 }
 
 // PublicConsensusAPI provides an API to access the PlatON blockchain.

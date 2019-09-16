@@ -6,9 +6,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -946,9 +943,9 @@ type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
 
-	xcom.PrintObject("Call ConstantAppend, queue", queue)
-	xcom.PrintObject("Call ConstantAppend, index", index)
-	log.Debug("Call ConstantAppend", "size", size)
+	//xcom.PrintObject("Call ConstantAppend, queue", queue)
+	//xcom.PrintObject("Call ConstantAppend, index", index)
+	//log.Debug("Call ConstantAppend", "size", size)
 
 	queue = append(queue, index)
 	if size < len(queue) {
@@ -956,3 +953,17 @@ func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*Val
 	}
 	return nil, queue
 }
+
+// An item that exists for slash
+type SlashNodeItem struct {
+	// the nodeId will be slashed
+	NodeId discover.NodeID
+	// the amount of von with slashed
+	Amount *big.Int
+	//// slash type
+	//SlashType int
+	//// the benefit adrr who will receive the slash amount of von
+	//Caller common.Address
+}
+
+//type SlashQueue []*SlashNodeItem
