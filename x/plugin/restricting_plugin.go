@@ -106,7 +106,7 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, plans []restricting
 
 	mPlans := make(map[uint64]*big.Int, monthOfThreeYear)
 	for _, plan := range plans {
-		epoch, amount := plan.Epoch, plan.Amount
+		epoch, amount := plan.Epoch, new(big.Int).Set(plan.Amount)
 		if epoch == 0 {
 			rp.log.Error(errParamEpochInvalid.Error())
 			return nil, nil, errParamEpochInvalid
