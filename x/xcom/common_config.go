@@ -198,9 +198,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05"),
-				PlatONFundBalance: platONFundBalance,
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
 				CDFAccount:        common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"),
-				CDFBalance:        common.Big0,
+				CDFBalance:        new(big.Int).Set(common.Big0),
 			},
 		}
 
@@ -248,9 +248,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: platONFundBalance,
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        common.Big0,
+				CDFBalance:        new(big.Int).Set(common.Big0),
 			},
 		}
 
@@ -298,9 +298,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: platONFundBalance,
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        common.Big0,
+				CDFBalance:        new(big.Int).Set(common.Big0),
 			},
 		}
 
@@ -348,9 +348,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: platONFundBalance,
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        common.Big0,
+				CDFBalance:        new(big.Int).Set(common.Big0),
 			},
 		}
 
@@ -398,9 +398,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: platONFundBalance,
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        common.Big0,
+				CDFBalance:        new(big.Int).Set(common.Big0),
 			},
 		}
 
@@ -454,9 +454,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: platONFundBalance,
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        common.Big0,
+				CDFBalance:        new(big.Int).Set(common.Big0),
 			},
 		}
 	}

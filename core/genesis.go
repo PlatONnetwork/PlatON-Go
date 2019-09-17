@@ -155,7 +155,7 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, sdb snapshotdb.DB, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
@@ -178,7 +178,12 @@ func SetupGenesisBlock(db ethdb.Database, sdb snapshotdb.DB, genesis *Genesis) (
 		if err := xcom.CheckEconomicModel(); nil != err {
 			return nil, common.Hash{}, err
 		}
-
+		var sdb snapshotdb.DB
+		if snapshotPath != "" {
+			os.RemoveAll(snapshotPath)
+			sdb = snapshotdb.Instance()
+			defer sdb.Close()
+		}
 		block, err := genesis.Commit(db, sdb)
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err

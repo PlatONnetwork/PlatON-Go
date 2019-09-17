@@ -1459,7 +1459,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 
-	config, _, err := core.SetupGenesisBlock(chainDb, snapshotdb.Instance(), MakeGenesis(ctx))
+	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -1496,7 +1496,7 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 
-	config, _, err := core.SetupGenesisBlock(chainDb, snapshotdb.Instance(), MakeGenesis(ctx))
+	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
 	if err != nil {
 		Fatalf("%v", err)
 	}
