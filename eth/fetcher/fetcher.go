@@ -650,7 +650,7 @@ func (f *Fetcher) insert(peer string, block *types.Block) {
 		defer func() { f.done <- hash }()
 
 		// If the parent's unknown, abort insertion
-		// CBFT engine also check parent exits.
+		// CBFT engine also check parent exists.
 		//parent := f.getBlock(block.ParentHash())
 		//if parent == nil {
 		//	log.Debug("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
