@@ -1,9 +1,10 @@
 package snapshotdb
 
 import (
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
-	"math/big"
 )
 
 type blockData struct {
@@ -13,4 +14,20 @@ type blockData struct {
 	data       *memdb.DB
 	readOnly   bool
 	kvHash     common.Hash
+	//	jWriter    *journalWriter
 }
+
+//
+//func (s *blockData) writeJournalBody(value []byte) error {
+//	toWrite, err := s.jWriter.journal.Next()
+//	if err != nil {
+//		return errors.New("next err:" + err.Error())
+//	}
+//	if _, err := toWrite.Write(value); err != nil {
+//		return errors.New("write err:" + err.Error())
+//	}
+//	if err := s.jWriter.journal.Flush(); err != nil {
+//		return errors.New("flush err:" + err.Error())
+//	}
+//	return nil
+//}

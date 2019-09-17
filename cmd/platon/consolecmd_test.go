@@ -107,7 +107,7 @@ func TestWSAttachWelcome(t *testing.T) {
 
 	geth := runGeth(t,
 		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
-		"--ws", "--wsport", port)
+		"--ws", "--wsport", port /*, "--testnet"*/)
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
 	testAttachWelcome(t, geth, "ws://localhost:"+port, httpAPIs)

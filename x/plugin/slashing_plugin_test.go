@@ -372,36 +372,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
            }
           }`
-	data3 := `{
-           "prepare_a": {
-            "epoch": 1,
-            "view_number": 1,
-            "block_hash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
-            "block_number": 1,
-            "block_index": 1,
-            "validate_node": {
-             "index": 0,
-             "address": "0x00cbcfbbe9e33c3196c2d6efd54012964e0b8753",
-             "NodeID": "7eeef507c70ad0847bed7666c33cc972a997d9175350a84f45a933110b40ffed18a55af0aaa7a519ab531724dc9568e20ab7df54b5e2c71a1931366cd6be7ff1",
-             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
-            },
-            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
-           },
-           "prepare_b": {
-            "epoch": 1,
-            "view_number": 1,
-            "block_hash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
-            "block_number": 1,
-            "block_index": 1,
-            "validate_node": {
-             "index": 0,
-             "address": "0x00cbcfbbe9e33c3196c2d6efd54012964e0b8753",
-             "NodeID": "7eeef507c70ad0847bed7666c33cc972a997d9175350a84f45a933110b40ffed18a55af0aaa7a519ab531724dc9568e20ab7df54b5e2c71a1931366cd6be7ff1",
-             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
-            },
-            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
-           }
-          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
 	addr := common.HexToAddress("0x076c72c53c569df9998448832a61371ac76d0d05")
 	nodeId, err := discover.HexID("b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511")
@@ -455,14 +425,10 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	err = si.Slash(evidence2, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
 	assert.NotNil(t, err)
 
-	evidence3, err := si.DecodeEvidence(1, data3)
-	if nil != err {
-		t.Fatal(err)
-	}
-	err = si.Slash(evidence3, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
 	assert.NotNil(t, err)
 
-	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	err = si.Slash(evidence1, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.EvidenceValidEpoch())*2).Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
 	assert.NotNil(t, err)
 }
 
