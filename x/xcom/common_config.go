@@ -5,6 +5,8 @@ import (
 	"errors"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // plugin rule key
@@ -62,6 +64,15 @@ type rewardConfig struct {
 	PlatONFoundationYear uint32 // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 }
 
+type innerAccount struct {
+	// Account of PlatONFoundation
+	PlatONFundAccount common.Address
+	PlatONFundBalance *big.Int
+	// Account of CommunityDeveloperFoundation
+	CDFAccount common.Address
+	CDFBalance *big.Int
+}
+
 // total
 type EconomicModel struct {
 	Common   commonConfig
@@ -69,6 +80,7 @@ type EconomicModel struct {
 	Slashing slashingConfig
 	Gov      governanceConfig
 	Reward   rewardConfig
+	InnerAcc innerAccount
 }
 
 var (
@@ -95,38 +107,49 @@ const (
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
 	var (
-		success               bool
+		ok                    bool
 		stakeThresholdCount   string
 		minimumThresholdCount string
+		platONFundCount       string
 		stakeThreshold        *big.Int
 		minimumThreshold      *big.Int
+		platONFundBalance     *big.Int
 	)
 
 	switch netId {
 	case DefaultMainNet:
 		stakeThresholdCount = "5000000000000000000000000" // 500W von
 		minimumThresholdCount = "10000000000000000000"    // 10 von
+		platONFundCount = "2000000000000000000000000000"  // 20 billion von
 	case DefaultAlphaTestNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	case DefaultBetaTestNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	case DefaultInnerTestNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	case DefaultInnerDevNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	default: // DefaultDeveloperNet
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	}
 
-	if stakeThreshold, success = new(big.Int).SetString(stakeThresholdCount, 10); !success {
+	if stakeThreshold, ok = new(big.Int).SetString(stakeThresholdCount, 10); !ok {
 		return nil
 	}
-	if minimumThreshold, success = new(big.Int).SetString(minimumThresholdCount, 10); !success {
+	if minimumThreshold, ok = new(big.Int).SetString(minimumThresholdCount, 10); !ok {
+		return nil
+	}
+	if platONFundBalance, ok = new(big.Int).SetString(platONFundCount, 10); !ok {
 		return nil
 	}
 
@@ -173,6 +196,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 10,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05"),
+				PlatONFundBalance: platONFundBalance,
+				CDFAccount:        common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"),
+				CDFBalance:        common.Big0,
+			},
 		}
 
 	case DefaultAlphaTestNet:
@@ -216,6 +245,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfig{
 				NewBlockRate:         50,
 				PlatONFoundationYear: 10,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: platONFundBalance,
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        common.Big0,
 			},
 		}
 
@@ -261,6 +296,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: platONFundBalance,
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        common.Big0,
+			},
 		}
 
 	case DefaultInnerTestNet:
@@ -305,6 +346,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: platONFundBalance,
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        common.Big0,
+			},
 		}
 
 	case DefaultInnerDevNet:
@@ -348,6 +395,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfig{
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: platONFundBalance,
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        common.Big0,
 			},
 		}
 
@@ -398,6 +451,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfig{
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: platONFundBalance,
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        common.Big0,
 			},
 		}
 	}
@@ -478,6 +537,7 @@ func CheckEconomicModel() error {
 	if ec.Common.PerRoundBlocks <= uint64(ec.Slashing.PackAmountAbnormal) {
 		return errors.New("The PackAmountAbnormal must be less than to the PerRoundBlocks")
 	}
+
 	return nil
 }
 
@@ -628,6 +688,25 @@ func CancelProposal_VoteRate() float64 {
 
 func CancelProposal_SupportRate() float64 {
 	return ec.Gov.CancelProposal_SupportRate
+}
+
+/******
+ * Inner Account Config
+ ******/
+func PlatONFundAccount() common.Address {
+	return ec.InnerAcc.PlatONFundAccount
+}
+
+func PlatONFundBalance() *big.Int {
+	return ec.InnerAcc.PlatONFundBalance
+}
+
+func CDFAccount() common.Address {
+	return ec.InnerAcc.CDFAccount
+}
+
+func CDFBalance() *big.Int {
+	return ec.InnerAcc.CDFBalance
 }
 
 func EconomicString() string {

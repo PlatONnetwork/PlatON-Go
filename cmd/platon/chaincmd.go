@@ -197,6 +197,7 @@ func initGenesis(ctx *cli.Context) error {
 	genesis := new(core.Genesis)
 	// init EconomicModel config
 	genesis.EconomicModel = utils.GetEconomicDefaultConfig(ctx)
+
 	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
