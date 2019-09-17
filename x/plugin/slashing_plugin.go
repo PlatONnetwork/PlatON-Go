@@ -379,7 +379,7 @@ func calcSlashAmount(candidate *staking.Candidate, rate uint32, blockNumber uint
 		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
 		return amount.Div(amount, new(big.Int).SetUint64(100)), sumAmount
 	}
-	return common.Big0, common.Big0
+	return new(big.Int).SetInt64(0), new(big.Int).SetInt64(0)
 }
 
 func calcEndBlockSlashAmount(blockNumber uint64, state xcom.StateDB) *big.Int {

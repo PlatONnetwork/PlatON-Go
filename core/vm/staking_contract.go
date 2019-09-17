@@ -249,10 +249,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		Shares:          amount,
 
 		// Prevent null pointer initialization
-		Released:           common.Big0,
-		ReleasedHes:        common.Big0,
-		RestrictingPlan:    common.Big0,
-		RestrictingPlanHes: common.Big0,
+		Released:           new(big.Int).SetInt64(0),
+		ReleasedHes:        new(big.Int).SetInt64(0),
+		RestrictingPlan:    new(big.Int).SetInt64(0),
+		RestrictingPlanHes: new(big.Int).SetInt64(0),
 
 		Description: *desc,
 	}
@@ -696,11 +696,11 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		del = new(staking.Delegation)
 
 		// Prevent null pointer initialization
-		del.Released = common.Big0
-		del.RestrictingPlan = common.Big0
-		del.ReleasedHes = common.Big0
-		del.RestrictingPlanHes = common.Big0
-		del.Reduction = common.Big0
+		del.Released = new(big.Int).SetInt64(0)
+		del.RestrictingPlan = new(big.Int).SetInt64(0)
+		del.ReleasedHes = new(big.Int).SetInt64(0)
+		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+		del.Reduction = new(big.Int).SetInt64(0)
 	}
 
 	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canOld, typ, amount)

@@ -98,9 +98,9 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			StakingBlockNum:    uint64(0),
 			Shares:             geneStakingAmount,
 			Released:           geneStakingAmount,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
+			ReleasedHes:        new(big.Int).SetInt64(0),
+			RestrictingPlan:    new(big.Int).SetInt64(0),
+			RestrictingPlanHes: new(big.Int).SetInt64(0),
 			Description: staking.Description{
 				ExternalId: "",
 				NodeName:   "platon.node." + fmt.Sprint(index+1),
