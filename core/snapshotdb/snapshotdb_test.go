@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"sort"
 	"sync"
@@ -756,7 +757,6 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 		dbInstance.snapshotLockC = snapshotLock
 		go func() {
 			time.Sleep(time.Millisecond * 500)
-			dbInstance.snapshotLock.Send(struct{}{})
 			dbInstance.snapshotLockC = snapshotUnLock
 		}()
 		f2 := func(num *big.Int, iter iterator.Iterator) error {
@@ -965,194 +965,6 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	})
 }
 
-//  put  must before newblock
-func TestPutToUnRecognized(t *testing.T) {
-	initDB()
-	db := dbInstance
-	defer func() {
-		err := db.Clear()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-	data := [][2]string{
-		[2]string{"a", "b"},
-		[2]string{"b", "4421ffwef"},
-		[2]string{"C", "2wgewbrw2"},
-	}
-	parentHash := generateHash("parentHash")
-	if err := db.Put(common.ZeroHash, []byte("a"), []byte("b")); err == nil {
-		t.Error("new block must call before put to UnRecognized")
-	}
-
-	//	currentHash := rlpHash("b")
-	if err := db.NewBlock(big.NewInt(20), parentHash, common.ZeroHash); err != nil {
-		t.Fatal(err)
-	}
-	var lastkvHash common.Hash
-	var lastkvHashs []common.Hash
-
-	for _, value := range data {
-		if err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
-			t.Fatal(err)
-		}
-		if bytes.Compare(db.GetLastKVHash(common.ZeroHash), db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash).Bytes()) != 0 {
-			t.Fatal("kv hash is wrong")
-		}
-		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
-		lastkvHashs = append(lastkvHashs, lastkvHash)
-	}
-	block := db.unCommit.blocks[db.getUnRecognizedHash()]
-	for _, value := range data {
-		v, err := block.data.Get([]byte(value[0]))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(v) != value[1] {
-			t.Fatal("should equal")
-		}
-	}
-
-	fd := fileDesc{Type: TypeJournal, Num: block.Number.Uint64(), BlockHash: db.getUnRecognizedHash()}
-	read, err := db.storage.Open(fd)
-	if err != nil {
-		t.Fatal("should open storage", err)
-	}
-	defer read.Close()
-	if err != nil {
-		panic(err)
-	}
-	r := journal.NewReader(read, nil, true, true)
-	rr, err := r.Next()
-	if err != nil {
-		t.Fatal("next", err)
-	}
-	var header journalHeader
-	if err := decode(rr, &header); err != nil {
-		t.Fatal(err)
-	}
-	if header.ParentHash.String() != parentHash.String() {
-		t.Fatal("header ParentHash should same")
-	}
-	if header.BlockNumber.Int64() != 20 {
-		t.Fatal("header BlockNumber should same")
-	}
-	var i int
-	for _, value := range data {
-		reader, err := r.Next()
-		if err != nil {
-			t.Fatal(err)
-		}
-		var body journalData
-		if err := decode(reader, &body); err != nil {
-			t.Fatal(err)
-		}
-		if string(body.Key) != value[0] {
-			t.Fatal("body key should be same", string(body.Key), value[0])
-		}
-		if string(body.Value) != value[1] {
-			t.Fatal("body value should be same", string(body.Value), value)
-		}
-		if lastkvHashs[i] != body.Hash {
-			t.Fatal("kv hash is wrong")
-		}
-		i++
-	}
-}
-
-func TestPutToRecognized(t *testing.T) {
-	initDB()
-	db := dbInstance
-	defer func() {
-		err := db.Clear()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-	parentHash := generateHash("a")
-	data := [][2]string{
-		[2]string{"a", "b"},
-		[2]string{"b", "4421ffwef"},
-		[2]string{"C", "2wgewbrw2"},
-	}
-	currentHash := generateHash("b")
-	if err := db.NewBlock(big.NewInt(20), parentHash, currentHash); err != nil {
-		t.Fatal(err)
-	}
-	var lastkvHash common.Hash
-	var lastkvHashs []common.Hash
-	for _, value := range data {
-		if err := db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
-			t.Fatal(err)
-		}
-		if bytes.Compare(db.GetLastKVHash(currentHash), db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash).Bytes()) != 0 {
-			t.Fatal("kv hash is wrong")
-		}
-		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
-		lastkvHashs = append(lastkvHashs, lastkvHash)
-	}
-	recognized, ok := db.unCommit.blocks[currentHash]
-	if !ok {
-		t.Fatal("[SnapshotDB] recognized hash should be find")
-	}
-	for _, value := range data {
-		v, err := recognized.data.Get([]byte(value[0]))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(v) != value[1] {
-			t.Fatal("[SnapshotDB] should equal")
-		}
-	}
-
-	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
-	read, err := db.storage.Open(fd)
-	if err != nil {
-		t.Fatal("[SnapshotDB]should open storage", err)
-	}
-	defer read.Close()
-	if err != nil {
-		panic(err)
-	}
-	r := journal.NewReader(read, nil, true, true)
-	rr, err := r.Next()
-	if err != nil {
-		t.Fatal("next", err)
-	}
-	var header journalHeader
-	if err := decode(rr, &header); err != nil {
-		t.Fatal(err)
-	}
-	if header.ParentHash.String() != parentHash.String() {
-		t.Fatal("header ParentHash should same")
-	}
-	if header.BlockNumber.Int64() != recognized.Number.Int64() {
-		t.Fatal("header BlockNumber should same")
-	}
-	var i int
-
-	for _, value := range data {
-		reader, err := r.Next()
-		if err != nil {
-			t.Fatal(err)
-		}
-		var body journalData
-		if err := decode(reader, &body); err != nil {
-			t.Fatal(err)
-		}
-		if string(body.Key) != value[0] {
-			t.Fatal("body key should be same", string(body.Key), value[0])
-		}
-		if string(body.Value) != value[1] {
-			t.Fatal("body value should be same", string(body.Value), value)
-		}
-		if lastkvHashs[i] != body.Hash {
-			t.Fatal("kv hash is wrong")
-		}
-		i++
-	}
-}
-
 func TestFlush(t *testing.T) {
 	initDB()
 	db := dbInstance
@@ -1197,6 +1009,7 @@ func TestFlush(t *testing.T) {
 			t.Fatal("[SnapshotDB] should equal")
 		}
 	}
+	db.journalSync.Wait()
 
 	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
 	read, err := db.storage.Open(fd)
@@ -1223,23 +1036,31 @@ func TestFlush(t *testing.T) {
 		t.Fatal("header BlockNumber should same")
 	}
 
-	for _, value := range data {
+	var m, n kvs
+	for {
 		reader, err := r.Next()
 		if err != nil {
-			t.Fatal(err)
+			if err == io.EOF {
+				break
+			} else {
+				t.Fatal(err)
+			}
 		}
 		var body journalData
 		if err := decode(reader, &body); err != nil {
 			t.Fatal(err)
 		}
-		if string(body.Key) != value[0] {
-			t.Fatal("body key should be same", string(body.Key), value[0])
-		}
-		if string(body.Value) != value[1] {
-			t.Fatal("body value should be same", string(body.Value), value)
-		}
+		m = append(m, kv{key: body.Key, value: body.Value})
 	}
 
+	for _, value := range data {
+		n = append(n, kv{key: []byte(value[0]), value: []byte(value[1])})
+	}
+	sort.Sort(m)
+	sort.Sort(n)
+	if err := m.compareWithkvs(n); err != nil {
+		t.Error(err)
+	}
 	if _, ok := db.unCommit.blocks[db.getUnRecognizedHash()]; ok {
 		t.Fatal("unRecognized must be nil")
 	}
@@ -1288,7 +1109,7 @@ func TestCommit(t *testing.T) {
 		t.Fatal("commit fail:", err)
 	}
 	if db.current.HighestNum.Cmp(blockNumber) != 0 {
-		t.Fatalf("current HighestNum must be :%v,but is%v", blockNumber.Int64(), db.current.HighestNum.Int64())
+		t.Fatalf("current HighestNum must be :%v,but is %v", blockNumber.Int64(), db.current.HighestNum.Int64())
 	}
 	if db.committed[0].readOnly != true {
 		t.Fatal("read only must be true")

@@ -15,7 +15,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
 // DefaultFanOut - The fanout value of the gossip protocol, used to indicate
@@ -92,15 +91,17 @@ func (r *router) Gossip(m *types.MsgPackage) {
 
 	// Print the information of the target's node.
 	pids := formatPeers(peers)
-	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.Message()), "targetPeer", pids)
+	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.Message()), "msg", m.Message().String(), "targetPeer", pids)
 
 	// Iteratively acquire nodes and send messages.
 	for _, peer := range peers {
-		if err := p2p.Send(peer.rw, msgType, m.Message()); err != nil {
-			log.Error("Send message failed", "peer", peer.id, "err", err)
-		} else {
-			peer.MarkMessageHash(msgHash)
-		}
+		//if err := p2p.Send(peer.rw, msgType, m.Message()); err != nil {
+		//	log.Error("Send message failed", "peer", peer.id, "err", err)
+		//} else {
+		//	peer.MarkMessageHash(msgHash)
+		//}
+		peer.Send(m)
+		peer.MarkMessageHash(msgHash)
 	}
 }
 
@@ -109,11 +110,12 @@ func (r *router) Gossip(m *types.MsgPackage) {
 func (r *router) SendMessage(m *types.MsgPackage) {
 	if peer, err := r.get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
-			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash())
-		if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
-			log.Error("Send Peer error")
-			r.unregister(m.PeerID())
-		}
+			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash(), "msg", m.Message().String())
+		//if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
+		//	log.Error("Send Peer error")
+		//	r.unregister(m.PeerID())
+		//}
+		peer.Send(m)
 	}
 }
 

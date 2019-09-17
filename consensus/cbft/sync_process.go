@@ -16,6 +16,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
+var syncPrepareVotesInterval = 5 * time.Second
+
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	if cbft.fetcher.Len() != 0 {
@@ -49,15 +51,11 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		}()
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
-			for i, block := range blockList.Blocks {
+			for _, block := range blockList.Blocks {
 				if block.ParentHash() != parentBlock.Hash() {
 					cbft.log.Debug("Response block's is error",
 						"blockHash", block.Hash(), "blockNumber", block.NumberU64(),
 						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
-					return
-				}
-				if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
-					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
 				start := time.Now()
@@ -71,6 +69,12 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 
 			// Update the results to the CBFT state machine
 			cbft.asyncCallCh <- func() {
+				for i, block := range blockList.Blocks {
+					if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
+						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+						return
+					}
+				}
 				if err := cbft.OnInsertQCBlock(blockList.Blocks, blockList.QC); err != nil {
 					cbft.log.Error("Insert block failed", "error", err)
 				}
@@ -543,11 +547,15 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 		len := cbft.currentValidatorLen()
 		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", len)
 
+		block := cbft.state.HighestQCBlock()
+		blockTime := common.MillisToTime(block.Time().Int64())
+
 		for i := begin; i < end; i++ {
 			size := cbft.state.PrepareVoteLenByIndex(i)
 			cbft.log.Debug("The length of prepare vote", "index", i, "size", size)
 
-			if size < cbft.threshold(len) { // need sync prepare votes
+			// We need sync prepare votes when a long time not arrived QC.
+			if size < cbft.threshold(len) && time.Since(blockTime) >= syncPrepareVotesInterval { // need sync prepare votes
 				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
 				unKnownSet := utils.NewBitArray(uint32(len))
 				for i := uint32(0); i < unKnownSet.Size(); i++ {

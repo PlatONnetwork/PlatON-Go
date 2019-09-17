@@ -1,62 +1,54 @@
 package wal
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
 	epoch      = uint64(1)
 	viewNumber = uint64(1)
-	times      = 1000
-	tempDir    string
-	wal        Wal
+	times      = 5000
 )
 
-func TestWal(t *testing.T) {
-	tempDir, _ = ioutil.TempDir("", "wal")
+func TestUpdateChainState(t *testing.T) {
+	tempDir, _ := ioutil.TempDir("", "wal")
 	defer os.RemoveAll(tempDir)
 
-	// Test UpdateViewChangeQC
-	testWalUpdateViewChangeQC(t)
-
+	wal, _ := NewWal(nil, tempDir)
 	// Test Wal UpdateChainState
-	chainStateW, err := testWalUpdateChainState()
-	if err != nil {
-		t.Fatalf("%s", "update chain state error")
-	}
+	chainStateW, err := testWalUpdateChainState(wal)
+	assert.Nil(t, err)
 
 	// Test Wal LoadChainState
-	chainStateR, err := testWalLoadChainState()
-	if err != nil {
+	chainStateR, err := testWalLoadChainState(wal)
+	assert.Nil(t, err)
+
+	if !chainStateR.Commit.EqualState(chainStateW.Commit) || !chainStateR.Lock.EqualState(chainStateW.Lock) || !chainStateR.QC[0].EqualState(chainStateW.QC[0]) {
 		t.Fatalf("%s", "load chain state error")
 	}
-	if chainStateR.Commit.Block.Hash() != chainStateW.Commit.Block.Hash() || chainStateR.Commit.QuorumCert.ViewNumber != chainStateW.Commit.QuorumCert.ViewNumber ||
-		chainStateR.Lock.Block.Hash() != chainStateW.Lock.Block.Hash() || chainStateR.Lock.QuorumCert.ViewNumber != chainStateW.Lock.QuorumCert.ViewNumber ||
-		chainStateR.QC[0].Block.Hash() != chainStateW.QC[0].Block.Hash() || chainStateR.QC[0].QuorumCert.ViewNumber != chainStateW.QC[0].QuorumCert.ViewNumber {
-		t.Fatalf("%s", "load chain state error")
-	}
+}
+
+func TestWriteMsg(t *testing.T) {
+	tempDir, _ := ioutil.TempDir("", "wal")
+	defer os.RemoveAll(tempDir)
+
+	wal, _ := NewWal(nil, tempDir)
+	wal.SetMockJournalLimitSize(1 * 1024)
 
 	// Test Wal UpdateViewChange
-	assert.Nil(t, testWalUpdateViewChange())
+	assert.Nil(t, testWalUpdateViewChange(wal))
 
 	// Test Wal Write
 	beginTime := uint64(time.Now().UnixNano())
-	count, err := testWalWrite()
-	if err != nil {
-		t.Log("write error", err)
-		t.Fatalf("%s", "write error")
-	}
+	count, err := testWalWrite(wal)
+	assert.Nil(t, err)
 	t.Log("write total msg info", count)
 	if count != times {
 		t.Fatalf("%s", "write error")
@@ -65,33 +57,19 @@ func TestWal(t *testing.T) {
 	t.Log("write elapsed time", endTime-beginTime)
 
 	// Test Wal load msg
+	wal, _ = NewWal(nil, tempDir)
 	beginTime = uint64(time.Now().UnixNano())
-	count, err = testWalLoad()
-	if err != nil {
-		t.Log("load error", err)
-		t.Fatalf("%s", "load error")
-	}
+	count, err = testWalLoad(wal)
+	assert.Nil(t, err)
 	t.Log("total msg info", count)
 	if count != times {
 		t.Fatalf("%s", "load error")
 	}
 	endTime = uint64(time.Now().UnixNano())
 	t.Log("load elapsed time", endTime-beginTime)
-
-	// Test LevelDB
-	if err = testLevelDB(); err != nil {
-		t.Fatalf("%s", "TestLevelDB error")
-	}
 }
 
-func getWal() Wal {
-	if wal == nil {
-		wal, _ = NewWal(nil, tempDir)
-	}
-	return wal
-}
-
-func testWalUpdateChainState() (*protocols.ChainState, error) {
+func testWalUpdateChainState(wal Wal) (*protocols.ChainState, error) {
 	// UpdateChainState
 	chainState := &protocols.ChainState{
 		Commit: &protocols.State{
@@ -107,15 +85,15 @@ func testWalUpdateChainState() (*protocols.ChainState, error) {
 			QuorumCert: buildQuorumCert(),
 		}},
 	}
-	err := getWal().UpdateChainState(chainState)
+	err := wal.UpdateChainState(chainState)
 	return chainState, err
 }
 
-func testWalLoadChainState() (*protocols.ChainState, error) {
+func testWalLoadChainState(wal Wal) (*protocols.ChainState, error) {
 	var err error
 	// Load chainState
 	var chainState *protocols.ChainState
-	err = getWal().LoadChainState(func(cs *protocols.ChainState) error {
+	err = wal.LoadChainState(func(cs *protocols.ChainState) error {
 		chainState = cs
 		return nil
 	})
@@ -125,40 +103,46 @@ func testWalLoadChainState() (*protocols.ChainState, error) {
 	return chainState, nil
 }
 
-func testWalUpdateViewChange() error {
+func testWalUpdateViewChange(wal Wal) error {
 	// UpdateViewChange
-	return getWal().UpdateViewChange(&ViewChangeMessage{
+	return wal.UpdateViewChange(&ViewChangeMessage{
 		Epoch:      epoch,
 		ViewNumber: viewNumber,
 	})
 }
 
-func testWalUpdateViewChangeQC(t *testing.T) {
-	// UpdateViewChangeQC
+func TestUpdateViewChangeQC(t *testing.T) {
+	tempDir, _ := ioutil.TempDir("", "wal")
+	defer os.RemoveAll(tempDir)
+
+	wal, _ := NewWal(nil, tempDir)
+	epochBegin, epochEnd := uint64(1), uint64(20)
+	viewBegin, viewEnd := uint64(0), uint64(25)
 	var i, j uint64
+
 	// write
-	for i = 0; i < 20; i++ {
-		for j = 0; j < 25; j++ {
-			getWal().UpdateViewChangeQC(i, j, buildViewChangeQC())
-			_, err := getWal().GetViewChangeQC(i, j)
+	for i = epochBegin; i < epochEnd; i++ {
+		for j = viewBegin; j < viewEnd; j++ {
+			wal.UpdateViewChangeQC(i, j, buildViewChangeQC())
+			_, err := wal.GetViewChangeQC(i, j)
 			assert.Nil(t, err)
 		}
 	}
-	// get
-	for i = 0; i < 20; i++ {
-		for j = 0; j < 25; j++ {
-			if i == 19 { // last epoch
-				_, err := getWal().GetViewChangeQC(i, j)
+	// Only keep last epoch
+	for i = epochBegin; i < epochEnd; i++ {
+		for j = viewBegin; j < viewEnd; j++ {
+			if i == epochEnd-1 { // Only keep last epoch
+				_, err := wal.GetViewChangeQC(i, j)
 				assert.Nil(t, err)
 			} else {
-				_, err := getWal().GetViewChangeQC(i, j)
+				_, err := wal.GetViewChangeQC(i, j)
 				assert.NotNil(t, err)
 			}
 		}
 	}
 }
 
-func testWalWrite() (int, error) {
+func testWalWrite(wal Wal) (int, error) {
 	var err error
 	// WriteJournal
 	count := 0
@@ -166,30 +150,30 @@ func testWalWrite() (int, error) {
 	for i := 0; i < times; i++ {
 		ordinal := ordinalMessages()
 		if ordinal == 0 {
-			err = getWal().WriteSync(buildConfirmedViewChange())
+			err = wal.WriteSync(buildConfirmedViewChange())
 		} else if ordinal == 1 {
-			err = getWal().WriteSync(buildSendViewChange())
+			err = wal.WriteSync(buildSendViewChange())
 		} else if ordinal == 2 {
-			err = getWal().WriteSync(buildSendPrepareBlock())
+			err = wal.WriteSync(buildSendPrepareBlock())
 		} else if ordinal == 3 {
 			//err = getWal().WriteSync(buildSendPrepareVote())
-			err = getWal().Write(buildSendPrepareVote())
+			err = wal.Write(buildSendPrepareVote())
 		}
 		if err != nil {
 			return 0, err
 		}
 		count++
 	}
-	getWal().Close() // force flush
+	wal.Close() // force flush
 	wal = nil
 	return count, nil
 }
 
-func testWalLoad() (int, error) {
+func testWalLoad(wal Wal) (int, error) {
 	var err error
 	// LoadJournal
 	count := 0
-	err = getWal().Load(func(msg interface{}) error {
+	err = wal.Load(func(msg interface{}) error {
 		switch msg.(type) {
 		case *protocols.ConfirmedViewChange:
 			count++
@@ -205,53 +189,66 @@ func testWalLoad() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	getWal().Close() // force flush
+	wal.Close() // force flush
 	wal = nil
 	return count, nil
 }
 
-func testLevelDB() error {
-	path := filepath.Join(tempDir, "wal_meta")
-	var (
-		db  *leveldb.DB
-		err error
-	)
-	if db, err = leveldb.OpenFile(path, nil); err != nil {
-		return err
-	}
-	data, err := db.Get(viewChangeKey, nil)
-	if err != nil {
-		db.Close()
-		return err
-	}
-	var vc ViewChangeMessage
-	if err := rlp.DecodeBytes(data, &vc); err == nil {
-		db.Close()
-		if vc.Epoch != epoch || vc.ViewNumber != viewNumber {
-			return errors.New("TestLevelDB error")
-		}
-	}
-	return nil
-}
-
 func TestEmptyWal(t *testing.T) {
-	wal := &emptyWal{}
+	wal, _ := NewWal(nil, "")
+	assert.Nil(t, wal.UpdateChainState(nil))
+	assert.Nil(t, wal.LoadChainState(func(chainState *protocols.ChainState) error { return nil }))
+	assert.Nil(t, wal.UpdateViewChangeQC(1, 0, nil))
+	_, err := wal.GetViewChangeQC(1, 0)
+	assert.Nil(t, err)
 	assert.Nil(t, wal.Write(nil))
+	assert.Nil(t, wal.WriteSync(nil))
 	assert.Nil(t, wal.Load(func(msg interface{}) error { return nil }))
 	assert.Nil(t, wal.UpdateViewChange(nil))
+	wal.SetMockJournalLimitSize(0)
+	wal.Close()
 }
 
-func TestRlpDecode(t *testing.T) {
-	msg := &Message{
-		Timestamp: uint64(time.Now().UnixNano()),
+func TestWalDecoder(t *testing.T) {
+	timestamp := uint64(time.Now().UnixNano())
+	// SendPrepareBlockMsg
+	prepare := &MessageSendPrepareBlock{
+		Timestamp: timestamp,
+		Data:      buildSendPrepareBlock(),
+	}
+	data, _ := rlp.EncodeToBytes(prepare)
+	_, err := WALDecode(data, protocols.SendPrepareBlockMsg)
+	assert.Nil(t, err)
+	_, err = WALDecode(data, protocols.SendPrepareVoteMsg)
+	assert.NotNil(t, err)
+	// MessageSendPrepareVote
+	vote := &MessageSendPrepareVote{
+		Timestamp: timestamp,
+		Data:      buildSendPrepareVote(),
+	}
+	data, _ = rlp.EncodeToBytes(vote)
+	_, err = WALDecode(data, protocols.SendPrepareVoteMsg)
+	assert.Nil(t, err)
+	_, err = WALDecode(data, protocols.SendViewChangeMsg)
+	assert.NotNil(t, err)
+	// MessageSendPrepareVote
+	view := &MessageSendViewChange{
+		Timestamp: timestamp,
+		Data:      buildSendViewChange(),
+	}
+	data, _ = rlp.EncodeToBytes(view)
+	_, err = WALDecode(data, protocols.SendViewChangeMsg)
+	assert.Nil(t, err)
+	_, err = WALDecode(data, protocols.ConfirmedViewChangeMsg)
+	assert.NotNil(t, err)
+	// MessageSendPrepareVote
+	confirm := &MessageConfirmedViewChange{
+		Timestamp: timestamp,
 		Data:      buildConfirmedViewChange(),
 	}
-	data, _ := rlp.EncodeToBytes(msg)
-
-	var j MessageConfirmedViewChange
-	if err := rlp.DecodeBytes(data, &j); err == nil {
-		fmt.Println(fmt.Sprintf("decode msg,epoch:%d,viewNumber:%d", j.Data.Epoch, j.Data.ViewNumber))
-	} else {
-		t.Fatalf("%s", "rlp decode error")
-	}
+	data, _ = rlp.EncodeToBytes(confirm)
+	_, err = WALDecode(data, protocols.ConfirmedViewChangeMsg)
+	assert.Nil(t, err)
+	_, err = WALDecode(data, protocols.SendPrepareBlockMsg)
+	assert.NotNil(t, err)
 }

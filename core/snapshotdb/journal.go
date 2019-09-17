@@ -2,7 +2,6 @@ package snapshotdb
 
 import (
 	"errors"
-	"io"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -21,31 +20,33 @@ const (
 
 type journalData struct {
 	Key, Value []byte
-	Hash       common.Hash
 }
 
-const (
-	journalHeaderFromUnRecognized = "unRecognized"
-	journalHeaderFromRecognized   = "recognized"
-)
+//
+//const (
+//	journalHeaderFromUnRecognized = "unRecognized"
+//	journalHeaderFromRecognized   = "recognized"
+//)
 
 type journalHeader struct {
 	ParentHash  common.Hash
 	BlockNumber *big.Int `rlp:"nil"`
-	From        string
+	//	From        string
+	KvHash common.Hash
 }
 
-func newJournalWriter(w io.WriteCloser) *journalWriter {
-	j := new(journalWriter)
-	j.writer = w
-	j.journal = journal.NewWriter(w)
-	return j
-}
-
-type journalWriter struct {
-	writer  io.WriteCloser
-	journal *journal.Writer
-}
+//
+//func newJournalWriter(w io.WriteCloser) *journalWriter {
+//	j := new(journalWriter)
+//	j.writer = w
+//	j.journal = journal.NewWriter(w)
+//	return j
+//}
+/*//
+//type journalWriter struct {
+//	writer  io.WriteCloser
+//	journal *journal.Writer
+//}
 
 func (j *journalWriter) Close() error {
 	if err := j.journal.Close(); err != nil {
@@ -55,13 +56,14 @@ func (j *journalWriter) Close() error {
 		return err
 	}
 	return nil
-}
+}*/
 
-func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash common.Hash, comeFrom string) error {
+/*
+func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash common.Hash, comeFrom string) (*journalWriter, error) {
 	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: hash}
 	file, err := s.storage.Create(fd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	writers := newJournalWriter(file)
 	jHeader := journalHeader{
@@ -71,50 +73,90 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	}
 	h, err := encode(jHeader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	writer, err := writers.journal.Next()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := writer.Write(h); err != nil {
+		return nil, err
+	}
+	if err := writers.journal.Flush(); err != nil {
+		return nil, err
+	}
+	return writers, nil
+}*/
+
+func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error {
+	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: hash}
+	return s.storage.Remove(fd)
+}
+
+func (s *snapshotDB) writeBlockToJournalAsynchronous(block *blockData) {
+	s.journalSync.Add(1)
+	go func(block *blockData) {
+		if err := s.writeJournal(block); err != nil {
+			logger.Error("Flush write Journal fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
+		}
+		s.journalSync.Done()
+	}(block)
+}
+
+func (s *snapshotDB) writeJournal(block *blockData) error {
+
+	fd := fileDesc{Type: TypeJournal, Num: block.Number.Uint64(), BlockHash: block.BlockHash}
+	file, err := s.storage.Create(fd)
+	if err != nil {
+		return err
+	}
+	jwriters := journal.NewWriter(file)
+	defer func() {
+		err := jwriters.Close()
+		if err != nil {
+			logger.Error("write Journal fail for jwriters close", "num", block.Number, "err", err)
+		}
+
+		if err := file.Close(); err != nil {
+			logger.Error("write Journal fail for file close", "num", block.Number, "err", err)
+		}
+	}()
+	jHeader := journalHeader{
+		ParentHash:  block.ParentHash,
+		BlockNumber: block.Number,
+		KvHash:      block.kvHash,
+	}
+	h, err := encode(jHeader)
+	if err != nil {
+		return err
+	}
+	writer, err := jwriters.Next()
 	if err != nil {
 		return err
 	}
 	if _, err := writer.Write(h); err != nil {
 		return err
 	}
-	if err := writers.journal.Flush(); err != nil {
-		return err
-	}
-	if err := s.closeJournalWriter(hash); err != nil {
-		return err
-	}
-	s.journalWriterLock.Lock()
-	s.journalw[hash] = writers
-	s.journalWriterLock.Unlock()
-	return nil
-}
 
-func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
-	s.journalWriterLock.RLock()
-	jw, ok := s.journalw[hash]
-	if !ok {
-		s.journalWriterLock.RUnlock()
-		return errors.New("not found journal writer")
-	}
-	s.journalWriterLock.RUnlock()
-	toWrite, err := jw.journal.Next()
-	if err != nil {
-		return errors.New("next err:" + err.Error())
-	}
-	if _, err := toWrite.Write(value); err != nil {
-		return errors.New("write err:" + err.Error())
-	}
-	if err := jw.journal.Flush(); err != nil {
-		return errors.New("flush err:" + err.Error())
+	itr := block.data.NewIterator(nil)
+	defer itr.Release()
+	kvhash := common.ZeroHash
+	for itr.Next() {
+		toWrite, err := jwriters.Next()
+		if err != nil {
+			return errors.New("next err:" + err.Error())
+		}
+		key, val := common.CopyBytes(itr.Key()), common.CopyBytes(itr.Value())
+		kvhash = s.generateKVHash(key, val, kvhash)
+		jData := journalData{
+			Key:   key,
+			Value: val,
+		}
+		data, err := encode(jData)
+		if _, err := toWrite.Write(data); err != nil {
+			return err
+		}
 	}
 	return nil
-}
-
-func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error {
-	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Uint64(), BlockHash: hash}
-	return s.storage.Remove(fd)
 }

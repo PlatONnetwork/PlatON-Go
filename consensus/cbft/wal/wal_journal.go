@@ -70,11 +70,12 @@ func (s sortFiles) Less(i, j int) bool {
 func (s sortFiles) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 type journal struct {
-	path   string         // Filesystem path to store the msgInfo at
-	writer *WriterWrapper // Output stream to write new msgInfo into
-	fileID uint32
-	mu     sync.Mutex
-	exitCh chan struct{}
+	path                 string         // Filesystem path to store the msgInfo at
+	writer               *WriterWrapper // Output stream to write new msgInfo into
+	fileID               uint32
+	mu                   sync.Mutex
+	exitCh               chan struct{}
+	mockJournalLimitSize uint64
 }
 
 // listJournalFiles sort existing files based on journal index.
@@ -244,6 +245,9 @@ func (journal *journal) rotate(journalLimitSize uint64) error {
 	//journal.mu.Lock()
 	//defer journal.mu.Unlock()
 
+	if journal.mockJournalLimitSize > 0 {
+		journalLimitSize = journal.mockJournalLimitSize
+	}
 	if journal.checkFileSize(journalLimitSize) {
 		journalWriter := journal.writer
 		if journalWriter == nil {

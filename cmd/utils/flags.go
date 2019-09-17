@@ -610,9 +610,9 @@ var (
 		Value: 1024,
 	}
 
-	CbftWalEnabledFlag = cli.BoolFlag{
-		Name:  "cbft.wal",
-		Usage: "Enable the Wal server",
+	CbftWalDisabledFlag = cli.BoolFlag{
+		Name:  "cbft.wal.disabled",
+		Usage: "Disable the Wal server",
 	}
 
 	CbftEvidenceDir = cli.StringFlag{
@@ -699,6 +699,7 @@ func setNodeUserIdent(ctx *cli.Context, cfg *node.Config) {
 // flags, reverting to pre-configured ones if none have been specified.
 func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	urls := params.MainnetBootnodes
+
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV4Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV4Flag.Name) {
@@ -1164,8 +1165,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	//setMpcPool(ctx, &cfg.MPCPool)
 	//setVcPool(ctx, &cfg.VCPool)
 
-	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
-		cfg.CbftConfig.WalMode = true
+	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
+		cfg.CbftConfig.WalMode = false
 	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1317,8 +1318,8 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 		cfg.BlsPriKey = priKey
 	}
 
-	if ctx.GlobalIsSet(CbftWalEnabledFlag.Name) {
-		cfg.WalMode = ctx.GlobalBool(CbftWalEnabledFlag.Name)
+	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
+		cfg.WalMode = !ctx.GlobalBool(CbftWalDisabledFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(CbftPeerMsgQueueSize.Name) {
@@ -1574,19 +1575,19 @@ func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
 	// Override any default Economic configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net
+		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net: --testnet
 
 	case ctx.GlobalBool(BetanetFlag.Name):
-		networkId = xcom.DefaultBetaTestNet // Beta Test Net
+		networkId = xcom.DefaultBetaTestNet // Beta Test Net: --betanet
 
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net
+		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net: --innertestnet
 
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net
+		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net: --innerdevnet
 
 	case ctx.GlobalBool(DeveloperFlag.Name):
-		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration
+		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration: --dev
 
 	default:
 		networkId = xcom.DefaultMainNet // main net

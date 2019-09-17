@@ -169,7 +169,7 @@ var (
 
 	cbftFlags = []cli.Flag{
 		utils.CbftPeerMsgQueueSize,
-		utils.CbftWalEnabledFlag,
+		utils.CbftWalDisabledFlag,
 		utils.CbftEvidenceDir,
 		utils.CbftMaxPingLatency,
 		utils.CbftBlsPriKeyFileFlag,

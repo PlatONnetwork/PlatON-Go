@@ -189,6 +189,7 @@ func (v *viewVotes) addVote(id uint32, vote *protocols.PrepareVote) {
 		v.Votes[vote.BlockIndex] = ps
 	}
 }
+
 func (v *viewVotes) index(i uint32) *prepareVotes {
 	return v.Votes[i]
 }
@@ -342,12 +343,15 @@ func (p prepareViewBlock) hash() common.Hash {
 func (p prepareViewBlock) number() uint64 {
 	return p.pb.Block.NumberU64()
 }
+
 func (p prepareViewBlock) blockIndex() uint32 {
 	return p.pb.BlockIndex
 }
+
 func (p prepareViewBlock) block() *types.Block {
 	return p.pb.Block
 }
+
 func (p prepareViewBlock) prepareBlock() *protocols.PrepareBlock {
 	return p.pb
 }
@@ -419,6 +423,7 @@ func (vs *ViewState) ViewNumber() uint64 {
 func (vs *ViewState) ViewString() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d}", atomic.LoadUint64(&vs.view.epoch), atomic.LoadUint64(&vs.view.viewNumber))
 }
+
 func (vs *ViewState) Deadline() time.Time {
 	return vs.viewTimer.deadline
 }
@@ -539,8 +544,8 @@ func (vs *ViewState) AddPrepareVote(id uint32, vote *protocols.PrepareVote) {
 	vs.view.viewVotes.addVote(id, vote)
 }
 
-func (vs *ViewState) AddViewChange(id uint32, vote *protocols.ViewChange) {
-	vs.view.viewChanges.addViewChange(id, vote)
+func (vs *ViewState) AddViewChange(id uint32, viewChange *protocols.ViewChange) {
+	vs.view.viewChanges.addViewChange(id, viewChange)
 }
 
 func (vs *ViewState) ViewChangeByIndex(index uint32) *protocols.ViewChange {
@@ -581,6 +586,15 @@ func (vs *ViewState) HighestExecutedBlock() *types.Block {
 		block = vs.viewBlocks.index(vs.executing.BlockIndex - 1).block()
 	}
 	return block
+}
+
+func (vs *ViewState) FindBlock(hash common.Hash, number uint64) *types.Block {
+	for _, b := range vs.viewBlocks.Blocks {
+		if b.hash() == hash && b.number() == number {
+			return b.block()
+		}
+	}
+	return nil
 }
 
 func (vs *ViewState) SetHighestQCBlock(ext *types.Block) {

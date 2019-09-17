@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -23,16 +25,20 @@ var Bytes2X_CMD = map[string]interface{}{
 	"uint32": BytesToUint32,
 	"uint64": BytesToUint64,
 
-	"*big.Int":             BytesToBigInt,
-	"[]*big.Int":           BytesToBigIntArr,
-	"discover.NodeID":      BytesToNodeId,
-	"[]discover.NodeID":    BytesToNodeIdArr,
-	"common.Hash":          BytesToHash,
-	"[]common.Hash":        BytesToHashArr,
-	"common.Address":       BytesToAddress,
-	"[]common.Address":     BytesToAddressArr,
-	"common.VersionSign":   BytesToVersionSign,
-	"[]common.VersionSign": BytesToVersionSignArr,
+	"*big.Int":              BytesToBigInt,
+	"[]*big.Int":            BytesToBigIntArr,
+	"discover.NodeID":       BytesToNodeId,
+	"[]discover.NodeID":     BytesToNodeIdArr,
+	"common.Hash":           BytesToHash,
+	"[]common.Hash":         BytesToHashArr,
+	"common.Address":        BytesToAddress,
+	"[]common.Address":      BytesToAddressArr,
+	"common.VersionSign":    BytesToVersionSign,
+	"[]common.VersionSign":  BytesToVersionSignArr,
+	"bls.PublicKeyHex":      BytesToPublicKeyHex,
+	"[]bls.PublicKeyHex":    BytesToPublicKeyHexArr,
+	"bls.SchnorrProofHex":   BytesToSchnorrProofHex,
+	"[]bls.SchnorrProofHex": BytesToSchnorrProofHexArr,
 
 	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 }
@@ -224,6 +230,38 @@ func BytesToVersionSignArr(currByte []byte) []common.VersionSign {
 	var arr []common.VersionSign
 	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
 		panic("BytesToVersionSignArr:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToPublicKeyHex(currByte []byte) bls.PublicKeyHex {
+	var pub bls.PublicKeyHex
+	if err := rlp.DecodeBytes(currByte, &pub); nil != err {
+		panic("BytesToPublicKeyHex:" + err.Error())
+	}
+	return pub
+}
+
+func BytesToPublicKeyHexArr(currByte []byte) []bls.PublicKeyHex {
+	var arr []bls.PublicKeyHex
+	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
+		panic("BytesToPublicKeyHexArr:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToSchnorrProofHex(currByte []byte) bls.SchnorrProofHex {
+	var proof bls.SchnorrProofHex
+	if err := rlp.DecodeBytes(currByte, &proof); nil != err {
+		panic("BytesToSchnorrProofHex:" + err.Error())
+	}
+	return proof
+}
+
+func BytesToSchnorrProofHexArr(currByte []byte) []bls.SchnorrProofHex {
+	var arr []bls.SchnorrProofHex
+	if err := rlp.DecodeBytes(currByte, &arr); nil != err {
+		panic("BytesToSchnorrProofHexArr:" + err.Error())
 	}
 	return arr
 }

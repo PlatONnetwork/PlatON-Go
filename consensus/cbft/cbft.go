@@ -49,8 +49,9 @@ import (
 const (
 	cbftVersion = 1
 
-	maxStatQueuesSize = 200
-	syncCacheTimeout  = 2 * time.Millisecond
+	maxStatQueuesSize      = 200
+	syncCacheTimeout       = 200 * time.Millisecond
+	checkBlockSyncInterval = 100 * time.Millisecond
 )
 
 type HandleError interface {
@@ -131,11 +132,12 @@ type Cbft struct {
 	blockTree *ctypes.BlockTree
 
 	// wal
-	nodeServiceContext   *node.ServiceContext
-	wal                  wal.Wal
-	bridge               Bridge
-	loading              int32
-	updateChainStateHook cbfttypes.UpdateChainStateFn
+	nodeServiceContext        *node.ServiceContext
+	wal                       wal.Wal
+	bridge                    Bridge
+	loading                   int32
+	updateChainStateHook      cbfttypes.UpdateChainStateFn
+	updateChainStateDelayHook func(qcState, lockState, commitState *protocols.State)
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -505,7 +507,7 @@ func (cbft *Cbft) receiveLoop() {
 // Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewChange
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	if !cbft.running() {
-		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching))
+		cbft.log.Debug("Consensus message pause", "syncing", atomic.LoadInt32(&cbft.syncing), "fetching", atomic.LoadInt32(&cbft.fetching), "peerMsgCh", len(cbft.peerMsgCh))
 		return &handleError{fmt.Errorf("consensus message pause, ignore message")}
 	}
 	msg, id := info.Msg, info.PeerID
@@ -529,7 +531,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) error {
 	if utils.True(&cbft.syncing) {
-		cbft.log.Debug("Currently syncing, consensus message pause")
+		cbft.log.Debug("Currently syncing, consensus message pause", "syncMsgCh", len(cbft.syncMsgCh))
 		return nil
 	}
 	msg, id := info.Msg, info.PeerID
@@ -798,6 +800,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   NewPublicConsensusAPI(cbft),
 			Public:    true,
 		},
+		{
+			Namespace: "admin",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
 	}
 }
 
@@ -819,9 +827,10 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 
 // InsertChain is used to insert the block into the chain.
 func (cbft *Cbft) InsertChain(block *types.Block) error {
-	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash())
+	t := time.Now()
+	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t))
 
-	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() {
+	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
 		cbft.log.Debug("The inserted block has exists in chain",
 			"number", block.Number(), "hash", block.Hash(),
 			"lockedNumber", cbft.state.HighestLockBlock().Number(),
@@ -853,9 +862,15 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash())
 		return errors.New("failed to executed block")
 	}
-	// FIXME: needed update highest exection block?
+
 	result := make(chan error, 1)
 	cbft.asyncCallCh <- func() {
+		if cbft.HasBlock(block.Hash(), block.NumberU64()) {
+			cbft.log.Debug("The inserted block has exists in block tree", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t), "duration", time.Since(t))
+			result <- nil
+			return
+		}
+
 		if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), qc); err != nil {
 			cbft.log.Error("Verify prepare QC fail", "number", block.Number(), "hash", block.Hash(), "err", err)
 			result <- err
@@ -863,7 +878,21 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 		}
 		result <- cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{qc})
 	}
-	return <-result
+
+	timer := time.NewTimer(checkBlockSyncInterval)
+	defer timer.Stop()
+	for {
+		select {
+		case <-timer.C:
+			if cbft.HasBlock(block.Hash(), block.NumberU64()) {
+				cbft.log.Debug("The inserted block has exists in block tree", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t))
+				return nil
+			}
+			timer.Reset(checkBlockSyncInterval)
+		case err := <-result:
+			return err
+		}
+	}
 }
 
 // HasBlock check if the specified block exists in block tree.
@@ -1131,7 +1160,7 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
 	block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
 	if block == nil {
-		if eb := cbft.state.HighestExecutedBlock(); eb.Hash() == hash {
+		if eb := cbft.state.FindBlock(hash, number); eb != nil {
 			block = eb
 		} else {
 			cbft.log.Debug("Get block failed", "hash", hash, "number", number, "eb", eb.Hash(), "ebNumber", eb.NumberU64())
@@ -1186,12 +1215,17 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 
 	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-	if cbft.updateChainStateHook != nil {
-		cbft.updateChainStateHook(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, &protocols.State{Block: lockBlock, QuorumCert: lockQC}, &protocols.State{Block: commitBlock, QuorumCert: commitQC})
-	}
+
 	qcState := &protocols.State{Block: qcBlock, QuorumCert: qcQC}
 	lockState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
 	commitState := &protocols.State{Block: commitBlock, QuorumCert: commitQC}
+	if cbft.updateChainStateDelayHook != nil {
+		go cbft.updateChainStateDelayHook(qcState, lockState, commitState)
+		return
+	}
+	if cbft.updateChainStateHook != nil {
+		cbft.updateChainStateHook(qcState, lockState, commitState)
+	}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,
@@ -1618,4 +1652,8 @@ func (cbft *Cbft) avgRTT() time.Duration {
 		rtt = cbft.DefaultAvgLatency() * 2
 	}
 	return rtt
+}
+
+func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.SchnorrProof, error) {
+	return cbft.config.Option.BlsPriKey.MakeSchnorrNIZKP()
 }
