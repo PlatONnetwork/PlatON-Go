@@ -821,9 +821,6 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 func (cbft *Cbft) InsertChain(block *types.Block) error {
 	t := time.Now()
 	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t))
-	defer func(t time.Time) {
-		cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t), "duration", time.Since(t))
-	}(t)
 
 	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
 		cbft.log.Debug("The inserted block has exists in chain",
