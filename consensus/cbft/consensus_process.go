@@ -515,17 +515,22 @@ func (cbft *Cbft) tryChangeView() {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	enough := func() bool {
-		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
-			(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+	shouldSwitch := func() bool {
+		return cbft.validatorPool.ShouldSwitch(block.NumberU64())
 	}()
 
-	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+	enough := func() bool {
+		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
+			//(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+			(qc != nil && qc.Epoch == cbft.state.Epoch() && shouldSwitch)
+	}()
+
+	if shouldSwitch {
 		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.state.Epoch()+1, cbft.eventMux); err == nil {
 			cbft.log.Debug("Update validator success", "number", block.NumberU64())
-			if !enough {
-				cbft.OnViewTimeout()
-			}
+			//if !enough {
+			//	cbft.OnViewTimeout()
+			//}
 		}
 	}
 
