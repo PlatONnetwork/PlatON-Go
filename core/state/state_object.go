@@ -21,10 +21,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	//"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -58,7 +60,7 @@ func (self Storage) String() (str string) {
 
 // Copy a copy of Storage
 func (self Storage) Copy() Storage {
-	cpy := make(Storage)
+	cpy := make(Storage, len(self))
 	for key, value := range self {
 		cpy[key] = value
 	}
@@ -67,7 +69,7 @@ func (self Storage) Copy() Storage {
 }
 
 func (self ValueStorage) Copy() ValueStorage {
-	cpy := make(ValueStorage)
+	cpy := make(ValueStorage, len(self))
 	for key, value := range self {
 		cpy[key] = value
 	}

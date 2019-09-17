@@ -35,22 +35,26 @@ type stakingConfig struct {
 }
 
 type slashingConfig struct {
-	PackAmountAbnormal        uint32 // The number of blocks packed per round, reaching this value is abnormal
-	PackAmountHighAbnormal    uint32 // The number of blocks packed per round, reaching this value is a high degree of abnormality
-	PackAmountLowSlashRate    uint32 // Proportion of deducted quality deposit (when the number of packing blocks is abnormal); 10% -> 10
-	PackAmountHighSlashRate   uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
-	DuplicateSignHighSlashing uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
+	PackAmountAbnormal uint32 // The number of blocks packed per round, reaching this value is abnormal
+	//	PackAmountHighAbnormal         uint32 // The number of blocks packed per round, reaching this value is a high degree of abnormality
+	//	PackAmountLowSlashRate         uint32 // Proportion of deducted quality deposit (when the number of packing blocks is abnormal); 10% -> 10
+	//	PackAmountHighSlashRate        uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
+	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
+	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
+	EvidenceValidEpoch             uint32 // Validity period of evidence, number of settlement periods
 }
 
 type governanceConfig struct {
-	VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
+	VersionProposalVote_DurationSeconds uint64 // max Consensus-Round counts for version proposal's vote duration.
+	//VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
 	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
 	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
-	TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
-	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
-	CancelProposal_VoteRate               float64 // the cancel proposal will pass if the vote rate exceeds this value.
-	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
+	TextProposalVote_DurationSeconds      uint64  // default Consensus-Round counts for text proposal's vote duration.
+	//TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
+	TextProposal_VoteRate      float64 // the text proposal will pass if the vote rate exceeds this value.
+	TextProposal_SupportRate   float64 // the text proposal will pass if the vote support reaches this value.
+	CancelProposal_VoteRate    float64 // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposal_SupportRate float64 // the cancel proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
@@ -145,21 +149,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(6),
-				PackAmountHighAbnormal:    uint32(2),
-				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignHighSlashing: uint32(100),
+				PackAmountAbnormal: uint32(6),
+				//PackAmountHighAbnormal:         uint32(2),
+				//PackAmountLowSlashRate:         uint32(10),
+				//PackAmountHighSlashRate:        uint32(50),
+				DuplicateSignHighSlashing:      uint32(100),
+				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalVote_ConsensusRounds:   uint64(2419),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(14 * 24 * 3600),
+				//TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -170,40 +178,44 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultAlphaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(10), // 10 minutes
-				NodeBlockTimeWindow: uint64(30), // 30 seconds
-				PerRoundBlocks:      uint64(15),
+				ExpectedMinutes:     uint64(3),  // 3 minutes
+				NodeBlockTimeWindow: uint64(10), // 10 seconds
+				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
-				AdditionalCycleTime: uint64(525600),
+				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:              stakeThreshold,
 				MinimumThreshold:            minimumThreshold,
-				EpochValidatorNum:           uint64(21),
+				EpochValidatorNum:           uint64(24),
 				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(1),
+				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(6),
-				PackAmountHighAbnormal:    uint32(2),
-				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignHighSlashing: uint32(100),
+				PackAmountAbnormal: uint32(6),
+				//PackAmountHighAbnormal:         uint32(2),
+				//PackAmountLowSlashRate:         uint32(10),
+				//PackAmountHighSlashRate:        uint32(50),
+				DuplicateSignHighSlashing:      uint32(100),
+				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
-				PlatONFoundationYear: 1,
+				PlatONFoundationYear: 10,
 			},
 		}
 
@@ -225,21 +237,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(6),
-				PackAmountHighAbnormal:    uint32(2),
-				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignHighSlashing: uint32(100),
+				PackAmountAbnormal: uint32(6),
+				//PackAmountHighAbnormal:         uint32(2),
+				//PackAmountLowSlashRate:         uint32(10),
+				//PackAmountHighSlashRate:        uint32(50),
+				DuplicateSignHighSlashing:      uint32(100),
+				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -265,21 +281,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(6),
-				PackAmountHighAbnormal:    uint32(2),
-				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignHighSlashing: uint32(100),
+				PackAmountAbnormal: uint32(6),
+				//PackAmountHighAbnormal:         uint32(2),
+				//PackAmountLowSlashRate:         uint32(10),
+				//PackAmountHighSlashRate:        uint32(50),
+				DuplicateSignHighSlashing:      uint32(100),
+				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -305,21 +325,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(6),
-				PackAmountHighAbnormal:    uint32(2),
-				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignHighSlashing: uint32(100),
+				PackAmountAbnormal: uint32(6),
+				//PackAmountHighAbnormal:         uint32(2),
+				//PackAmountLowSlashRate:         uint32(10),
+				//PackAmountHighSlashRate:        uint32(50),
+				DuplicateSignHighSlashing:      uint32(100),
+				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalVote_ConsensusRounds:   uint64(2419),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(2419),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(14 * 24 * 3600),
+				//TextProposalVote_ConsensusRounds:      uint64(2419),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -331,11 +355,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(3),  // 3 minutes
-				NodeBlockTimeWindow: uint64(10), // 10 seconds
+				//ExpectedMinutes:     uint64(3),  // 3 minutes
+				//NodeBlockTimeWindow: uint64(10), // 10 seconds
+				//PerRoundBlocks:      uint64(10),
+				//ValidatorCount:      uint64(4),
+				//AdditionalCycleTime: uint64(28),
+				ExpectedMinutes:     uint64(10), // 3 minutes
+				NodeBlockTimeWindow: uint64(20), // 20 seconds
 				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
-				AdditionalCycleTime: uint64(28),
+				AdditionalCycleTime: uint64(40),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:              stakeThreshold,
@@ -346,21 +375,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:        uint32(6),
-				PackAmountHighAbnormal:    uint32(2),
-				PackAmountLowSlashRate:    uint32(10),
-				PackAmountHighSlashRate:   uint32(50),
-				DuplicateSignHighSlashing: uint32(100),
+				PackAmountAbnormal: uint32(6),
+				//PackAmountHighAbnormal:         uint32(2),
+				//PackAmountLowSlashRate:         uint32(10),
+				//PackAmountHighSlashRate:        uint32(50),
+				DuplicateSignHighSlashing:      uint32(100),
+				NumberOfBlockRewardForSlashing: uint32(20),
+				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalVote_ConsensusRounds:   uint64(4),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
+				TextProposalVote_DurationSeconds:      uint64(160),
+				//TextProposalVote_ConsensusRounds:      uint64(4),
+				TextProposal_VoteRate:      float64(0.50),
+				TextProposal_SupportRate:   float64(0.667),
+				CancelProposal_VoteRate:    float64(0.50),
+				CancelProposal_SupportRate: float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -427,22 +460,24 @@ func CheckEconomicModel() error {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
-	if 0 > ec.Slashing.PackAmountHighSlashRate || 100 < ec.Slashing.PackAmountHighSlashRate {
-		return errors.New("The PackAmountHighSlashRate must be greater than or equal to 0 and less than or equal to 100")
+	//if 0 > ec.Slashing.PackAmountHighSlashRate || 100 < ec.Slashing.PackAmountHighSlashRate {
+	//	return errors.New("The PackAmountHighSlashRate must be greater than or equal to 0 and less than or equal to 100")
+	//}
+	//
+	//if 0 > ec.Slashing.PackAmountLowSlashRate || 100 < ec.Slashing.PackAmountLowSlashRate {
+	//	return errors.New("The PackAmountLowSlashRate must be greater than or equal to 0 and less than or equal to 100")
+	//}
+	//
+	//if ec.Slashing.PackAmountLowSlashRate > ec.Slashing.PackAmountHighSlashRate {
+	//	return errors.New("The PackAmountHighSlashRate must be greater than or equal to the PackAmountLowSlashRate")
+	//}
+	//
+	//if ec.Slashing.PackAmountHighAbnormal >= ec.Slashing.PackAmountAbnormal {
+	//	return errors.New("The PackAmountHighAbnormal must be less than to the PackAmountAbnormal")
+	//}
+	if ec.Common.PerRoundBlocks <= uint64(ec.Slashing.PackAmountAbnormal) {
+		return errors.New("The PackAmountAbnormal must be less than to the PerRoundBlocks")
 	}
-
-	if 0 > ec.Slashing.PackAmountLowSlashRate || 100 < ec.Slashing.PackAmountLowSlashRate {
-		return errors.New("The PackAmountLowSlashRate must be greater than or equal to 0 and less than or equal to 100")
-	}
-
-	if ec.Slashing.PackAmountLowSlashRate > ec.Slashing.PackAmountHighSlashRate {
-		return errors.New("The PackAmountHighSlashRate must be greater than or equal to the PackAmountLowSlashRate")
-	}
-
-	if ec.Slashing.PackAmountHighAbnormal >= ec.Slashing.PackAmountAbnormal {
-		return errors.New("The PackAmountHighAbnormal must be less than to the PackAmountAbnormal")
-	}
-
 	return nil
 }
 
@@ -522,20 +557,29 @@ func PackAmountAbnormal() uint32 {
 	return ec.Slashing.PackAmountAbnormal
 }
 
-func PackAmountHighAbnormal() uint32 {
-	return ec.Slashing.PackAmountHighAbnormal
-}
-
-func PackAmountLowSlashRate() uint32 {
-	return ec.Slashing.PackAmountLowSlashRate
-}
-
-func PackAmountHighSlashRate() uint32 {
-	return ec.Slashing.PackAmountHighSlashRate
-}
+//
+//func PackAmountHighAbnormal() uint32 {
+//	return ec.Slashing.PackAmountHighAbnormal
+//}
+//
+//func PackAmountLowSlashRate() uint32 {
+//	return ec.Slashing.PackAmountLowSlashRate
+//}
+//
+//func PackAmountHighSlashRate() uint32 {
+//	return ec.Slashing.PackAmountHighSlashRate
+//}
 
 func DuplicateSignHighSlash() uint32 {
 	return ec.Slashing.DuplicateSignHighSlashing
+}
+
+func NumberOfBlockRewardForSlashing() uint32 {
+	return ec.Slashing.NumberOfBlockRewardForSlashing
+}
+
+func EvidenceValidEpoch() uint32 {
+	return ec.Slashing.EvidenceValidEpoch
 }
 
 /******
@@ -553,7 +597,8 @@ func PlatONFoundationYear() uint32 {
  * Governance config
  ******/
 func VersionProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.VersionProposalVote_ConsensusRounds
+	//return ec.Gov.VersionProposalVote_ConsensusRounds
+	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
 func VersionProposalActive_ConsensusRounds() uint64 {
@@ -565,7 +610,8 @@ func VersionProposal_SupportRate() float64 {
 }
 
 func TextProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.TextProposalVote_ConsensusRounds
+	//return ec.Gov.TextProposalVote_ConsensusRounds
+	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
 func TextProposal_VoteRate() float64 {

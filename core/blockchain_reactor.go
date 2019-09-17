@@ -29,7 +29,6 @@ import (
 
 type BlockChainReactor struct {
 	vh            *handler.VrfHandler
-	chandler      *handler.CryptoHandler
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
@@ -111,7 +110,7 @@ func (bcr *BlockChainReactor) loop() {
 
 			}
 
-			log.Debug("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
+			log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 				continue
@@ -140,17 +139,10 @@ func (bcr *BlockChainReactor) SetVRF_handler(vher *handler.VrfHandler) {
 	bcr.vh = vher
 }
 
-func (bcr *BlockChainReactor) SetCrypto_handler(ch *handler.CryptoHandler) {
-	bcr.chandler = ch
-}
-
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 		if nil != bcr.vh {
 			bcr.vh.SetPrivateKey(privateKey)
-		}
-		if nil != bcr.chandler {
-			bcr.chandler.SetPrivateKey(privateKey)
 		}
 		plugin.SlashInstance().SetPrivateKey(privateKey)
 	}

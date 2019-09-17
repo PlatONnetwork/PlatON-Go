@@ -148,7 +148,7 @@ var (
 	sndb          = snapshotdb.Instance()
 
 	// serial use only
-	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+	senderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
 	txHashArr = []common.Hash{
 		common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22"),
@@ -280,7 +280,8 @@ func newChainState() (xcom.StateDB, *types.Block, error) {
 	chain := mock.NewChain(testGenesis)
 	//	var state *state.StateDB
 
-	chain.StateDB.AddBalance(sender, sender_balance)
+	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
+	chain.StateDB.AddBalance(sender, sBalance)
 	for i, addr := range addrArr {
 		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
 		amount = new(big.Int).Mul(common.Big257, amount)
@@ -692,7 +693,8 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 	restrictingKey := restricting.GetRestrictingKey(account)
 	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
-	stateDB.AddBalance(sender, sender_balance)
+	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
+	stateDB.AddBalance(sender, sBalance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }
 

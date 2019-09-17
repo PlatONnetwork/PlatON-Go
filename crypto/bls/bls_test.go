@@ -1,11 +1,16 @@
 package bls
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+)
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 var unitN = 0
@@ -360,6 +365,7 @@ func test(t *testing.T, c int) {
 	testAggregateSign(t, c)
 	testSchnorr_test(t, c)
 	testSchnorrNIZk(t, c)
+	//testProofText(t, c)
 
 }
 
@@ -595,6 +601,116 @@ func TestBlsInit(t *testing.T) {
 			t.Fatal(err)
 		}
 		fmt.Println("exc bls BLS12_381")
+	}
+}
+
+func TestProofText(t *testing.T) {
+
+	// not support：
+	//		CurveFp382_1
+	//		CurveFp382_2
+	// support:
+	// 		CurveFp254BNb
+	// 		BLS12_381
+
+	err := Init(CurveFp254BNb)
+	//err := Init(BLS12_381)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var a SecretKey
+	a.SetByCSPRNG()
+	proof, err := SchnorrNIZKProve(CurveFp254BNb, a)
+	//proof, err := SchnorrNIZKProve(BLS12_381, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// to text
+	textByte, err := proof.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("proof: ", string(textByte))
+	t.Log("\n")
+
+	// proof to proofhex
+	var proofhex ProofHex
+	proofhex.UnmarshalText(textByte)
+
+	t.Log("proofhex: ", string(proofhex[:]))
+	t.Log("\n")
+	// proofhex rlp encode
+	proofhexRlp, err := rlp.EncodeToBytes(proofhex)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("proofhex rlp:", string(proofhexRlp))
+	t.Log("\n")
+
+	// proofhex rlp decode
+	var proofhex2 ProofHex
+	err = rlp.DecodeBytes(proofhexRlp, &proofhex2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	textByte2, err := proofhex2.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("proof2: ", string(textByte2))
+
+	proof2 := new(Proof)
+	err = proof2.UnmarshalText(textByte2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	P := a.GetPublicKey()
+	err = SchnorrNIZKVerify(CurveFp254BNb, *proof2, *P)
+	//err = SchnorrNIZKVerify(BLS12_381, *proof2, *P)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProof_RLP(t *testing.T) {
+	err := Init(CurveFp254BNb)
+	//err := Init(BLS12_381)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var a SecretKey
+	a.SetByCSPRNG()
+	proof, err := SchnorrNIZKProve(CurveFp254BNb, a)
+	//proof, err := SchnorrNIZKProve(BLS12_381, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// proof rlp encode
+	proofRlp, err := rlp.EncodeToBytes(proof)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("proof rlp:", string(proofRlp))
+	t.Log("\n")
+
+	var proof2 Proof
+	err = rlp.DecodeBytes(proofRlp, &proof2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	P := a.GetPublicKey()
+	err = SchnorrNIZKVerify(CurveFp254BNb, proof2, *P)
+	//err = SchnorrNIZKVerify(BLS12_381, proof2, *P)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

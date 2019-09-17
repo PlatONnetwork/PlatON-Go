@@ -1,4 +1,4 @@
-package handler
+package node
 
 import (
 	"crypto/ecdsa"
@@ -39,7 +39,7 @@ func (chandler *CryptoHandler) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 
 func (chandler *CryptoHandler) Sign(data interface{}) ([]byte, error) {
 	if chandler == nil || chandler.privateKey == nil {
-		return nil, common.NewSysError("PrivateKey missed")
+		return nil, common.InternalError.Wrap("PrivateKey missed")
 	}
 	return crypto.Sign(RlpHash(data).Bytes(), chandler.privateKey)
 }

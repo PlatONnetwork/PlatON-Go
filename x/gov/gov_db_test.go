@@ -198,7 +198,7 @@ func TestGovDB_SetVote_ListVoteValue(t *testing.T) {
 	proposalID := common.Hash{0x03}
 
 	for _, nodeId := range NodeIDList {
-		if err := SetVote(proposalID, nodeId, Yes, statedb); err != nil {
+		if err := AddVoteValue(proposalID, nodeId, Yes, statedb); err != nil {
 			t.Errorf("set vote error,%s", err)
 		}
 	}
@@ -219,7 +219,7 @@ func TestGovDB_ListVotedVerifier(t *testing.T) {
 	proposalID := common.Hash{0x03}
 
 	for _, nodeId := range NodeIDList {
-		if err := SetVote(proposalID, nodeId, Yes, statedb); err != nil {
+		if err := AddVoteValue(proposalID, nodeId, Yes, statedb); err != nil {
 			t.Errorf("set vote error,%s", err)
 		}
 	}

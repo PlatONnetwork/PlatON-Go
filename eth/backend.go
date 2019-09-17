@@ -233,6 +233,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	reactor := core.NewBlockChainReactor(config.CbftConfig.NodePriKey, eth.EventMux())
 
+	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
+
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 
 		var agency consensus.Agency
@@ -252,7 +254,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRF_handler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
-			reactor.SetCrypto_handler(handler.GetCryptoHandler())
 			handlePlugin(reactor)
 			agency = reactor
 		}

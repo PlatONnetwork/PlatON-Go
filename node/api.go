@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
@@ -264,6 +266,15 @@ func (api *PublicAdminAPI) NodeInfo() (*p2p.NodeInfo, error) {
 // Datadir retrieves the current data directory the node is using.
 func (api *PublicAdminAPI) Datadir() string {
 	return api.node.DataDir()
+}
+
+func (api *PublicAdminAPI) GetProgramVersion() (*params.ProgramVersion, error) {
+	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	sig, err := GetCryptoHandler().Sign(programVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &params.ProgramVersion{Version: programVersion, Sign: hexutil.Encode(sig)}, nil
 }
 
 // PublicDebugAPI is the collection of debugging related API methods exposed over
