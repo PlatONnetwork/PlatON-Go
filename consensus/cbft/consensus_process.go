@@ -488,7 +488,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		highestLockedNumberGauage.Update(int64(lock.NumberU64()))
 		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
 		blockConfirmedMeter.Mark(1)
-	} else if oldCommit.NumberU64() == commit.NumberU64() {
+	} else if oldCommit.NumberU64() == commit.NumberU64() && oldCommit.NumberU64() > 0 {
 		cbft.log.Debug("fork block", "number", highestqc.NumberU64(), "hash", highestqc.Hash())
 		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
