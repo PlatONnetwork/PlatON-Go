@@ -115,7 +115,8 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 			Alloc:  core.GenesisAlloc{},
 		}
 	)
-	gspec.Alloc[cvm.PlatONFoundationAddress] = core.GenesisAccount{
+	platONFoundationAccount := common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821")
+	gspec.Alloc[platONFoundationAccount] = core.GenesisAccount{
 		Balance: twoentyBillion,
 	}
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{

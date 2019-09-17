@@ -70,7 +70,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 func (bcr *BlockChainReactor) Close() {
 	bcr.exitOnce.Do(func() {
 		close(bcr.exitCh)
-		log.Info("blockchain_reactor is closed")
+		log.Info("blockchain_reactor closed")
 	})
 }
 
@@ -85,7 +85,7 @@ func (bcr *BlockChainReactor) loop() {
 		select {
 		case obj := <-bcr.bftResultSub.Chan():
 			if obj == nil {
-				log.Error("blockchain_reactor receive nil bftResultEvent maybe channel is closed")
+				//log.Error("blockchain_reactor receive nil bftResultEvent maybe channel is closed")
 				continue
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
