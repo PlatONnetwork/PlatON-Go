@@ -70,7 +70,7 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 
 	if nil != err {
 		log.Error("slashingContract DecodeEvidence fail", "data", data, "err", err)
-		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, common.InternalError.Wrap(err.Error())), nil
+		return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, common.InvalidParameter.Wrap(err.Error())), nil
 	}
 	if !sc.Contract.UseGas(params.DuplicateEvidencesGas) {
 		return nil, ErrOutOfGas
