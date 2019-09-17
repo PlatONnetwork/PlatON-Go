@@ -190,7 +190,7 @@ func Open(path string) (DB, error) {
 		return nil, err
 	}
 	if len(fds) > 0 {
-		logger.Info("begin recover")
+		logger.Info("begin recover", "path", path)
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
 			logger.Error("recover db fail:", "error", err)
@@ -198,7 +198,7 @@ func Open(path string) (DB, error) {
 		}
 		return db, nil
 	} else {
-		logger.Info("begin new")
+		logger.Info("begin new", "path", path)
 		db, err := newDB(s)
 		if err != nil {
 			logger.Error(fmt.Sprint("new db fail:", err))

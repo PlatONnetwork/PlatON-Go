@@ -155,7 +155,7 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlock(db ethdb.Database, sdb snapshotdb.DB, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
@@ -179,7 +179,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 			return nil, common.Hash{}, err
 		}
 
-		block, err := genesis.Commit(db)
+		block, err := genesis.Commit(db, sdb)
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
 	}
@@ -187,6 +187,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	// Check whether the genesis block is already written.
 	if genesis != nil {
 		hash := genesis.ToBlock(nil, nil).Hash()
+		log.Debug("check genesis Hash compare", "hash", hash, "stored", stored)
 		if hash != stored {
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
@@ -245,11 +246,12 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 
 // ToBlock creates the genesis block and writes state of a genesis specification
 // to the given database (or discards it if nil).
-func (g *Genesis) ToBlock(db ethdb.Database, snapDB snapshotdb.DB) *types.Block {
+func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	if db == nil {
 		db = ethdb.NewMemDatabase()
 	}
-	if snapDB == nil {
+	var snapDB snapshotdb.DB
+	if sdb == nil {
 		var err error
 		log.Info("begin open snapshotDB in tmp")
 		snapDB, err = snapshotdb.Open(path.Join(os.TempDir(), snapshotdb.DBPath))
@@ -257,7 +259,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, snapDB snapshotdb.DB) *types.Block 
 			panic(err)
 		}
 		defer snapDB.Clear()
+	} else {
+		snapDB = sdb
 	}
+
 	genesisIssuance := new(big.Int)
 	//	genesisReward := common.Big0
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
@@ -325,8 +330,8 @@ func (g *Genesis) ToBlock(db ethdb.Database, snapDB snapshotdb.DB) *types.Block 
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
-func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
-	block := g.ToBlock(db, snapshotdb.Instance())
+func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.DB) (*types.Block, error) {
+	block := g.ToBlock(db, sdb)
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
@@ -351,7 +356,7 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 // MustCommit writes the genesis block and state to db, panicking on error.
 // The block is committed as the canonical head block.
 func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
-	block, err := g.Commit(db)
+	block, err := g.Commit(db, snapshotdb.Instance())
 	if err != nil {
 		panic(err)
 	}
