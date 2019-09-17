@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -99,7 +101,7 @@ func (t *BlockTest) Run() error {
 
 	// import pre accounts & construct test genesis block & state root
 	db := ethdb.NewMemDatabase()
-	gblock, err := t.genesis(config).Commit(db)
+	gblock, err := t.genesis(config).Commit(db, snapshotdb.Instance())
 	if err != nil {
 		return err
 	}

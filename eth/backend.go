@@ -130,7 +130,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// set snapshotdb path
 	//snapshotdb.SetDBPath(ctx)
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, snapshotdb.Instance(), config.Genesis)
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount

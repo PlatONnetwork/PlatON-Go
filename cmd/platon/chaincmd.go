@@ -216,20 +216,29 @@ func initGenesis(ctx *cli.Context) error {
 	stack := makeFullNode(ctx)
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
-
+		os.RemoveAll(stack.ResolvePath(name))
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis)
-		if err != nil {
-			utils.Fatalf("Failed to write genesis block: %v", err)
+		if name == "chaindata" {
+			os.RemoveAll(stack.ResolvePath(snapshotdb.DBPath))
+			sdb := snapshotdb.Instance()
+			_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
+			if err != nil {
+				utils.Fatalf("Failed to write genesis block: %v", err)
+			}
+			sdb.Close()
+			log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
+		} else {
+			_, hash, err := core.SetupGenesisBlock(chaindb, nil, genesis)
+			if err != nil {
+				utils.Fatalf("Failed to write genesis block: %v", err)
+			}
+			log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
 		}
-
-		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
+		chaindb.Close()
 	}
-	snapshotdb.Instance().Close()
 	return nil
 }
 
