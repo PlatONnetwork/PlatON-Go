@@ -12,7 +12,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -153,8 +152,8 @@ func (u *unCommitBlocks) Set(key common.Hash, block *blockData) {
 	u.Unlock()
 }
 
-func SetDBPathWithNode(n *node.Node) {
-	dbpath = n.ResolvePath(DBPath)
+func SetDBPathWithNode(path string) {
+	dbpath = path
 	logger.Info("set path", "path", dbpath)
 }
 
@@ -797,5 +796,6 @@ func (s *snapshotDB) Close() error {
 	}
 
 	s.closed = true
+	logger.Info("db close")
 	return nil
 }
