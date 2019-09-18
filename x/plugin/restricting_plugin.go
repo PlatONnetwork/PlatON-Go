@@ -211,7 +211,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 				rp.transferAmount(state, vm.RestrictingContractAddr, account, info.NeedRelease)
 				totalAmount.Sub(totalAmount, info.NeedRelease)
 				info.CachePlanAmount.Add(info.CachePlanAmount, totalAmount)
-				info.NeedRelease = common.Big0
+				info.NeedRelease = new(big.Int).SetInt64(0)
 			}
 		} else {
 			info.CachePlanAmount.Add(info.CachePlanAmount, totalAmount)

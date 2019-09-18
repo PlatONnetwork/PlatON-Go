@@ -467,7 +467,7 @@ func NewInbox(prvKey *ecdsa.PrivateKey, contractAddr, beneficiary common.Address
 		sender:      sender,
 		signer:      signer,
 		session:     session,
-		cashed:      new(big.Int).Set(common.Big0),
+		cashed:      new(big.Int).SetInt64(0),
 		log:         log.New("contract", contractAddr),
 	}
 	self.log.Trace("New chequebook inbox initialized", "beneficiary", self.beneficiary, "signer", hexutil.Bytes(crypto.FromECDSAPub(signer)))
