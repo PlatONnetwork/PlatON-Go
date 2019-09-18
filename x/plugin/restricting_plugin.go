@@ -113,7 +113,7 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, plans []restricting
 		}
 		if amount.Cmp(common.Big0) <= 0 {
 			rp.log.Error("[RestrictingPlugin.mergeAmount]restricting amount is less than zero", "epoch", epoch, "amount", amount)
-			return nil, nil, errRestrictAmountInvalid
+			return nil, nil, errAmountLessThanZero
 		}
 		totalAmount.Add(totalAmount, amount)
 		newEpoch := epoch + latestEpoch
