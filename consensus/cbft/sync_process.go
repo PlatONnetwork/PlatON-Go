@@ -16,7 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-var syncPrepareVotesInterval = 5 * time.Second
+var syncPrepareVotesInterval = 3 * time.Second
 
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
@@ -87,7 +87,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		utils.SetFalse(&cbft.fetching)
 	}
 
-	cbft.log.Debug("Start fetching")
+	cbft.log.Debug("Start fetching", "id", id, "basBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 
 	utils.SetTrue(&cbft.fetching)
 	cbft.fetcher.AddTask(id, match, executor, expire)
@@ -214,13 +214,27 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) err
 func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
 	cbft.log.Debug("Received message on OnGetPrepareVote", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		_, qc := cbft.state.ViewBlockAndQC(msg.BlockIndex)
+		if qc != nil {
+			cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
+			cbft.log.Debug("Send BlockQuorumCert", "peer", id, "qc", qc.String())
+			return nil
+		}
+
 		prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
 		// Defining an array for receiving PrepareVote.
 		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
 		if prepareVoteMap != nil {
+			threshold := cbft.threshold(cbft.currentValidatorLen())
+			remain := threshold - (cbft.currentValidatorLen() - int(msg.UnKnownSet.Size()))
 			for k, v := range prepareVoteMap {
 				if msg.UnKnownSet.GetIndex(k) {
 					votes = append(votes, v)
+				}
+
+				// Limit response votes
+				if remain > 0 && len(votes) >= remain {
+					break
 				}
 			}
 		}
