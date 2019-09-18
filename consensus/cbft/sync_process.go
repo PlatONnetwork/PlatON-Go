@@ -337,19 +337,19 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 
 	localEpoch, localViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
 
-	isEqualLocalView := func() bool {
-		return msg.ViewNumber == localViewNumber && msg.Epoch == localEpoch
+	isLocalView := func() bool {
+		return msg.Epoch == localEpoch && msg.ViewNumber == localViewNumber
 	}
 
 	isLastView := func() bool {
-		return msg.ViewNumber+1 == localViewNumber || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
+		return (msg.Epoch == localEpoch && msg.ViewNumber+1 == localViewNumber) || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
 	}
 
 	isPreviousView := func() bool {
 		return msg.Epoch == localEpoch && msg.ViewNumber+1 < localViewNumber
 	}
 
-	if isEqualLocalView() {
+	if isLocalView() {
 		viewChanges := cbft.state.AllViewChange()
 
 		vcs := &protocols.ViewChanges{}

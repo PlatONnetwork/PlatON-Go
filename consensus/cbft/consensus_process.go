@@ -225,6 +225,13 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.log.Debug("Insert QC block", "qc", qc.String())
+	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
+		cbft.log.Debug("The inserted block has exists in chain",
+			"number", block.Number(), "hash", block.Hash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash())
+		return
+	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
@@ -471,6 +478,10 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
 		return
 	}
+	if commit.NumberU64()+2 != qc.NumberU64() {
+		cbft.log.Warn("Try commit failed,the requirement of commit block is not achieved", "commit", commit.NumberU64(), "lock", lock.NumberU64(), "qc", qc.NumberU64())
+		return
+	}
 	//highestqc := cbft.state.HighestQCBlock()
 	highestqc := qc
 	commitBlock, commitQC := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
@@ -489,7 +500,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		highestLockedNumberGauage.Update(int64(lock.NumberU64()))
 		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
 		blockConfirmedMeter.Mark(1)
-	} else if oldCommit.NumberU64() > 0 {
+	} else if oldCommit.NumberU64() == commit.NumberU64() && oldCommit.NumberU64() > 0 {
 		cbft.log.Debug("fork block", "number", highestqc.NumberU64(), "hash", highestqc.Hash())
 		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
@@ -516,17 +527,22 @@ func (cbft *Cbft) tryChangeView() {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	enough := func() bool {
-		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
-			(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+	shouldSwitch := func() bool {
+		return cbft.validatorPool.ShouldSwitch(block.NumberU64())
 	}()
 
-	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+	enough := func() bool {
+		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
+			//(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+			(qc != nil && qc.Epoch == cbft.state.Epoch() && shouldSwitch)
+	}()
+
+	if shouldSwitch {
 		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.state.Epoch()+1, cbft.eventMux); err == nil {
 			cbft.log.Debug("Update validator success", "number", block.NumberU64())
-			if !enough {
-				cbft.OnViewTimeout()
-			}
+			//if !enough {
+			//	cbft.OnViewTimeout()
+			//}
 		}
 	}
 

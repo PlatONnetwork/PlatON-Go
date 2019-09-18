@@ -158,7 +158,8 @@ func testSeal(t *testing.T, node, node2 *TestCBFT) {
 
 	result := make(chan *types.Block, 1)
 
-	node.engine.OnSeal(block, result, nil)
+	node.engine.Seal(node.cache, block, result, nil)
+	//node.engine.OnSeal(block, result, nil)
 	b := <-result
 	assert.NotNil(t, b)
 }
@@ -174,6 +175,7 @@ func testPrepare(t *testing.T, node, node2 *TestCBFT) {
 	_, err = node2.engine.verifyConsensusMsg(pb)
 	assert.Nil(t, err)
 }
+
 func testTimeout(t *testing.T, node, node2 *TestCBFT) {
 	time.Sleep(10 * time.Second)
 	pb := node.engine.state.PrepareBlockByIndex(0)
