@@ -77,7 +77,7 @@ func TestUpdateLeaks(t *testing.T) {
 	}
 }
 
-func TestNewStateDB(t *testing.T) {
+func TestNewStateDBAndCopy(t *testing.T) {
 	storages := make(map[common.Address]map[string]string)
 	db := ethdb.NewMemDatabase()
 	dbc := ethdb.NewMemDatabase()
@@ -127,6 +127,8 @@ func TestNewStateDB(t *testing.T) {
 	}
 	assert.Nil(t, s1.db.TrieDB().Commit(s1.Root(), false))
 	assert.Nil(t, s1c.db.TrieDB().Commit(s1c.Root(), false))
+
+	// test new statedb
 	st2 := s1.NewStateDB()
 
 	st2.clearParentRef()
@@ -191,6 +193,20 @@ func TestNewStateDB(t *testing.T) {
 	}
 	if _, err := s1cc.Commit(false); err != nil {
 		t.Fatalf("failed to commit s1c state: %v", err)
+	}
+
+	// test copy statedb
+	st4 := s3.Copy()
+
+	st4.clearParentRef()
+	for addr, storage := range storages {
+		for k, v := range storage {
+			value := st4.GetState(addr, []byte(k))
+			value2 := s1cc.GetState(addr, []byte(k))
+			//fmt.Println("v", hex.EncodeToString([]byte(v)), "value", hex.EncodeToString([]byte(value)), "value2", hex.EncodeToString(value2))
+			assert.Equal(t, []byte(v), value)
+			assert.Equal(t, []byte(v), value2)
+		}
 	}
 
 	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false))

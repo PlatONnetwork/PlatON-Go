@@ -87,8 +87,12 @@ type StateDB struct {
 
 	lock sync.Mutex
 
-	refLock            sync.Mutex
-	parentCommitted    bool
+	// Prevent concurrent access to parent StateDB and reference function
+	refLock sync.Mutex
+
+	// The flag of parent StateDB
+	parentCommitted bool
+	// children StateDB callback, is called when parent committed
 	clearReferenceFunc []func()
 	parent             *StateDB
 }
@@ -111,6 +115,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 	}, nil
 }
 
+// New StateDB based on the parent StateDB
 func (self *StateDB) NewStateDB() *StateDB {
 	stateDB := &StateDB{
 		db:                 self.db,
@@ -482,6 +487,7 @@ func (self *StateDB) deleteStateObject(stateObject *stateObject) {
 	self.setError(self.trie.TryDelete(addr[:]))
 }
 
+// Get the current StateDB cache and the parent StateDB cache
 func (self *StateDB) getStateObjectCache(addr common.Address) (stateObject *stateObject) {
 	// Prefer 'live' objects.
 	if obj := self.stateObjects[addr]; obj != nil {
@@ -538,6 +544,7 @@ func (self *StateDB) getStateObjectCache(addr common.Address) (stateObject *stat
 	return nil
 }
 
+// Find stateObject in cache
 func (self *StateDB) getStateObjectLocalCache(addr common.Address) (stateObject *stateObject) {
 	if obj := self.stateObjects[addr]; obj != nil {
 		if obj.deleted {
@@ -548,6 +555,7 @@ func (self *StateDB) getStateObjectLocalCache(addr common.Address) (stateObject 
 	return nil
 }
 
+// Find stateObject storage in cache
 func (self *StateDB) getStateObjectSnapshot(addr common.Address, key string) (common.Hash, []byte) {
 	if obj := self.stateObjects[addr]; obj != nil {
 		if obj.deleted {
@@ -573,15 +581,18 @@ func (self *StateDB) getStateObjectSnapshot(addr common.Address, key string) (co
 	return common.Hash{}, nil
 }
 
+// Add childrent statedb reference
 func (self *StateDB) AddReferenceFunc(fn func()) {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
+	// It must not be nil
 	if self.clearReferenceFunc == nil {
 		panic("statedb had cleared")
 	}
 	self.clearReferenceFunc = append(self.clearReferenceFunc, fn)
 }
 
+// Clear reference when StateDB is committed
 func (self *StateDB) ClearReference() {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
@@ -620,22 +631,6 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 	// Insert into the live set.
 	obj := newObject(self, addr, data)
 	self.setStateObject(obj)
-	return obj
-}
-func (self *StateDB) getStateObjectFromDB(addr common.Address) (stateObject *stateObject) {
-	// Load the object from the database.
-	enc, err := self.trie.TryGet(addr[:])
-	if len(enc) == 0 {
-		self.setError(err)
-		return nil
-	}
-	var data Account
-	if err := rlp.DecodeBytes(enc, &data); err != nil {
-		log.Error("Failed to decode state object", "addr", addr, "err", err)
-		return nil
-	}
-	// Insert into the live set.
-	obj := newObject(self, addr, data)
 	return obj
 }
 
@@ -761,6 +756,7 @@ func (self *StateDB) Copy() *StateDB {
 	for hash, preimage := range self.preimages {
 		state.preimages[hash] = preimage
 	}
+	// Copy parent state
 	self.refLock.Lock()
 	if self.parent != nil {
 		if !self.parentCommitted {
@@ -776,6 +772,7 @@ func (self *StateDB) Copy() *StateDB {
 	return state
 }
 
+// Clear parent StateDB reference
 func (self *StateDB) clearParentRef() {
 	self.refLock.Lock()
 	defer self.refLock.Unlock()
@@ -783,6 +780,7 @@ func (self *StateDB) clearParentRef() {
 	if self.parent != nil {
 		self.parentCommitted = true
 		log.Debug("new root", "hash", self.parent.Root().String())
+		// Parent is nil, find the parent state based on current StateDB
 		self.parent = nil
 	}
 }

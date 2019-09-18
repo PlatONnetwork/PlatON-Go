@@ -466,6 +466,7 @@ func (self *stateObject) deepCopy(db *StateDB) *stateObject {
 	return stateObject
 }
 
+// Copy account status, recreate trie
 func (self *stateObject) copy(db *StateDB) *stateObject {
 	stateObject := newObject(db, self.address, self.data)
 	if self.trie != nil {
