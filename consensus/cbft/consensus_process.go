@@ -236,11 +236,6 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		cbft.state.AddQC(qc)
 	}
 
-	hasQC := func() bool {
-		b, _ := cbft.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
-		return b != nil
-	}()
-
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
 	cbft.TrySetHighestQCBlock(block)
 	isOwn := func() bool {
@@ -255,7 +250,7 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		}
 		return false
 	}()
-	if !isOwn && !hasQC {
+	if !isOwn {
 		cbft.txPool.Reset(block)
 	}
 	cbft.tryCommitNewBlock(lock, commit, block)
