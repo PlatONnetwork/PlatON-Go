@@ -116,7 +116,6 @@ func (t *SecureTrie) TryUpdateValue(key, value []byte) error {
 	hash := common.BytesToHash(key)
 	t.storageValue[hash] = value
 	t.getSecKeyCache()[string(key)] = common.CopyBytes(value)
-	log.Debug(fmt.Sprintf("seckey cache:%d", len(t.getSecKeyCache())))
 	return nil
 }
 

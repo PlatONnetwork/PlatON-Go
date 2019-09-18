@@ -327,7 +327,6 @@ func (db *Database) insertPreimage(hash common.Hash, preimage []byte) {
 	}
 	db.preimages[hash] = common.CopyBytes(preimage)
 	db.preimagesSize += common.StorageSize(common.HashLength + len(preimage))
-	log.Debug(fmt.Sprintf("preimages size:%d", len(db.preimages)))
 }
 
 // node retrieves a cached trie node from memory, or returns nil if none can be
