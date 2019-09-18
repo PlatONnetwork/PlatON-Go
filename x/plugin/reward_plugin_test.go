@@ -71,11 +71,11 @@ func TestRewardPlugin(t *testing.T) {
 		lastYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(lastYear)))
 
 		if plugin.isLessThanFoundationYear(thisYear) {
-			mockDB.GetBalance(vm.CommunityDeveloperFoundation)
+			mockDB.GetBalance(xcom.CDFAccount())
 
 		} else {
-			mockDB.GetBalance(vm.CommunityDeveloperFoundation)
-			mockDB.GetBalance(vm.PlatONFoundationAddress)
+			mockDB.GetBalance(xcom.CDFAccount())
+			mockDB.GetBalance(xcom.PlatONFundAccount())
 		}
 		mockDB.GetBalance(vm.RewardManagerPoolAddr)
 
