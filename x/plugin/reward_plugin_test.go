@@ -25,7 +25,7 @@ func TestRewardPlugin(t *testing.T) {
 	t.Run("CalculateExpectReward", func(t *testing.T) {
 		//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-		yearBalance := big.NewInt(1E18)
+		yearBalance := big.NewInt(1e18)
 		rate := xcom.NewBlockRewardRate()
 		epochs := xutil.EpochsPerYear()
 		blocks := xutil.CalcBlocksEachYear()
