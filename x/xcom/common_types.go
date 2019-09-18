@@ -71,54 +71,56 @@ type StateDB interface {
 
 // inner contract event data
 type Result struct {
-	Status bool
+	Code   uint32
 	Data   string
 	ErrMsg string
 }
 
-func SuccessResult(data string, errMsg string) []byte {
-	return BuildResult(true, data, errMsg)
+func SuccessResult(data string) []byte {
+	return BuildResult(data, common.NoErr)
 }
 
-func FailResult(data string, errMsg string) []byte {
-	return BuildResult(false, data, errMsg)
+func FailResult(data string, err *common.BizError) []byte {
+	return BuildResult(data, err)
 }
 
-func BuildResult(status bool, data string, errMsg string) []byte {
-	res := Result{status, data, errMsg}
-	bytes, _ := json.Marshal(res)
-	return bytes
+func BuildResult(data string, err *common.BizError) []byte {
+	res := Result{err.Code, data, err.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
 }
 
-/*// EncodeRLP implements rlp.Encoder
-func (r *Result) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, Result{
-		Status:    	r.Status,
-		Data:       r.Data,
-		ErrMsg: 	r.ErrMsg,
-	})
-}
-
-
-// DecodeRLP implements rlp.Decoder
-func (r *Result) DecodeRLP(s *rlp.Stream) error {
-	var rs Result
-	if err := s.Decode(&rs); err != nil {
-		return err
+func NewResult(data string, err *common.BizError) []byte {
+	if err == nil {
+		err = common.NoErr
 	}
+	res := &Result{err.Code, data, err.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
 
-	ty := reflect.ValueOf(r.Data).Elem()
+var (
+	OkResultByte, _ = json.Marshal(&Result{common.NoErr.Code, "", common.NoErr.Msg})
+)
 
-	if dByte, err := rlp.EncodeToBytes(r.Data); nil != err {
-		return err
-	}else {
-		if err := rlp.DecodeBytes(dByte, &ty); nil != err {
-			return err
-		}
-	}
-	r.Status, r.Data, r.ErrMsg = rs.Status, ty, rs.ErrMsg
-	return nil
-}*/
+func NewSuccessResult(data string) []byte {
+	res := &Result{common.NoErr.Code, data, common.NoErr.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+func NewFailResultByBiz(err *common.BizError) []byte {
+	res := &Result{err.Code, "", err.Msg}
+	bs, _ := json.Marshal(res)
+	return bs
+}
+
+func NewFailResult(err error) []byte {
+	code, message := common.DecodeError(err)
+	res := &Result{code, "", message}
+	bs, _ := json.Marshal(res)
+	return bs
+}
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {

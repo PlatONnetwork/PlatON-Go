@@ -27,6 +27,8 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/evm/internal/compiler"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -100,7 +102,7 @@ func runCmd(ctx *cli.Context) error {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
 		genesisConfig = gen
 		db := ethdb.NewMemDatabase()
-		genesis := gen.ToBlock(db)
+		genesis := gen.ToBlock(db, snapshotdb.Instance())
 		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
 		chainConfig = gen.Config
 	} else {

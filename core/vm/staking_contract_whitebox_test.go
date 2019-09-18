@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -42,6 +42,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -69,15 +70,27 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -91,11 +104,13 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -107,7 +122,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Status)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
@@ -124,6 +139,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
@@ -154,15 +170,27 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -176,11 +204,13 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -192,7 +222,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Status)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
@@ -208,6 +238,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -235,15 +266,27 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -257,11 +300,13 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -273,7 +318,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Status)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 }
 
@@ -291,6 +336,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -318,15 +364,27 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -340,11 +398,13 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -356,7 +416,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, true, r.Status)
+	assert.Equal(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 	// repeat stake
@@ -375,15 +435,27 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	amount2, _ := rlp.EncodeToBytes(StakeThreshold2)
 	programVersion2, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign2 := common.VersionSign{}
-	versionSign2.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign2.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign2, _ := rlp.EncodeToBytes(versionSign2)
 
 	var blsKey2 bls.SecretKey
 	blsKey2.SetByCSPRNG()
-	blsPkm2, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey2.GetPublicKey().Serialize()))
+
+	var keyEntries2 bls.PublicKeyHex
+	blsHex2 := hex.EncodeToString(blsKey2.GetPublicKey().Serialize())
+	keyEntries2.UnmarshalText([]byte(blsHex2))
+
+	blsPkm2, _ := rlp.EncodeToBytes(keyEntries2)
+
+	// generate the bls proof
+	proof2, _ := blsKey2.MakeSchnorrNIZKP()
+	proofByte2, _ := proof2.MarshalText()
+	var proofHex2 bls.SchnorrProofHex
+	proofHex2.UnmarshalText(proofByte2)
+	proofRlp2, _ := rlp.EncodeToBytes(proofHex2)
 
 	args = append(args, fnType2)
 	args = append(args, typ2)
@@ -397,11 +469,13 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	args = append(args, programVersion2)
 	args = append(args, sign2)
 	args = append(args, blsPkm2)
+	args = append(args, proofRlp2)
 
 	buf2 := new(bytes.Buffer)
 	err = rlp.Encode(buf2, args)
 	if err != nil {
 		t.Errorf("createStaking2 encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking2 data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -411,9 +485,9 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	assert.True(t, nil == err)
 
 	var r2 xcom.Result
-	err = json.Unmarshal(res, &r)
+	err = json.Unmarshal(res, &r2)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r2.Status)
+	assert.NotEqual(t, common.OkCode, r2.Code)
 	t.Log("the staking result Msg:", r2.ErrMsg)
 
 }
@@ -430,6 +504,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -464,15 +539,27 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersionBytes))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersionBytes))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -486,11 +573,13 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -502,7 +591,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r.Status)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
@@ -519,6 +608,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -547,15 +637,27 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -569,11 +671,13 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -585,7 +689,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r.Status)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
@@ -602,6 +706,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
@@ -634,15 +739,27 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -656,11 +773,13 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -672,7 +791,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r.Status)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
@@ -689,6 +808,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
@@ -721,15 +841,27 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(initBalance)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -743,11 +875,13 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -759,12 +893,11 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r.Status)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
-// todo
 func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -776,6 +909,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -797,9 +931,9 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	// build a invalid nodeId
 	//
-	//0xf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010
 	//0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-	nid := discover.MustHexID("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	//0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+	nid := discover.MustHexID("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 
 	nodeId, _ := rlp.EncodeToBytes(nid)
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
@@ -811,15 +945,27 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -833,11 +979,13 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -849,7 +997,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r.Status)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
@@ -866,6 +1014,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	contract := &StakingContract{
@@ -894,15 +1043,27 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
-	handler.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
 
 	versionSign := common.VersionSign{}
-	versionSign.SetBytes(handler.GetCryptoHandler().MustSign(initProgramVersion))
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
 	sign, _ := rlp.EncodeToBytes(versionSign)
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	blsPkm, _ := rlp.EncodeToBytes(hex.EncodeToString(blsKey.GetPublicKey().Serialize()))
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -916,11 +1077,13 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	params = append(params, programVersion)
 	params = append(params, sign)
 	params = append(params, blsPkm)
+	params = append(params, proofRlp)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -932,11 +1095,170 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	var r xcom.Result
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, false, r.Status)
+	assert.NotEqual(t, common.OkCode, r.Code)
 	t.Log("the staking result Msg:", r.ErrMsg)
 
 }
 
-func Test_CreateStake_by_WrongVersionSign(t *testing.T) {
+func Test_CreateStake_by_LowVersionSign(t *testing.T) {
+
+	state, genesis, _ := newChainState()
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	contract := &StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0, sender),
+		Evm:      newEvm(blockNumber, blockHash, state),
+	}
+
+	index := 1
+
+	state.Prepare(txHashArr[index], blockHash, index+1)
+
+	var params [][]byte
+	params = make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	typ, _ := rlp.EncodeToBytes(uint16(0))
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	externalId, _ := rlp.EncodeToBytes("test low version")
+	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", Low version")
+	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".lowVersion.com")
+	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node low version")
+	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
+
+	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+
+	version := uint32(0<<16 | 9<<8 | 0)
+
+	programVersion, _ := rlp.EncodeToBytes(version)
+
+	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
+
+	versionSign := common.VersionSign{}
+	versionSign.SetBytes(node.GetCryptoHandler().MustSign(version))
+	sign, _ := rlp.EncodeToBytes(versionSign)
+
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+
+	var keyEntries bls.PublicKeyHex
+	blsHex := hex.EncodeToString(blsKey.GetPublicKey().Serialize())
+	keyEntries.UnmarshalText([]byte(blsHex))
+
+	blsPkm, _ := rlp.EncodeToBytes(keyEntries)
+
+	// generate the bls proof
+	proof, _ := blsKey.MakeSchnorrNIZKP()
+	proofByte, _ := proof.MarshalText()
+	var proofHex bls.SchnorrProofHex
+	proofHex.UnmarshalText(proofByte)
+	proofRlp, _ := rlp.EncodeToBytes(proofHex)
+
+	params = append(params, fnType)
+	params = append(params, typ)
+	params = append(params, benefitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+	params = append(params, amount)
+	params = append(params, programVersion)
+	params = append(params, sign)
+	params = append(params, blsPkm)
+	params = append(params, proofRlp)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf("createStaking encode rlp data fail: %v", err)
+		return
+	} else {
+		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.NotEqual(t, common.OkCode, r.Code)
+	t.Log("the staking result Msg:", r.ErrMsg)
+
+}
+
+func Test_EditStake_by_RightParams(t *testing.T) {
+
+	state, genesis, _ := newChainState()
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+	state.Prepare(txHashArr[0], blockHash, 0)
+
+	contract := create_staking(blockNumber, blockHash, state, 1, t)
+
+	index := 1
+
+	state.Prepare(txHashArr[index+1], blockHash, index+2)
+
+	var params [][]byte
+	params = make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1001))
+
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	externalId, _ := rlp.EncodeToBytes("test low version")
+	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", Low version")
+	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".lowVersion.com")
+	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node low version")
+
+	params = append(params, fnType)
+	params = append(params, benefitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf("editStaking encode rlp data fail: %v", err)
+		return
+	} else {
+		t.Log("editStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+
+	assert.True(t, nil == err)
+
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, common.OkCode, r.Code)
+	t.Log("the edit result Msg:", r.ErrMsg)
 
 }

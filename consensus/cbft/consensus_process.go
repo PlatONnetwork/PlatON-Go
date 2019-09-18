@@ -468,12 +468,12 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 	}
 	//highestqc := cbft.state.HighestQCBlock()
 	highestqc := qc
-	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
+	commitBlock, commitQC := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
 
+	_, oldCommit := cbft.state.HighestLockBlock(), cbft.state.HighestCommitBlock()
 	// Incremental commit block
 	if oldCommit.NumberU64()+1 == commit.NumberU64() {
-		_, qc := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
-		cbft.commitBlock(commit, qc, lock, highestqc)
+		cbft.commitBlock(commit, commitQC, lock, highestqc)
 		cbft.state.SetHighestLockBlock(lock)
 		cbft.state.SetHighestCommitBlock(commit)
 		cbft.blockTree.PruneBlock(commit.Hash(), commit.NumberU64(), nil)
@@ -484,9 +484,15 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		highestLockedNumberGauage.Update(int64(lock.NumberU64()))
 		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
 		blockConfirmedMeter.Mark(1)
-	} else {
+	} else if oldCommit.NumberU64() > 0 {
+		cbft.log.Debug("fork block", "number", highestqc.NumberU64(), "hash", highestqc.Hash())
+		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
-		cbft.bridge.UpdateChainState(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, nil, nil)
+
+		qcState := &protocols.State{Block: qcBlock, QuorumCert: qcQC}
+		lockState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
+		commitState := &protocols.State{Block: commitBlock, QuorumCert: commitQC}
+		cbft.bridge.UpdateChainState(qcState, lockState, commitState)
 	}
 }
 
