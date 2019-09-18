@@ -109,12 +109,12 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		x := []testtmp{
 			{
 				input:  make([]restricting.RestrictingPlan, 0),
-				expect: errRestrictAmountInvalid,
+				expect: errCountRestrictPlansInvalid,
 				des:    "0 plan",
 			},
 			{
 				input:  nil,
-				expect: errRestrictAmountInvalid,
+				expect: errCountRestrictPlansInvalid,
 				des:    "nil plan",
 			},
 			{
@@ -129,7 +129,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			},
 			{
 				input:  largePlans,
-				expect: errRestrictAmountInvalid,
+				expect: errCountRestrictPlansInvalid,
 				des:    "must less than monthOfThreeYear",
 			},
 			{

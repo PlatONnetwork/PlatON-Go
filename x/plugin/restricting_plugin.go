@@ -33,7 +33,7 @@ var (
 	*/
 	monthOfThreeYear                     = 12 * 3
 	errParamEpochInvalid                 = common.NewBizError(304001, "param epoch can't be zero")
-	errRestrictAmountInvalid             = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
+	errCountRestrictPlansInvalid         = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
 	errLockedAmountTooLess               = common.NewBizError(304003, "total restricting amount need more than 1 LAT")
 	errBalanceNotEnough                  = common.NewBizError(304004, "create plan,the sender balance is not enough in restrict")
 	errAccountNotFound                   = common.NewBizError(304005, "account is not found on restricting contract")
@@ -162,7 +162,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 
 	if len(plans) == 0 || len(plans) > monthOfThreeYear {
 		rp.log.Error(fmt.Sprintf("the number of restricting plan %d can't be zero or more than %d", len(plans), monthOfThreeYear))
-		return errRestrictAmountInvalid
+		return errCountRestrictPlansInvalid
 	}
 	// totalAmount is total restricting amount
 	totalAmount, mPlans, err := rp.mergeAmount(state, plans)
