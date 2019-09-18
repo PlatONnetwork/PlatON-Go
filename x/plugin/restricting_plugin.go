@@ -35,7 +35,7 @@ var (
 	errParamEpochInvalid                 = common.NewBizError(304001, "param epoch can't be zero")
 	errRestrictAmountInvalid             = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
 	errLockedAmountTooLess               = common.NewBizError(304003, "total restricting amount need more than 1 LAT")
-	errBalanceNotEnough                  = common.NewBizError(304004, "the balance is not enough in restrict")
+	errBalanceNotEnough                  = common.NewBizError(304004, "create plan,the sender balance is not enough in restrict")
 	errAccountNotFound                   = common.NewBizError(304005, "account is not found on restricting contract")
 	errSlashingTooMuch                   = common.NewBizError(304006, "slashing amount is larger than staking amount")
 	errStakingAmountEmpty                = common.NewBizError(304007, "staking amount is 0")
@@ -44,6 +44,7 @@ var (
 	errSlashingAmountLessThanZero        = common.NewBizError(304010, "slashing amount can't less than 0")
 	errCreatePlanAmountLessThanZero      = common.NewBizError(304011, "create plan each amount can't less than 0")
 	errStakingAmountInvalid              = common.NewBizError(304012, "staking return amount is wrong")
+	errRestrictBalanceNotEnough          = common.NewBizError(304013, "the user restricting balance is not enough for pledge lock funds")
 )
 
 type RestrictingPlugin struct {
@@ -263,7 +264,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	canStaking := new(big.Int).Sub(info.CachePlanAmount, info.StakingAmount)
 	if canStaking.Cmp(amount) < 0 {
 		rp.log.Warn("Balance of restricting account not enough", "total", info.CachePlanAmount, "stanking", info.StakingAmount, "funds", amount)
-		return errBalanceNotEnough
+		return errRestrictBalanceNotEnough
 	}
 
 	// sub Balance
