@@ -225,6 +225,13 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.log.Debug("Insert QC block", "qc", qc.String())
+	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
+		cbft.log.Debug("The inserted block has exists in chain",
+			"number", block.Number(), "hash", block.Hash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash())
+		return
+	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
