@@ -469,12 +469,12 @@ func CheckEconomicModel() error {
 		return errors.New("EconomicModel config is nil")
 	}
 
-	if ec.Common.ExpectedMinutes*60/
+	if (ec.Common.ExpectedMinutes*60)/
 		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) < 4 {
 		return errors.New("The settlement period must be more than four times the consensus period")
 	}
-	if ec.Common.AdditionalCycleTime*60%ec.Common.ExpectedMinutes*60 != 0 ||
-		ec.Common.AdditionalCycleTime*60/ec.Common.ExpectedMinutes*60 < 4 {
+	if (ec.Common.AdditionalCycleTime*60)%(ec.Common.ExpectedMinutes*60) != 0 ||
+		(ec.Common.AdditionalCycleTime*60)/(ec.Common.ExpectedMinutes*60) < 4 {
 		return errors.New("The issuance period must be integer multiples of the settlement period and multiples must be greater than or equal to 4")
 	}
 	if ec.Staking.EpochValidatorNum < ec.Common.ValidatorCount {
@@ -499,7 +499,7 @@ func CheckEconomicModel() error {
 		return errors.New("*big.Int SetString error")
 	}
 
-	if ec.Staking.StakeThreshold.Cmp(stakeThreshold) >= 0 {
+	if ec.Staking.StakeThreshold.Cmp(stakeThreshold) > 0 {
 		return errors.New("The StakeThreshold must be less than or equal to 10000000 LAT")
 	}
 
