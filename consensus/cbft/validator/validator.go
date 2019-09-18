@@ -287,6 +287,10 @@ func (vp *ValidatorPool) EnableVerifyEpoch(epoch uint64) error {
 	return fmt.Errorf("enable verify epoch:%d,:%d, request:%d", vp.epoch-1, vp.epoch, epoch)
 }
 
+func (vp *ValidatorPool) MockSwitchPoint(number uint64) {
+	vp.switchPoint = number
+}
+
 // Update switch validators.
 func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *event.TypeMux) error {
 	vp.lock.Lock()
