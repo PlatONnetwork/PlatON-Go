@@ -39,7 +39,7 @@ func (s *State) String() string {
 	if s == nil {
 		return ""
 	}
-	return fmt.Sprintf("[number:%d, hash:%s]", s.QuorumCert.BlockNumber, s.QuorumCert.BlockHash.String())
+	return fmt.Sprintf("[number:%d, hash:%s]", s.Block.NumberU64(), s.Block.Hash().String())
 }
 
 // ChainState indicates the latest consensus state.
