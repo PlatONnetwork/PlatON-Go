@@ -401,7 +401,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
+		cbft.log.Debug("Receive synchronization related messages from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	default:
@@ -1162,7 +1162,7 @@ func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Bl
 		if eb := cbft.state.FindBlock(hash, number); eb != nil {
 			block = eb
 		} else {
-			cbft.log.Debug("Get block failed", "hash", hash, "number", number, "eb", eb.Hash(), "ebNumber", eb.NumberU64())
+			cbft.log.Debug("Get block failed", "hash", hash, "number", number)
 		}
 	}
 	return block
