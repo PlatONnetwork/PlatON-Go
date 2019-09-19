@@ -35,7 +35,7 @@ type BlockChainReactor struct {
 	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
 	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
 	validatorMode string                    // mode: static, inner, ppos
-	exitCh        chan struct{}             // Used to receive an exit signal
+	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 }
 
@@ -50,7 +50,7 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
-			exitCh:        make(chan struct{}),
+			exitCh:        make(chan chan struct{}),
 		}
 	})
 	return bcr
@@ -69,7 +69,10 @@ func (bcr *BlockChainReactor) Start(mode string) {
 
 func (bcr *BlockChainReactor) Close() {
 	bcr.exitOnce.Do(func() {
-		close(bcr.exitCh)
+		exitDone := make(chan struct{})
+		bcr.exitCh <- exitDone
+		<-exitDone
+		close(exitDone)
 		log.Info("blockchain_reactor closed")
 	})
 }
@@ -116,11 +119,37 @@ func (bcr *BlockChainReactor) loop() {
 				continue
 			}
 		// stop this routine
-		case <-bcr.exitCh:
+		case done := <-bcr.exitCh:
+			close(bcr.exitCh)
+			log.Info("blockChain reactor loop exit")
+			done <- struct{}{}
 			return
 		}
 	}
 
+}
+
+func (bcr *BlockChainReactor) Commit(block *types.Block) error {
+	if block == nil {
+		log.Error("blockchain_reactor receive Cbft result error, block is nil")
+		return nil
+	}
+	/**
+	notify P2P module the nodeId of the next round validator
+	*/
+	if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
+		if err := plugin.Confirmed(block); nil != err {
+			log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
+		}
+
+	}
+
+	log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
+	if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
+		log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
+		return err
+	}
+	return nil
 }
 
 func (bcr *BlockChainReactor) RegisterPlugin(pluginRule int, plugin plugin.BasePlugin) {

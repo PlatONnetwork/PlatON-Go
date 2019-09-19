@@ -258,6 +258,9 @@ func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Blo
 	if err := cbft.blockCacheWriter.WriteBlock(commit.Block); err != nil {
 		return err
 	}
+	if err := cbft.validatorPool.Commit(commit.Block); err != nil {
+		return err
+	}
 	cbft.recoveryChainStateProcess(protocols.CommitState, commit)
 	cbft.blockTree.NewRoot(commit.Block)
 	return nil
