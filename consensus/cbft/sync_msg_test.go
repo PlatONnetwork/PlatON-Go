@@ -179,7 +179,7 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCert() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
-	time.Sleep(time.Millisecond * 20)
+	time.Sleep(time.Millisecond * 30)
 	if err := suit.view.secondProposer().OnBlockQuorumCert("", suit.blockOneQC); err != nil {
 		suit.T().Fatal(err.Error())
 	}
