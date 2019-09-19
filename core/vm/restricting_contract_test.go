@@ -139,7 +139,7 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 			t.Fatalf("failed to json unmarshal result of restricting info , error: %s", err.Error())
 
 		} else {
-			t.Logf("%v", res.Status)
+			t.Logf("%v", res.Code)
 			t.Logf("%v", res.ErrMsg)
 			t.Logf("%v", res.Data)
 		}

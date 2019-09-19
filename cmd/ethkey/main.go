@@ -43,7 +43,6 @@ func init() {
 		commandVerifyMessage,
 		commandGenkeypair,
 		commandGenblskeypair,
-		commandFound,
 	}
 }
 

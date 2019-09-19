@@ -2,14 +2,15 @@ package snapshotdb
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 func newCurrent(dir string) *current {
@@ -23,7 +24,9 @@ func newCurrent(dir string) *current {
 		panic(err)
 	}
 	c.f = f
-	c.update()
+	if err := c.update(); err != nil {
+		panic("update current fail" + err.Error())
+	}
 	return c
 }
 

@@ -63,6 +63,7 @@ type Wal interface {
 	GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error)
 	Load(fn recoveryConsensusMsgFn) error
 	Close()
+	SetMockJournalLimitSize(limit uint64)
 }
 
 // emptyWal is a empty implementation for wal
@@ -102,6 +103,9 @@ func (w *emptyWal) Load(fn recoveryConsensusMsgFn) error {
 }
 
 func (w *emptyWal) Close() {
+}
+
+func (w *emptyWal) SetMockJournalLimitSize(limit uint64) {
 }
 
 // baseWal is a default implementation for wal
@@ -329,4 +333,8 @@ func (wal *baseWal) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.Vi
 func (wal *baseWal) Close() {
 	wal.metaDB.Close()
 	wal.journal.Close()
+}
+
+func (wal *baseWal) SetMockJournalLimitSize(limit uint64) {
+	wal.journal.mockJournalLimitSize = limit
 }

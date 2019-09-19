@@ -20,7 +20,6 @@ package utils
 import (
 	"compress/gzip"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"io"
 	"os"
 	"os/signal"
@@ -74,8 +73,9 @@ func StartNode(stack *node.Node) {
 		defer signal.Stop(sigc)
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
-		go stack.Stop()
-		go snapshotdb.Instance().Close()
+		go func() {
+			stack.Stop()
+		}()
 		for i := 10; i > 0; i-- {
 			<-sigc
 			if i > 1 {

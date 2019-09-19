@@ -29,7 +29,6 @@ import (
 
 type BlockChainReactor struct {
 	vh            *handler.VrfHandler
-	chandler      *handler.CryptoHandler
 	eventMux      *event.TypeMux
 	bftResultSub  *event.TypeMuxSubscription
 	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
@@ -71,7 +70,7 @@ func (bcr *BlockChainReactor) Start(mode string) {
 func (bcr *BlockChainReactor) Close() {
 	bcr.exitOnce.Do(func() {
 		close(bcr.exitCh)
-		log.Info("blockchain_reactor is closed")
+		log.Info("blockchain_reactor closed")
 	})
 }
 
@@ -86,7 +85,7 @@ func (bcr *BlockChainReactor) loop() {
 		select {
 		case obj := <-bcr.bftResultSub.Chan():
 			if obj == nil {
-				log.Error("blockchain_reactor receive nil bftResultEvent maybe channel is closed")
+				//log.Error("blockchain_reactor receive nil bftResultEvent maybe channel is closed")
 				continue
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
@@ -140,17 +139,10 @@ func (bcr *BlockChainReactor) SetVRF_handler(vher *handler.VrfHandler) {
 	bcr.vh = vher
 }
 
-func (bcr *BlockChainReactor) SetCrypto_handler(ch *handler.CryptoHandler) {
-	bcr.chandler = ch
-}
-
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 		if nil != bcr.vh {
 			bcr.vh.SetPrivateKey(privateKey)
-		}
-		if nil != bcr.chandler {
-			bcr.chandler.SetPrivateKey(privateKey)
 		}
 		plugin.SlashInstance().SetPrivateKey(privateKey)
 	}

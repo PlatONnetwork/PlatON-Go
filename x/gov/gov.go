@@ -3,11 +3,9 @@ package gov
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -15,6 +13,7 @@ import (
 
 type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
+	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
 	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateHexQueue, error)
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
@@ -62,17 +61,6 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	return version
 }
 
-func GetProgramVersion() (*ProgramVersionValue, error) {
-	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	sig, err := handler.GetCryptoHandler().Sign(programVersion)
-	if err != nil {
-		log.Error("sign version data error", "err", err)
-		return nil, err
-	}
-	value := &ProgramVersionValue{ProgramVersion: programVersion, ProgramVersionSign: hexutil.Encode(sig)}
-	return value, nil
-}
-
 // submit a proposal
 func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
@@ -83,7 +71,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 			return bizError
 		} else {
 			log.Error("verify proposal parameters failed", "err", err)
-			return common.NewBizError(err.Error())
+			return common.InvalidParameter.Wrap(err.Error())
 		}
 	}
 
@@ -101,6 +89,17 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 		log.Error("add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
+
+	verifierList, err := stk.ListVerifierNodeID(blockHash, blockNumber)
+	if err != nil {
+		return err
+	}
+	log.Debug("verifiers count of current settlement", "verifierCount", len(verifierList))
+
+	if err := AccuVerifiers(blockHash, proposal.GetProposalID(), verifierList); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -131,7 +130,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	if proposal.GetProposalType() == Version {
 		if vp, ok := proposal.(*VersionProposal); ok {
 			//The signature should be verified when node vote for a version proposal.
-			if !handler.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
+			if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), vote.VoteNodeID) {
 				return VersionSignError
 			}
 
@@ -179,7 +178,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//handle storage
-	if err := SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
+	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
 		log.Error("save vote error", "proposalID", vote.ProposalID)
 		return err
 	}
@@ -199,7 +198,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 
-	if !handler.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
+	if !node.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
 		return VersionSignError
 	}
 
@@ -285,6 +284,13 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 // check if the node a verifier, and the caller address is same as the staking address
 func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+
+	_, err := xutil.NodeId2Addr(nodeID)
+	if nil != err {
+		log.Error("parse nodeID error", "err", err)
+		return err
+	}
+
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("list verifiers error", "blockHash", blockHash, "err", err)
@@ -422,21 +428,21 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 		return err
 	} else if len(votingProposalIDList) > 0 {
 		for _, proposalID := range votingProposalIDList {
-			if voteList, err := ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
 				return err
-			} else if len(voteList) > 0 {
+			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
-				for _, voteValue := range voteList {
+				for _, voteValue := range voteValueList {
 					if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
-						voteList[idx] = voteValue
+						voteValueList[idx] = voteValue
 						idx++
 					}
 				}
-				voteList = voteList[:idx]
-				//UpdateVoteValue(blockHash, voteList)
+				voteValueList = voteValueList[:idx]
+				UpdateVoteValue(proposalID, voteValueList, state)
 			}
 
-			if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+			/*if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
 				return err
 			} else if len(verifierList) > 0 {
 				idx := 0 // output index
@@ -448,7 +454,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 				}
 				verifierList = verifierList[:idx]
 				//UpdateAccuVerifiers(blockHash, voteList)
-			}
+			}*/
 		}
 	}
 	return nil
@@ -457,6 +463,13 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 // check if the node a candidate, and the caller address is same as the staking address
 func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
+
+	_, err := xutil.NodeId2Addr(nodeID)
+	if nil != err {
+		log.Error("parse nodeID error", "err", err)
+		return err
+	}
+
 	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
 	if err != nil {
 		log.Error("list candidates error", "blockHash", blockHash)

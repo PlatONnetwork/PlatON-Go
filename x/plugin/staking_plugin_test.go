@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	"github.com/stretchr/testify/assert"
@@ -2299,16 +2301,27 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Released, staking.LowRatio, common.ZeroAddr)
-	if nil != err {
-		t.Errorf("Failed to SlashCandidates first can (LowRatio), err: %v", err)
-		return
+	slashItem1 := &staking.SlashNodeItem{
+		NodeId:      slash1.NodeId,
+		Amount:      slash1.Released,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
 	}
 
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
-
 	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, staking.DuplicateSign, caller)
+
+	slashItem2 := &staking.SlashNodeItem{
+		NodeId:      slash2.NodeId,
+		Amount:      sla,
+		SlashType:   staking.DuplicateSign,
+		BenefitAddr: caller,
+	}
+	slashItemQueue := make(staking.SlashQueue, 0)
+	slashItemQueue = append(slashItemQueue, slashItem1)
+	slashItemQueue = append(slashItemQueue, slashItem2)
+
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slashItemQueue...)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err)
 		return

@@ -131,11 +131,12 @@ type Cbft struct {
 	blockTree *ctypes.BlockTree
 
 	// wal
-	nodeServiceContext   *node.ServiceContext
-	wal                  wal.Wal
-	bridge               Bridge
-	loading              int32
-	updateChainStateHook cbfttypes.UpdateChainStateFn
+	nodeServiceContext        *node.ServiceContext
+	wal                       wal.Wal
+	bridge                    Bridge
+	loading                   int32
+	updateChainStateHook      cbfttypes.UpdateChainStateFn
+	updateChainStateDelayHook func(qcState, lockState, commitState *protocols.State)
 
 	// Record the number of peer requests for obtaining cbft information.
 	queues     map[string]int // Per peer message counts to prevent memory exhaustion.
@@ -797,6 +798,12 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 			Service:   NewPublicConsensusAPI(cbft),
 			Public:    true,
 		},
+		{
+			Namespace: "admin",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(cbft),
+			Public:    true,
+		},
 	}
 }
 
@@ -1185,12 +1192,17 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 
 	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-	if cbft.updateChainStateHook != nil {
-		cbft.updateChainStateHook(&protocols.State{Block: qcBlock, QuorumCert: qcQC}, &protocols.State{Block: lockBlock, QuorumCert: lockQC}, &protocols.State{Block: commitBlock, QuorumCert: commitQC})
-	}
+
 	qcState := &protocols.State{Block: qcBlock, QuorumCert: qcQC}
 	lockState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
 	commitState := &protocols.State{Block: commitBlock, QuorumCert: commitQC}
+	if cbft.updateChainStateDelayHook != nil {
+		go cbft.updateChainStateDelayHook(qcState, lockState, commitState)
+		return
+	}
+	if cbft.updateChainStateHook != nil {
+		cbft.updateChainStateHook(qcState, lockState, commitState)
+	}
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,
@@ -1617,4 +1629,8 @@ func (cbft *Cbft) avgRTT() time.Duration {
 		rtt = cbft.DefaultAvgLatency() * 2
 	}
 	return rtt
+}
+
+func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.SchnorrProof, error) {
+	return cbft.config.Option.BlsPriKey.MakeSchnorrNIZKP()
 }

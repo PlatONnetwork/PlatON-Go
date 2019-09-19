@@ -6,9 +6,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -284,16 +281,16 @@ type Description struct {
 func (desc *Description) CheckLength() error {
 
 	if len(desc.ExternalId) > MaxExternalIdLen {
-		return common.BizErrorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
+		return fmt.Errorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
 	}
 	if len(desc.NodeName) > MaxNodeNameLen {
-		return common.BizErrorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen)
+		return fmt.Errorf("NodeName overflow, got len is: %d, max len is: %d", len(desc.NodeName), MaxNodeNameLen)
 	}
 	if len(desc.Website) > MaxWebsiteLen {
-		return common.BizErrorf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen)
+		return fmt.Errorf("Website overflow, got len is: %d, max len is: %d", len(desc.Website), MaxWebsiteLen)
 	}
 	if len(desc.Details) > MaxDetailsLen {
-		return common.BizErrorf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen)
+		return fmt.Errorf("Details overflow, got len is: %d, max len is: %d", len(desc.Details), MaxDetailsLen)
 	}
 	return nil
 }
@@ -946,9 +943,9 @@ type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
 
-	xcom.PrintObject("Call ConstantAppend, queue", queue)
-	xcom.PrintObject("Call ConstantAppend, index", index)
-	log.Debug("Call ConstantAppend", "size", size)
+	//xcom.PrintObject("Call ConstantAppend, queue", queue)
+	//xcom.PrintObject("Call ConstantAppend, index", index)
+	//log.Debug("Call ConstantAppend", "size", size)
 
 	queue = append(queue, index)
 	if size < len(queue) {
@@ -956,3 +953,17 @@ func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*Val
 	}
 	return nil, queue
 }
+
+// An item that exists for slash
+type SlashNodeItem struct {
+	// the nodeId will be slashed
+	NodeId discover.NodeID
+	// the amount of von with slashed
+	Amount *big.Int
+	// slash type
+	SlashType int
+	// the benefit adrr who will receive the slash amount of von
+	BenefitAddr common.Address
+}
+
+type SlashQueue []*SlashNodeItem

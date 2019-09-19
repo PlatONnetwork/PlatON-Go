@@ -5,6 +5,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -30,6 +34,11 @@ var (
 
 	chainConfig      = params.TestnetChainConfig
 	testTxPoolConfig = core.DefaultTxPoolConfig
+
+	// twenty billion von
+	//twoentyBillion, _ = new(big.Int).SetString("200000000000000000000000000000", 10)
+	// two billion von
+	twoBillion, _ = new(big.Int).SetString("20000000000000000000000000000", 10)
 )
 
 // NewBlock returns a new block for testing.
@@ -108,6 +117,12 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 			Alloc:  core.GenesisAlloc{},
 		}
 	)
+	gspec.Alloc[xcom.PlatONFundAccount()] = core.GenesisAccount{
+		Balance: xcom.PlatONFundBalance(),
+	}
+	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
+		Balance: twoBillion,
+	}
 	gspec.MustCommit(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)

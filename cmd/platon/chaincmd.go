@@ -197,6 +197,7 @@ func initGenesis(ctx *cli.Context) error {
 	genesis := new(core.Genesis)
 	// init EconomicModel config
 	genesis.EconomicModel = utils.GetEconomicDefaultConfig(ctx)
+
 	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
@@ -216,20 +217,22 @@ func initGenesis(ctx *cli.Context) error {
 	stack := makeFullNode(ctx)
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
-
 		chaindb, err := stack.OpenDatabase(name, 0, 0)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis)
+		var spath string
+		if name == "chaindata" {
+			spath = stack.ResolvePath(snapshotdb.DBPath)
+		}
+		_, hash, err := core.SetupGenesisBlock(chaindb, spath, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
-
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash.Hex())
+
+		chaindb.Close()
 	}
-	snapshotdb.Instance().Close()
 	return nil
 }
 

@@ -130,7 +130,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// set snapshotdb path
 	//snapshotdb.SetDBPath(ctx)
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount
@@ -233,6 +233,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	reactor := core.NewBlockChainReactor(config.CbftConfig.NodePriKey, eth.EventMux())
 
+	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
+
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 
 		var agency consensus.Agency
@@ -252,7 +254,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRF_handler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
-			reactor.SetCrypto_handler(handler.GetCryptoHandler())
 			handlePlugin(reactor)
 			agency = reactor
 		}

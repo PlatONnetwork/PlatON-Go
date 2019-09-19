@@ -1,6 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"math/big"
+	"os"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -11,17 +21,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"gopkg.in/urfave/cli.v1"
-	"io/ioutil"
-	"math/big"
-	"os"
-	"time"
+
+	goruntime "runtime"
 
 	covert "github.com/PlatONnetwork/PlatON-Go/life/utils"
-	goruntime "runtime"
 )
 
 var runCommond = cli.Command{
@@ -62,13 +66,13 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	var (
-		tracer			vm.Tracer
-		debugLogger		*vm.StructLogger
-		statedb			*state.StateDB
-		chainConfig		*params.ChainConfig
-		sender			= common.BytesToAddress([]byte("sender"))
-		receiver		= common.BytesToAddress([]byte("receiver"))
-		genesisConfig	*core.Genesis
+		tracer        vm.Tracer
+		debugLogger   *vm.StructLogger
+		statedb       *state.StateDB
+		chainConfig   *params.ChainConfig
+		sender        = common.BytesToAddress([]byte("sender"))
+		receiver      = common.BytesToAddress([]byte("receiver"))
+		genesisConfig *core.Genesis
 	)
 	if ctx.GlobalBool(MachineFlag.Name) {
 		tracer = NewJSONLogger(logconfig, os.Stdout)
@@ -82,7 +86,7 @@ func runCmd(ctx *cli.Context) error {
 		gen := readGenesis(ctx.GlobalString(GenesisFlag.Name))
 		genesisConfig = gen
 		db := ethdb.NewMemDatabase()
-		genesis := gen.ToBlock(db)
+		genesis := gen.ToBlock(db, snapshotdb.Instance())
 		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
 		chainConfig = gen.Config
 	} else {
@@ -98,10 +102,10 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	var (
-		code 	[]byte
-		abi		[]byte
-		ret		[]byte
-		err 	error
+		code []byte
+		abi  []byte
+		ret  []byte
+		err  error
 	)
 
 	// The '--code' or '--codefile' flag overrides code in state
@@ -120,7 +124,7 @@ func runCmd(ctx *cli.Context) error {
 			}
 		}
 		// Eliminate line breaks
-		code = common.Hex2Bytes(string(bytes.TrimRight(hexcode,"\n")))
+		code = common.Hex2Bytes(string(bytes.TrimRight(hexcode, "\n")))
 	} else if ctx.GlobalString(CodeFlag.Name) != "" {
 		code = common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name))
 	}
@@ -140,7 +144,7 @@ func runCmd(ctx *cli.Context) error {
 				utils.Fatalf("Could not load abi from file: %v", err)
 			}
 		}
-		hexabi := common.Bytes2Hex(bytes.TrimRight(strabi,"\n"))
+		hexabi := common.Bytes2Hex(bytes.TrimRight(strabi, "\n"))
 		abi = common.Hex2Bytes(hexabi)
 	} else if ctx.GlobalString(AbiFlag.Name) != "" {
 		abi = []byte(ctx.GlobalString(AbiFlag.Name))
@@ -175,7 +179,7 @@ func runCmd(ctx *cli.Context) error {
 	var leftOverGas uint64
 	if ctx.GlobalBool(CreateFlag.Name) {
 		// Contract creation logic，Input is an external input, possibly a parameter。Need to be encoded in wasm to complete
-		rlpData := make([][]byte,0)
+		rlpData := make([][]byte, 0)
 		rlpData = append(rlpData, covert.Int64ToBytes(txType), abi, code)
 
 		buffer := new(bytes.Buffer)

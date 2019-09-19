@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"path"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
@@ -58,13 +56,14 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	}
 	block := new(blockData)
 	block.ParentHash = header.ParentHash
+	block.kvHash = header.KvHash
 	if fd.BlockHash != s.getUnRecognizedHash() {
 		block.BlockHash = fd.BlockHash
 	}
 	block.Number = new(big.Int).SetUint64(fd.Num)
 	block.data = memdb.New(DefaultComparer, 0)
-
-	switch header.From {
+	block.readOnly = true
+	/*switch header.From {
 	case journalHeaderFromUnRecognized:
 		if fd.BlockHash == s.getUnRecognizedHash() {
 			block.readOnly = false
@@ -75,8 +74,8 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		if fd.Num <= s.current.HighestNum.Uint64() {
 			block.readOnly = true
 		}
-	}
-	var kvhash common.Hash
+	}*/
+	//var kvhash common.Hash
 	for {
 		j, err := journals.Next()
 		if err == io.EOF {
@@ -92,9 +91,9 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		if err := block.data.Put(body.Key, body.Value); err != nil {
 			return nil, err
 		}
-		kvhash = body.Hash
+		//kvhash = body.Hash
 	}
-	block.kvHash = kvhash
+	//block.kvHash = kvhash
 	return block, nil
 }
 
@@ -106,12 +105,15 @@ func (s *snapshotDB) recover(stor storage) error {
 	}
 	s.path = dbpath
 
-	currentHead := blockchain.CurrentHeader()
-
-	if c.HighestNum.Cmp(currentHead.Number) != 0 {
-		s.current = c
-		if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
-			return err
+	if blockchain != nil {
+		currentHead := blockchain.CurrentHeader()
+		if c.HighestNum.Cmp(currentHead.Number) != 0 {
+			s.current = c
+			if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
+				return err
+			}
+		} else {
+			s.current = c
 		}
 	} else {
 		s.current = c
@@ -144,27 +146,16 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.unCommit = unCommitBlock
 	s.snapshotLockC = snapshotUnLock
 
-	commitMap := make(map[common.Hash]*big.Int)
-
-	sub := new(big.Int).Sub(s.current.HighestNum, s.current.BaseNum)
-
-	var header *types.Header
-	header = blockchain.CurrentHeader()
-	for i := int64(0); i <= sub.Int64(); i++ {
-		commitMap[header.Hash()] = header.Number
-		header = blockchain.GetHeaderByHash(header.ParentHash)
-	}
-
 	//read Journal
 	for _, fd := range fds {
-		block, err := s.getBlockFromJournal(fd)
-		if err != nil {
-			return err
-		}
-
-		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum == 0 && highestNum == 0 && fd.Num == 0) {
-			if _, ok := commitMap[block.BlockHash]; ok {
+		if baseNum < fd.Num && fd.Num <= highestNum {
+			if header := blockchain.GetHeaderByHash(fd.BlockHash); header != nil {
+				block, err := s.getBlockFromJournal(fd)
+				if err != nil {
+					return err
+				}
 				s.committed = append(s.committed, block)
+				logger.Debug("recover block ", "num", block.Number, "hash", block.BlockHash.String())
 				continue
 			}
 		}
@@ -175,9 +166,12 @@ func (s *snapshotDB) recover(stor storage) error {
 	return nil
 }
 
+/*
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
+	s.unCommit.Lock()
+	defer s.unCommit.Unlock()
 	for key, value := range s.unCommit.blocks {
-		if s.current.HighestNum.Int64() >= value.Number.Int64() {
+		if s.current.HighestNum.Cmp(value.Number) >= 0 {
 			if !value.readOnly {
 				if err := value.jWriter.Close(); err != nil {
 					return err
@@ -191,7 +185,7 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 	}
 	return nil
 }
-
+*/
 func (s *snapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
 	var buf bytes.Buffer
 	buf.Write(k)
@@ -216,60 +210,60 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 //	}
 //	return nil
 //}
+//
+//const (
+//	hashLocationUnCommitted = 2
+//	hashLocationCommitted   = 3
+//	hashLocationNotFound    = 4
+//)
 
-const (
-	hashLocationUnCommitted = 2
-	hashLocationCommitted   = 3
-	hashLocationNotFound    = 4
-)
-
-func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
-	var (
-		lastBlockNumber = big.NewInt(0)
-		lastParentHash  = hash
-	)
-	// find from unCommit
-	for {
-		if block, ok := s.unCommit.blocks[lastParentHash]; ok {
-			if lastParentHash == block.ParentHash {
-				logger.Error("loop error")
-				return 0, false
-			}
-			lastParentHash = block.ParentHash
-			lastBlockNumber = block.Number
-		} else {
-			break
-		}
-	}
-
-	//check  last block find from unCommit is right
-	if lastBlockNumber.Int64() > 0 {
-		if s.current.HighestNum.Int64() != lastBlockNumber.Int64()-1 {
-			logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastBlockNumber.Int64()-1)
-			return 0, false
-		}
-		if s.current.HighestHash == common.ZeroHash {
-			return hashLocationUnCommitted, true
-		}
-		if s.current.HighestHash != lastParentHash {
-			logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParentHash.String())
-			return 0, false
-		}
-		return hashLocationUnCommitted, true
-	}
-	// if not find from unCommit, find from committed
-	for _, value := range s.committed {
-		if value.BlockHash == hash {
-			return hashLocationCommitted, true
-		}
-	}
-	return hashLocationNotFound, true
-}
+//
+//func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
+//	var (
+//		lastBlockNumber = big.NewInt(0)
+//		lastParentHash  = hash
+//	)
+//	// find from unCommit
+//	for {
+//		if block, ok := s.unCommit.Load(lastParentHash); ok {
+//			if lastParentHash == block.ParentHash {
+//				logger.Error("loop error")
+//				return 0, false
+//			}
+//			lastParentHash = block.ParentHash
+//			lastBlockNumber = block.Number
+//		} else {
+//			break
+//		}
+//	}
+//
+//	//check  last block find from unCommit is right
+//	if lastBlockNumber.Int64() > 0 {
+//		if s.current.HighestNum.Int64() != lastBlockNumber.Int64()-1 {
+//			logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastBlockNumber.Int64()-1)
+//			return 0, false
+//		}
+//		if s.current.HighestHash == common.ZeroHash {
+//			return hashLocationUnCommitted, true
+//		}
+//		if s.current.HighestHash != lastParentHash {
+//			logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParentHash.String())
+//			return 0, false
+//		}
+//		return hashLocationUnCommitted, true
+//	}
+//	// if not find from unCommit, find from committed
+//	for _, value := range s.committed {
+//		if value.BlockHash == hash {
+//			return hashLocationCommitted, true
+//		}
+//	}
+//	return hashLocationNotFound, true
+//}
 
 func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	s.unCommit.Lock()
 	defer s.unCommit.Unlock()
-
 	block, ok := s.unCommit.blocks[hash]
 	if !ok {
 		return fmt.Errorf("not find the block by hash:%v", hash.String())
@@ -277,22 +271,9 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if block.readOnly {
 		return errors.New("can't put read only block")
 	}
-
-	jData := journalData{
-		Key:   key,
-		Value: value,
-		Hash:  s.generateKVHash(key, value, block.kvHash),
-	}
-	body, err := encode(jData)
-	if err != nil {
-		return errors.New("encode fail:" + err.Error())
-	}
-	if err := block.writeJournalBody(body); err != nil {
-		return errors.New("write journalBody fail:" + err.Error())
-	}
+	block.kvHash = s.generateKVHash(key, value, block.kvHash)
 	if err := block.data.Put(key, value); err != nil {
 		return err
 	}
-	block.kvHash = jData.Hash
 	return nil
 }

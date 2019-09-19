@@ -107,12 +107,12 @@ func (rmp *rewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
 
 func (rmp *rewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	platonFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.PlatONFoundationAddress, platonFoundationIncr)
+	state.AddBalance(xcom.PlatONFundAccount(), platonFoundationIncr)
 }
 
 func (rmp *rewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.CommunityDeveloperFoundation, developerFoundationIncr)
+	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
 }
 func (rmp *rewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
@@ -136,8 +136,10 @@ func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 	} else {
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
 		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
 	}

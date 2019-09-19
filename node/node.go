@@ -26,6 +26,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -406,6 +408,10 @@ func (n *Node) stopWS() {
 	}
 }
 
+func (n *Node) stopSnapshotDB() {
+	snapshotdb.Instance().Close()
+}
+
 // Stop terminates a running node along with all it's services. In the node was
 // not started, an error is returned.
 func (n *Node) Stop() error {
@@ -441,7 +447,7 @@ func (n *Node) Stop() error {
 		}
 		n.instanceDirLock = nil
 	}
-
+	n.stopSnapshotDB()
 	// unblock n.Wait
 	close(n.stop)
 

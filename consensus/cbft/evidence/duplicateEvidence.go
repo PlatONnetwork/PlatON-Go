@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
@@ -100,6 +103,14 @@ func (d DuplicatePrepareBlockEvidence) Address() common.Address {
 	return d.PrepareA.ValidateNode.Address
 }
 
+func (d DuplicatePrepareBlockEvidence) NodeID() discover.NodeID {
+	return d.PrepareA.ValidateNode.NodeID
+}
+
+func (d DuplicatePrepareBlockEvidence) BlsPubKey() *bls.PublicKey {
+	return d.PrepareA.ValidateNode.BlsPubKey
+}
+
 func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareBlockType
 }
@@ -191,6 +202,14 @@ func (d DuplicatePrepareVoteEvidence) Address() common.Address {
 	return d.VoteA.ValidateNode.Address
 }
 
+func (d DuplicatePrepareVoteEvidence) NodeID() discover.NodeID {
+	return d.VoteA.ValidateNode.NodeID
+}
+
+func (d DuplicatePrepareVoteEvidence) BlsPubKey() *bls.PublicKey {
+	return d.VoteA.ValidateNode.BlsPubKey
+}
+
 func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareVoteType
 }
@@ -277,6 +296,14 @@ func (d DuplicateViewChangeEvidence) Validate() error {
 
 func (d DuplicateViewChangeEvidence) Address() common.Address {
 	return d.ViewA.ValidateNode.Address
+}
+
+func (d DuplicateViewChangeEvidence) NodeID() discover.NodeID {
+	return d.ViewA.ValidateNode.NodeID
+}
+
+func (d DuplicateViewChangeEvidence) BlsPubKey() *bls.PublicKey {
+	return d.ViewA.ValidateNode.BlsPubKey
 }
 
 func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {
