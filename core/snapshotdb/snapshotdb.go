@@ -469,8 +469,11 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 	findBlock := s.unCommit.Get(hash)
 	if findBlock != nil {
-		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
-		return ErrBlockRepeat
+		newBlockWithDiffNumber := findBlock.BlockHash == common.ZeroHash && findBlock.Number.Cmp(blockNumber) != 0
+		if !newBlockWithDiffNumber {
+			logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
+			return ErrBlockRepeat
+		}
 	}
 	if s.current.HighestNum.Cmp(blockNumber) >= 0 {
 		logger.Error("the block is less than commit highest", "commit", s.current.HighestNum, "new", blockNumber)
