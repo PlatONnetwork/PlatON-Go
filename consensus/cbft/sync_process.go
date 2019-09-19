@@ -16,7 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-var syncPrepareVotesInterval = 5 * time.Second
+var syncPrepareVotesInterval = 3 * time.Second
 
 // Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
 func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
@@ -146,7 +146,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		utils.SetFalse(&cbft.fetching)
 	}
 
-	cbft.log.Debug("Start fetching")
+	cbft.log.Debug("Start fetching", "id", id, "basBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 
 	utils.SetTrue(&cbft.fetching)
 	cbft.fetcher.AddTask(id, match, executor, expire)
@@ -290,9 +290,16 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 		// Defining an array for receiving PrepareVote.
 		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
 		if prepareVoteMap != nil {
+			threshold := cbft.threshold(cbft.currentValidatorLen())
+			remain := threshold - (cbft.currentValidatorLen() - int(msg.UnKnownSet.Size()))
 			for k, v := range prepareVoteMap {
 				if msg.UnKnownSet.GetIndex(k) {
 					votes = append(votes, v)
+				}
+
+				// Limit response votes
+				if remain > 0 && len(votes) >= remain {
+					break
 				}
 			}
 		}
@@ -413,19 +420,19 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 
 	localEpoch, localViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
 
-	isEqualLocalView := func() bool {
-		return msg.ViewNumber == localViewNumber && msg.Epoch == localEpoch
+	isLocalView := func() bool {
+		return msg.Epoch == localEpoch && msg.ViewNumber == localViewNumber
 	}
 
 	isLastView := func() bool {
-		return msg.ViewNumber+1 == localViewNumber || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
+		return (msg.Epoch == localEpoch && msg.ViewNumber+1 == localViewNumber) || (msg.Epoch+1 == localEpoch && localViewNumber == state.DefaultViewNumber)
 	}
 
 	isPreviousView := func() bool {
 		return msg.Epoch == localEpoch && msg.ViewNumber+1 < localViewNumber
 	}
 
-	if isEqualLocalView() {
+	if isLocalView() {
 		viewChanges := cbft.state.AllViewChange()
 
 		vcs := &protocols.ViewChanges{}

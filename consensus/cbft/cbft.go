@@ -205,7 +205,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 
 	//Initialize block tree
-	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+	//block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+	block := chain.CurrentBlock()
 
 	isGenesis := func() bool {
 		return block.NumberU64() == 0
@@ -250,7 +251,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.tryChangeView()
 
 	//Initialize rules
-	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree, &cbft.config)
+	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree, &cbft.config, cbft.validatorPool)
 	cbft.voteRules = rules.NewVoteRules(cbft.state)
 
 	// load consensus state
@@ -302,7 +303,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("Received message from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
+		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	default:
@@ -401,7 +402,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	// Non-core consensus messages are temporarily not filtered repeatedly.
 	select {
 	case cbft.syncMsgCh <- msg:
-		cbft.log.Debug("Receive synchronization related messages from peer", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
+		cbft.log.Debug("Receive synchronization related messages from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
 		cbft.log.Error("Cbft exit")
 	default:
@@ -659,8 +660,8 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 // Finalize implements consensus.Engine, no block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
-	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(true)
+	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts), "root", header.Root.String())
 	return types.NewBlock(header, txs, receipts), nil
 }
 
@@ -1163,7 +1164,7 @@ func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Bl
 		if eb := cbft.state.FindBlock(hash, number); eb != nil {
 			block = eb
 		} else {
-			cbft.log.Debug("Get block failed", "hash", hash, "number", number, "eb", eb.Hash(), "ebNumber", eb.NumberU64())
+			cbft.log.Debug("Get block failed", "hash", hash, "number", number)
 		}
 	}
 	return block
@@ -1328,6 +1329,9 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 	// check if the prepareBlock must take viewChangeQC
 	needViewChangeQC := func(pb *protocols.PrepareBlock) bool {
 		_, localQC := cbft.blockTree.FindBlockAndQC(pb.Block.ParentHash(), pb.Block.NumberU64()-1)
+		if localQC != nil && cbft.validatorPool.EqualSwitchPoint(localQC.BlockNumber) {
+			return false
+		}
 		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
 	}
 	// check if the prepareBlock base on viewChangeQC maxBlock
