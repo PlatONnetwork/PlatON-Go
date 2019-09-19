@@ -3,8 +3,11 @@ package xcom
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -469,12 +472,34 @@ func CheckEconomicModel() error {
 		return errors.New("EconomicModel config is nil")
 	}
 
-	if (ec.Common.ExpectedMinutes*60)/
-		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) < 4 {
+	// epoch duration of config
+	epochDuration := ec.Common.ExpectedMinutes * 60
+	// package perblock duration
+	blockDuration := ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
+	// round duration
+	roundDuration := ec.Common.ValidatorCount * ec.Common.PerRoundBlocks * blockDuration
+	// epoch Size, how many consensus round
+	epochSize := epochDuration / roundDuration
+	//real epoch duration
+	realEpochDuration := epochSize * roundDuration
+
+	log.Info("Call CheckEconomicModel: check epoch and consensus round", "config epoch duration", fmt.Sprintf("%d s", epochDuration),
+		"perblock duration", fmt.Sprintf("%d s", blockDuration), "round duration", fmt.Sprintf("%d s", roundDuration),
+		"real epoch duration", fmt.Sprintf("%d s", realEpochDuration), "consensus count of epoch", epochSize)
+
+	if epochSize < 4 {
 		return errors.New("The settlement period must be more than four times the consensus period")
 	}
-	if (ec.Common.AdditionalCycleTime*60)%(ec.Common.ExpectedMinutes*60) != 0 ||
-		(ec.Common.AdditionalCycleTime*60)/(ec.Common.ExpectedMinutes*60) < 4 {
+
+	// additionalCycle Size, how many epoch duration
+	additionalCycleSize := ec.Common.AdditionalCycleTime * 60 / realEpochDuration
+	// realAdditionalCycleDuration
+	realAdditionalCycleDuration := additionalCycleSize * realEpochDuration / 60
+
+	log.Info("Call CheckEconomicModel: additional cycle and epoch", "config additional cycle duration", fmt.Sprintf("%d min", ec.Common.AdditionalCycleTime),
+		"real additional cycle duration", fmt.Sprintf("%d min", realAdditionalCycleDuration), "epoch count of additional cycle", additionalCycleSize)
+
+	if additionalCycleSize < 4 {
 		return errors.New("The issuance period must be integer multiples of the settlement period and multiples must be greater than or equal to 4")
 	}
 	if ec.Staking.EpochValidatorNum < ec.Common.ValidatorCount {
@@ -482,12 +507,12 @@ func CheckEconomicModel() error {
 	}
 
 	var (
-		success          bool
+		ok               bool
 		minimumThreshold *big.Int
 		stakeThreshold   *big.Int
 	)
 
-	if minimumThreshold, success = new(big.Int).SetString("10000000000000000000", 10); !success {
+	if minimumThreshold, ok = new(big.Int).SetString("10000000000000000000", 10); !ok {
 		return errors.New("*big.Int SetString error")
 	}
 
@@ -495,7 +520,7 @@ func CheckEconomicModel() error {
 		return errors.New("The MinimumThreshold must be greater than or equal to 10 LAT")
 	}
 
-	if stakeThreshold, success = new(big.Int).SetString("10000000000000000000000000", 10); !success {
+	if stakeThreshold, ok = new(big.Int).SetString("10000000000000000000000000", 10); !ok {
 		return errors.New("*big.Int SetString error")
 	}
 
