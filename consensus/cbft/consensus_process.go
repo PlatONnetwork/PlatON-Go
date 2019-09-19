@@ -466,6 +466,10 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		cbft.log.Warn("Try commit failed", "hadLock", lock != nil, "hadCommit", commit != nil)
 		return
 	}
+	if commit.NumberU64()+2 != qc.NumberU64() {
+		cbft.log.Warn("Try commit failed,the requirement of commit block is not achieved", "commit", commit.NumberU64(), "lock", lock.NumberU64(), "qc", qc.NumberU64())
+		return
+	}
 	//highestqc := cbft.state.HighestQCBlock()
 	highestqc := qc
 	commitBlock, commitQC := cbft.blockTree.FindBlockAndQC(commit.Hash(), commit.NumberU64())
@@ -484,7 +488,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		highestLockedNumberGauage.Update(int64(lock.NumberU64()))
 		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
 		blockConfirmedMeter.Mark(1)
-	} else if oldCommit.NumberU64() > 0 {
+	} else if oldCommit.NumberU64() == commit.NumberU64() && oldCommit.NumberU64() > 0 {
 		cbft.log.Debug("fork block", "number", highestqc.NumberU64(), "hash", highestqc.Hash())
 		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
