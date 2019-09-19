@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	vm2 "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -197,7 +199,7 @@ func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 		Nonce:   0,
 	}
 
-	block, _ := gen.Commit(db)
+	block, _ := gen.Commit(db, snapshotdb.Instance())
 	return block, gen.Config
 
 }

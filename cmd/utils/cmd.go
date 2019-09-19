@@ -27,8 +27,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -77,7 +75,6 @@ func StartNode(stack *node.Node) {
 		log.Info("Got interrupt, shutting down...")
 		go func() {
 			stack.Stop()
-			snapshotdb.Instance().Close()
 		}()
 		for i := 10; i > 0; i-- {
 			<-sigc

@@ -12,7 +12,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -153,8 +152,8 @@ func (u *unCommitBlocks) Set(key common.Hash, block *blockData) {
 	u.Unlock()
 }
 
-func SetDBPathWithNode(n *node.Node) {
-	dbpath = n.ResolvePath(DBPath)
+func SetDBPathWithNode(path string) {
+	dbpath = path
 	logger.Info("set path", "path", dbpath)
 }
 
@@ -190,7 +189,7 @@ func Open(path string) (DB, error) {
 		return nil, err
 	}
 	if len(fds) > 0 {
-		logger.Info("begin recover")
+		logger.Info("begin recover", "path", path)
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
 			logger.Error("recover db fail:", "error", err)
@@ -198,7 +197,7 @@ func Open(path string) (DB, error) {
 		}
 		return db, nil
 	} else {
-		logger.Info("begin new")
+		logger.Info("begin new", "path", path)
 		db, err := newDB(s)
 		if err != nil {
 			logger.Error(fmt.Sprint("new db fail:", err))
@@ -470,8 +469,11 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 	findBlock := s.unCommit.Get(hash)
 	if findBlock != nil {
-		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
-		return ErrBlockRepeat
+		newBlockWithDiffNumber := findBlock.BlockHash == common.ZeroHash && findBlock.Number.Cmp(blockNumber) != 0
+		if !newBlockWithDiffNumber {
+			logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
+			return ErrBlockRepeat
+		}
 	}
 	if s.current.HighestNum.Cmp(blockNumber) >= 0 {
 		logger.Error("the block is less than commit highest", "commit", s.current.HighestNum, "new", blockNumber)
@@ -797,5 +799,6 @@ func (s *snapshotDB) Close() error {
 	}
 
 	s.closed = true
+	logger.Info("db close")
 	return nil
 }
