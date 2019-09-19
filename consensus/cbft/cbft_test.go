@@ -550,6 +550,7 @@ func TestShouldSeal(t *testing.T) {
 	assert.NotNil(t, err.Error())
 	assert.False(t, should)
 }
+
 func TestInsertChain(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
@@ -565,7 +566,6 @@ func TestInsertChain(t *testing.T) {
 	parent := nodes[0].chain.Genesis()
 	hasQCBlock := make([]*types.Block, 0)
 	for i := 0; i < 10; i++ {
-
 		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
