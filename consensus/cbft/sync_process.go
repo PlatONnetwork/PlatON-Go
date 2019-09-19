@@ -214,13 +214,6 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) err
 func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
 	cbft.log.Debug("Received message on OnGetPrepareVote", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
-		_, qc := cbft.state.ViewBlockAndQC(msg.BlockIndex)
-		if qc != nil {
-			cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
-			cbft.log.Debug("Send BlockQuorumCert", "peer", id, "qc", qc.String())
-			return nil
-		}
-
 		prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
 		// Defining an array for receiving PrepareVote.
 		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
