@@ -96,28 +96,32 @@ func (bcr *BlockChainReactor) loop() {
 				log.Error("blockchain_reactor receive bft result type error")
 				continue
 			}
-			block := cbftResult.Block
-			// Short circuit when receiving empty result.
-			if block == nil {
-				log.Error("blockchain_reactor receive Cbft result error, block is nil")
-				continue
-			}
-
-			/**
-			notify P2P module the nodeId of the next round validator
-			*/
-			if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
-				if err := plugin.Confirmed(block); nil != err {
-					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
-				}
-
-			}
-
-			log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
-			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
-				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
-				continue
-			}
+			bcr.Commit(cbftResult.Block)
+			//if err:= ;err!=nil{
+			//
+			//}
+			//block :=
+			//// Short circuit when receiving empty result.
+			//if block == nil {
+			//	log.Error("blockchain_reactor receive Cbft result error, block is nil")
+			//	continue
+			//}
+			//
+			///**
+			//notify P2P module the nodeId of the next round validator
+			//*/
+			//if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
+			//	if err := plugin.Confirmed(block); nil != err {
+			//		log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
+			//	}
+			//
+			//}
+			//
+			//log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
+			//if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
+			//	log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
+			//	continue
+			//}
 		// stop this routine
 		case done := <-bcr.exitCh:
 			close(bcr.exitCh)
