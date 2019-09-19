@@ -251,7 +251,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.tryChangeView()
 
 	//Initialize rules
-	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree, &cbft.config)
+	cbft.safetyRules = rules.NewSafetyRules(cbft.state, cbft.blockTree, &cbft.config, cbft.validatorPool)
 	cbft.voteRules = rules.NewVoteRules(cbft.state)
 
 	// load consensus state
@@ -1328,6 +1328,9 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 	// check if the prepareBlock must take viewChangeQC
 	needViewChangeQC := func(pb *protocols.PrepareBlock) bool {
 		_, localQC := cbft.blockTree.FindBlockAndQC(pb.Block.ParentHash(), pb.Block.NumberU64()-1)
+		if localQC != nil && cbft.validatorPool.EqualSwitchPoint(localQC.BlockNumber) {
+			return false
+		}
 		return localQC != nil && localQC.BlockIndex < cbft.config.Sys.Amount-1
 	}
 	// check if the prepareBlock base on viewChangeQC maxBlock
