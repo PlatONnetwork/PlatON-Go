@@ -905,7 +905,7 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 // Status returns the status data of the consensus engine.
 func (cbft *Cbft) Status() string {
 	type Status struct {
-		Tree  *ctypes.BlockTree `json:"block_tree"`
+		Tree  *ctypes.BlockTree `json:"blockTree"`
 		State *cstate.ViewState `json:"state"`
 	}
 	status := make(chan string, 1)

@@ -270,6 +270,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 func (bcc *BlockChainCache) AddSealBlock(hash common.Hash, number uint64) {
 	bcc.executed.Store(hash, number)
 }
+
 func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 	sealHash := block.Header().SealHash()
 	state := bcc.ReadStateDB(sealHash)

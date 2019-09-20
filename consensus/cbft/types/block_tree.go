@@ -43,13 +43,13 @@ func (b *blockExt) clearChildren() {
 
 func (b *blockExt) MarshalJSON() ([]byte, error) {
 	type BlockExt struct {
-		ViewNumber  uint64        `json:"view_number"`
-		BlockHash   common.Hash   `json:"block_hash"`
-		BlockNumber uint64        `json:"block_number"`
-		RcvTime     time.Time     `json:"receive_time"`
+		ViewNumber  uint64        `json:"viewNumber"`
+		BlockHash   common.Hash   `json:"blockHash"`
+		BlockNumber uint64        `json:"blockNumber"`
+		RcvTime     time.Time     `json:"receiveTime"`
 		QC          *QuorumCert   `json:"qc"`
-		ParentHash  common.Hash   `json:"parent_hash"`
-		Children    []common.Hash `json:"children_hash"`
+		ParentHash  common.Hash   `json:"parentHash"`
+		Children    []common.Hash `json:"childrenHash"`
 	}
 	ext := &BlockExt{
 		ViewNumber:  b.ViewNumber,
