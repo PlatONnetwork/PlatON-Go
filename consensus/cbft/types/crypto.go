@@ -54,12 +54,12 @@ func BytesToSignature(signSlice []byte) Signature {
 
 type QuorumCert struct {
 	Epoch        uint64          `json:"epoch"`
-	ViewNumber   uint64          `json:"view_number"`
-	BlockHash    common.Hash     `json:"block_hash"`
-	BlockNumber  uint64          `json:"block_number"`
-	BlockIndex   uint32          `json:"block_index"`
+	ViewNumber   uint64          `json:"viewNumber"`
+	BlockHash    common.Hash     `json:"blockHash"`
+	BlockNumber  uint64          `json:"blockNumber"`
+	BlockIndex   uint32          `json:"blockIndex"`
 	Signature    Signature       `json:"signature"`
-	ValidatorSet *utils.BitArray `json:"validator_set"`
+	ValidatorSet *utils.BitArray `json:"validatorSet"`
 }
 
 func (q QuorumCert) CannibalizeBytes() ([]byte, error) {
@@ -106,13 +106,13 @@ func (q *QuorumCert) HigherQuorumCert(blockNumber uint64, blockEpoch, blockView 
 
 type ViewChangeQuorumCert struct {
 	Epoch           uint64          `json:"epoch"`
-	ViewNumber      uint64          `json:"view_number"`
-	BlockHash       common.Hash     `json:"block_hash"`
-	BlockNumber     uint64          `json:"block_number"`
-	BlockEpoch      uint64          `json:"block_epoch"`
-	BlockViewNumber uint64          `json:"block_view_number"`
+	ViewNumber      uint64          `json:"viewNumber"`
+	BlockHash       common.Hash     `json:"blockHash"`
+	BlockNumber     uint64          `json:"blockNumber"`
+	BlockEpoch      uint64          `json:"blockEpoch"`
+	BlockViewNumber uint64          `json:"blockViewNumber"`
 	Signature       Signature       `json:"signature"`
-	ValidatorSet    *utils.BitArray `json:"validator_set"`
+	ValidatorSet    *utils.BitArray `json:"validatorSet"`
 }
 
 func (q ViewChangeQuorumCert) CannibalizeBytes() ([]byte, error) {

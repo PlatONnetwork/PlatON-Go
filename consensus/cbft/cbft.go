@@ -232,6 +232,12 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
 
+	// init handler and router to process message.
+	// cbft -> handler -> router.
+	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
+	// Start the handler to process the message.
+	go cbft.network.Start()
+
 	if isGenesis() {
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
 		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
@@ -261,14 +267,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 	utils.SetFalse(&cbft.loading)
 
-	// init handler and router to process message.
-	// cbft -> handler -> router.
-	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
-
 	go cbft.receiveLoop()
-
-	// Start the handler to process the message.
-	go cbft.network.Start()
 
 	cbft.fetcher.Start()
 
@@ -906,7 +905,7 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 // Status returns the status data of the consensus engine.
 func (cbft *Cbft) Status() string {
 	type Status struct {
-		Tree  *ctypes.BlockTree `json:"block_tree"`
+		Tree  *ctypes.BlockTree `json:"blockTree"`
 		State *cstate.ViewState `json:"state"`
 	}
 	status := make(chan string, 1)

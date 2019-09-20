@@ -698,8 +698,13 @@ func calAverage(latencyList *list.List) int64 {
 func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, blockIndex uint32) {
 	if cbft.syncingCache.AddOrReplace(blockIndex) {
 		msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
-		cbft.network.Send(id, msg)
-		cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+		if id == "" {
+			cbft.network.PartBroadcast(msg)
+			cbft.log.Debug("Send GetPrepareBlock by part broadcast", "msg", msg.String())
+		} else {
+			cbft.network.Send(id, msg)
+			cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
+		}
 	}
 }
 
