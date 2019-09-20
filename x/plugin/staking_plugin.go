@@ -2693,6 +2693,7 @@ func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Va
 			Index:     uint32(i),
 			Address:   v.NodeAddress,
 			PubKey:    pubKey,
+			NodeID:    v.NodeId,
 			BlsPubKey: &v.BlsPubKey,
 		}
 

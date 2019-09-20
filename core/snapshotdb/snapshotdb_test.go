@@ -29,6 +29,39 @@ func TestCommitZeroBlock(t *testing.T) {
 	}
 }
 
+func TestSnapshotDB_NewBlockRepate(t *testing.T) {
+	ch := new(testchain)
+	blockchain = ch
+	initDB()
+	defer dbInstance.Clear()
+	ch.addBlock()
+
+	if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
+		t.Error(err)
+	}
+
+	if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, ch.CurrentHeader().Hash()); err != nil {
+		t.Error(err)
+	}
+
+	if err := dbInstance.Commit(ch.CurrentHeader().Hash()); err != nil {
+		t.Error(err)
+	}
+	t.Run("can't new ZeroHash block  for block num is same", func(t *testing.T) {
+		if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err == nil {
+			t.Error("can't new block for uncommint exist")
+		}
+	})
+
+	t.Run("can new ZeroHash block  for block num is diffent", func(t *testing.T) {
+		ch.addBlock()
+		if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
+			t.Error(err)
+		}
+	})
+
+}
+
 func TestSnapshotDB_NewBlock(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()

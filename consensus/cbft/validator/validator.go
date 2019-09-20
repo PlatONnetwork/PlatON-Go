@@ -91,6 +91,10 @@ func (d *StaticAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return false
 }
 
+func (d *StaticAgency) Commit(block *types.Block) error {
+	return nil
+}
+
 type InnerAgency struct {
 	consensus.Agency
 
@@ -215,6 +219,10 @@ func (ia *InnerAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return true
 }
 
+func (ia *InnerAgency) Commit(block *types.Block) error {
+	return nil
+}
+
 // ValidatorPool a pool storing validators.
 type ValidatorPool struct {
 	agency consensus.Agency
@@ -284,7 +292,11 @@ func (vp *ValidatorPool) EnableVerifyEpoch(epoch uint64) error {
 	if epoch+1 == vp.epoch || epoch == vp.epoch {
 		return nil
 	}
-	return fmt.Errorf("enable verify epoch:%d,:%d, request:%d", vp.epoch-1, vp.epoch, epoch)
+	return fmt.Errorf("enable verify epoch:%d,%d, request:%d", vp.epoch-1, vp.epoch, epoch)
+}
+
+func (vp *ValidatorPool) MockSwitchPoint(number uint64) {
+	vp.switchPoint = number
 }
 
 // Update switch validators.
@@ -578,8 +590,13 @@ func (vp *ValidatorPool) epochToBlockNumber(epoch uint64) uint64 {
 	}
 	return vp.switchPoint + 1
 }
+
 func (vp *ValidatorPool) Flush(header *types.Header) error {
 	return vp.agency.Flush(header)
+}
+
+func (vp *ValidatorPool) Commit(block *types.Block) error {
+	return vp.agency.Commit(block)
 }
 
 func NextRound(blockNumber uint64) uint64 {
