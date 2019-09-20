@@ -249,6 +249,7 @@ func newTestPeer(version int, name string) (*peer, discover.NodeID) {
 
 	// Create a peer that belonging to cbft.
 	peer := newPeer(version, p2p.NewPeer(id, name, nil), net)
+	go peer.sendLoop()
 	return peer, id
 }
 
@@ -259,6 +260,7 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, disco
 
 	// Create a peer that belonging to cbft.
 	peer := newPeer(version, p2p.NewPeer(id, name, nil), rw)
+	go peer.sendLoop()
 	return peer, id
 }
 
