@@ -714,6 +714,10 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	cbft.clearInvalidBlocks(block)
 	cbft.evPool.Clear(epoch, viewNumber)
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
+	if cbft.network != nil {
+		msg := &protocols.GetPrepareBlock{Epoch: cbft.state.Epoch(), ViewNumber: cbft.state.ViewNumber(), BlockIndex: 0}
+		cbft.network.PartBroadcast(msg)
+	}
 	cbft.log.Debug(fmt.Sprintf("Current view deadline:%v", cbft.state.Deadline()))
 }
 
