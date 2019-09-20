@@ -246,7 +246,7 @@ func testBaseSafetyRulesViewChangeRules(t *testing.T, viewState *state.ViewState
 func TestSafetyError(t *testing.T) {
 	viewState, blockTree := newEpochViewNumberState(Epoch, ViewNumber, 6)
 	amount := uint32(10)
-	rules := NewSafetyRules(viewState, blockTree, &ctypes.Config{Sys: &params.CbftConfig{Amount: amount}})
+	rules := NewSafetyRules(viewState, blockTree, &ctypes.Config{Sys: &params.CbftConfig{Amount: amount}}, nil)
 	testBaseSafetyRulesPrepareBlockRules(t, viewState, blockTree, rules, amount)
 	testBaseSafetyRulesPrepareVoteRules(t, viewState, blockTree, rules, amount)
 	testBaseSafetyRulesViewChangeRules(t, viewState, blockTree, rules, amount)

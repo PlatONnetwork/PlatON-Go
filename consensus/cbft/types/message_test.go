@@ -27,6 +27,7 @@ func Test_NewMsgInfo(t *testing.T) {
 	}
 	for _, v := range testCase {
 		msgInfo := NewMsgInfo(v.msg, v.pid)
+		assert.NotEmpty(t, msgInfo.String())
 		assert.Equal(t, msgInfo.Msg.String(), v.pid)
 	}
 }
@@ -45,6 +46,14 @@ func Test_NewMsgPackage(t *testing.T) {
 		msgInfo := NewMsgPackage(v.pid, v.msg, v.mode)
 		assert.Equal(t, msgInfo.msg, msgInfo.Message())
 		assert.Equal(t, msgInfo.peerID, msgInfo.PeerID())
-		assert.Equal(t, msgInfo.mode, msgInfo.mode)
+		assert.Equal(t, msgInfo.mode, msgInfo.Mode())
+		msgInfo.Mode()
 	}
+}
+
+func Test_ErrCode(t *testing.T) {
+	var errCode ErrCode
+	errCode = ErrMsgTooLarge
+	assert.Equal(t, errorToString[ErrMsgTooLarge], errCode.String())
+	ErrResp(errCode, "%s", errCode.String())
 }
