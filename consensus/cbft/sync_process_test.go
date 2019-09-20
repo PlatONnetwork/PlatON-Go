@@ -203,7 +203,6 @@ func TestSyncBlock(t *testing.T) {
 	//nodes[1].engine.syncMsgCh <- &types2.MsgInfo{PeerID: "id", Msg: qcBlocks}
 	//time.Sleep(1000 * time.Millisecond)
 	assert.Equal(t, uint64(3), nodes[1].engine.state.HighestQCBlock().NumberU64())
-
 }
 
 func TestFetchBlockRules(t *testing.T) {
