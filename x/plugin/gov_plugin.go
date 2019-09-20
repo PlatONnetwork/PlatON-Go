@@ -375,7 +375,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 	}
 
 	voteRate := Decimal(float64(yeas+nays+abstentions) / float64(verifiersCnt))
-	supportRate := Decimal(float64(yeas) / float64(verifiersCnt))
+	supportRate := Decimal(float64(yeas) / float64(yeas+nays+abstentions))
 
 	switch proposalType {
 	case gov.Text:
