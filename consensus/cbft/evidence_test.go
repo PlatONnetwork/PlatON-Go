@@ -58,9 +58,9 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.insertOneBlock()
-	viewChange1 := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
+	viewChange1 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber,
 		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
-	viewChange2 := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
+	viewChange2 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber,
 		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
 	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange1); err != nil {
 		suit.T().Fatal(err.Error())
@@ -80,6 +80,48 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicateViewChange.DC[0].ViewA.ValidateNode.BlsPubKey.Serialize())
 	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicateViewChange.DC[0].ViewB.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicateViewChange.DC[0].ViewB.ValidateNode.BlsPubKey.Serialize())
+}
+
+// viewChange view number dif
+func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifViewNumber() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
+	suit.insertOneBlock()
+	viewChange1 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1,
+		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
+	viewChange2 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber,
+		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
+	vnode, _ := suit.view.firstProposer().validatorPool.GetValidatorByIndex(suit.epoch, suit.view.secondProposerIndex())
+	if err := suit.view.firstProposer().evPool.AddViewChange(viewChange1, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	if err := suit.view.firstProposer().evPool.AddViewChange(viewChange2, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	ev := suit.view.firstProposer().Evidences()
+	suit.Equal("{}", ev)
+}
+
+// viewChange dif epoch
+func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifEpoch() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
+	suit.insertOneBlock()
+	viewChange1 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch+1, suit.oldViewNumber,
+		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
+	viewChange2 := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber,
+		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
+	vnode, _ := suit.view.firstProposer().validatorPool.GetValidatorByIndex(suit.epoch, suit.view.secondProposerIndex())
+	if err := suit.view.firstProposer().evPool.AddViewChange(viewChange1, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	if err := suit.view.firstProposer().evPool.AddViewChange(viewChange2, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	ev := suit.view.firstProposer().Evidences()
+	suit.Equal("{}", ev)
 }
 
 // 双出
@@ -102,14 +144,14 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	block2 := types.NewBlockWithHeader(header)
 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
-	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(),
+	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch,
 		suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block1, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	// time.Sleep(time.Millisecond * 10)
-	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
+	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err == nil {
 		suit.T().Error("FAIL")
@@ -126,6 +168,78 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.BlsPubKey.Serialize())
 	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.BlsPubKey.Serialize())
+}
+
+// prepare block view number dif
+func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifViewNumber() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
+	suit.view.setBlockQC(10)
+	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	header := &types.Header{
+		Number:      big.NewInt(int64(11)),
+		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
+		Time:        big.NewInt(time.Now().UnixNano() + 100),
+		Extra:       make([]byte, 77),
+		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Coinbase:    common.Address{},
+		GasLimit:    100000000001,
+	}
+	block2 := types.NewBlockWithHeader(header)
+	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
+		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
+	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch,
+		suit.oldViewNumber+1, 0,
+		suit.view.secondProposerIndex(), block1, qc, nil)
+	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+2, 0,
+		suit.view.secondProposerIndex(), block2, qc, nil)
+	vnode, _ := suit.view.firstProposer().validatorPool.GetValidatorByIndex(suit.epoch, suit.view.secondProposerIndex())
+	if err := suit.view.firstProposer().evPool.AddPrepareBlock(prepareBlock1, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	if err := suit.view.firstProposer().evPool.AddPrepareBlock(prepareBlock2, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	ev := suit.view.firstProposer().Evidences()
+	suit.Equal("{}", ev)
+}
+
+// prepare block epoch dif
+func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifEpoch() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
+	suit.view.setBlockQC(10)
+	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	header := &types.Header{
+		Number:      big.NewInt(int64(11)),
+		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
+		Time:        big.NewInt(time.Now().UnixNano() + 100),
+		Extra:       make([]byte, 77),
+		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Coinbase:    common.Address{},
+		GasLimit:    100000000001,
+	}
+	block2 := types.NewBlockWithHeader(header)
+	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
+		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
+	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch+1,
+		suit.oldViewNumber+1, 0,
+		suit.view.secondProposerIndex(), block1, qc, nil)
+	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
+		suit.view.secondProposerIndex(), block2, qc, nil)
+	vnode, _ := suit.view.firstProposer().validatorPool.GetValidatorByIndex(suit.epoch, suit.view.secondProposerIndex())
+	if err := suit.view.firstProposer().evPool.AddPrepareBlock(prepareBlock1, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	if err := suit.view.firstProposer().evPool.AddPrepareBlock(prepareBlock2, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	ev := suit.view.firstProposer().Evidences()
+	suit.Equal("{}", ev)
 }
 
 // 双签
@@ -161,4 +275,56 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 	suit.EqualValues(suit.view.firstProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareVote.DV[0].VoteB.ValidateNode.BlsPubKey.Serialize())
 	suit.EqualValues(suit.view.firstProposer().config.Option.NodeID, duplicatePrepareVote.DV[0].VoteB.ValidateNode.NodeID)
 	suit.EqualValues(suit.view.firstProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareVote.DV[0].VoteB.ValidateNode.BlsPubKey.Serialize())
+}
+
+// prepare vote view number dif
+func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifViewNumber() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
+	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
+		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
+	suit.view.secondProposer().state.AddPrepareBlock(prepareBlock)
+	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	prepareVote1 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
+		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
+		suit.blockOne.NumberU64(), nil)
+	prepareVote2 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
+		suit.view.firstProposerIndex(), block1.Hash(),
+		block1.NumberU64(), nil)
+	vnode, _ := suit.view.firstProposer().validatorPool.GetValidatorByIndex(suit.epoch, suit.view.secondProposerIndex())
+	if err := suit.view.firstProposer().evPool.AddPrepareVote(prepareVote1, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	if err := suit.view.firstProposer().evPool.AddPrepareVote(prepareVote2, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	ev := suit.view.firstProposer().Evidences()
+	suit.Equal("{}", ev)
+}
+
+// prepare vote epoch dif
+func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifEpoch() {
+	paths := createPaths(len(suit.view.allCbft))
+	defer removePaths(paths)
+	suit.createEvPool(paths)
+	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
+		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
+	suit.view.secondProposer().state.AddPrepareBlock(prepareBlock)
+	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	prepareVote1 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch+1, suit.oldViewNumber, 0,
+		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
+		suit.blockOne.NumberU64(), nil)
+	prepareVote2 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
+		suit.view.firstProposerIndex(), block1.Hash(),
+		block1.NumberU64(), nil)
+	vnode, _ := suit.view.firstProposer().validatorPool.GetValidatorByIndex(suit.epoch, suit.view.secondProposerIndex())
+	if err := suit.view.firstProposer().evPool.AddPrepareVote(prepareVote1, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	if err := suit.view.firstProposer().evPool.AddPrepareVote(prepareVote2, vnode); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	ev := suit.view.firstProposer().Evidences()
+	suit.Equal("{}", ev)
 }
