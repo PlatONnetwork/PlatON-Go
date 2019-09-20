@@ -91,6 +91,10 @@ func (d *StaticAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return false
 }
 
+func (d *StaticAgency) Commit(block *types.Block) error {
+	return nil
+}
+
 type InnerAgency struct {
 	consensus.Agency
 
@@ -213,6 +217,10 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators
 
 func (ia *InnerAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return true
+}
+
+func (ia *InnerAgency) Commit(block *types.Block) error {
+	return nil
 }
 
 // ValidatorPool a pool storing validators.
@@ -582,8 +590,13 @@ func (vp *ValidatorPool) epochToBlockNumber(epoch uint64) uint64 {
 	}
 	return vp.switchPoint + 1
 }
+
 func (vp *ValidatorPool) Flush(header *types.Header) error {
 	return vp.agency.Flush(header)
+}
+
+func (vp *ValidatorPool) Commit(block *types.Block) error {
+	return vp.agency.Commit(block)
 }
 
 func NextRound(blockNumber uint64) uint64 {

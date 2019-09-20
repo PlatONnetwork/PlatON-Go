@@ -3,8 +3,13 @@ package xcom
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // plugin rule key
@@ -62,6 +67,15 @@ type rewardConfig struct {
 	PlatONFoundationYear uint32 // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 }
 
+type innerAccount struct {
+	// Account of PlatONFoundation
+	PlatONFundAccount common.Address
+	PlatONFundBalance *big.Int
+	// Account of CommunityDeveloperFoundation
+	CDFAccount common.Address
+	CDFBalance *big.Int
+}
+
 // total
 type EconomicModel struct {
 	Common   commonConfig
@@ -69,6 +83,7 @@ type EconomicModel struct {
 	Slashing slashingConfig
 	Gov      governanceConfig
 	Reward   rewardConfig
+	InnerAcc innerAccount
 }
 
 var (
@@ -95,38 +110,49 @@ const (
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
 	var (
-		success               bool
+		ok                    bool
 		stakeThresholdCount   string
 		minimumThresholdCount string
+		platONFundCount       string
 		stakeThreshold        *big.Int
 		minimumThreshold      *big.Int
+		platONFundBalance     *big.Int
 	)
 
 	switch netId {
 	case DefaultMainNet:
 		stakeThresholdCount = "5000000000000000000000000" // 500W von
 		minimumThresholdCount = "10000000000000000000"    // 10 von
+		platONFundCount = "2000000000000000000000000000"  // 20 billion von
 	case DefaultAlphaTestNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	case DefaultBetaTestNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	case DefaultInnerTestNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	case DefaultInnerDevNet:
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	default: // DefaultDeveloperNet
 		stakeThresholdCount = "5000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
+		platONFundCount = "2000000000000000000000000000"
 	}
 
-	if stakeThreshold, success = new(big.Int).SetString(stakeThresholdCount, 10); !success {
+	if stakeThreshold, ok = new(big.Int).SetString(stakeThresholdCount, 10); !ok {
 		return nil
 	}
-	if minimumThreshold, success = new(big.Int).SetString(minimumThresholdCount, 10); !success {
+	if minimumThreshold, ok = new(big.Int).SetString(minimumThresholdCount, 10); !ok {
+		return nil
+	}
+	if platONFundBalance, ok = new(big.Int).SetString(platONFundCount, 10); !ok {
 		return nil
 	}
 
@@ -173,6 +199,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 10,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05"),
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				CDFAccount:        common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"),
+				CDFBalance:        new(big.Int).SetInt64(0),
+			},
 		}
 
 	case DefaultAlphaTestNet:
@@ -216,6 +248,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfig{
 				NewBlockRate:         50,
 				PlatONFoundationYear: 10,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        new(big.Int).SetInt64(0),
 			},
 		}
 
@@ -261,6 +299,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        new(big.Int).SetInt64(0),
+			},
 		}
 
 	case DefaultInnerTestNet:
@@ -305,6 +349,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        new(big.Int).SetInt64(0),
+			},
 		}
 
 	case DefaultInnerDevNet:
@@ -348,6 +398,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Reward: rewardConfig{
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
+			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        new(big.Int).SetInt64(0),
 			},
 		}
 
@@ -399,6 +455,12 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NewBlockRate:         50,
 				PlatONFoundationYear: 1,
 			},
+			InnerAcc: innerAccount{
+				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
+				CDFBalance:        new(big.Int).SetInt64(0),
+			},
 		}
 	}
 
@@ -410,12 +472,34 @@ func CheckEconomicModel() error {
 		return errors.New("EconomicModel config is nil")
 	}
 
-	if ec.Common.ExpectedMinutes*60/
-		(ec.Common.NodeBlockTimeWindow/ec.Common.PerRoundBlocks*ec.Common.ValidatorCount*ec.Common.PerRoundBlocks) < 4 {
+	// epoch duration of config
+	epochDuration := ec.Common.ExpectedMinutes * 60
+	// package perblock duration
+	blockDuration := ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
+	// round duration
+	roundDuration := ec.Common.ValidatorCount * ec.Common.PerRoundBlocks * blockDuration
+	// epoch Size, how many consensus round
+	epochSize := epochDuration / roundDuration
+	//real epoch duration
+	realEpochDuration := epochSize * roundDuration
+
+	log.Info("Call CheckEconomicModel: check epoch and consensus round", "config epoch duration", fmt.Sprintf("%d s", epochDuration),
+		"perblock duration", fmt.Sprintf("%d s", blockDuration), "round duration", fmt.Sprintf("%d s", roundDuration),
+		"real epoch duration", fmt.Sprintf("%d s", realEpochDuration), "consensus count of epoch", epochSize)
+
+	if epochSize < 4 {
 		return errors.New("The settlement period must be more than four times the consensus period")
 	}
-	if ec.Common.AdditionalCycleTime*60%ec.Common.ExpectedMinutes*60 != 0 ||
-		ec.Common.AdditionalCycleTime*60/ec.Common.ExpectedMinutes*60 < 4 {
+
+	// additionalCycle Size, how many epoch duration
+	additionalCycleSize := ec.Common.AdditionalCycleTime * 60 / realEpochDuration
+	// realAdditionalCycleDuration
+	realAdditionalCycleDuration := additionalCycleSize * realEpochDuration / 60
+
+	log.Info("Call CheckEconomicModel: additional cycle and epoch", "config additional cycle duration", fmt.Sprintf("%d min", ec.Common.AdditionalCycleTime),
+		"real additional cycle duration", fmt.Sprintf("%d min", realAdditionalCycleDuration), "epoch count of additional cycle", additionalCycleSize)
+
+	if additionalCycleSize < 4 {
 		return errors.New("The issuance period must be integer multiples of the settlement period and multiples must be greater than or equal to 4")
 	}
 	if ec.Staking.EpochValidatorNum < ec.Common.ValidatorCount {
@@ -423,12 +507,12 @@ func CheckEconomicModel() error {
 	}
 
 	var (
-		success          bool
+		ok               bool
 		minimumThreshold *big.Int
 		stakeThreshold   *big.Int
 	)
 
-	if minimumThreshold, success = new(big.Int).SetString("10000000000000000000", 10); !success {
+	if minimumThreshold, ok = new(big.Int).SetString("10000000000000000000", 10); !ok {
 		return errors.New("*big.Int SetString error")
 	}
 
@@ -436,11 +520,11 @@ func CheckEconomicModel() error {
 		return errors.New("The MinimumThreshold must be greater than or equal to 10 LAT")
 	}
 
-	if stakeThreshold, success = new(big.Int).SetString("10000000000000000000000000", 10); !success {
+	if stakeThreshold, ok = new(big.Int).SetString("10000000000000000000000000", 10); !ok {
 		return errors.New("*big.Int SetString error")
 	}
 
-	if ec.Staking.StakeThreshold.Cmp(stakeThreshold) >= 0 {
+	if ec.Staking.StakeThreshold.Cmp(stakeThreshold) > 0 {
 		return errors.New("The StakeThreshold must be less than or equal to 10000000 LAT")
 	}
 
@@ -478,6 +562,7 @@ func CheckEconomicModel() error {
 	if ec.Common.PerRoundBlocks <= uint64(ec.Slashing.PackAmountAbnormal) {
 		return errors.New("The PackAmountAbnormal must be less than to the PerRoundBlocks")
 	}
+
 	return nil
 }
 
@@ -628,6 +713,25 @@ func CancelProposal_VoteRate() float64 {
 
 func CancelProposal_SupportRate() float64 {
 	return ec.Gov.CancelProposal_SupportRate
+}
+
+/******
+ * Inner Account Config
+ ******/
+func PlatONFundAccount() common.Address {
+	return ec.InnerAcc.PlatONFundAccount
+}
+
+func PlatONFundBalance() *big.Int {
+	return ec.InnerAcc.PlatONFundBalance
+}
+
+func CDFAccount() common.Address {
+	return ec.InnerAcc.CDFAccount
+}
+
+func CDFBalance() *big.Int {
+	return ec.InnerAcc.CDFBalance
 }
 
 func EconomicString() string {

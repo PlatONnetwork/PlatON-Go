@@ -217,6 +217,8 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	cbft.log.Debug("Recover chain state from wal", "chainState", chainState.String())
 	commit, lock, qcs := chainState.Commit, chainState.Lock, chainState.QC
 	// The highest block that has been written to disk
+
+	//rootBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
 	rootBlock := cbft.blockChain.CurrentBlock()
 
 	isCurrent := rootBlock.NumberU64() == commit.Block.NumberU64() && rootBlock.Hash() == commit.Block.Hash()
@@ -255,6 +257,9 @@ func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Blo
 	}
 	commit.Block.SetExtraData(extra)
 	if err := cbft.blockCacheWriter.WriteBlock(commit.Block); err != nil {
+		return err
+	}
+	if err := cbft.validatorPool.Commit(commit.Block); err != nil {
 		return err
 	}
 	cbft.recoveryChainStateProcess(protocols.CommitState, commit)

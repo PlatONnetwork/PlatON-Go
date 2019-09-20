@@ -105,12 +105,15 @@ func (s *snapshotDB) recover(stor storage) error {
 	}
 	s.path = dbpath
 
-	currentHead := blockchain.CurrentHeader()
-
-	if c.HighestNum.Cmp(currentHead.Number) != 0 {
-		s.current = c
-		if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
-			return err
+	if blockchain != nil {
+		currentHead := blockchain.CurrentHeader()
+		if c.HighestNum.Cmp(currentHead.Number) != 0 {
+			s.current = c
+			if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
+				return err
+			}
+		} else {
+			s.current = c
 		}
 	} else {
 		s.current = c

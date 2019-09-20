@@ -31,16 +31,20 @@ var (
 		errAmountLessThanZero    = common.NewBizError("Amount can't less than 0")
 		errStakingAmountInvalid  = common.NewBizError("staking return amount is wrong")
 	*/
-	monthOfThreeYear         = 12 * 3
-	errParamEpochInvalid     = common.NewBizError(304001, "param epoch can't be zero")
-	errRestrictAmountInvalid = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
-	errLockedAmountTooLess   = common.NewBizError(304003, "total restricting amount need more than 1 LAT")
-	errBalanceNotEnough      = common.NewBizError(304004, "the balance is not enough in restrict")
-	errAccountNotFound       = common.NewBizError(304005, "account is not found on restricting contract")
-	errSlashingTooMuch       = common.NewBizError(304006, "slashing amount is larger than staking amount")
-	errStakingAmountEmpty    = common.NewBizError(304007, "staking amount is 0")
-	errAmountLessThanZero    = common.NewBizError(304008, "Amount can't less than 0")
-	errStakingAmountInvalid  = common.NewBizError(304009, "staking return amount is wrong")
+	monthOfThreeYear                     = 12 * 3
+	errParamEpochInvalid                 = common.NewBizError(304001, "param epoch can't be zero")
+	errCountRestrictPlansInvalid         = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
+	errLockedAmountTooLess               = common.NewBizError(304003, "total restricting amount need more than 1 LAT")
+	errBalanceNotEnough                  = common.NewBizError(304004, "create plan,the sender balance is not enough in restrict")
+	errAccountNotFound                   = common.NewBizError(304005, "account is not found on restricting contract")
+	errSlashingTooMuch                   = common.NewBizError(304006, "slashing amount is larger than staking amount")
+	errStakingAmountEmpty                = common.NewBizError(304007, "staking amount is 0")
+	errPledgeLockFundsAmountLessThanZero = common.NewBizError(304008, "pledge lock funds amount can't less than 0")
+	errReturnLockFundsAmountLessThanZero = common.NewBizError(304009, "return lock funds amount can't less than 0")
+	errSlashingAmountLessThanZero        = common.NewBizError(304010, "slashing amount can't less than 0")
+	errCreatePlanAmountLessThanZero      = common.NewBizError(304011, "create plan each amount can't less than 0")
+	errStakingAmountInvalid              = common.NewBizError(304012, "staking return amount is wrong")
+	errRestrictBalanceNotEnough          = common.NewBizError(304013, "the user restricting balance is not enough for pledge lock funds")
 )
 
 type RestrictingPlugin struct {
@@ -106,14 +110,14 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, plans []restricting
 
 	mPlans := make(map[uint64]*big.Int, monthOfThreeYear)
 	for _, plan := range plans {
-		epoch, amount := plan.Epoch, plan.Amount
+		epoch, amount := plan.Epoch, new(big.Int).Set(plan.Amount)
 		if epoch == 0 {
 			rp.log.Error(errParamEpochInvalid.Error())
 			return nil, nil, errParamEpochInvalid
 		}
 		if amount.Cmp(common.Big0) <= 0 {
 			rp.log.Error("[RestrictingPlugin.mergeAmount]restricting amount is less than zero", "epoch", epoch, "amount", amount)
-			return nil, nil, errRestrictAmountInvalid
+			return nil, nil, errCreatePlanAmountLessThanZero
 		}
 		totalAmount.Add(totalAmount, amount)
 		newEpoch := epoch + latestEpoch
@@ -158,7 +162,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 
 	if len(plans) == 0 || len(plans) > monthOfThreeYear {
 		rp.log.Error(fmt.Sprintf("the number of restricting plan %d can't be zero or more than %d", len(plans), monthOfThreeYear))
-		return errRestrictAmountInvalid
+		return errCountRestrictPlansInvalid
 	}
 	// totalAmount is total restricting amount
 	totalAmount, mPlans, err := rp.mergeAmount(state, plans)
@@ -211,7 +215,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 				rp.transferAmount(state, vm.RestrictingContractAddr, account, info.NeedRelease)
 				totalAmount.Sub(totalAmount, info.NeedRelease)
 				info.CachePlanAmount.Add(info.CachePlanAmount, totalAmount)
-				info.NeedRelease = common.Big0
+				info.NeedRelease = new(big.Int).SetInt64(0)
 			}
 		} else {
 			info.CachePlanAmount.Add(info.CachePlanAmount, totalAmount)
@@ -252,7 +256,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	rp.log.Debug("begin to PledgeLockFunds", "account", account.String(), "amount", amount, "info", info)
 
 	if amount.Cmp(common.Big0) < 0 {
-		return errAmountLessThanZero
+		return errPledgeLockFundsAmountLessThanZero
 	} else if amount.Cmp(common.Big0) == 0 {
 		return nil
 	}
@@ -260,7 +264,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	canStaking := new(big.Int).Sub(info.CachePlanAmount, info.StakingAmount)
 	if canStaking.Cmp(amount) < 0 {
 		rp.log.Warn("Balance of restricting account not enough", "total", info.CachePlanAmount, "stanking", info.StakingAmount, "funds", amount)
-		return errBalanceNotEnough
+		return errRestrictBalanceNotEnough
 	}
 
 	// sub Balance
@@ -280,7 +284,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	if amountCompareWithZero == 0 {
 		return nil
 	} else if amountCompareWithZero < 0 {
-		return errAmountLessThanZero
+		return errReturnLockFundsAmountLessThanZero
 	}
 	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
@@ -325,7 +329,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 		return err
 	}
 	if amount.Cmp(common.Big0) < 0 {
-		return errAmountLessThanZero
+		return errSlashingAmountLessThanZero
 	} else if amount.Cmp(common.Big0) == 0 {
 		return nil
 	}
