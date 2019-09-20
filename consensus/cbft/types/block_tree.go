@@ -165,6 +165,45 @@ func (b *BlockTree) findBlockExt(hash common.Hash, number uint64) *blockExt {
 	return nil
 }
 
+func (b *BlockTree) IsForked(hash common.Hash, number uint64) (common.Hash, uint64, bool) {
+	ext := b.findForkedBlockExts(hash, number)
+	if ext != nil && len(ext) != 0 {
+		return ext[0].Block.Hash(), ext[0].Block.NumberU64(), true
+	}
+	return common.Hash{}, 0, false
+}
+
+// FindForkedBlockAndQC find the specified Block and its QC.
+func (b *BlockTree) FindForkedBlocksAndQCs(hash common.Hash, number uint64) ([]*types.Block, []*QuorumCert) {
+	ext := b.findForkedBlockExts(hash, number)
+	if ext != nil {
+		forkedBlocks := make([]*types.Block, 0, len(ext))
+		forkedQuorumCerts := make([]*QuorumCert, 0, len(ext))
+		for _, v := range ext {
+			forkedBlocks = append(forkedBlocks, v.Block)
+			forkedQuorumCerts = append(forkedQuorumCerts, v.QC)
+		}
+		return forkedBlocks, forkedQuorumCerts
+	}
+	return nil, nil
+}
+
+func (b *BlockTree) findForkedBlockExts(hash common.Hash, number uint64) []*blockExt {
+	if extMap, ok := b.blocks[number]; ok {
+		if len(extMap) == 1 {
+			return nil
+		}
+		bes := make([]*blockExt, 0, len(extMap)-1)
+		for h, ext := range extMap {
+			if hash != h {
+				bes = append(bes, ext)
+			}
+		}
+		return bes
+	}
+	return nil
+}
+
 // FindBlockByHash find the specified Block by hash.
 func (b *BlockTree) FindBlockByHash(hash common.Hash) *types.Block {
 	for _, extMap := range b.blocks {
