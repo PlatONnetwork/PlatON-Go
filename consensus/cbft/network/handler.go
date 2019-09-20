@@ -786,6 +786,7 @@ func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 func (h *EngineManager) Testing() {
 	peers, _ := h.peerList()
 	for _, v := range peers {
+		v.Run()
 		go func(p *peer) {
 			for {
 				if err := h.handleMsg(p); err != nil {

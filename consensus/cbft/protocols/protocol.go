@@ -93,12 +93,12 @@ func MessageType(msg interface{}) uint64 {
 // Proposed block carrier.
 type PrepareBlock struct {
 	Epoch         uint64               `json:"epoch"`
-	ViewNumber    uint64               `json:"view_number"`
-	Block         *types.Block         `json:"block_hash"`
-	BlockIndex    uint32               `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
-	ProposalIndex uint32               `json:"proposal_index"`
-	PrepareQC     *ctypes.QuorumCert   `json:"prepare_qc" rlp:"nil"`    // N-f aggregate signature
-	ViewChangeQC  *ctypes.ViewChangeQC `json:"viewchange_qc" rlp:"nil"` // viewChange aggregate signature
+	ViewNumber    uint64               `json:"viewNumber"`
+	Block         *types.Block         `json:"blockHash"`
+	BlockIndex    uint32               `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
+	ProposalIndex uint32               `json:"proposalIndex"`
+	PrepareQC     *ctypes.QuorumCert   `json:"prepareQC" rlp:"nil"`    // N-f aggregate signature
+	ViewChangeQC  *ctypes.ViewChangeQC `json:"viewchangeQC" rlp:"nil"` // viewChange aggregate signature
 	Signature     ctypes.Signature     `json:"signature"`
 	messageHash   atomic.Value         `rlp:"-"`
 }
@@ -161,12 +161,12 @@ func (pb *PrepareBlock) SetSign(sign []byte) {
 // Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
 type PrepareVote struct {
 	Epoch          uint64             `json:"epoch"`
-	ViewNumber     uint64             `json:"view_number"`
-	BlockHash      common.Hash        `json:"block_hash"`
-	BlockNumber    uint64             `json:"block_number"`
-	BlockIndex     uint32             `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
-	ValidatorIndex uint32             `json:"validator_index"`
-	ParentQC       *ctypes.QuorumCert `json:"parent_qc" rlp:"nil"`
+	ViewNumber     uint64             `json:"viewNumber"`
+	BlockHash      common.Hash        `json:"blockHash"`
+	BlockNumber    uint64             `json:"blockNumber"`
+	BlockIndex     uint32             `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
+	ValidatorIndex uint32             `json:"validatorIndex"`
+	ParentQC       *ctypes.QuorumCert `json:"parentQC" rlp:"nil"`
 	Signature      ctypes.Signature   `json:"signature"`
 	messageHash    atomic.Value       `rlp:"-"`
 }
@@ -230,11 +230,11 @@ func (pv *PrepareVote) SetSign(sign []byte) {
 // ViewChange is message structure for view switching.
 type ViewChange struct {
 	Epoch          uint64             `json:"epoch"`
-	ViewNumber     uint64             `json:"view_number"`
-	BlockHash      common.Hash        `json:"block_hash"`
-	BlockNumber    uint64             `json:"block_number"`
-	ValidatorIndex uint32             `json:"validator_index"`
-	PrepareQC      *ctypes.QuorumCert `json:"prepare_qc" rlp:"nil"`
+	ViewNumber     uint64             `json:"viewNumber"`
+	BlockHash      common.Hash        `json:"blockHash"`
+	BlockNumber    uint64             `json:"blockNumber"`
+	ValidatorIndex uint32             `json:"validatorIndex"`
+	PrepareQC      *ctypes.QuorumCert `json:"prepareQC" rlp:"nil"`
 	Signature      ctypes.Signature   `json:"signature"`
 	messageHash    atomic.Value       `rlp:"-"`
 }
@@ -337,13 +337,13 @@ func (ViewChanges) BHash() common.Hash {
 
 // CbftStatusData implement Message and including status information about peer.
 type CbftStatusData struct {
-	ProtocolVersion uint32       `json:"protocol_version"` // CBFT protocol version number.
-	QCBn            *big.Int     `json:"qc_bn"`            // The highest local block number for collecting block signatures.
-	QCBlock         common.Hash  `json:"qc_block"`         // The highest local block hash for collecting block signatures.
-	LockBn          *big.Int     `json:"lock_bn"`          // Locally locked block number.
-	LockBlock       common.Hash  `json:"lock_block"`       // Locally locked block hash.
-	CmtBn           *big.Int     `json:"cmt_bn"`           // Locally submitted block number.
-	CmtBlock        common.Hash  `json:"cmt_block"`        // Locally submitted block hash.
+	ProtocolVersion uint32       `json:"protocolVersion"` // CBFT protocol version number.
+	QCBn            *big.Int     `json:"qcBn"`            // The highest local block number for collecting block signatures.
+	QCBlock         common.Hash  `json:"qcBlock"`         // The highest local block hash for collecting block signatures.
+	LockBn          *big.Int     `json:"lockBn"`          // Locally locked block number.
+	LockBlock       common.Hash  `json:"lockBlock"`       // Locally locked block hash.
+	CmtBn           *big.Int     `json:"cmtBn"`           // Locally submitted block number.
+	CmtBlock        common.Hash  `json:"cmtBlock"`        // Locally submitted block hash.
 	messageHash     atomic.Value `rlp:"-"`
 }
 
@@ -395,8 +395,8 @@ func (s *GetPrepareBlock) BHash() common.Hash {
 // GetBlockQuorumCert is the protocol message for obtaining an aggregated signature.
 // todo: Need to determine the attribute field - ParentQC.
 type GetBlockQuorumCert struct {
-	BlockHash   common.Hash  `json:"block_hash"`   // The hash of the block to be acquired.
-	BlockNumber uint64       `json:"block_number"` // The number of the block to be acquired.
+	BlockHash   common.Hash  `json:"blockHash"`   // The hash of the block to be acquired.
+	BlockNumber uint64       `json:"blockNumber"` // The number of the block to be acquired.
 	messageHash atomic.Value `json:"-" rlp:"-"`
 }
 
@@ -447,8 +447,8 @@ func (s *BlockQuorumCert) BHash() common.Hash {
 // Used to get block information that has reached QC.
 // Note: Get up to 3 blocks of data at a time.
 type GetQCBlockList struct {
-	BlockHash   common.Hash  `json:"block_hash"`
-	BlockNumber uint64       `json:"block_number"` // The number corresponding to the block.
+	BlockHash   common.Hash  `json:"blockHash"`
+	BlockNumber uint64       `json:"blockNumber"` // The number corresponding to the block.
 	messageHash atomic.Value `json:"-" rlp:"-"`
 }
 
@@ -584,13 +584,15 @@ func (s *Pong) BHash() common.Hash {
 
 // CBFT synchronize blocks that have reached qc.
 type QCBlockList struct {
-	QC          []*ctypes.QuorumCert
-	Blocks      []*types.Block
-	messageHash atomic.Value `rlp:"-"`
+	QC           []*ctypes.QuorumCert
+	Blocks       []*types.Block
+	ForkedQC     []*ctypes.QuorumCert
+	ForkedBlocks []*types.Block
+	messageHash  atomic.Value `rlp:"-"`
 }
 
 func (s *QCBlockList) String() string {
-	return fmt.Sprintf("{QC.Len:%d,Blocks.Len:%d}", len(s.QC), len(s.Blocks))
+	return fmt.Sprintf("{QC.Len:%d,Blocks.Len:%d,ForkedQC.Len:%d,ForkedBlocks.Len:%d}", len(s.QC), len(s.Blocks), len(s.ForkedQC), len(s.ForkedBlocks))
 }
 
 func (s *QCBlockList) MsgHash() common.Hash {
@@ -647,11 +649,11 @@ func (s *GetLatestStatus) BHash() common.Hash {
 
 // Response message to GetLatestStatus request.
 type LatestStatus struct {
-	BlockNumber  uint64       `json:"block_number"`   // QC Block height
-	BlockHash    common.Hash  `json:"block_hash"`     // QC block hash
-	LBlockNumber uint64       `json:"l_block_number"` // Locked block height
-	LBlockHash   common.Hash  `json:"l_block_hash"`   // Locked block hash
-	LogicType    uint64       `json:"logic_type"`     // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
+	BlockNumber  uint64       `json:"blockNumber"`  // QC Block height
+	BlockHash    common.Hash  `json:"blockHash"`    // QC block hash
+	LBlockNumber uint64       `json:"lBlockNumber"` // Locked block height
+	LBlockHash   common.Hash  `json:"lBlockHash"`   // Locked block hash
+	LogicType    uint64       `json:"logicType"`    // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
 	messageHash  atomic.Value `rlp:"-"`
 }
 
@@ -678,8 +680,8 @@ func (s *LatestStatus) BHash() common.Hash {
 // Used to actively request to get viewChange.
 type GetViewChange struct {
 	Epoch          uint64          `json:"epoch"`
-	ViewNumber     uint64          `json:"view_number"`
-	ViewChangeBits *utils.BitArray `json:"node_indexes"`
+	ViewNumber     uint64          `json:"viewNumber"`
+	ViewChangeBits *utils.BitArray `json:"nodeIndexes"`
 	messageHash    atomic.Value    `rlp:"-"`
 }
 
@@ -702,7 +704,7 @@ func (s *GetViewChange) BHash() common.Hash {
 }
 
 type ViewChangeQuorumCert struct {
-	ViewChangeQC *ctypes.ViewChangeQC `json:"viewchange_qc"` // viewChange aggregate signature
+	ViewChangeQC *ctypes.ViewChangeQC `json:"viewchangeQC"` // viewChange aggregate signature
 	messageHash  atomic.Value         `rlp:"-"`
 }
 
