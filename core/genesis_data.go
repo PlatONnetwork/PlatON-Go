@@ -58,7 +58,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 	// Check the balance of PlatON Foundation
 	needStaking := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(int64(length)))
-	remain := stateDB.GetBalance(vm.PlatONFoundationAddress)
+	remain := stateDB.GetBalance(xcom.PlatONFundAccount())
 	if remain.Cmp(needStaking) < 0 {
 		return fmt.Errorf("Failed to store genesis staking data, the balance of PlatON-Foundation is no enough. "+
 			"balance: %s, need staking: %s", remain.String(), needStaking.String())
@@ -89,7 +89,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		can := &staking.Candidate{
 			NodeId:             node.Node.ID,
 			BlsPubKey:          node.BlsPubKey,
-			StakingAddress:     vm.PlatONFoundationAddress,
+			StakingAddress:     xcom.PlatONFundAccount(),
 			BenefitAddress:     vm.RewardManagerPoolAddr,
 			StakingTxIndex:     uint32(index), // txIndex from zero to n
 			ProgramVersion:     version,
@@ -98,9 +98,9 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			StakingBlockNum:    uint64(0),
 			Shares:             geneStakingAmount,
 			Released:           geneStakingAmount,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
+			ReleasedHes:        new(big.Int).SetInt64(0),
+			RestrictingPlan:    new(big.Int).SetInt64(0),
+			RestrictingPlanHes: new(big.Int).SetInt64(0),
 			Description: staking.Description{
 				ExternalId: "",
 				NodeName:   "platon.node." + fmt.Sprint(index+1),
@@ -148,15 +148,15 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		}
 		validatorQueue[index] = validator
 
-		stateDB.SubBalance(vm.PlatONFoundationAddress, geneStakingAmount)
+		stateDB.SubBalance(xcom.PlatONFundAccount(), geneStakingAmount)
 		stateDB.AddBalance(vm.StakingContractAddr, geneStakingAmount)
 	}
 
 	// store the account staking Reference Count
-	lastHash, err := putbasedbFn(staking.GetAccountStakeRcKey(vm.PlatONFoundationAddress), common.Uint64ToBytes(uint64(length)), lastHash)
+	lastHash, err := putbasedbFn(staking.GetAccountStakeRcKey(xcom.PlatONFundAccount()), common.Uint64ToBytes(uint64(length)), lastHash)
 	if nil != err {
 		return fmt.Errorf("Failed to Store Staking Account Reference Count. account: %s, error:%s",
-			vm.PlatONFoundationAddress.Hex(), err.Error())
+			xcom.PlatONFundAccount().Hex(), err.Error())
 	}
 
 	validatorArr, err := rlp.EncodeToBytes(validatorQueue)
@@ -255,7 +255,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 		eightEpoch = new(big.Int).Mul(big.NewInt(761501810943690), big.NewInt(1e10))
 	)
 
-	statedb.SubBalance(vm.PlatONFoundationAddress, zeroEpoch)
+	statedb.SubBalance(xcom.PlatONFundAccount(), zeroEpoch)
 	statedb.AddBalance(account, zeroEpoch)
 	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
 
@@ -266,7 +266,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
 	}
 
-	if err := plugin.RestrictingInstance().AddRestrictingRecord(vm.PlatONFoundationAddress, vm.RewardManagerPoolAddr, restrictingPlans, statedb); err != nil {
+	if err := plugin.RestrictingInstance().AddRestrictingRecord(xcom.PlatONFundAccount(), vm.RewardManagerPoolAddr, restrictingPlans, statedb); err != nil {
 		return err
 	}
 	return nil

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -306,7 +307,11 @@ func (p *peer) Run() {
 
 // Send send the message
 func (p *peer) Send(msg *types.MsgPackage) {
-	p.sendQueue <- msg
+	select {
+	case p.sendQueue <- msg:
+	default:
+		log.Debug("Send message fail, message queue blocking", "peer", p.PeerID(), "type", reflect.TypeOf(msg.Message()), "msgHash", msg.Message().MsgHash(), "msg", msg.Message().String())
+	}
 }
 
 // The loop of heartbeat detection is mainly responsible for

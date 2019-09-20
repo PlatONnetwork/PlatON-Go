@@ -107,12 +107,12 @@ func (rmp *rewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
 
 func (rmp *rewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	platonFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.PlatONFoundationAddress, platonFoundationIncr)
+	state.AddBalance(xcom.PlatONFundAccount(), platonFoundationIncr)
 }
 
 func (rmp *rewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.CommunityDeveloperFoundation, developerFoundationIncr)
+	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
 }
 func (rmp *rewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))

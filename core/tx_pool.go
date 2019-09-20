@@ -259,6 +259,8 @@ type TxPool struct {
 
 	knowns       sync.Map // All know transactions
 	filterKnowns int32
+
+	resetHead *types.Block
 }
 
 type txExt struct {
@@ -292,6 +294,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain *Bloc
 		txExtBuffer: make(chan *txExt, config.TxExtBufferSize),
 		rstFlag:     DoneRst,
 		pendingFlag: DonePending,
+		resetHead:   chain.currentBlock.Load().(*types.Block),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -488,7 +491,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 		return
 	}
 	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
-	head := pool.chain.CurrentBlock()
+	//head := pool.chain.CurrentBlock()
 
 	if newBlock != nil {
 		pool.mu.Lock()
@@ -496,8 +499,8 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 		if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
 			atomic.StoreInt32(&pool.rstFlag, DoingRst)
 		}
-		pool.reset(head.Header(), newBlock.Header())
-		head = newBlock
+		pool.reset(pool.resetHead.Header(), newBlock.Header())
+		pool.resetHead = newBlock
 
 		pool.mu.Unlock()
 	}
