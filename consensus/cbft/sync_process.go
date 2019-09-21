@@ -159,7 +159,11 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 		for i := uint32(0); i <= pb.BlockIndex; i++ {
 			b, _ := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
+				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
+					go cbft.ReceiveMessage(pb)
+				} else {
+					cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
+				}
 			}
 		}
 	}
@@ -172,7 +176,11 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		for i := uint32(0); i < vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
+				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
+					go cbft.ReceiveMessage(pb)
+				} else {
+					cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
+				}
 			} else if q == nil {
 				cbft.SyncBlockQuorumCert(id, b.NumberU64(), b.Hash())
 			}
@@ -577,15 +585,19 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 		block := cbft.state.HighestQCBlock()
 		blockTime := common.MillisToTime(block.Time().Int64())
 
-		for i := begin; i < end; i++ {
-			size := cbft.state.PrepareVoteLenByIndex(i)
-			cbft.log.Debug("The length of prepare vote", "index", i, "size", size)
+		for index := begin; index < end; index++ {
+			size := cbft.state.PrepareVoteLenByIndex(index)
+			cbft.log.Debug("The length of prepare vote", "index", index, "size", size)
 
 			// We need sync prepare votes when a long time not arrived QC.
 			if size < cbft.threshold(len) && time.Since(blockTime) >= syncPrepareVotesInterval { // need sync prepare votes
-				knownVotes := cbft.state.AllPrepareVoteByIndex(i)
+				knownVotes := cbft.state.AllPrepareVoteByIndex(index)
 				unKnownSet := utils.NewBitArray(uint32(len))
 				for i := uint32(0); i < unKnownSet.Size(); i++ {
+					if vote := cbft.csPool.GetPrepareVote(index, i); vote != nil {
+						go cbft.ReceiveMessage(vote)
+						continue
+					}
 					if _, ok := knownVotes[i]; !ok {
 						unKnownSet.SetIndex(i, true)
 					}
@@ -594,7 +606,7 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 				v, err = &protocols.GetPrepareVote{
 					Epoch:      cbft.state.Epoch(),
 					ViewNumber: cbft.state.ViewNumber(),
-					BlockIndex: i,
+					BlockIndex: index,
 					UnKnownSet: unKnownSet,
 				}, nil
 				break
