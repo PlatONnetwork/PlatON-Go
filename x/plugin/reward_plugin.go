@@ -15,7 +15,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-type rewardMgrPlugin struct {
+type RewardMgrPlugin struct {
 }
 
 const (
@@ -30,13 +30,13 @@ const (
 
 var (
 	rewardOnce sync.Once
-	rm         *rewardMgrPlugin = nil
+	rm         *RewardMgrPlugin = nil
 )
 
-func RewardMgrInstance() *rewardMgrPlugin {
+func RewardMgrInstance() *RewardMgrPlugin {
 	rewardOnce.Do(func() {
 		log.Info("Init Reward plugin ...")
-		rm = &rewardMgrPlugin{}
+		rm = &RewardMgrPlugin{}
 	})
 	return rm
 }
@@ -50,15 +50,15 @@ func RewardMgrInstance() *rewardMgrPlugin {
 }*/
 
 // BeginBlock does something like check input params before execute transactions,
-// in rewardMgrPlugin it does nothing.
-func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+// in RewardMgrPlugin it does nothing.
+func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	return nil
 }
 
 // EndBlock will handle reward work, if it's time to settle, reward staking. Then reward worker
 // for create new block, this is necessary. At last if current block is the last block at the end
 // of year, increasing issuance.
-func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 
 	blockNumber := head.Number.Uint64()
 
@@ -94,33 +94,33 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 }
 
 // Confirmed does nothing
-func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
+func (rmp *RewardMgrPlugin) Confirmed(block *types.Block) error {
 	return nil
 }
 
-func (rmp *rewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
+func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
 	if thisYear < xcom.PlatONFoundationYear()-1 {
 		return true
 	}
 	return false
 }
 
-func (rmp *rewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	platonFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.PlatONFundAccount(), platonFoundationIncr)
 }
 
-func (rmp *rewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
 }
-func (rmp *rewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 }
 
 // increaseIssuance used for increase issuance at the end of each year
-func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB) {
+func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB) {
 	var currIssuance *big.Int
 	//issuance increase
 	{
@@ -149,7 +149,7 @@ func (rmp *rewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 }
 
 // allocateStakingReward used for reward staking at the settle block
-func (rmp *rewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, reward *big.Int, state xcom.StateDB) error {
+func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash common.Hash, reward *big.Int, state xcom.StateDB) error {
 
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
@@ -163,7 +163,7 @@ func (rmp *rewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash 
 	return nil
 }
 
-func (rmp *rewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int) {
+func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, list staking.ValidatorExQueue, reward *big.Int) {
 	validatorNum := int64(len(list))
 	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
 
@@ -184,7 +184,7 @@ func (rmp *rewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 }
 
 // allocatePackageBlock used for reward new block. it returns coinbase and error
-func (rmp *rewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash common.Hash, coinBase common.Address, reward *big.Int, state xcom.StateDB) {
+func (rmp *RewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash common.Hash, coinBase common.Address, reward *big.Int, state xcom.StateDB) {
 
 	if coinBase != vm.RewardManagerPoolAddr {
 
@@ -203,7 +203,7 @@ func percentageCalculation(mount *big.Int, rate uint64) *big.Int {
 }
 
 // calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
-func (rmp *rewardMgrPlugin) calculateExpectReward(thisYear, lastYear uint32, state xcom.StateDB) (*big.Int, *big.Int) {
+func (rmp *RewardMgrPlugin) calculateExpectReward(thisYear, lastYear uint32, state xcom.StateDB) (*big.Int, *big.Int) {
 	// get expected settlement epochs and new blocks per year first
 	epochs := xutil.EpochsPerYear()
 	blocks := xutil.CalcBlocksEachYear()
