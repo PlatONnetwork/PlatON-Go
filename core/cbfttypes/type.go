@@ -3,6 +3,7 @@ package cbfttypes
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -80,10 +81,10 @@ type UpdateValidatorEvent struct{}
 
 type ValidateNode struct {
 	Index     uint32           `json:"index"`
-	Address   common.Address   `json:"-"`
+	Address   common.Address   `json:"address"`
 	PubKey    *ecdsa.PublicKey `json:"pubKey"`
-	NodeID    discover.NodeID
-	BlsPubKey *bls.PublicKey `json:"blsPubKey"`
+	NodeID    discover.NodeID  `json:"nodeID"`
+	BlsPubKey *bls.PublicKey   `json:"blsPubKey"`
 }
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
@@ -96,13 +97,14 @@ func (sv SortedValidatorNode) Less(i, j int) bool { return sv[i].Index < sv[j].I
 
 type Validators struct {
 	Nodes            ValidateNodeMap `json:"validateNodes"`
-	ValidBlockNumber uint64          `json:"-"`
+	ValidBlockNumber uint64          `json:"validateBlockNumber"`
 
 	sortedNodes SortedValidatorNode
 }
 
 func (vn *ValidateNode) String() string {
-	return fmt.Sprintf("{Index:%d Address:%s BlsPubKey:%s}", vn.Index, vn.Address.String(), fmt.Sprintf("%x", vn.BlsPubKey.Serialize()))
+	b, _ := json.Marshal(vn)
+	return string(b)
 }
 
 func (vn *ValidateNode) Verify(data, sign []byte) error {
@@ -127,7 +129,8 @@ func (vnm ValidateNodeMap) String() string {
 }
 
 func (vs *Validators) String() string {
-	return fmt.Sprintf("{Nodes:[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
+	b, _ := json.Marshal(vs)
+	return string(b)
 }
 
 func (vs *Validators) NodeList() []discover.NodeID {
