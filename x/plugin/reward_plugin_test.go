@@ -19,7 +19,7 @@ import (
 )
 
 func TestRewardPlugin(t *testing.T) {
-	var plugin = new(rewardMgrPlugin)
+	var plugin = new(RewardMgrPlugin)
 	mockDB := buildStateDB(t)
 
 	t.Run("CalculateExpectReward", func(t *testing.T) {

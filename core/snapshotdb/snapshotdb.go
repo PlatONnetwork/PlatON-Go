@@ -771,7 +771,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("begin close snapshotDB")
+	logger.Info("begin close snapshotdb")
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
@@ -796,6 +796,6 @@ func (s *snapshotDB) Close() error {
 	}
 
 	s.closed = true
-	logger.Info("db close")
+	logger.Info("snapshotdb closed")
 	return nil
 }
