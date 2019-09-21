@@ -49,6 +49,7 @@ type Database interface {
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
 
+	NewTrie(t Trie) Trie
 	// ContractCode retrieves a particular contract's code.
 	ContractCode(addrHash, codeHash common.Hash) ([]byte, error)
 
@@ -135,6 +136,17 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 		return cachedTrie{t.SecureTrie.Copy(), db}
 	case *trie.SecureTrie:
 		return t.Copy()
+	default:
+		panic(fmt.Errorf("unknown trie type %T", t))
+	}
+}
+
+func (db *cachingDB) NewTrie(t Trie) Trie {
+	switch t := t.(type) {
+	case cachedTrie:
+		return cachedTrie{t.SecureTrie.New(), db}
+	case *trie.SecureTrie:
+		return t.New()
 	default:
 		panic(fmt.Errorf("unknown trie type %T", t))
 	}

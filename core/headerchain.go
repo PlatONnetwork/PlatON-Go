@@ -33,7 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -459,5 +459,11 @@ func (hc *HeaderChain) Engine() consensus.Engine { return hc.engine }
 // GetBlock implements consensus.ChainReader, and returns nil for every input as
 // a header chain does not have blocks available for retrieval.
 func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+	return nil
+}
+
+// CurrentBlock implements consensus.ChainReader, and returns nil for every input as
+// a header chain does not have blocks available for retrieval.
+func (hc *HeaderChain) CurrentBlock() *types.Block {
 	return nil
 }

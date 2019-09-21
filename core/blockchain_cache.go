@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -49,14 +50,14 @@ func (pbc *BlockChainCache) CurrentBlock() *types.Block {
 func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Block {
 	var block *types.Block
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		log.Trace("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		log.Trace("Find block in cbft", "hash", hash, "number", number)
 		block = cbft.GetBlock(hash, number)
 	}
 	if block == nil {
-		log.Trace("cannot find block in cbft, try to find it in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		log.Trace("Cannot find block in cbft, try to find it in chain", "hash", hash, "number", number)
 		block = pbc.getBlock(hash, number)
 		if block == nil {
-			log.Trace("cannot find block in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+			log.Trace("Cannot find block in chain", "hash", hash, "number", number)
 		}
 	}
 	return block
@@ -65,14 +66,14 @@ func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Blo
 func (pbc *BlockChainCache) GetBlockInMemory(hash common.Hash, number uint64) *types.Block {
 	var block *types.Block
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		log.Trace("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		log.Trace("find block in cbft", "hash", hash, "number", number)
 		block = cbft.GetBlockWithoutLock(hash, number)
 	}
 	if block == nil {
-		log.Trace("cannot find block in cbft, try to find it in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		log.Trace("cannot find block in cbft, try to find it in chain", "hash", hash, "number", number)
 		block = pbc.getBlock(hash, number)
 		if block == nil {
-			log.Trace("cannot find block in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+			log.Trace("cannot find block in chain", "hash", hash, "number", number)
 		}
 	}
 	return block
@@ -99,8 +100,8 @@ func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt 
 
 // GetState returns a new mutable state based on a particular point in time.
 func (bcc *BlockChainCache) GetState(header *types.Header) (*state.StateDB, error) {
-	state := bcc.ReadStateDB(header.SealHash())
-	if state != nil {
+	state, err := bcc.MakeStateDBByHeader(header)
+	if err == nil {
 		return state, nil
 	} else {
 		return bcc.StateAt(header.Root)
@@ -114,6 +115,16 @@ func (pbc *BlockChainCache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	if obj, exist := pbc.stateDBCache[sealHash]; exist {
 		log.Debug("Read the StateDB instance from the cache map", "sealHash", sealHash)
 		return obj.stateDB.Copy()
+	}
+	return nil
+}
+
+func (pbc *BlockChainCache) ReadOnlyStateDB(sealHash common.Hash) *state.StateDB {
+	pbc.stateDBMu.RLock()
+	defer pbc.stateDBMu.RUnlock()
+	if obj, exist := pbc.stateDBCache[sealHash]; exist {
+		log.Debug("Read the StateDB instance from the cache map", "sealHash", sealHash)
+		return obj.stateDB
 	}
 	return nil
 }
@@ -166,34 +177,41 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	bcc.stateDBMu.Lock()
 	defer bcc.stateDBMu.Unlock()
 
-	var blockNum uint64
 	if obj, exist := bcc.stateDBCache[sealHash]; exist {
-		blockNum = obj.blockNum
+		obj.stateDB.ClearReference()
+		log.Debug("Clear StateDB", "sealHash", sealHash, "number", obj.blockNum)
+		delete(bcc.stateDBCache, sealHash)
 		//delete(pbc.stateDBCache, sealHash)
 	}
-	for hash, obj := range bcc.stateDBCache {
-		if obj.blockNum < blockNum {
-			log.Debug("Clear StateDB", "sealHash", hash, "number", obj.blockNum)
-			delete(bcc.stateDBCache, hash)
-		}
-	}
+	//for hash, obj := range bcc.stateDBCache {
+	//	if obj.blockNum < blockNum {
+	//		obj.stateDB.ClearReference()
+	//		log.Debug("Clear StateDB", "sealHash", hash, "number", obj.blockNum)
+	//		delete(bcc.stateDBCache, hash)
+	//	}
+	//}
 }
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
-	log.Info("make stateDB", "hash", block.Hash(), "number", block.NumberU64(), "root", block.Root())
-	// Create a StateDB instance from the blockchain based on stateRoot
-	if state, err := bcc.StateAt(block.Root()); err == nil && state != nil {
-		return state, nil
-	}
+	log.Info("Make stateDB", "hash", block.Hash(), "number", block.NumberU64(), "root", block.Root())
+	return bcc.MakeStateDBByHeader(block.Header())
+}
+
+func (bcc *BlockChainCache) MakeStateDBByHeader(header *types.Header) (*state.StateDB, error) {
 	// Read and copy the stateDB instance in the cache
-	sealHash := block.Header().SealHash()
-	if state := bcc.ReadStateDB(sealHash); state != nil {
-		//return state.Copy(), nil
+	sealHash, number, root := header.SealHash(), header.Number.Uint64(), header.Root
+	if state := bcc.ReadOnlyStateDB(sealHash); state != nil {
+		statedb := state.NewStateDB()
+		if number > 1 && !statedb.HadParent() {
+			panic(fmt.Sprintf("parent is nil:%d", number))
+		}
+		return statedb, nil
+	} else if state, err := bcc.StateAt(root); err == nil && state != nil {
+		// Create a StateDB instance from the blockchain based on stateRoot
 		return state, nil
-	} else {
-		return nil, errMakeStateDB
 	}
+	return nil, errMakeStateDB
 }
 
 // Get the StateDB instance of the corresponding block
@@ -204,17 +222,23 @@ func (bcc *BlockChainCache) ClearCache(block *types.Block) {
 	}
 	log.Debug("Clear cache", "baseBlockHash", block.Hash(), "baseBlockNumber", baseNumber)
 
+	var sh sealHashSort
 	bcc.executed.Range(func(key, value interface{}) bool {
 		number := value.(uint64)
 		if number < baseNumber-1 {
 			sealHash := key.(common.Hash)
-			bcc.clearReceipts(sealHash)
-			bcc.clearStateDB(sealHash)
-			bcc.executed.Delete(sealHash)
-			log.Debug("Clear Cache block", "sealHash", sealHash, "number", number)
+			sh = append(sh, &sealHashNumber{number: number, hash: sealHash})
+
 		}
 		return true
 	})
+	sort.Sort(sh)
+	for _, s := range sh {
+		log.Debug("Clear Cache block", "sealHash", s.hash, "number", s.number)
+		bcc.clearReceipts(s.hash)
+		bcc.clearStateDB(s.hash)
+		bcc.executed.Delete(s.hash)
+	}
 }
 
 func (bcc *BlockChainCache) StateDBString() string {
@@ -295,9 +319,22 @@ func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 	_, err := bcc.WriteBlockWithState(block, _receipts, state)
 	if err != nil {
 		log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
-		return fmt.Errorf("Failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
+		return fmt.Errorf("failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
 	}
 
 	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64())
 	return nil
 }
+
+type sealHashNumber struct {
+	number uint64
+	hash   common.Hash
+}
+
+type sealHashSort []*sealHashNumber
+
+func (self sealHashSort) Len() int { return len(self) }
+func (self sealHashSort) Swap(i, j int) {
+	self[i], self[j] = self[j], self[i]
+}
+func (self sealHashSort) Less(i, j int) bool { return self[i].number < self[j].number }
