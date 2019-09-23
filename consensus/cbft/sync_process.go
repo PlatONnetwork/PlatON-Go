@@ -371,6 +371,10 @@ func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 // the message contains the status information of the local node.
 func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) error {
 	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash(), "message", msg.String())
+	if msg.BlockNumber != 0 && msg.QuorumCert == nil || msg.LBlockNumber != 0 && msg.LQuorumCert == nil {
+		cbft.log.Error("Invalid GetLatestStatus")
+		return nil
+	}
 	// Define a function that performs the send action.
 	launcher := func(bType uint64, targetId string, blockNumber uint64, blockHash common.Hash, qc *ctypes.QuorumCert) error {
 		err := cbft.network.PeerSetting(targetId, bType, blockNumber)
@@ -421,6 +425,10 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 // OnLatestStatus is used to process LatestStatus messages that received from peer.
 func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	if msg.BlockNumber != 0 && msg.QuorumCert == nil || msg.LBlockNumber != 0 && msg.LQuorumCert == nil {
+		cbft.log.Error("Invalid LatestStatus")
+		return nil
+	}
 	switch msg.LogicType {
 	case network.TypeForQCBn:
 		localQCBn, localQCHash := cbft.state.HighestQCBlock().NumberU64(), cbft.state.HighestQCBlock().Hash()
