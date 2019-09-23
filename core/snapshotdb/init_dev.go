@@ -12,7 +12,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/robfig/cron"
 )
 
 const (
@@ -77,7 +76,7 @@ func (c *testchain) GetHeaderByHash(hash common.Hash) *types.Header {
 }
 
 // New  create a new snapshotDB
-func New() (DB, error) {
+/*func New() (DB, error) {
 	p := path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
 	logger.Info("begin newDB", "path", p)
 	s, err := openFile(p, false)
@@ -97,4 +96,4 @@ func New() (DB, error) {
 	}
 	db.corn.Start()
 	return db, nil
-}
+}*/
