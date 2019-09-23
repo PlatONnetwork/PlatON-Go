@@ -1367,20 +1367,29 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 	return nil
 }
 
-// check if the consensusMsg must take prepareQC
-func (cbft *Cbft) needPrepareQC(msg ctypes.ConsensusMsg) error {
+// check if the consensusMsg must take prepareQC or need not take prepareQC
+func (cbft *Cbft) checkPrepareQC(msg ctypes.ConsensusMsg) error {
 	switch cm := msg.(type) {
 	case *protocols.PrepareBlock:
+		if (cm.BlockNum() == 1 || cm.BlockIndex != 0) && cm.PrepareQC != nil {
+			return authFailedError{err: fmt.Errorf("prepareBlock need not take PrepareQC, prepare:%s", cm.String())}
+		}
 		if cm.BlockIndex == 0 && cm.BlockNum() != 1 && cm.PrepareQC == nil {
-			return authFailedError{err: fmt.Errorf("prepareBlock need PrepareQC")}
+			return authFailedError{err: fmt.Errorf("prepareBlock need take PrepareQC, prepare:%s", cm.String())}
 		}
 	case *protocols.PrepareVote:
+		if cm.BlockNum() == 1 && cm.ParentQC != nil {
+			return authFailedError{err: fmt.Errorf("prepareVote need not take PrepareQC, vote:%s", cm.String())}
+		}
 		if cm.BlockNum() != 1 && cm.ParentQC == nil {
-			return authFailedError{err: fmt.Errorf("prepareVote need PrepareQC")}
+			return authFailedError{err: fmt.Errorf("prepareVote need take PrepareQC, vote:%s", cm.String())}
 		}
 	case *protocols.ViewChange:
+		if cm.BlockNumber == 0 && cm.PrepareQC != nil {
+			return authFailedError{err: fmt.Errorf("viewChange need not take PrepareQC, viewChange:%s", cm.String())}
+		}
 		if cm.BlockNumber != 0 && cm.PrepareQC == nil {
-			return authFailedError{err: fmt.Errorf("viewChange need PrepareQC")}
+			return authFailedError{err: fmt.Errorf("viewChange need take PrepareQC, viewChange:%s", cm.String())}
 		}
 	default:
 		return authFailedError{err: fmt.Errorf("invalid consensusMsg")}
@@ -1389,8 +1398,8 @@ func (cbft *Cbft) needPrepareQC(msg ctypes.ConsensusMsg) error {
 }
 
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
-	// check if the consensusMsg must take prepareQC, otherwise maybe panic
-	if err := cbft.needPrepareQC(msg); err != nil {
+	// check if the consensusMsg must take prepareQC, Otherwise maybe panic
+	if err := cbft.checkPrepareQC(msg); err != nil {
 		return nil, err
 	}
 	// Verify consensus msg signature
