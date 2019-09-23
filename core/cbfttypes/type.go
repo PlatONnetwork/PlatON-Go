@@ -82,7 +82,7 @@ type UpdateValidatorEvent struct{}
 type ValidateNode struct {
 	Index     uint32           `json:"index"`
 	Address   common.Address   `json:"address"`
-	PubKey    *ecdsa.PublicKey `json:"pubKey"`
+	PubKey    *ecdsa.PublicKey `json:"-"`
 	NodeID    discover.NodeID  `json:"nodeID"`
 	BlsPubKey *bls.PublicKey   `json:"blsPubKey"`
 }
