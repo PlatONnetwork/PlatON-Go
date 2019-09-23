@@ -30,8 +30,8 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 
-		cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 		if err.Common() {
+			cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 			cbft.log.Debug("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
 			return err
 		}
@@ -40,6 +40,9 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
+
+		cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 			return err
@@ -89,9 +92,9 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 // Whether to start synchronization
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
-		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 		if err.Common() {
+			cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 			cbft.log.Debug("Preparevote rules fail", "number", msg.BlockHash, "hash", msg.BlockHash, "err", err)
 			return err
 		}
@@ -101,6 +104,8 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
+
+		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
