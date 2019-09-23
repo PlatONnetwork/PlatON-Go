@@ -72,9 +72,13 @@ func NewCSMsgPool() *CSMsgPool {
 	}
 }
 
+// Add prepare block to cache. There is no strict distinction between the blocks of the current view,
+// which will be cleared from the cache after each acquisition, so that the new block can re-enter the cache.
 func (cs *CSMsgPool) AddPrepareBlock(blockIndex uint32, msg *MsgInfo) {
 	cs.prepareBlocks[blockIndex] = msg
 }
+
+// Get prepare block and clear it from the cache
 func (cs *CSMsgPool) GetPrepareBlock(index uint32) *MsgInfo {
 	if m, ok := cs.prepareBlocks[index]; ok {
 		cs.addBlockMetric(index)
@@ -92,6 +96,15 @@ func (cs *CSMsgPool) addBlockMetric(index uint32) {
 	}
 }
 
+func (cs *CSMsgPool) getBlockMetric(index uint32) uint32 {
+	if m, ok := cs.blockMetric[index]; ok {
+		return m
+	}
+	return 0
+}
+
+// Add prepare votes to cache. There is no strict distinction between the votes of the current view,
+// which will be cleared from the cache after each acquisition, so that the new votes can re-enter the cache.
 func (cs *CSMsgPool) AddPrepareVote(blockIndex uint32, validatorIndex uint32, msg *MsgInfo) {
 	if votes, ok := cs.prepareVotes[blockIndex]; ok {
 		votes[validatorIndex] = msg
@@ -102,6 +115,7 @@ func (cs *CSMsgPool) AddPrepareVote(blockIndex uint32, validatorIndex uint32, ms
 	}
 }
 
+// Get prepare vote and clear it from the cache
 func (cs *CSMsgPool) GetPrepareVote(blockIndex uint32, validatorIndex uint32) *MsgInfo {
 	if p, ok := cs.prepareVotes[blockIndex]; ok {
 		if m, ok := p[validatorIndex]; ok {
@@ -118,7 +132,7 @@ func (cs *CSMsgPool) addVoteMetric(blockIndex uint32, validatorIndex uint32) {
 		if m, ok := votes[validatorIndex]; ok {
 			votes[validatorIndex] = m + 1
 		} else {
-			votes[validatorIndex] = 0
+			votes[validatorIndex] = 1
 		}
 	} else {
 		votes := make(map[uint32]uint32)
@@ -126,6 +140,16 @@ func (cs *CSMsgPool) addVoteMetric(blockIndex uint32, validatorIndex uint32) {
 		cs.voteMetric[blockIndex] = votes
 	}
 }
+
+func (cs *CSMsgPool) getVoteMetric(blockIndex uint32, validatorIndex uint32) uint32 {
+	if votes, ok := cs.voteMetric[blockIndex]; ok {
+		if m, ok := votes[validatorIndex]; ok {
+			return m
+		}
+	}
+	return 0
+}
+
 func (cs *CSMsgPool) Purge() {
 
 	for k, v := range cs.blockMetric {

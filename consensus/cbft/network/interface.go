@@ -43,6 +43,9 @@ type Cbft interface {
 	// Returns the missing vote.
 	MissingPrepareVote() (*protocols.GetPrepareVote, error)
 
+	// Returns latest status.
+	LatestStatus() *protocols.GetLatestStatus
+
 	// OnPong records net delay time.
 	OnPong(nodeID string, netLatency int64) error
 
