@@ -2,11 +2,6 @@
 
 package snapshotdb
 
-import (
-	"fmt"
-	"os"
-)
-
 const (
 	//DBPath path of db
 	DBPath = "snapshotdb"
@@ -16,7 +11,7 @@ const (
 )
 
 // New  create a new snapshotDB,will clear old snapshotDB data
-func New(path string) (DB, error) {
+/*func New(path string) (DB, error) {
 	if err := os.RemoveAll(path); err != nil {
 		return nil, err
 	}
@@ -34,3 +29,4 @@ func New(path string) (DB, error) {
 	}
 	return db, nil
 }
+*/
