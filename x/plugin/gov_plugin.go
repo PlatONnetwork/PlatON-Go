@@ -5,6 +5,8 @@ import (
 	"math"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -85,9 +87,14 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
+			activeMap := make(map[discover.NodeID]struct{}, len(activeList))
+			for _, activeNode := range activeList {
+				activeMap[activeNode] = struct{}{}
+			}
+
 			//check if all validators are active
 			for _, validator := range currentValidatorList {
-				if xutil.InNodeIDList(validator, activeList) {
+				if _, isActive := activeMap[validator]; isActive {
 					updatedNodes++
 				}
 			}
