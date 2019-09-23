@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
@@ -17,7 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	mapset "github.com/deckarep/golang-set"
 )
 
 const (
@@ -72,18 +71,22 @@ type EngineManager struct {
 	sendQueue          chan *types.MsgPackage
 	quitSend           chan struct{}
 	sendQueueHook      func(*types.MsgPackage)
-	historyMessageHash mapset.Set // Consensus message record that has been processed successfully.
-	blacklist          *lru.Cache // Save node blacklist.
+	historyMessageHash *lru.ARCCache // Consensus message record that has been processed successfully.
+	blacklist          *lru.Cache    // Save node blacklist.
 }
 
 // NewEngineManger returns a new handler and do some initialization.
 func NewEngineManger(engine Cbft) *EngineManager {
+	cache, err := lru.NewARC(maxHistoryMessageHash)
+	if err != nil {
+		return nil
+	}
 	handler := &EngineManager{
 		engine:             engine,
 		peers:              NewPeerSet(),
 		sendQueue:          make(chan *types.MsgPackage, sendQueueSize),
 		quitSend:           make(chan struct{}),
-		historyMessageHash: mapset.NewSet(),
+		historyMessageHash: cache,
 	}
 	handler.blacklist, _ = lru.New(maxBlacklist)
 	// init router
@@ -608,10 +611,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 // MarkHistoryMessageHash is used to record the hash value of each message from the peer node.
 // If the queue is full, remove the bottom element and add a new one.
 func (h *EngineManager) MarkHistoryMessageHash(hash common.Hash) {
-	for h.historyMessageHash.Cardinality() >= maxHistoryMessageHash {
-		h.historyMessageHash.Pop()
-	}
-	h.historyMessageHash.Add(hash)
+	h.historyMessageHash.Add(hash, struct{}{})
 }
 
 // ContainsMessageHash returns whether the specified hash exists.

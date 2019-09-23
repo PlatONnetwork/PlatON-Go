@@ -496,9 +496,9 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 	if newBlock != nil {
 		pool.mu.Lock()
 
-		if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
-			atomic.StoreInt32(&pool.rstFlag, DoingRst)
-		}
+		atomic.StoreInt32(&pool.rstFlag, DoingRst)
+		defer atomic.StoreInt32(&pool.rstFlag, DoneRst)
+
 		pool.reset(pool.resetHead.Header(), newBlock.Header())
 		pool.resetHead = newBlock
 
@@ -557,8 +557,6 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 // reset retrieves the current state of the blockchain and ensures the content
 // of the transaction pool is valid with regard to the chain state.
 func (pool *TxPool) reset(oldHead, newHead *types.Header) {
-	defer atomic.StoreInt32(&pool.rstFlag, DoneRst)
-
 	var oldHash common.Hash
 	var oldNumber uint64
 	if oldHead != nil {
@@ -869,7 +867,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// Verify inner contract tx
 	if nil != tx.To() {
-		if err := bcr.Verify_tx(tx, *(tx.To())); nil != err {
+		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
 	}

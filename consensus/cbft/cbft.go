@@ -131,6 +131,8 @@ type Cbft struct {
 	// Store blocks that are not committed
 	blockTree *ctypes.BlockTree
 
+	csPool *ctypes.CSMsgPool
+
 	// wal
 	nodeServiceContext        *node.ServiceContext
 	wal                       wal.Wal
@@ -166,6 +168,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		exitCh:             make(chan struct{}),
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		csPool:             ctypes.NewCSMsgPool(),
 		log:                log.New(),
 		start:              0,
 		syncing:            0,
@@ -480,6 +483,7 @@ func (cbft *Cbft) receiveLoop() {
 			if err := cbft.handleSyncMsg(msg); err != nil {
 				if err, ok := err.(HandleError); ok {
 					if err.AuthFailed() {
+						cbft.log.Error("Verify signature failed to sync message, will add to blacklist", "peerID", msg.PeerID)
 						cbft.network.MarkBlacklist(msg.PeerID)
 						cbft.network.RemovePeer(msg.PeerID)
 					}

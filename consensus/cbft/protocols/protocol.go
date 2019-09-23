@@ -584,13 +584,15 @@ func (s *Pong) BHash() common.Hash {
 
 // CBFT synchronize blocks that have reached qc.
 type QCBlockList struct {
-	QC          []*ctypes.QuorumCert
-	Blocks      []*types.Block
-	messageHash atomic.Value `rlp:"-"`
+	QC           []*ctypes.QuorumCert
+	Blocks       []*types.Block
+	ForkedQC     []*ctypes.QuorumCert
+	ForkedBlocks []*types.Block
+	messageHash  atomic.Value `rlp:"-"`
 }
 
 func (s *QCBlockList) String() string {
-	return fmt.Sprintf("{QC.Len:%d,Blocks.Len:%d}", len(s.QC), len(s.Blocks))
+	return fmt.Sprintf("{QC.Len:%d,Blocks.Len:%d,ForkedQC.Len:%d,ForkedBlocks.Len:%d}", len(s.QC), len(s.Blocks), len(s.ForkedQC), len(s.ForkedBlocks))
 }
 
 func (s *QCBlockList) MsgHash() common.Hash {
