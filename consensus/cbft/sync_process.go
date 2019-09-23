@@ -317,11 +317,14 @@ func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) err
 func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 	cbft.log.Debug("Received message on OnPrepareVotes", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, vote := range msg.Votes {
-		if err := cbft.OnPrepareVote(id, vote); err != nil {
-			if e, ok := err.(HandleError); ok && e.AuthFailed() {
-				cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+		_, qc := cbft.blockTree.FindBlockAndQC(vote.BlockHash, vote.BlockNumber)
+		if qc == nil && !cbft.network.ContainsHistoryMessageHash(vote.MsgHash()) {
+			if err := cbft.OnPrepareVote(id, vote); err != nil {
+				if e, ok := err.(HandleError); ok && e.AuthFailed() {
+					cbft.log.Error("OnPrepareVotes failed", "peer", id, "err", err)
+				}
+				return err
 			}
-			return err
 		}
 	}
 	return nil
@@ -499,11 +502,13 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 func (cbft *Cbft) OnViewChanges(id string, msg *protocols.ViewChanges) error {
 	cbft.log.Debug("Received message on OnViewChanges", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	for _, v := range msg.VCs {
-		if err := cbft.OnViewChange(id, v); err != nil {
-			if e, ok := err.(HandleError); ok && e.AuthFailed() {
-				cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+		if !cbft.network.ContainsHistoryMessageHash(v.MsgHash()) {
+			if err := cbft.OnViewChange(id, v); err != nil {
+				if e, ok := err.(HandleError); ok && e.AuthFailed() {
+					cbft.log.Error("OnViewChanges failed", "peer", id, "err", err)
+				}
+				return err
 			}
-			return err
 		}
 	}
 	return nil

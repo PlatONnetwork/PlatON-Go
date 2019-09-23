@@ -31,7 +31,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		blockCheckFailureMeter.Mark(1)
 
 		if err.Common() {
-			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
+			cbft.log.Debug("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
 			return err
 		}
 		// verify consensus signature
@@ -88,11 +88,17 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 // Whether to start synchronization
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
+		if err.Common() {
+			cbft.log.Debug("Preparevote rules fail", "number", msg.BlockHash, "hash", msg.BlockHash, "err", err)
+			return err
+		}
+
 		// verify consensus signature
 		if cbft.verifyConsensusSign(msg) != nil {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
+
 		if err.Fetch() {
 			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		} else if err.FetchPrepare() {
