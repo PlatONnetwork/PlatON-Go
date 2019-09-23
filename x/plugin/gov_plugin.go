@@ -39,7 +39,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
-	if xutil.IsBeginOfSettlement(blockNumber) {
+	if !xutil.IsBeginOfConsensus(blockNumber) {
+		return nil
+	}
+
+	if xutil.IsBeginOfEpoch(blockNumber) {
 		if err := accuVerifiersAtBeginOfSettlement(blockHash, blockNumber); err != nil {
 			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
 			return err
@@ -137,6 +141,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
+
+	//the endVotingBlock must be consensus Election block
+	if !xutil.IsElection(blockNumber) {
+		return nil
+	}
 
 	votingProposalIDs, err := gov.ListVotingProposal(blockHash)
 	if err != nil {
