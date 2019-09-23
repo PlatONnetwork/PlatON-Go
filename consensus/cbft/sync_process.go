@@ -156,7 +156,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 // Obtain blocks that are not in the local according to the proposed block
 func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) {
 	if pb.Block.NumberU64() > cbft.state.HighestQCBlock().NumberU64() {
-		for i := uint32(0); i < pb.BlockIndex; i++ {
+		for i := uint32(0); i <= pb.BlockIndex; i++ {
 			b, _ := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
 				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
@@ -173,7 +173,7 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) {
 	// Greater than QC+1 means the vote is behind
 	if vote.BlockNumber > cbft.state.HighestQCBlock().NumberU64()+1 {
-		for i := uint32(0); i < vote.BlockIndex; i++ {
+		for i := uint32(0); i <= vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
 				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
@@ -195,6 +195,12 @@ func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) e
 		if prepareBlock != nil {
 			cbft.log.Debug("Send PrepareBlock", "prepareBlock", prepareBlock.String())
 			cbft.network.Send(id, prepareBlock)
+		}
+
+		_, qc := cbft.state.ViewBlockAndQC(msg.BlockIndex)
+		if qc != nil {
+			cbft.log.Debug("Send BlockQuorumCert on GetPrepareBlock", "peer", id, "qc", qc.String())
+			cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
 		}
 	}
 	return nil
@@ -294,6 +300,15 @@ func (cbft *Cbft) OnGetQCBlockList(id string, msg *protocols.GetQCBlockList) err
 func (cbft *Cbft) OnGetPrepareVote(id string, msg *protocols.GetPrepareVote) error {
 	cbft.log.Debug("Received message on OnGetPrepareVote", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
+		// If the block has already QC, that response QC instead of votes.
+		// Avoid the sender spent a lot of time to verifies PrepareVote msg.
+		_, qc := cbft.state.ViewBlockAndQC(msg.BlockIndex)
+		if qc != nil {
+			cbft.network.Send(id, &protocols.BlockQuorumCert{BlockQC: qc})
+			cbft.log.Debug("Send BlockQuorumCert", "peer", id, "qc", qc.String())
+			return nil
+		}
+
 		prepareVoteMap := cbft.state.AllPrepareVoteByIndex(msg.BlockIndex)
 		// Defining an array for receiving PrepareVote.
 		votes := make([]*protocols.PrepareVote, 0, len(prepareVoteMap))
