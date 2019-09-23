@@ -869,7 +869,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// Verify inner contract tx
 	if nil != tx.To() {
-		if err := bcr.Verify_tx(tx, *(tx.To())); nil != err {
+		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
 	}
