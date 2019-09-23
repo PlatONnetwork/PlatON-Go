@@ -134,9 +134,10 @@ type Cbft struct {
 	csPool *ctypes.CSMsgPool
 
 	// wal
-	nodeServiceContext        *node.ServiceContext
-	wal                       wal.Wal
-	bridge                    Bridge
+	nodeServiceContext *node.ServiceContext
+	wal                wal.Wal
+	bridge             Bridge
+
 	loading                   int32
 	updateChainStateHook      cbfttypes.UpdateChainStateFn
 	updateChainStateDelayHook func(qcState, lockState, commitState *protocols.State)
