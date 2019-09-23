@@ -1367,7 +1367,32 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 	return nil
 }
 
+// check if the consensusMsg must take prepareQC
+func (cbft *Cbft) needPrepareQC(msg ctypes.ConsensusMsg) error {
+	switch cm := msg.(type) {
+	case *protocols.PrepareBlock:
+		if cm.BlockIndex == 0 && cm.BlockNum() != 1 && cm.PrepareQC == nil {
+			return authFailedError{err: fmt.Errorf("prepareBlock need PrepareQC")}
+		}
+	case *protocols.PrepareVote:
+		if cm.BlockNum() != 1 && cm.ParentQC == nil {
+			return authFailedError{err: fmt.Errorf("prepareVote need PrepareQC")}
+		}
+	case *protocols.ViewChange:
+		if cm.BlockNumber != 0 && cm.PrepareQC == nil {
+			return authFailedError{err: fmt.Errorf("viewChange need PrepareQC")}
+		}
+	default:
+		return authFailedError{err: fmt.Errorf("invalid consensusMsg")}
+	}
+	return nil
+}
+
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+	// check if the consensusMsg must take prepareQC, otherwise maybe panic
+	if err := cbft.needPrepareQC(msg); err != nil {
+		return nil, err
+	}
 	// Verify consensus msg signature
 	if err := cbft.verifyConsensusSign(msg); err != nil {
 		return nil, err
