@@ -363,7 +363,17 @@ func (s *mockCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
 }
 
 func (s *mockCbft) LatestStatus() *protocols.GetLatestStatus {
-	return nil
+	qcNumber, qcHash := s.HighestQCBlockBn()
+	lockNumber, lockHash := s.HighestLockBlockBn()
+	return &protocols.GetLatestStatus{
+		BlockNumber:  qcNumber,
+		BlockHash:    qcHash,
+		QuorumCert:   nil,
+		LBlockNumber: lockNumber,
+		LBlockHash:   lockHash,
+		LQuorumCert:  nil,
+		LogicType:    TypeForQCBn,
+	}
 }
 
 func (s *mockCbft) OnPong(nodeID string, netLatency int64) error {
