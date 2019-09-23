@@ -621,10 +621,10 @@ func (s *QCBlockList) BHash() common.Hash {
 type GetLatestStatus struct {
 	BlockNumber  uint64             // QC Block height
 	BlockHash    common.Hash        // QC block hash
-	QuorumCert   *ctypes.QuorumCert // QC quorumCert
+	QuorumCert   *ctypes.QuorumCert `rlp:"-"` // QC quorumCert
 	LBlockNumber uint64             // Locked block height
 	LBlockHash   common.Hash        // Locked block hash
-	LQuorumCert  *ctypes.QuorumCert // Locked quorumCert
+	LQuorumCert  *ctypes.QuorumCert `rlp:"-"` // Locked quorumCert
 	LogicType    uint64             // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
 	messageHash  atomic.Value       `rlp:"-"`
 }
@@ -651,13 +651,13 @@ func (s *GetLatestStatus) BHash() common.Hash {
 
 // Response message to GetLatestStatus request.
 type LatestStatus struct {
-	BlockNumber  uint64             `json:"blockNumber"`  // QC Block height
-	BlockHash    common.Hash        `json:"blockHash"`    // QC block hash
-	QuorumCert   *ctypes.QuorumCert `json:"quorumCert"`   // QC quorumCert
-	LBlockNumber uint64             `json:"lBlockNumber"` // Locked block height
-	LBlockHash   common.Hash        `json:"lBlockHash"`   // Locked block hash
-	LQuorumCert  *ctypes.QuorumCert `json:"lQuorumCert"`  // Locked quorumCert
-	LogicType    uint64             `json:"logicType"`    // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
+	BlockNumber  uint64             `json:"blockNumber"`         // QC Block height
+	BlockHash    common.Hash        `json:"blockHash"`           // QC block hash
+	QuorumCert   *ctypes.QuorumCert `json:"quorumCert" rlp:"-"`  // QC quorumCert
+	LBlockNumber uint64             `json:"lBlockNumber"`        // Locked block height
+	LBlockHash   common.Hash        `json:"lBlockHash"`          // Locked block hash
+	LQuorumCert  *ctypes.QuorumCert `json:"lQuorumCert" rlp:"-"` // Locked quorumCert
+	LogicType    uint64             `json:"logicType"`           // LogicType: 1 QCBn, 2 LockedBn, 3 CommitBn
 	messageHash  atomic.Value       `rlp:"-"`
 }
 
