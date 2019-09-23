@@ -96,7 +96,15 @@ func (s *fakeCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
 }
 
 func (s *fakeCbft) LatestStatus() *protocols.GetLatestStatus {
-	return nil
+	return &protocols.GetLatestStatus{
+		BlockNumber:  s.localPeer.QCBn(),
+		BlockHash:    common.Hash{},
+		QuorumCert:   nil,
+		LBlockNumber: s.localPeer.LockedBn(),
+		LBlockHash:   common.Hash{},
+		LQuorumCert:  nil,
+		LogicType:    TypeForQCBn,
+	}
 }
 
 func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {
