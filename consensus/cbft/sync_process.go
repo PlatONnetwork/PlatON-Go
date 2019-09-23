@@ -173,7 +173,7 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) {
 	// Greater than QC+1 means the vote is behind
 	if vote.BlockNumber > cbft.state.HighestQCBlock().NumberU64()+1 {
-		for i := uint32(0); i < vote.BlockIndex; i++ {
+		for i := uint32(0); i <= vote.BlockIndex; i++ {
 			b, q := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
 				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
