@@ -679,16 +679,10 @@ func (h *EngineManager) synchronize() {
 
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
-		qcBn, qcHash := h.engine.HighestQCBlockBn()
-		lockBn, lockHash := h.engine.HighestLockBlockBn()
-		log.Debug("Synchronize for qc block send message", "localQCBn", qcBn)
-		h.PartBroadcast(&protocols.GetLatestStatus{
-			BlockNumber:  qcBn,
-			BlockHash:    qcHash,
-			LBlockNumber: lockBn,
-			LBlockHash:   lockHash,
-			LogicType:    TypeForQCBn,
-		})
+		latestStatus := h.engine.LatestStatus()
+		log.Debug("Synchronize for qc block send message", "localQCBn", latestStatus.BlockNumber)
+		latestStatus.LogicType = TypeForQCBn
+		h.PartBroadcast(latestStatus)
 	}
 
 	for {

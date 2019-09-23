@@ -40,7 +40,9 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			return err
 		}
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
+			if cbft.isProposer(msg.Epoch, msg.ViewNumber, msg.ProposalIndex) {
+				cbft.fetchBlock(id, msg.Block.ParentHash(), msg.Block.NumberU64()-1, nil)
+			}
 			return err
 		}
 		if err.FetchPrepare() {
@@ -94,7 +96,9 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 			return err
 		}
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+			if msg.ParentQC != nil {
+				cbft.fetchBlock(id, msg.ParentQC.BlockHash, msg.ParentQC.BlockNumber, msg.ParentQC)
+			}
 		} else if err.FetchPrepare() {
 			cbft.prepareVoteFetchRules(id, msg)
 		}
@@ -128,7 +132,9 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	cbft.log.Debug("Receive ViewChange", "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+			if msg.PrepareQC != nil {
+				cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber, msg.PrepareQC)
+			}
 		}
 		return err
 	}

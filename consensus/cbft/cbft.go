@@ -1300,7 +1300,18 @@ func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
 	currentProposer := cbft.state.ViewNumber() % uint64(length)
 	validator, _ := cbft.validatorPool.GetValidatorByIndex(cbft.state.Epoch(), uint32(currentProposer))
 	return validator
+}
 
+func (cbft *Cbft) isProposer(epoch, viewNumber uint64, nodeIndex uint32) bool {
+	if err := cbft.validatorPool.EnableVerifyEpoch(epoch); err != nil {
+		return false
+	}
+	length := cbft.validatorPool.Len(epoch)
+	index := viewNumber % uint64(length)
+	if validator, err := cbft.validatorPool.GetValidatorByIndex(epoch, uint32(index)); err == nil {
+		return validator.Index == nodeIndex
+	}
+	return false
 }
 
 func (cbft *Cbft) currentValidatorLen() int {
