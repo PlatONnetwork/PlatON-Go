@@ -221,3 +221,9 @@ func IsBeginOfSettlement(blockNumber uint64) bool {
 	mod := blockNumber % uint64(size)
 	return mod == 1
 }
+
+func IsBeginOfConsensus(blockNumber uint64) bool {
+	size := ConsensusSize()
+	mod := blockNumber % uint64(size)
+	return mod == 1
+}
