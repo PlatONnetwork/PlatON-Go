@@ -131,6 +131,8 @@ type Cbft struct {
 	// Store blocks that are not committed
 	blockTree *ctypes.BlockTree
 
+	csPool *ctypes.CSMsgPool
+
 	// wal
 	nodeServiceContext        *node.ServiceContext
 	wal                       wal.Wal
@@ -166,6 +168,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		exitCh:             make(chan struct{}),
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		csPool:             ctypes.NewCSMsgPool(),
 		log:                log.New(),
 		start:              0,
 		syncing:            0,
