@@ -428,8 +428,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithNumberIsOne() {
 	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), block1, errQC.BlockQC, nil)
-	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err == nil {
+		suit.T().Fatal("fail")
 	}
 }
 
@@ -441,8 +441,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockWithBlockIndexNotIsZero() {
 	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
 		suit.view.firstProposerIndex(), block1, errQC.BlockQC, nil)
-	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err == nil {
+		suit.T().Fatal("fail")
 	}
 }
 
