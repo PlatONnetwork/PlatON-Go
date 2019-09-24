@@ -418,6 +418,8 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
+	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, sender)
+	assert.NotNil(t, err)
 	if err := si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
 		t.Fatal(err)
 	}
