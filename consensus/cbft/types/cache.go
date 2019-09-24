@@ -59,16 +59,20 @@ func (s *SyncCache) Len() int {
 type CSMsgPool struct {
 	prepareBlocks map[uint32]*MsgInfo
 	prepareVotes  map[uint32]map[uint32]*MsgInfo
+	prepareQC     map[uint32]*MsgInfo
 	blockMetric   map[uint32]uint32
 	voteMetric    map[uint32]map[uint32]uint32
+	qcMetric      map[uint32]uint32
 }
 
 func NewCSMsgPool() *CSMsgPool {
 	return &CSMsgPool{
 		prepareBlocks: make(map[uint32]*MsgInfo),
 		prepareVotes:  make(map[uint32]map[uint32]*MsgInfo),
+		prepareQC:     make(map[uint32]*MsgInfo),
 		blockMetric:   make(map[uint32]uint32),
 		voteMetric:    make(map[uint32]map[uint32]uint32),
+		qcMetric:      make(map[uint32]uint32),
 	}
 }
 
@@ -96,8 +100,39 @@ func (cs *CSMsgPool) addBlockMetric(index uint32) {
 	}
 }
 
+// Add prepare block to cache. There is no strict distinction between the blocks of the current view,
+// which will be cleared from the cache after each acquisition, so that the new block can re-enter the cache.
+func (cs *CSMsgPool) AddPrepareQC(blockIndex uint32, msg *MsgInfo) {
+	cs.prepareQC[blockIndex] = msg
+}
+
+// Get prepare QC and clear it from the cache
+func (cs *CSMsgPool) GetPrepareQC(index uint32) *MsgInfo {
+	if m, ok := cs.prepareQC[index]; ok {
+		cs.addQCMetric(index)
+		delete(cs.prepareQC, index)
+		return m
+	}
+	return nil
+}
+
 func (cs *CSMsgPool) getBlockMetric(index uint32) uint32 {
 	if m, ok := cs.blockMetric[index]; ok {
+		return m
+	}
+	return 0
+}
+
+func (cs *CSMsgPool) addQCMetric(index uint32) {
+	if m, ok := cs.qcMetric[index]; ok {
+		cs.qcMetric[index] = m + 1
+	} else {
+		cs.qcMetric[index] = 1
+	}
+}
+
+func (cs *CSMsgPool) getQCMetric(index uint32) uint32 {
+	if m, ok := cs.qcMetric[index]; ok {
 		return m
 	}
 	return 0
@@ -162,10 +197,16 @@ func (cs *CSMsgPool) Purge() {
 		}
 	}
 
+	for k, v := range cs.qcMetric {
+		log.Debug(fmt.Sprintf("pool QC index:%d, count:%d", k, v))
+	}
+
 	cs.prepareBlocks = make(map[uint32]*MsgInfo)
 	cs.prepareVotes = make(map[uint32]map[uint32]*MsgInfo)
+	cs.prepareQC = make(map[uint32]*MsgInfo)
 
 	cs.blockMetric = make(map[uint32]uint32)
 	cs.voteMetric = make(map[uint32]map[uint32]uint32)
+	cs.qcMetric = make(map[uint32]uint32)
 
 }

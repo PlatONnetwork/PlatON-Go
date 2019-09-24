@@ -28,14 +28,15 @@ func newDB(stor storage) (*snapshotDB, error) {
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	return &snapshotDB{
-		path:      dbpath,
-		storage:   stor,
-		unCommit:  unCommitBlock,
-		committed: make([]*blockData, 0),
-		//		journalw:      make(map[common.Hash]*journalWriter),
-		baseDB:        baseDB,
-		current:       newCurrent(dbpath),
-		snapshotLockC: snapshotUnLock,
+		path:            dbpath,
+		storage:         stor,
+		unCommit:        unCommitBlock,
+		committed:       make([]*blockData, 0),
+		baseDB:          baseDB,
+		current:         newCurrent(dbpath),
+		snapshotLockC:   snapshotUnLock,
+		exitCh:          make(chan struct{}, 0),
+		currentUpdateCh: make(chan struct{}, 1),
 	}, nil
 }
 
@@ -145,6 +146,8 @@ func (s *snapshotDB) recover(stor storage) error {
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	s.unCommit = unCommitBlock
 	s.snapshotLockC = snapshotUnLock
+	s.exitCh = make(chan struct{}, 0)
+	s.currentUpdateCh = make(chan struct{}, 1)
 
 	//read Journal
 	for _, fd := range fds {

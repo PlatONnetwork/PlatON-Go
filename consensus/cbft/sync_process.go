@@ -135,6 +135,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
 					return
 				}
+
 				if err := cbft.blockCacheWriter.Execute(forkedBlock, parentBlock); err != nil {
 					cbft.log.Error("Execute forked block failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
 					return
@@ -251,6 +252,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return &authFailedError{err}
 	}
 
+	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 	cbft.insertPrepareQC(msg.BlockQC)
 	return nil
 }
