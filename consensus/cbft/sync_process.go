@@ -249,6 +249,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return &authFailedError{err}
 	}
 
+	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 	cbft.insertPrepareQC(msg.BlockQC)
 	return nil
 }
