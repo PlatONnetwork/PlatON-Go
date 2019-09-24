@@ -1184,10 +1184,6 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockNumber ui
 func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockNumber uint64,
 	blockHash common.Hash, epoch uint64, unDel *staking.UnDelegateItem, del *staking.Delegation) error {
 
-	// Maybe equal zero (maybe slashed)
-	// must compare the undelegate amount and contract's balance
-	//checkContractBalanceFn("handleUnDelegate", state, unDel.Amount)
-
 	// del addr
 	delAddrByte := unDel.KeySuffix[0:common.AddressLength]
 	delAddr := common.BytesToAddress(delAddrByte)
@@ -1891,7 +1887,7 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 
 func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	log.Info("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
+	log.Info("Call Election Start", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex())
 
 	blockNumber := header.Number.Uint64()
 
@@ -1915,8 +1911,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	xcom.PrintObject("Call Election Curr validators", curr)
 
 	if blockNumber != (curr.End - xcom.ElectionDistance()) {
-		log.Error("Failed to Election: Current blockNumber invalid", "Target blockNumber",
-			curr.End-xcom.ElectionDistance(), "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		log.Error("Failed to Election: Current blockNumber invalid", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"Target blockNumber", curr.End-xcom.ElectionDistance())
 		return staking.ErrBlockNumberDisordered
 	}
 
@@ -2366,7 +2362,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 		//because of deleted candidate info ,clean Shares
 		can.Shares = new(big.Int).SetInt64(0)
-		can.Status |= staking.Invalided
+		//can.Status |= staking.Invalided
 
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates on stakingPlugin: Store Candidate info is failed",
@@ -2456,13 +2452,16 @@ func handleSlashTypeFn(slashType int, can *staking.Candidate) (bool, bool) {
 
 		if !xutil.CheckStakeThreshold(canBalance) {
 			can.Status |= staking.NotEnough
+			can.Status |= staking.Invalided
 			needInvalid = true
 			needRemove = true
 		}
 	case staking.LowRatioDel:
+		can.Status |= staking.Invalided
 		needInvalid = true
 		needRemove = true
 	case staking.DuplicateSign:
+		can.Status |= staking.Invalided
 		needInvalid = true
 		needRemove = true
 	}
