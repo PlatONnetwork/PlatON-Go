@@ -15,7 +15,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
 // DefaultFanOut - The fanout value of the gossip protocol, used to indicate
@@ -92,15 +91,17 @@ func (r *router) Gossip(m *types.MsgPackage) {
 
 	// Print the information of the target's node.
 	pids := formatPeers(peers)
-	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.Message()), "targetPeer", pids)
+	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.Message()), "msg", m.Message().String(), "targetPeer", pids)
 
 	// Iteratively acquire nodes and send messages.
 	for _, peer := range peers {
-		if err := p2p.Send(peer.rw, msgType, m.Message()); err != nil {
-			log.Error("Send message failed", "peer", peer.id, "err", err)
-		} else {
-			peer.MarkMessageHash(msgHash)
-		}
+		//if err := p2p.Send(peer.rw, msgType, m.Message()); err != nil {
+		//	log.Error("Send message failed", "peer", peer.id, "err", err)
+		//} else {
+		//	peer.MarkMessageHash(msgHash)
+		//}
+		peer.Send(m)
+		peer.MarkMessageHash(msgHash)
 	}
 }
 
@@ -109,11 +110,12 @@ func (r *router) Gossip(m *types.MsgPackage) {
 func (r *router) SendMessage(m *types.MsgPackage) {
 	if peer, err := r.get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
-			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash())
-		if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
-			log.Error("Send Peer error")
-			r.unregister(m.PeerID())
-		}
+			"msgHash", m.Message().MsgHash(), "BHash", m.Message().BHash(), "msg", m.Message().String())
+		//if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
+		//	log.Error("Send Peer error")
+		//	r.unregister(m.PeerID())
+		//}
+		peer.Send(m)
 	}
 }
 
@@ -137,7 +139,8 @@ func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, 
 		protocols.ViewChangeMsg, protocols.BlockQuorumCertMsg:
 		return r.kMixingRandomNodes(condition, r.filter)
 	case protocols.PrepareBlockHashMsg, protocols.GetLatestStatusMsg,
-		protocols.GetViewChangeMsg, protocols.GetPrepareVoteMsg:
+		protocols.GetViewChangeMsg, protocols.GetPrepareVoteMsg,
+		protocols.GetPrepareBlockMsg:
 		return r.kMixingRandomNodes(condition, nil)
 	}
 	return nil, fmt.Errorf("does not match the type of the specified message")
@@ -225,6 +228,17 @@ func (r *router) kMixingRandomNodes(condition common.Hash, filterFn func(*peer, 
 func kRandomNodes(k int, peers []*peer, condition common.Hash, filterFn func(*peer, common.Hash) bool) []*peer {
 	n := len(peers)
 	kNodes := make([]*peer, 0, k)
+
+	if n <= k/2 {
+		for i := 0; i < n; i++ {
+			if filterFn != nil && filterFn(peers[i], condition) {
+				continue
+			}
+			kNodes = append(kNodes, peers[i])
+		}
+		return kNodes
+	}
+
 OUTER:
 	// Probe up to 3*n times, with large n this is not necessary
 	// since k << n, but with small n we want search to be
@@ -241,7 +255,7 @@ OUTER:
 
 		// Check if we have this node already
 		for j := 0; j < len(kNodes); j++ {
-			if node == kNodes[j] {
+			if node.id == kNodes[j].id {
 				continue OUTER
 			}
 		}

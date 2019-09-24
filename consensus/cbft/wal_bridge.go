@@ -217,6 +217,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	cbft.log.Debug("Recover chain state from wal", "chainState", chainState.String())
 	commit, lock, qcs := chainState.Commit, chainState.Lock, chainState.QC
 	// The highest block that has been written to disk
+
 	//rootBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
 	rootBlock := cbft.blockChain.CurrentBlock()
 

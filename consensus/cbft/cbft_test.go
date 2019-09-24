@@ -158,7 +158,8 @@ func testSeal(t *testing.T, node, node2 *TestCBFT) {
 
 	result := make(chan *types.Block, 1)
 
-	node.engine.OnSeal(block, result, nil)
+	node.engine.Seal(node.cache, block, result, nil)
+	//node.engine.OnSeal(block, result, nil)
 	b := <-result
 	assert.NotNil(t, b)
 }
@@ -174,6 +175,7 @@ func testPrepare(t *testing.T, node, node2 *TestCBFT) {
 	_, err = node2.engine.verifyConsensusMsg(pb)
 	assert.Nil(t, err)
 }
+
 func testTimeout(t *testing.T, node, node2 *TestCBFT) {
 	time.Sleep(10 * time.Second)
 	pb := node.engine.state.PrepareBlockByIndex(0)
@@ -548,6 +550,7 @@ func TestShouldSeal(t *testing.T) {
 	assert.NotNil(t, err.Error())
 	assert.False(t, should)
 }
+
 func TestInsertChain(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
@@ -563,7 +566,6 @@ func TestInsertChain(t *testing.T) {
 	parent := nodes[0].chain.Genesis()
 	hasQCBlock := make([]*types.Block, 0)
 	for i := 0; i < 10; i++ {
-
 		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)

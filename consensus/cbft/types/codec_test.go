@@ -19,7 +19,7 @@ func TestCodec(t *testing.T) {
 		BlockNumber:  1,
 		BlockIndex:   0,
 		Signature:    Signature{},
-		ValidatorSet: utils.NewBitArray(32),
+		ValidatorSet: utils.NewBitArray(25),
 	}
 	data, err := EncodeExtra(byte(cbftVersion), qc)
 	assert.Nil(t, err)

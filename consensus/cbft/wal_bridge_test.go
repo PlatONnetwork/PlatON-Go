@@ -1,7 +1,6 @@
 package cbft
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -27,32 +26,27 @@ func TestUpdateChainState(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	pk, sk, cbftnodes := GenerateCbftNode(1)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < 1; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
-		assert.Nil(t, node.Start())
 
-		node.engine.wal, _ = wal.NewWal(nil, tempDir)
-		node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
-		node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
-		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.String())
-	}
+	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 10)
+	assert.Nil(t, node.Start())
+	node.engine.wal, _ = wal.NewWal(nil, tempDir)
+	node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
+	node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
 
 	result := make(chan *types.Block, 1)
 	var commit, lock, qc *types.Block
 
-	parent := nodes[0].chain.Genesis()
+	parent := node.chain.Genesis()
 	for i := 0; i < 3; i++ {
 		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
-		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
+		node.engine.OnSeal(block, result, nil)
 
 		// test newChainState
 		select {
 		case b := <-result:
 			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i), nodes[0].engine.state.MaxQCIndex())
+			assert.Equal(t, uint32(i), node.engine.state.MaxQCIndex())
 			switch i {
 			case 0:
 				commit = block
@@ -69,9 +63,8 @@ func TestUpdateChainState(t *testing.T) {
 	restartNode := MockNode(pk[0], sk[0], cbftnodes, 10000, 10)
 	assert.Nil(t, restartNode.Start())
 
-	restartNode.engine.wal = nodes[0].engine.wal
+	restartNode.engine.wal = node.engine.wal
 	restartNode.engine.bridge, _ = NewBridge(restartNode.engine.nodeServiceContext, restartNode.engine)
-
 	assert.Nil(t, restartNode.engine.wal.LoadChainState(restartNode.engine.recoveryChainState))
 
 	// check viewBlocks and viewQCs
@@ -148,30 +141,25 @@ func TestRecordCbftMsg(t *testing.T) {
 	tempDir, _ := ioutil.TempDir("", "wal")
 	defer os.RemoveAll(tempDir)
 
-	pk, sk, cbftnodes := GenerateCbftNode(4)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
-		assert.Nil(t, node.Start())
+	pk, sk, cbftnodes := GenerateCbftNode(1)
 
-		if i == 0 {
-			node.engine.wal, _ = wal.NewWal(nil, tempDir)
-			node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
-		}
-		nodes = append(nodes, node)
-		fmt.Println(i, node.engine.config.Option.NodeID.String())
-	}
+	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 20)
+	assert.Nil(t, node.Start())
+	node.engine.wal, _ = wal.NewWal(nil, tempDir)
+	node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
 
 	result := make(chan *types.Block, 1)
-	parent := nodes[0].chain.Genesis()
+	parent := node.chain.Genesis()
 
-	epoch := nodes[0].engine.state.Epoch()
-	viewNumber := nodes[0].engine.state.ViewNumber()
-	nodes[0].engine.bridge.ConfirmViewChange(epoch, viewNumber, parent, &ctypes.QuorumCert{Signature: ctypes.BytesToSignature(utils.Rand32Bytes(32)), ValidatorSet: utils.NewBitArray(110)}, nil)
+	epoch := node.engine.state.Epoch()
+	viewNumber := node.engine.state.ViewNumber()
+	_, qc := makePrepareQC(epoch, viewNumber, parent, 0)
+	viewChangeQC := makeViewChangeQC(epoch, viewNumber, parent.NumberU64())
+	node.engine.bridge.ConfirmViewChange(epoch, viewNumber, parent, qc, viewChangeQC)
 	for i := 0; i < 10; i++ {
 		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
-		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
+		node.engine.OnSeal(block, result, nil)
 
 		select {
 		case b := <-result:
@@ -179,18 +167,22 @@ func TestRecordCbftMsg(t *testing.T) {
 			parent = b
 		}
 	}
+	node.engine.bridge.SendViewChange(makeViewChange(epoch, viewNumber, parent, 9, uint32(0)))
 
 	// test recoveryMsg
 	restartNode := MockNode(pk[0], sk[0], cbftnodes, 10000, 10)
 	assert.Nil(t, restartNode.Start())
-	restartNode.engine.wal = nodes[0].engine.wal
+	restartNode.engine.wal = node.engine.wal
 	restartNode.engine.bridge, _ = NewBridge(restartNode.engine.nodeServiceContext, restartNode.engine)
-
 	assert.Nil(t, restartNode.engine.wal.Load(restartNode.engine.recoveryMsg))
 
 	block := restartNode.engine.state.ViewBlockByIndex(9)
 	assert.Equal(t, parent.NumberU64(), block.NumberU64())
 	assert.Equal(t, parent.Hash().String(), block.Hash().String())
+
+	lastViewChangeQC, err := restartNode.engine.bridge.GetViewChangeQC(epoch, viewNumber)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(lastViewChangeQC.QCs))
 }
 
 func TestInsertQCBlock_fork_priority(t *testing.T) {
@@ -198,44 +190,40 @@ func TestInsertQCBlock_fork_priority(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	pk, sk, cbftnodes := GenerateCbftNode(1)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < 1; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 20)
-		assert.Nil(t, node.Start())
 
-		node.engine.wal, _ = wal.NewWal(nil, tempDir)
-		node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
-		node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
-		nodes = append(nodes, node)
-	}
+	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 20)
+	assert.Nil(t, node.Start())
+	node.engine.wal, _ = wal.NewWal(nil, tempDir)
+	node.engine.bridge, _ = NewBridge(node.engine.nodeServiceContext, node.engine)
+	node.engine.updateChainStateHook = node.engine.bridge.UpdateChainState
 
-	parent := nodes[0].chain.Genesis()
+	parent := node.chain.Genesis()
 
 	var forkBlock *types.Block
 	var forkQC *ctypes.QuorumCert
 	for i := 0; i < 10; i++ {
 		if i == 9 {
-			nodes[0].engine.updateChainStateDelayHook = func(qcState, lockState, commitState *protocols.State) {
+			node.engine.updateChainStateDelayHook = func(qcState, lockState, commitState *protocols.State) {
 				time.Sleep(1 * time.Second)
-				nodes[0].engine.bridge.UpdateChainState(qcState, lockState, commitState)
+				node.engine.bridge.UpdateChainState(qcState, lockState, commitState)
 			}
 		}
-		block, qc := makePrepareQC(nodes[0], parent, uint32(i), nodes[0].engine.state.ViewNumber())
-		nodes[0].engine.insertQCBlock(block, qc)
+		block, qc := makePrepareQC(node.engine.state.Epoch(), node.engine.state.ViewNumber(), parent, uint32(i))
+		node.engine.insertQCBlock(block, qc)
 		if i == 9 {
 			// moke fork block
-			forkBlock, forkQC = makePrepareQC(nodes[0], parent, uint32(i), nodes[0].engine.state.ViewNumber()+1)
-			nodes[0].engine.insertQCBlock(forkBlock, forkQC)
+			forkBlock, forkQC = makePrepareQC(node.engine.state.Epoch(), node.engine.state.ViewNumber()+1, parent, uint32(i))
+			node.engine.insertQCBlock(forkBlock, forkQC)
 		}
 		parent = block
 	}
 
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, forkBlock.NumberU64(), nodes[0].engine.state.HighestQCBlock().NumberU64())
-	assert.Equal(t, forkBlock.Hash(), nodes[0].engine.state.HighestQCBlock().Hash())
+	assert.Equal(t, forkBlock.NumberU64(), node.engine.state.HighestQCBlock().NumberU64())
+	assert.Equal(t, forkBlock.Hash(), node.engine.state.HighestQCBlock().Hash())
 
 	var chainState *protocols.ChainState
-	assert.Nil(t, nodes[0].engine.wal.LoadChainState(func(cs *protocols.ChainState) error {
+	assert.Nil(t, node.engine.wal.LoadChainState(func(cs *protocols.ChainState) error {
 		chainState = cs
 		return nil
 	}))
@@ -245,7 +233,7 @@ func TestInsertQCBlock_fork_priority(t *testing.T) {
 	assert.Equal(t, forkBlock.Hash(), chainState.QC[0].QuorumCert.BlockHash)
 }
 
-func makePrepareQC(node *TestCBFT, parent *types.Block, blockIndex uint32, viewNumber uint64) (*types.Block, *ctypes.QuorumCert) {
+func makePrepareQC(epoch, viewNumber uint64, parent *types.Block, blockIndex uint32) (*types.Block, *ctypes.QuorumCert) {
 	header := &types.Header{
 		Number:      big.NewInt(int64(parent.NumberU64() + 1)),
 		ParentHash:  parent.Hash(),
@@ -256,13 +244,47 @@ func makePrepareQC(node *TestCBFT, parent *types.Block, blockIndex uint32, viewN
 	}
 	block := types.NewBlockWithHeader(header)
 	qc := &ctypes.QuorumCert{
-		Epoch:        node.engine.state.Epoch(),
+		Epoch:        epoch,
 		ViewNumber:   viewNumber,
 		BlockHash:    block.Hash(),
 		BlockNumber:  block.NumberU64(),
 		BlockIndex:   blockIndex,
-		Signature:    ctypes.Signature{},
-		ValidatorSet: utils.NewBitArray(32),
+		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(64)),
+		ValidatorSet: utils.NewBitArray(4),
 	}
 	return block, qc
+}
+
+func makeViewChangeQuorumCert(epoch, viewNumber uint64, blockNumber uint64) *ctypes.ViewChangeQuorumCert {
+	return &ctypes.ViewChangeQuorumCert{
+		Epoch:        epoch,
+		ViewNumber:   viewNumber,
+		BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
+		BlockNumber:  blockNumber,
+		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(64)),
+		ValidatorSet: utils.NewBitArray(25),
+	}
+}
+
+func makeViewChangeQC(epoch, viewNumber uint64, blockNumber uint64) *ctypes.ViewChangeQC {
+	return &ctypes.ViewChangeQC{
+		QCs: []*ctypes.ViewChangeQuorumCert{
+			makeViewChangeQuorumCert(epoch, viewNumber, blockNumber),
+			makeViewChangeQuorumCert(epoch, viewNumber, blockNumber),
+			makeViewChangeQuorumCert(epoch, viewNumber, blockNumber),
+		},
+	}
+}
+
+func makeViewChange(epoch, viewNumber uint64, block *types.Block, blockIndex uint32, validatorIndex uint32) *protocols.ViewChange {
+	_, prepareQC := makePrepareQC(epoch, viewNumber, block, blockIndex)
+	return &protocols.ViewChange{
+		Epoch:          epoch,
+		ViewNumber:     viewNumber,
+		BlockHash:      block.Hash(),
+		BlockNumber:    block.NumberU64(),
+		ValidatorIndex: validatorIndex,
+		PrepareQC:      prepareQC,
+		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(64)),
+	}
 }

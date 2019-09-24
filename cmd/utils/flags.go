@@ -617,12 +617,6 @@ var (
 		Usage: "Disable the Wal server",
 	}
 
-	CbftEvidenceDir = cli.StringFlag{
-		Name:  "cbft.evidence_dir",
-		Usage: "Evidence path",
-		Value: "",
-	}
-
 	CbftMaxPingLatency = cli.Int64Flag{
 		Name:  "cbft.max_ping_latency",
 		Usage: "Maximum latency of ping",

@@ -58,14 +58,6 @@ func SlashInstance() *SlashingPlugin {
 	return slsh
 }
 
-//func ClearSlashPlugin() error {
-//	if nil == slsh {
-//		return common.NewSysError("the SlashPlugin already be nil")
-//	}
-//	slsh = nil
-//	return nil
-//}
-
 func (sp *SlashingPlugin) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	sp.privateKey = privateKey
 }

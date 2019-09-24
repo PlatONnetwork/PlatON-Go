@@ -31,7 +31,8 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		blockCheckFailureMeter.Mark(1)
 
 		if err.Common() {
-			cbft.log.Error("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
+			cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+			cbft.log.Debug("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
 			return err
 		}
 		// verify consensus signature
@@ -39,8 +40,13 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
+
+		cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
+			if cbft.isProposer(msg.Epoch, msg.ViewNumber, msg.ProposalIndex) {
+				cbft.fetchBlock(id, msg.Block.ParentHash(), msg.Block.NumberU64()-1, nil)
+			}
 			return err
 		}
 		if err.FetchPrepare() {
@@ -88,13 +94,25 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 // Whether to start synchronization
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
+
+		if err.Common() {
+			cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+			cbft.log.Debug("Preparevote rules fail", "number", msg.BlockHash, "hash", msg.BlockHash, "err", err)
+			return err
+		}
+
 		// verify consensus signature
 		if cbft.verifyConsensusSign(msg) != nil {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
+
+		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+			if msg.ParentQC != nil {
+				cbft.fetchBlock(id, msg.ParentQC.BlockHash, msg.ParentQC.BlockNumber, msg.ParentQC)
+			}
 		} else if err.FetchPrepare() {
 			cbft.prepareVoteFetchRules(id, msg)
 		}
@@ -128,7 +146,9 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	cbft.log.Debug("Receive ViewChange", "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
+			if msg.PrepareQC != nil {
+				cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber, msg.PrepareQC)
+			}
 		}
 		return err
 	}
@@ -225,6 +245,13 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 // Update blockTree, try commit new block
 func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.log.Debug("Insert QC block", "qc", qc.String())
+	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
+		cbft.log.Debug("The inserted block has exists in chain",
+			"number", block.Number(), "hash", block.Hash(),
+			"lockedNumber", cbft.state.HighestLockBlock().Number(),
+			"lockedHash", cbft.state.HighestLockBlock().Hash())
+		return
+	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
 		cbft.state.AddQC(qc)
 	}
@@ -311,7 +338,11 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
 					return
 				}
+
 				cbft.log.Debug("Sign block", "hash", s.Hash, "number", s.Number)
+				if msg := cbft.csPool.GetPrepareQC(index); msg != nil {
+					go cbft.ReceiveMessage(msg)
+				}
 			}
 		}
 	}
@@ -515,17 +546,22 @@ func (cbft *Cbft) tryChangeView() {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	enough := func() bool {
-		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
-			(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+	shouldSwitch := func() bool {
+		return cbft.validatorPool.ShouldSwitch(block.NumberU64())
 	}()
 
-	if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+	enough := func() bool {
+		return cbft.state.MaxQCIndex()+1 == cbft.config.Sys.Amount ||
+			//(qc != nil && qc.Epoch == cbft.state.Epoch() && qc.BlockIndex+1 == cbft.config.Sys.Amount && cbft.validatorPool.ShouldSwitch(block.NumberU64()))
+			(qc != nil && qc.Epoch == cbft.state.Epoch() && shouldSwitch)
+	}()
+
+	if shouldSwitch {
 		if err := cbft.validatorPool.Update(block.NumberU64(), cbft.state.Epoch()+1, cbft.eventMux); err == nil {
 			cbft.log.Debug("Update validator success", "number", block.NumberU64())
-			if !enough {
-				cbft.OnViewTimeout()
-			}
+			//if !enough {
+			//	cbft.OnViewTimeout()
+			//}
 		}
 	}
 
@@ -685,6 +721,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()
+	cbft.csPool.Purge()
 
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
@@ -701,6 +738,8 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	cbft.clearInvalidBlocks(block)
 	cbft.evPool.Clear(epoch, viewNumber)
+	// view change maybe lags behind the other nodes,active sync prepare block
+	cbft.SyncPrepareBlock("", epoch, viewNumber, 0)
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
 	cbft.log.Debug(fmt.Sprintf("Current view deadline:%v", cbft.state.Deadline()))
 }

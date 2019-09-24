@@ -43,13 +43,13 @@ func (b *blockExt) clearChildren() {
 
 func (b *blockExt) MarshalJSON() ([]byte, error) {
 	type BlockExt struct {
-		ViewNumber  uint64        `json:"view_number"`
-		BlockHash   common.Hash   `json:"block_hash"`
-		BlockNumber uint64        `json:"block_number"`
-		RcvTime     time.Time     `json:"receive_time"`
+		ViewNumber  uint64        `json:"viewNumber"`
+		BlockHash   common.Hash   `json:"blockHash"`
+		BlockNumber uint64        `json:"blockNumber"`
+		RcvTime     time.Time     `json:"receiveTime"`
 		QC          *QuorumCert   `json:"qc"`
-		ParentHash  common.Hash   `json:"parent_hash"`
-		Children    []common.Hash `json:"children_hash"`
+		ParentHash  common.Hash   `json:"parentHash"`
+		Children    []common.Hash `json:"childrenHash"`
 	}
 	ext := &BlockExt{
 		ViewNumber:  b.ViewNumber,
@@ -139,7 +139,7 @@ func (b *BlockTree) PruneBlock(hash common.Hash, number uint64, clearFn func(*ty
 
 func (b *BlockTree) NewRoot(block *types.Block) {
 	hash, number := block.Hash(), block.NumberU64()
-	for i := number; i < block.NumberU64(); i++ {
+	for i := b.root.Block.NumberU64(); i < block.NumberU64(); i++ {
 		delete(b.blocks, i)
 	}
 	b.root = b.findBlockExt(hash, number)
@@ -161,6 +161,45 @@ func (b *BlockTree) findBlockExt(hash common.Hash, number uint64) *blockExt {
 				return ext
 			}
 		}
+	}
+	return nil
+}
+
+func (b *BlockTree) IsForked(hash common.Hash, number uint64) (common.Hash, uint64, bool) {
+	ext := b.findForkedBlockExts(hash, number)
+	if ext != nil && len(ext) != 0 {
+		return ext[0].Block.Hash(), ext[0].Block.NumberU64(), true
+	}
+	return common.Hash{}, 0, false
+}
+
+// FindForkedBlockAndQC find the specified Block and its QC.
+func (b *BlockTree) FindForkedBlocksAndQCs(hash common.Hash, number uint64) ([]*types.Block, []*QuorumCert) {
+	ext := b.findForkedBlockExts(hash, number)
+	if ext != nil {
+		forkedBlocks := make([]*types.Block, 0, len(ext))
+		forkedQuorumCerts := make([]*QuorumCert, 0, len(ext))
+		for _, v := range ext {
+			forkedBlocks = append(forkedBlocks, v.Block)
+			forkedQuorumCerts = append(forkedQuorumCerts, v.QC)
+		}
+		return forkedBlocks, forkedQuorumCerts
+	}
+	return nil, nil
+}
+
+func (b *BlockTree) findForkedBlockExts(hash common.Hash, number uint64) []*blockExt {
+	if extMap, ok := b.blocks[number]; ok {
+		if len(extMap) == 1 {
+			return nil
+		}
+		bes := make([]*blockExt, 0, len(extMap)-1)
+		for h, ext := range extMap {
+			if hash != h {
+				bes = append(bes, ext)
+			}
+		}
+		return bes
 	}
 	return nil
 }
