@@ -34,6 +34,10 @@ func TestCSMsgPool(t *testing.T) {
 	}
 
 	for i := uint32(0); i < 10; i++ {
+		pool.AddPrepareQC(i, &MsgInfo{})
+	}
+
+	for i := uint32(0); i < 10; i++ {
 		assert.NotNil(t, pool.GetPrepareBlock(uint32(i)))
 		assert.Equal(t, uint32(1), pool.getBlockMetric(i))
 	}
@@ -51,6 +55,15 @@ func TestCSMsgPool(t *testing.T) {
 		assert.Nil(t, pool.GetPrepareVote(i, i+1))
 	}
 
+	for i := uint32(0); i < 10; i++ {
+		assert.NotNil(t, pool.GetPrepareQC(uint32(i)))
+		assert.Equal(t, uint32(1), pool.getQCMetric(i))
+	}
+
+	for i := uint32(10); i < 11; i++ {
+		assert.Nil(t, pool.GetPrepareQC(uint32(i)))
+	}
+
 	//re-add
 	for i := uint32(0); i < 10; i++ {
 		pool.AddPrepareBlock(i, &MsgInfo{})
@@ -61,6 +74,16 @@ func TestCSMsgPool(t *testing.T) {
 		assert.Equal(t, uint32(2), pool.getBlockMetric(i))
 	}
 	assert.Equal(t, uint32(0), pool.getBlockMetric(11))
+
+	for i := uint32(0); i < 10; i++ {
+		pool.AddPrepareQC(i, &MsgInfo{})
+	}
+
+	for i := uint32(0); i < 10; i++ {
+		assert.NotNil(t, pool.GetPrepareQC(uint32(i)))
+		assert.Equal(t, uint32(2), pool.getQCMetric(i))
+	}
+	assert.Equal(t, uint32(0), pool.getQCMetric(11))
 
 	for i := uint32(0); i < 10; i++ {
 		pool.AddPrepareVote(i, i+1, &MsgInfo{})
@@ -79,6 +102,9 @@ func TestCSMsgPool(t *testing.T) {
 
 	assert.Empty(t, pool.prepareBlocks)
 	assert.Empty(t, pool.prepareVotes)
+	assert.Empty(t, pool.prepareQC)
+
+	assert.Empty(t, pool.qcMetric)
 	assert.Empty(t, pool.blockMetric)
 	assert.Empty(t, pool.voteMetric)
 }

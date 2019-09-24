@@ -338,7 +338,11 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
 					return
 				}
+
 				cbft.log.Debug("Sign block", "hash", s.Hash, "number", s.Number)
+				if msg := cbft.csPool.GetPrepareQC(index); msg != nil {
+					go cbft.ReceiveMessage(msg)
+				}
 			}
 		}
 	}
