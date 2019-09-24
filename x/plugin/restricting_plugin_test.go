@@ -173,7 +173,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 		_, account2 := plugin.getReleaseAccount(mockDB, 2, num2)
 		assert.Equal(t, to, account2)
-		res, _ := plugin.getRestrictingInfo2(to, mockDB)
+		res, _ := plugin.getRestrictingInfoToReturn(to, mockDB)
 		assert.Equal(t, big.NewInt(1e17+1e17+1e18), res.Balance.ToInt())
 		assert.Equal(t, big.NewInt(0), res.Debt.ToInt())
 
@@ -531,7 +531,7 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 		t.Error(err)
 	}
-	res, err := plugin.getRestrictingInfo2(to, mockDB)
+	res, err := plugin.getRestrictingInfoToReturn(to, mockDB)
 	if err != nil {
 		t.Error(err)
 	}
