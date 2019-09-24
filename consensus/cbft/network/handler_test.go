@@ -58,29 +58,35 @@ func (s *fakeCbft) Config() *types.Config {
 		},
 	}
 }
+
 func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveMessage, type: %T", msg.Msg))
 	return nil
 }
+
 func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveSyncMsg, type: %T", msg.Msg))
 	return nil
 }
+
 func (s *fakeCbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return s.localPeer.QCBn(), common.Hash{}
 }
+
 func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
 	return s.localPeer.LockedBn(), common.Hash{}
 }
 func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return s.localPeer.CommitBn(), common.Hash{}
 }
+
 func (s *fakeCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 	return &protocols.GetViewChange{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
 }
+
 func (s *fakeCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
 	return &protocols.GetPrepareVote{
 		Epoch:      1,
@@ -88,9 +94,23 @@ func (s *fakeCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
 		UnKnownSet: utils.NewBitArray(10),
 	}, nil
 }
+
+func (s *fakeCbft) LatestStatus() *protocols.GetLatestStatus {
+	return &protocols.GetLatestStatus{
+		BlockNumber:  s.localPeer.QCBn(),
+		BlockHash:    common.Hash{},
+		QuorumCert:   nil,
+		LBlockNumber: s.localPeer.LockedBn(),
+		LBlockHash:   common.Hash{},
+		LQuorumCert:  nil,
+		LogicType:    TypeForQCBn,
+	}
+}
+
 func (s *fakeCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
+
 func (s *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 	return nil
 }

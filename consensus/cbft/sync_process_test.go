@@ -33,7 +33,6 @@ func TestFetch(t *testing.T) {
 		assert.Nil(t, node.Start())
 
 		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
 	}
 
 	result := make(chan *types.Block, 1)
@@ -96,7 +95,8 @@ func TestFetch(t *testing.T) {
 			finish <- struct{}{}
 		}
 	}
-	nodes[1].engine.fetchBlock("id", fetchBlock.Hash(), fetchBlock.NumberU64())
+	_, fetchBlockQC := nodes[0].engine.blockTree.FindBlockAndQC(fetchBlock.Hash(), fetchBlock.NumberU64())
+	nodes[1].engine.fetchBlock("id", fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
 	timer := time.NewTimer(20 * time.Millisecond)
 
 	for {
@@ -192,7 +192,8 @@ func TestSyncBlock(t *testing.T) {
 			finish <- struct{}{}
 		}
 	}
-	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64())
+	_, fetchBlockQC := nodes[0].engine.blockTree.FindBlockAndQC(fetchBlock.Hash(), fetchBlock.NumberU64())
+	nodes[1].engine.fetchBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
 
 	select {
 	case <-time.NewTimer(30 * time.Second).C:
@@ -203,7 +204,6 @@ func TestSyncBlock(t *testing.T) {
 	//nodes[1].engine.syncMsgCh <- &types2.MsgInfo{PeerID: "id", Msg: qcBlocks}
 	//time.Sleep(1000 * time.Millisecond)
 	assert.Equal(t, uint64(3), nodes[1].engine.state.HighestQCBlock().NumberU64())
-
 }
 
 func TestFetchBlockRules(t *testing.T) {
