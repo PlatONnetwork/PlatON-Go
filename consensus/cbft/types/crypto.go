@@ -86,7 +86,10 @@ func (q QuorumCert) Len() int {
 	return length
 }
 
-func (q QuorumCert) String() string {
+func (q *QuorumCert) String() string {
+	if q == nil {
+		return ""
+	}
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,Index:%d,ValidatorSet:%s}", q.Epoch, q.ViewNumber, q.BlockHash.TerminalString(), q.BlockNumber, q.BlockIndex, q.ValidatorSet.String())
 }
 
