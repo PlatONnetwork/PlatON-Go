@@ -170,6 +170,36 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckZero() {
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
 }
 
+// blockNumber为零的prepareQC不为空的viewChange消息
+// 校验通过，ViewChangeLen=1
+func (suit *ViewChangeTestSuite) TestViewChangeCheckZeroPrepareQCNotNil() {
+	suit.view.setBlockQC(9)
+	n, h := suit.view.firstProposer().HighestQCBlockBn()
+	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(h, n)
+	viewChanges := make(map[uint32]*protocols.ViewChange)
+	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
+		h, n, suit.view.secondProposerIndex(), qc)
+	viewChanges[viewChange.ValidatorIndex] = viewChange
+	viewChange2 := mockViewChange(suit.view.thirdProposer().config.Option.BlsPriKey, suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
+		h, n, suit.view.thirdProposerIndex(), qc)
+	viewChanges[viewChange2.ValidatorIndex] = viewChange2
+	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	block := NewBlock(h, 12)
+	errQC := mockErrBlockQC(notConsensusNodes, block, 8, nil)
+	errViewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
+		h, 0, suit.view.firstProposerIndex(), errQC.BlockQC)
+	viewChanges[errViewChange.ValidatorIndex] = errViewChange
+	fmt.Println(viewChanges)
+	viewQC := genViewChangeQC(4, viewChanges)
+	fmt.Println(viewQC.Len())
+	err := suit.view.firstProposer().verifyViewChangeQC(viewQC)
+	fmt.Println(err)
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), errViewChange); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
+}
+
 // Block领先本地HighestQCBlock的viewChange消息
 // 校验通过，ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeLeadHighestQCBlock() {

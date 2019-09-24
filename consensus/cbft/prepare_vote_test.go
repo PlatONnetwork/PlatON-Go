@@ -166,6 +166,45 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroButNotParent
 	}
 }
 
+// 父区块非零但blockIndex為0的不携带ParentQC的prepareVote消息
+// 校验不通过
+func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroAndBlockIndexNotParentQC() {
+	suit.view.setBlockQC(10)
+	n, h := suit.view.firstProposer().HighestQCBlockBn()
+	block1 := NewBlock(h, n+1)
+	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(h, n)
+	fmt.Println(qc.String())
+	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
+		suit.view.secondProposerIndex(), block1, qc, nil)
+	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	prepareVote := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0, suit.view.firstProposerIndex(), block1.Hash(),
+		block1.NumberU64(), nil)
+	if err := suit.view.secondProposer().OnPrepareVote(suit.view.firstProposer().NodeID().String(), prepareVote); err == nil {
+		suit.T().Fatal("FAIL")
+	} else {
+		fmt.Println(err.Error())
+	}
+}
+
+// blockNumber=1,qc偽造的消息
+// 校验不通过
+func (suit *PrepareVoteTestSuite) TestPrepareVoteWithBlockNumberIsOneAndErrParentQC() {
+	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
+	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), block1, nil, nil)
+	if err := suit.view.secondProposer().OnPrepareBlock("", prepareBlock); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+	suit.waitVote()
+	prepareVote := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), block1.Hash(), 1, errQC.BlockQC)
+	if err := suit.view.secondProposer().OnPrepareVote("", prepareVote); err == nil {
+		suit.T().Fatal("fail")
+	}
+}
+
 // 未收到prepareBlock先收到的prepareVote消息
 // 校验不通过
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithNotPrepareBlock() {

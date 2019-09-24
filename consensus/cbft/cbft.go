@@ -488,7 +488,6 @@ func (cbft *Cbft) receiveLoop() {
 			}
 			cbft.forgetMessage(msg.PeerID)
 		case msg := <-cbft.asyncExecutor.ExecuteStatus():
-			fmt.Println(msg.Err)
 			cbft.onAsyncExecuteStatus(msg)
 			if cbft.executeStatusHook != nil {
 				cbft.executeStatusHook(msg)

@@ -421,6 +421,31 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQC() {
 	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
 }
 
+// 第一个块，携带错误的qc
+func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithNumberIsOne() {
+	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 1)
+	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
+	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
+		suit.view.firstProposerIndex(), block1, errQC.BlockQC, nil)
+	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+}
+
+// 非第一个块,携带错误的qc
+func (suit *PrepareBlockTestSuite) TestPrepareBlockWithBlockIndexNotIsZero() {
+	suit.insertOneBlock()
+	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 2)
+	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
+	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
+		suit.view.firstProposerIndex(), block1, errQC.BlockQC, nil)
+	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
+		suit.T().Fatal(err.Error())
+	}
+}
+
 // 最后一个块确认的第一个块,不携带prepareQC的prepareBlock消息
 // 校验不通过
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCNotQC() {
