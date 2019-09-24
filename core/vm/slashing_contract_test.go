@@ -27,7 +27,18 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
+	addr := common.HexToAddress("0x076c72c53c569df9998448832a61371ac76d0d05")
+	nodeId, err := discover.HexID("b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511")
+	if nil != err {
+		t.Fatal(err)
+	}
 	build_staking_data(genesis.Hash())
+	newKey := staking.GetRoundValAddrArrKey(1)
+	newValue := make([]common.Address, 0, 1)
+	newValue = append(newValue, addr)
+	if err := staking.NewStakingDB().StoreRoundValidatorAddrs(blockHash, newKey, newValue); nil != err {
+		t.Fatal(err)
+	}
 	contract := &SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0, sender),
@@ -88,11 +99,6 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	addr := common.HexToAddress("0x076c72c53c569df9998448832a61371ac76d0d05")
-	nodeId, err := discover.HexID("b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511")
-	if nil != err {
-		t.Fatal(err)
-	}
 	var blsKey bls.SecretKey
 	skbyte, err := hex.DecodeString("155b9a6f5575b9b5a4d8658f616660a549674b36c858e6c606d08ec5c20c4637")
 	if nil != err {

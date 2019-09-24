@@ -36,6 +36,7 @@ var (
 	errNodeIdMismatch      = common.NewBizError(303006, "nodeId does not match")
 	errBlsPubKeyMismatch   = common.NewBizError(303007, "blsPubKey does not match")
 	errSlashingFail        = common.NewBizError(303008, "slashing node fail")
+	errNotValidator        = common.NewBizError(303009, "not validator")
 
 	once = sync.Once{}
 )
@@ -284,6 +285,15 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			log.Error("slashing failed Mismatch blsPubKey", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "candidateNodeId", candidate.NodeId.TerminalString(),
 				"candidateBlsPubKey", hex.EncodeToString(candidate.BlsPubKey.Serialize()), "evidenceBlsPubKey", hex.EncodeToString(evidence.BlsPubKey().Serialize()), "type", evidence.Type())
 			return errBlsPubKeyMismatch
+		}
+		if isExists, err := stk.checkRoundValidatorAddr(blockHash, evidence.BlockNumber(), evidence.Address()); nil != err {
+			log.Error("slashing failed checkRoundValidatorAddr", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex())
+			return errDuplicateSignVerify
+		} else if !isExists {
+			log.Warn("slashing failed, not validator", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex())
+			return errNotValidator
 		}
 		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
