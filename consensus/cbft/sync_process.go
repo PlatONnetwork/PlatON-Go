@@ -374,7 +374,7 @@ func (cbft *Cbft) OnPrepareVotes(id string, msg *protocols.PrepareVotes) error {
 func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) error {
 	cbft.log.Debug("Received message on OnGetLatestStatus", "from", id, "logicType", msg.LogicType, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.BlockNumber != 0 && msg.QuorumCert == nil || msg.LBlockNumber != 0 && msg.LQuorumCert == nil {
-		cbft.log.Error("Invalid GetLatestStatus")
+		cbft.log.Error("Invalid getLatestStatus,lack corresponding quorumCert", "getLatestStatus", msg.String())
 		return nil
 	}
 	// Define a function that performs the send action.
@@ -428,7 +428,7 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 	cbft.log.Debug("Received message on OnLatestStatus", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.BlockNumber != 0 && msg.QuorumCert == nil || msg.LBlockNumber != 0 && msg.LQuorumCert == nil {
-		cbft.log.Error("Invalid LatestStatus")
+		cbft.log.Error("Invalid LatestStatus,lack corresponding quorumCert", "latestStatus", msg.String())
 		return nil
 	}
 	switch msg.LogicType {

@@ -680,7 +680,7 @@ func (h *EngineManager) synchronize() {
 	// Logic used to synchronize QC.
 	syncQCBnFunc := func() {
 		latestStatus := h.engine.LatestStatus()
-		log.Debug("Synchronize for qc block send message", "localQCBn", latestStatus.BlockNumber)
+		log.Debug("Synchronize for qc block send message", "latestStatus", latestStatus.String())
 		latestStatus.LogicType = TypeForQCBn
 		h.PartBroadcast(latestStatus)
 	}
