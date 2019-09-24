@@ -243,6 +243,8 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block already exists")
 	}
 
+	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+
 	// If blockQC comes the block must exist
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
 	if block == nil {
@@ -253,7 +255,6 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return &authFailedError{err}
 	}
 
-	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 	cbft.insertPrepareQC(msg.BlockQC)
 	return nil
 }
