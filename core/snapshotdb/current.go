@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"os"
 	"path"
-	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -31,22 +30,20 @@ func newCurrent(dir string) *current {
 }
 
 type current struct {
-	f            *os.File    `rlp:"-"`
-	path         string      `rlp:"-"`
-	HighestNum   *big.Int    `rlp:"nil"`
-	HighestHash  common.Hash `rlp:"nil"`
-	BaseNum      *big.Int    `rlp:"nil"`
-	sync.RWMutex `rlp:"-"`
+	f           *os.File    `rlp:"-"`
+	path        string      `rlp:"-"`
+	HighestNum  *big.Int    `rlp:"nil"`
+	HighestHash common.Hash `rlp:"nil"`
+	BaseNum     *big.Int    `rlp:"nil"`
+	//	sync.RWMutex `rlp:"-"`
 }
 
 func (c *current) update() error {
-	c.Lock()
-	defer c.Unlock()
-	if err := c.f.Truncate(0); err != nil {
-		return err
-	}
 	b := new(bytes.Buffer)
 	if err := rlp.Encode(b, c); err != nil {
+		return err
+	}
+	if err := c.f.Truncate(0); err != nil {
 		return err
 	}
 	c.f.Seek(io.SeekStart, io.SeekEnd)
