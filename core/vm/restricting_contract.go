@@ -71,14 +71,10 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
 	switch err.(type) {
 	case nil:
-		//res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
-		//event, _ := json.Marshal(res)
 		event := xcom.OkResultByte
 		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	case *common.BizError:
-		//res := xcom.Result{Status: false, Data: "", ErrMsg: "create restricting plan:" + err.Error()}
-		//event, _ := json.Marshal(res)
 		event := xcom.NewFailResult(err)
 		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil

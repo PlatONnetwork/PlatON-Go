@@ -247,7 +247,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CbftPeerMsgQueueSize,
 			utils.CbftWalDisabledFlag,
-			utils.CbftEvidenceDir,
 			utils.CbftMaxPingLatency,
 			utils.CbftBlsPriKeyFileFlag,
 			utils.CbftBlacklistDeadlineFlag,

@@ -240,10 +240,14 @@ func Test_Router_KRandomNodes(t *testing.T) {
 	spec_peers := make([]*peer, 2)
 	spec_peers[0] = peers[0]
 	spec_peers[1] = peers[1]
-	t.Log(formatPeers(spec_peers))
+	//t.Log(formatPeers(spec_peers))
 	for i := 0; i < 20; i++ {
 		t.Log(formatPeers(kRandomNodes(int(math.Sqrt(float64(len(spec_peers)))), spec_peers, common.Hash{}, nil)))
 	}
+	for i := 0; i < 30; i++ {
+		t.Log(formatPeers(kRandomNodes(5, spec_peers, common.Hash{}, nil)))
+	}
+
 }
 
 func Test_Router_RepeatedCheck(t *testing.T) {

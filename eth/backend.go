@@ -511,9 +511,9 @@ func (s *Ethereum) Stop() error {
 	s.miner.Stop()
 	s.eventMux.Stop()
 
+	core.GetReactorInstance().Close()
 	s.chainDb.Close()
 	close(s.shutdownChan)
-	core.GetReactorInstance().Close()
 	return nil
 }
 

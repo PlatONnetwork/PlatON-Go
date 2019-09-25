@@ -422,7 +422,7 @@ func (s *snapshotDB) Compaction() error {
 	s.unCommit.Lock()
 	if len(s.unCommit.blocks) > 200 {
 		for key, value := range s.unCommit.blocks {
-			if value.Number.Cmp(s.current.BaseNum) >= 0 {
+			if s.current.BaseNum.Cmp(value.Number) >= 0 {
 				delete(s.unCommit.blocks, key)
 				logger.Debug("compaction delete no need blocks", "num", value.Number, "hash", value.BlockHash.String())
 			}
