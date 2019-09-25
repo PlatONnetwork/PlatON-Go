@@ -1092,7 +1092,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 
-	if cbft.state.NumViewBlocks() >= cbft.config.Sys.Amount {
+	if cbft.state.NextViewBlockIndex() >= cbft.config.Sys.Amount {
 		result <- errors.New("produce block over limit")
 		return
 	}

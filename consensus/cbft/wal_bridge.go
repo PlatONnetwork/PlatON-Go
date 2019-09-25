@@ -3,6 +3,7 @@ package cbft
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -288,21 +289,31 @@ func (cbft *Cbft) recoveryQCState(qcs []*protocols.State, parent *types.Block) e
 }
 
 // recoveryChainStateProcess tries to recovery the corresponding state to cbft consensus.
-func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.State) {
-	cbft.trySwitchValidator(state.Block.NumberU64())
-	cbft.tryWalChangeView(state.QuorumCert.Epoch, state.QuorumCert.ViewNumber, state.Block, state.QuorumCert, nil)
-	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
-	cbft.state.AddQC(state.QuorumCert)
-	cbft.blockTree.InsertQCBlock(state.Block, state.QuorumCert)
-	cbft.state.SetExecuting(state.QuorumCert.BlockIndex, true)
+func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, s *protocols.State) {
+	cbft.trySwitchValidator(s.Block.NumberU64())
+	cbft.tryWalChangeView(s.QuorumCert.Epoch, s.QuorumCert.ViewNumber, s.Block, s.QuorumCert, nil)
+	cbft.state.AddQCBlock(s.Block, s.QuorumCert)
+	cbft.state.AddQC(s.QuorumCert)
+	cbft.blockTree.InsertQCBlock(s.Block, s.QuorumCert)
+	cbft.state.SetExecuting(s.QuorumCert.BlockIndex, true)
 
 	switch stateType {
 	case protocols.CommitState:
-		cbft.state.SetHighestCommitBlock(state.Block)
+		cbft.state.SetHighestCommitBlock(s.Block)
 	case protocols.LockState:
-		cbft.state.SetHighestLockBlock(state.Block)
+		cbft.state.SetHighestLockBlock(s.Block)
 	case protocols.QCState:
-		cbft.TrySetHighestQCBlock(state.Block)
+		cbft.TrySetHighestQCBlock(s.Block)
+	}
+
+	// The state may have reached the automatic switch point, then advance to the next view
+	if cbft.validatorPool.EqualSwitchPoint(s.Block.NumberU64()) {
+		cbft.tryWalChangeView(cbft.state.Epoch()+1, state.DefaultViewNumber, s.Block, s.QuorumCert, nil)
+		return
+	}
+	if s.QuorumCert.BlockIndex+1 == cbft.config.Sys.Amount {
+		cbft.tryWalChangeView(cbft.state.Epoch(), cbft.state.ViewNumber()+1, s.Block, s.QuorumCert, nil)
+		return
 	}
 }
 
