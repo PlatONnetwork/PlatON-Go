@@ -253,7 +253,12 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		return
 	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
-		cbft.state.AddQC(qc)
+		if cbft.state.ViewBlockByIndex(qc.BlockIndex) == nil {
+			cbft.state.AddQCBlock(block, qc)
+			cbft.state.AddQC(qc)
+		} else {
+			cbft.state.AddQC(qc)
+		}
 	}
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
