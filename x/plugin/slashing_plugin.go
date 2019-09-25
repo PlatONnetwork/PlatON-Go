@@ -286,7 +286,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		}
 		if isExists, err := stk.checkRoundValidatorAddr(blockHash, evidence.BlockNumber(), evidence.Address()); nil != err {
 			log.Error("slashing failed checkRoundValidatorAddr", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex())
+				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex(), "err", err)
 			return errDuplicateSignVerify
 		} else if !isExists {
 			log.Warn("slashing failed, not validator", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
