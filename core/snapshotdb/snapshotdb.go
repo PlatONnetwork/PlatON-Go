@@ -342,6 +342,7 @@ func (s *snapshotDB) SetEmpty() error {
 	}
 
 	copyDB(db, s)
+	s.writeCurrentLoop()
 	if err := s.cornStart(); err != nil {
 		return err
 	}
