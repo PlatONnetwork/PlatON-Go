@@ -252,11 +252,11 @@ func initDB() error {
 
 func (s *snapshotDB) cornStart() error {
 	s.corn = cron.New()
-	if err := s.corn.AddFunc("@every 1s", dbInstance.schedule); err != nil {
+	if err := s.corn.AddFunc("@every 1s", s.schedule); err != nil {
 		logger.Error("set db corn compaction fail", "err", err)
 		return err
 	}
-	if err := s.corn.AddFunc("@every 3s", dbInstance.metrics); err != nil {
+	if err := s.corn.AddFunc("@every 3s", s.metrics); err != nil {
 		logger.Error("set db corn metrics fail", "err", err)
 		return err
 	}
@@ -292,6 +292,7 @@ func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 }
 
 func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) error {
+	logger.Debug("SetCurrent", "current", s.current)
 	s.current.HighestNum = &height
 	s.current.BaseNum = &base
 	s.current.HighestHash = highestHash
@@ -328,7 +329,7 @@ func (s *snapshotDB) SetEmpty() error {
 		return err
 	}
 	db := dbInterface.(*snapshotDB)
-	copyDB(db, dbInstance)
+	copyDB(db, s)
 	if err := s.cornStart(); err != nil {
 		return err
 	}
