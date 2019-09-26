@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -30,19 +29,6 @@ import (
 )
 
 var (
-	makecacheCommand = cli.Command{
-		Action:    utils.MigrateFlags(makecache),
-		Name:      "makecache",
-		Usage:     "Generate ethash verification cache (for testing)",
-		ArgsUsage: "<blockNum> <outputDir>",
-		Category:  "MISCELLANEOUS COMMANDS",
-		Description: `
-The makecache command generates an ethash cache in <outputDir>.
-
-This command exists to support the system testing project.
-Regular users do not need to execute it.
-`,
-	}
 	versionCommand = cli.Command{
 		Action:    utils.MigrateFlags(version),
 		Name:      "version",
@@ -61,34 +47,6 @@ The output of this command is supposed to be machine-readable.
 		Category:  "MISCELLANEOUS COMMANDS",
 	}
 )
-
-// makecache generates an ethash verification cache into the provided folder.
-func makecache(ctx *cli.Context) error {
-	args := ctx.Args()
-	if len(args) != 2 {
-		utils.Fatalf(`Usage: platon makecache <block number> <outputdir>`)
-	}
-	_, err := strconv.ParseUint(args[0], 0, 64)
-	if err != nil {
-		utils.Fatalf("Invalid block number: %v", err)
-	}
-
-	return nil
-}
-
-// makedag generates an ethash mining DAG into the provided folder.
-func makedag(ctx *cli.Context) error {
-	args := ctx.Args()
-	if len(args) != 2 {
-		utils.Fatalf(`Usage: platon makedag <block number> <outputdir>`)
-	}
-	_, err := strconv.ParseUint(args[0], 0, 64)
-	if err != nil {
-		utils.Fatalf("Invalid block number: %v", err)
-	}
-
-	return nil
-}
 
 func version(ctx *cli.Context) error {
 	fmt.Println(strings.Title(clientIdentifier))
