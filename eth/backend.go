@@ -127,9 +127,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 
-	// set snapshotdb path
-	//snapshotdb.SetDBPath(ctx)
-
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
@@ -258,6 +255,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			agency = reactor
 		}
 
+		if err := recoverSnapshotDB(blockChainCache); err != nil {
+			log.Error("recover SnapshotDB fail", "error", err)
+			return nil, errors.New("Failed to recover SnapshotDB")
+		}
+
 		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
 			log.Error("Init cbft consensus engine fail", "error", err)
 			return nil, errors.New("Failed to init cbft consensus engine")
@@ -276,6 +278,30 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
 	return eth, nil
+}
+
+func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
+	sdb := snapshotdb.Instance()
+	current := sdb.GetCurrent()
+	ch := current.HighestNum.Uint64()
+	if ch < blockChainCache.CurrentHeader().Number.Uint64() {
+		var recoverBlocks = make([]*types.Block, 0)
+		for i := ch; i <= blockChainCache.CurrentHeader().Number.Uint64(); i++ {
+			recoverBlocks = append(recoverBlocks, blockChainCache.GetBlockByNumber(i))
+		}
+		for i := 1; i < len(recoverBlocks); i++ {
+			log.Debug("snapshotdb recover block from blockchain", "num", recoverBlocks[i].Number(), "root", recoverBlocks[i].Root(), "hash", recoverBlocks[i].Hash().String(), "parent", recoverBlocks[i-1].Number(), "praenthash", recoverBlocks[i-1].Hash().String(), "parentroot", recoverBlocks[i-1].Root())
+			if err := blockChainCache.Execute(recoverBlocks[i], recoverBlocks[i-1]); err != nil {
+				log.Error("snapshotdb recover block from blockchain  execute fail", "error", err)
+				return err
+			}
+			if err := sdb.Commit(recoverBlocks[i].Hash()); err != nil {
+				log.Error("snapshotdb recover block from blockchain  Commit fail", "error", err)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // CreateDB creates the chain database.

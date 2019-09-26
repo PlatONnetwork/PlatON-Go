@@ -14,6 +14,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
+	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -64,14 +65,14 @@ type DB interface {
 
 	PutBaseDB(key, value []byte) error
 	GetBaseDB(key []byte) ([]byte, error)
-
+	DelBaseDB(key []byte) error
 	// WriteBaseDB apply the given [][2][]byte to the baseDB.
 	WriteBaseDB(kvs [][2][]byte) error
 
 	//SetCurrent use for fast sync
 	SetCurrent(highestHash common.Hash, base, height big.Int) error
+	GetCurrent() *current
 
-	DelBaseDB(key []byte) error
 	GetLastKVHash(blockHash common.Hash) []byte
 	BaseNum() (*big.Int, error)
 	Close() error
@@ -90,14 +91,9 @@ var (
 
 	logger = log.Root().New("package", "snapshotdb")
 
-	//ErrorSnaphotLock when db is Lock
-	//	ErrorSnaphotLock = errors.New("can't create snapshot,snapshot is lock now")
-
 	//ErrNotFound when db not found
 	ErrNotFound = errors.New("snapshotDB: not found")
 
-	//ErrDBNotInit when db  not init
-	//	ErrDBNotInit   = errors.New("snapshotDB: not init")
 	ErrBlockRepeat = errors.New("the block is exist in snapshotdb uncommit")
 	ErrBlockTooLow = errors.New("the block is less than commit highest block")
 )
@@ -106,12 +102,8 @@ type snapshotDB struct {
 	path string
 
 	snapshotLockC int32
-	//	snapshotLock  event.Feed
 
 	current *current
-
-	currentUpdateCh chan struct{}
-	exitCh          chan struct{}
 
 	baseDB *leveldb.DB
 
@@ -174,7 +166,6 @@ func Instance() DB {
 		if err := initDB(); err != nil {
 			logger.Error("init db fail", "err", err)
 			panic(err)
-			//return nil, errors.New("init db fail:" + err.Error())
 		}
 	}
 	return dbInstance
@@ -183,31 +174,51 @@ func Instance() DB {
 func Open(path string) (DB, error) {
 	s, err := openFile(path, false)
 	if err != nil {
-		logger.Error("open db file fail", "error", err, "path", dbpath)
+		logger.Error("open db file fail", "error", err, "path", path)
 		return nil, err
 	}
-	fds, err := s.List(TypeCurrent)
+	baseDB, err := leveldb.OpenFile(getBaseDBPath(path), nil)
 	if err != nil {
-		logger.Error("get current file fail", "error", err)
-		return nil, err
+		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
+			baseDB, err = leveldb.RecoverFile(getBaseDBPath(path), nil)
+			if err != nil {
+				return nil, fmt.Errorf("[SnapshotDB.recover]RecoverFile baseDB fail:%v", err)
+			}
+		} else {
+			return nil, err
+		}
 	}
-	if len(fds) > 0 {
+	unCommitBlock := new(unCommitBlocks)
+	unCommitBlock.blocks = make(map[common.Hash]*blockData)
+	db := &snapshotDB{
+		path:          path,
+		storage:       s,
+		unCommit:      unCommitBlock,
+		committed:     make([]*blockData, 0),
+		baseDB:        baseDB,
+		snapshotLockC: snapshotUnLock,
+	}
+
+	_, getCurrentError := baseDB.Get([]byte(CurrentSet), nil)
+	if getCurrentError == nil {
 		logger.Info("begin recover", "path", path)
-		db := new(snapshotDB)
-		if err := db.recover(s); err != nil {
+		if err := db.loadCurrent(); err != nil {
+			return nil, err
+		}
+		if err := db.recover(); err != nil {
 			logger.Error("recover db fail:", "error", err)
 			return nil, err
 		}
 		return db, nil
-	} else {
+	}
+	if getCurrentError == leveldb.ErrNotFound {
 		logger.Info("begin new", "path", path)
-		db, err := newDB(s)
-		if err != nil {
-			logger.Error(fmt.Sprint("new db fail:", err))
+		if err := db.newCurrent(); err != nil {
 			return nil, err
 		}
 		return db, nil
 	}
+	return nil, getCurrentError
 }
 
 func copyDB(from, to *snapshotDB) {
@@ -219,42 +230,20 @@ func copyDB(from, to *snapshotDB) {
 	to.storage = from.storage
 	to.corn = from.corn
 	to.closed = from.closed
-	to.currentUpdateCh = from.currentUpdateCh
-	to.exitCh = from.exitCh
+	to.snapshotLockC = from.snapshotLockC
 }
 
 func initDB() error {
-	s, err := openFile(dbpath, false)
+	dbInterface, err := Open(dbpath)
 	if err != nil {
-		logger.Error("open db file fail", "error", err, "path", dbpath)
 		return err
 	}
-	fds, err := s.List(TypeCurrent)
-	if err != nil {
-		logger.Error("get current file fail", "error", err)
-		return err
-	}
+	db := dbInterface.(*snapshotDB)
 	if dbInstance == nil {
 		dbInstance = new(snapshotDB)
 	}
-	if len(fds) > 0 {
-		logger.Info("begin recover")
-		db := new(snapshotDB)
-		if err := db.recover(s); err != nil {
-			logger.Error("recover db fail:", "error", err)
-			return err
-		}
-		copyDB(db, dbInstance)
-	} else {
-		logger.Info("begin newDB")
-		db, err := newDB(s)
-		if err != nil {
-			logger.Error(fmt.Sprint("new db fail:", err))
-			return err
-		}
-		copyDB(db, dbInstance)
-	}
-	dbInstance.writeCurrentLoop()
+	copyDB(db, dbInstance)
+	//	dbInstance.writeCurrentLoop()
 	if err := dbInstance.cornStart(); err != nil {
 		return err
 	}
@@ -275,20 +264,21 @@ func (s *snapshotDB) cornStart() error {
 	return nil
 }
 
-func (s *snapshotDB) writeCurrentLoop() {
-	go func() {
-		for {
-			select {
-			case <-s.currentUpdateCh:
-				if err := s.current.update(); err != nil {
-					logger.Error("update current file fail ", "err", err)
-				}
-			case <-s.exitCh:
-				return
-			}
-		}
-	}()
-}
+//
+//func (s *snapshotDB) writeCurrentLoop() {
+//	go func() {
+//		for {
+//			select {
+//			case <-s.currentUpdateCh:
+//				if err := s.current.update(); err != nil {
+//					logger.Error("update current file fail ", "err", err)
+//				}
+//			case <-s.exitCh:
+//				return
+//			}
+//		}
+//	}()
+//}
 
 func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 	batch := new(leveldb.Batch)
@@ -305,10 +295,14 @@ func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) e
 	s.current.HighestNum = &height
 	s.current.BaseNum = &base
 	s.current.HighestHash = highestHash
-	if err := s.current.update(); err != nil {
+	if err := s.saveCurrentToBaseDB("", s.current); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (s *snapshotDB) GetCurrent() *current {
+	return s.current
 }
 
 // GetCommittedBlock    get value from committed blockdata > baseDB
@@ -328,20 +322,12 @@ func (s *snapshotDB) SetEmpty() error {
 	if err := s.Clear(); err != nil {
 		return err
 	}
-	stor, err := openFile(s.path, false)
+	dbInterface, err := Open(dbpath)
 	if err != nil {
-		logger.Error("open db file fail", "error", err, "path", dbpath)
 		return err
 	}
-
-	logger.Info("begin newDB")
-	db, err := newDB(stor)
-	if err != nil {
-		logger.Error(fmt.Sprint("new db fail:", err))
-		return err
-	}
-
-	copyDB(db, s)
+	db := dbInterface.(*snapshotDB)
+	copyDB(db, dbInstance)
 	if err := s.cornStart(); err != nil {
 		return err
 	}
@@ -405,8 +391,22 @@ func (s *snapshotDB) Compaction() error {
 	s.current.BaseNum.Add(s.current.BaseNum, big.NewInt(int64(commitNum)))
 	s.committed = s.committed[commitNum:]
 	s.commitLock.Unlock()
-	s.currentUpdateCh <- struct{}{}
+	if err := s.saveCurrentToBaseDB(CurrentBaseNum, &current{
+		HighestNum:  nil,
+		HighestHash: common.Hash{},
+		BaseNum:     new(big.Int).Set(s.current.BaseNum),
+	}); err != nil {
+		logger.Error("save base to current fail", "err", err)
+	}
+	if err := s.rmExpireForkBlockJournal(); err != nil {
+		return err
+	}
+	//delete block no use  in unCommit
+	s.rmExpireForkBlock()
+	return nil
+}
 
+func (s *snapshotDB) rmExpireForkBlockJournal() error {
 	fds, err := s.storage.List(TypeJournal)
 	if err != nil {
 		return err
@@ -418,8 +418,12 @@ func (s *snapshotDB) Compaction() error {
 			}
 		}
 	}
-	//delete block no use  in unCommit
+	return nil
+}
+
+func (s *snapshotDB) rmExpireForkBlock() {
 	s.unCommit.Lock()
+	// if unCommit blocks length > 200,rm block below BaseNum
 	if len(s.unCommit.blocks) > 200 {
 		for key, value := range s.unCommit.blocks {
 			if s.current.BaseNum.Cmp(value.Number) >= 0 {
@@ -429,8 +433,6 @@ func (s *snapshotDB) Compaction() error {
 		}
 	}
 	s.unCommit.Unlock()
-
-	return nil
 }
 
 func (s *snapshotDB) findToWrite() int {
@@ -484,11 +486,6 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 		logger.Error("write to baseDB fail", "err", err)
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
 	}
-
-	//if err := s.current.update(); err != nil {
-	//	logger.Error("write to current fail", "err", err)
-	//}
-
 	return nil
 }
 
@@ -501,7 +498,9 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
 	}
 	findBlock := s.unCommit.Get(hash)
+	//a block can't new twice
 	if findBlock != nil {
+		//  if block num is different,hash is same as common.ZeroHash,the exsist block may have commit ,so just cover it
 		newBlockWithDiffNumber := findBlock.BlockHash == common.ZeroHash && findBlock.Number.Cmp(blockNumber) != 0
 		if !newBlockWithDiffNumber {
 			logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
@@ -697,6 +696,14 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	}
 	if !block.readOnly {
 		s.writeBlockToJournalAsynchronous(block)
+	} else {
+		if err := s.saveCurrentToBaseDB(CurrentHighestBlock, &current{
+			HighestNum:  block.Number,
+			HighestHash: block.BlockHash,
+			BaseNum:     s.current.BaseNum,
+		}); err != nil {
+			return err
+		}
 	}
 	block.readOnly = true
 	s.commitLock.Lock()
@@ -704,10 +711,6 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.current.HighestHash = hash
 	s.current.HighestNum = new(big.Int).Set(block.Number)
 	s.commitLock.Unlock()
-	s.currentUpdateCh <- struct{}{}
-	//if err := s.current.update(); err != nil {
-	//	return fmt.Errorf("commite fail,update current fail:%v", err)
-	//}
 
 	s.unCommit.Lock()
 	delete(s.unCommit.blocks, hash)
@@ -815,25 +818,20 @@ func (s *snapshotDB) Close() error {
 	if s.corn != nil {
 		s.corn.Stop()
 	}
-
-	close(s.exitCh)
+	s.journalSync.Wait()
 
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {
 			return fmt.Errorf("[snapshotdb]close base db fail:%v", err)
 		}
 	}
-	s.journalSync.Wait()
 
 	if err := s.storage.Close(); err != nil {
 		return fmt.Errorf("[snapshotdb]close storage fail:%v", err)
 	}
-	if s.current != nil {
-		if err := s.current.f.Close(); err != nil {
-			return fmt.Errorf("[snapshotdb]close current fail:%v", err)
-		}
-	}
-
+	s.current = nil
+	s.unCommit = nil
+	s.committed = nil
 	s.closed = true
 	logger.Info("snapshotdb closed")
 	return nil
