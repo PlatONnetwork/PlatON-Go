@@ -172,7 +172,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) {
 	if pb.Block.NumberU64() > cbft.state.HighestQCBlock().NumberU64() {
 		for i := uint32(0); i <= pb.BlockIndex; i++ {
-			b, _ := cbft.state.ViewBlockAndQC(i)
+			b := cbft.state.ViewBlockByIndex(i)
 			if b == nil {
 				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
 					go cbft.ReceiveMessage(pb)
@@ -189,14 +189,14 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 	// Greater than QC+1 means the vote is behind
 	if vote.BlockNumber > cbft.state.HighestQCBlock().NumberU64()+1 {
 		for i := uint32(0); i <= vote.BlockIndex; i++ {
-			b, q := cbft.state.ViewBlockAndQC(i)
+			b, qc := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
 				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
 					go cbft.ReceiveMessage(pb)
 				} else {
 					cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
 				}
-			} else if q == nil {
+			} else if qc == nil {
 				cbft.SyncBlockQuorumCert(id, b.NumberU64(), b.Hash())
 			}
 		}
@@ -242,6 +242,8 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block already exists")
 	}
 
+	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
+
 	// If blockQC comes the block must exist
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
 	if block == nil {
@@ -252,7 +254,6 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return &authFailedError{err}
 	}
 
-	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 	cbft.insertPrepareQC(msg.BlockQC)
 	return nil
 }
