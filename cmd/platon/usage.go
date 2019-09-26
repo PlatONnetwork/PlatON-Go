@@ -83,13 +83,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LightKDFFlag,
 		},
 	},
-	{
-		Name: "DEVELOPER CHAIN",
-		Flags: []cli.Flag{
-			utils.DeveloperFlag,
-			utils.DeveloperPeriodFlag,
-		},
-	},
 	//{
 	//	Name: "DASHBOARD",
 	//	Flags: []cli.Flag{
@@ -159,14 +152,14 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.BootnodesFlag,
 			utils.BootnodesV4Flag,
-			utils.BootnodesV5Flag,
+			//	utils.BootnodesV5Flag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
 			utils.MaxConsensusPeersFlag,
 			utils.MaxPendingPeersFlag,
 			utils.NATFlag,
 			utils.NoDiscoverFlag,
-			utils.DiscoveryV5Flag,
+			//	utils.DiscoveryV5Flag,
 			utils.NetrestrictFlag,
 			utils.NodeKeyFileFlag,
 			utils.NodeKeyHexFlag,
@@ -178,7 +171,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerGasPriceFlag,
 			utils.MinerGasTargetFlag,
 			utils.MinerGasLimitFlag,
-			utils.MinerExtraDataFlag,
+			//	utils.MinerExtraDataFlag,
 		},
 	},
 	{
@@ -186,14 +179,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.GpoBlocksFlag,
 			utils.GpoPercentileFlag,
-		},
-	},
-	{
-		Name: "VIRTUAL MACHINE",
-		Flags: []cli.Flag{
-			utils.VMEnableDebugFlag,
-			utils.EVMInterpreterFlag,
-			utils.EWASMInterpreterFlag,
 		},
 	},
 	{
