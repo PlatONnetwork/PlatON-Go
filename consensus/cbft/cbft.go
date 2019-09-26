@@ -985,18 +985,18 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
-		vEpoch := qc.Epoch
-		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-			vEpoch += 1
-		}
-		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
-
 		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
+
+		vEpoch := qc.Epoch
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			vEpoch += 1
+		}
+		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
 
 		result <- err
 	}
