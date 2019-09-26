@@ -319,10 +319,11 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 
 func (s *snapshotDB) SetEmpty() error {
 	logger.Debug("set snapshotDB empty", "path", s.path)
+	path := s.path
 	if err := s.Clear(); err != nil {
 		return err
 	}
-	dbInterface, err := Open(dbpath)
+	dbInterface, err := Open(path)
 	if err != nil {
 		return err
 	}
