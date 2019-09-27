@@ -1718,3 +1718,11 @@ func (cbft *Cbft) avgRTT() time.Duration {
 func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.SchnorrProof, error) {
 	return cbft.config.Option.BlsPriKey.MakeSchnorrNIZKP()
 }
+
+func (cbft *Cbft) DecodeExtra(extra []byte) (common.Hash, uint64, error) {
+	_, qc, err := ctypes.DecodeExtra(extra)
+	if err != nil {
+		return common.Hash{}, 0, err
+	}
+	return qc.BlockHash, qc.BlockNumber, nil
+}
