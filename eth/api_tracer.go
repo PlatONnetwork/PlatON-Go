@@ -146,7 +146,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			return nil, fmt.Errorf("parent block #%d not found", number-1)
 		}
 	}
-	statedb, err := state.New(start.Root(), database, start.Number(), start.Hash())
+	statedb, err := state.New(start.Root(), database)
 	if err != nil {
 		// If the starting state is missing, allow some number of blocks to be reexecuted
 		reexec := defaultTraceReexec
@@ -159,7 +159,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			if start == nil {
 				break
 			}
-			if statedb, err = state.New(start.Root(), database, start.Number(), start.Hash()); err == nil {
+			if statedb, err = state.New(start.Root(), database); err == nil {
 				break
 			}
 		}
@@ -192,12 +192,11 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 
 			// Fetch and execute the next block trace tasks
 			for task := range tasks {
-				signer := types.MakeSigner(api.config, task.block.Number())
-
+				signer := types.NewEIP155Signer(api.config.ChainID)
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
 					msg, _ := tx.AsMessage(signer)
-					vmctx := core.NewEVMContext(msg, task.block.Header(), api.eth.blockchain, nil)
+					vmctx := core.NewEVMContext(msg, task.block.Header(), api.eth.blockchain)
 
 					res, err := api.traceTx(ctx, msg, vmctx, task.statedb, config)
 					if err != nil {
@@ -279,7 +278,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				traced += uint64(len(txs))
 			}
 			// Generate the next state snapshot fast without tracing
-			_, _, _, err := api.eth.blockchain.Processor().Process(block, statedb, vm.Config{}, nil)
+			_, _, _, err := api.eth.blockchain.Processor().Process(block, statedb, vm.Config{})
 			if err != nil {
 				failed = err
 				break
@@ -413,8 +412,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.config, block.Number())
-
+		signer  = types.NewEIP155Signer(api.config.ChainID)
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
 
@@ -433,7 +431,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 			// Fetch and execute the next transaction trace tasks
 			for task := range jobs {
 				msg, _ := txs[task.index].AsMessage(signer)
-				vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain, nil)
+				vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain)
 
 				res, err := api.traceTx(ctx, msg, vmctx, task.statedb, config)
 				if err != nil {
@@ -452,7 +450,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 
 		// Generate the next state snapshot fast without tracing
 		msg, _ := tx.AsMessage(signer)
-		vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain, nil)
+		vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain)
 
 		vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{})
 		if _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
@@ -477,7 +475,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 // attempted to be reexecuted to generate the desired state.
 func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*state.StateDB, error) {
 	// If we have the state fully available, use that
-	statedb, err := api.eth.blockchain.StateAt(block.Root(), block.Number(), block.Hash())
+	statedb, err := api.eth.blockchain.StateAt(block.Root())
 	if err == nil {
 		return statedb, nil
 	}
@@ -490,7 +488,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block == nil {
 			break
 		}
-		if statedb, err = state.New(block.Root(), database, block.Number(), block.Hash()); err == nil {
+		if statedb, err = state.New(block.Root(), database); err == nil {
 			break
 		}
 	}
@@ -518,7 +516,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block = api.eth.blockchain.GetBlockByNumber(block.NumberU64() + 1); block == nil {
 			return nil, fmt.Errorf("block #%d not found", block.NumberU64()+1)
 		}
-		_, _, _, err := api.eth.blockchain.Processor().Process(block, statedb, vm.Config{}, nil)
+		_, _, _, err := api.eth.blockchain.Processor().Process(block, statedb, vm.Config{})
 		if err != nil {
 			return nil, err
 		}
@@ -638,12 +636,11 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 		return nil, vm.Context{}, nil, err
 	}
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(api.config, block.Number())
-
+	signer := types.NewEIP155Signer(api.config.ChainID)
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := tx.AsMessage(signer)
-		context := core.NewEVMContext(msg, block.Header(), api.eth.blockchain, nil)
+		context := core.NewEVMContext(msg, block.Header(), api.eth.blockchain)
 		if idx == txIndex {
 			return msg, context, statedb, nil
 		}

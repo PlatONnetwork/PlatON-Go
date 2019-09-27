@@ -2,7 +2,7 @@
 
 Welcome to the PlatON source code repository! This software is Ethereum-based and it has changed some peculiarities according the PlatON's [whitepaper](https://www.platon.network/static/pdf/en/PlatON_A%20High-Efficiency%20Trustless%20Computing%20Network_Whitepaper_EN.pdf).
 
-[![Build Status](https://travis-ci.com/PlatONnetwork/PlatON-Go.svg?branch=master)](https://travis-ci.com/PlatONnetwork/PlatON-Go)
+[![Build Status](https://travis-ci.com/PlatONnetwork/PlatON-Go.svg?branch=feature%2Fbump-version-to-0.7)](https://travis-ci.com/PlatONnetwork/PlatON-Go)
 
 ## Building the source
 
@@ -74,22 +74,16 @@ then, edit the following content and save it as json file, such as genesis.json:
 {
     "config": {
     "chainId": 300,
-    "homesteadBlock": 1,
-    "eip150Block": 2,
-    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "eip155Block": 3,
-    "eip158Block": 3,
-    "byzantiumBlock": 4,
+    "eip155Block": 0,
     "cbft": {
       "initialNodes": ["enode://8917c748513c23db46d23f531cc083d2f6001b4cc2396eb8412d73a3e4450ffc5f5235757abf9873de469498d8cf45f5bb42c215da79d59940e17fcb22dfc127@127.0.0.1:16789"]
       }
   },
-  "nonce": "0x0",
+  "nonce": "0x000000000000000000000000000000000000000000000000000000000000000042",
   "timestamp": "0x5c074288",
   "extraData": "0x00",
   "gasLimit": "0x99947b760",
   "difficulty": "0x40000",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
   "alloc": {
     "0x566c274db7ac6d38da2b075b4ae41f4a5c481d21": {

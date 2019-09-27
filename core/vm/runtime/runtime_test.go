@@ -91,7 +91,7 @@ func TestExecute(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	/*state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
+	/*state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	address := common.HexToAddress("0x0a")
 	state.SetCode(address, []byte{
 		byte(vm.PUSH1), 10,

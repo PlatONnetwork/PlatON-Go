@@ -216,3 +216,4 @@ func BenchmarkChanSend(b *testing.B) {
 		}
 	}
 }
+

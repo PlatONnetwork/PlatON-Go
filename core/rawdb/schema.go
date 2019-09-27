@@ -46,15 +46,16 @@ var (
 	headerHashSuffix   = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
 	headerNumberPrefix = []byte("H") // headerNumberPrefix + hash -> num (uint64 big endian)
 
-	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
-	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
+	blockBodyPrefix         = []byte("b")  // blockBodyPrefix + num (uint64 big endian) + hash -> block body
+	blockReceiptsPrefix     = []byte("r")  // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
 	blockConfirmSignsPrefix = []byte("cs") // blockConfirmSignsPrefix + num (uint64 big endian) + hash
 
 	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
-	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
-	configPrefix   = []byte("ethereum-config-") // config prefix for the db
+	preimagePrefix      = []byte("secure-key-")        // preimagePrefix + hash -> preimage
+	configPrefix        = []byte("ethereum-config-")   // config prefix for the db
+	economicModelPrefix = []byte("economicModel-key-") // economicModel prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
@@ -82,7 +83,6 @@ func encodeBlockNumber(number uint64) []byte {
 func headerKey(number uint64, hash common.Hash) []byte {
 	return append(append(headerPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
-
 
 // headerHashKey = headerPrefix + num (uint64 big endian) + headerHashSuffix
 func headerHashKey(number uint64) []byte {
@@ -132,4 +132,9 @@ func preimageKey(hash common.Hash) []byte {
 // configKey = configPrefix + hash
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
+}
+
+// economicModelKey = economicModelPrefix + hash
+func economicModelKey(hash common.Hash) []byte {
+	return append(economicModelPrefix, hash.Bytes()...)
 }

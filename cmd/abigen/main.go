@@ -29,11 +29,11 @@ import (
 )
 
 var (
-	abiFlag = flag.String("abi", "", "Path to the Ethereum contract ABI json to bind, - for STDIN")
-	binFlag = flag.String("bin", "", "Path to the Ethereum contract bytecode (generate deploy method)")
+	abiFlag = flag.String("abi", "", "Path to the PlatON-Go contract ABI json to bind, - for STDIN")
+	binFlag = flag.String("bin", "", "Path to the PlatON-Go contract bytecode (generate deploy method)")
 	typFlag = flag.String("type", "", "Struct name for the binding (default = package name)")
 
-	solFlag  = flag.String("sol", "", "Path to the Ethereum contract Solidity source to build and bind")
+	solFlag  = flag.String("sol", "", "Path to the PlatON-Go contract Solidity source to build and bind")
 	solcFlag = flag.String("solc", "solc", "Solidity compiler to use if source builds are requested")
 	excFlag  = flag.String("exc", "", "Comma separated types to exclude from binding")
 

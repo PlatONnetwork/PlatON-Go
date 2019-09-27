@@ -23,7 +23,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 // Trie cache generation limit after which to evict trie nodes from memory.
@@ -49,6 +49,7 @@ type Database interface {
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
 
+	NewTrie(t Trie) Trie
 	// ContractCode retrieves a particular contract's code.
 	ContractCode(addrHash, codeHash common.Hash) ([]byte, error)
 
@@ -104,7 +105,6 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 			return cachedTrie{db.pastTries[i].Copy(), db}, nil
 		}
 	}
-
 	tr, err := trie.NewSecure(root, db.db, MaxTrieCacheGen)
 	if err != nil {
 		return nil, err
@@ -136,6 +136,17 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 		return cachedTrie{t.SecureTrie.Copy(), db}
 	case *trie.SecureTrie:
 		return t.Copy()
+	default:
+		panic(fmt.Errorf("unknown trie type %T", t))
+	}
+}
+
+func (db *cachingDB) NewTrie(t Trie) Trie {
+	switch t := t.(type) {
+	case cachedTrie:
+		return cachedTrie{t.SecureTrie.New(), db}
+	case *trie.SecureTrie:
+		return t.New()
 	default:
 		panic(fmt.Errorf("unknown trie type %T", t))
 	}

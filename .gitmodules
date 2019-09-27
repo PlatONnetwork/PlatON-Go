@@ -1,6 +1,17 @@
-[submodule "tests"]
-	path = tests/testdata
-	url = https://github.com/ethereum/tests
 [submodule "life/resolver/softfloat"]
 	path = life/resolver/softfloat
 	url = https://github.com/ucb-bar/berkeley-softfloat-3.git
+    ignore = dirty
+
+[submodule "crypto/bls/bls_linux_darwin/src/mcl"]
+	path = crypto/bls/bls_linux_darwin/src/mcl
+    url = https://github.com/herumi/mcl.git
+    ignore = dirty
+[submodule "crypto/bls/bls_linux_darwin/src/bls"]
+	path = crypto/bls/bls_linux_darwin/src/bls
+	url = https://github.com/herumi/bls.git
+    ignore = dirty
+[submodule "crypto/bls/bls_win"]
+	path = crypto/bls/bls_win
+	url = https://github.com/PlatONnetwork/bls_win.git
+    ignore = dirty

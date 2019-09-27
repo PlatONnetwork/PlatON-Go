@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -99,7 +100,6 @@ func (h *Header) EncodeJSON() (string, error) {
 }
 
 func (h *Header) GetParentHash() *Hash   { return &Hash{h.header.ParentHash} }
-func (h *Header) GetUncleHash() *Hash    { return &Hash{h.header.UncleHash} }
 func (h *Header) GetCoinbase() *Address  { return &Address{h.header.Coinbase} }
 func (h *Header) GetRoot() *Hash         { return &Hash{h.header.Root} }
 func (h *Header) GetTxHash() *Hash       { return &Hash{h.header.TxHash} }
@@ -110,7 +110,6 @@ func (h *Header) GetGasLimit() int64     { return int64(h.header.GasLimit) }
 func (h *Header) GetGasUsed() int64      { return int64(h.header.GasUsed) }
 func (h *Header) GetTime() int64         { return h.header.Time.Int64() }
 func (h *Header) GetExtra() []byte       { return h.header.Extra }
-func (h *Header) GetMixDigest() *Hash    { return &Hash{h.header.MixDigest} }
 func (h *Header) GetNonce() *Nonce       { return &Nonce{h.header.Nonce} }
 func (h *Header) GetHash() *Hash         { return &Hash{h.header.Hash()} }
 
@@ -169,7 +168,6 @@ func (b *Block) EncodeJSON() (string, error) {
 }
 
 func (b *Block) GetParentHash() *Hash           { return &Hash{b.block.ParentHash()} }
-func (b *Block) GetUncleHash() *Hash            { return &Hash{b.block.UncleHash()} }
 func (b *Block) GetCoinbase() *Address          { return &Address{b.block.Coinbase()} }
 func (b *Block) GetRoot() *Hash                 { return &Hash{b.block.Root()} }
 func (b *Block) GetTxHash() *Hash               { return &Hash{b.block.TxHash()} }
@@ -180,11 +178,9 @@ func (b *Block) GetGasLimit() int64             { return int64(b.block.GasLimit(
 func (b *Block) GetGasUsed() int64              { return int64(b.block.GasUsed()) }
 func (b *Block) GetTime() int64                 { return b.block.Time().Int64() }
 func (b *Block) GetExtra() []byte               { return b.block.Extra() }
-func (b *Block) GetMixDigest() *Hash            { return &Hash{b.block.MixDigest()} }
-func (b *Block) GetNonce() int64                { return int64(b.block.Nonce()) }
+func (b *Block) GetNonce() []byte               { return b.block.Nonce() }
 func (b *Block) GetHash() *Hash                 { return &Hash{b.block.Hash()} }
 func (b *Block) GetHeader() *Header             { return &Header{b.block.Header()} }
-func (b *Block) GetUncles() *Headers            { return &Headers{b.block.Uncles()} }
 func (b *Block) GetTransactions() *Transactions { return &Transactions{b.block.Transactions()} }
 func (b *Block) GetTransaction(hash *Hash) *Transaction {
 	return &Transaction{b.block.Transaction(hash.hash)}
@@ -243,11 +239,11 @@ func (tx *Transaction) GetHash() *Hash   { return &Hash{tx.tx.Hash()} }
 func (tx *Transaction) GetCost() *BigInt { return &BigInt{tx.tx.Cost()} }
 
 // Deprecated: GetSigHash cannot know which signer to use.
-func (tx *Transaction) GetSigHash() *Hash { return &Hash{types.HomesteadSigner{}.Hash(tx.tx)} }
+func (tx *Transaction) GetSigHash() *Hash { return &Hash{types.NewEIP155Signer(new(big.Int)).Hash(tx.tx)} }
 
 // Deprecated: use EthereumClient.TransactionSender
 func (tx *Transaction) GetFrom(chainID *BigInt) (address *Address, _ error) {
-	var signer types.Signer = types.HomesteadSigner{}
+	var signer types.Signer = types.NewEIP155Signer(new(big.Int))
 	if chainID != nil {
 		signer = types.NewEIP155Signer(chainID.bigint)
 	}
@@ -263,7 +259,7 @@ func (tx *Transaction) GetTo() *Address {
 }
 
 func (tx *Transaction) WithSignature(sig []byte, chainID *BigInt) (signedTx *Transaction, _ error) {
-	var signer types.Signer = types.HomesteadSigner{}
+	var signer types.Signer =  types.NewEIP155Signer(new(big.Int))
 	if chainID != nil {
 		signer = types.NewEIP155Signer(chainID.bigint)
 	}

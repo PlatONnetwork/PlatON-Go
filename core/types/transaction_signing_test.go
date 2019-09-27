@@ -53,27 +53,21 @@ func TestEIP155ChainId(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !tx.Protected() {
-		t.Fatal("expected tx to be protected")
-	}
 
 	if tx.ChainId().Cmp(signer.chainId) != 0 {
 		t.Error("expected chainId to be", signer.chainId, "got", tx.ChainId())
 	}
 
 	tx = NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil)
-	tx, err = SignTx(tx, HomesteadSigner{}, key)
+	tx, err = SignTx(tx, signer, key)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if tx.Protected() {
-		t.Error("didn't expect tx to be protected")
+	if tx.ChainId().Sign() != 1 {
+		t.Error("expected chain id is not exist")
 	}
 
-	if tx.ChainId().Sign() != 0 {
-		t.Error("expected chain id to be 0 got", tx.ChainId())
-	}
 }
 
 func TestEIP155SigningVitalik(t *testing.T) {

@@ -76,7 +76,7 @@ func (tt *TransactionTest) Run(config *params.ChainConfig) error {
 		return fmt.Errorf("RLP decoding failed: %v", err)
 	}
 	// Check sender derivation.
-	signer := types.MakeSigner(config, new(big.Int).SetUint64(uint64(tt.json.BlockNumber)))
+	signer := types.NewEIP155Signer(config.ChainID)
 	sender, err := types.Sender(signer, tx)
 	if err != nil {
 		return err

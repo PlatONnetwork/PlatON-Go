@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package les
 
 import (
@@ -222,7 +223,7 @@ func testGetBlockBodies(t *testing.T, protocol int) {
 					block := bc.GetBlockByNumber(uint64(num))
 					hashes = append(hashes, block.Hash())
 					if len(bodies) < tt.expected {
-						bodies = append(bodies, &types.Body{Transactions: block.Transactions(), Uncles: block.Uncles()})
+						bodies = append(bodies, &types.Body{Transactions: block.Transactions()})
 					}
 					break
 				}
@@ -232,7 +233,7 @@ func testGetBlockBodies(t *testing.T, protocol int) {
 			hashes = append(hashes, hash)
 			if tt.available[j] && len(bodies) < tt.expected {
 				block := bc.GetBlockByHash(hash)
-				bodies = append(bodies, &types.Body{Transactions: block.Transactions(), Uncles: block.Uncles()})
+				bodies = append(bodies, &types.Body{Transactions: block.Transactions()})
 			}
 		}
 		reqID++
@@ -366,9 +367,6 @@ func testGetProofs(t *testing.T, protocol int) {
 func testGetCHTProofs(t *testing.T, protocol int) {
 	config := light.TestServerIndexerConfig
 	frequency := config.ChtSize
-	if protocol == 2 {
-		frequency = config.PairChtSize
-	}
 
 	waitIndexers := func(cIndexer, bIndexer, btIndexer *core.ChainIndexer) {
 		expectSections := frequency / config.ChtSize
@@ -419,7 +417,7 @@ func testGetCHTProofs(t *testing.T, protocol int) {
 	}}
 	requestsV2 := []HelperTrieReq{{
 		Type:    htCanonical,
-		TrieIdx: frequency/config.PairChtSize - 1,
+		TrieIdx: frequency/config.ChtSize - 1,
 		Key:     key,
 		AuxReq:  auxHeader,
 	}}

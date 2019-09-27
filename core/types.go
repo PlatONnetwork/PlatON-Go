@@ -20,7 +20,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"math/big"
 )
 
 // Validator is an interface which defines the standard for block validation. It
@@ -43,5 +42,5 @@ type Validator interface {
 // of gas used in the process and return an error if any of the internal rules
 // failed.
 type Processor interface {
-	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config, blockInterval *big.Int) (types.Receipts, []*types.Log, uint64, error)
+	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error)
 }

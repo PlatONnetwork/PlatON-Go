@@ -19,7 +19,6 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"errors"
-	"math/rand"
 	"net"
 	"reflect"
 	"testing"
@@ -610,9 +609,3 @@ func newkey() *ecdsa.PrivateKey {
 	return key
 }
 
-func randomID() (id discover.NodeID) {
-	for i := range id {
-		id[i] = byte(rand.Intn(255))
-	}
-	return id
-}

@@ -107,7 +107,7 @@ func main() {
 		if err := node.Service(&ethereum); err != nil {
 			panic(err)
 		}
-		if err := ethereum.StartMining(1); err != nil {
+		if err := ethereum.StartMining(); err != nil {
 			panic(err)
 		}
 	}
@@ -124,7 +124,7 @@ func main() {
 			panic(err)
 		}
 		// Create a self transaction and inject into the pool
-		tx, err := types.SignTx(types.NewTransaction(nonces[index], crypto.PubkeyToAddress(faucets[index].PublicKey), new(big.Int), 21000, big.NewInt(100000000000), nil), types.HomesteadSigner{}, faucets[index])
+		tx, err := types.SignTx(types.NewTransaction(nonces[index], crypto.PubkeyToAddress(faucets[index].PublicKey), new(big.Int), 21000, big.NewInt(100000000000), nil), types.NewEIP155Signer(new(big.Int)), faucets[index])
 		if err != nil {
 			panic(err)
 		}
@@ -149,7 +149,6 @@ func makeGenesis(faucets []*ecdsa.PrivateKey, sealers []*ecdsa.PrivateKey) *core
 
 	genesis.Config.ChainID = big.NewInt(18)
 	genesis.Config.Clique.Period = 1
-	genesis.Config.EIP150Hash = common.Hash{}
 
 	genesis.Alloc = core.GenesisAlloc{}
 	for _, faucet := range faucets {

@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -37,6 +38,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -149,7 +151,7 @@ func odrAccounts(ctx context.Context, db ethdb.Database, bc *core.BlockChain, lc
 		st = NewState(ctx, header, lc.Odr())
 	} else {
 		header := bc.GetHeaderByHash(bhash)
-		st, _ = state.New(header.Root, state.NewDatabase(db), header.Number, header.Hash())
+		st, _ = state.New(header.Root, state.NewDatabase(db))
 	}
 
 	var res []byte
@@ -189,13 +191,13 @@ func odrContractCall(ctx context.Context, db ethdb.Database, bc *core.BlockChain
 		} else {
 			chain = bc
 			header = bc.GetHeaderByHash(bhash)
-			st, _ = state.New(header.Root, state.NewDatabase(db), header.Number, header.Hash())
+			st, _ = state.New(header.Root, state.NewDatabase(db))
 		}
 
 		// Perform read-only call.
 		st.SetBalance(testBankAddress, math.MaxBig256)
 		msg := callmsg{types.NewMessage(testBankAddress, &testContractAddr, 0, new(big.Int), 1000000, new(big.Int), data, false)}
-		context := core.NewEVMContext(msg, header, chain, nil)
+		context := core.NewEVMContext(msg, header, chain)
 		vmenv := vm.NewEVM(context, st, config, vm.Config{})
 		gp := new(core.GasPool).AddGas(math.MaxUint64)
 		ret, _, _, _ := core.ApplyMessage(vmenv, msg, gp)
@@ -208,7 +210,7 @@ func odrContractCall(ctx context.Context, db ethdb.Database, bc *core.BlockChain
 }
 
 func testChainGen(i int, block *core.BlockGen) {
-	signer := types.HomesteadSigner{}
+	signer := types.NewEIP155Signer(new(big.Int))
 	switch i {
 	case 0:
 		// In block 1, the test bank sends account #1 some ether.
@@ -238,10 +240,10 @@ func testChainGen(i int, block *core.BlockGen) {
 		// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
 		b2 := block.PrevBlock(1).Header()
 		b2.Extra = []byte("foo")
-		block.AddUncle(b2)
+		//	block.AddUncle(b2)
 		b3 := block.PrevBlock(2).Header()
 		b3.Extra = []byte("foo")
-		block.AddUncle(b3)
+		//	block.AddUncle(b3)
 		data := common.Hex2Bytes("C16431B900000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002")
 		tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBankAddress), testContractAddr, big.NewInt(0), 100000, nil, data), signer, testBankKey)
 		block.AddTx(tx)

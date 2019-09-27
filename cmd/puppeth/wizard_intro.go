@@ -71,7 +71,7 @@ func (w *wizard) run() {
 			log.Error("I also like to live dangerously, still no spaces or hyphens")
 		}
 	}
-	log.Info("Administering Ethereum network", "name", w.network)
+	log.Info("Administering PlatON-Go network", "name", w.network)
 
 	// Load initial configurations and connect to all live servers
 	w.conf.path = filepath.Join(os.Getenv("HOME"), ".puppeth", w.network)

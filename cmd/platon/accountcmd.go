@@ -32,20 +32,20 @@ import (
 var (
 	walletCommand = cli.Command{
 		Name:      "wallet",
-		Usage:     "Manage Ethereum presale wallets",
+		Usage:     "Manage PlatON presale wallets",
 		ArgsUsage: "",
 		Category:  "ACCOUNT COMMANDS",
 		Description: `
     platon wallet import /path/to/my/presale.wallet
 
-will prompt for your password and imports your ether presale account.
+will prompt for your password and imports your LAT presale account.
 It can be used non-interactively with the --password option taking a
 passwordfile as argument containing the wallet password in plaintext.`,
 		Subcommands: []cli.Command{
 			{
 
 				Name:      "import",
-				Usage:     "Import Ethereum presale wallet",
+				Usage:     "Import PlatON presale wallet",
 				ArgsUsage: "<keyFile>",
 				Action:    utils.MigrateFlags(importWallet),
 				Category:  "ACCOUNT COMMANDS",
@@ -58,7 +58,7 @@ passwordfile as argument containing the wallet password in plaintext.`,
 				Description: `
 	platon wallet [options] /path/to/my/presale.wallet
 
-will prompt for your password and imports your ether presale account.
+will prompt for your password and imports your LAT presale account.
 It can be used non-interactively with the --password option taking a
 passwordfile as argument containing the wallet password in plaintext.`,
 			},
@@ -86,7 +86,7 @@ Note that exporting your key in unencrypted format is NOT supported.
 
 Keys are stored under <DATADIR>/keystore.
 It is safe to transfer the entire directory or the individual keys therein
-between ethereum nodes by simply copying.
+between PlatON nodes by simply copying.
 
 Make sure you backup your keys regularly.`,
 		Subcommands: []cli.Command{
@@ -183,7 +183,7 @@ For non-interactive use the passphrase can be specified with the -password flag:
     platon account import [options] <keyfile>
 
 Note:
-As you can directly copy your encrypted accounts to another ethereum instance,
+As you can directly copy your encrypted accounts to another PlatON instance,
 this import mechanism is not needed when you transfer an account between
 nodes.
 `,

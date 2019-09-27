@@ -19,6 +19,7 @@ package ethapi
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -39,6 +40,7 @@ import (
 type Backend interface {
 	// General Ethereum API
 	Downloader() *downloader.Downloader
+	Engine() consensus.Engine
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
 	ChainDb() ethdb.Database
@@ -74,17 +76,17 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 	nonceLock := new(AddrLocker)
 	return []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   NewPublicEthereumAPI(apiBackend),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   NewPublicBlockChainAPI(apiBackend),
 			Public:    true,
 		}, {
-			Namespace: "eth",
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   NewPublicTransactionPoolAPI(apiBackend, nonceLock),
 			Public:    true,
@@ -103,7 +105,7 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(apiBackend),
 		}, {
-			Namespace: "eth",
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   NewPublicAccountAPI(apiBackend.AccountManager()),
 			Public:    true,

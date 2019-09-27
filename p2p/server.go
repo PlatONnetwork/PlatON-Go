@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -28,6 +29,8 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -63,6 +66,8 @@ type Config struct {
 	// connected. It must be greater than zero.
 	MaxPeers int
 
+	// MaxConsensusPeers is the maximum number of consensus peers that can be
+	// connected. It must be greater than zero.
 	MaxConsensusPeers int
 
 	// MaxPendingPeers is the maximum number of peers that can be pending in the
@@ -89,7 +94,7 @@ type Config struct {
 
 	// BootstrapNodes are used to establish connectivity
 	// with the rest of the network.
-	BootstrapNodes []*discover.Node
+	BootstrapNodes []*discover.Node `json:"-"`
 
 	// BootstrapNodesV5 are used to establish connectivity
 	// with the rest of the network using the V5 discovery
@@ -98,7 +103,7 @@ type Config struct {
 
 	// Static nodes are used as pre-configured connections which are always
 	// maintained and re-connected on disconnects.
-	StaticNodes []*discover.Node
+	StaticNodes []*discover.Node `json:"-"`
 
 	// Trusted nodes are used as pre-configured connections which are always
 	// allowed to connect, even above the peer limit.
@@ -169,19 +174,21 @@ type Server struct {
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
 
-	quit          chan struct{}
-	addstatic     chan *discover.Node
-	removestatic  chan *discover.Node
-	addconsensus	chan *discover.Node
-	removeconsensus	chan *discover.Node
-	addtrusted    chan *discover.Node
-	removetrusted chan *discover.Node
-	posthandshake chan *conn
-	addpeer       chan *conn
-	delpeer       chan peerDrop
-	loopWG        sync.WaitGroup // loop, listenLoop
-	peerFeed      event.Feed
-	log           log.Logger
+	quit            chan struct{}
+	addstatic       chan *discover.Node
+	removestatic    chan *discover.Node
+	addconsensus    chan *discover.Node
+	removeconsensus chan *discover.Node
+	addtrusted      chan *discover.Node
+	removetrusted   chan *discover.Node
+	posthandshake   chan *conn
+	addpeer         chan *conn
+	delpeer         chan peerDrop
+	loopWG          sync.WaitGroup // loop, listenLoop
+	peerFeed        event.Feed
+	log             log.Logger
+
+	eventMux *event.TypeMux
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -327,6 +334,9 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 	}
 }
 
+// AddConsensusPeer connects to the given consensus node and maintains the connection until the
+// server is shut down. If the connection fails for any reason, the server will
+// attempt to reconnect the peer.
 func (srv *Server) AddConsensusPeer(node *discover.Node) {
 	select {
 	case srv.addconsensus <- node:
@@ -334,7 +344,7 @@ func (srv *Server) AddConsensusPeer(node *discover.Node) {
 	}
 }
 
-// RemovePeer disconnects from the given node
+// RemoveConsensusPeer disconnects from the given consensus node
 func (srv *Server) RemoveConsensusPeer(node *discover.Node) {
 	select {
 	case srv.removeconsensus <- node:
@@ -687,9 +697,11 @@ running:
 		case n := <-srv.removeconsensus:
 			srv.log.Trace("Removing consensus node", "node", n)
 			dialstate.removeConsensus(n)
-			if p, ok := peers[n.ID]; ok {
-				p.Disconnect(DiscRequested)
-			}
+			/*
+				if p, ok := peers[n.ID]; ok {
+					p.Disconnect(DiscRequested)
+				}
+			*/
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
 			// to the trusted node set.
@@ -1071,4 +1083,78 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) StartWatching(eventMux *event.TypeMux) {
+	srv.eventMux = eventMux
+	go srv.watching()
+}
+
+func (srv *Server) watching() {
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			if ev == nil {
+				continue
+			}
+
+			switch ev.Data.(type) {
+			case cbfttypes.AddValidatorEvent:
+				addEv, ok := ev.Data.(cbfttypes.AddValidatorEvent)
+				if !ok {
+					log.Error("Received add validator event type error")
+					continue
+				}
+				log.Trace("Received AddValidatorEvent", "nodeID", addEv.NodeID.String())
+				node := discover.NewNode(addEv.NodeID, nil, 0, 0)
+				srv.AddConsensusPeer(node)
+			default:
+				log.Error("Received unexcepted event")
+			}
+
+		case <-srv.quit:
+			return
+		}
+	}
+}
+
+type mockTransport struct {
+	id discover.NodeID
+	*rlpx
+
+	closeErr error
+}
+
+func newMockTransport(id discover.NodeID, fd net.Conn) transport {
+	wrapped := newRLPX(fd).(*rlpx)
+	wrapped.rw = newRLPXFrameRW(fd, secrets{
+		MAC:        zero16,
+		AES:        zero16,
+		IngressMAC: sha3.NewKeccak256(),
+		EgressMAC:  sha3.NewKeccak256(),
+	})
+	return &mockTransport{id: id, rlpx: wrapped}
+}
+
+func (c *mockTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error) {
+	return c.id, nil
+}
+
+func (c *mockTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, error) {
+	return &protoHandshake{ID: c.id, Name: "test"}, nil
+}
+
+func (c *mockTransport) close(err error) {
+	c.rlpx.fd.Close()
+	c.closeErr = err
+}
+
+func randomID() (id discover.NodeID) {
+	for i := range id {
+		id[i] = byte(rand.Intn(255))
+	}
+	return id
 }

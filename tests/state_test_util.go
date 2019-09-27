@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -125,7 +127,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	if !ok {
 		return nil, UnsupportedForkError{subtest.Fork}
 	}
-	block := t.genesis(config).ToBlock(nil)
+	block := t.genesis(config).ToBlock(nil, snapshotdb.Instance())
 	statedb := MakePreState(ethdb.NewMemDatabase(), t.json.Pre)
 
 	post := t.json.Post[subtest.Fork][subtest.Index]
@@ -133,7 +135,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	if err != nil {
 		return nil, err
 	}
-	context := core.NewEVMContext(msg, block.Header(), nil, &t.json.Env.Coinbase)
+	context := core.NewEVMContext(msg, block.Header(), nil)
 	context.GetHash = vmTestBlockHash
 	evm := vm.NewEVM(context, statedb, config, vmconfig)
 
@@ -147,7 +149,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 		return statedb, fmt.Errorf("post state logs hash mismatch: got %x, want %x", logs, post.Logs)
 	}
 	// Commit block
-	statedb.Commit(config.IsEIP158(block.Number()))
+	statedb.Commit(true)
 	// Add 0-value mining reward. This only makes a difference in the cases
 	// where
 	// - the coinbase suicided, or
@@ -155,7 +157,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	//   the coinbase gets no txfee, so isn't created, and thus needs to be touched
 	statedb.AddBalance(block.Coinbase(), new(big.Int))
 	// And _now_ get the state root
-	root := statedb.IntermediateRoot(config.IsEIP158(block.Number()))
+	root := statedb.IntermediateRoot(true)
 	// N.B: We need to do this in a two-step process, because the first Commit takes care
 	// of suicides, and we need to touch the coinbase _after_ it has potentially suicided.
 	if root != common.Hash(post.Root) {
@@ -170,7 +172,7 @@ func (t *StateTest) gasLimit(subtest StateSubtest) uint64 {
 
 func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
 	sdb := state.NewDatabase(db)
-	statedb, _ := state.New(common.Hash{}, sdb, big.NewInt(0), common.Hash{})
+	statedb, _ := state.New(common.Hash{}, sdb)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)
@@ -181,18 +183,18 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB 
 	}
 	// Commit and re-open to start with a clean state.
 	root, _ := statedb.Commit(false)
-	statedb, _ = state.New(root, sdb, big.NewInt(0), common.Hash{})
+	statedb, _ = state.New(root, sdb)
 	return statedb
 }
 
 func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
 	return &core.Genesis{
-		Config:     config,
-		Coinbase:   t.json.Env.Coinbase,
-		GasLimit:   t.json.Env.GasLimit,
-		Number:     t.json.Env.Number,
-		Timestamp:  t.json.Env.Timestamp,
-		Alloc:      t.json.Pre,
+		Config:    config,
+		Coinbase:  t.json.Env.Coinbase,
+		GasLimit:  t.json.Env.GasLimit,
+		Number:    t.json.Env.Number,
+		Timestamp: t.json.Env.Timestamp,
+		Alloc:     t.json.Pre,
 	}
 }
 

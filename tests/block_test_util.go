@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -34,6 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // A BlockTest checks handling of entire blocks.
@@ -66,7 +69,6 @@ type btBlock struct {
 type btHeader struct {
 	Bloom            types.Bloom
 	Coinbase         common.Address
-	MixHash          common.Hash
 	Nonce            types.BlockNonce
 	Number           *big.Int
 	Hash             common.Hash
@@ -99,7 +101,7 @@ func (t *BlockTest) Run() error {
 
 	// import pre accounts & construct test genesis block & state root
 	db := ethdb.NewMemDatabase()
-	gblock, err := t.genesis(config).Commit(db)
+	gblock, err := t.genesis(config).Commit(db, snapshotdb.Instance())
 	if err != nil {
 		return err
 	}
@@ -137,13 +139,12 @@ func (t *BlockTest) Run() error {
 func (t *BlockTest) genesis(config *params.ChainConfig) *core.Genesis {
 	return &core.Genesis{
 		Config:     config,
-		Nonce:      t.json.Genesis.Nonce.Uint64(),
+		Nonce:      t.json.Genesis.Nonce[:],
 		Timestamp:  t.json.Genesis.Timestamp.Uint64(),
 		ParentHash: t.json.Genesis.ParentHash,
 		ExtraData:  t.json.Genesis.ExtraData,
 		GasLimit:   t.json.Genesis.GasLimit,
 		GasUsed:    t.json.Genesis.GasUsed,
-		Mixhash:    t.json.Genesis.MixHash,
 		Coinbase:   t.json.Genesis.Coinbase,
 		Alloc:      t.json.Pre,
 	}
@@ -203,9 +204,6 @@ func validateHeader(h *btHeader, h2 *types.Header) error {
 	if h.Coinbase != h2.Coinbase {
 		return fmt.Errorf("Coinbase: want: %x have: %x", h.Coinbase, h2.Coinbase)
 	}
-	if h.MixHash != h2.MixDigest {
-		return fmt.Errorf("MixHash: want: %x have: %x", h.MixHash, h2.MixDigest)
-	}
 	if h.Nonce != h2.Nonce {
 		return fmt.Errorf("Nonce: want: %x have: %x", h.Nonce, h2.Nonce)
 	}
@@ -223,9 +221,6 @@ func validateHeader(h *btHeader, h2 *types.Header) error {
 	}
 	if h.StateRoot != h2.Root {
 		return fmt.Errorf("State hash: want: %x have: %x", h.StateRoot, h2.Root)
-	}
-	if h.UncleHash != h2.UncleHash {
-		return fmt.Errorf("Uncle hash: want: %x have: %x", h.UncleHash, h2.UncleHash)
 	}
 	if !bytes.Equal(h.ExtraData, h2.Extra) {
 		return fmt.Errorf("Extra data: want: %x have: %x", h.ExtraData, h2.Extra)

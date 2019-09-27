@@ -198,6 +198,14 @@ func (t *SecureTrie) Copy() *SecureTrie {
 	return cpy
 }
 
+func (t *SecureTrie) New() *SecureTrie {
+	cpy := &SecureTrie{
+		trie:         t.trie,
+		storageValue: make(map[common.Hash][]byte),
+	}
+	return cpy
+}
+
 // NodeIterator returns an iterator that returns nodes of the underlying trie. Iteration
 // starts at the key after the given start key.
 func (t *SecureTrie) NodeIterator(start []byte) NodeIterator {

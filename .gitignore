@@ -63,4 +63,8 @@ mpc.rlp
 
 consensus/cbft/data/
 
-core/ppos_storage/data/
+crypto/bls/bls_linux_darwin/
+
+
+consensus/cbft/transactions.rlp
+consensus/cbft/transactions.rlp.new

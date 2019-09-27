@@ -30,6 +30,7 @@ import (
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db DatabaseReader, number uint64) common.Hash {
 	data, _ := db.Get(headerHashKey(number))
+
 	if len(data) == 0 {
 		return common.Hash{}
 	}
@@ -38,6 +39,7 @@ func ReadCanonicalHash(db DatabaseReader, number uint64) common.Hash {
 
 // WriteCanonicalHash stores the hash assigned to a canonical block number.
 func WriteCanonicalHash(db DatabaseWriter, hash common.Hash, number uint64) {
+
 	if err := db.Put(headerHashKey(number), hash.Bytes()); err != nil {
 		log.Crit("Failed to store number to hash mapping", "err", err)
 	}
@@ -188,7 +190,7 @@ func DeleteHeader(db DatabaseDeleter, hash common.Hash, number uint64) {
 	}
 }
 
-// ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
+// ReadBodyRLP retrieves the block body (transactions) in RLP encoding.
 func ReadBodyRLP(db DatabaseReader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Get(blockBodyKey(number, hash))
 	return data
@@ -291,16 +293,16 @@ func ReadBlockConfirmSigns(db DatabaseReader, hash common.Hash, number uint64) [
 }
 
 // WriteBlockConfirmSigns stores all the block confirmSigns belonging to a block.
-func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []*common.BlockConfirmSign) {
-	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
-	if err != nil {
-		log.Crit("Failed to encode block confirmSigns", "err", err)
-	}
-	// Store the flattened receipt slice
-	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
-		log.Crit("Failed to store block confirmSigns", "err", err)
-	}
-}
+//func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []common.BlockConfirmSign) {
+//	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
+//	if err != nil {
+//		log.Crit("Failed to encode block confirmSigns", "err", err)
+//	}
+//	// Store the flattened receipt slice
+//	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
+//		log.Crit("Failed to store block confirmSigns", "err", err)
+//	}
+//}
 
 // DeleteReceipts removes all receipt data associated with a block hash.
 func DeleteReceipts(db DatabaseDeleter, hash common.Hash, number uint64) {
@@ -324,7 +326,7 @@ func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block 
 	if body == nil {
 		return nil
 	}
-	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles, body.Signatures)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.ExtraData)
 }
 
 // WriteBlock serializes a block into the database, header and body separately.
@@ -366,5 +368,3 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 	}
 	return a
 }
-
-

@@ -4,15 +4,16 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"gopkg.in/urfave/cli.v1"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 var (
@@ -44,7 +45,7 @@ func getTxReceiptCmd(c *cli.Context) {
 
 func GetTxReceipt(txHash string) (Receipt, error) {
 	var receipt = Receipt{}
-	res, _ := Send([]string{txHash}, "eth_getTransactionReceipt")
+	res, _ := Send([]string{txHash}, "platon_getTransactionReceipt")
 	e := json.Unmarshal([]byte(res), &receipt)
 	if e != nil {
 		panic(fmt.Sprintf("parse get receipt result error ! \n %s", e.Error()))
@@ -101,7 +102,10 @@ func SendTransaction(from, to, value string) (string, error) {
 	tx.GasPrice = config.GasPrice
 
 	if !strings.HasPrefix(value, "0x") {
-		intValue, _ := strconv.ParseInt(value, 10, 64)
+		intValue, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("transfer value to int error.%s", err))
+		}
 		value = hexutil.EncodeBig(big.NewInt(intValue))
 	}
 	tx.Value = value
@@ -109,7 +113,7 @@ func SendTransaction(from, to, value string) (string, error) {
 	params := make([]TxParams, 1)
 	params[0] = tx
 
-	res, _ := Send(params, "eth_sendTransaction")
+	res, _ := Send(params, "platon_sendTransaction")
 	response := parseResponse(res)
 
 	return response.Result, nil
@@ -120,11 +124,15 @@ func SendRawTransaction(from, to, value string, pkFile string) (string, error) {
 		parsePkFile(pkFile)
 	}
 	var v int64
+	var err error
 	if strings.HasPrefix(value, "0x") {
 		bigValue, _ := hexutil.DecodeBig(value)
 		v = bigValue.Int64()
 	} else {
-		v, _ = strconv.ParseInt(value, 10, 64)
+		v, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("transfer value to int error.%s", err))
+		}
 	}
 
 	acc, ok := accountPool[from]
@@ -144,7 +152,7 @@ func SendRawTransaction(from, to, value string, pkFile string) (string, error) {
 
 func sendRawTransaction(transaction *types.Transaction) (string, error) {
 	bytes, _ := rlp.EncodeToBytes(transaction)
-	res, err := Send([]string{hexutil.Encode(bytes)}, "eth_sendRawTransaction")
+	res, err := Send([]string{hexutil.Encode(bytes)}, "platon_sendRawTransaction")
 	if err != nil {
 		panic(err)
 	}
@@ -154,7 +162,7 @@ func sendRawTransaction(transaction *types.Transaction) (string, error) {
 }
 
 func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, nonce uint64) *types.Transaction {
-	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), 100000, big.NewInt(90000), []byte{}), types.HomesteadSigner{}, priv)
+	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), 100000, big.NewInt(90000), []byte{}), types.NewEIP155Signer(new(big.Int)), priv)
 	if err != nil {
 		panic(fmt.Errorf("sign error,%s", err.Error()))
 	}
@@ -162,7 +170,7 @@ func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, 
 }
 
 func getNonce(addr string) uint64 {
-	res, _ := Send([]string{addr, "latest"}, "eth_getTransactionCount")
+	res, _ := Send([]string{addr, "latest"}, "platon_getTransactionCount")
 	response := parseResponse(res)
 	nonce, _ := hexutil.DecodeBig(response.Result)
 	fmt.Println(addr, nonce)
@@ -170,7 +178,7 @@ func getNonce(addr string) uint64 {
 }
 
 //func getCoinbase() (error) {
-//	res, _ := Send([]string{}, "eth_coinbase")
+//	res, _ := Send([]string{}, "platon_coinbase")
 //	response := parseResponse(res)
 //	coinBase = response.Result
 //	return nil

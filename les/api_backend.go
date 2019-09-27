@@ -20,6 +20,8 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -46,7 +48,9 @@ type LesApiBackend struct {
 func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
 	return b.eth.chainConfig
 }
-
+func (b *LesApiBackend) Engine() consensus.Engine {
+	return b.eth.engine
+}
 func (b *LesApiBackend) CurrentBlock() *types.Block {
 	return types.NewBlockWithHeader(b.eth.BlockChain().CurrentHeader())
 }
@@ -103,7 +107,7 @@ func (b *LesApiBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*typ
 
 func (b *LesApiBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
 	state.SetBalance(msg.From(), math.MaxBig256)
-	context := core.NewEVMContext(msg, header, b.eth.blockchain, nil)
+	context := core.NewEVMContext(msg, header, b.eth.blockchain)
 	return vm.NewEVM(context, state, b.eth.chainConfig, vmCfg), state.Error, nil
 }
 

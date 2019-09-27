@@ -19,7 +19,7 @@ func (m *Memory) Malloc(size int) int {
 		size = fixSize(size)
 	}
 	if size > m.tree[0] {
-		panic(fmt.Errorf("malloc Size=%d exceed avalable memory Size", size))
+		panic(fmt.Errorf("malloc Size=%d exceed available memory Size", size))
 	}
 
 	/*
@@ -46,6 +46,42 @@ func (m *Memory) Malloc(size int) int {
 	//Clear the memory data corresponding to the node
 	clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
 	return offset + m.Start
+}
+
+func (m *Memory) Realloc(offset int, size int) int {
+	if offset == 0 {
+		return m.Malloc(size)
+	}
+
+	offset = offset - m.Start
+	if offset < 0 || offset >= m.Size {
+		panic(fmt.Errorf("error offset=%d", offset))
+	}
+
+	//Lowermost node
+	nodeSize := 1
+	//Offset corresponds to the node index
+	index := offset + m.Size - 1
+	//From the last node, go up and find the node with size 0, that is, the size and position of the original allocation block.
+	for ; m.tree[index] != 0; index = parent(index) {
+		nodeSize *= 2
+		if index == 0 {
+			break
+		}
+	}
+
+	if nodeSize == size {
+		return offset + m.Start
+	} else {
+		pos := m.Malloc(size)
+		if size < nodeSize {
+			copy(m.Memory[pos:], m.Memory[offset+m.Start:offset+m.Start+size])
+		} else {
+			copy(m.Memory[pos:], m.Memory[offset+m.Start:offset+m.Start+nodeSize])
+		}
+		m.Free(offset+m.Start)
+		return pos
+	}
 }
 
 func (m *Memory) Free(offset int) error {

@@ -18,7 +18,7 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -46,18 +46,14 @@ func (p *headerPack) Stats() string  { return fmt.Sprintf("%d", len(p.headers)) 
 type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Transaction
-	uncles       [][]*types.Header
-	signatures 	 [][]*common.BlockConfirmSign
+	extraData    [][]byte
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }
 func (p *bodyPack) Items() int {
-	if len(p.transactions) <= len(p.uncles) {
-		return len(p.transactions)
-	}
-	return len(p.uncles)
+	return len(p.transactions)
 }
-func (p *bodyPack) Stats() string { return fmt.Sprintf("%d:%d", len(p.transactions), len(p.uncles)) }
+func (p *bodyPack) Stats() string { return fmt.Sprintf("%d", len(p.transactions)) }
 
 // receiptPack is a batch of receipts returned by a peer.
 type receiptPack struct {
@@ -79,15 +75,34 @@ func (p *statePack) PeerId() string { return p.peerID }
 func (p *statePack) Items() int     { return len(p.states) }
 func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
 
-
 // pposStoragePack is a batch of ppos storage returned by a peer.
 type pposStoragePack struct {
-	peerID 	string
-	latest  *types.Header
-	pivot	*types.Header
-	storage	[]byte
+	peerID string
+	kvs    []PPOSStorageKV
+	last   bool
+	kvNum  uint64
 }
 
+type PPOSStorageKV [2][]byte
+
 func (p *pposStoragePack) PeerId() string { return p.peerID }
-func (p *pposStoragePack) Items() int     { return 1 }
-func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", 1) }
+func (p *pposStoragePack) Items() int     { return len(p.kvs) }
+func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)) }
+func (p *pposStoragePack) KVs() [][2][]byte {
+	var kv [][2][]byte
+	for _, value := range p.kvs {
+		kv = append(kv, value)
+	}
+	return kv
+}
+
+// pposStoragePack is a batch of ppos storage returned by a peer.
+type pposInfoPack struct {
+	peerID string
+	latest *types.Header
+	pivot  *types.Header
+}
+
+func (p *pposInfoPack) PeerId() string { return p.peerID }
+func (p *pposInfoPack) Items() int     { return 1 }
+func (p *pposInfoPack) Stats() string  { return fmt.Sprint(1) }

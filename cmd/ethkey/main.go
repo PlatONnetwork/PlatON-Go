@@ -34,7 +34,7 @@ var gitCommit = ""
 var app *cli.App
 
 func init() {
-	app = utils.NewApp(gitCommit, "an Ethereum key manager")
+	app = utils.NewApp(gitCommit, "an PlatON-Go key manager")
 	app.Commands = []cli.Command{
 		commandGenerate,
 		commandInspect,
@@ -42,6 +42,7 @@ func init() {
 		commandSignMessage,
 		commandVerifyMessage,
 		commandGenkeypair,
+		commandGenblskeypair,
 	}
 }
 

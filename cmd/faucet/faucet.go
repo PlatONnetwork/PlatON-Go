@@ -66,7 +66,7 @@ var (
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
 	ethPortFlag = flag.Int("ethport", 16789, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode enode URLs to seed with")
-	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Ethereum protocol")
+	netFlag     = flag.Uint64("network", 0, "Network ID to use for the PlatON-Go protocol")
 	statsFlag   = flag.String("ethstats", "", "Ethstats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
@@ -81,7 +81,7 @@ var (
 	captchaSecret = flag.String("captcha.secret", "", "Recaptcha secret key to authenticate server side")
 
 	noauthFlag = flag.Bool("noauth", false, "Enables funding requests without authentication")
-	logFlag    = flag.Int("loglevel", 3, "Log level to use for Ethereum and the faucet")
+	logFlag    = flag.Int("loglevel", 3, "Log level to use for PlatON-Go and the faucet")
 )
 
 var (
@@ -688,7 +688,7 @@ func authTwitter(url string) (string, string, common.Address, error) {
 	}
 	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
 	if address == (common.Address{}) {
-		return "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", common.Address{}, errors.New("No PlatON-Go address found to fund")
 	}
 	var avatar string
 	if parts = regexp.MustCompile("src=\"([^\"]+twimg.com/profile_images[^\"]+)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
@@ -722,7 +722,7 @@ func authGooglePlus(url string) (string, string, common.Address, error) {
 	}
 	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
 	if address == (common.Address{}) {
-		return "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", common.Address{}, errors.New("No PlatON-Go address found to fund")
 	}
 	var avatar string
 	if parts = regexp.MustCompile("src=\"([^\"]+googleusercontent.com[^\"]+photo.jpg)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
@@ -756,7 +756,7 @@ func authFacebook(url string) (string, string, common.Address, error) {
 	}
 	address := common.HexToAddress(string(regexp.MustCompile("0x[0-9a-fA-F]{40}").Find(body)))
 	if address == (common.Address{}) {
-		return "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", common.Address{}, errors.New("No PlatON-Go address found to fund")
 	}
 	var avatar string
 	if parts = regexp.MustCompile("src=\"([^\"]+fbcdn.net[^\"]+)\"").FindStringSubmatch(string(body)); len(parts) == 2 {
@@ -771,7 +771,7 @@ func authFacebook(url string) (string, string, common.Address, error) {
 func authNoAuth(url string) (string, string, common.Address, error) {
 	address := common.HexToAddress(regexp.MustCompile("0x[0-9a-fA-F]{40}").FindString(url))
 	if address == (common.Address{}) {
-		return "", "", common.Address{}, errors.New("No Ethereum address found to fund")
+		return "", "", common.Address{}, errors.New("No PlatON-Go address found to fund")
 	}
 	return address.Hex() + "@noauth", "", address, nil
 }

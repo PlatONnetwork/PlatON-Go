@@ -253,3 +253,4 @@ func (db *AbiDb) AddSignature(selector string, data []byte) error {
 	sig := common.ToHex(data[:4])
 	return db.saveCustomAbi(selector, sig)
 }
+
