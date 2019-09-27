@@ -499,7 +499,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 
 	block := new(blockData)
-	block.Number = new(big.Int).SetUint64(blockNumber.Uint64())
+	block.Number = new(big.Int).Set(blockNumber)
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)

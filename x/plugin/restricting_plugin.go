@@ -20,17 +20,6 @@ import (
 )
 
 var (
-	/*
-		errParamEpochInvalid     = common.NewBizError("param epoch can't be zero")
-		errRestrictAmountInvalid = common.NewBizError("the number of the restricting plan can't be zero or more than 36")
-		errLockedAmountTooLess   = common.NewBizError("total restricting amount need more than 1 LAT")
-		errBalanceNotEnough      = common.NewBizError("the balance is not enough in restrict")
-		errAccountNotFound       = common.NewBizError("account is not found on restricting contract")
-		errSlashingTooMuch       = common.NewBizError("slashing amount is larger than staking amount")
-		errStakingAmountEmpty    = common.NewBizError("staking amount is 0")
-		errAmountLessThanZero    = common.NewBizError("Amount can't less than 0")
-		errStakingAmountInvalid  = common.NewBizError("staking return amount is wrong")
-	*/
 	monthOfThreeYear                     = 12 * 3
 	errParamEpochInvalid                 = common.NewBizError(304001, "param epoch can't be zero")
 	errCountRestrictPlansInvalid         = common.NewBizError(304002, "the number of the restricting plan can't be zero or more than 36")
@@ -64,14 +53,6 @@ func RestrictingInstance() *RestrictingPlugin {
 	})
 	return rt
 }
-
-/*func ClearRestricting() error {
-	if nil == rt {
-		return common.NewSysError("the RestrictingPlugin already be nil")
-	}
-	rt = nil
-	return nil
-}*/
 
 // BeginBlock does something like check input params before execute transactions,
 // in RestrictingPlugin it does nothing.
