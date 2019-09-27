@@ -3458,14 +3458,14 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockHash common.Hash, nextRou
 	validEpoch := uint64(xcom.EvidenceValidEpoch() + 1)
 	validRound := xutil.EpochSize() * validEpoch
 	if curEpoch > validEpoch {
-		oldRound := curRound - validRound
-		oldKey := staking.GetRoundValAddrArrKey(oldRound)
-		if err := sk.db.DelRoundValidatorAddrs(blockHash, oldKey); nil != err {
+		invalidRound := curRound - validRound
+		key := staking.GetRoundValAddrArrKey(invalidRound)
+		if err := sk.db.DelRoundValidatorAddrs(blockHash, key); nil != err {
 			log.Error("Failed to DelRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber,
-				"curRound", curRound, "curEpoch", curEpoch, "validEpoch", validEpoch, "validRound", validRound, "oldRound", oldRound, "oldKey", hex.EncodeToString(oldKey), "err", err)
+				"curRound", curRound, "curEpoch", curEpoch, "validEpoch", validEpoch, "validRound", validRound, "invalidRound", invalidRound, "key", hex.EncodeToString(key), "err", err)
 			return err
 		}
-		log.Debug("delete RoundValidatorAddrs success", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber, "oldRound", oldRound)
+		log.Debug("delete RoundValidatorAddrs success", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber, "invalidRound", invalidRound)
 	}
 	newKey := staking.GetRoundValAddrArrKey(curRound)
 	newValue := make([]common.Address, 0, len(array))

@@ -44,7 +44,7 @@ type slashingConfig struct {
 	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum
 	DuplicateSignReportReward      uint32 // The percentage of rewards for whistleblowers, calculated from the penalty
 	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
-	EvidenceValidEpoch             uint32 // Validity period of evidence, number of settlement periods
+	EvidenceValidEpoch             uint32 // Validity period of evidence (unit is  epochs)
 }
 
 type governanceConfig struct {
@@ -530,23 +530,20 @@ func CheckEconomicModel() error {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
-	//if 0 > ec.Slashing.PackAmountHighSlashRate || 100 < ec.Slashing.PackAmountHighSlashRate {
-	//	return errors.New("The PackAmountHighSlashRate must be greater than or equal to 0 and less than or equal to 100")
-	//}
-	//
-	//if 0 > ec.Slashing.PackAmountLowSlashRate || 100 < ec.Slashing.PackAmountLowSlashRate {
-	//	return errors.New("The PackAmountLowSlashRate must be greater than or equal to 0 and less than or equal to 100")
-	//}
-	//
-	//if ec.Slashing.PackAmountLowSlashRate > ec.Slashing.PackAmountHighSlashRate {
-	//	return errors.New("The PackAmountHighSlashRate must be greater than or equal to the PackAmountLowSlashRate")
-	//}
-	//
-	//if ec.Slashing.PackAmountHighAbnormal >= ec.Slashing.PackAmountAbnormal {
-	//	return errors.New("The PackAmountHighAbnormal must be less than to the PackAmountAbnormal")
-	//}
 	if ec.Common.PerRoundBlocks <= uint64(ec.Slashing.PackAmountAbnormal) {
 		return errors.New("The PackAmountAbnormal must be less than to the PerRoundBlocks")
+	}
+
+	if 0 > ec.Slashing.DuplicateSignHighSlashing || 100 < ec.Slashing.DuplicateSignHighSlashing {
+		return errors.New("The DuplicateSignHighSlashing must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if 0 > ec.Slashing.DuplicateSignReportReward || 100 < ec.Slashing.DuplicateSignReportReward {
+		return errors.New("The DuplicateSignReportReward must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if uint64(ec.Slashing.EvidenceValidEpoch) >= ec.Staking.UnStakeFreezeRatio {
+		return errors.New("The EvidenceValidEpoch must be less than to the UnStakeFreezeRatio")
 	}
 
 	return nil

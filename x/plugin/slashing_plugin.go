@@ -36,7 +36,7 @@ var (
 	errNodeIdMismatch      = common.NewBizError(303006, "nodeId does not match")
 	errBlsPubKeyMismatch   = common.NewBizError(303007, "blsPubKey does not match")
 	errSlashingFail        = common.NewBizError(303008, "slashing node fail")
-	errNotValidator        = common.NewBizError(303009, "not validator")
+	errNotValidator        = common.NewBizError(303009, "This node is not a validator")
 	errSameAddr            = common.NewBizError(303010, "Can't report yourself")
 
 	once = sync.Once{}
@@ -289,7 +289,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex(), "err", err)
 			return errDuplicateSignVerify
 		} else if !isExists {
-			log.Warn("slashing failed, not validator", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			log.Warn("slashing failed, This node is not a validator", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex())
 			return errNotValidator
 		}
@@ -299,7 +299,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 
 		toCallerAmount := calcSlashAmount(slashAmount, xcom.DuplicateSignReportReward())
-		slashItem1 := &staking.SlashNodeItem{
+		toCallerItem := &staking.SlashNodeItem{
 			NodeId:      candidate.NodeId,
 			Amount:      toCallerAmount,
 			SlashType:   staking.DuplicateSign,
@@ -307,14 +307,14 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		}
 
 		toRewardPoolAmount := new(big.Int).Sub(slashAmount, toCallerAmount)
-		slashItem2 := &staking.SlashNodeItem{
+		toRewardPoolItem := &staking.SlashNodeItem{
 			NodeId:      candidate.NodeId,
 			Amount:      toRewardPoolAmount,
 			SlashType:   staking.DuplicateSign,
 			BenefitAddr: vm.RewardManagerPoolAddr,
 		}
 
-		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, slashItem1, slashItem2); nil != err {
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, toCallerItem, toRewardPoolItem); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return errSlashingFail
