@@ -268,6 +268,8 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 	if pool.currentValidators.ValidBlockNumber > 0 {
 		pool.switchPoint = pool.currentValidators.ValidBlockNumber - 1
 	}
+
+	log.Debug("Update validator", "validators", pool.currentValidators.String(), "switchpoint", pool.switchPoint, "epoch", pool.epoch, "lastNumber", pool.lastNumber)
 	return pool
 }
 
@@ -575,7 +577,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, ms
 		return err
 	}
 	if !sig.Verify(&pub, string(msg)) {
-		log.Debug("Verify signature fail", "epoch", "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
+		log.Debug("Verify signature fail", "epoch", epoch, "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
 		return errors.New("bls verifies signature fail")
 	}
 	return nil
