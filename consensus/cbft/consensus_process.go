@@ -542,7 +542,7 @@ func (cbft *Cbft) tryCommitNewBlock(lock *types.Block, commit *types.Block, qc *
 		highestCommitNumberGauage.Update(int64(commit.NumberU64()))
 		blockConfirmedMeter.Mark(1)
 	} else if oldCommit.NumberU64() == commit.NumberU64() && oldCommit.NumberU64() > 0 {
-		cbft.log.Info("fork block", "number", highestqc.NumberU64(), "hash", highestqc.Hash())
+		cbft.log.Info("Fork block", "number", highestqc.NumberU64(), "hash", highestqc.Hash())
 		lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lock.Hash(), lock.NumberU64())
 		qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(highestqc.Hash(), highestqc.NumberU64())
 
@@ -762,7 +762,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	// view change maybe lags behind the other nodes,active sync prepare block
 	cbft.SyncPrepareBlock("", epoch, viewNumber, 0)
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
-	cbft.log.Info(fmt.Sprintf("Success to change view, current view deadline:%v", cbft.state.Deadline()))
+	cbft.log.Info("Success to change view, current view deadline", "deadline", cbft.state.Deadline())
 }
 
 // Clean up invalid blocks in the previous view
