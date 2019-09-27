@@ -519,8 +519,10 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
+		cbft.csPool.AddPrepareBlock(msg.BlockIndex, ctypes.NewInnerMsgInfo(info.Msg, info.PeerID))
 		err = cbft.OnPrepareBlock(id, msg)
 	case *protocols.PrepareVote:
+		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, ctypes.NewInnerMsgInfo(info.Msg, info.PeerID))
 		err = cbft.OnPrepareVote(id, msg)
 	case *protocols.ViewChange:
 		err = cbft.OnViewChange(id, msg)
@@ -549,6 +551,7 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) error {
 			err = cbft.OnGetBlockQuorumCert(id, msg)
 
 		case *protocols.BlockQuorumCert:
+			cbft.csPool.AddPrepareQC(msg.BlockQC.Epoch, msg.BlockQC.ViewNumber, msg.BlockQC.BlockIndex, ctypes.NewInnerMsgInfo(info.Msg, info.PeerID))
 			err = cbft.OnBlockQuorumCert(id, msg)
 
 		case *protocols.GetPrepareVote:

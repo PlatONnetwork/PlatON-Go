@@ -31,7 +31,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		blockCheckFailureMeter.Mark(1)
 
 		if err.Common() {
-			cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 			cbft.log.Debug("Prepare block rules fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
 			return err
 		}
@@ -40,8 +39,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
-
-		cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 		if err.Fetch() {
 			if cbft.isProposer(msg.Epoch, msg.ViewNumber, msg.ProposalIndex) {
@@ -96,7 +93,6 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 
 		if err.Common() {
-			cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 			cbft.log.Debug("Preparevote rules fail", "number", msg.BlockHash, "hash", msg.BlockHash, "err", err)
 			return err
 		}
@@ -106,8 +102,6 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 			signatureCheckFailureMeter.Mark(1)
 			return err
 		}
-
-		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 		if err.Fetch() {
 			if msg.ParentQC != nil {
@@ -346,7 +340,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 				}
 
 				cbft.log.Debug("Sign block", "hash", s.Hash, "number", s.Number)
-				if msg := cbft.csPool.GetPrepareQC(index); msg != nil {
+				if msg := cbft.csPool.GetPrepareQC(cbft.state.Epoch(), cbft.state.ViewNumber(), index); msg != nil {
 					go cbft.ReceiveMessage(msg)
 				}
 			}
@@ -736,7 +730,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()
-	cbft.csPool.Purge()
+	cbft.csPool.Purge(epoch, viewNumber)
 
 	cbft.state.ResetView(epoch, viewNumber)
 	cbft.state.SetViewTimer(interval())
