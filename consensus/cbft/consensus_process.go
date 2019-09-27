@@ -260,7 +260,12 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		return
 	}
 	if cbft.state.Epoch() == qc.Epoch && cbft.state.ViewNumber() == qc.ViewNumber {
-		cbft.state.AddQC(qc)
+		if cbft.state.ViewBlockByIndex(qc.BlockIndex) == nil {
+			cbft.state.AddQCBlock(block, qc)
+			cbft.state.AddQC(qc)
+		} else {
+			cbft.state.AddQC(qc)
+		}
 	}
 
 	lock, commit := cbft.blockTree.InsertQCBlock(block, qc)
@@ -438,13 +443,21 @@ func (cbft *Cbft) trySendPrepareVote() {
 
 // Every time there is a new block or a new executed block result will enter this judgment, find the next executable block
 func (cbft *Cbft) findExecutableBlock() {
+	qcIndex := cbft.state.MaxQCIndex()
 	blockIndex, finish := cbft.state.Executing()
+
+	// If we are not execute block yet and the QC index
+	// is greater 0, then starting execute block from qc index.
+	if blockIndex == math.MaxUint32 && qcIndex != math.MaxUint32 {
+		blockIndex, finish = qcIndex, true
+	}
+
 	if blockIndex == math.MaxUint32 {
 		block := cbft.state.ViewBlockByIndex(blockIndex + 1)
 		if block != nil {
 			parent, _ := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
 			if parent == nil {
-				cbft.log.Error(fmt.Sprintf("Find executable block's parent failed :[%d,%d,%s]", blockIndex, block.NumberU64(), block.Hash()))
+				cbft.log.Error(fmt.Sprintf("Find executable block's parent failed :[%d,%d,%s]", blockIndex, block.NumberU64(), block.Hash().String()))
 				return
 			}
 
@@ -465,6 +478,7 @@ func (cbft *Cbft) findExecutableBlock() {
 				return
 			}
 
+			cbft.log.Debug("Find Executable Block", "hash", block.Hash(), "number", block.NumberU64())
 			if err := cbft.asyncExecutor.Execute(block, parent); err != nil {
 				cbft.log.Error("Async Execute block failed", "error", err)
 			}

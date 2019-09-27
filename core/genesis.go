@@ -269,18 +269,21 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	}
 
 	genesisIssuance := new(big.Int)
-	//	genesisReward := common.Big0
+
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
 	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
+
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.PlatONFundBalance())
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
 
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
-			// todo: hash -> bytes
+
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 
