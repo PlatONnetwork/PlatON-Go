@@ -282,20 +282,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	sdb := snapshotdb.Instance()
-	current := sdb.GetCurrent()
-	ch := current.HighestNum.Uint64()
-	if ch < blockChainCache.CurrentHeader().Number.Uint64() {
-		var recoverBlocks = make([]*types.Block, 0)
-		for i := ch; i <= blockChainCache.CurrentHeader().Number.Uint64(); i++ {
-			recoverBlocks = append(recoverBlocks, blockChainCache.GetBlockByNumber(i))
-		}
-		for i := 1; i < len(recoverBlocks); i++ {
-			log.Debug("snapshotdb recover block from blockchain", "num", recoverBlocks[i].Number(), "root", recoverBlocks[i].Root(), "hash", recoverBlocks[i].Hash().String(), "parent", recoverBlocks[i-1].Number(), "praenthash", recoverBlocks[i-1].Hash().String(), "parentroot", recoverBlocks[i-1].Root())
-			if err := blockChainCache.Execute(recoverBlocks[i], recoverBlocks[i-1]); err != nil {
+	ch := sdb.GetCurrent().HighestNum.Uint64()
+	blockChanHegiht := blockChainCache.CurrentHeader().Number.Uint64()
+	if ch < blockChanHegiht {
+		for i := ch + 1; i <= blockChanHegiht; i++ {
+			block, parentBlock := blockChainCache.GetBlockByNumber(i), blockChainCache.GetBlockByNumber(i-1)
+			log.Debug("snapshotdb recover block from blockchain", "num", block.Number(), "hash", block.Hash())
+			if err := blockChainCache.Execute(block, parentBlock); err != nil {
 				log.Error("snapshotdb recover block from blockchain  execute fail", "error", err)
 				return err
 			}
-			if err := sdb.Commit(recoverBlocks[i].Hash()); err != nil {
+			if err := sdb.Commit(block.Hash()); err != nil {
 				log.Error("snapshotdb recover block from blockchain  Commit fail", "error", err)
 				return err
 			}

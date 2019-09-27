@@ -264,22 +264,6 @@ func (s *snapshotDB) cornStart() error {
 	return nil
 }
 
-//
-//func (s *snapshotDB) writeCurrentLoop() {
-//	go func() {
-//		for {
-//			select {
-//			case <-s.currentUpdateCh:
-//				if err := s.current.update(); err != nil {
-//					logger.Error("update current file fail ", "err", err)
-//				}
-//			case <-s.exitCh:
-//				return
-//			}
-//		}
-//	}()
-//}
-
 func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 	batch := new(leveldb.Batch)
 	for _, value := range kvs {
