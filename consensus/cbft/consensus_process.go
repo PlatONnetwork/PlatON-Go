@@ -138,10 +138,10 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 		}
 	}
 
-	cbft.insertPrepareQC(msg.ParentQC)
-
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
 	cbft.log.Info("Receive new prepareVote", "msgHash", msg.MsgHash(), "vote", msg.String(), "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
+
+	cbft.insertPrepareQC(msg.ParentQC)
 	cbft.findQCBlock()
 	return nil
 }
@@ -281,12 +281,12 @@ func (cbft *Cbft) insertQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		cbft.txPool.Reset(block)
 	}
 	cbft.tryCommitNewBlock(lock, commit, block)
+	cbft.trySendPrepareVote()
 	cbft.tryChangeView()
 	if cbft.insertBlockQCHook != nil {
 		// test hook
 		cbft.insertBlockQCHook(block, qc)
 	}
-	cbft.trySendPrepareVote()
 }
 
 func (cbft *Cbft) TrySetHighestQCBlock(block *types.Block) {
