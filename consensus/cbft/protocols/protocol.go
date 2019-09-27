@@ -226,6 +226,13 @@ func (pv *PrepareVote) Sign() []byte {
 func (pv *PrepareVote) SetSign(sign []byte) {
 	pv.Signature.SetBytes(sign)
 }
+func (pv *PrepareVote) EqualState(vote *PrepareVote) bool {
+	return pv.Epoch == vote.Epoch &&
+		pv.ViewNumber == vote.ViewNumber &&
+		pv.BlockHash == vote.BlockHash &&
+		pv.BlockNumber == vote.BlockNumber &&
+		pv.BlockIndex == vote.BlockIndex
+}
 
 // ViewChange is message structure for view switching.
 type ViewChange struct {
