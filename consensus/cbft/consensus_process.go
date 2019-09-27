@@ -31,9 +31,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		blockCheckFailureMeter.Mark(1)
 
 		if err.Common() {
-			if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
-				cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
-			}
+			cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 			cbft.log.Info("Prepare block rules fail", "peerId", id, "msg", msg.String(), "err", err)
 			return err
 		}
@@ -43,9 +41,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			return err
 		}
 
-		if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
-			cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
-		}
+		cbft.csPool.AddPrepareBlock(msg.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 		if err.Fetch() {
 			if cbft.isProposer(msg.Epoch, msg.ViewNumber, msg.ProposalIndex) {
@@ -100,9 +96,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 
 		if err.Common() {
-			if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
-				cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
-			}
+			cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 			cbft.log.Debug("Preparevote rules fail", "number", msg.BlockHash, "hash", msg.BlockHash, "err", err)
 			return err
 		}
@@ -113,9 +107,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 			return err
 		}
 
-		if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
-			cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
-		}
+		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 		if err.Fetch() {
 			if msg.ParentQC != nil {
