@@ -234,12 +234,12 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 // OnBlockQuorumCert handles the message type of BlockQuorumCertMsg.
 func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) error {
 	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
-		cbft.log.Debug("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
+		cbft.log.Trace("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
 		return fmt.Errorf("msg is not match current state")
 	}
 
 	if _, qc := cbft.blockTree.FindBlockAndQC(msg.BlockQC.BlockHash, msg.BlockQC.BlockNumber); qc != nil {
-		cbft.log.Debug("Block has exist", "msg", msg.String())
+		cbft.log.Trace("Block has exist", "msg", msg.String())
 		return fmt.Errorf("block already exists")
 	}
 
@@ -255,6 +255,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return &authFailedError{err}
 	}
 
+	cbft.log.Info("Receive blockQuorumCert, try insert prepareQC", "view", cbft.state.ViewString(), "blockQuorumCert", msg.BlockQC.String())
 	cbft.insertPrepareQC(msg.BlockQC)
 	return nil
 }
@@ -463,7 +464,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 // block information exists locally. If not, send a network request to get
 // the block data.
 func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash) error {
-	cbft.log.Debug("Received message on OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	cbft.log.Debug("Received message OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		block := cbft.state.ViewBlockByIndex(msg.BlockIndex)
 		if block == nil {
@@ -547,6 +548,7 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 	epoch, viewNumber, _, _, _, _ := viewChangeQC.MaxBlock()
 	if cbft.state.Epoch() == epoch && cbft.state.ViewNumber() == viewNumber {
 		if err := cbft.verifyViewChangeQC(msg.ViewChangeQC); err == nil {
+			cbft.log.Info("Receive viewChangeQuorumCert, try change view by viewChangeQC", "view", cbft.state.ViewString(), "viewChangeQC", viewChangeQC.String())
 			cbft.tryChangeViewByViewChange(msg.ViewChangeQC)
 		} else {
 			cbft.log.Debug("Verify ViewChangeQC failed", "err", err)
