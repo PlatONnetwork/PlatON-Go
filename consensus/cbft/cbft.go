@@ -1495,6 +1495,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 
 	for _, v := range votes {
 		vote = v
+		break
 	}
 
 	// Validator set prepareQC is the same as highestQC
@@ -1517,6 +1518,11 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 		ValidatorSet: utils.NewBitArray(vSet.Size()),
 	}
 	for _, p := range votes {
+		//Check whether two votes are equal
+		if !vote.EqualState(p) {
+			cbft.log.Error(fmt.Sprintf("QuorumCert isn't same  vote1:%s vote2:%s", vote.String(), p.String()))
+			return nil
+		}
 		if p.NodeIndex() != vote.NodeIndex() {
 			var sig bls.Sign
 			err := sig.Deserialize(p.Sign())

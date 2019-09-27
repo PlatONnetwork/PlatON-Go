@@ -149,7 +149,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 						return
 					}
 				}
-
 				if err := cbft.OnInsertQCBlock(filteredForkedBlocks, filteredForkedQCs); err != nil {
 					cbft.log.Error("Insert forked block failed", "error", err)
 				}
