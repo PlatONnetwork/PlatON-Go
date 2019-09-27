@@ -268,6 +268,15 @@ func (api *PublicAdminAPI) Datadir() string {
 	return api.node.DataDir()
 }
 
+func (api *PublicAdminAPI) GetProgramVersion() (*params.ProgramVersion, error) {
+	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	sig, err := GetCryptoHandler().Sign(programVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &params.ProgramVersion{Version: programVersion, Sign: hexutil.Encode(sig)}, nil
+}
+
 // PublicDebugAPI is the collection of debugging related API methods exposed over
 // both secure and unsecure RPC channels.
 type PublicDebugAPI struct {
@@ -434,13 +443,4 @@ func (s *PublicWeb3API) ClientVersion() string {
 // It assumes the input is hex encoded.
 func (s *PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
 	return crypto.Keccak256(input)
-}
-
-func (api *PublicAdminAPI) GetProgramVersion() (*params.ProgramVersion, error) {
-	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-	sig, err := GetCryptoHandler().Sign(programVersion)
-	if err != nil {
-		return nil, err
-	}
-	return &params.ProgramVersion{Version: programVersion, Sign: hexutil.Encode(sig)}, nil
 }

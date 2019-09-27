@@ -28,14 +28,15 @@ func newDB(stor storage) (*snapshotDB, error) {
 	unCommitBlock := new(unCommitBlocks)
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	return &snapshotDB{
-		path:      dbpath,
-		storage:   stor,
-		unCommit:  unCommitBlock,
-		committed: make([]*blockData, 0),
-		//		journalw:      make(map[common.Hash]*journalWriter),
-		baseDB:        baseDB,
-		current:       newCurrent(dbpath),
-		snapshotLockC: snapshotUnLock,
+		path:            dbpath,
+		storage:         stor,
+		unCommit:        unCommitBlock,
+		committed:       make([]*blockData, 0),
+		baseDB:          baseDB,
+		current:         newCurrent(dbpath),
+		snapshotLockC:   snapshotUnLock,
+		exitCh:          make(chan struct{}, 0),
+		currentUpdateCh: make(chan struct{}, 1),
 	}, nil
 }
 
@@ -56,13 +57,14 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	}
 	block := new(blockData)
 	block.ParentHash = header.ParentHash
+	block.kvHash = header.KvHash
 	if fd.BlockHash != s.getUnRecognizedHash() {
 		block.BlockHash = fd.BlockHash
 	}
 	block.Number = new(big.Int).SetUint64(fd.Num)
 	block.data = memdb.New(DefaultComparer, 0)
-
-	switch header.From {
+	block.readOnly = true
+	/*switch header.From {
 	case journalHeaderFromUnRecognized:
 		if fd.BlockHash == s.getUnRecognizedHash() {
 			block.readOnly = false
@@ -73,8 +75,8 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		if fd.Num <= s.current.HighestNum.Uint64() {
 			block.readOnly = true
 		}
-	}
-	var kvhash common.Hash
+	}*/
+	//var kvhash common.Hash
 	for {
 		j, err := journals.Next()
 		if err == io.EOF {
@@ -90,9 +92,9 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		if err := block.data.Put(body.Key, body.Value); err != nil {
 			return nil, err
 		}
-		kvhash = body.Hash
+		//kvhash = body.Hash
 	}
-	block.kvHash = kvhash
+	//block.kvHash = kvhash
 	return block, nil
 }
 
@@ -104,12 +106,15 @@ func (s *snapshotDB) recover(stor storage) error {
 	}
 	s.path = dbpath
 
-	currentHead := blockchain.CurrentHeader()
-
-	if c.HighestNum.Cmp(currentHead.Number) != 0 {
-		s.current = c
-		if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
-			return err
+	if blockchain != nil {
+		currentHead := blockchain.CurrentHeader()
+		if c.HighestNum.Cmp(currentHead.Number) != 0 {
+			s.current = c
+			if err := s.SetCurrent(currentHead.Hash(), *c.BaseNum, *currentHead.Number); err != nil {
+				return err
+			}
+		} else {
+			s.current = c
 		}
 	} else {
 		s.current = c
@@ -141,6 +146,8 @@ func (s *snapshotDB) recover(stor storage) error {
 	unCommitBlock.blocks = make(map[common.Hash]*blockData)
 	s.unCommit = unCommitBlock
 	s.snapshotLockC = snapshotUnLock
+	s.exitCh = make(chan struct{}, 0)
+	s.currentUpdateCh = make(chan struct{}, 1)
 
 	//read Journal
 	for _, fd := range fds {
@@ -162,8 +169,10 @@ func (s *snapshotDB) recover(stor storage) error {
 	return nil
 }
 
+/*
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
-	var keys []common.Hash
+	s.unCommit.Lock()
+	defer s.unCommit.Unlock()
 	for key, value := range s.unCommit.blocks {
 		if s.current.HighestNum.Cmp(value.Number) >= 0 {
 			if !value.readOnly {
@@ -171,20 +180,15 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 					return err
 				}
 			}
-			keys = append(keys, key)
+			delete(s.unCommit.blocks, key)
 			if err := s.rmJournalFile(value.Number, key); err != nil {
 				return err
 			}
 		}
 	}
-	s.unCommit.Lock()
-	for _, value := range keys {
-		delete(s.unCommit.blocks, value)
-	}
-	s.unCommit.Unlock()
 	return nil
 }
-
+*/
 func (s *snapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
 	var buf bytes.Buffer
 	buf.Write(k)
@@ -270,22 +274,9 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if block.readOnly {
 		return errors.New("can't put read only block")
 	}
-
-	jData := journalData{
-		Key:   key,
-		Value: value,
-		Hash:  s.generateKVHash(key, value, block.kvHash),
-	}
-	body, err := encode(jData)
-	if err != nil {
-		return errors.New("encode fail:" + err.Error())
-	}
-	if err := block.writeJournalBody(body); err != nil {
-		return errors.New("write journalBody fail:" + err.Error())
-	}
+	block.kvHash = s.generateKVHash(key, value, block.kvHash)
 	if err := block.data.Put(key, value); err != nil {
 		return err
 	}
-	block.kvHash = jData.Hash
 	return nil
 }

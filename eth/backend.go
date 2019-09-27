@@ -138,7 +138,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// set snapshotdb path
 	//snapshotdb.SetDBPath(ctx)
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount
@@ -519,9 +519,9 @@ func (s *Ethereum) Stop() error {
 	s.miner.Stop()
 	s.eventMux.Stop()
 
+	core.GetReactorInstance().Close()
 	s.chainDb.Close()
 	close(s.shutdownChan)
-	core.GetReactorInstance().Close()
 	return nil
 }
 

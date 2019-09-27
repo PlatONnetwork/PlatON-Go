@@ -141,4 +141,20 @@ func Test_Push(t *testing.T) {
 	t.Log(pair[:3])
 	assert.Equal(t, "a", pair[0].Key)
 	assert.Equal(t, int64(1), pair[0].Value)
+	assert.Equal(t, 5, pair.Len())
+	oldPair := pair
+	value := pair.Pop()
+	v, ok := value.(KeyValuePair)
+	assert.True(t, ok)
+	assert.Equal(t, oldPair[oldPair.Len()-1].Key, v.Key)
+	assert.Equal(t, oldPair.Len()-1, pair.Len())
+}
+
+func Test_Atomic(t *testing.T) {
+	var at int32
+	//go SetFalse(&at)
+	SetFalse(&at)
+	assert.True(t, False(&at))
+	SetTrue(&at)
+	assert.True(t, True(&at))
 }

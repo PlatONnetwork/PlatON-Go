@@ -42,7 +42,7 @@ func buildPrepareBlock() *protocols.PrepareBlock {
 		ProposalIndex: proposalIndex,
 		PrepareQC:     buildQuorumCert(),
 		ViewChangeQC:  buildViewChangeQC(),
-		Signature:     ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+		Signature:     ctypes.BytesToSignature(utils.Rand32Bytes(64)),
 	}
 }
 
@@ -53,35 +53,29 @@ func buildQuorumCert() *ctypes.QuorumCert {
 		BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
 		BlockNumber:  blockNumber,
 		BlockIndex:   blockIndex,
-		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(64)),
+		ValidatorSet: utils.NewBitArray(25),
+	}
+}
+
+func buildViewChangeQuorumCert(epoch, viewNumber uint64, blockNumber uint64) *ctypes.ViewChangeQuorumCert {
+	return &ctypes.ViewChangeQuorumCert{
+		Epoch:        epoch,
+		ViewNumber:   viewNumber,
+		BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
+		BlockNumber:  blockNumber,
+		Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(64)),
 		ValidatorSet: utils.NewBitArray(25),
 	}
 }
 
 func buildViewChangeQC() *ctypes.ViewChangeQC {
 	return &ctypes.ViewChangeQC{
-		QCs: []*ctypes.ViewChangeQuorumCert{{
-			Epoch:        epoch,
-			ViewNumber:   viewNumber,
-			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
-			BlockNumber:  blockNumber,
-			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
-			ValidatorSet: utils.NewBitArray(25),
-		}, {
-			Epoch:        epoch,
-			ViewNumber:   viewNumber,
-			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
-			BlockNumber:  blockNumber,
-			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
-			ValidatorSet: utils.NewBitArray(25),
-		}, {
-			Epoch:        epoch,
-			ViewNumber:   viewNumber,
-			BlockHash:    common.BytesToHash(utils.Rand32Bytes(32)),
-			BlockNumber:  blockNumber,
-			Signature:    ctypes.BytesToSignature(utils.Rand32Bytes(32)),
-			ValidatorSet: utils.NewBitArray(25),
-		}},
+		QCs: []*ctypes.ViewChangeQuorumCert{
+			buildViewChangeQuorumCert(epoch, viewNumber, blockNumber),
+			buildViewChangeQuorumCert(epoch, viewNumber, blockNumber),
+			buildViewChangeQuorumCert(epoch, viewNumber, blockNumber),
+		},
 	}
 }
 
@@ -94,7 +88,7 @@ func buildPrepareVote() *protocols.PrepareVote {
 		BlockIndex:     blockIndex,
 		ValidatorIndex: validatorIndex,
 		ParentQC:       buildQuorumCert(),
-		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(64)),
 	}
 }
 
@@ -106,7 +100,7 @@ func buildViewChange() *protocols.ViewChange {
 		BlockNumber:    blockNumber,
 		ValidatorIndex: validatorIndex,
 		PrepareQC:      buildQuorumCert(),
-		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(32)),
+		Signature:      ctypes.BytesToSignature(utils.Rand32Bytes(64)),
 	}
 }
 

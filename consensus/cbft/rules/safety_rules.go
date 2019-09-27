@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -111,9 +113,10 @@ type SafetyRules interface {
 }
 
 type baseSafetyRules struct {
-	viewState *state.ViewState
-	blockTree *ctypes.BlockTree
-	config    *ctypes.Config
+	viewState     *state.ViewState
+	blockTree     *ctypes.BlockTree
+	config        *ctypes.Config
+	validatorPool *validator.ValidatorPool
 }
 
 // PrepareBlock rules
@@ -140,7 +143,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 
 	acceptViewChangeQC := func() bool {
 		if block.ViewChangeQC == nil {
-			return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1
+			return r.config.Sys.Amount == r.viewState.MaxQCIndex()+1 || r.validatorPool.EqualSwitchPoint(block.Block.NumberU64()-1)
 		}
 		_, _, _, _, hash, number := block.ViewChangeQC.MaxBlock()
 		return number+1 == block.Block.NumberU64() && block.Block.ParentHash() == hash
@@ -347,10 +350,11 @@ func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert
 	return nil
 }
 
-func NewSafetyRules(viewState *state.ViewState, blockTree *ctypes.BlockTree, config *ctypes.Config) SafetyRules {
+func NewSafetyRules(viewState *state.ViewState, blockTree *ctypes.BlockTree, config *ctypes.Config, validatorPool *validator.ValidatorPool) SafetyRules {
 	return &baseSafetyRules{
-		viewState: viewState,
-		blockTree: blockTree,
-		config:    config,
+		viewState:     viewState,
+		blockTree:     blockTree,
+		config:        config,
+		validatorPool: validatorPool,
 	}
 }

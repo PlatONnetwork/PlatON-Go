@@ -58,8 +58,8 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			if entry.Height != uint64(count)*xutil.CalcBlocksEachEpoch() {
 				t.Errorf("release block number not  cmp,want %v ,have %v ", uint64(count)*xutil.CalcBlocksEachEpoch(), entry.Height)
 			}
-			if entry.Amount.ToInt().Cmp(big.NewInt(int64(1E18))) != 0 {
-				t.Errorf("release amount  not  cmp,want %v ,have %v ", big.NewInt(int64(1E18)), entry.Amount)
+			if entry.Amount.ToInt().Cmp(big.NewInt(int64(1e18))) != 0 {
+				t.Errorf("release amount  not  cmp,want %v ,have %v ", big.NewInt(int64(1e18)), entry.Amount)
 			}
 			count++
 		}
@@ -90,7 +90,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 	t.Run("test parameter plans", func(t *testing.T) {
 		mockDB := buildStateDB(t)
-		mockDB.AddBalance(sender, big.NewInt(1E16))
+		mockDB.AddBalance(sender, big.NewInt(1e16))
 		type testtmp struct {
 			input  []restricting.RestrictingPlan
 			expect error
@@ -98,38 +98,38 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		}
 		var largePlans, largeMountPlans, notEnough []restricting.RestrictingPlan
 		for i := 0; i < 40; i++ {
-			largePlans = append(largePlans, restricting.RestrictingPlan{1, big.NewInt(1E15)})
+			largePlans = append(largePlans, restricting.RestrictingPlan{1, big.NewInt(1e15)})
 		}
 		for i := 0; i < 4; i++ {
-			largeMountPlans = append(largeMountPlans, restricting.RestrictingPlan{1, big.NewInt(1E18)})
+			largeMountPlans = append(largeMountPlans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
 		}
 		for i := 0; i < 4; i++ {
-			notEnough = append(notEnough, restricting.RestrictingPlan{1, big.NewInt(1E16)})
+			notEnough = append(notEnough, restricting.RestrictingPlan{1, big.NewInt(1e16)})
 		}
 		x := []testtmp{
 			{
 				input:  make([]restricting.RestrictingPlan, 0),
-				expect: errRestrictAmountInvalid,
+				expect: errCountRestrictPlansInvalid,
 				des:    "0 plan",
 			},
 			{
 				input:  nil,
-				expect: errRestrictAmountInvalid,
+				expect: errCountRestrictPlansInvalid,
 				des:    "nil plan",
 			},
 			{
-				input:  []restricting.RestrictingPlan{{0, big.NewInt(1E15)}},
+				input:  []restricting.RestrictingPlan{{0, big.NewInt(1e15)}},
 				expect: errParamEpochInvalid,
 				des:    "epoch is zero",
 			},
 			{
 				input:  []restricting.RestrictingPlan{{1, big.NewInt(0)}},
-				expect: errRestrictAmountInvalid,
+				expect: errCreatePlanAmountLessThanZero,
 				des:    "amount is 0",
 			},
 			{
 				input:  largePlans,
-				expect: errRestrictAmountInvalid,
+				expect: errCountRestrictPlansInvalid,
 				des:    "must less than monthOfThreeYear",
 			},
 			{
@@ -151,19 +151,19 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	})
 	t.Run("the record not exist", func(t *testing.T) {
 		mockDB := buildStateDB(t)
-		mockDB.AddBalance(from, big.NewInt(8E18))
+		mockDB.AddBalance(from, big.NewInt(8e18))
 		plans := make([]restricting.RestrictingPlan, 0)
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E17)})
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E17)})
-		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1E18)})
+		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
+		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
+		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
 
 		if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 			t.Error(err)
 		}
 		_, rAmount := plugin.getReleaseAmount(mockDB, 1, to)
-		assert.Equal(t, big.NewInt(2E17), rAmount)
+		assert.Equal(t, big.NewInt(2e17), rAmount)
 		_, rAmount2 := plugin.getReleaseAmount(mockDB, 2, to)
-		assert.Equal(t, big.NewInt(1E18), rAmount2)
+		assert.Equal(t, big.NewInt(1e18), rAmount2)
 
 		_, num1 := plugin.getReleaseEpochNumber(mockDB, 1)
 		_, num2 := plugin.getReleaseEpochNumber(mockDB, 2)
@@ -173,51 +173,51 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 		_, account2 := plugin.getReleaseAccount(mockDB, 2, num2)
 		assert.Equal(t, to, account2)
-		res, _ := plugin.getRestrictingInfo2(to, mockDB)
-		assert.Equal(t, big.NewInt(1E17+1E17+1E18), res.Balance.ToInt())
+		res, _ := plugin.getRestrictingInfoToReturn(to, mockDB)
+		assert.Equal(t, big.NewInt(1e17+1e17+1e18), res.Balance.ToInt())
 		assert.Equal(t, big.NewInt(0), res.Debt.ToInt())
 
 		balance := mockDB.GetBalance(vm.RestrictingContractAddr)
-		assert.Equal(t, big.NewInt(1E17+1E17+1E18), balance)
+		assert.Equal(t, big.NewInt(1e17+1e17+1e18), balance)
 	})
 
 	t.Run("the record  exist,not have NeedRelease", func(t *testing.T) {
 		account2 := addrArr[2]
 		mockDB := buildStateDB(t)
-		mockDB.AddBalance(from, big.NewInt(9E18))
+		mockDB.AddBalance(from, big.NewInt(9e18))
 		plugin.storeNumber2ReleaseEpoch(mockDB, restricting.GetReleaseEpochKey(1), 1)
 		plugin.storeNumber2ReleaseEpoch(mockDB, restricting.GetReleaseEpochKey(2), 2)
-		plugin.storeAmount2ReleaseAmount(mockDB, 1, to, big.NewInt(1E18))
-		plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2E18))
-		plugin.storeAmount2ReleaseAmount(mockDB, 2, account2, big.NewInt(1E18))
+		plugin.storeAmount2ReleaseAmount(mockDB, 1, to, big.NewInt(1e18))
+		plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2e18))
+		plugin.storeAmount2ReleaseAmount(mockDB, 2, account2, big.NewInt(1e18))
 		plugin.storeAccount2ReleaseAccount(mockDB, 1, 1, to)
 		plugin.storeAccount2ReleaseAccount(mockDB, 2, 1, to)
 		plugin.storeAccount2ReleaseAccount(mockDB, 2, 2, account2)
 		var info, info2 restricting.RestrictingInfo
 		info.NeedRelease = big.NewInt(0)
-		info.StakingAmount = big.NewInt(1E18)
-		info.CachePlanAmount = big.NewInt(1E18 + 2E18)
+		info.StakingAmount = big.NewInt(1e18)
+		info.CachePlanAmount = big.NewInt(1e18 + 2e18)
 		info.ReleaseList = []uint64{1, 2}
 		plugin.storeRestrictingInfo(mockDB, restricting.GetRestrictingKey(to), info)
 		info2.NeedRelease = big.NewInt(0)
-		info2.StakingAmount = big.NewInt(1E18)
-		info2.CachePlanAmount = big.NewInt(1E18)
+		info2.StakingAmount = big.NewInt(1e18)
+		info2.CachePlanAmount = big.NewInt(1e18)
 		plugin.storeRestrictingInfo(mockDB, restricting.GetRestrictingKey(account2), info2)
-		mockDB.AddBalance(vm.RestrictingContractAddr, big.NewInt(2E18))
+		mockDB.AddBalance(vm.RestrictingContractAddr, big.NewInt(2e18))
 
 		plans := make([]restricting.RestrictingPlan, 0)
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E17)})
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E17)})
-		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1E18)})
-		plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(1E18)})
+		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
+		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
+		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
+		plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(1e18)})
 		if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 			t.Error(err)
 		}
 
 		_, rAmount := plugin.getReleaseAmount(mockDB, 1, to)
-		assert.Equal(t, big.NewInt(1E18+1E17+1E17), rAmount)
+		assert.Equal(t, big.NewInt(1e18+1e17+1e17), rAmount)
 		_, rAmount2 := plugin.getReleaseAmount(mockDB, 2, to)
-		assert.Equal(t, big.NewInt(1E18+2E18), rAmount2)
+		assert.Equal(t, big.NewInt(1e18+2e18), rAmount2)
 
 		_, account1 := plugin.getReleaseAccount(mockDB, 1, 1)
 
@@ -229,45 +229,45 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		if err != nil {
 			t.Error()
 		}
-		assert.Equal(t, big.NewInt(3E18+2E17+2E18), info2.CachePlanAmount)
-		assert.Equal(t, big.NewInt(1E18), info2.StakingAmount)
+		assert.Equal(t, big.NewInt(3e18+2e17+2e18), info2.CachePlanAmount)
+		assert.Equal(t, big.NewInt(1e18), info2.StakingAmount)
 		assert.Equal(t, big.NewInt(0), info2.NeedRelease)
 		assert.Equal(t, 3, len(info2.ReleaseList))
 
 		balance := mockDB.GetBalance(vm.RestrictingContractAddr)
-		assert.Equal(t, big.NewInt(2E18+2E17+2E18), balance)
+		assert.Equal(t, big.NewInt(2e18+2e17+2e18), balance)
 
 	})
 	t.Run("the record  exist,have NeedRelease", func(t *testing.T) {
 		t.Run("the NeedRelease amount is grate or equal than  add plan amount", func(t *testing.T) {
 			mockDB := buildStateDB(t)
-			mockDB.AddBalance(from, big.NewInt(9E18))
+			mockDB.AddBalance(from, big.NewInt(9e18))
 			plugin.storeNumber2ReleaseEpoch(mockDB, restricting.GetReleaseEpochKey(2), 2)
-			plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2E18))
+			plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2e18))
 			plugin.storeAccount2ReleaseAccount(mockDB, 2, 1, to)
 			var info restricting.RestrictingInfo
-			info.NeedRelease = big.NewInt(2E18)
-			info.StakingAmount = big.NewInt(4E18)
-			info.CachePlanAmount = big.NewInt(4E18)
+			info.NeedRelease = big.NewInt(2e18)
+			info.StakingAmount = big.NewInt(4e18)
+			info.CachePlanAmount = big.NewInt(4e18)
 			info.ReleaseList = []uint64{2}
 			plugin.storeRestrictingInfo(mockDB, restricting.GetRestrictingKey(to), info)
 
-			mockDB.AddBalance(to, big.NewInt(1E18))
+			mockDB.AddBalance(to, big.NewInt(1e18))
 			mockDB.AddBalance(vm.RestrictingContractAddr, big.NewInt(0))
 			mockDB.SetState(vm.RestrictingContractAddr, restricting.GetLatestEpochKey(), common.Uint32ToBytes(1))
 
 			plans := make([]restricting.RestrictingPlan, 0)
-			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E17)})
-			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E17)})
-			plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1E18)})
+			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
+			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
+			plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
 			if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 				t.Error(err)
 			}
 
 			_, rAmount := plugin.getReleaseAmount(mockDB, 2, to)
-			assert.Equal(t, big.NewInt(2E18+1E17+1E17), rAmount)
+			assert.Equal(t, big.NewInt(2e18+1e17+1e17), rAmount)
 			_, rAmount2 := plugin.getReleaseAmount(mockDB, 3, to)
-			assert.Equal(t, big.NewInt(1E18), rAmount2)
+			assert.Equal(t, big.NewInt(1e18), rAmount2)
 
 			_, account1 := plugin.getReleaseAccount(mockDB, 3, 1)
 			assert.Equal(t, to, account1)
@@ -277,42 +277,42 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			if err != nil {
 				t.Error()
 			}
-			assert.Equal(t, big.NewInt(4E18), info2.CachePlanAmount)
-			assert.Equal(t, big.NewInt(4E18), info2.StakingAmount)
-			assert.Equal(t, big.NewInt(2E18-2E17-1E18), info2.NeedRelease)
+			assert.Equal(t, big.NewInt(4e18), info2.CachePlanAmount)
+			assert.Equal(t, big.NewInt(4e18), info2.StakingAmount)
+			assert.Equal(t, big.NewInt(2e18-2e17-1e18), info2.NeedRelease)
 			assert.Equal(t, 2, len(info2.ReleaseList))
 
 			assert.Equal(t, true, big.NewInt(0).Cmp(mockDB.GetBalance(vm.RestrictingContractAddr)) == 0)
-			assert.Equal(t, big.NewInt(1E18+1E18+2E17), mockDB.GetBalance(to))
+			assert.Equal(t, big.NewInt(1e18+1e18+2e17), mockDB.GetBalance(to))
 		})
 		t.Run("the NeedRelease amount is less than add plan amount", func(t *testing.T) {
 			mockDB := buildStateDB(t)
-			mockDB.AddBalance(from, big.NewInt(9E18))
+			mockDB.AddBalance(from, big.NewInt(9e18))
 			plugin.storeNumber2ReleaseEpoch(mockDB, restricting.GetReleaseEpochKey(2), 2)
-			plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2E18))
+			plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2e18))
 			plugin.storeAccount2ReleaseAccount(mockDB, 2, 1, to)
 			var info restricting.RestrictingInfo
-			info.NeedRelease = big.NewInt(2E18)
-			info.StakingAmount = big.NewInt(4E18)
-			info.CachePlanAmount = big.NewInt(4E18)
+			info.NeedRelease = big.NewInt(2e18)
+			info.StakingAmount = big.NewInt(4e18)
+			info.CachePlanAmount = big.NewInt(4e18)
 			info.ReleaseList = []uint64{2}
 			plugin.storeRestrictingInfo(mockDB, restricting.GetRestrictingKey(to), info)
 
-			mockDB.AddBalance(to, big.NewInt(1E18))
+			mockDB.AddBalance(to, big.NewInt(1e18))
 			mockDB.AddBalance(vm.RestrictingContractAddr, big.NewInt(0))
 			mockDB.SetState(vm.RestrictingContractAddr, restricting.GetLatestEpochKey(), common.Uint32ToBytes(1))
 
 			plans := make([]restricting.RestrictingPlan, 0)
-			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(2E18)})
-			plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1E18)})
+			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(2e18)})
+			plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
 			if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 				t.Error(err)
 			}
 
 			_, rAmount := plugin.getReleaseAmount(mockDB, 2, to)
-			assert.Equal(t, big.NewInt(2E18+2E18), rAmount)
+			assert.Equal(t, big.NewInt(2e18+2e18), rAmount)
 			_, rAmount2 := plugin.getReleaseAmount(mockDB, 3, to)
-			assert.Equal(t, big.NewInt(1E18), rAmount2)
+			assert.Equal(t, big.NewInt(1e18), rAmount2)
 
 			_, account1 := plugin.getReleaseAccount(mockDB, 3, 1)
 			assert.Equal(t, to, account1)
@@ -322,13 +322,13 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			if err != nil {
 				t.Error()
 			}
-			assert.Equal(t, big.NewInt(4E18+3E18-2E18), info2.CachePlanAmount)
-			assert.Equal(t, big.NewInt(4E18), info2.StakingAmount)
+			assert.Equal(t, big.NewInt(4e18+3e18-2e18), info2.CachePlanAmount)
+			assert.Equal(t, big.NewInt(4e18), info2.StakingAmount)
 			assert.Equal(t, big.NewInt(0), info2.NeedRelease)
 			assert.Equal(t, 2, len(info2.ReleaseList))
 
-			assert.Equal(t, big.NewInt(1E18), mockDB.GetBalance(vm.RestrictingContractAddr))
-			assert.Equal(t, big.NewInt(1E18+2E18), mockDB.GetBalance(to))
+			assert.Equal(t, big.NewInt(1e18), mockDB.GetBalance(vm.RestrictingContractAddr))
+			assert.Equal(t, big.NewInt(1e18+2e18), mockDB.GetBalance(to))
 		})
 
 	})
@@ -348,12 +348,12 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 	t.Run("restricting account exist", func(t *testing.T) {
 
 		chain := mock.NewChain(nil)
-		chain.StateDB.AddBalance(addrArr[1], big.NewInt(8E18))
+		chain.StateDB.AddBalance(addrArr[1], big.NewInt(8e18))
 
 		plans := make([]restricting.RestrictingPlan, 0)
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E18)})
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1E18)})
-		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1E18)})
+		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
 		total := new(big.Int)
 		for _, value := range plans {
 			total.Add(total, value.Amount)
@@ -386,15 +386,15 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 		if res.Entry[0].Height != uint64(1)*xutil.CalcBlocksEachEpoch() {
 			t.Errorf("release block num is not right,want %v have %v", uint64(1)*xutil.CalcBlocksEachEpoch(), res.Entry[0].Height)
 		}
-		if res.Entry[0].Amount.ToInt().Cmp(big.NewInt(2E18)) != 0 {
-			t.Errorf("release amount not compare ,want %v have %v", big.NewInt(2E18), res.Entry[0].Amount)
+		if res.Entry[0].Amount.ToInt().Cmp(big.NewInt(2e18)) != 0 {
+			t.Errorf("release amount not compare ,want %v have %v", big.NewInt(2e18), res.Entry[0].Amount)
 		}
 
 		if res.Entry[1].Height != uint64(2)*xutil.CalcBlocksEachEpoch() {
 			t.Errorf("release block num is not right,want %v have %v", uint64(2)*xutil.CalcBlocksEachEpoch(), res.Entry[1].Height)
 		}
-		if res.Entry[1].Amount.ToInt().Cmp(big.NewInt(1E18)) != 0 {
-			t.Errorf("release amount not compare ,want %v have %v", big.NewInt(1E18), res.Entry[1].Amount)
+		if res.Entry[1].Amount.ToInt().Cmp(big.NewInt(1e18)) != 0 {
+			t.Errorf("release amount not compare ,want %v have %v", big.NewInt(1e18), res.Entry[1].Amount)
 		}
 	})
 }
@@ -405,11 +405,11 @@ func TestRestrictingInstance(t *testing.T) {
 	plugin.log = log.Root()
 	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
-	mockDB.AddBalance(from, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(9E18)))
+	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
 	plans := make([]restricting.RestrictingPlan, 0)
-	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3E18)})
-	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4E18)})
-	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2E18)})
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
+	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4e18)})
+	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2e18)})
 	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 		t.Error(err)
 	}
@@ -417,7 +417,7 @@ func TestRestrictingInstance(t *testing.T) {
 		t.Error(err)
 	}
 	SetLatestEpoch(mockDB, 1)
-	if err := plugin.PledgeLockFunds(to, big.NewInt(5E18), mockDB); err != nil {
+	if err := plugin.PledgeLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
 	}
 	if err := plugin.releaseRestricting(2, mockDB); err != nil {
@@ -429,22 +429,22 @@ func TestRestrictingInstance(t *testing.T) {
 	}
 	SetLatestEpoch(mockDB, 3)
 	plans2 := make([]restricting.RestrictingPlan, 0)
-	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1E18)})
+	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1e18)})
 	if err := plugin.AddRestrictingRecord(from, to, plans2, mockDB); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.ReturnLockFunds(to, big.NewInt(5E18), mockDB); err != nil {
+	if err := plugin.ReturnLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, big.NewInt(9E18), mockDB.GetBalance(to))
-	assert.Equal(t, big.NewInt(1E18), mockDB.GetBalance(vm.RestrictingContractAddr))
+	assert.Equal(t, big.NewInt(9e18), mockDB.GetBalance(to))
+	assert.Equal(t, big.NewInt(1e18), mockDB.GetBalance(vm.RestrictingContractAddr))
 
 	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
 	SetLatestEpoch(mockDB, 4)
 
-	assert.Equal(t, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(1E18)), mockDB.GetBalance(to))
+	assert.Equal(t, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(1e18)), mockDB.GetBalance(to))
 	assert.Equal(t, true, mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) == 0)
 	assert.Equal(t, true, mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) == 0)
 }
@@ -455,11 +455,11 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	plugin.log = log.Root()
 	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
-	mockDB.AddBalance(from, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(9E18)))
+	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
 	plans := make([]restricting.RestrictingPlan, 0)
-	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3E18)})
-	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4E18)})
-	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2E18)})
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
+	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4e18)})
+	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2e18)})
 	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 		t.Error(err)
 	}
@@ -469,7 +469,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	}
 	SetLatestEpoch(mockDB, 1)
 
-	if err := plugin.PledgeLockFunds(to, big.NewInt(5E18), mockDB); err != nil {
+	if err := plugin.PledgeLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
 	}
 
@@ -483,28 +483,28 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	}
 	SetLatestEpoch(mockDB, 3)
 
-	mockDB.SubBalance(vm.StakingContractAddr, big.NewInt(1E18))
-	if err := plugin.SlashingNotify(to, big.NewInt(1E18), mockDB); err != nil {
+	mockDB.SubBalance(vm.StakingContractAddr, big.NewInt(1e18))
+	if err := plugin.SlashingNotify(to, big.NewInt(1e18), mockDB); err != nil {
 		t.Error(err)
 	}
 
 	plans2 := make([]restricting.RestrictingPlan, 0)
-	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1E18)})
+	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1e18)})
 	if err := plugin.AddRestrictingRecord(from, to, plans2, mockDB); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.ReturnLockFunds(to, big.NewInt(4E18), mockDB); err != nil {
+	if err := plugin.ReturnLockFunds(to, big.NewInt(4e18), mockDB); err != nil {
 		t.Error(err)
 	}
 
-	assert.Equal(t, big.NewInt(9E18), mockDB.GetBalance(to))
+	assert.Equal(t, big.NewInt(9e18), mockDB.GetBalance(to))
 
 	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
 	SetLatestEpoch(mockDB, 4)
 
-	assert.Equal(t, big.NewInt(9E18), mockDB.GetBalance(to))
+	assert.Equal(t, big.NewInt(9e18), mockDB.GetBalance(to))
 	if mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) != 0 {
 		t.Error("RestrictingContractAddr should compare", vm.RestrictingContractAddr)
 	}
@@ -523,19 +523,19 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
 	from, to := addrArr[0], addrArr[1]
-	mockDB.AddBalance(from, big.NewInt(9E18).Add(big.NewInt(9E18), big.NewInt(9E18)))
+	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
 	plans := make([]restricting.RestrictingPlan, 0)
-	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3E18)})
-	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3E18)})
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
 
 	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
 		t.Error(err)
 	}
-	res, err := plugin.getRestrictingInfo2(to, mockDB)
+	res, err := plugin.getRestrictingInfoToReturn(to, mockDB)
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, res.Balance.ToInt(), big.NewInt(6E18))
+	assert.Equal(t, res.Balance.ToInt(), big.NewInt(6e18))
 
 }
 

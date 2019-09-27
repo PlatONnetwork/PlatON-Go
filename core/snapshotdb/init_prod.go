@@ -2,8 +2,6 @@
 
 package snapshotdb
 
-import "errors"
-
 const (
 	//DBPath path of db
 	DBPath = "snapshotdb"
@@ -13,14 +11,22 @@ const (
 )
 
 // New  create a new snapshotDB,will clear old snapshotDB data
-func New() (DB, error) {
-	if dbInstance != nil {
-		if err := dbInstance.Clear(); err != nil {
-			return nil, err
-		}
+/*func New(path string) (DB, error) {
+	if err := os.RemoveAll(path); err != nil {
+		return nil, err
 	}
-	if err := initDB(); err != nil {
-		return nil, errors.New("init db fail:" + err.Error())
+	s, err := openFile(path, false)
+	if err != nil {
+		logger.Error("open db file fail", "error", err, "path", dbpath)
+		return nil, err
 	}
-	return dbInstance, nil
+
+	logger.Info("begin new", "path", path)
+	db, err := newDB(s)
+	if err != nil {
+		logger.Error(fmt.Sprint("new db fail:", err))
+		return nil, err
+	}
+	return db, nil
 }
+*/

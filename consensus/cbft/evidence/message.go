@@ -17,11 +17,11 @@ import (
 // Proposed block carrier.
 type EvidencePrepare struct {
 	Epoch        uint64           `json:"epoch"`
-	ViewNumber   uint64           `json:"view_number"`
-	BlockHash    common.Hash      `json:"block_hash"`
-	BlockNumber  uint64           `json:"block_number"`
-	BlockIndex   uint32           `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
-	ValidateNode *EvidenceNode    `json:"validate_node"`
+	ViewNumber   uint64           `json:"viewNumber"`
+	BlockHash    common.Hash      `json:"blockHash"`
+	BlockNumber  uint64           `json:"blockNumber"`
+	BlockIndex   uint32           `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
+	ValidateNode *EvidenceNode    `json:"validateNode"`
 	Signature    ctypes.Signature `json:"signature"`
 }
 
@@ -62,11 +62,11 @@ func (ep *EvidencePrepare) Verify() error {
 
 type EvidenceVote struct {
 	Epoch        uint64           `json:"epoch"`
-	ViewNumber   uint64           `json:"view_number"`
-	BlockHash    common.Hash      `json:"block_hash"`
-	BlockNumber  uint64           `json:"block_number"`
-	BlockIndex   uint32           `json:"block_index"` // The block number of the current ViewNumber proposal, 0....10
-	ValidateNode *EvidenceNode    `json:"validate_node"`
+	ViewNumber   uint64           `json:"viewNumber"`
+	BlockHash    common.Hash      `json:"blockHash"`
+	BlockNumber  uint64           `json:"blockNumber"`
+	BlockIndex   uint32           `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
+	ValidateNode *EvidenceNode    `json:"validateNode"`
 	Signature    ctypes.Signature `json:"signature"`
 }
 
@@ -107,13 +107,13 @@ func (ev *EvidenceVote) Verify() error {
 
 type EvidenceView struct {
 	Epoch        uint64           `json:"epoch"`
-	ViewNumber   uint64           `json:"view_number"`
-	BlockHash    common.Hash      `json:"block_hash"`
-	BlockNumber  uint64           `json:"block_number"`
-	ValidateNode *EvidenceNode    `json:"validate_node"`
+	ViewNumber   uint64           `json:"viewNumber"`
+	BlockHash    common.Hash      `json:"blockHash"`
+	BlockNumber  uint64           `json:"blockNumber"`
+	ValidateNode *EvidenceNode    `json:"validateNode"`
 	Signature    ctypes.Signature `json:"signature"`
-	BlockEpoch   uint64           `json:"block_epoch"`
-	BlockView    uint64           `json:"block_view"`
+	BlockEpoch   uint64           `json:"blockEpoch"`
+	BlockView    uint64           `json:"blockView"`
 }
 
 func NewEvidenceView(vc *protocols.ViewChange, node *cbfttypes.ValidateNode) (*EvidenceView, error) {
@@ -161,7 +161,7 @@ func (ev *EvidenceView) Verify() error {
 type EvidenceNode struct {
 	Index     uint32          `json:"index"`
 	Address   common.Address  `json:"address"`
-	NodeID    discover.NodeID `json:"NodeID"`
+	NodeID    discover.NodeID `json:"nodeId"`
 	BlsPubKey *bls.PublicKey  `json:"blsPubKey"`
 }
 

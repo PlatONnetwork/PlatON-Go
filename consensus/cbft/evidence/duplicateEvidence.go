@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
@@ -20,8 +23,8 @@ const (
 
 // DuplicatePrepareBlockEvidence recording duplicate blocks
 type DuplicatePrepareBlockEvidence struct {
-	PrepareA *EvidencePrepare `json:"prepare_a"`
-	PrepareB *EvidencePrepare `json:"prepare_b"`
+	PrepareA *EvidencePrepare `json:"prepareA"`
+	PrepareB *EvidencePrepare `json:"prepareB"`
 }
 
 func (d DuplicatePrepareBlockEvidence) BlockNumber() uint64 {
@@ -100,6 +103,14 @@ func (d DuplicatePrepareBlockEvidence) Address() common.Address {
 	return d.PrepareA.ValidateNode.Address
 }
 
+func (d DuplicatePrepareBlockEvidence) NodeID() discover.NodeID {
+	return d.PrepareA.ValidateNode.NodeID
+}
+
+func (d DuplicatePrepareBlockEvidence) BlsPubKey() *bls.PublicKey {
+	return d.PrepareA.ValidateNode.BlsPubKey
+}
+
 func (d DuplicatePrepareBlockEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareBlockType
 }
@@ -111,8 +122,8 @@ func (d DuplicatePrepareBlockEvidence) ValidateMsg() bool {
 
 // DuplicatePrepareVoteEvidence recording duplicate vote
 type DuplicatePrepareVoteEvidence struct {
-	VoteA *EvidenceVote `json:"vote_a"`
-	VoteB *EvidenceVote `json:"vote_b"`
+	VoteA *EvidenceVote `json:"voteA"`
+	VoteB *EvidenceVote `json:"voteB"`
 }
 
 func (d DuplicatePrepareVoteEvidence) BlockNumber() uint64 {
@@ -191,6 +202,14 @@ func (d DuplicatePrepareVoteEvidence) Address() common.Address {
 	return d.VoteA.ValidateNode.Address
 }
 
+func (d DuplicatePrepareVoteEvidence) NodeID() discover.NodeID {
+	return d.VoteA.ValidateNode.NodeID
+}
+
+func (d DuplicatePrepareVoteEvidence) BlsPubKey() *bls.PublicKey {
+	return d.VoteA.ValidateNode.BlsPubKey
+}
+
 func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
 	return DuplicatePrepareVoteType
 }
@@ -202,8 +221,8 @@ func (d DuplicatePrepareVoteEvidence) ValidateMsg() bool {
 
 // DuplicateViewChangeEvidence recording duplicate viewChange
 type DuplicateViewChangeEvidence struct {
-	ViewA *EvidenceView `json:"view_a"`
-	ViewB *EvidenceView `json:"view_b"`
+	ViewA *EvidenceView `json:"viewA"`
+	ViewB *EvidenceView `json:"viewB"`
 }
 
 func (d DuplicateViewChangeEvidence) BlockNumber() uint64 {
@@ -279,6 +298,14 @@ func (d DuplicateViewChangeEvidence) Address() common.Address {
 	return d.ViewA.ValidateNode.Address
 }
 
+func (d DuplicateViewChangeEvidence) NodeID() discover.NodeID {
+	return d.ViewA.ValidateNode.NodeID
+}
+
+func (d DuplicateViewChangeEvidence) BlsPubKey() *bls.PublicKey {
+	return d.ViewA.ValidateNode.BlsPubKey
+}
+
 func (d DuplicateViewChangeEvidence) Type() consensus.EvidenceType {
 	return DuplicateViewChangeType
 }
@@ -290,9 +317,9 @@ func (d DuplicateViewChangeEvidence) ValidateMsg() bool {
 
 // EvidenceData encapsulate externally visible duplicate data
 type EvidenceData struct {
-	DP []*DuplicatePrepareBlockEvidence `json:"duplicate_prepare"`
-	DV []*DuplicatePrepareVoteEvidence  `json:"duplicate_vote"`
-	DC []*DuplicateViewChangeEvidence   `json:"duplicate_viewchange"`
+	DP []*DuplicatePrepareBlockEvidence `json:"duplicatePrepare"`
+	DV []*DuplicatePrepareVoteEvidence  `json:"duplicateVote"`
+	DC []*DuplicateViewChangeEvidence   `json:"duplicateViewchange"`
 }
 
 func NewEvidenceData() *EvidenceData {

@@ -34,7 +34,7 @@ const (
 	gatherSlack   = 100 * time.Millisecond // Interval used to collate almost-expired announces with fetches
 	fetchTimeout  = 5 * time.Second        // Maximum allotted time to return an explicitly requested block
 	maxUncleDist  = 7                      // Maximum allowed backward distance from the chain head
-	maxQueueDist  = 2                      // Maximum allowed distance from the chain head to queue
+	maxQueueDist  = 32                     // Maximum allowed distance from the chain head to queue
 	hashLimit     = 256                    // Maximum number of unique blocks a peer may have announced
 	blockLimit    = 64                     // Maximum number of unique blocks a peer may have delivered
 )
@@ -304,6 +304,7 @@ func (f *Fetcher) loop() {
 			}
 			// If too high up the chain or phase, continue later
 			number := op.block.NumberU64()
+			log.Debug("Fetcher loop debug", "currentNumber", height, "opNumber", number)
 			if number > height+1 {
 				f.queue.Push(op, -int64(number))
 				if f.queueChangeHook != nil {
@@ -650,11 +651,14 @@ func (f *Fetcher) insert(peer string, block *types.Block) {
 		defer func() { f.done <- hash }()
 
 		// If the parent's unknown, abort insertion
-		parent := f.getBlock(block.ParentHash())
-		if parent == nil {
-			log.Debug("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
-			return
-		}
+
+		// CBFT engine also check parent exists.
+		//parent := f.getBlock(block.ParentHash())
+		//if parent == nil {
+		//	log.Debug("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+		//	return
+		//}
+
 		// Quickly validate the header and propagate the block if it passes
 		switch err := f.verifyHeader(block.Header()); err {
 		case nil:

@@ -678,8 +678,9 @@ func (w *worker) resultLoop() {
 				log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
 				continue
 			}
+
 			//cbftResult.SyncState <- err
-			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time())
+			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time(), "root", block.Root())
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
@@ -1063,7 +1064,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-
 	//make header extra after w.current and it's state initialized
 	extraData := w.makeExtraData()
 	copy(header.Extra[:len(extraData)], extraData)
@@ -1153,7 +1153,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	for _, raccTxs := range remoteTxs {
 		remoteTxsCount = remoteTxsCount + len(raccTxs)
 	}
-	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
+	log.Debug("execute pending transactions", "number", header.Number, "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1167,7 +1167,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	commitLocalTxCount := w.current.tcount
-	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
@@ -1177,13 +1177,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
 
-	log.Info("Commit new work", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "pending", txsCount, "txs", w.current.tcount,"diff", txsCount - w.current.tcount, "duration", time.Since(tstart))
+	log.Info("Commit new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1210,9 +1210,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	root := w.current.state.IntermediateRoot(true)
 	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
 		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))*/
-
 	s := w.current.state.Copy()
-
 	/*// todo test
 	root = s.IntermediateRoot(true)
 	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
@@ -1269,7 +1267,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	if parentChain.NumberU64() >= parent.NumberU64() {
 		parent = parentChain
 	}
-	log.Debug("parent in makePending", "number", parent.NumberU64(), "hash", parent.Hash())
+	log.Debug("Parent in makePending", "number", parent.NumberU64(), "hash", parent.Hash())
 
 	if parent != nil {
 		state, err := w.blockChainCache.MakeStateDB(parent)
@@ -1333,7 +1331,6 @@ func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 
 // make default extra data when preparing new block
 func (w *worker) makeExtraData() []byte {
-
 	// create default extradata
 	extra, _ := rlp.EncodeToBytes([]interface{}{
 		//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
@@ -1342,7 +1339,6 @@ func (w *worker) makeExtraData() []byte {
 		runtime.Version(),
 		runtime.GOOS,
 	})
-
 	if uint64(len(extra)) > params.MaximumExtraDataSize {
 		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
 		extra = nil

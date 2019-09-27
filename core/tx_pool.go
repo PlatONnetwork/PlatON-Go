@@ -259,6 +259,8 @@ type TxPool struct {
 
 	knowns       sync.Map // All know transactions
 	filterKnowns int32
+
+	resetHead *types.Block
 }
 
 type txExt struct {
@@ -292,6 +294,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain *Bloc
 		txExtBuffer: make(chan *txExt, config.TxExtBufferSize),
 		rstFlag:     DoneRst,
 		pendingFlag: DonePending,
+		resetHead:   chain.currentBlock.Load().(*types.Block),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -488,16 +491,16 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 		return
 	}
 	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
-	head := pool.chain.CurrentBlock()
+	//head := pool.chain.CurrentBlock()
 
 	if newBlock != nil {
 		pool.mu.Lock()
 
-		if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
-			atomic.StoreInt32(&pool.rstFlag, DoingRst)
-		}
-		pool.reset(head.Header(), newBlock.Header())
-		head = newBlock
+		atomic.StoreInt32(&pool.rstFlag, DoingRst)
+		defer atomic.StoreInt32(&pool.rstFlag, DoneRst)
+
+		pool.reset(pool.resetHead.Header(), newBlock.Header())
+		pool.resetHead = newBlock
 
 		pool.mu.Unlock()
 	}
@@ -554,8 +557,6 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 // reset retrieves the current state of the blockchain and ensures the content
 // of the transaction pool is valid with regard to the chain state.
 func (pool *TxPool) reset(oldHead, newHead *types.Header) {
-	defer atomic.StoreInt32(&pool.rstFlag, DoneRst)
-
 	var oldHash common.Hash
 	var oldNumber uint64
 	if oldHead != nil {
@@ -866,7 +867,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// Verify inner contract tx
 	if nil != tx.To() {
-		if err := bcr.Verify_tx(tx, *(tx.To())); nil != err {
+		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
 	}
