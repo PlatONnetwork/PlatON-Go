@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -478,21 +479,24 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return err
 			}
 			var (
-				bytes int
-				ps    PPOSStorage
-				count int
+				byteSize int
+				ps       PPOSStorage
+				count    int
 			)
 			ps.KVs = make([]downloader.PPOSStorageKV, 0)
 			for iter.Next() {
-				bytes = bytes + len(iter.Key()) + len(iter.Value())
-				if count >= downloader.PPOSStorageKVSizeFetch || bytes > softResponseLimit {
+				if bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentHighestBlock)) || bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentBaseNum)) {
+					continue
+				}
+				byteSize = byteSize + len(iter.Key()) + len(iter.Value())
+				if count >= downloader.PPOSStorageKVSizeFetch || byteSize > softResponseLimit {
 					if err := p.SendPPOSStorage(ps); err != nil {
 						p.Log().Error("[GetPPOSStorageMsg]send ppos message fail", "error", err, "kvnum", ps.KVNum)
 						return err
 					}
 					count = 0
 					ps.KVs = make([]downloader.PPOSStorageKV, 0)
-					bytes = 0
+					byteSize = 0
 				}
 				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
 				copy(k, iter.Key())
