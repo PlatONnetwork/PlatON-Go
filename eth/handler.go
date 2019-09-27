@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -170,13 +171,13 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, downloader.NewBlockChainWrapper(blockchain, engine), nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, blockchain, nil, manager.removePeer)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
 	}
 	heighter := func() uint64 {
-		return blockchain.CurrentBlock().NumberU64()
+		return manager.blockchain.Engine().CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -478,21 +479,24 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return err
 			}
 			var (
-				bytes int
-				ps    PPOSStorage
-				count int
+				byteSize int
+				ps       PPOSStorage
+				count    int
 			)
 			ps.KVs = make([]downloader.PPOSStorageKV, 0)
 			for iter.Next() {
-				bytes = bytes + len(iter.Key()) + len(iter.Value())
-				if count >= downloader.PPOSStorageKVSizeFetch || bytes > softResponseLimit {
+				if bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentHighestBlock)) || bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentBaseNum)) {
+					continue
+				}
+				byteSize = byteSize + len(iter.Key()) + len(iter.Value())
+				if count >= downloader.PPOSStorageKVSizeFetch || byteSize > softResponseLimit {
 					if err := p.SendPPOSStorage(ps); err != nil {
 						p.Log().Error("[GetPPOSStorageMsg]send ppos message fail", "error", err, "kvnum", ps.KVNum)
 						return err
 					}
 					count = 0
 					ps.KVs = make([]downloader.PPOSStorageKV, 0)
-					bytes = 0
+					byteSize = 0
 				}
 				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
 				copy(k, iter.Key())
@@ -761,7 +765,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
-			currentBlock := pm.engine.CurrentBlock()
+			currentBlock := pm.blockchain.CurrentBlock()
 			if trueBn.Cmp(currentBlock.Number()) > 0 {
 				go pm.synchronise(p)
 			}

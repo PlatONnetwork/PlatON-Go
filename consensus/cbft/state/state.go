@@ -132,7 +132,7 @@ func (v *viewBlocks) MaxIndex() uint32 {
 }
 
 type viewQCs struct {
-	MaxIndex uint32                        `json:"max_index"`
+	MaxIndex uint32                        `json:"maxIndex"`
 	QCs      map[uint32]*ctypes.QuorumCert `json:"qcs"`
 }
 
@@ -222,7 +222,7 @@ func (v *viewChanges) clear() {
 
 type executing struct {
 	// Block index of current view
-	BlockIndex uint32 `json:"block_index"`
+	BlockIndex uint32 `json:"blockIndex"`
 	// Whether to complete
 	Finish bool `json:"finish"`
 }
@@ -292,15 +292,15 @@ func (v *view) Epoch() uint64 {
 func (v *view) MarshalJSON() ([]byte, error) {
 	type view struct {
 		Epoch              uint64               `json:"epoch"`
-		ViewNumber         uint64               `json:"view_number"`
+		ViewNumber         uint64               `json:"viewNumber"`
 		Executing          executing            `json:"executing"`
 		ViewChanges        *viewChanges         `json:"viewchange"`
-		LastViewChangeQC   *ctypes.ViewChangeQC `json:"last_viewchange"`
-		HadSendPrepareVote *PrepareVoteQueue    `json:"had_send_prepare_vote"`
-		PendingVote        *PrepareVoteQueue    `json:"pending_prepare_vote"`
-		ViewBlocks         *viewBlocks          `json:"view_blocks"`
-		ViewQCs            *viewQCs             `json:"view_qcs"`
-		ViewVotes          *viewVotes           `json:"view_votes"`
+		LastViewChangeQC   *ctypes.ViewChangeQC `json:"lastViewchange"`
+		HadSendPrepareVote *PrepareVoteQueue    `json:"hadSendPrepareVote"`
+		PendingVote        *PrepareVoteQueue    `json:"pendingPrepareVote"`
+		ViewBlocks         *viewBlocks          `json:"viewBlocks"`
+		ViewQCs            *viewQCs             `json:"viewQcs"`
+		ViewVotes          *viewVotes           `json:"viewVotes"`
 	}
 	vv := &view{
 		Epoch:              atomic.LoadUint64(&v.epoch),
@@ -588,6 +588,15 @@ func (vs *ViewState) HighestExecutedBlock() *types.Block {
 	return block
 }
 
+func (vs *ViewState) FindBlock(hash common.Hash, number uint64) *types.Block {
+	for _, b := range vs.viewBlocks.Blocks {
+		if b.hash() == hash && b.number() == number {
+			return b.block()
+		}
+	}
+	return nil
+}
+
 func (vs *ViewState) SetHighestQCBlock(ext *types.Block) {
 	vs.highestQCBlock.Store(ext)
 }
@@ -647,9 +656,9 @@ func (vs *ViewState) MarshalJSON() ([]byte, error) {
 	}
 	type state struct {
 		View               *view      `json:"view"`
-		HighestQCBlock     hashNumber `json:"highest_qc_block"`
-		HighestLockBlock   hashNumber `json:"highest_lock_block"`
-		HighestCommitBlock hashNumber `json:"highest_commit_block"`
+		HighestQCBlock     hashNumber `json:"highestQCBlock"`
+		HighestLockBlock   hashNumber `json:"highestLockBlock"`
+		HighestCommitBlock hashNumber `json:"highestCommitBlock"`
 	}
 
 	s := &state{

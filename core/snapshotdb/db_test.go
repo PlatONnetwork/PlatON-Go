@@ -49,7 +49,7 @@ func TestRecover(t *testing.T) {
 	{
 		recognizedArr = generatekv(100)
 		ch.addBlock()
-		if err := newBlockRecognizedDirect(ch.CurrentHeader(), recognizedArr); err != nil {
+		if err := newBlockRecognizedByFlush(ch.CurrentHeader().Hash(), ch.GetHeaderByHash(ch.CurrentHeader().ParentHash), recognizedArr); err != nil {
 			t.Error(err)
 			return
 		}
@@ -73,26 +73,21 @@ func TestRecover(t *testing.T) {
 		t.Error(err)
 	}
 	dbInstance = nil
-	s, err := openFile(dbpath, false)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	fds, err := s.List(TypeCurrent)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if len(fds) > 0 {
-		db := new(snapshotDB)
-		if err := db.recover(s); err != nil {
-			t.Error(err)
-			return
-		}
-		dbInstance = db
-		defer dbInstance.Clear()
-	}
-
+	//s, err := openFile(dbpath, false)
+	//if err != nil {
+	//	t.Error(err)
+	//	return
+	//}
+	//fds, err := s.List(TypeCurrent)
+	//if err != nil {
+	//	t.Error(err)
+	//	return
+	//}
+	//if len(fds) > 0 {
+	//
+	//}
+	initDB()
+	defer dbInstance.Clear()
 	if dbInstance.path != dbpath {
 		t.Error("path is wrong", dbInstance.path, dbpath)
 		return
@@ -105,8 +100,8 @@ func TestRecover(t *testing.T) {
 		t.Error("HighestNum is wrong", dbInstance.current.HighestNum.Int64(), high)
 		return
 	}
-	if dbInstance.current.path != getCurrentPath(dbpath) {
-		t.Error("current path is wrong", dbInstance.current.path, getCurrentPath(dbpath))
+	if dbInstance.current.HighestHash != ch.CurrentHeader().Hash() {
+		t.Error("Highest Hash is wrong", dbInstance.current.HighestHash.String(), ch.CurrentHeader().Hash().String())
 		return
 	}
 	if len(dbInstance.unCommit.blocks) != 0 {
@@ -128,13 +123,13 @@ func TestRecover(t *testing.T) {
 		recognized,
 		commit,
 	}
-	newarr := []*blockData{
-		dbInstance.committed[1],
-		dbInstance.committed[0],
-	}
 	if len(dbInstance.committed) != 2 {
 		t.Error("should recover commit ", len(dbInstance.committed))
 		return
+	}
+	newarr := []*blockData{
+		dbInstance.committed[1],
+		dbInstance.committed[0],
 	}
 
 	for i := 0; i < 2; i++ {
@@ -171,6 +166,7 @@ func TestRecover(t *testing.T) {
 
 }
 
+/*
 func TestRMOldRecognizedBlockData(t *testing.T) {
 	ch := new(testchain)
 	blockchain = ch
@@ -203,7 +199,7 @@ func TestRMOldRecognizedBlockData(t *testing.T) {
 		t.Error("not rm old data")
 	}
 }
-
+*/
 func randomString2(s string) []byte {
 	b := new(bytes.Buffer)
 	if s != "" {

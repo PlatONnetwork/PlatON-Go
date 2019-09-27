@@ -127,10 +127,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 
-	// set snapshotdb path
-	//snapshotdb.SetDBPath(ctx)
-
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount
@@ -147,7 +144,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, config.MinerNotify, config.MinerNoverify, chainDb, &config.CbftConfig, ctx.EventMux),
+		engine:         CreateConsensusEngine(ctx, chainConfig, config.MinerNoverify, chainDb, &config.CbftConfig, ctx.EventMux),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -166,10 +163,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	var (
 		vmConfig = vm.Config{
-			EnablePreimageRecording: config.EnablePreimageRecording,
-			EWASMInterpreter:        config.EWASMInterpreter,
-			EVMInterpreter:          config.EVMInterpreter,
-			ConsoleOutput:           config.Debug,
+			ConsoleOutput: config.Debug,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
@@ -258,6 +252,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			agency = reactor
 		}
 
+		if err := recoverSnapshotDB(blockChainCache); err != nil {
+			log.Error("recover SnapshotDB fail", "error", err)
+			return nil, errors.New("Failed to recover SnapshotDB")
+		}
+
 		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
 			log.Error("Init cbft consensus engine fail", "error", err)
 			return nil, errors.New("Failed to init cbft consensus engine")
@@ -278,6 +277,30 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	return eth, nil
 }
 
+func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
+	sdb := snapshotdb.Instance()
+	current := sdb.GetCurrent()
+	ch := current.HighestNum.Uint64()
+	if ch < blockChainCache.CurrentHeader().Number.Uint64() {
+		var recoverBlocks = make([]*types.Block, 0)
+		for i := ch; i <= blockChainCache.CurrentHeader().Number.Uint64(); i++ {
+			recoverBlocks = append(recoverBlocks, blockChainCache.GetBlockByNumber(i))
+		}
+		for i := 1; i < len(recoverBlocks); i++ {
+			log.Debug("snapshotdb recover block from blockchain", "num", recoverBlocks[i].Number(), "root", recoverBlocks[i].Root(), "hash", recoverBlocks[i].Hash().String(), "parent", recoverBlocks[i-1].Number(), "praenthash", recoverBlocks[i-1].Hash().String(), "parentroot", recoverBlocks[i-1].Root())
+			if err := blockChainCache.Execute(recoverBlocks[i], recoverBlocks[i-1]); err != nil {
+				log.Error("snapshotdb recover block from blockchain  execute fail", "error", err)
+				return err
+			}
+			if err := sdb.Commit(recoverBlocks[i].Hash()); err != nil {
+				log.Error("snapshotdb recover block from blockchain  Commit fail", "error", err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // CreateDB creates the chain database.
 func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Database, error) {
 	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles)
@@ -291,7 +314,7 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
-func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, notify []string, noverify bool, db ethdb.Database,
+func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
 	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, ctx)
@@ -511,9 +534,9 @@ func (s *Ethereum) Stop() error {
 	s.miner.Stop()
 	s.eventMux.Stop()
 
+	core.GetReactorInstance().Close()
 	s.chainDb.Close()
 	close(s.shutdownChan)
-	core.GetReactorInstance().Close()
 	return nil
 }
 

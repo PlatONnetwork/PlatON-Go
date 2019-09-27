@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/stretchr/testify/assert"
@@ -13,14 +15,16 @@ import (
 
 func newBlock(parent common.Hash, number uint64) *types.Block {
 	header := &types.Header{
-		Number:     big.NewInt(int64(number)),
-		ParentHash: parent,
-		Time:       big.NewInt(time.Now().UnixNano()),
-		Extra:      nil,
+		Number:      big.NewInt(int64(number)),
+		ParentHash:  parent,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       nil,
+		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
 	}
 	block := types.NewBlockWithHeader(header)
 	return block
 }
+
 func TestNewBlockTree(t *testing.T) {
 	root := newBlock(common.Hash{}, 0)
 	fork1 := types.Blocks{
@@ -77,5 +81,23 @@ func TestNewBlockTree(t *testing.T) {
 	tree.Reset(newRoot, &QuorumCert{ViewNumber: 1})
 	assert.Equal(t, tree.root.Block.Hash(), newRoot.Hash())
 	assert.Equal(t, 1, len(tree.blocks))
+}
 
+func Test_blockTree_newRoot(t *testing.T) {
+	root := newBlock(common.Hash{}, 0)
+	tree := NewBlockTree(root, nil)
+	parent := root
+	for i := 0; i < 10; i++ {
+		block := newBlock(parent.Hash(), uint64(i+1))
+		tree.InsertQCBlock(block, &QuorumCert{ViewNumber: 1})
+		parent = block
+	}
+	assert.Equal(t, 11, len(tree.blocks))
+	tree.NewRoot(parent)
+	assert.Equal(t, 1, len(tree.blocks))
+	_, err := tree.root.MarshalJSON()
+	assert.Nil(t, err)
+	_, err = tree.MarshalJSON()
+	assert.Nil(t, err)
+	assert.Equal(t, parent.Hash(), tree.root.Block.Hash())
 }

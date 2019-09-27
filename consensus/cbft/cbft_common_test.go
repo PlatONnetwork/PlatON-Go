@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -34,7 +36,7 @@ var (
 	testTxPoolConfig = core.DefaultTxPoolConfig
 
 	// twenty billion von
-	twoentyBillion, _ = new(big.Int).SetString("200000000000000000000000000000", 10)
+	//twoentyBillion, _ = new(big.Int).SetString("200000000000000000000000000000", 10)
 	// two billion von
 	twoBillion, _ = new(big.Int).SetString("20000000000000000000000000000", 10)
 )
@@ -47,7 +49,7 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Time:        big.NewInt(time.Now().UnixNano()),
 		Extra:       make([]byte, 77),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0x6a04aa1741ab7c0d5055330437dceb3f971114c234609c8c824f490030e746da")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -115,8 +117,8 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 			Alloc:  core.GenesisAlloc{},
 		}
 	)
-	gspec.Alloc[cvm.PlatONFoundationAddress] = core.GenesisAccount{
-		Balance: twoentyBillion,
+	gspec.Alloc[xcom.PlatONFundAccount()] = core.GenesisAccount{
+		Balance: xcom.PlatONFundBalance(),
 	}
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
 		Balance: twoBillion,

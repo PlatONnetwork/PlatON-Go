@@ -30,7 +30,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DatabaseCache           int
 		TrieCache               int
 		TrieTimeout             time.Duration
-		MinerNotify             []string      `toml:",omitempty"`
 		MinerExtraData          hexutil.Bytes `toml:",omitempty"`
 		MinerGasFloor           uint64
 		MinerGasCeil            uint64
@@ -41,8 +40,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
 		DocRoot                 string `toml:"-"`
-		EWASMInterpreter        string
-		EVMInterpreter          string
 		//MPCPool                 core.MPCPoolConfig
 		//VCPool                  core.VCPoolConfig
 		Debug bool
@@ -60,7 +57,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DatabaseCache = c.DatabaseCache
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
-	enc.MinerNotify = c.MinerNotify
 	enc.MinerExtraData = c.MinerExtraData
 	enc.MinerGasFloor = c.MinerGasFloor
 	enc.MinerGasCeil = c.MinerGasCeil
@@ -69,10 +65,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.MinerNoverify = c.MinerNoverify
 	enc.TxPool = c.TxPool
 	enc.GPO = c.GPO
-	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.DocRoot = c.DocRoot
-	enc.EWASMInterpreter = c.EWASMInterpreter
-	enc.EVMInterpreter = c.EVMInterpreter
 	//enc.MPCPool = c.MPCPool
 	//enc.VCPool = c.VCPool
 	enc.Debug = c.Debug
@@ -94,7 +87,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DatabaseCache           *int
 		TrieCache               *int
 		TrieTimeout             *time.Duration
-		MinerNotify             []string       `toml:",omitempty"`
 		MinerExtraData          *hexutil.Bytes `toml:",omitempty"`
 		MinerGasFloor           *uint64
 		MinerGasCeil            *uint64
@@ -105,8 +97,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
 		DocRoot                 *string `toml:"-"`
-		EWASMInterpreter        *string
-		EVMInterpreter          *string
 		//MPCPool                 *core.MPCPoolConfig
 		//VCPool                  *core.VCPoolConfig
 		Debug *bool
@@ -151,9 +141,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
 	}
-	if dec.MinerNotify != nil {
-		c.MinerNotify = dec.MinerNotify
-	}
 	if dec.MinerExtraData != nil {
 		c.MinerExtraData = *dec.MinerExtraData
 	}
@@ -178,17 +165,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.GPO != nil {
 		c.GPO = *dec.GPO
 	}
-	if dec.EnablePreimageRecording != nil {
-		c.EnablePreimageRecording = *dec.EnablePreimageRecording
-	}
+
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot
-	}
-	if dec.EWASMInterpreter != nil {
-		c.EWASMInterpreter = *dec.EWASMInterpreter
-	}
-	if dec.EVMInterpreter != nil {
-		c.EVMInterpreter = *dec.EVMInterpreter
 	}
 	//if dec.MPCPool != nil {
 	//	c.MPCPool = *dec.MPCPool

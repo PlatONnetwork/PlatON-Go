@@ -19,13 +19,13 @@ import (
 )
 
 func TestRewardPlugin(t *testing.T) {
-	var plugin = new(rewardMgrPlugin)
+	var plugin = new(RewardMgrPlugin)
 	mockDB := buildStateDB(t)
 
 	t.Run("CalculateExpectReward", func(t *testing.T) {
 		//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-		yearBalance := big.NewInt(1E18)
+		yearBalance := big.NewInt(1e18)
 		rate := xcom.NewBlockRewardRate()
 		epochs := xutil.EpochsPerYear()
 		blocks := xutil.CalcBlocksEachYear()
@@ -71,11 +71,11 @@ func TestRewardPlugin(t *testing.T) {
 		lastYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(lastYear)))
 
 		if plugin.isLessThanFoundationYear(thisYear) {
-			mockDB.GetBalance(vm.CommunityDeveloperFoundation)
+			mockDB.GetBalance(xcom.CDFAccount())
 
 		} else {
-			mockDB.GetBalance(vm.CommunityDeveloperFoundation)
-			mockDB.GetBalance(vm.PlatONFoundationAddress)
+			mockDB.GetBalance(xcom.CDFAccount())
+			mockDB.GetBalance(xcom.PlatONFundAccount())
 		}
 		mockDB.GetBalance(vm.RewardManagerPoolAddr)
 
