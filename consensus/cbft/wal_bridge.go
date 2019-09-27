@@ -3,6 +3,7 @@ package cbft
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -114,7 +115,7 @@ func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols
 	if err != nil {
 		panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 	}
-	log.Debug("Success to update chainState", "commitState", commitState.String(), "lockState", lockState.String(), "qcState", qcState.String())
+	log.Info("Success to update chainState", "commitState", commitState.String(), "lockState", lockState.String(), "qcState", qcState.String())
 }
 
 // newChainState tries to update consensus state to wal
@@ -214,7 +215,7 @@ func (b *baseBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.V
 // need to do some necessary checks based on the latest blockchain block.
 // execute commit/lock/qcs block and load the corresponding state to cbft consensus.
 func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
-	cbft.log.Debug("Recover chain state from wal", "chainState", chainState.String())
+	cbft.log.Info("Recover chain state from wal", "chainState", chainState.String())
 	commit, lock, qcs := chainState.Commit, chainState.Lock, chainState.QC
 	// The highest block that has been written to disk
 
@@ -245,7 +246,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 }
 
 func (cbft *Cbft) recoveryCommitState(commit *protocols.State, parent *types.Block) error {
-	log.Debug("Recover commit state", "commitNumber", commit.Block.NumberU64(), "commitHash", commit.Block.Hash(), "parentNumber", parent.NumberU64(), "parentHash", parent.Hash())
+	log.Info("Recover commit state", "commitNumber", commit.Block.NumberU64(), "commitHash", commit.Block.Hash(), "parentNumber", parent.NumberU64(), "parentHash", parent.Hash())
 	// recovery commit state
 	if err := cbft.executeBlock(commit.Block, parent, math.MaxUint32); err != nil {
 		return err
@@ -288,21 +289,33 @@ func (cbft *Cbft) recoveryQCState(qcs []*protocols.State, parent *types.Block) e
 }
 
 // recoveryChainStateProcess tries to recovery the corresponding state to cbft consensus.
-func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, state *protocols.State) {
-	cbft.trySwitchValidator(state.Block.NumberU64())
-	cbft.tryWalChangeView(state.QuorumCert.Epoch, state.QuorumCert.ViewNumber, state.Block, state.QuorumCert, nil)
-	cbft.state.AddQCBlock(state.Block, state.QuorumCert)
-	cbft.state.AddQC(state.QuorumCert)
-	cbft.blockTree.InsertQCBlock(state.Block, state.QuorumCert)
-	cbft.state.SetExecuting(state.QuorumCert.BlockIndex, true)
+func (cbft *Cbft) recoveryChainStateProcess(stateType uint16, s *protocols.State) {
+	cbft.trySwitchValidator(s.Block.NumberU64())
+	cbft.tryWalChangeView(s.QuorumCert.Epoch, s.QuorumCert.ViewNumber, s.Block, s.QuorumCert, nil)
+	cbft.state.AddQCBlock(s.Block, s.QuorumCert)
+	cbft.state.AddQC(s.QuorumCert)
+	cbft.blockTree.InsertQCBlock(s.Block, s.QuorumCert)
+	cbft.state.SetExecuting(s.QuorumCert.BlockIndex, true)
 
 	switch stateType {
 	case protocols.CommitState:
-		cbft.state.SetHighestCommitBlock(state.Block)
+		cbft.state.SetHighestCommitBlock(s.Block)
 	case protocols.LockState:
-		cbft.state.SetHighestLockBlock(state.Block)
+		cbft.state.SetHighestLockBlock(s.Block)
 	case protocols.QCState:
-		cbft.TrySetHighestQCBlock(state.Block)
+		cbft.TrySetHighestQCBlock(s.Block)
+	}
+
+	// The state may have reached the automatic switch point, then advance to the next view
+	if cbft.validatorPool.EqualSwitchPoint(s.Block.NumberU64()) {
+		cbft.log.Info("QCBlock is equal to switchPoint, change epoch", "state", s.String(), "view", cbft.state.ViewString())
+		cbft.tryWalChangeView(cbft.state.Epoch()+1, state.DefaultViewNumber, s.Block, s.QuorumCert, nil)
+		return
+	}
+	if s.QuorumCert.BlockIndex+1 == cbft.config.Sys.Amount {
+		cbft.log.Info("QCBlock is the last index on the view, change view", "state", s.String(), "view", cbft.state.ViewString())
+		cbft.tryWalChangeView(cbft.state.Epoch(), cbft.state.ViewNumber()+1, s.Block, s.QuorumCert, nil)
+		return
 	}
 }
 
@@ -324,7 +337,7 @@ func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block,
 
 // recoveryMsg tries to recovery consensus msg from wal when the platon node restart.
 func (cbft *Cbft) recoveryMsg(msg interface{}) error {
-	cbft.log.Debug("Recover journal message from wal", "msgType", reflect.TypeOf(msg))
+	cbft.log.Info("Recover journal message from wal", "msgType", reflect.TypeOf(msg))
 
 	switch m := msg.(type) {
 	case *protocols.ConfirmedViewChange:
