@@ -22,6 +22,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"time"
 
@@ -42,6 +43,7 @@ var (
 	errTimeout          = errors.New("RPC timeout")
 	errClockWarp        = errors.New("reply deadline too far in the future")
 	errClosed           = errors.New("socket closed")
+	errData             = errors.New("received data error")
 )
 
 // Timeouts
@@ -60,6 +62,10 @@ const (
 	pongPacket
 	findnodePacket
 	neighborsPacket
+)
+
+var (
+	bytes_ChainId []byte
 )
 
 // RPC request structures
@@ -218,6 +224,9 @@ type Config struct {
 	// These settings are required and configure the UDP listener:
 	PrivateKey *ecdsa.PrivateKey
 
+	// chainId identifies the current chain and is used for replay protection
+	ChainID *big.Int `toml:"-"`
+
 	// These settings are optional:
 	AnnounceAddr *net.UDPAddr      // local address announced in the DHT
 	NodeDBPath   string            // if set, the node database is stored at this filesystem location
@@ -232,6 +241,12 @@ func ListenUDP(c conn, cfg Config) (*Table, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if cfg.ChainID != nil {
+		bytes_ChainId, _ = rlp.EncodeToBytes(cfg.ChainID)
+		log.Info("UDP listener up", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
+	}
+
 	log.Info("UDP listener up", "self", tab.self)
 	return tab, nil
 }
@@ -281,6 +296,7 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 		From:       t.ourEndpoint,
 		To:         makeEndpoint(toaddr, 0), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Rest:       []rlp.RawValue{bytes_ChainId},
 	}
 	packet, hash, err := encodePacket(t.priv, pingPacket, req)
 	if err != nil {
@@ -309,8 +325,15 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	// If we haven't seen a ping from the destination node for a while, it won't remember
 	// our endpoint proof and reject findnode. Solicit a ping first.
 	if time.Since(t.db.lastPingReceived(toid)) > nodeDBNodeExpiration {
-		t.ping(toid, toaddr)
-		t.waitping(toid)
+		nodes := make([]*Node, 0, bucketSize)
+		errping := t.ping(toid, toaddr)
+		if errping != nil {
+			return nodes, errping
+		}
+		errwaitping := t.waitping(toid)
+		if errwaitping != nil {
+			return nodes, errwaitping
+		}
 	}
 
 	nodes := make([]*Node, 0, bucketSize)
@@ -598,10 +621,18 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	if expired(req.Expiration) {
 		return errExpired
 	}
+
+	if len(req.Rest) != 1 ||
+		len(req.Rest[0]) != len(bytes_ChainId) ||
+		false == bytes.Equal(req.Rest[0], bytes_ChainId) {
+		return errData
+	}
+
 	t.send(from, pongPacket, &pong{
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Rest:       []rlp.RawValue{bytes_ChainId},
 	})
 	t.handleReply(fromID, pingPacket, req)
 
@@ -623,6 +654,13 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	if expired(req.Expiration) {
 		return errExpired
 	}
+
+	if len(req.Rest) != 1 ||
+		len(req.Rest[0]) != len(bytes_ChainId) ||
+		false == bytes.Equal(req.Rest[0], bytes_ChainId) {
+		return errData
+	}
+
 	if !t.handleReply(fromID, pongPacket, req) {
 		return errUnsolicitedReply
 	}
