@@ -2180,7 +2180,7 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
-	invalidNodeIds := make([]discover.NodeID, 0)
+	invalidNodeIdMap := make(map[discover.NodeID]struct{}, 0)
 
 	for _, slashItem := range queue {
 		needRemove, err := sk.toSlash(state, blockNumber, blockHash, slashItem)
@@ -2189,19 +2189,19 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		}
 
 		if needRemove {
-			invalidNodeIds = append(invalidNodeIds, slashItem.NodeId)
+			invalidNodeIdMap[slashItem.NodeId] = struct{}{}
 		}
 	}
 
 	// remove the validator from epoch verifierList
-	if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIds); nil != err {
+	if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIdMap); nil != err {
 		return err
 	}
 
 	// notify gov to do somethings
-	if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIds, state); nil != err {
+	if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIdMap, state); nil != err {
 		log.Error("Failed to SlashCandidates: call NotifyPunishedVerifiers of gov is failed", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIds), "err", err)
+			"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIdMap), "err", err)
 		return err
 	}
 	return nil
@@ -2394,17 +2394,12 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	return needRemove, nil
 }
 
-func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash common.Hash, nodeIds []discover.NodeID) error {
+func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash common.Hash, slashNodeIdMap map[discover.NodeID]struct{}) error {
 	verifier, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to SlashCandidates: Query Verifier List is failed", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "nodeIdQueue Size", len(nodeIds), "err", err)
+			"blockHash", blockHash.Hex(), "nodeIdQueue Size", len(slashNodeIdMap), "err", err)
 		return err
-	}
-
-	slashNodeIdMap := make(map[discover.NodeID]struct{}, len(nodeIds))
-	for _, nodeId := range nodeIds {
-		slashNodeIdMap[nodeId] = struct{}{}
 	}
 
 	// remove the val from epoch validators,

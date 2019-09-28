@@ -212,6 +212,7 @@ func TestGovDB_SetVote_ListVoteValue(t *testing.T) {
 	}
 }
 
+/*
 func TestGovDB_ListVotedVerifier(t *testing.T) {
 	Init()
 	defer snapdbTest.Clear()
@@ -228,6 +229,28 @@ func TestGovDB_ListVotedVerifier(t *testing.T) {
 		t.Errorf("list proposal's vote value error,%s", err)
 	} else {
 		if len(voteValueList) != len(NodeIDList) {
+			t.Fatalf("list proposal error,expect %d,get %d", len(NodeIDList), len(voteValueList))
+		}
+	}
+}
+*/
+
+func TestGovDB_GetVotedVerifierMap(t *testing.T) {
+	Init()
+	defer snapdbTest.Clear()
+
+	proposalID := common.Hash{0x03}
+
+	for _, nodeId := range NodeIDList {
+		if err := AddVoteValue(proposalID, nodeId, Yes, statedb); err != nil {
+			t.Errorf("set vote error,%s", err)
+		}
+	}
+
+	if votedMap, err := GetVotedVerifierMap(proposalID, statedb); err != nil {
+		t.Errorf("get proposal's voted verifier map error,%s", err)
+	} else {
+		if len(votedMap) != len(NodeIDList) {
 			t.Fatalf("list proposal error,expect %d,get %d", len(NodeIDList), len(voteValueList))
 		}
 	}

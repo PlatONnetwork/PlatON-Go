@@ -654,11 +654,11 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		t.Log("voted count:", len(votedValue))
 	}
 
-	nodeList, err := gov.ListVotedVerifier(txHashArr[0], stateDB)
+	votedMap, err := gov.GetVotedVerifierMap(txHashArr[0], stateDB)
 	if err != nil {
 		t.Fatal("vote failed, cannot list voted verifiers", err)
 	} else {
-		t.Log("voted count:", len(nodeList))
+		t.Log("voted count:", len(votedMap))
 	}
 }
 
