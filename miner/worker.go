@@ -228,7 +228,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 
 	worker.recommit = recommit
 	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * miningConfig.DefaultCommitRatio)
-	log.Info("commitDuration in Millisecond", "commitDuration", worker.commitDuration)
+	log.Info("CommitDuration in Millisecond", "commitDuration", worker.commitDuration)
 
 	worker.commitWorkEnv.nextBlockTime.Store(time.Now())
 
@@ -336,7 +336,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			return
 		}
 		interrupt = new(int32)
-		log.Debug("Begin to commit new worker", "baseBlockHash", baseBlock.Hash(), "baseBlockNumber", baseBlock.Number(), "timestamp", common.Millis(timestamp), "deadline", common.Millis(blockDeadline), "deadlineDuration", blockDeadline.Sub(timestamp))
+		log.Info("Begin to commit new worker", "baseBlockHash", baseBlock.Hash(), "baseBlockNumber", baseBlock.Number(), "timestamp", common.Millis(timestamp), "deadline", common.Millis(blockDeadline), "deadlineDuration", blockDeadline.Sub(timestamp))
 		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp, blockDeadline: blockDeadline, commitBlock: baseBlock}
 		timer.Reset(blockDeadline.Sub(timestamp))
 		atomic.StoreInt32(&w.newTxs, 0)
@@ -421,7 +421,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
 							if shouldSeal {
 								if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
-									log.Debug("begin to package new block regularly ")
+									log.Debug("Begin to package new block regularly ")
 									blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
 									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
 									continue
@@ -574,7 +574,7 @@ func (w *worker) taskLoop() {
 				w.blockChainCache.AddSealBlock(sealHash, task.block.NumberU64())
 				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
-					log.Warn("【Bft engine】Block sealing failed", "err", err)
+					log.Warn("Block sealing failed on bft engine", "err", err)
 				}
 				continue
 			}
@@ -602,7 +602,7 @@ func (w *worker) resultLoop() {
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
 			if !ok {
-				log.Error("receive bft result type error")
+				log.Error("Receive bft result type error")
 				continue
 			}
 			block := cbftResult.Block
@@ -894,7 +894,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, inte
 
 	for {
 		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
-			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
+			log.Warn("Interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
@@ -962,7 +962,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, inte
 			txs.Pop()
 
 		case nil:
-			log.Debug("commit transaction success", "hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
+			log.Debug("Commit transaction success", "hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
 
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
@@ -1052,7 +1052,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	log.Info("cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
+	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1153,7 +1153,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	for _, raccTxs := range remoteTxs {
 		remoteTxsCount = remoteTxsCount + len(raccTxs)
 	}
-	log.Debug("execute pending transactions", "number", header.Number, "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
+	log.Debug("Execute pending transactions", "number", header.Number, "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1167,7 +1167,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	commitLocalTxCount := w.current.tcount
-	log.Debug("local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("Local transactions executing stat", "number", header.Number, "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
@@ -1177,13 +1177,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("Remote transactions executing stat", "number", header.Number, "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	if err := w.commit(w.fullTaskHook, true, tstart); nil != err {
 		log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
 	}
 
-	log.Info("Commit new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
+	log.Debug("Commit new work", "number", header.Number, "pending", txsCount, "txs", w.current.tcount, "diff", txsCount-w.current.tcount, "duration", time.Since(tstart))
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1248,7 +1248,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			}
 			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.LAT)))
 
-			log.Debug("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
+			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
 				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
 		case <-w.exitCh:
 			log.Info("Worker has exited")
@@ -1344,6 +1344,6 @@ func (w *worker) makeExtraData() []byte {
 		extra = nil
 	}
 
-	log.Debug("prepare header extra", "data", hex.EncodeToString(extra))
+	log.Debug("Prepare header extra", "data", hex.EncodeToString(extra))
 	return extra
 }
