@@ -67,6 +67,8 @@ type chainInsertFn func(types.Blocks) (int, error)
 // peerDropFn is a callback type for dropping a peer detected as malicious.
 type peerDropFn func(id string)
 
+type decodeExtraFn func([]byte) (common.Hash, uint64, error)
+
 // announce is the hash notification of the availability of a new block in the
 // network.
 type announce struct {
@@ -141,6 +143,7 @@ type Fetcher struct {
 	chainHeight    chainHeightFn      // Retrieves the current chain's height
 	insertChain    chainInsertFn      // Injects a batch of blocks into the chain
 	dropPeer       peerDropFn         // Drops a peer for misbehaving
+	decodeExtra    decodeExtraFn      // Decode extra data
 
 	// Testing hooks
 	announceChangeHook func(common.Hash, bool) // Method to call upon adding or deleting a hash from the announce list
@@ -151,7 +154,7 @@ type Fetcher struct {
 }
 
 // New creates a block fetcher to retrieve blocks based on hash announcements.
-func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBlock blockBroadcasterFn, chainHeight chainHeightFn, insertChain chainInsertFn, dropPeer peerDropFn) *Fetcher {
+func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBlock blockBroadcasterFn, chainHeight chainHeightFn, insertChain chainInsertFn, dropPeer peerDropFn, decodeExtra decodeExtraFn) *Fetcher {
 	return &Fetcher{
 		notify:         make(chan *announce),
 		inject:         make(chan *inject),
@@ -174,6 +177,7 @@ func New(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, broadcastBloc
 		chainHeight:    chainHeight,
 		insertChain:    insertChain,
 		dropPeer:       dropPeer,
+		decodeExtra:    decodeExtra,
 	}
 }
 
@@ -531,8 +535,14 @@ func (f *Fetcher) loop() {
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
 						txnHash := types.DeriveSha(types.Transactions(task.transactions[i]))
-
-						if txnHash == announce.header.TxHash && announce.origin == task.peer {
+						equalExtra := func() bool {
+							if len(task.extraData[i]) == 0 {
+								return true
+							}
+							bh, _, err := f.decodeExtra(task.extraData[i])
+							return err == nil && hash == bh
+						}()
+						if txnHash == announce.header.TxHash && equalExtra && announce.origin == task.peer {
 							// Mark the body matched, reassemble if still unknown
 							matched = true
 
