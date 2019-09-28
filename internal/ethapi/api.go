@@ -274,20 +274,20 @@ func (s *PrivateAccountAPI) OpenWallet(url string, passphrase *string) error {
 
 // DeriveAccount requests a HD wallet to derive a new account, optionally pinning
 // it for later reuse.
-func (s *PrivateAccountAPI) DeriveAccount(url string, path string, pin *bool) (accounts.Account, error) {
-	wallet, err := s.am.Wallet(url)
-	if err != nil {
-		return accounts.Account{}, err
-	}
-	derivPath, err := accounts.ParseDerivationPath(path)
-	if err != nil {
-		return accounts.Account{}, err
-	}
-	if pin == nil {
-		pin = new(bool)
-	}
-	return wallet.Derive(derivPath, *pin)
-}
+//func (s *PrivateAccountAPI) DeriveAccount(url string, path string, pin *bool) (accounts.Account, error) {
+//	wallet, err := s.am.Wallet(url)
+//	if err != nil {
+//		return accounts.Account{}, err
+//	}
+//	derivPath, err := accounts.ParseDerivationPath(path)
+//	if err != nil {
+//		return accounts.Account{}, err
+//	}
+//	if pin == nil {
+//		pin = new(bool)
+//	}
+//	return wallet.Derive(derivPath, *pin)
+//}
 
 // NewAccount will create a new account and returns the address for the new account.
 func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) {
@@ -1406,9 +1406,9 @@ func (api *PrivateDebugAPI) ChaindbCompact() error {
 }
 
 // SetHead rewinds the head of the blockchain to a previous block.
-func (api *PrivateDebugAPI) SetHead(number hexutil.Uint64) {
-	api.b.SetHead(uint64(number))
-}
+//func (api *PrivateDebugAPI) SetHead(number hexutil.Uint64) {
+//	api.b.SetHead(uint64(number))
+//}
 
 // PublicNetAPI offers network related RPC methods
 type PublicNetAPI struct {
