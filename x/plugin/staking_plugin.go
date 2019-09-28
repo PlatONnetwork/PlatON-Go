@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -2147,6 +2148,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 	}
 
+	if err := sk.storeRoundValidatorAddrs(blockHash, start, nextQueue); nil != err {
+		log.Error("Failed to storeRoundValidatorAddrs on Election", "blockNumber", blockNumber,
+			"blockHash", blockHash.TerminalString(), "err", err)
+	}
+
 	log.Info("Call Election end", "next round validators length", len(nextQueue))
 
 	// todo test
@@ -2180,7 +2186,7 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
-	invalidNodeIds := make([]discover.NodeID, 0)
+	invalidNodeIdMap := make(map[discover.NodeID]struct{}, 0)
 
 	for _, slashItem := range queue {
 		needRemove, err := sk.toSlash(state, blockNumber, blockHash, slashItem)
@@ -2189,19 +2195,19 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		}
 
 		if needRemove {
-			invalidNodeIds = append(invalidNodeIds, slashItem.NodeId)
+			invalidNodeIdMap[slashItem.NodeId] = struct{}{}
 		}
 	}
 
 	// remove the validator from epoch verifierList
-	if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIds); nil != err {
+	if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIdMap); nil != err {
 		return err
 	}
 
 	// notify gov to do somethings
-	if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIds, state); nil != err {
+	if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIdMap, state); nil != err {
 		log.Error("Failed to SlashCandidates: call NotifyPunishedVerifiers of gov is failed", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIds), "err", err)
+			"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIdMap), "err", err)
 		return err
 	}
 	return nil
@@ -2394,17 +2400,12 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	return needRemove, nil
 }
 
-func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash common.Hash, nodeIds []discover.NodeID) error {
+func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash common.Hash, slashNodeIdMap map[discover.NodeID]struct{}) error {
 	verifier, err := sk.getVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to SlashCandidates: Query Verifier List is failed", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "nodeIdQueue Size", len(nodeIds), "err", err)
+			"blockHash", blockHash.Hex(), "nodeIdQueue Size", len(slashNodeIdMap), "err", err)
 		return err
-	}
-
-	slashNodeIdMap := make(map[discover.NodeID]struct{}, len(nodeIds))
-	for _, nodeId := range nodeIds {
-		slashNodeIdMap[nodeId] = struct{}{}
 	}
 
 	// remove the val from epoch validators,
@@ -3443,6 +3444,55 @@ func (sk *StakingPlugin) addUnDelegateItem(blockNumber uint64, blockHash common.
 		return err
 	}
 	return nil
+}
+
+// Record the address of the verification node for each consensus round within a certain block range.
+func (sk *StakingPlugin) storeRoundValidatorAddrs(blockHash common.Hash, nextRoundBlockNumber uint64, array staking.ValidatorQueue) error {
+	curRound := xutil.CalculateRound(nextRoundBlockNumber)
+	curEpoch := xutil.CalculateEpoch(nextRoundBlockNumber)
+	validEpoch := uint64(xcom.EvidenceValidEpoch() + 1)
+	validRound := xutil.EpochSize() * validEpoch
+	if curEpoch > validEpoch {
+		invalidRound := curRound - validRound
+		key := staking.GetRoundValAddrArrKey(invalidRound)
+		if err := sk.db.DelRoundValidatorAddrs(blockHash, key); nil != err {
+			log.Error("Failed to DelRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber,
+				"curRound", curRound, "curEpoch", curEpoch, "validEpoch", validEpoch, "validRound", validRound, "invalidRound", invalidRound, "key", hex.EncodeToString(key), "err", err)
+			return err
+		}
+		log.Debug("delete RoundValidatorAddrs success", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber, "invalidRound", invalidRound)
+	}
+	newKey := staking.GetRoundValAddrArrKey(curRound)
+	newValue := make([]common.Address, 0, len(array))
+	for _, v := range array {
+		newValue = append(newValue, v.NodeAddress)
+	}
+	if err := sk.db.StoreRoundValidatorAddrs(blockHash, newKey, newValue); nil != err {
+		log.Error("Failed to StoreRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber,
+			"curRound", curRound, "curEpoch", curEpoch, "validEpoch", validEpoch, "validRound", validRound, "validatorLen", len(array), "newKey", hex.EncodeToString(newKey), "err", err)
+		return err
+	}
+	log.Info("store RoundValidatorAddrs success", "blockHash", blockHash.TerminalString(), "nextRoundBlockNumber", nextRoundBlockNumber,
+		"curRound", curRound, "curEpoch", curEpoch, "validEpoch", validEpoch, "validRound", validRound, "validatorLen", len(array))
+	return nil
+}
+
+func (sk *StakingPlugin) checkRoundValidatorAddr(blockHash common.Hash, targetBlockNumber uint64, addr common.Address) (bool, error) {
+	targetRound := xutil.CalculateRound(targetBlockNumber)
+	addrList, err := sk.db.LoadRoundValidatorAddrs(blockHash, staking.GetRoundValAddrArrKey(targetRound))
+	if nil != err {
+		log.Error("Failed to checkRoundValidatorAddr", "blockHash", blockHash.TerminalString(), "targetBlockNumber", targetBlockNumber,
+			"addr", addr.Hex(), "targetRound", targetRound, "addrListLen", len(addrList), "err", err)
+		return false, err
+	}
+	if len(addrList) > 0 {
+		for _, v := range addrList {
+			if bytes.Equal(v.Bytes(), addr.Bytes()) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func (sk *StakingPlugin) HasStake(blockHash common.Hash, addr common.Address) (bool, error) {

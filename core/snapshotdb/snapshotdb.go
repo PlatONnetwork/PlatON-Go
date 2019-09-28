@@ -264,22 +264,6 @@ func (s *snapshotDB) cornStart() error {
 	return nil
 }
 
-//
-//func (s *snapshotDB) writeCurrentLoop() {
-//	go func() {
-//		for {
-//			select {
-//			case <-s.currentUpdateCh:
-//				if err := s.current.update(); err != nil {
-//					logger.Error("update current file fail ", "err", err)
-//				}
-//			case <-s.exitCh:
-//				return
-//			}
-//		}
-//	}()
-//}
-
 func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 	batch := new(leveldb.Batch)
 	for _, value := range kvs {
@@ -515,7 +499,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 
 	block := new(blockData)
-	block.Number = new(big.Int).SetUint64(blockNumber.Uint64())
+	block.Number = new(big.Int).Set(blockNumber)
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)

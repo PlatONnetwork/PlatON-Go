@@ -203,11 +203,10 @@ func InHashList(hash common.Hash, hashList []common.Hash) bool {
 	return false
 }
 
-// end-voting-block = the end block of a consensus period - electionDistance
+// end-voting-block = the end block of a consensus period - electionDistance, end-voting-block must be a Consensus Election block
 func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 	electionDistance := xcom.ElectionDistance()
 	consensusSize := ConsensusSize()
-
 	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
 }
 
@@ -216,8 +215,16 @@ func CalActiveBlock(endVotingBlock uint64) uint64 {
 	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
 }
 
-func IsBeginOfSettlement(blockNumber uint64) bool {
+// IsBeginOfEpoch returns true if current block is the first block of a Epoch
+func IsBeginOfEpoch(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()
+	mod := blockNumber % uint64(size)
+	return mod == 1
+}
+
+// IsBeginOfConsensus returns true if current block is the first block of a Consensus Cycle
+func IsBeginOfConsensus(blockNumber uint64) bool {
+	size := ConsensusSize()
 	mod := blockNumber % uint64(size)
 	return mod == 1
 }

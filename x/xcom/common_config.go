@@ -40,13 +40,11 @@ type stakingConfig struct {
 }
 
 type slashingConfig struct {
-	PackAmountAbnormal uint32 // The number of blocks packed per round, reaching this value is abnormal
-	//	PackAmountHighAbnormal         uint32 // The number of blocks packed per round, reaching this value is a high degree of abnormality
-	//	PackAmountLowSlashRate         uint32 // Proportion of deducted quality deposit (when the number of packing blocks is abnormal); 10% -> 10
-	//	PackAmountHighSlashRate        uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
-	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
+	PackAmountAbnormal             uint32 // The number of blocks packed per round, reaching this value is abnormal
+	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum
+	DuplicateSignReportReward      uint32 // The percentage of rewards for whistleblowers, calculated from the penalty
 	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
-	EvidenceValidEpoch             uint32 // Validity period of evidence, number of settlement periods
+	EvidenceValidEpoch             uint32 // Validity period of evidence (unit is  epochs)
 }
 
 type governanceConfig struct {
@@ -175,11 +173,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
@@ -225,11 +221,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
@@ -275,11 +269,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
@@ -325,11 +317,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
@@ -375,11 +365,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
@@ -431,11 +419,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
@@ -544,23 +530,20 @@ func CheckEconomicModel() error {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
-	//if 0 > ec.Slashing.PackAmountHighSlashRate || 100 < ec.Slashing.PackAmountHighSlashRate {
-	//	return errors.New("The PackAmountHighSlashRate must be greater than or equal to 0 and less than or equal to 100")
-	//}
-	//
-	//if 0 > ec.Slashing.PackAmountLowSlashRate || 100 < ec.Slashing.PackAmountLowSlashRate {
-	//	return errors.New("The PackAmountLowSlashRate must be greater than or equal to 0 and less than or equal to 100")
-	//}
-	//
-	//if ec.Slashing.PackAmountLowSlashRate > ec.Slashing.PackAmountHighSlashRate {
-	//	return errors.New("The PackAmountHighSlashRate must be greater than or equal to the PackAmountLowSlashRate")
-	//}
-	//
-	//if ec.Slashing.PackAmountHighAbnormal >= ec.Slashing.PackAmountAbnormal {
-	//	return errors.New("The PackAmountHighAbnormal must be less than to the PackAmountAbnormal")
-	//}
 	if ec.Common.PerRoundBlocks <= uint64(ec.Slashing.PackAmountAbnormal) {
 		return errors.New("The PackAmountAbnormal must be less than to the PerRoundBlocks")
+	}
+
+	if 0 > ec.Slashing.DuplicateSignHighSlashing || 100 < ec.Slashing.DuplicateSignHighSlashing {
+		return errors.New("The DuplicateSignHighSlashing must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if 0 > ec.Slashing.DuplicateSignReportReward || 100 < ec.Slashing.DuplicateSignReportReward {
+		return errors.New("The DuplicateSignReportReward must be greater than or equal to 0 and less than or equal to 100")
+	}
+
+	if uint64(ec.Slashing.EvidenceValidEpoch) >= ec.Staking.UnStakeFreezeRatio {
+		return errors.New("The EvidenceValidEpoch must be less than to the UnStakeFreezeRatio")
 	}
 
 	return nil
@@ -642,21 +625,12 @@ func PackAmountAbnormal() uint32 {
 	return ec.Slashing.PackAmountAbnormal
 }
 
-//
-//func PackAmountHighAbnormal() uint32 {
-//	return ec.Slashing.PackAmountHighAbnormal
-//}
-//
-//func PackAmountLowSlashRate() uint32 {
-//	return ec.Slashing.PackAmountLowSlashRate
-//}
-//
-//func PackAmountHighSlashRate() uint32 {
-//	return ec.Slashing.PackAmountHighSlashRate
-//}
-
 func DuplicateSignHighSlash() uint32 {
 	return ec.Slashing.DuplicateSignHighSlashing
+}
+
+func DuplicateSignReportReward() uint32 {
+	return ec.Slashing.DuplicateSignReportReward
 }
 
 func NumberOfBlockRewardForSlashing() uint32 {

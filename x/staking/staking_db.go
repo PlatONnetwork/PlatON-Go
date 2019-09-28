@@ -690,3 +690,27 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 		return false, fmt.Errorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
 	}
 }
+
+func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.Address) error {
+	value, err := rlp.EncodeToBytes(arry)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, key, value)
+}
+
+func (db *StakingDB) DelRoundValidatorAddrs(blockHash common.Hash, key []byte) error {
+	return db.del(blockHash, key)
+}
+
+func (db *StakingDB) LoadRoundValidatorAddrs(blockHash common.Hash, key []byte) ([]common.Address, error) {
+	rlpValue, err := db.get(blockHash, key)
+	if nil != err {
+		return nil, err
+	}
+	var value []common.Address
+	if err := rlp.DecodeBytes(rlpValue, &value); nil != err {
+		return nil, err
+	}
+	return value, nil
+}
