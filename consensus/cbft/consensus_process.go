@@ -732,7 +732,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		if qc.Epoch != epoch {
 			minuend = state.DefaultViewNumber
 		}
-		return viewNumber - minuend
+		return viewNumber - minuend + 1
 	}
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()

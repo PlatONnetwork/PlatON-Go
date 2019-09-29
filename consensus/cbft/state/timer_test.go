@@ -19,6 +19,26 @@ func TestTimer(t *testing.T) {
 	}
 }
 
+func TestCalViewInterval(t *testing.T) {
+	type views struct {
+		in  uint64
+		out uint64
+	}
+	testcases := [][]views{
+		{{2, 2}, {1, 1}, {2, 2}},
+		{{3, 3}, {1, 2}, {1, 1}},
+		{{1, 1}, {2, 2}, {2, 2}, {3, 3}},
+	}
+	for _, test := range testcases {
+		timer := newViewTimer(10)
+		timer.calViewInterval(1)
+		for _, c := range test {
+			assert.Equal(t, c.out, timer.calViewInterval(c.in))
+		}
+	}
+
+}
+
 func TestInterval(t *testing.T) {
 	in := viewTimeInterval{
 		uint64(10), 2, 2,

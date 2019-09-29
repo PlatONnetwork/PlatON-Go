@@ -16,16 +16,29 @@ type viewTimer struct {
 	timer    *time.Timer
 
 	//Time window length calculation module
-	timeInterval viewTimeInterval
+	timeInterval    viewTimeInterval
+	preViewInterval uint64
 }
 
 func newViewTimer(period uint64) *viewTimer {
 	timer := time.NewTimer(0)
 	timer.Stop()
-	return &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: period * uint64(time.Millisecond), exponentBase: exponentBase, maxExponent: maxExponent}}
+	return &viewTimer{timer: timer,
+		timeInterval:    viewTimeInterval{baseMs: period * uint64(time.Millisecond), exponentBase: exponentBase, maxExponent: maxExponent},
+		preViewInterval: 1,
+	}
+}
+
+func (t *viewTimer) calViewInterval(viewInterval uint64) uint64 {
+	if t.preViewInterval > 1 && viewInterval == 1 {
+		viewInterval = t.preViewInterval - 1
+	}
+	t.preViewInterval = viewInterval
+	return viewInterval
 }
 
 func (t *viewTimer) setupTimer(viewInterval uint64) {
+	viewInterval = t.calViewInterval(viewInterval)
 	duration := t.timeInterval.getViewTimeInterval(viewInterval)
 	t.deadline = time.Now().Add(duration)
 	t.stopTimer()
