@@ -72,7 +72,8 @@ func TestBlockChainReactor_Close(t *testing.T) {
 			eventmux.Post(value)
 		}
 
-		close(reacter.exitCh)
+		reacter.Close()
+
 		time.Sleep(time.Second)
 		snapshotdb.Instance().Clear()
 	})
