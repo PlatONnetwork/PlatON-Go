@@ -56,7 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -495,19 +494,19 @@ var (
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: eth.DefaultConfig.GPO.Percentile,
 	}
-	WhisperEnabledFlag = cli.BoolFlag{
-		Name:  "shh",
-		Usage: "Enable Whisper",
-	}
-	WhisperMaxMessageSizeFlag = cli.IntFlag{
-		Name:  "shh.maxmessagesize",
-		Usage: "Max message size accepted",
-		Value: int(whisper.DefaultMaxMessageSize),
-	}
-	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
-		Name:  "shh.restrict-light",
-		Usage: "Restrict connection between two whisper light clients",
-	}
+	//WhisperEnabledFlag = cli.BoolFlag{
+	//	Name:  "shh",
+	//	Usage: "Enable Whisper",
+	//}
+	//WhisperMaxMessageSizeFlag = cli.IntFlag{
+	//	Name:  "shh.maxmessagesize",
+	//	Usage: "Max message size accepted",
+	//	Value: int(whisper.DefaultMaxMessageSize),
+	//}
+	//WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
+	//	Name:  "shh.restrict-light",
+	//	Usage: "Restrict connection between two whisper light clients",
+	//}
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -1107,14 +1106,14 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 // SetShhConfig applies shh-related command line flags to the config.
-func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
-	if ctx.GlobalIsSet(WhisperMaxMessageSizeFlag.Name) {
-		cfg.MaxMessageSize = uint32(ctx.GlobalUint(WhisperMaxMessageSizeFlag.Name))
-	}
-	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
-		cfg.RestrictConnectionBetweenLightClients = true
-	}
-}
+//func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
+//	if ctx.GlobalIsSet(WhisperMaxMessageSizeFlag.Name) {
+//		cfg.MaxMessageSize = uint32(ctx.GlobalUint(WhisperMaxMessageSizeFlag.Name))
+//	}
+//	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
+//		cfg.RestrictConnectionBetweenLightClients = true
+//	}
+//}
 
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
@@ -1268,19 +1267,11 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
 	if cfg.SyncMode == downloader.LightSync {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			light, err := les.New(ctx, cfg)
-			if err == nil {
-				stack.ChainID = light.ApiBackend.ChainConfig().ChainID
-			}
-			return light, err
+			return les.New(ctx, cfg)
 		})
 	} else {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			fullNode, err := eth.New(ctx, cfg)
-			if err == nil {
-				stack.ChainID = fullNode.APIBackend.ChainConfig().ChainID
-			}
-
 			if fullNode != nil && cfg.LightServ > 0 {
 				ls, _ := les.NewLesServer(fullNode, cfg)
 				fullNode.AddLesServer(ls)
@@ -1301,13 +1292,13 @@ func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit st
 }
 
 // RegisterShhService configures Whisper and adds it to the given node.
-func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
-	if err := stack.Register(func(n *node.ServiceContext) (node.Service, error) {
-		return whisper.New(cfg), nil
-	}); err != nil {
-		Fatalf("Failed to register the Whisper service: %v", err)
-	}
-}
+//func RegisterShhService(stack *node.Node, cfg *whisper.Config) {
+//	if err := stack.Register(func(n *node.ServiceContext) (node.Service, error) {
+//		return whisper.New(cfg), nil
+//	}); err != nil {
+//		Fatalf("Failed to register the Whisper service: %v", err)
+//	}
+//}
 
 // RegisterEthStatsService configures the Ethereum Stats daemon and adds it to
 // the given node.
