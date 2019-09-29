@@ -160,16 +160,17 @@ func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
 	bcc.receiptsMu.Lock()
 	defer bcc.receiptsMu.Unlock()
 
-	var blockNum uint64
+	//var blockNum uint64
 	if obj, exist := bcc.receiptsCache[sealHash]; exist {
-		blockNum = obj.blockNum
-		//delete(pbc.receiptsCache, sealHash)
+		//blockNum = obj.blockNum
+		log.Debug("Clear Receipts", "sealHash", sealHash, "number", obj.blockNum)
+		delete(bcc.receiptsCache, sealHash)
 	}
-	for hash, obj := range bcc.receiptsCache {
-		if obj.blockNum < blockNum {
-			delete(bcc.receiptsCache, hash)
-		}
-	}
+	//for hash, obj := range bcc.receiptsCache {
+	//	if obj.blockNum < blockNum {
+	//		delete(bcc.receiptsCache, hash)
+	//	}
+	//}
 }
 
 // Read the StateDB instance from the cache map
