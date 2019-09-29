@@ -128,3 +128,16 @@ int secp256k1_ext_scalar_mul(const secp256k1_context* ctx, unsigned char *point,
 	secp256k1_scalar_clear(&s);
 	return ret;
 }
+
+int secp256k1_pubkey_is_infinity(const secp256k1_context* ctx, unsigned char *point) {
+	secp256k1_fe feX, feY;
+	secp256k1_ge ge;
+	secp256k1_scalar s;
+	ARG_CHECK(point != NULL);
+	(void)ctx;
+	secp256k1_fe_set_b32(&feX, point);
+	secp256k1_fe_set_b32(&feY, point+32);
+	secp256k1_ge_set_xy(&ge, &feX, &feY);
+	return secp256k1_ge_is_infinity(&ge);
+}
+
