@@ -46,7 +46,7 @@ const (
 	maxActiveDialTasks         = 16
 	defaultMaxPendingPeers     = 50
 	defaultDialRatio           = 3
-	maxActiveNonconsensusPeers = 3
+	maxActiveNonconsensusPeers = 5
 
 	// Maximum time allowed for reading a complete message.
 	// This is effectively the amount of time a connection can be idle.
