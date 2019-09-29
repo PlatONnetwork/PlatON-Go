@@ -314,6 +314,7 @@ func (s *snapshotDB) SetEmpty() error {
 	}
 	db := dbInterface.(*snapshotDB)
 	copyDB(db, s)
+	s.writeCurrentLoop()
 	if err := s.cornStart(); err != nil {
 		return err
 	}
