@@ -68,13 +68,15 @@ func (bcr *BlockChainReactor) Start(mode string) {
 }
 
 func (bcr *BlockChainReactor) Close() {
-	bcr.exitOnce.Do(func() {
-		exitDone := make(chan struct{})
-		bcr.exitCh <- exitDone
-		<-exitDone
-		close(exitDone)
-		log.Info("blockchain_reactor closed")
-	})
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+		bcr.exitOnce.Do(func() {
+			exitDone := make(chan struct{})
+			bcr.exitCh <- exitDone
+			<-exitDone
+			close(exitDone)
+		})
+	}
+	log.Info("blockchain_reactor closed")
 }
 
 // Getting the global bcr single instance
