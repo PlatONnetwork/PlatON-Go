@@ -178,7 +178,7 @@ func (bm *BftMock) ConsensusNodes() ([]discover.NodeID, error) {
 }
 
 // ShouldSeal returns whether the current node is out of the block
-func (bm *BftMock) ShouldSeal(curTime int64) (bool, error) {
+func (bm *BftMock) ShouldSeal(curTime time.Time) (bool, error) {
 	return true, nil
 }
 
@@ -210,8 +210,8 @@ func (bm *BftMock) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
 }
 
 // IsConsensusNode is a fake interface, no need to implement.
-func (bm *BftMock) IsConsensusNode() (bool, error) {
-	return true, nil
+func (bm *BftMock) IsConsensusNode() bool {
+	return true
 }
 
 // HighestLogicalBlock is a fake interface, no need to implement.
@@ -268,4 +268,8 @@ func (bm *BftMock) Pause() {
 }
 func (bm *BftMock) Resume() {
 
+}
+
+func (bm *BftMock) DecodeExtra(extra []byte) (common.Hash, uint64, error) {
+	return common.Hash{}, 0, nil
 }

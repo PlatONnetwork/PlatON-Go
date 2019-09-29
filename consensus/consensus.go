@@ -137,6 +137,8 @@ type Engine interface {
 	Pause()
 	// Resume consensus
 	Resume()
+
+	DecodeExtra(extra []byte) (common.Hash, uint64, error)
 }
 
 // PoW is a consensus engine based on proof-of-work.

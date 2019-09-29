@@ -519,8 +519,10 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
+		cbft.csPool.AddPrepareBlock(msg.BlockIndex, ctypes.NewInnerMsgInfo(info.Msg, info.PeerID))
 		err = cbft.OnPrepareBlock(id, msg)
 	case *protocols.PrepareVote:
+		cbft.csPool.AddPrepareVote(msg.BlockIndex, msg.ValidatorIndex, ctypes.NewInnerMsgInfo(info.Msg, info.PeerID))
 		err = cbft.OnPrepareVote(id, msg)
 	case *protocols.ViewChange:
 		err = cbft.OnViewChange(id, msg)
@@ -549,6 +551,7 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) error {
 			err = cbft.OnGetBlockQuorumCert(id, msg)
 
 		case *protocols.BlockQuorumCert:
+			cbft.csPool.AddPrepareQC(msg.BlockQC.Epoch, msg.BlockQC.ViewNumber, msg.BlockQC.BlockIndex, ctypes.NewInnerMsgInfo(info.Msg, info.PeerID))
 			err = cbft.OnBlockQuorumCert(id, msg)
 
 		case *protocols.GetPrepareVote:
@@ -733,8 +736,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		prepareBlock.ViewChangeQC = cbft.state.LastViewChangeQC()
 	}
 
-	cbft.log.Info("Seal New Block", "prepareBlock", prepareBlock.String())
-
 	if err := cbft.signMsgByBls(prepareBlock); err != nil {
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		return
@@ -743,6 +744,8 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
 
 	cbft.network.Broadcast(prepareBlock)
+	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
+
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
@@ -831,9 +834,6 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 
 // InsertChain is used to insert the block into the chain.
 func (cbft *Cbft) InsertChain(block *types.Block) error {
-	t := time.Now()
-	cbft.log.Debug("Insert chain", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t))
-
 	if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
 		cbft.log.Debug("The inserted block has exists in chain",
 			"number", block.Number(), "hash", block.Hash(),
@@ -841,6 +841,9 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 			"lockedHash", cbft.state.HighestLockBlock().Hash())
 		return nil
 	}
+
+	t := time.Now()
+	cbft.log.Info("Insert chain", "number", block.Number(), "hash", block.Hash(), "time", common.Beautiful(t))
 
 	// Verifies block
 	_, qc, err := ctypes.DecodeExtra(block.ExtraData())
@@ -974,7 +977,7 @@ func (cbft *Cbft) checkStart(exe func()) {
 
 // FastSyncCommitHead processes logic that performs fast synchronization.
 func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
-	cbft.log.Debug("Fast sync commit head", "number", block.Number(), "hash", block.Hash())
+	cbft.log.Info("Fast sync commit head", "number", block.Number(), "hash", block.Hash())
 
 	result := make(chan error, 1)
 	cbft.asyncCallCh <- func() {
@@ -985,18 +988,18 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
+		vEpoch := qc.Epoch
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			vEpoch += 1
+		}
+		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
+
 		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
-
-		vEpoch := qc.Epoch
-		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-			vEpoch += 1
-		}
-		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
 
 		result <- err
 	}
@@ -1092,7 +1095,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 
-	if cbft.state.NumViewBlocks() >= cbft.config.Sys.Amount {
+	if cbft.state.NextViewBlockIndex() >= cbft.config.Sys.Amount {
 		result <- errors.New("produce block over limit")
 		return
 	}
@@ -1215,8 +1218,6 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 		return
 	}
 
-	cbft.log.Debug("Send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
-
 	lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(lockBlock.Hash(), lockBlock.NumberU64())
 	qcBlock, qcQC := cbft.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
 
@@ -1230,6 +1231,7 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 	if cbft.updateChainStateHook != nil {
 		cbft.updateChainStateHook(qcState, lockState, commitState)
 	}
+	cbft.log.Info("CommitBlock, send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              commitBlock,
 		ExtraData:          extra,
@@ -1496,6 +1498,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 
 	for _, v := range votes {
 		vote = v
+		break
 	}
 
 	// Validator set prepareQC is the same as highestQC
@@ -1518,6 +1521,11 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 		ValidatorSet: utils.NewBitArray(vSet.Size()),
 	}
 	for _, p := range votes {
+		//Check whether two votes are equal
+		if !vote.EqualState(p) {
+			cbft.log.Error(fmt.Sprintf("QuorumCert isn't same  vote1:%s vote2:%s", vote.String(), p.String()))
+			return nil
+		}
 		if p.NodeIndex() != vote.NodeIndex() {
 			var sig bls.Sign
 			err := sig.Deserialize(p.Sign())
@@ -1615,7 +1623,7 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 		return err
 	}
 	if err = cbft.validatorPool.VerifyAggSigByBA(qc.Epoch, qc.ValidatorSet, cb, qc.Signature.Bytes()); err != nil {
-		cbft.log.Debug("verify failed", "qc", qc.String(), "validators", cbft.validatorPool.Validators(qc.Epoch).String())
+		cbft.log.Error("Verify failed", "qc", qc.String(), "validators", cbft.validatorPool.Validators(qc.Epoch).String())
 		return authFailedError{err: fmt.Errorf("verify prepare qc failed: %v", err)}
 	}
 	return nil
@@ -1708,4 +1716,12 @@ func (cbft *Cbft) avgRTT() time.Duration {
 
 func (cbft *Cbft) GetSchnorrNIZKProve() (*bls.SchnorrProof, error) {
 	return cbft.config.Option.BlsPriKey.MakeSchnorrNIZKP()
+}
+
+func (cbft *Cbft) DecodeExtra(extra []byte) (common.Hash, uint64, error) {
+	_, qc, err := ctypes.DecodeExtra(extra)
+	if err != nil {
+		return common.Hash{}, 0, err
+	}
+	return qc.BlockHash, qc.BlockNumber, nil
 }
