@@ -233,7 +233,7 @@ func (journal *journal) Close() {
 	defer journal.mu.Unlock()
 
 	if journal.writer != nil {
-		log.Debug("Close journal,flush data")
+		log.Debug("Close journal, flush data")
 		journal.writer.FlushAndClose()
 		journal.writer = nil
 	}
