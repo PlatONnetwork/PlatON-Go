@@ -225,8 +225,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
-	reactor := core.NewBlockChainReactor(config.CbftConfig.NodePriKey, eth.EventMux())
-
+	reactor := core.NewBlockChainReactor(eth.EventMux())
 	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
@@ -247,7 +246,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.INNER_VALIDATOR_MODE)
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
-			reactor.SetVRF_handler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetPluginEventMux()
+			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
 			handlePlugin(reactor)
 			agency = reactor
 		}
@@ -496,9 +497,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
 
-	log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
+	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
-		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
 				// todo: Mock point.
@@ -545,8 +545,6 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
-
-	reactor.SetPluginEventMux()
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})
