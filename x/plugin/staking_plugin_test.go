@@ -728,7 +728,12 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	blockElection := types.NewBlock(header, nil, nil)
 
-	err = StakingInstance().Confirmed(blockElection)
+	next, err := StakingInstance().getNextValList(blockElection.Hash(), blockElection.Number().Uint64(), QueryStartNotIrr)
+	if nil != err {
+		t.Errorf("Failed to getNextValList, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
+		return
+	}
+	err = StakingInstance().Confirmed(next.Arr[0].NodeId, blockElection)
 	if nil != err {
 		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
 		return
