@@ -20,12 +20,12 @@ package vrf
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 	"math/big"
+	"crypto/ecdsa"
+	"crypto/rand"
 )
 
 const (
@@ -47,6 +47,7 @@ func eCVRF_prove(pk []byte, sk []byte, m []byte) (pi []byte, err error) {
 	hx, hy := ECVRF_hash_to_curve(m, pk)
 	r := ECP2OS(curve.ScalarMult(hx, hy, sk))
 	k, err := ecdsa.GenerateKey(curve, rand.Reader)
+///	k, err := rfc6979.ECVRF_nonce_generation(sk,m)
 	if err != nil {
 		panic(err)
 	}

@@ -225,7 +225,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -265,7 +265,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumThreshold:            minimumThreshold,
 				EpochValidatorNum:           uint64(21),
 				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(1),
+				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
@@ -273,7 +273,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -313,7 +313,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumThreshold:            minimumThreshold,
 				EpochValidatorNum:           uint64(51),
 				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(1),
+				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
@@ -321,7 +321,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -361,7 +361,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumThreshold:            minimumThreshold,
 				EpochValidatorNum:           uint64(21),
 				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(1),
+				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
@@ -369,7 +369,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
@@ -423,7 +423,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),

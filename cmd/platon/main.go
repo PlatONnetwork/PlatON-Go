@@ -135,11 +135,11 @@ var (
 		utils.IPCPathFlag,
 	}
 
-	whisperFlags = []cli.Flag{
-		utils.WhisperEnabledFlag,
-		utils.WhisperMaxMessageSizeFlag,
-		utils.WhisperRestrictConnectionBetweenLightClientsFlag,
-	}
+	//whisperFlags = []cli.Flag{
+	//	utils.WhisperEnabledFlag,
+	//	utils.WhisperMaxMessageSizeFlag,
+	//	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
+	//}
 
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnableInfluxDBFlag,
@@ -206,7 +206,7 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, whisperFlags...)
+	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	// for mpc
