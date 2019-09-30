@@ -231,9 +231,9 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 		}
 		cbft.insertQCBlock(block, qc)
 		cbft.log.Debug("Insert QC block success", "hash", qc.BlockHash, "number", qc.BlockNumber)
-
 	}
 
+	cbft.findExecutableBlock()
 	return nil
 }
 
