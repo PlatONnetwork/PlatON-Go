@@ -923,6 +923,77 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	del.DelegateEpoch = uint32(epoch)
 
 	switch {
+	// Illegal parameter
+	case nil != can && stakingBlockNum > can.StakingBlockNum:
+		log.Error("Failed to WithdrewDelegate on stakingPlugin: the stakeBlockNum invalid",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+			"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "fn.stakeBlockNum", stakingBlockNum,
+			"can.stakeBlockNum", can.StakingBlockNum)
+		return staking.ErrBlockNumberDisordered
+
+	default:
+		log.Info("Call WithdrewDelegate", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+			"delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
+			"total", total, "realtotal", realtotal, "amount", amount, "realSub", realSub)
+
+		// handle delegate on Hesitate period
+		if refundAmount.Cmp(common.Big0) > 0 {
+			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes, delAddr, state)
+			if nil != err {
+				log.Error("Failed  to WithdrewDelegate, refund the hesitate balance is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
+					"refund balance", refundAmount, "releaseHes", del.ReleasedHes, "restrictingPlanHes", del.RestrictingPlanHes, "err", err)
+				return err
+			}
+			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
+		}
+
+		// handle delegate on Effective period
+		if refundAmount.Cmp(common.Big0) > 0 {
+			rm, rbalance, lbalance, err := rufundDelegateFn(refundAmount, del.Released, del.RestrictingPlan, delAddr, state)
+			if nil != err {
+				log.Error("Failed  to WithdrewDelegate, refund the no hesitate balance is failed", "blockNumber", blockNumber,
+					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
+					"refund balance", refundAmount, "release", del.Released, "restrictingPlan", del.RestrictingPlan, "err", err)
+				return err
+			}
+			refundAmount, del.Released, del.RestrictingPlan = rm, rbalance, lbalance
+		}
+
+		if refundAmount.Cmp(common.Big0) != 0 {
+			log.Error("Failed to WithdrewDelegate on stakingPlugin: the withdrew ramain is not zero",
+				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+				"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "del balance", total,
+				"realtatol", realtotal, "redution", del.Reduction, "withdrew balance", amount,
+				"realSub amount", realSub, "withdrew remain", refundAmount)
+			return staking.ErrWrongWithdrewDelVonCalc
+		}
+
+		// If realtatol had full sub
+		// AND redution is zero
+		// clean the delegate info
+		if realtotal.Cmp(realSub) == 0 && del.Reduction.Cmp(common.Big0) == 0 {
+
+			if err := sk.db.DelDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete detegate is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+				return err
+			}
+
+		} else {
+
+			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
+				log.Error("Failed to WithdrewDelegate on stakingPlugin: Store detegate is failed",
+					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
+				return err
+			}
+		}
+
+	}
+
+	switch {
 
 	// When the related candidate info does not exist
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
