@@ -132,19 +132,6 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
-		// This node will only initiating a pre-connection,
-		// When the node is one of the next round of validators.
-		var nextConsensus bool
-		for _, nv := range next.Arr {
-			if nodeId == nv.NodeId {
-				nextConsensus = true
-			}
-		}
-
-		if !nextConsensus {
-			return nil
-		}
-
 		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
@@ -152,11 +139,37 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
-		diff := distinct(next.Arr, current.Arr)
-		if len(diff) > 0 {
+		diff := make(staking.ValidatorQueue, 0)
+
+		currMap := make(map[discover.NodeID]struct{})
+		for _, v := range current.Arr {
+			currMap[v.NodeId] = struct{}{}
+		}
+
+		nextMap := make(map[discover.NodeID]struct{})
+		for _, v := range next.Arr {
+			if _, ok := currMap[v.NodeId]; !ok {
+				diff = append(diff, v)
+			}
+
+			nextMap[v.NodeId] = struct{}{}
+		}
+
+		_, isCurr := currMap[nodeId]
+		_, isNext := nextMap[nodeId]
+
+		// This node will only initiating a pre-connection,
+		// When the node is one of the next round of validators.
+		if isCurr && isNext {
 			sk.addConsensusNode(diff)
-			log.Debug("Call addConsensusNode finished on stakingPlugin",
+			log.Debug("Call addConsensusNode finished on stakingPlugin, node is curr validator AND next validator",
 				"blockNumber", block.NumberU64(), "blockHash", block.Hash().TerminalString(), "diff size", len(diff))
+		} else if !isCurr && isNext {
+			sk.addConsensusNode(next.Arr)
+			log.Debug("Call addConsensusNode finished on stakingPlugin, node is new validator",
+				"blockNumber", block.NumberU64(), "blockHash", block.Hash().TerminalString(), "diff size", len(next.Arr))
+		} else {
+			return nil
 		}
 	}
 
