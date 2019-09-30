@@ -32,7 +32,7 @@ func GovPluginInstance() *GovPlugin {
 	return govp
 }
 
-func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
+func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
 

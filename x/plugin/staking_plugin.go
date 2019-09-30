@@ -121,32 +121,45 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 	return nil
 }
 
-func (sk *StakingPlugin) Confirmed(block *types.Block) error {
+func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 
 	if xutil.IsElection(block.NumberU64()) {
 
 		next, err := sk.getNextValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to Query Next validators on stakingPlugin Confirmed When Election block",
-				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().Hex(), "err", err)
+				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
 			return err
+		}
+
+		// This node will only initiating a pre-connection,
+		// When the node is one of the next round of validators.
+		var nextConsensus bool
+		for _, nv := range next.Arr {
+			if nodeId == nv.NodeId {
+				nextConsensus = true
+			}
+		}
+
+		if !nextConsensus {
+			return nil
 		}
 
 		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
-				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().Hex(), "err", err)
+				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
 			return err
 		}
-		result := distinct(next.Arr, current.Arr)
-		if len(result) > 0 {
-			sk.addConsensusNode(result)
-			log.Debug("stakingPlugin addConsensusNode success",
-				"blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "size", len(result))
+
+		diff := distinct(next.Arr, current.Arr)
+		if len(diff) > 0 {
+			sk.addConsensusNode(diff)
+			log.Debug("Call addConsensusNode finished on stakingPlugin",
+				"blockNumber", block.NumberU64(), "blockHash", block.Hash().TerminalString(), "diff size", len(diff))
 		}
 	}
 
-	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
 	return nil
 }
 

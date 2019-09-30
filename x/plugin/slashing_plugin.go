@@ -145,7 +145,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 	return nil
 }
 
-func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
+func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
 
