@@ -140,23 +140,26 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 
 		diff := make(staking.ValidatorQueue, 0)
+		var isCurr bool
+		var isNext bool
 
 		currMap := make(map[discover.NodeID]struct{})
 		for _, v := range current.Arr {
 			currMap[v.NodeId] = struct{}{}
+			if nodeId == v.NodeId {
+				isCurr = true
+			}
 		}
 
-		nextMap := make(map[discover.NodeID]struct{})
 		for _, v := range next.Arr {
 			if _, ok := currMap[v.NodeId]; !ok {
 				diff = append(diff, v)
 			}
 
-			nextMap[v.NodeId] = struct{}{}
+			if nodeId == v.NodeId {
+				isNext = true
+			}
 		}
-
-		_, isCurr := currMap[nodeId]
-		_, isNext := nextMap[nodeId]
 
 		// This node will only initiating a pre-connection,
 		// When the node is one of the next round of validators.
