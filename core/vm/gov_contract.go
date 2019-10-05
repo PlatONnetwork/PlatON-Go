@@ -45,7 +45,7 @@ func (gc *GovContract) RequiredGas(input []byte) uint64 {
 }
 
 func (gc *GovContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, gc.FnSigns())
+	return execPlatonContract(input, gc.FnSigns())
 }
 
 func (gc *GovContract) FnSigns() map[uint16]interface{} {

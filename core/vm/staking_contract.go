@@ -74,7 +74,7 @@ func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, stkc.FnSigns())
+	return execPlatonContract(input, stkc.FnSigns())
 }
 
 func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
