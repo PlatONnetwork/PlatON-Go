@@ -383,6 +383,11 @@ func TestGovDB_TallyResult(t *testing.T) {
 	Init()
 	defer snapdbTest.Clear()
 
+	proposal := getVerProposal(common.Hash{0x03})
+	if e := SetProposal(proposal, statedb); e != nil {
+		t.Errorf("set proposal error,%s", e)
+	}
+
 	proposalID := common.Hash{0x03}
 
 	tallyResult := TallyResult{
@@ -400,6 +405,38 @@ func TestGovDB_TallyResult(t *testing.T) {
 
 	if result, err := GetTallyResult(proposalID, statedb); err != nil {
 		t.Fatalf("get vote result error,%s", err)
+	} else {
+		if result.Status != tallyResult.Status {
+			t.Fatalf("get vote result error")
+		}
+	}
+}
+
+func TestGovDB_GetTallyResult_ProposalNotFound(t *testing.T) {
+	Init()
+	defer snapdbTest.Clear()
+
+	proposalID := common.Hash{0x03}
+
+	tallyResult := TallyResult{
+		ProposalID:    proposalID,
+		Yeas:          15,
+		Nays:          0,
+		Abstentions:   0,
+		AccuVerifiers: 1000,
+		Status:        Pass,
+	}
+
+	if err := SetTallyResult(tallyResult, statedb); err != nil {
+		t.Fatalf("set vote result error")
+	}
+
+	if result, err := GetTallyResult(proposalID, statedb); err != nil {
+		if err == ProposalNotFound {
+			t.Log("get expected error")
+		} else {
+			t.Fatalf("get vote result error,%s", err)
+		}
 	} else {
 		if result.Status != tallyResult.Status {
 			t.Fatalf("get vote result error")

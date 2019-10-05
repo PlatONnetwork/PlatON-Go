@@ -167,6 +167,13 @@ func SetTallyResult(tallyResult TallyResult, state xcom.StateDB) error {
 }
 
 func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, error) {
+	proposal, err := GetProposal(proposalID, state)
+	if err != nil {
+		return nil, err
+	} else if proposal == nil {
+		return nil, ProposalNotFound
+	}
+
 	value := state.GetState(vm.GovContractAddr, KeyTallyResult(proposalID))
 
 	if len(value) == 0 {
