@@ -181,19 +181,22 @@ func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Hea
 }
 
 func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash) error {
-	oldCount := 0
-	oldIterator := sp.db.Ranking(blockHash, buildPrefixByRound(xutil.CalculateRound(blockNumber)-2), 0)
-	defer oldIterator.Release()
-	for oldIterator.Next() {
-		key := oldIterator.Key()
-		value := oldIterator.Value()
+	count := 0
+	iter := sp.db.Ranking(blockHash, buildPrefixByRound(xutil.CalculateRound(blockNumber)-2), 0)
+	if err := iter.Error(); nil != err {
+		return err
+	}
+	defer iter.Release()
+	for iter.Next() {
+		key := iter.Key()
+		value := iter.Value()
 		log.Debug("slashingPlugin switchEpoch ranking old", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(value))
 		if err := sp.db.Del(blockHash, key); nil != err {
 			return err
 		}
-		oldCount++
+		count++
 	}
-	log.Info("slashingPlugin switchEpoch success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "oldCount", oldCount)
+	log.Info("slashingPlugin switchEpoch success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "count", count)
 	return nil
 }
 
@@ -202,6 +205,10 @@ func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common
 	result := make(map[discover.NodeID]uint32)
 	prefixKey := buildPrefixByRound(xutil.CalculateRound(blockNumber) - 1)
 	iter := sp.db.Ranking(parentHash, prefixKey, 0)
+
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
 	defer iter.Release()
 	for iter.Next() {
 		key := iter.Key()

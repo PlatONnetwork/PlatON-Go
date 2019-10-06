@@ -33,7 +33,7 @@ func (sc *SlashingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (sc *SlashingContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, sc.FnSigns())
+	return execPlatonContract(input, sc.FnSigns())
 }
 
 func (sc *SlashingContract) FnSigns() map[uint16]interface{} {

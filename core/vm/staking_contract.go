@@ -74,7 +74,7 @@ func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, stkc.FnSigns())
+	return execPlatonContract(input, stkc.FnSigns())
 }
 
 func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
@@ -598,6 +598,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 		}
 
 	}
+
 	event := xcom.OkResultByte
 	stkc.goodLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent,
 		string(event), "withdrewStaking")
@@ -700,7 +701,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		del.RestrictingPlan = new(big.Int).SetInt64(0)
 		del.ReleasedHes = new(big.Int).SetInt64(0)
 		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
-		del.Reduction = new(big.Int).SetInt64(0)
 	}
 
 	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canOld, typ, amount)
