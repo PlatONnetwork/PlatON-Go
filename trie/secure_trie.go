@@ -115,7 +115,6 @@ func (t *SecureTrie) TryUpdate(key, value []byte) error {
 func (t *SecureTrie) TryUpdateValue(key, value []byte) error {
 	hash := common.BytesToHash(key)
 	t.storageValue[hash] = value
-	t.getSecKeyCache()[string(key)] = common.CopyBytes(value)
 	return nil
 }
 
@@ -144,7 +143,11 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 	if key, ok := t.storageValue[common.BytesToHash(shaKey)]; ok {
 		return key
 	}
-	key, _ := t.trie.db.Preimage(common.BytesToHash(shaKey))
+	if key, err := t.trie.db.Preimage(common.BytesToHash(shaKey)); err != nil {
+		return key
+	}
+
+	key, _ := t.trie.db.Node(common.BytesToHash(shaKey))
 	return key
 }
 
@@ -163,7 +166,7 @@ func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 		t.secKeyCache = make(map[string][]byte)
 	}
 	for k, v := range t.storageValue {
-		t.trie.db.insertPreimage(k, v)
+		t.trie.db.insert(k, v, rawNode(v))
 	}
 	t.trie.db.lock.Unlock()
 
