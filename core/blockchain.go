@@ -653,9 +653,6 @@ func (bc *BlockChain) GetBlocksFromHash(hash common.Hash, n int) (blocks []*type
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *BlockChain) TrieNode(hash common.Hash) ([]byte, error) {
 	b, err := bc.stateCache.TrieDB().Node(hash)
-	if err != nil {
-		return bc.stateCache.TrieDB().Preimage(hash)
-	}
 	return b, err
 }
 
