@@ -132,8 +132,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 
 		diff := make(staking.ValidatorQueue, 0)
-		var isCurr bool
-		var isNext bool
+		var isCurr, isNext bool
 
 		currMap := make(map[discover.NodeID]struct{})
 		for _, v := range current.Arr {
@@ -1529,7 +1528,6 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 
 func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr common.Address) (staking.DelRelatedQueue, error) {
 
-	//var iter iterator.Iterator
 	iter := sk.db.IteratorDelegateByBlockHashWithAddr(blockHash, addr, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
@@ -2006,14 +2004,14 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 				can.Shares, "slash amount", slashItem.Amount)
 			panic("the candidate shares is no enough")
 		}
-
 	}
 
 	// need invalid candidate status
 	// need remove from verifierList
-	needInvalid, needRemove := handleSlashTypeFn(slashItem.SlashType, can)
+	needInvalid, needRemove, changeStatus := handleSlashTypeFn(slashItem.SlashType, calcCandidateTotalAmount(can))
 
-	log.Info("Call SlashCandidates: the status", "needInvalid", needInvalid, "needRemove", needRemove, "can.Status", can.Status)
+	log.Info("Call SlashCandidates: the status", "needInvalid", needInvalid,
+		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
 	if needInvalid && staking.Is_Valid(can.Status) {
 
@@ -2051,8 +2049,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 		//because of deleted candidate info ,clean Shares
 		can.Shares = new(big.Int).SetInt64(0)
-		//can.Status |= staking.Invalided
-
+		can.Status |= changeStatus
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates on stakingPlugin: Store Candidate info is failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -2060,6 +2057,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 
 	} else if !needInvalid && staking.Is_Valid(can.Status) {
+
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate power is failed", "slashType", slashItem.SlashType,
@@ -2067,6 +2065,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			return needRemove, err
 		}
 
+		can.Status |= changeStatus
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2074,6 +2073,8 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 
 	} else {
+
+		can.Status |= changeStatus
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 			log.Error("Failed to SlashCandidates: Store candidate is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2122,36 +2123,32 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 	return nil
 }
 
-func handleSlashTypeFn(slashType int, can *staking.Candidate) (bool, bool) {
+func handleSlashTypeFn(slashType int, remain *big.Int) (bool, bool, uint32) {
 
-	var needInvalid bool // need invalid candidate status
-	var needRemove bool  // need remove from verifierList
+	var needInvalid, needRemove bool // need invalid candidate status And need remove from verifierList
+	var changeStatus uint32          // need to add this status
 
 	switch slashType {
 	case staking.LowRatio:
 
-		remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
-		remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
-		canBalance := new(big.Int).Add(remainRelease, remainRestrictingPlan)
-
-		if !xutil.CheckStakeThreshold(canBalance) {
-			can.Status |= staking.NotEnough
-			can.Status |= staking.Invalided
+		if !xutil.CheckStakeThreshold(remain) {
+			changeStatus |= staking.NotEnough
+			changeStatus |= staking.Invalided
 			needInvalid = true
 			needRemove = true
 		}
 	case staking.LowRatioDel:
-		can.Status |= staking.Invalided
+		changeStatus |= staking.Invalided
 		needInvalid = true
 		needRemove = true
 	case staking.DuplicateSign:
-		can.Status |= staking.Invalided
+		changeStatus |= staking.Invalided
 		needInvalid = true
 		needRemove = true
 	}
-	can.Status |= uint32(slashType)
+	changeStatus |= uint32(slashType)
 
-	return needInvalid, needRemove
+	return needInvalid, needRemove, changeStatus
 }
 
 func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
@@ -3089,11 +3086,12 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 	if nil != err {
 		return err
 	}
+	var refundEpoch, maxEndVoteEpoch, targetEpoch uint64
+	if endVoteNum != 0 {
+		maxEndVoteEpoch = xutil.CalculateEpoch(endVoteNum)
+	}
 
-	refundEpoch := xutil.CalculateEpoch(blockNumber) + xcom.UnStakeFreezeRatio()
-	maxEndVoteEpoch := xutil.CalculateEpoch(endVoteNum)
-
-	var targetEpoch uint64
+	refundEpoch = xutil.CalculateEpoch(blockNumber) + xcom.UnStakeFreezeRatio()
 
 	if maxEndVoteEpoch <= refundEpoch {
 		targetEpoch = refundEpoch
