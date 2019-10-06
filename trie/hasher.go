@@ -107,12 +107,12 @@ func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 	case *shortNode:
 		cn.flags.hash = cachedHash
 		if db != nil {
-			cn.flags.dirty = false
+			*cn.flags.dirty = false
 		}
 	case *fullNode:
 		cn.flags.hash = cachedHash
 		if db != nil {
-			cn.flags.dirty = false
+			*cn.flags.dirty = false
 		}
 	}
 	return hashed, cached, nil

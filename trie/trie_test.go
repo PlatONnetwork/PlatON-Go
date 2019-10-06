@@ -29,11 +29,11 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func init() {
@@ -465,7 +465,12 @@ func runRandTest(rt randTest) bool {
 	}
 	return true
 }
+func TestNewFlag(t *testing.T) {
+	trie := &Trie{}
+	trie.newFlag()
+	trie.newFlag()
 
+}
 func checkCacheInvariant(n, parent node, parentCachegen uint16, parentDirty bool, depth int) error {
 	var children []node
 	var flag nodeFlag
@@ -489,11 +494,11 @@ func checkCacheInvariant(n, parent node, parentCachegen uint16, parentDirty bool
 	if flag.gen > parentCachegen {
 		return errorf("cache invariant violation: %d > %d\n", flag.gen, parentCachegen)
 	}
-	if depth > 0 && !parentDirty && flag.dirty {
+	if depth > 0 && !parentDirty && *flag.dirty {
 		return errorf("cache invariant violation: %d > %d\n", flag.gen, parentCachegen)
 	}
 	for _, child := range children {
-		if err := checkCacheInvariant(child, n, flag.gen, flag.dirty, depth+1); err != nil {
+		if err := checkCacheInvariant(child, n, flag.gen, *flag.dirty, depth+1); err != nil {
 			return err
 		}
 	}
