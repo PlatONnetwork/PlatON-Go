@@ -28,7 +28,7 @@ var (
 	FnParamsLenErr  = errors.New("the params len and func params len is not equal")
 )
 
-func Verify_tx_data(input []byte, command map[uint16]interface{}) (cnCode uint16, fn interface{}, FnParams []reflect.Value, err error) {
+func VerifyTxData(input []byte, command map[uint16]interface{}) (cnCode uint16, fn interface{}, FnParams []reflect.Value, err error) {
 
 	defer func() {
 		if er := recover(); nil != er {

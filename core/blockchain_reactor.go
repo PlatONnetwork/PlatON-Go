@@ -342,7 +342,7 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 		return nil
 	}
 	if contract != nil {
-		if fcode, _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+		if fcode, _, _, err := plugin.VerifyTxData(input, contract.FnSigns()); nil != err {
 			return err
 		} else {
 			return contract.CheckGasPrice(tx.GasPrice(), fcode)
