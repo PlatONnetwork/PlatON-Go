@@ -98,7 +98,7 @@ type Config struct {
 
 	// BootstrapNodes are used to establish connectivity
 	// with the rest of the network.
-	BootstrapNodes []*discover.Node `json:"-"`
+	BootstrapNodes []*discover.Node
 
 	// BootstrapNodesV5 are used to establish connectivity
 	// with the rest of the network using the V5 discovery
