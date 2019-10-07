@@ -205,6 +205,7 @@ func Open(path string) (DB, error) {
 		if err := db.loadCurrent(); err != nil {
 			return nil, err
 		}
+		logger.Info("load current", "current", db.current)
 		if err := db.recover(); err != nil {
 			logger.Error("recover db fail:", "error", err)
 			return nil, err
@@ -724,6 +725,10 @@ func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter ite
 	}
 	defer snapshot.Release()
 	t := snapshot.NewIterator(slice, nil)
+	defer func() {
+		logger.Debug("WalkBaseDB release ")
+		t.Release()
+	}()
 	return f(s.current.BaseNum, t)
 }
 
@@ -796,7 +801,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("begin close snapshotdb")
+	logger.Info("begin close snapshotdb", "path", s.path)
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
