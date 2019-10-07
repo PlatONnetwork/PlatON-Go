@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -40,14 +42,6 @@ func RewardMgrInstance() *RewardMgrPlugin {
 	})
 	return rm
 }
-
-/*func ClearRewardPlugin() error {
-	if nil == rm {
-		return common.NewSysError("the RewardPlugin already be nil")
-	}
-	rm = nil
-	return nil
-}*/
 
 // BeginBlock does something like check input params before execute transactions,
 // in RewardMgrPlugin it does nothing.
@@ -94,7 +88,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 }
 
 // Confirmed does nothing
-func (rmp *RewardMgrPlugin) Confirmed(block *types.Block) error {
+func (rmp *RewardMgrPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
 

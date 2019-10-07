@@ -39,7 +39,8 @@ func (s *State) String() string {
 	if s == nil {
 		return ""
 	}
-	return fmt.Sprintf("[number:%d, hash:%s]", s.Block.NumberU64(), s.Block.Hash().String())
+	return fmt.Sprintf("[blockNumber:%d, blockHash:%s, qcNumber:%d, qcHash:%s]",
+		s.Block.NumberU64(), s.Block.Hash().String(), s.QuorumCert.BlockNumber, s.QuorumCert.BlockHash.String())
 }
 
 // ChainState indicates the latest consensus state.
@@ -57,10 +58,7 @@ func (cs *ChainState) String() string {
 	if cs == nil {
 		return ""
 	}
-	return fmt.Sprintf("[commitNum:%d, commitHash:%s, lockNum:%d, lockHash:%s, qcNum:%d, qcHash:%s]",
-		cs.Commit.Block.NumberU64(), cs.Commit.Block.Hash().String(),
-		cs.Lock.Block.NumberU64(), cs.Lock.Block.Hash().String(),
-		cs.QC[0].Block.NumberU64(), cs.QC[0].Block.Hash().String())
+	return fmt.Sprintf("[commitState:%s, lockState:%s, qcState:%s]", cs.Commit.String(), cs.Lock.String(), cs.QC[0].String())
 }
 
 type WalMsg interface {

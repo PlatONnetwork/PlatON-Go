@@ -91,7 +91,7 @@ func (d *StaticAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return false
 }
 
-func (d *StaticAgency) Commit(block *types.Block) error {
+func (d *StaticAgency) OnCommit(block *types.Block) error {
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (ia *InnerAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return true
 }
 
-func (ia *InnerAgency) Commit(block *types.Block) error {
+func (ia *InnerAgency) OnCommit(block *types.Block) error {
 	return nil
 }
 
@@ -268,6 +268,8 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 	if pool.currentValidators.ValidBlockNumber > 0 {
 		pool.switchPoint = pool.currentValidators.ValidBlockNumber - 1
 	}
+
+	log.Debug("Update validator", "validators", pool.currentValidators.String(), "switchpoint", pool.switchPoint, "epoch", pool.epoch, "lastNumber", pool.lastNumber)
 	return pool
 }
 
@@ -320,7 +322,7 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 	vp.switchPoint = nds.ValidBlockNumber - 1
 	vp.lastNumber = vp.agency.GetLastNumber(NextRound(blockNumber))
 	vp.epoch = epoch
-	log.Debug("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
+	log.Info("Update validator", "validators", nds.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
 
 	isValidatorBefore := vp.isValidator(epoch-1, vp.nodeID)
 
@@ -575,7 +577,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, ms
 		return err
 	}
 	if !sig.Verify(&pub, string(msg)) {
-		log.Debug("Verify signature fail", "epoch", "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
+		log.Error("Verify signature fail", "epoch", epoch, "vSet", vSet.String(), "msg", hex.EncodeToString(msg), "signature", hex.EncodeToString(signature), "nodeList", nodeList, "validators", validators.String())
 		return errors.New("bls verifies signature fail")
 	}
 	return nil
@@ -596,7 +598,7 @@ func (vp *ValidatorPool) Flush(header *types.Header) error {
 }
 
 func (vp *ValidatorPool) Commit(block *types.Block) error {
-	return vp.agency.Commit(block)
+	return vp.agency.OnCommit(block)
 }
 
 func NextRound(blockNumber uint64) uint64 {

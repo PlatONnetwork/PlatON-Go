@@ -154,10 +154,21 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 			return err
 		}
 	}
+
+	existMap := make(map[discover.NodeID]struct{}, len(accuVerifiers))
+	for _, nodeID := range accuVerifiers {
+		existMap[nodeID] = struct{}{}
+	}
+
 	for _, nodeID := range nodes {
-		if !xutil.InNodeIDList(nodeID, accuVerifiers) {
+		if _, ok := existMap[nodeID]; !ok {
 			accuVerifiers = append(accuVerifiers, nodeID)
 		}
+		/*
+			if !xutil.InNodeIDList(nodeID, accuVerifiers) {
+				accuVerifiers = append(accuVerifiers, nodeID)
+			}
+		*/
 	}
 	log.Debug("accumulated verifiers", "proposalID", proposalId, "total", len(accuVerifiers))
 	return put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)

@@ -137,6 +137,8 @@ type Engine interface {
 	Pause()
 	// Resume consensus
 	Resume()
+
+	DecodeExtra(extra []byte) (common.Hash, uint64, error)
 }
 
 // PoW is a consensus engine based on proof-of-work.
@@ -157,7 +159,7 @@ type Agency interface {
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
-	Commit(block *types.Block) error
+	OnCommit(block *types.Block) error
 }
 
 // Bft defines the functions that BFT consensus
