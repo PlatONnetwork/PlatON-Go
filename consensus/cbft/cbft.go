@@ -209,9 +209,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 
 	//Initialize block tree
-	//block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
-	block := chain.CurrentBlock()
-
+	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+	//block := chain.CurrentBlock()
 	isGenesis := func() bool {
 		return block.NumberU64() == 0
 	}
@@ -985,18 +984,18 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
+		vEpoch := qc.Epoch
+		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
+			vEpoch += 1
+		}
+		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
+
 		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 
 		cbft.state.SetHighestQCBlock(block)
 		cbft.state.SetHighestLockBlock(block)
 		cbft.state.SetHighestCommitBlock(block)
-
-		vEpoch := qc.Epoch
-		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-			vEpoch += 1
-		}
-		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
 
 		result <- err
 	}
@@ -1092,7 +1091,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 
-	if cbft.state.NumViewBlocks() >= cbft.config.Sys.Amount {
+	if cbft.state.NextViewBlockIndex() >= cbft.config.Sys.Amount {
 		result <- errors.New("produce block over limit")
 		return
 	}
