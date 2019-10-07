@@ -325,38 +325,61 @@ func (s *mockCbft) ConsensusNodes() ([]discover.NodeID, error) {
 func (s *mockCbft) Config() *types2.Config {
 	return nil
 }
+
 func (s *mockCbft) ReceiveMessage(msg *types2.MsgInfo) error {
 	log.Debug("ReceiveMessage", "from", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg))
 	return nil
 }
+
 func (s *mockCbft) ReceiveSyncMsg(msg *types2.MsgInfo) error {
 	log.Debug("ReceiveSyncMsg", "from", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg))
 	return nil
 }
+
 func (s *mockCbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return 0, common.Hash{}
 }
+
 func (s *mockCbft) HighestLockBlockBn() (uint64, common.Hash) {
 	return 0, common.Hash{}
 }
+
 func (s *mockCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return 0, common.Hash{}
 }
+
 func (s *mockCbft) MissingViewChangeNodes() (*protocols.GetViewChange, error) {
 	return &protocols.GetViewChange{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
 }
+
 func (s *mockCbft) MissingPrepareVote() (*protocols.GetPrepareVote, error) {
 	return &protocols.GetPrepareVote{
 		Epoch:      1,
 		ViewNumber: 1,
 	}, nil
 }
+
+func (s *mockCbft) LatestStatus() *protocols.GetLatestStatus {
+	qcNumber, qcHash := s.HighestQCBlockBn()
+	lockNumber, lockHash := s.HighestLockBlockBn()
+	return &protocols.GetLatestStatus{
+		BlockNumber:  qcNumber,
+		BlockHash:    qcHash,
+		QuorumCert:   nil,
+		LBlockNumber: lockNumber,
+		LBlockHash:   lockHash,
+		LQuorumCert:  nil,
+		LogicType:    TypeForQCBn,
+	}
+}
+
 func (s *mockCbft) OnPong(nodeID string, netLatency int64) error {
 	return nil
 }
+
 func (s *mockCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 	return nil
 }

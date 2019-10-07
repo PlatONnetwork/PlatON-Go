@@ -23,8 +23,8 @@ const (
 
 // DuplicatePrepareBlockEvidence recording duplicate blocks
 type DuplicatePrepareBlockEvidence struct {
-	PrepareA *EvidencePrepare `json:"prepare_a"`
-	PrepareB *EvidencePrepare `json:"prepare_b"`
+	PrepareA *EvidencePrepare `json:"prepareA"`
+	PrepareB *EvidencePrepare `json:"prepareB"`
 }
 
 func (d DuplicatePrepareBlockEvidence) BlockNumber() uint64 {
@@ -122,8 +122,8 @@ func (d DuplicatePrepareBlockEvidence) ValidateMsg() bool {
 
 // DuplicatePrepareVoteEvidence recording duplicate vote
 type DuplicatePrepareVoteEvidence struct {
-	VoteA *EvidenceVote `json:"vote_a"`
-	VoteB *EvidenceVote `json:"vote_b"`
+	VoteA *EvidenceVote `json:"voteA"`
+	VoteB *EvidenceVote `json:"voteB"`
 }
 
 func (d DuplicatePrepareVoteEvidence) BlockNumber() uint64 {
@@ -221,8 +221,8 @@ func (d DuplicatePrepareVoteEvidence) ValidateMsg() bool {
 
 // DuplicateViewChangeEvidence recording duplicate viewChange
 type DuplicateViewChangeEvidence struct {
-	ViewA *EvidenceView `json:"view_a"`
-	ViewB *EvidenceView `json:"view_b"`
+	ViewA *EvidenceView `json:"viewA"`
+	ViewB *EvidenceView `json:"viewB"`
 }
 
 func (d DuplicateViewChangeEvidence) BlockNumber() uint64 {
@@ -317,9 +317,9 @@ func (d DuplicateViewChangeEvidence) ValidateMsg() bool {
 
 // EvidenceData encapsulate externally visible duplicate data
 type EvidenceData struct {
-	DP []*DuplicatePrepareBlockEvidence `json:"duplicate_prepare"`
-	DV []*DuplicatePrepareVoteEvidence  `json:"duplicate_vote"`
-	DC []*DuplicateViewChangeEvidence   `json:"duplicate_viewchange"`
+	DP []*DuplicatePrepareBlockEvidence `json:"duplicatePrepare"`
+	DV []*DuplicatePrepareVoteEvidence  `json:"duplicateVote"`
+	DC []*DuplicateViewChangeEvidence   `json:"duplicateViewchange"`
 }
 
 func NewEvidenceData() *EvidenceData {

@@ -131,10 +131,13 @@ type Cbft struct {
 	// Store blocks that are not committed
 	blockTree *ctypes.BlockTree
 
+	csPool *ctypes.CSMsgPool
+
 	// wal
-	nodeServiceContext        *node.ServiceContext
-	wal                       wal.Wal
-	bridge                    Bridge
+	nodeServiceContext *node.ServiceContext
+	wal                wal.Wal
+	bridge             Bridge
+
 	loading                   int32
 	updateChainStateHook      cbfttypes.UpdateChainStateFn
 	updateChainStateDelayHook func(qcState, lockState, commitState *protocols.State)
@@ -166,6 +169,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		exitCh:             make(chan struct{}),
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		csPool:             ctypes.NewCSMsgPool(),
 		log:                log.New(),
 		start:              0,
 		syncing:            0,
@@ -232,6 +236,12 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
 
+	// init handler and router to process message.
+	// cbft -> handler -> router.
+	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
+	// Start the handler to process the message.
+	go cbft.network.Start()
+
 	if isGenesis() {
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
 		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
@@ -261,14 +271,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	}
 	utils.SetFalse(&cbft.loading)
 
-	// init handler and router to process message.
-	// cbft -> handler -> router.
-	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
-
 	go cbft.receiveLoop()
-
-	// Start the handler to process the message.
-	go cbft.network.Start()
 
 	cbft.fetcher.Start()
 
@@ -481,6 +484,7 @@ func (cbft *Cbft) receiveLoop() {
 			if err := cbft.handleSyncMsg(msg); err != nil {
 				if err, ok := err.(HandleError); ok {
 					if err.AuthFailed() {
+						cbft.log.Error("Verify signature failed to sync message, will add to blacklist", "peerID", msg.PeerID)
 						cbft.network.MarkBlacklist(msg.PeerID)
 						cbft.network.RemovePeer(msg.PeerID)
 					}
@@ -905,7 +909,7 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 // Status returns the status data of the consensus engine.
 func (cbft *Cbft) Status() string {
 	type Status struct {
-		Tree  *ctypes.BlockTree `json:"block_tree"`
+		Tree  *ctypes.BlockTree `json:"blockTree"`
 		State *cstate.ViewState `json:"state"`
 	}
 	status := make(chan string, 1)
@@ -1301,7 +1305,18 @@ func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
 	currentProposer := cbft.state.ViewNumber() % uint64(length)
 	validator, _ := cbft.validatorPool.GetValidatorByIndex(cbft.state.Epoch(), uint32(currentProposer))
 	return validator
+}
 
+func (cbft *Cbft) isProposer(epoch, viewNumber uint64, nodeIndex uint32) bool {
+	if err := cbft.validatorPool.EnableVerifyEpoch(epoch); err != nil {
+		return false
+	}
+	length := cbft.validatorPool.Len(epoch)
+	index := viewNumber % uint64(length)
+	if validator, err := cbft.validatorPool.GetValidatorByIndex(epoch, uint32(index)); err == nil {
+		return validator.Index == nodeIndex
+	}
+	return false
 }
 
 func (cbft *Cbft) currentValidatorLen() int {
@@ -1353,7 +1368,41 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 	return nil
 }
 
+// check if the consensusMsg must take prepareQC or need not take prepareQC
+func (cbft *Cbft) checkPrepareQC(msg ctypes.ConsensusMsg) error {
+	switch cm := msg.(type) {
+	case *protocols.PrepareBlock:
+		if (cm.BlockNum() == 1 || cm.BlockIndex != 0) && cm.PrepareQC != nil {
+			return authFailedError{err: fmt.Errorf("prepareBlock need not take PrepareQC, prepare:%s", cm.String())}
+		}
+		if cm.BlockIndex == 0 && cm.BlockNum() != 1 && cm.PrepareQC == nil {
+			return authFailedError{err: fmt.Errorf("prepareBlock need take PrepareQC, prepare:%s", cm.String())}
+		}
+	case *protocols.PrepareVote:
+		if cm.BlockNum() == 1 && cm.ParentQC != nil {
+			return authFailedError{err: fmt.Errorf("prepareVote need not take PrepareQC, vote:%s", cm.String())}
+		}
+		if cm.BlockNum() != 1 && cm.ParentQC == nil {
+			return authFailedError{err: fmt.Errorf("prepareVote need take PrepareQC, vote:%s", cm.String())}
+		}
+	case *protocols.ViewChange:
+		if cm.BlockNumber == 0 && cm.PrepareQC != nil {
+			return authFailedError{err: fmt.Errorf("viewChange need not take PrepareQC, viewChange:%s", cm.String())}
+		}
+		if cm.BlockNumber != 0 && cm.PrepareQC == nil {
+			return authFailedError{err: fmt.Errorf("viewChange need take PrepareQC, viewChange:%s", cm.String())}
+		}
+	default:
+		return authFailedError{err: fmt.Errorf("invalid consensusMsg")}
+	}
+	return nil
+}
+
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
+	// check if the consensusMsg must take prepareQC, Otherwise maybe panic
+	if err := cbft.checkPrepareQC(msg); err != nil {
+		return nil, err
+	}
 	// Verify consensus msg signature
 	if err := cbft.verifyConsensusSign(msg); err != nil {
 		return nil, err

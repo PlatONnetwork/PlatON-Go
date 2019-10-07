@@ -110,6 +110,9 @@ type snapshotDB struct {
 
 	current *current
 
+	currentUpdateCh chan struct{}
+	exitCh          chan struct{}
+
 	baseDB *leveldb.DB
 
 	unCommit *unCommitBlocks
@@ -209,15 +212,15 @@ func Open(path string) (DB, error) {
 
 func copyDB(from, to *snapshotDB) {
 	to.path = from.path
-	//	to.snapshotLockC = from.snapshotLockC
 	to.current = from.current
 	to.baseDB = from.baseDB
 	to.unCommit = from.unCommit
 	to.committed = from.committed
-	//	to.journalw = from.journalw
 	to.storage = from.storage
 	to.corn = from.corn
 	to.closed = from.closed
+	to.currentUpdateCh = from.currentUpdateCh
+	to.exitCh = from.exitCh
 }
 
 func initDB() error {
@@ -251,6 +254,7 @@ func initDB() error {
 		}
 		copyDB(db, dbInstance)
 	}
+	dbInstance.writeCurrentLoop()
 	if err := dbInstance.cornStart(); err != nil {
 		return err
 	}
@@ -269,6 +273,21 @@ func (s *snapshotDB) cornStart() error {
 	}
 	s.corn.Start()
 	return nil
+}
+
+func (s *snapshotDB) writeCurrentLoop() {
+	go func() {
+		for {
+			select {
+			case <-s.currentUpdateCh:
+				if err := s.current.update(); err != nil {
+					logger.Error("update current file fail ", "err", err)
+				}
+			case <-s.exitCh:
+				return
+			}
+		}
+	}()
 }
 
 func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
@@ -323,6 +342,7 @@ func (s *snapshotDB) SetEmpty() error {
 	}
 
 	copyDB(db, s)
+	s.writeCurrentLoop()
 	if err := s.cornStart(); err != nil {
 		return err
 	}
@@ -383,8 +403,11 @@ func (s *snapshotDB) Compaction() error {
 		return err
 	}
 	s.commitLock.Lock()
+	s.current.BaseNum.Add(s.current.BaseNum, big.NewInt(int64(commitNum)))
 	s.committed = s.committed[commitNum:]
 	s.commitLock.Unlock()
+	s.currentUpdateCh <- struct{}{}
+
 	fds, err := s.storage.List(TypeJournal)
 	if err != nil {
 		return err
@@ -396,6 +419,18 @@ func (s *snapshotDB) Compaction() error {
 			}
 		}
 	}
+	//delete block no use  in unCommit
+	s.unCommit.Lock()
+	if len(s.unCommit.blocks) > 200 {
+		for key, value := range s.unCommit.blocks {
+			if s.current.BaseNum.Cmp(value.Number) >= 0 {
+				delete(s.unCommit.blocks, key)
+				logger.Debug("compaction delete no need blocks", "num", value.Number, "hash", value.BlockHash.String())
+			}
+		}
+	}
+	s.unCommit.Unlock()
+
 	return nil
 }
 
@@ -451,10 +486,9 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
 	}
 
-	s.current.BaseNum.Add(s.current.BaseNum, big.NewInt(int64(commitNum)))
-	if err := s.current.update(); err != nil {
-		logger.Error("write to current fail", "err", err)
-	}
+	//if err := s.current.update(); err != nil {
+	//	logger.Error("write to current fail", "err", err)
+	//}
 
 	return nil
 }
@@ -668,13 +702,13 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	block.readOnly = true
 	s.commitLock.Lock()
 	s.committed = append(s.committed, block)
-	s.commitLock.Unlock()
-
 	s.current.HighestHash = hash
 	s.current.HighestNum = new(big.Int).Set(block.Number)
-	if err := s.current.update(); err != nil {
-		return fmt.Errorf("commite fail,update current fail:%v", err)
-	}
+	s.commitLock.Unlock()
+	s.currentUpdateCh <- struct{}{}
+	//if err := s.current.update(); err != nil {
+	//	return fmt.Errorf("commite fail,update current fail:%v", err)
+	//}
 
 	s.unCommit.Lock()
 	delete(s.unCommit.blocks, hash)
@@ -774,7 +808,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("begin close snapshotDB")
+	logger.Info("begin close snapshotdb")
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
@@ -782,6 +816,9 @@ func (s *snapshotDB) Close() error {
 	if s.corn != nil {
 		s.corn.Stop()
 	}
+
+	close(s.exitCh)
+
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {
 			return fmt.Errorf("[snapshotdb]close base db fail:%v", err)
@@ -799,6 +836,6 @@ func (s *snapshotDB) Close() error {
 	}
 
 	s.closed = true
-	logger.Info("db close")
+	logger.Info("snapshotdb closed")
 	return nil
 }

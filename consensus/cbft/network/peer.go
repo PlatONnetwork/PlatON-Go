@@ -361,10 +361,10 @@ func (p *peer) sendLoop() {
 
 // PeerInfo represents the node information of the CBFT protocol.
 type PeerInfo struct {
-	ProtocolVersion int    `json:"protocol_version"`
-	HighestQCBn     uint64 `json:"highest_qc_bn"`
-	LockedBn        uint64 `json:"locked_bn"`
-	CommitBn        uint64 `json:"commit_bn"`
+	ProtocolVersion int    `json:"protocolVersion"`
+	HighestQCBn     uint64 `json:"highestQCBn"`
+	LockedBn        uint64 `json:"lockedBn"`
+	CommitBn        uint64 `json:"commitBn"`
 }
 
 // Info output status information of the current peer.
