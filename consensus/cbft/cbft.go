@@ -209,9 +209,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 
 	//Initialize block tree
-	//block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
-	block := chain.CurrentBlock()
-
+	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+	//block := chain.CurrentBlock()
 	isGenesis := func() bool {
 		return block.NumberU64() == 0
 	}

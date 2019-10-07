@@ -184,8 +184,8 @@ func init() {
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
-		importCommand,
-		exportCommand,
+		//importCommand,
+		//exportCommand,
 		importPreimagesCommand,
 		exportPreimagesCommand,
 		copydbCommand,
