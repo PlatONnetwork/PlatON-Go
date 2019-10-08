@@ -143,7 +143,7 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 	if key, ok := t.storageValue[common.BytesToHash(shaKey)]; ok {
 		return key
 	}
-	if key, err := t.trie.db.Preimage(common.BytesToHash(shaKey)); err != nil {
+	if key, err := t.trie.db.Preimage(common.BytesToHash(shaKey)); err == nil {
 		return key
 	}
 
