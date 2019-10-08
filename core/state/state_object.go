@@ -404,7 +404,12 @@ func (self *stateObject) CommitTrie(db Database) error {
 			self.trie.TryUpdateValue(h.Bytes(), v)
 		}
 	}
-	root, err := self.trie.Commit(nil)
+	root, err := self.trie.Commit(func(leaf []byte, parent common.Hash) error {
+		valueKey := common.BytesToHash(leaf)
+		self.db.db.TrieDB().Reference(valueKey, parent)
+		return nil
+	})
+
 	if err == nil {
 		self.data.Root = root
 	}
