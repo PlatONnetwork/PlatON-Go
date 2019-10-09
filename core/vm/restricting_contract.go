@@ -1,7 +1,9 @@
 package vm
 
 import (
+	"encoding/json"
 	"math/big"
+	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -37,6 +39,7 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 
 		// Get
 		4100: rc.getRestrictingInfo,
+		4101: rc.getRestrictingBalance,
 	}
 }
 
@@ -108,6 +111,38 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 		return xcom.NewSuccessResult(string(result)), nil
 	}
 	//return json.Marshal(res)
+}
+
+func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, error) {
+
+	accountList := strings.Split(accounts, ";")
+	if(len(accountList) == 0){
+		log.Error("getRestrictingBalance accountList empty","accountList:",len(accountList))
+		return nil, nil
+	}
+
+	txHash := rc.Evm.StateDB.TxHash()
+	currNumber := rc.Evm.BlockNumber
+	state := rc.Evm.StateDB
+
+	log.Info("Call getRestrictingBalance of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
+
+	rs := make([]restricting.BalanceResult, len(accountList))
+	for i, account := range accountList {
+		address := common.HexToAddress(account)
+		result, err := rc.Plugin.GetRestrictingBalance(address, state)
+		if err != nil {
+			rb := restricting.BalanceResult{
+				Account : address,
+			}
+			rs[i] = rb
+			log.Error("getRestrictingBalance err","account:",account,";err",err)
+		} else {
+			rs[i] = result
+		}
+	}
+	resByte, _ := json.Marshal(rs)
+	return xcom.NewSuccessResult(string(resByte)), nil
 }
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
