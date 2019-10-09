@@ -194,12 +194,6 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
 		log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
 		xcom.PrintObject("wow,insert validator history :", current)
-		result := distinct(next.Arr, current.Arr)
-		if len(result) > 0 {
-			sk.addConsensusNode(result)
-			log.Debug("stakingPlugin addConsensusNode success",
-				"blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "size", len(result))
-		}
 
 		for _, v := range next.Arr {
 			if _, ok := currMap[v.NodeId]; !ok {
@@ -1294,7 +1288,7 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 
 	queryNumber := i * xutil.CalcBlocksEachEpoch()
 	numStr := strconv.FormatUint(queryNumber, 10)
-	log.Debug("wow,GetHistoryVerifierList query number:","num string", numStr)
+	log.Debug("wow,GetHistoryVerifierList query number:", "num string", numStr)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(VerifierName + numStr))
 	if nil != err {
 		return nil, err
@@ -1309,7 +1303,6 @@ func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumb
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
 	for i, v := range verifierList.Arr {
-
 
 		valEx := &staking.ValidatorEx{
 			NodeId: v.NodeId,
@@ -1485,7 +1478,6 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	return queue, nil
 }
 
-
 func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
 	staking.ValidatorExQueue, error) {
 
@@ -1495,7 +1487,7 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	}
 	queryNumber := i * xutil.ConsensusSize()
 	numStr := strconv.FormatUint(queryNumber, 10)
-	log.Debug("wow,GetHistoryValidatorList query number:","num string", numStr)
+	log.Debug("wow,GetHistoryValidatorList query number:", "num string", numStr)
 	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
 	if nil != err {
 		return nil, err
