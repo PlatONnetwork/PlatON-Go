@@ -854,6 +854,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
+	fmt.Println("对比交易信息: txHash", tx.Hash().String())
+	fmt.Println("gas", tx.Gas())
+	fmt.Println("gasPrice", tx.GasPrice().String())
+	fmt.Println("转账金额 value", tx.Value().String())
+	fmt.Println("from", from.String())
+	fmt.Println("to", tx.To().String())
+	fmt.Println("账户余额 balance", pool.currentState.GetBalance(from))
+	fmt.Println("cost", tx.Cost())
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
