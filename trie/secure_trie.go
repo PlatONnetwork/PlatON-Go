@@ -35,7 +35,6 @@ import (
 // SecureTrie is not safe for concurrent use.
 type SecureTrie struct {
 	trie             Trie
-	storageValue     map[common.Hash][]byte
 	hashKeyBuf       [common.HashLength]byte
 	secKeyCache      map[string][]byte
 	secKeyCacheOwner *SecureTrie // Pointer to self, replace the key cache on mismatch
@@ -57,12 +56,11 @@ func NewSecure(root common.Hash, db *Database, cachelimit uint16) (*SecureTrie, 
 		panic("trie.NewSecure called without a database")
 	}
 	trie, err := New(root, db)
-	storageValue := make(map[common.Hash][]byte)
 	if err != nil {
 		return nil, err
 	}
 	trie.SetCacheLimit(cachelimit)
-	return &SecureTrie{trie: *trie, storageValue: storageValue}, nil
+	return &SecureTrie{trie: *trie}, nil
 }
 
 // Get returns the value for key stored in the trie.
@@ -112,12 +110,6 @@ func (t *SecureTrie) TryUpdate(key, value []byte) error {
 	return nil
 }
 
-func (t *SecureTrie) TryUpdateValue(key, value []byte) error {
-	hash := common.BytesToHash(key)
-	t.storageValue[hash] = value
-	return nil
-}
-
 // Delete removes any existing value for key from the trie.
 func (t *SecureTrie) Delete(key []byte) {
 	if err := t.TryDelete(key); err != nil {
@@ -138,9 +130,6 @@ func (t *SecureTrie) TryDelete(key []byte) error {
 // previously used to store a value.
 func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 	if key, ok := t.getSecKeyCache()[string(shaKey)]; ok {
-		return key
-	}
-	if key, ok := t.storageValue[common.BytesToHash(shaKey)]; ok {
 		return key
 	}
 	if key, err := t.trie.db.Preimage(common.BytesToHash(shaKey)); err == nil {
@@ -165,9 +154,7 @@ func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 		}
 		t.secKeyCache = make(map[string][]byte)
 	}
-	for k, v := range t.storageValue {
-		t.trie.db.insert(k, v, rawNode(v))
-	}
+
 	t.trie.db.lock.Unlock()
 
 	// Commit the trie to its intermediate node database
@@ -190,21 +177,15 @@ func (t *SecureTrie) Root() []byte {
 func (t *SecureTrie) Copy() *SecureTrie {
 	cpy := &SecureTrie{
 		trie:             t.trie,
-		storageValue:     make(map[common.Hash][]byte),
 		secKeyCache:      t.secKeyCache,
 		secKeyCacheOwner: t.secKeyCacheOwner,
 	}
-	for k, v := range t.storageValue {
-		cpy.storageValue[k] = v
-	}
-
 	return cpy
 }
 
 func (t *SecureTrie) New() *SecureTrie {
 	cpy := &SecureTrie{
-		trie:         t.trie,
-		storageValue: make(map[common.Hash][]byte),
+		trie: t.trie,
 	}
 	return cpy
 }
