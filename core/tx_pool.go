@@ -863,6 +863,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	fmt.Println("账户余额 balance", pool.currentState.GetBalance(from))
 	fmt.Println("cost", tx.Cost())
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+		fmt.Println("对比交易信息, Failed: txHash", tx.Hash().String())
 		return ErrInsufficientFunds
 	}
 	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, true)
