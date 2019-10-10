@@ -130,11 +130,6 @@ func (t *odrTrie) TryUpdate(key, value []byte) error {
 	})
 }
 
-//todo
-func (t *odrTrie) TryUpdateValue(key, value []byte) error {
-	return nil
-}
-
 func (t *odrTrie) TryDelete(key []byte) error {
 	key = crypto.Keccak256(key)
 	return t.do(key, func() error {
