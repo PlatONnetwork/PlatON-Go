@@ -95,7 +95,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	cbft.log.Debug("Receive PrepareVote", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
-
 		if err.Common() {
 			cbft.log.Debug("Preparevote rules fail", "number", msg.BlockHash, "hash", msg.BlockHash, "err", err)
 			return err
