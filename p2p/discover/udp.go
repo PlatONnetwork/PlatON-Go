@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"reflect"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -65,7 +66,7 @@ const (
 )
 
 var (
-	bytes_ChainId []byte
+	cRest = []rlp.RawValue{{0x65}, {0x65}}
 )
 
 // RPC request structures
@@ -243,8 +244,9 @@ func ListenUDP(c conn, cfg Config) (*Table, error) {
 	}
 
 	if cfg.ChainID != nil {
-		bytes_ChainId, _ = rlp.EncodeToBytes(cfg.ChainID)
+		bytes_ChainId, _ := rlp.EncodeToBytes(cfg.ChainID)
 		log.Info("UDP listener up", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
+		cRest = []rlp.RawValue{bytes_ChainId, bytes_ChainId}
 	}
 
 	log.Info("UDP listener up", "self", tab.self)
@@ -296,7 +298,7 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 		From:       t.ourEndpoint,
 		To:         makeEndpoint(toaddr, 0), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Rest:       []rlp.RawValue{bytes_ChainId},
+		Rest:       cRest,
 	}
 	packet, hash, err := encodePacket(t.priv, pingPacket, req)
 	if err != nil {
@@ -354,6 +356,7 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	t.send(toaddr, findnodePacket, &findnode{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Rest:       cRest,
 	})
 	return nodes, <-errc
 }
@@ -622,9 +625,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 
-	if len(req.Rest) != 1 ||
-		len(req.Rest[0]) != len(bytes_ChainId) ||
-		false == bytes.Equal(req.Rest[0], bytes_ChainId) {
+	if !reflect.DeepEqual(req.Rest, cRest) {
 		return errData
 	}
 
@@ -632,7 +633,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Rest:       []rlp.RawValue{bytes_ChainId},
+		Rest:       cRest,
 	})
 	t.handleReply(fromID, pingPacket, req)
 
@@ -655,9 +656,7 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 
-	if len(req.Rest) != 1 ||
-		len(req.Rest[0]) != len(bytes_ChainId) ||
-		false == bytes.Equal(req.Rest[0], bytes_ChainId) {
+	if !reflect.DeepEqual(req.Rest, cRest) {
 		return errData
 	}
 
@@ -674,6 +673,9 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 	if expired(req.Expiration) {
 		return errExpired
 	}
+	if !reflect.DeepEqual(req.Rest, cRest) {
+		return errData
+	}
 	if !t.db.hasBond(fromID) {
 		// No endpoint proof pong exists, we don't process the packet. This prevents an
 		// attack vector where the discovery protocol could be used to amplify traffic in a
@@ -688,7 +690,10 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 	closest := t.closest(target, bucketSize).entries
 	t.mutex.Unlock()
 
-	p := neighbors{Expiration: uint64(time.Now().Add(expiration).Unix())}
+	p := neighbors{
+		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Rest:       cRest,
+	}
 	var sent bool
 	// Send neighbors in chunks with at most maxNeighbors per packet
 	// to stay below the 1280 byte limit.
@@ -713,6 +718,9 @@ func (req *findnode) name() string { return "FINDNODE/v4" }
 func (req *neighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
 	if expired(req.Expiration) {
 		return errExpired
+	}
+	if !reflect.DeepEqual(req.Rest, cRest) {
+		return errData
 	}
 	if !t.handleReply(fromID, neighborsPacket, req) {
 		return errUnsolicitedReply
