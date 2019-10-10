@@ -100,8 +100,8 @@ func TestRecover(t *testing.T) {
 		t.Error("HighestNum is wrong", dbInstance.current.HighestNum.Int64(), high)
 		return
 	}
-	if dbInstance.current.path != getCurrentPath(dbpath) {
-		t.Error("current path is wrong", dbInstance.current.path, getCurrentPath(dbpath))
+	if dbInstance.current.HighestHash != ch.CurrentHeader().Hash() {
+		t.Error("Highest Hash is wrong", dbInstance.current.HighestHash.String(), ch.CurrentHeader().Hash().String())
 		return
 	}
 	if len(dbInstance.unCommit.blocks) != 0 {

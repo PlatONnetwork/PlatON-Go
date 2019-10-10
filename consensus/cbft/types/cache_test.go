@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -22,89 +23,153 @@ func TestSyncCache(t *testing.T) {
 
 }
 
+type mockCSMsg struct {
+	epoch uint64
+	view  uint64
+}
+
+func (m mockCSMsg) EpochNum() uint64 {
+	return m.epoch
+}
+
+func (m mockCSMsg) ViewNum() uint64 {
+	return m.view
+}
+
+func (m mockCSMsg) BlockNum() uint64 {
+	panic("implement me")
+}
+
+func (m mockCSMsg) NodeIndex() uint32 {
+	panic("implement me")
+}
+
+func (m mockCSMsg) CannibalizeBytes() ([]byte, error) {
+	panic("implement me")
+}
+
+func (m mockCSMsg) Sign() []byte {
+	panic("implement me")
+}
+
+func (m mockCSMsg) SetSign([]byte) {
+	panic("implement me")
+}
+func (m mockCSMsg) String() string {
+	panic("implement me")
+}
+func (m mockCSMsg) MsgHash() common.Hash {
+	panic("implement me")
+}
+func (m mockCSMsg) BHash() common.Hash {
+	panic("implement me")
+}
+
 func TestCSMsgPool(t *testing.T) {
 	pool := NewCSMsgPool()
 
+	pool.Purge(1, 1)
+
+	defaultMsg := &MsgInfo{Msg: &mockCSMsg{epoch: 1, view: 1}}
 	for i := uint32(0); i < 10; i++ {
-		pool.AddPrepareBlock(i, &MsgInfo{})
+		pool.AddPrepareBlock(i, defaultMsg)
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		pool.AddPrepareVote(i, i+1, &MsgInfo{})
+		pool.AddPrepareVote(i, i+1, defaultMsg)
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		pool.AddPrepareQC(i, &MsgInfo{})
+		pool.AddPrepareQC(1, 1, i, defaultMsg)
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareBlock(uint32(i)))
-		assert.Equal(t, uint32(1), pool.getBlockMetric(i))
+		assert.NotNil(t, pool.GetPrepareBlock(1, 1, uint32(i)))
 	}
 
 	for i := uint32(10); i < 11; i++ {
-		assert.Nil(t, pool.GetPrepareBlock(uint32(i)))
+		assert.Nil(t, pool.GetPrepareBlock(1, 1, uint32(i)))
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareVote(i, i+1))
-		assert.Equal(t, uint32(1), pool.getVoteMetric(i, i+1))
+		assert.NotNil(t, pool.GetPrepareVote(1, 1, i, i+1))
 	}
 
 	for i := uint32(10); i < 11; i++ {
-		assert.Nil(t, pool.GetPrepareVote(i, i+1))
+		assert.Nil(t, pool.GetPrepareVote(1, 1, i, i+1))
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareQC(uint32(i)))
-		assert.Equal(t, uint32(1), pool.getQCMetric(i))
+		assert.NotNil(t, pool.GetPrepareQC(1, 1, uint32(i)))
 	}
 
 	for i := uint32(10); i < 11; i++ {
-		assert.Nil(t, pool.GetPrepareQC(uint32(i)))
+		assert.Nil(t, pool.GetPrepareQC(1, 1, uint32(i)))
 	}
 
 	//re-add
 	for i := uint32(0); i < 10; i++ {
-		pool.AddPrepareBlock(i, &MsgInfo{})
+		pool.AddPrepareBlock(i, defaultMsg)
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareBlock(uint32(i)))
-		assert.Equal(t, uint32(2), pool.getBlockMetric(i))
-	}
-	assert.Equal(t, uint32(0), pool.getBlockMetric(11))
-
-	for i := uint32(0); i < 10; i++ {
-		pool.AddPrepareQC(i, &MsgInfo{})
+		assert.NotNil(t, pool.GetPrepareBlock(1, 1, uint32(i)))
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareQC(uint32(i)))
-		assert.Equal(t, uint32(2), pool.getQCMetric(i))
+		pool.AddPrepareQC(1, 1, i, defaultMsg)
 	}
-	assert.Equal(t, uint32(0), pool.getQCMetric(11))
 
 	for i := uint32(0); i < 10; i++ {
-		pool.AddPrepareVote(i, i+1, &MsgInfo{})
-		pool.AddPrepareVote(i, i+2, &MsgInfo{})
+		assert.NotNil(t, pool.GetPrepareQC(1, 1, uint32(i)))
+	}
+
+	for i := uint32(0); i < 10; i++ {
+		pool.AddPrepareVote(i, i+1, defaultMsg)
+		pool.AddPrepareVote(i, i+2, defaultMsg)
 
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareVote(i, i+1))
-		assert.NotNil(t, pool.GetPrepareVote(i, i+2))
-		assert.Equal(t, uint32(2), pool.getVoteMetric(i, i+1))
+		assert.NotNil(t, pool.GetPrepareVote(1, 1, i, i+1))
+		assert.NotNil(t, pool.GetPrepareVote(1, 1, i, i+2))
 	}
-	assert.Equal(t, uint32(0), pool.getVoteMetric(10, 11))
 
-	pool.Purge()
+}
 
-	assert.Empty(t, pool.prepareBlocks)
-	assert.Empty(t, pool.prepareVotes)
-	assert.Empty(t, pool.prepareQC)
+func TestCSMsgPoolInvalidEpoch(t *testing.T) {
+	pool := NewCSMsgPool()
+	pool.Purge(1, 1)
+	assert.Equal(t, false, pool.invalidEpochView(1, 2))
+	assert.Equal(t, false, pool.invalidEpochView(1, 1))
+	assert.Equal(t, false, pool.invalidEpochView(2, 0))
+	assert.Equal(t, true, pool.invalidEpochView(1, 3))
+	assert.Equal(t, true, pool.invalidEpochView(1, 0))
+}
+func TestCSMsgPoolPurge(t *testing.T) {
+	pool := NewCSMsgPool()
+	pool.Purge(1, 1)
+	msgInfo := func(epoch, view uint64) *MsgInfo {
+		return &MsgInfo{Msg: &mockCSMsg{epoch: epoch, view: view}}
+	}
+	pool.AddPrepareBlock(1, msgInfo(1, 1))
+	pool.AddPrepareBlock(1, msgInfo(1, 2))
 
-	assert.Empty(t, pool.qcMetric)
-	assert.Empty(t, pool.blockMetric)
-	assert.Empty(t, pool.voteMetric)
+	assert.NotNil(t, pool.GetPrepareBlock(1, 1, 1))
+
+	pool.Purge(1, 2)
+	assert.Nil(t, pool.GetPrepareBlock(1, 1, 1))
+	assert.NotNil(t, pool.GetPrepareBlock(1, 2, 1))
+
+}
+
+func TestCSMsgPoolAdd(t *testing.T) {
+	pool := NewCSMsgPool()
+	pool.Purge(1, 1)
+	msgInfo := func(epoch, view uint64, inner bool) *MsgInfo {
+		return &MsgInfo{Msg: &mockCSMsg{epoch: epoch, view: view}, Inner: inner}
+	}
+
+	pool.AddPrepareBlock(1, msgInfo(1, 1, true))
+	assert.Nil(t, pool.GetPrepareBlock(1, 1, 1))
 }

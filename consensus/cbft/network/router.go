@@ -101,7 +101,6 @@ func (r *router) Gossip(m *types.MsgPackage) {
 		//	peer.MarkMessageHash(msgHash)
 		//}
 		peer.Send(m)
-		peer.MarkMessageHash(msgHash)
 	}
 }
 

@@ -223,6 +223,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, gethConfig) {
 	stack, cfg := makeConfigNode(ctx)
+	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
 	utils.RegisterEthService(stack, &cfg.Eth)
 
