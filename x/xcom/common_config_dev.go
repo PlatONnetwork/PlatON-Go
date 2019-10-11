@@ -3,7 +3,5 @@
 package xcom
 
 func init() {
-
-	GetEc(DefaultDeveloperNet)
-	//GetEc(DefaultAlphaTestNet)
+	GetEc(DefaultTestNet)
 }

@@ -21,7 +21,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -139,23 +138,7 @@ var (
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
-		Usage: "Testnet network: pre-configured alpha test network",
-	}
-	BetanetFlag = cli.BoolFlag{
-		Name:  "betanet",
-		Usage: "Betanet network: pre-configured beta test network",
-	}
-	InnerTestnetFlag = cli.BoolFlag{
-		Name:  "innertestnet",
-		Usage: "Ropsten network: pre-configured proof-of-work test network",
-	}
-	InnerDevnetFlag = cli.BoolFlag{
-		Name:  "innerdevnet",
-		Usage: "Ropsten network: pre-configured proof-of-work dev network",
-	}
-	DeveloperFlag = cli.BoolFlag{
-		Name:  "dev",
-		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
+		Usage: "Testnet network: pre-configured test network",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
@@ -645,15 +628,7 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
 		}
-		if ctx.GlobalBool(BetanetFlag.Name) {
-			return filepath.Join(path, "betanet")
-		}
-		if ctx.GlobalBool(InnerTestnetFlag.Name) {
-			return filepath.Join(path, "innertestnet")
-		}
-		if ctx.GlobalBool(InnerDevnetFlag.Name) {
-			return filepath.Join(path, "innerdevnet")
-		}
+
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -707,12 +682,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(BetanetFlag.Name):
-		urls = params.BetanetBootnodes
-	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		urls = params.InnerTestnetBootnodes
-	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		urls = params.InnerDevnetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -738,8 +707,6 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(BetanetFlag.Name):
-		urls = params.BetanetBootnodes
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
 	}
@@ -964,13 +931,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NetRestrict = list
 	}
 
-	if ctx.GlobalBool(DeveloperFlag.Name) {
-		// --dev mode can't use p2p networking.
-		cfg.MaxPeers = 0
-		cfg.ListenAddr = ":0"
-		cfg.NoDiscovery = true
-		cfg.DiscoveryV5 = false
-	}
 }
 
 // SetNodeConfig applies node-related command line flags to the config.
@@ -984,16 +944,8 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	switch {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(BetanetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "betanet")
-	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "innertestnet")
-	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "innerdevnet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1153,10 +1105,9 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, DeveloperFlag, TestnetFlag, BetanetFlag, InnerTestnetFlag, InnerDevnetFlag)
+	checkExclusive(ctx, TestnetFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	// for mpc compute
@@ -1240,61 +1191,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Override any default configs for hard coded networks.
 	switch {
 
-	// Alpha Test NetWork
+	// Test NetWork
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 103
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-
-	// Beta Test NetWork
-	case ctx.GlobalBool(BetanetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 104
-		}
-		cfg.Genesis = core.DefaultBetanetGenesisBlock()
-
-	// PlatON Inner Test NetWork
-	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 203
-		}
-		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
-
-	// PlatON Inner Dev NetWork
-	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 204
-		}
-		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
-
-	// Ethereum's original Dev configuration
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1337
-		}
-		// Create new developer account or reuse existing one
-		var (
-			developer accounts.Account
-			err       error
-		)
-		if accs := ks.Accounts(); len(accs) > 0 {
-			developer = ks.Accounts()[0]
-		} else {
-			developer, err = ks.NewAccount("")
-			if err != nil {
-				Fatalf("Failed to create developer account: %v", err)
-			}
-		}
-		if err := ks.Unlock(developer, ""); err != nil {
-			Fatalf("Failed to unlock developer account: %v", err)
-		}
-		log.Info("Using developer account", "address", developer.Address)
-
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
-		if !ctx.GlobalIsSet(MinerGasPriceFlag.Name) && !ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-			cfg.MinerGasPrice = big.NewInt(1)
-		}
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
@@ -1446,14 +1348,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(BetanetFlag.Name):
-		genesis = core.DefaultBetanetGenesisBlock()
-	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
-	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		Fatalf("Developer chains are ephemeral")
 	}
 	return genesis
 }
@@ -1581,20 +1475,7 @@ func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
 	// Override any default Economic configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net: --testnet
-
-	case ctx.GlobalBool(BetanetFlag.Name):
-		networkId = xcom.DefaultBetaTestNet // Beta Test Net: --betanet
-
-	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net: --innertestnet
-
-	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net: --innerdevnet
-
-	case ctx.GlobalBool(DeveloperFlag.Name):
-		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration: --dev
-
+		networkId = xcom.DefaultTestNet // Test Net: --testnet
 	default:
 		networkId = xcom.DefaultMainNet // main net
 	}
