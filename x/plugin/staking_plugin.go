@@ -557,8 +557,7 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 			return err
 		}
 
-		addrByte := stakeItem.KeySuffix
-		canAddr := common.BytesToAddress(addrByte)
+		canAddr := stakeItem.NodeAddress
 
 		log.Debug("Call HandleUnCandidateItem: the candidate Addr",
 			"blockNUmber", blockNumber, "blockHash", blockHash.Hex(), "addr", canAddr.Hex())
@@ -1859,7 +1858,7 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 
 	copy(next, totalQueue)
 
-	// re sort before store next validators
+	// re-sort before store next validators
 	next.ValidatorSort(nil, staking.CompareForStore)
 	return next
 }
