@@ -226,6 +226,7 @@ func simplifyNode(n node) node {
 // expandNode traverses the node hierarchy of a collapsed storage node and converts
 // all fields and keys into expanded memory form.
 func expandNode(hash hashNode, n node, cachegen uint16) node {
+	dirty := false
 	switch n := n.(type) {
 	case *rawShortNode:
 		// Short nodes need key and child expansion
@@ -233,8 +234,9 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 			Key: compactToHex(n.Key),
 			Val: expandNode(nil, n.Val, cachegen),
 			flags: nodeFlag{
-				hash: hash,
-				gen:  cachegen,
+				hash:  hash,
+				gen:   cachegen,
+				dirty: &dirty,
 			},
 		}
 
@@ -242,8 +244,9 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 		// Full nodes need child expansion
 		node := &fullNode{
 			flags: nodeFlag{
-				hash: hash,
-				gen:  cachegen,
+				hash:  hash,
+				gen:   cachegen,
+				dirty: &dirty,
 			},
 		}
 		for i := 0; i < len(node.Children); i++ {
