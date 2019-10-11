@@ -289,6 +289,21 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		return nil
 	}
 
+	invalidMsg := func(epoch, view uint64) bool {
+		if (epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()) ||
+			(epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()+1) ||
+			(epoch == cbft.state.Epoch()+1 && view == 0) {
+			return false
+		}
+		return true
+	}
+
+	cMsg := msg.Msg.(ctypes.ConsensusMsg)
+	if invalidMsg(cMsg.EpochNum(), cMsg.ViewNum()) {
+		cbft.log.Debug("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
+		return nil
+	}
+
 	err := cbft.recordMessage(msg)
 	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
@@ -529,7 +544,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err, "peerMsgCh", len(cbft.peerMsgCh))
 	}
 	return err
 }
