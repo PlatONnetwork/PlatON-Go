@@ -167,13 +167,13 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if node has voted
-	verifierList, err := ListVotedVerifier(vote.ProposalID, state)
+	votedMap, err := GetVotedVerifierMap(vote.ProposalID, state)
 	if err != nil {
-		log.Error("list voted verifier error", "proposalID", vote.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
+		log.Error("get voted verifier map error", "proposalID", vote.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
 		return err
 	}
 
-	if xutil.InNodeIDList(vote.VoteNodeID, verifierList) {
+	if _, exist := votedMap[vote.VoteNodeID]; exist {
 		return VoteDuplicated
 	}
 
@@ -221,12 +221,13 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 	if votingVP != nil {
 		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
 
-		votedList, err := ListVotedVerifier(votingVP.ProposalID, state)
+		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, state)
 		if err != nil {
-			log.Error("list voted verifier error", "proposalID", votingVP.ProposalID)
+			log.Error("get voted verifier map error", "proposalID", votingVP.ProposalID)
 			return err
 		}
-		if xutil.InNodeIDList(declaredNodeID, votedList) {
+		//if xutil.InNodeIDList(declaredNodeID, votedList) {
+		if _, exist := votedMap[declaredNodeID]; exist {
 			if declaredVersion>>8 != votingVP.GetNewVersion()>>8 {
 				log.Error("node voted new version, then declared version, the major is different between the declared version and new version")
 				return DeclareVersionError
@@ -420,8 +421,8 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 }
 
 // NotifyPunishedVerifiers receives punished verifies notification from Staking
-func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover.NodeID, state xcom.StateDB) error {
-	if len(punishedVerifiers) == 0 {
+func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[discover.NodeID]struct{}, state xcom.StateDB) error {
+	if punishedVerifierMap == nil || len(punishedVerifierMap) == 0 {
 		return nil
 	}
 	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {
@@ -433,13 +434,16 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifiers []discover
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
 				for _, voteValue := range voteValueList {
-					if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
+					//if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
+					if _, isPunished := punishedVerifierMap[voteValue.VoteNodeID]; !isPunished {
 						voteValueList[idx] = voteValue
 						idx++
 					}
 				}
-				voteValueList = voteValueList[:idx]
-				UpdateVoteValue(proposalID, voteValueList, state)
+				if idx < len(voteValueList) {
+					voteValueList = voteValueList[:idx]
+					UpdateVoteValue(proposalID, voteValueList, state)
+				}
 			}
 
 			/*if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {

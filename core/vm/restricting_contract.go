@@ -27,7 +27,7 @@ func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, rc.FnSigns())
+	return execPlatonContract(input, rc.FnSigns())
 }
 
 func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {

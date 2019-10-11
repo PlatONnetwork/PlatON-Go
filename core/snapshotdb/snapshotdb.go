@@ -205,6 +205,7 @@ func Open(path string) (DB, error) {
 		if err := db.loadCurrent(); err != nil {
 			return nil, err
 		}
+		logger.Info("load current", "current", db.current)
 		if err := db.recover(); err != nil {
 			logger.Error("recover db fail:", "error", err)
 			return nil, err
@@ -263,22 +264,6 @@ func (s *snapshotDB) cornStart() error {
 	s.corn.Start()
 	return nil
 }
-
-//
-//func (s *snapshotDB) writeCurrentLoop() {
-//	go func() {
-//		for {
-//			select {
-//			case <-s.currentUpdateCh:
-//				if err := s.current.update(); err != nil {
-//					logger.Error("update current file fail ", "err", err)
-//				}
-//			case <-s.exitCh:
-//				return
-//			}
-//		}
-//	}()
-//}
 
 func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 	batch := new(leveldb.Batch)
@@ -515,7 +500,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	}
 
 	block := new(blockData)
-	block.Number = new(big.Int).SetUint64(blockNumber.Uint64())
+	block.Number = new(big.Int).Set(blockNumber)
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
@@ -740,6 +725,10 @@ func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter ite
 	}
 	defer snapshot.Release()
 	t := snapshot.NewIterator(slice, nil)
+	defer func() {
+		logger.Debug("WalkBaseDB release ")
+		t.Release()
+	}()
 	return f(s.current.BaseNum, t)
 }
 
@@ -812,7 +801,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("begin close snapshotdb")
+	logger.Info("begin close snapshotdb", "path", s.path)
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil

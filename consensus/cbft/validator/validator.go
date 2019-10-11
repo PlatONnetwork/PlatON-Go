@@ -91,7 +91,7 @@ func (d *StaticAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return false
 }
 
-func (d *StaticAgency) Commit(block *types.Block) error {
+func (d *StaticAgency) OnCommit(block *types.Block) error {
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (ia *InnerAgency) IsCandidateNode(nodeID discover.NodeID) bool {
 	return true
 }
 
-func (ia *InnerAgency) Commit(block *types.Block) error {
+func (ia *InnerAgency) OnCommit(block *types.Block) error {
 	return nil
 }
 
@@ -596,7 +596,7 @@ func (vp *ValidatorPool) Flush(header *types.Header) error {
 }
 
 func (vp *ValidatorPool) Commit(block *types.Block) error {
-	return vp.agency.Commit(block)
+	return vp.agency.OnCommit(block)
 }
 
 func NextRound(blockNumber uint64) uint64 {

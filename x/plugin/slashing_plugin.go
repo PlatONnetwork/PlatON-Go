@@ -36,6 +36,8 @@ var (
 	errNodeIdMismatch      = common.NewBizError(303006, "nodeId does not match")
 	errBlsPubKeyMismatch   = common.NewBizError(303007, "blsPubKey does not match")
 	errSlashingFail        = common.NewBizError(303008, "slashing node fail")
+	errNotValidator        = common.NewBizError(303009, "This node is not a validator")
+	errSameAddr            = common.NewBizError(303010, "Can't report yourself")
 
 	once = sync.Once{}
 )
@@ -143,7 +145,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 	return nil
 }
 
-func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
+func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
 
@@ -179,19 +181,22 @@ func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Hea
 }
 
 func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash) error {
-	oldCount := 0
-	oldIterator := sp.db.Ranking(blockHash, buildPrefixByRound(xutil.CalculateRound(blockNumber)-2), 0)
-	defer oldIterator.Release()
-	for oldIterator.Next() {
-		key := oldIterator.Key()
-		value := oldIterator.Value()
+	count := 0
+	iter := sp.db.Ranking(blockHash, buildPrefixByRound(xutil.CalculateRound(blockNumber)-2), 0)
+	if err := iter.Error(); nil != err {
+		return err
+	}
+	defer iter.Release()
+	for iter.Next() {
+		key := iter.Key()
+		value := iter.Value()
 		log.Debug("slashingPlugin switchEpoch ranking old", "blockNumber", blockNumber, "key", hex.EncodeToString(key), "value", common.BytesToUint32(value))
 		if err := sp.db.Del(blockHash, key); nil != err {
 			return err
 		}
-		oldCount++
+		count++
 	}
-	log.Info("slashingPlugin switchEpoch success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "oldCount", oldCount)
+	log.Info("slashingPlugin switchEpoch success", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "count", count)
 	return nil
 }
 
@@ -200,6 +205,10 @@ func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common
 	result := make(map[discover.NodeID]uint32)
 	prefixKey := buildPrefixByRound(xutil.CalculateRound(blockNumber) - 1)
 	iter := sp.db.Ranking(parentHash, prefixKey, 0)
+
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
 	defer iter.Release()
 	for iter.Next() {
 		key := iter.Key()
@@ -255,6 +264,11 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 				"addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 			return errGetCandidate
 		}
+		if bytes.Equal(caller.Bytes(), candidate.StakingAddress.Bytes()) {
+			log.Error("slashing failed Can't report yourself", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"nodeId", candidate.NodeId.TerminalString(), "stakingAddress", caller.Hex(), "type", evidence.Type())
+			return errSameAddr
+		}
 		pk, err := candidate.NodeId.Pubkey()
 		if nil != err {
 			log.Error("slashing failed candidate nodeId parse fail", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -277,18 +291,37 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 				"candidateBlsPubKey", hex.EncodeToString(candidate.BlsPubKey.Serialize()), "evidenceBlsPubKey", hex.EncodeToString(evidence.BlsPubKey().Serialize()), "type", evidence.Type())
 			return errBlsPubKeyMismatch
 		}
-		slashAmount, sumAmount := calcSlashAmount(candidate, xcom.DuplicateSignHighSlash(), blockNumber)
+		if isExists, err := stk.checkRoundValidatorAddr(blockHash, evidence.BlockNumber(), evidence.Address()); nil != err {
+			log.Error("slashing failed checkRoundValidatorAddr", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex(), "err", err)
+			return errDuplicateSignVerify
+		} else if !isExists {
+			log.Warn("slashing failed, This node is not a validator", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex())
+			return errNotValidator
+		}
+		sumAmount := calcSumAmount(blockNumber, candidate)
+		slashAmount := calcSlashAmount(sumAmount, xcom.DuplicateSignHighSlash())
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 
-		slashItem := &staking.SlashNodeItem{
+		toCallerAmount := calcSlashAmount(slashAmount, xcom.DuplicateSignReportReward())
+		toCallerItem := &staking.SlashNodeItem{
 			NodeId:      candidate.NodeId,
-			Amount:      slashAmount,
+			Amount:      toCallerAmount,
 			SlashType:   staking.DuplicateSign,
 			BenefitAddr: caller,
 		}
 
-		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, slashItem); nil != err {
+		toRewardPoolAmount := new(big.Int).Sub(slashAmount, toCallerAmount)
+		toRewardPoolItem := &staking.SlashNodeItem{
+			NodeId:      candidate.NodeId,
+			Amount:      toRewardPoolAmount,
+			SlashType:   staking.DuplicateSign,
+			BenefitAddr: vm.RewardManagerPoolAddr,
+		}
+
+		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, toCallerItem, toRewardPoolItem); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 			return errSlashingFail
@@ -365,13 +398,12 @@ func calcSumAmount(blockNumber uint64, candidate *staking.Candidate) *big.Int {
 	return new(big.Int).Add(candidate.Released, candidate.RestrictingPlan)
 }
 
-func calcSlashAmount(candidate *staking.Candidate, rate uint32, blockNumber uint64) (*big.Int, *big.Int) {
-	sumAmount := calcSumAmount(blockNumber, candidate)
+func calcSlashAmount(sumAmount *big.Int, rate uint32) *big.Int {
 	if sumAmount.Cmp(common.Big0) > 0 {
 		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
-		return amount.Div(amount, new(big.Int).SetUint64(100)), sumAmount
+		return amount.Div(amount, new(big.Int).SetUint64(100))
 	}
-	return new(big.Int).SetInt64(0), new(big.Int).SetInt64(0)
+	return new(big.Int).SetInt64(0)
 }
 
 func calcEndBlockSlashAmount(blockNumber uint64, state xcom.StateDB) *big.Int {

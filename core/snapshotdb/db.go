@@ -73,9 +73,9 @@ func (s *snapshotDB) recover() error {
 	baseNum := s.current.BaseNum.Uint64()
 	highestNum := s.current.HighestNum.Uint64()
 	//read Journal
-	for _, fd := range fds {
-		if baseNum < fd.Num && fd.Num <= highestNum {
-			if header := blockchain.GetHeaderByHash(fd.BlockHash); header != nil {
+	if blockchain == nil {
+		for _, fd := range fds {
+			if baseNum < fd.Num && fd.Num <= highestNum {
 				block, err := s.getBlockFromJournal(fd)
 				if err != nil {
 					return err
@@ -84,11 +84,29 @@ func (s *snapshotDB) recover() error {
 				logger.Debug("recover block ", "num", block.Number, "hash", block.BlockHash.String())
 				continue
 			}
+			if err := s.storage.Remove(fd); err != nil {
+				return err
+			}
 		}
-		if err := s.storage.Remove(fd); err != nil {
-			return err
+	} else {
+		for _, fd := range fds {
+			if baseNum < fd.Num && fd.Num <= highestNum {
+				if header := blockchain.GetHeaderByHash(fd.BlockHash); header != nil {
+					block, err := s.getBlockFromJournal(fd)
+					if err != nil {
+						return err
+					}
+					s.committed = append(s.committed, block)
+					logger.Debug("recover block with block chain", "num", block.Number, "hash", block.BlockHash.String())
+					continue
+				}
+			}
+			if err := s.storage.Remove(fd); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
 

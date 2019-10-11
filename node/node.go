@@ -19,6 +19,7 @@ package node
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -47,6 +48,8 @@ type Node struct {
 	ephemeralKeystore string         // if non-empty, the key directory that will be removed by Stop
 	instanceDirLock   flock.Releaser // prevents concurrent use of instance directory
 
+	// chainId identifies the current chain and is used for replay protection
+	ChainID      *big.Int `toml:"-"`
 	serverConfig p2p.Config
 	server       *p2p.Server // Currently running P2P networking layer
 
@@ -203,6 +206,10 @@ func (n *Node) Start() error {
 	// Gather the protocols and start the freshly assembled P2P server
 	for _, service := range services {
 		running.Protocols = append(running.Protocols, service.Protocols()...)
+	}
+
+	if n.ChainID != nil {
+		running.ChainID = n.ChainID
 	}
 	if err := running.Start(); err != nil {
 		return convertFileLockError(err)
