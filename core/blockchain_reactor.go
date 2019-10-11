@@ -156,7 +156,7 @@ func (bcr *BlockChainReactor) SetVRFhandler(vher *handler.VrfHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE && nil != privateKey {
 		if nil != bcr.vh {
 			bcr.vh.SetPrivateKey(privateKey)
 		}

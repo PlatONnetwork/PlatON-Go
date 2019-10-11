@@ -1269,11 +1269,19 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
 	if cfg.SyncMode == downloader.LightSync {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			return les.New(ctx, cfg)
+			light, err := les.New(ctx, cfg)
+			if err == nil {
+				stack.ChainID = light.ApiBackend.ChainConfig().ChainID
+			}
+			return light, err
 		})
 	} else {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			fullNode, err := eth.New(ctx, cfg)
+			if err == nil {
+				stack.ChainID = fullNode.APIBackend.ChainConfig().ChainID
+			}
+
 			if fullNode != nil && cfg.LightServ > 0 {
 				ls, _ := les.NewLesServer(fullNode, cfg)
 				fullNode.AddLesServer(ls)
