@@ -29,9 +29,13 @@ func newViewTimer(period uint64) *viewTimer {
 	}
 }
 
+// Ensure that the timeout period is adjusted smoothly.
+// Each time the adjustment is compared with the previous one, it is gradually lower than the previous one, and then gradually decreases.
 func (t *viewTimer) calViewInterval(viewInterval uint64) uint64 {
-	if t.preViewInterval > 1 && viewInterval == 1 {
+	if t.preViewInterval > 1 && viewInterval == 1 || t.preViewInterval > viewInterval {
 		viewInterval = t.preViewInterval - 1
+	} else if t.preViewInterval != 1 && t.preViewInterval == viewInterval {
+		viewInterval += 1
 	}
 	t.preViewInterval = viewInterval
 	return viewInterval

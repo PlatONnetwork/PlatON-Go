@@ -27,13 +27,17 @@ func TestCalViewInterval(t *testing.T) {
 	testcases := [][]views{
 		{{2, 2}, {1, 1}, {2, 2}},
 		{{3, 3}, {1, 2}, {1, 1}},
-		{{1, 1}, {2, 2}, {2, 2}, {3, 3}},
+		{{1, 1}, {2, 2}, {2, 3}, {3, 4}, {2, 3}, {2, 2}, {2, 3}},
+		{{3, 3}, {2, 2}, {2, 3}, {1, 2}, {1, 1}, {1, 1}},
+		{{1, 1}, {1, 1}, {1, 1}, {1, 1}},
+		{{2, 2}, {2, 3}, {2, 2}, {2, 3}},
 	}
-	for _, test := range testcases {
+	for row, test := range testcases {
 		timer := newViewTimer(10)
 		timer.calViewInterval(1)
-		for _, c := range test {
-			assert.Equal(t, c.out, timer.calViewInterval(c.in))
+		for cul, c := range test {
+			//fmt.Printf("row:%d, cul:%d, pre:%d in:%d, out:%d\n", row, cul, timer.preViewInterval, c.in, c.out)
+			assert.Equal(t, c.out, timer.calViewInterval(c.in), "row:%d, cul:%d, pre:%d in:%d, out:%d", row, cul, timer.preViewInterval, c.in, c.out)
 		}
 	}
 
