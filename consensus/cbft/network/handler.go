@@ -700,7 +700,7 @@ func (h *EngineManager) synchronize() {
 		case <-blockNumberTimer.C:
 			// Sent at random.
 			syncQCBnFunc()
-			rd := rand.Intn(10)
+			rd := rand.Intn(5)
 			if rd == 0 || rd < QCBnMonitorInterval/2 {
 				rd = (rd + 1) * 2
 			}

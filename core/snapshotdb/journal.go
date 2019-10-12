@@ -97,10 +97,6 @@ func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error
 func (s *snapshotDB) writeBlockToJournalAsynchronous(block *blockData) {
 	s.journalSync.Add(1)
 	go func(block *blockData) {
-		//if block.Number.Uint64() > 100 {
-		//	time.Sleep(1 * time.Second)
-		//	panic("for test")
-		//}
 		if err := s.writeJournal(block); err != nil {
 			logger.Error("asynchronous write Journal fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
 		}

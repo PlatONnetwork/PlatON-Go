@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -457,6 +459,24 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 		return err
 	}
 	return ec.c.CallContext(ctx, nil, "platon_sendRawTransaction", common.ToHex(data))
+}
+
+func (ec *Client) GetSchnorrNIZKProve(ctx context.Context) (string, error) {
+	var res string
+	err := ec.c.CallContext(ctx, &res, "platon_getSchnorrNIZKProve", nil)
+	if err != nil {
+		return "", err
+	}
+	return res, nil
+}
+
+func (ec *Client) GetProgramVersion(ctx context.Context) (*params.ProgramVersion, error) {
+	var res *params.ProgramVersion
+	err := ec.c.CallContext(ctx, &res, "admin_getProgramVersion", nil)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func toCallArg(msg ethereum.CallMsg) interface{} {

@@ -5,6 +5,8 @@ import (
 	"math"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -30,7 +32,7 @@ func GovPluginInstance() *GovPlugin {
 	return govp
 }
 
-func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
+func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
 
@@ -39,7 +41,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
-	if xutil.IsBeginOfSettlement(blockNumber) {
+	if !xutil.IsBeginOfConsensus(blockNumber) {
+		return nil
+	}
+
+	if xutil.IsBeginOfEpoch(blockNumber) {
 		if err := accuVerifiersAtBeginOfSettlement(blockHash, blockNumber); err != nil {
 			log.Error("accumulates all distinct verifiers for voting proposal failed.", "err", err)
 			return err
@@ -81,9 +87,14 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
+			activeMap := make(map[discover.NodeID]struct{}, len(activeList))
+			for _, activeNode := range activeList {
+				activeMap[activeNode] = struct{}{}
+			}
+
 			//check if all validators are active
 			for _, validator := range currentValidatorList {
-				if xutil.InNodeIDList(validator, activeList) {
+				if _, isActive := activeMap[validator]; isActive {
 					updatedNodes++
 				}
 			}
@@ -137,6 +148,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
+
+	//the endVotingBlock must be consensus Election block
+	if !xutil.IsElection(blockNumber) {
+		return nil
+	}
 
 	votingProposalIDs, err := gov.ListVotingProposal(blockHash)
 	if err != nil {
@@ -375,7 +391,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 	}
 
 	voteRate := Decimal(float64(yeas+nays+abstentions) / float64(verifiersCnt))
-	supportRate := Decimal(float64(yeas) / float64(verifiersCnt))
+	supportRate := Decimal(float64(yeas) / float64(yeas+nays+abstentions))
 
 	switch proposalType {
 	case gov.Text:

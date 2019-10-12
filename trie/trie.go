@@ -86,7 +86,8 @@ func (t *Trie) SetCacheLimit(l uint16) {
 
 // newFlag returns the cache flag value for a newly created node.
 func (t *Trie) newFlag() nodeFlag {
-	return nodeFlag{dirty: true, gen: t.cachegen}
+	dirty := true
+	return nodeFlag{dirty: &dirty, gen: t.cachegen}
 }
 
 // New creates a trie with an existing root node from db.

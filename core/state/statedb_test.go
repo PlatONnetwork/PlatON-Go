@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-
 	"github.com/stretchr/testify/assert"
 	"math"
 	"math/big"
@@ -130,15 +129,18 @@ func TestNewStateDBAndCopy(t *testing.T) {
 
 	// test new statedb
 	st2 := s1.NewStateDB()
+	s1db, _ := New(s1.Root(), NewDatabase(dbc))
 
 	st2.clearParentRef()
 	for addr, storage := range storages {
 		for k, v := range storage {
 			value := st2.GetState(addr, []byte(k))
 			value2 := s1c.GetState(addr, []byte(k))
+			value3 := s1db.GetState(addr, []byte(k))
 			//fmt.Println("v", hex.EncodeToString([]byte(v)), "value", hex.EncodeToString([]byte(value)), "value2", hex.EncodeToString(value2))
 			assert.Equal(t, []byte(v), value)
 			assert.Equal(t, []byte(v), value2)
+			assert.Equal(t, []byte(v), value3)
 		}
 	}
 
@@ -219,6 +221,134 @@ func TestNewStateDBAndCopy(t *testing.T) {
 		}
 	}
 
+}
+
+func TestStateStorageValueCommit(t *testing.T) {
+	storages := make(map[common.Address]map[string]string)
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+
+	modify := func(s1 *StateDB, addr common.Address, i int) {
+		s1.AddBalance(addr, big.NewInt(int64(i)))
+
+		s1.SetNonce(addr, uint64(i*4))
+		s1.SetCode(addr, []byte{byte(9), byte(9)})
+
+		key := randString(i + 20)
+		value := randString(i + 20)
+		s1.SetState(addr, []byte(key), []byte(value))
+		if k, ok := storages[addr]; ok {
+			k[key] = value
+		} else {
+			maps := make(map[string]string)
+			maps[key] = value
+			storages[addr] = maps
+		}
+	}
+
+	for i := 0; i < 255; i++ {
+		modify(s1, common.Address{byte(i)}, i)
+	}
+
+	root, err := s1.Commit(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s1.db.TrieDB().Commit(root, true); err != nil {
+		t.Fatal(err)
+	}
+	s2, err := New(root, NewDatabase(db))
+	for addr, storage := range storages {
+		for key, value := range storage {
+			exp := s2.GetState(addr, []byte(key))
+			assert.Equal(t, []byte(value[:]), exp)
+		}
+	}
+}
+
+func TestStateStorageValueDelete(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+
+	key1, value1, key2, value2 := []byte("key1"), []byte("value1"), []byte("key2"), []byte("value2")
+
+	addr := common.Address{byte(1)}
+	s1.SetCode(addr, []byte{byte(9), byte(9)})
+
+	s1.SetState(addr, key1, value1)
+	s1.SetState(addr, key2, value2)
+
+	s1.SetState(addr, key2[:], []byte{})
+
+	root, err := s1.Commit(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s1.db.TrieDB().Commit(root, true); err != nil {
+		t.Fatal(err)
+	}
+
+	s2, err := New(root, NewDatabase(db))
+	exp := s2.GetState(addr, key1)
+	assert.Equal(t, exp, value1)
+
+	exp = s2.GetState(addr, key2)
+	assert.NotEqual(t, exp, value2)
+
+}
+
+func TestStateStorageRevert(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1.Snapshot()
+	key1, value1, value2 := []byte("key1"), []byte("value1"), []byte("value2")
+
+	// insert value
+	addr := common.Address{byte(1)}
+	s1.SetCode(addr, []byte{byte(9), byte(9)})
+	s1.SetState(addr, key1, value1)
+	s1.IntermediateRoot(false)
+	assert.Equal(t, value1, s1.GetState(addr, key1))
+
+	storage := s1.Snapshot()
+
+	// twice
+	s1.SetState(addr, key1, value2)
+	assert.Equal(t, value2, s1.GetState(addr, key1))
+
+	// revert
+	s1.RevertToSnapshot(storage)
+	assert.Equal(t, value1, s1.GetState(addr, key1))
+
+	root, err := s1.Commit(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s1.db.TrieDB().Commit(root, true)
+
+	assert.Equal(t, value1, s1.GetState(addr, key1))
+	obj := s1.getStateObject(addr)
+	assert.Equal(t, 0, len(obj.dirtyValueStorage))
+}
+
+func TestStateStorageValueUpdate(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1.Snapshot()
+	key1, value1, value2 := []byte("key1"), []byte("value1"), []byte("value2")
+
+	// insert value
+	addr := common.Address{byte(1)}
+	s1.SetCode(addr, []byte{byte(9), byte(9)})
+	s1.SetState(addr, key1, value1)
+	s1.SetState(addr, key1, value2)
+	obj := s1.getStateObject(addr)
+	assert.Equal(t, 1, len(obj.dirtyValueStorage))
 }
 
 // Tests that no intermediate state of an object is stored into the database,

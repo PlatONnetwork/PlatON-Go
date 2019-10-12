@@ -225,8 +225,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
-	reactor := core.NewBlockChainReactor(config.CbftConfig.NodePriKey, eth.EventMux())
-
+	reactor := core.NewBlockChainReactor(eth.EventMux())
 	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
@@ -247,7 +246,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.INNER_VALIDATOR_MODE)
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
-			reactor.SetVRF_handler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetPluginEventMux()
+			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
 			handlePlugin(reactor)
 			agency = reactor
 		}
@@ -279,20 +280,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	sdb := snapshotdb.Instance()
-	current := sdb.GetCurrent()
-	ch := current.HighestNum.Uint64()
-	if ch < blockChainCache.CurrentHeader().Number.Uint64() {
-		var recoverBlocks = make([]*types.Block, 0)
-		for i := ch; i <= blockChainCache.CurrentHeader().Number.Uint64(); i++ {
-			recoverBlocks = append(recoverBlocks, blockChainCache.GetBlockByNumber(i))
-		}
-		for i := 1; i < len(recoverBlocks); i++ {
-			log.Debug("snapshotdb recover block from blockchain", "num", recoverBlocks[i].Number(), "root", recoverBlocks[i].Root(), "hash", recoverBlocks[i].Hash().String(), "parent", recoverBlocks[i-1].Number(), "praenthash", recoverBlocks[i-1].Hash().String(), "parentroot", recoverBlocks[i-1].Root())
-			if err := blockChainCache.Execute(recoverBlocks[i], recoverBlocks[i-1]); err != nil {
+	ch := sdb.GetCurrent().HighestNum.Uint64()
+	blockChanHegiht := blockChainCache.CurrentHeader().Number.Uint64()
+	if ch < blockChanHegiht {
+		for i := ch + 1; i <= blockChanHegiht; i++ {
+			block, parentBlock := blockChainCache.GetBlockByNumber(i), blockChainCache.GetBlockByNumber(i-1)
+			log.Debug("snapshotdb recover block from blockchain", "num", block.Number(), "hash", block.Hash())
+			if err := blockChainCache.Execute(block, parentBlock); err != nil {
 				log.Error("snapshotdb recover block from blockchain  execute fail", "error", err)
 				return err
 			}
-			if err := sdb.Commit(recoverBlocks[i].Hash()); err != nil {
+			if err := sdb.Commit(block.Hash()); err != nil {
 				log.Error("snapshotdb recover block from blockchain  Commit fail", "error", err)
 				return err
 			}
@@ -499,9 +497,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
 
-	log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
+	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
-		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
 				// todo: Mock point.
@@ -548,8 +545,6 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
-
-	reactor.SetPluginEventMux()
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})

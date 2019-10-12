@@ -209,11 +209,11 @@ web3._extend({
 			call: 'debug_getBlockRlp',
 			params: 1
 		}),
-		new web3._extend.Method({
-			name: 'setHead',
-			call: 'debug_setHead',
-			params: 1
-		}),
+		//new web3._extend.Method({
+		//	name: 'setHead',
+		//	call: 'debug_setHead',
+		//	params: 1
+		//}),
 		new web3._extend.Method({
 			name: 'seedHash',
 			call: 'debug_seedHash',
@@ -539,11 +539,11 @@ web3._extend({
 			call: 'personal_openWallet',
 			params: 2
 		}),
-		new web3._extend.Method({
-			name: 'deriveAccount',
-			call: 'personal_deriveAccount',
-			params: 3
-		}),
+		//new web3._extend.Method({
+		//	name: 'deriveAccount',	
+		//	call: 'personal_deriveAccount',
+		//	params: 3
+		//}),
 		new web3._extend.Method({
 			name: 'signTransaction',
 			call: 'personal_signTransaction',

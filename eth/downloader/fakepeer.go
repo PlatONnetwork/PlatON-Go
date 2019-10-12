@@ -105,7 +105,11 @@ func (p *FakePeer) RequestHeadersByNumber(number uint64, amount int, skip int, r
 		headers []*types.Header
 		unknown bool
 	)
+	base, _ := p.snapshotDB.BaseNum()
 	for !unknown && len(headers) < amount {
+		if number > base.Uint64() {
+			break
+		}
 		origin := p.hc.GetHeaderByNumber(number)
 		if origin == nil {
 			break
@@ -160,8 +164,19 @@ func (p *FakePeer) RequestNodeData(hashes []common.Hash) error {
 	for _, hash := range hashes {
 		if entry, err := p.db.Get(hash.Bytes()); err == nil {
 			data = append(data, entry)
+		} else {
+			secureKey := make([]byte, 11+32)
+			var secureKeyPrefix = []byte("secure-key-")
+			secureKey = append(secureKey[:0], secureKeyPrefix...)
+			secureKey = append(secureKey, hash[:]...)
+			if v, err := p.db.Get(secureKey); err != nil {
+				return err
+			} else {
+				data = append(data, v)
+			}
 		}
 	}
+	log.Debug("RequestNodeData", "DeliverReceipts", len(data), "len", len(hashes))
 	p.dl.DeliverNodeData(p.id, data)
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	gerr "github.com/go-errors/errors"
@@ -18,7 +19,7 @@ import (
 type BasePlugin interface {
 	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
 	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
-	Confirmed(block *types.Block) error
+	Confirmed(nodeId discover.NodeID, block *types.Block) error
 }
 
 var (
@@ -27,7 +28,7 @@ var (
 	FnParamsLenErr  = errors.New("the params len and func params len is not equal")
 )
 
-func Verify_tx_data(input []byte, command map[uint16]interface{}) (cnCode uint16, fn interface{}, FnParams []reflect.Value, err error) {
+func VerifyTxData(input []byte, command map[uint16]interface{}) (cnCode uint16, fn interface{}, FnParams []reflect.Value, err error) {
 
 	defer func() {
 		if er := recover(); nil != er {

@@ -209,9 +209,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 
 	//Initialize block tree
-	//block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
-	block := chain.CurrentBlock()
-
+	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+	//block := chain.CurrentBlock()
 	isGenesis := func() bool {
 		return block.NumberU64() == 0
 	}
@@ -286,6 +285,21 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	if !cbft.running() {
 		cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
+		return nil
+	}
+
+	invalidMsg := func(epoch, view uint64) bool {
+		if (epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()) ||
+			(epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()+1) ||
+			(epoch == cbft.state.Epoch()+1 && view == 0) {
+			return false
+		}
+		return true
+	}
+
+	cMsg := msg.Msg.(ctypes.ConsensusMsg)
+	if invalidMsg(cMsg.EpochNum(), cMsg.ViewNum()) {
+		cbft.log.Debug("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
 		return nil
 	}
 
@@ -529,7 +543,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err, "peerMsgCh", len(cbft.peerMsgCh))
 	}
 	return err
 }

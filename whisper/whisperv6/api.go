@@ -18,7 +18,6 @@ package whisperv6
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"sync"
@@ -28,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -61,9 +59,9 @@ func NewPublicWhisperAPI(w *Whisper) *PublicWhisperAPI {
 }
 
 // Version returns the Whisper sub-protocol version.
-func (api *PublicWhisperAPI) Version(ctx context.Context) string {
-	return ProtocolVersionStr
-}
+//func (api *PublicWhisperAPI) Version(ctx context.Context) string {
+//	return ProtocolVersionStr
+//}
 
 // Info contains diagnostic information.
 type Info struct {
@@ -74,26 +72,26 @@ type Info struct {
 }
 
 // Info returns diagnostic information about the whisper node.
-func (api *PublicWhisperAPI) Info(ctx context.Context) Info {
-	stats := api.w.Stats()
-	return Info{
-		Memory:         stats.memoryUsed,
-		Messages:       len(api.w.messageQueue) + len(api.w.p2pMsgQueue),
-		MinPow:         api.w.MinPow(),
-		MaxMessageSize: api.w.MaxMessageSize(),
-	}
-}
+//func (api *PublicWhisperAPI) Info(ctx context.Context) Info {
+//	stats := api.w.Stats()
+//	return Info{
+//		Memory:         stats.memoryUsed,
+//		Messages:       len(api.w.messageQueue) + len(api.w.p2pMsgQueue),
+//		MinPow:         api.w.MinPow(),
+//		MaxMessageSize: api.w.MaxMessageSize(),
+//	}
+//}
 
 // SetMaxMessageSize sets the maximum message size that is accepted.
 // Upper limit is defined by MaxMessageSize.
-func (api *PublicWhisperAPI) SetMaxMessageSize(ctx context.Context, size uint32) (bool, error) {
-	return true, api.w.SetMaxMessageSize(size)
-}
+//func (api *PublicWhisperAPI) SetMaxMessageSize(ctx context.Context, size uint32) (bool, error) {
+//	return true, api.w.SetMaxMessageSize(size)
+//}
 
 // SetMinPoW sets the minimum PoW, and notifies the peers.
-func (api *PublicWhisperAPI) SetMinPoW(ctx context.Context, pow float64) (bool, error) {
-	return true, api.w.SetMinimumPoW(pow)
-}
+//func (api *PublicWhisperAPI) SetMinPoW(ctx context.Context, pow float64) (bool, error) {
+//	return true, api.w.SetMinimumPoW(pow)
+//}
 
 // SetBloomFilter sets the new value of bloom filter, and notifies the peers.
 func (api *PublicWhisperAPI) SetBloomFilter(ctx context.Context, bloom hexutil.Bytes) (bool, error) {
@@ -102,95 +100,95 @@ func (api *PublicWhisperAPI) SetBloomFilter(ctx context.Context, bloom hexutil.B
 
 // MarkTrustedPeer marks a peer trusted, which will allow it to send historic (expired) messages.
 // Note: This function is not adding new nodes, the node needs to exists as a peer.
-func (api *PublicWhisperAPI) MarkTrustedPeer(ctx context.Context, enode string) (bool, error) {
-	n, err := discover.ParseNode(enode)
-	if err != nil {
-		return false, err
-	}
-	return true, api.w.AllowP2PMessagesFromPeer(n.ID[:])
-}
+//func (api *PublicWhisperAPI) MarkTrustedPeer(ctx context.Context, enode string) (bool, error) {
+//	n, err := discover.ParseNode(enode)
+//	if err != nil {
+//		return false, err
+//	}
+//	return true, api.w.AllowP2PMessagesFromPeer(n.ID[:])
+//}
 
 // NewKeyPair generates a new public and private key pair for message decryption and encryption.
 // It returns an ID that can be used to refer to the keypair.
-func (api *PublicWhisperAPI) NewKeyPair(ctx context.Context) (string, error) {
-	return api.w.NewKeyPair()
-}
+//func (api *PublicWhisperAPI) NewKeyPair(ctx context.Context) (string, error) {
+//	return api.w.NewKeyPair()
+//}
 
 // AddPrivateKey imports the given private key.
-func (api *PublicWhisperAPI) AddPrivateKey(ctx context.Context, privateKey hexutil.Bytes) (string, error) {
-	key, err := crypto.ToECDSA(privateKey)
-	if err != nil {
-		return "", err
-	}
-	return api.w.AddKeyPair(key)
-}
+//func (api *PublicWhisperAPI) AddPrivateKey(ctx context.Context, privateKey hexutil.Bytes) (string, error) {
+//	key, err := crypto.ToECDSA(privateKey)
+//	if err != nil {
+//		return "", err
+//	}
+//	return api.w.AddKeyPair(key)
+//}
 
 // DeleteKeyPair removes the key with the given key if it exists.
-func (api *PublicWhisperAPI) DeleteKeyPair(ctx context.Context, key string) (bool, error) {
-	if ok := api.w.DeleteKeyPair(key); ok {
-		return true, nil
-	}
-	return false, fmt.Errorf("key pair %s not found", key)
-}
+//func (api *PublicWhisperAPI) DeleteKeyPair(ctx context.Context, key string) (bool, error) {
+//	if ok := api.w.DeleteKeyPair(key); ok {
+//		return true, nil
+//	}
+//	return false, fmt.Errorf("key pair %s not found", key)
+//}
 
 // HasKeyPair returns an indication if the node has a key pair that is associated with the given id.
-func (api *PublicWhisperAPI) HasKeyPair(ctx context.Context, id string) bool {
-	return api.w.HasKeyPair(id)
-}
+//func (api *PublicWhisperAPI) HasKeyPair(ctx context.Context, id string) bool {
+//	return api.w.HasKeyPair(id)
+//}
 
 // GetPublicKey returns the public key associated with the given key. The key is the hex
 // encoded representation of a key in the form specified in section 4.3.6 of ANSI X9.62.
-func (api *PublicWhisperAPI) GetPublicKey(ctx context.Context, id string) (hexutil.Bytes, error) {
-	key, err := api.w.GetPrivateKey(id)
-	if err != nil {
-		return hexutil.Bytes{}, err
-	}
-	return crypto.FromECDSAPub(&key.PublicKey), nil
-}
+//func (api *PublicWhisperAPI) GetPublicKey(ctx context.Context, id string) (hexutil.Bytes, error) {
+//	key, err := api.w.GetPrivateKey(id)
+//	if err != nil {
+//		return hexutil.Bytes{}, err
+//	}
+//	return crypto.FromECDSAPub(&key.PublicKey), nil
+//}
 
 // GetPrivateKey returns the private key associated with the given key. The key is the hex
 // encoded representation of a key in the form specified in section 4.3.6 of ANSI X9.62.
-func (api *PublicWhisperAPI) GetPrivateKey(ctx context.Context, id string) (hexutil.Bytes, error) {
-	key, err := api.w.GetPrivateKey(id)
-	if err != nil {
-		return hexutil.Bytes{}, err
-	}
-	return crypto.FromECDSA(key), nil
-}
+//func (api *PublicWhisperAPI) GetPrivateKey(ctx context.Context, id string) (hexutil.Bytes, error) {
+//	key, err := api.w.GetPrivateKey(id)
+//	if err != nil {
+//		return hexutil.Bytes{}, err
+//	}
+//	return crypto.FromECDSA(key), nil
+//}
 
 // NewSymKey generate a random symmetric key.
 // It returns an ID that can be used to refer to the key.
 // Can be used encrypting and decrypting messages where the key is known to both parties.
-func (api *PublicWhisperAPI) NewSymKey(ctx context.Context) (string, error) {
-	return api.w.GenerateSymKey()
-}
+//func (api *PublicWhisperAPI) NewSymKey(ctx context.Context) (string, error) {
+//	return api.w.GenerateSymKey()
+//}
 
 // AddSymKey import a symmetric key.
 // It returns an ID that can be used to refer to the key.
 // Can be used encrypting and decrypting messages where the key is known to both parties.
-func (api *PublicWhisperAPI) AddSymKey(ctx context.Context, key hexutil.Bytes) (string, error) {
-	return api.w.AddSymKeyDirect([]byte(key))
-}
+//func (api *PublicWhisperAPI) AddSymKey(ctx context.Context, key hexutil.Bytes) (string, error) {
+//	return api.w.AddSymKeyDirect([]byte(key))
+//}
 
 // GenerateSymKeyFromPassword derive a key from the given password, stores it, and returns its ID.
-func (api *PublicWhisperAPI) GenerateSymKeyFromPassword(ctx context.Context, passwd string) (string, error) {
-	return api.w.AddSymKeyFromPassword(passwd)
-}
+//func (api *PublicWhisperAPI) GenerateSymKeyFromPassword(ctx context.Context, passwd string) (string, error) {
+//	return api.w.AddSymKeyFromPassword(passwd)
+//}
 
 // HasSymKey returns an indication if the node has a symmetric key associated with the given key.
-func (api *PublicWhisperAPI) HasSymKey(ctx context.Context, id string) bool {
-	return api.w.HasSymKey(id)
-}
+//func (api *PublicWhisperAPI) HasSymKey(ctx context.Context, id string) bool {
+//	return api.w.HasSymKey(id)
+//}
 
 // GetSymKey returns the symmetric key associated with the given id.
-func (api *PublicWhisperAPI) GetSymKey(ctx context.Context, id string) (hexutil.Bytes, error) {
-	return api.w.GetSymKey(id)
-}
+//func (api *PublicWhisperAPI) GetSymKey(ctx context.Context, id string) (hexutil.Bytes, error) {
+//	return api.w.GetSymKey(id)
+//}
 
 // DeleteSymKey deletes the symmetric key that is associated with the given id.
-func (api *PublicWhisperAPI) DeleteSymKey(ctx context.Context, id string) bool {
-	return api.w.DeleteSymKey(id)
-}
+//func (api *PublicWhisperAPI) DeleteSymKey(ctx context.Context, id string) bool {
+//	return api.w.DeleteSymKey(id)
+//}
 
 // MakeLightClient turns the node into light client, which does not forward
 // any incoming messages, and sends only messages originated in this node.
@@ -229,92 +227,92 @@ type newMessageOverride struct {
 
 // Post posts a message on the Whisper network.
 // returns the hash of the message in case of success.
-func (api *PublicWhisperAPI) Post(ctx context.Context, req NewMessage) (hexutil.Bytes, error) {
-	var (
-		symKeyGiven = len(req.SymKeyID) > 0
-		pubKeyGiven = len(req.PublicKey) > 0
-		err         error
-	)
-
-	// user must specify either a symmetric or an asymmetric key
-	if (symKeyGiven && pubKeyGiven) || (!symKeyGiven && !pubKeyGiven) {
-		return nil, ErrSymAsym
-	}
-
-	params := &MessageParams{
-		TTL:      req.TTL,
-		Payload:  req.Payload,
-		Padding:  req.Padding,
-		WorkTime: req.PowTime,
-		PoW:      req.PowTarget,
-		Topic:    req.Topic,
-	}
-
-	// Set key that is used to sign the message
-	if len(req.Sig) > 0 {
-		if params.Src, err = api.w.GetPrivateKey(req.Sig); err != nil {
-			return nil, err
-		}
-	}
-
-	// Set symmetric key that is used to encrypt the message
-	if symKeyGiven {
-		if params.Topic == (TopicType{}) { // topics are mandatory with symmetric encryption
-			return nil, ErrNoTopics
-		}
-		if params.KeySym, err = api.w.GetSymKey(req.SymKeyID); err != nil {
-			return nil, err
-		}
-		if !validateDataIntegrity(params.KeySym, aesKeyLength) {
-			return nil, ErrInvalidSymmetricKey
-		}
-	}
-
-	// Set asymmetric key that is used to encrypt the message
-	if pubKeyGiven {
-		if params.Dst, err = crypto.UnmarshalPubkey(req.PublicKey); err != nil {
-			return nil, ErrInvalidPublicKey
-		}
-	}
-
-	// encrypt and sent message
-	whisperMsg, err := NewSentMessage(params)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []byte
-	env, err := whisperMsg.Wrap(params)
-	if err != nil {
-		return nil, err
-	}
-
-	// send to specific node (skip PoW check)
-	if len(req.TargetPeer) > 0 {
-		n, err := discover.ParseNode(req.TargetPeer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse target peer: %s", err)
-		}
-		err = api.w.SendP2PMessage(n.ID[:], env)
-		if err == nil {
-			hash := env.Hash()
-			result = hash[:]
-		}
-		return result, err
-	}
-
-	// ensure that the message PoW meets the node's minimum accepted PoW
-	if req.PowTarget < api.w.MinPow() {
-		return nil, ErrTooLowPoW
-	}
-
-	err = api.w.Send(env)
-	if err == nil {
-		hash := env.Hash()
-		result = hash[:]
-	}
-	return result, err
-}
+//func (api *PublicWhisperAPI) Post(ctx context.Context, req NewMessage) (hexutil.Bytes, error) {
+//	var (
+//		symKeyGiven = len(req.SymKeyID) > 0
+//		pubKeyGiven = len(req.PublicKey) > 0
+//		err         error
+//	)
+//
+//	// user must specify either a symmetric or an asymmetric key
+//	if (symKeyGiven && pubKeyGiven) || (!symKeyGiven && !pubKeyGiven) {
+//		return nil, ErrSymAsym
+//	}
+//
+//	params := &MessageParams{
+//		TTL:      req.TTL,
+//		Payload:  req.Payload,
+//		Padding:  req.Padding,
+//		WorkTime: req.PowTime,
+//		PoW:      req.PowTarget,
+//		Topic:    req.Topic,
+//	}
+//
+//	// Set key that is used to sign the message
+//	if len(req.Sig) > 0 {
+//		if params.Src, err = api.w.GetPrivateKey(req.Sig); err != nil {
+//			return nil, err
+//		}
+//	}
+//
+//	// Set symmetric key that is used to encrypt the message
+//	if symKeyGiven {
+//		if params.Topic == (TopicType{}) { // topics are mandatory with symmetric encryption
+//			return nil, ErrNoTopics
+//		}
+//		if params.KeySym, err = api.w.GetSymKey(req.SymKeyID); err != nil {
+//			return nil, err
+//		}
+//		if !validateDataIntegrity(params.KeySym, aesKeyLength) {
+//			return nil, ErrInvalidSymmetricKey
+//		}
+//	}
+//
+//	// Set asymmetric key that is used to encrypt the message
+//	if pubKeyGiven {
+//		if params.Dst, err = crypto.UnmarshalPubkey(req.PublicKey); err != nil {
+//			return nil, ErrInvalidPublicKey
+//		}
+//	}
+//
+//	// encrypt and sent message
+//	whisperMsg, err := NewSentMessage(params)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	var result []byte
+//	env, err := whisperMsg.Wrap(params)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	// send to specific node (skip PoW check)
+//	if len(req.TargetPeer) > 0 {
+//		n, err := discover.ParseNode(req.TargetPeer)
+//		if err != nil {
+//			return nil, fmt.Errorf("failed to parse target peer: %s", err)
+//		}
+//		err = api.w.SendP2PMessage(n.ID[:], env)
+//		if err == nil {
+//			hash := env.Hash()
+//			result = hash[:]
+//		}
+//		return result, err
+//	}
+//
+//	// ensure that the message PoW meets the node's minimum accepted PoW
+//	if req.PowTarget < api.w.MinPow() {
+//		return nil, ErrTooLowPoW
+//	}
+//
+//	err = api.w.Send(env)
+//	if err == nil {
+//		hash := env.Hash()
+//		result = hash[:]
+//	}
+//	return result, err
+//}
 
 //go:generate gencodec -type Criteria -field-override criteriaOverride -out gen_criteria_json.go
 
@@ -523,71 +521,71 @@ func (api *PublicWhisperAPI) DeleteMessageFilter(id string) (bool, error) {
 
 // NewMessageFilter creates a new filter that can be used to poll for
 // (new) messages that satisfy the given criteria.
-func (api *PublicWhisperAPI) NewMessageFilter(req Criteria) (string, error) {
-	var (
-		src     *ecdsa.PublicKey
-		keySym  []byte
-		keyAsym *ecdsa.PrivateKey
-		topics  [][]byte
-
-		symKeyGiven  = len(req.SymKeyID) > 0
-		asymKeyGiven = len(req.PrivateKeyID) > 0
-
-		err error
-	)
-
-	// user must specify either a symmetric or an asymmetric key
-	if (symKeyGiven && asymKeyGiven) || (!symKeyGiven && !asymKeyGiven) {
-		return "", ErrSymAsym
-	}
-
-	if len(req.Sig) > 0 {
-		if src, err = crypto.UnmarshalPubkey(req.Sig); err != nil {
-			return "", ErrInvalidSigningPubKey
-		}
-	}
-
-	if symKeyGiven {
-		if keySym, err = api.w.GetSymKey(req.SymKeyID); err != nil {
-			return "", err
-		}
-		if !validateDataIntegrity(keySym, aesKeyLength) {
-			return "", ErrInvalidSymmetricKey
-		}
-	}
-
-	if asymKeyGiven {
-		if keyAsym, err = api.w.GetPrivateKey(req.PrivateKeyID); err != nil {
-			return "", err
-		}
-	}
-
-	if len(req.Topics) > 0 {
-		topics = make([][]byte, len(req.Topics))
-		for i, topic := range req.Topics {
-			topics[i] = make([]byte, TopicLength)
-			copy(topics[i], topic[:])
-		}
-	}
-
-	f := &Filter{
-		Src:      src,
-		KeySym:   keySym,
-		KeyAsym:  keyAsym,
-		PoW:      req.MinPow,
-		AllowP2P: req.AllowP2P,
-		Topics:   topics,
-		Messages: make(map[common.Hash]*ReceivedMessage),
-	}
-
-	id, err := api.w.Subscribe(f)
-	if err != nil {
-		return "", err
-	}
-
-	api.mu.Lock()
-	api.lastUsed[id] = time.Now()
-	api.mu.Unlock()
-
-	return id, nil
-}
+//func (api *PublicWhisperAPI) NewMessageFilter(req Criteria) (string, error) {
+//	var (
+//		src     *ecdsa.PublicKey
+//		keySym  []byte
+//		keyAsym *ecdsa.PrivateKey
+//		topics  [][]byte
+//
+//		symKeyGiven  = len(req.SymKeyID) > 0
+//		asymKeyGiven = len(req.PrivateKeyID) > 0
+//
+//		err error
+//	)
+//
+//	// user must specify either a symmetric or an asymmetric key
+//	if (symKeyGiven && asymKeyGiven) || (!symKeyGiven && !asymKeyGiven) {
+//		return "", ErrSymAsym
+//	}
+//
+//	if len(req.Sig) > 0 {
+//		if src, err = crypto.UnmarshalPubkey(req.Sig); err != nil {
+//			return "", ErrInvalidSigningPubKey
+//		}
+//	}
+//
+//	if symKeyGiven {
+//		if keySym, err = api.w.GetSymKey(req.SymKeyID); err != nil {
+//			return "", err
+//		}
+//		if !validateDataIntegrity(keySym, aesKeyLength) {
+//			return "", ErrInvalidSymmetricKey
+//		}
+//	}
+//
+//	if asymKeyGiven {
+//		if keyAsym, err = api.w.GetPrivateKey(req.PrivateKeyID); err != nil {
+//			return "", err
+//		}
+//	}
+//
+//	if len(req.Topics) > 0 {
+//		topics = make([][]byte, len(req.Topics))
+//		for i, topic := range req.Topics {
+//			topics[i] = make([]byte, TopicLength)
+//			copy(topics[i], topic[:])
+//		}
+//	}
+//
+//	f := &Filter{
+//		Src:      src,
+//		KeySym:   keySym,
+//		KeyAsym:  keyAsym,
+//		PoW:      req.MinPow,
+//		AllowP2P: req.AllowP2P,
+//		Topics:   topics,
+//		Messages: make(map[common.Hash]*ReceivedMessage),
+//	}
+//
+//	id, err := api.w.Subscribe(f)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	api.mu.Lock()
+//	api.lastUsed[id] = time.Now()
+//	api.mu.Unlock()
+//
+//	return id, nil
+//}
