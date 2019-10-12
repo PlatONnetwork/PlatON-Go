@@ -175,7 +175,6 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 			b := cbft.state.ViewBlockByIndex(i)
 			if b == nil {
 				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
-
 			}
 		}
 	}
@@ -242,6 +241,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block not exist")
 	}
 	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), msg.BlockQC); err != nil {
+		cbft.log.Error("Failed to verify prepareQC", "err", err.Error())
 		return &authFailedError{err}
 	}
 
