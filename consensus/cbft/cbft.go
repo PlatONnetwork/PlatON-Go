@@ -471,7 +471,7 @@ func (cbft *Cbft) receiveLoop() {
 				// If the verification signature is abnormal,
 				// the peer node is added to the local blacklist
 				// and disconnected.
-				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID)
+				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID, "err", err)
 				cbft.network.MarkBlacklist(msg.PeerID)
 				cbft.network.RemovePeer(msg.PeerID)
 			}
@@ -1226,7 +1226,7 @@ func (cbft *Cbft) threshold(num int) int {
 func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumCert, lockBlock *types.Block, qcBlock *types.Block) {
 	extra, err := ctypes.EncodeExtra(byte(cbftVersion), commitQC)
 	if err != nil {
-		cbft.log.Error("Encode extra error", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
+		cbft.log.Error("Encode extra error", "number", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
 		return
 	}
 
@@ -1244,8 +1244,9 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 		cbft.updateChainStateHook(qcState, lockState, commitState)
 	}
 	cbft.log.Info("CommitBlock, send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
+	cpy := types.NewBlockWithHeader(commitBlock.Header()).WithBody(commitBlock.Transactions(), commitBlock.ExtraData())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:              commitBlock,
+		Block:              cpy,
 		ExtraData:          extra,
 		SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },
