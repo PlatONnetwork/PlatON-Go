@@ -48,7 +48,9 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			return err
 		}
 		if err.FetchPrepare() {
-			cbft.prepareBlockFetchRules(id, msg)
+			if cbft.isProposer(msg.Epoch, msg.ViewNumber, msg.ProposalIndex) {
+				cbft.prepareBlockFetchRules(id, msg)
+			}
 			return err
 		}
 		if err.NewView() {
