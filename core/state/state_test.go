@@ -17,9 +17,9 @@
 package state
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"testing"
 
@@ -273,10 +273,8 @@ func TestEmptyByte(t *testing.T) {
 		fmt.Println(it.Key, it.Value)
 	}
 
-
-
-	pvalue = []byte{}
-	state.SetState(address, key, pvalue)
+	//pvalue = []byte{}
+	state.SetState(address, key, []byte{})
 	state.Commit(false)
 
 	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
