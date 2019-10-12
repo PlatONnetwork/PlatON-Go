@@ -244,6 +244,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block not exist")
 	}
 	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), msg.BlockQC); err != nil {
+		cbft.log.Error("Failed to verify prepareQC", "err", err.Error())
 		return &authFailedError{err}
 	}
 

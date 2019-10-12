@@ -756,15 +756,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
-
-	cbft.network.Broadcast(prepareBlock)
-	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
-
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
 		return
 	}
+
+	// write sendPrepareBlock info to wal
+	if !cbft.isLoading() {
+		cbft.bridge.SendPrepareBlock(prepareBlock)
+	}
+	cbft.network.Broadcast(prepareBlock)
+	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
 
 	if err := cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex); err != nil {
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
@@ -772,11 +775,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.txPool.Reset(block)
-
-	// write sendPrepareBlock info to wal
-	if !cbft.isLoading() {
-		cbft.bridge.SendPrepareBlock(prepareBlock)
-	}
 
 	cbft.findQCBlock()
 
