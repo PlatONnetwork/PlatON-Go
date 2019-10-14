@@ -36,11 +36,11 @@ type testAccount struct {
 }
 
 // makeTestState create a sample test state to test node-wise reconstruction.
-func makeTestState() (Database, common.Hash, []*testAccount) {
+func makeTestState() (Database, common.Hash, []*testAccount, map[common.Hash][]byte) {
 	// Create an empty state
 	db := NewDatabase(ethdb.NewMemDatabase())
 	state, _ := New(common.Hash{}, db)
-
+	valueKeys := make(map[common.Hash][]byte)
 	// Fill it with some arbitrary data
 	accounts := []*testAccount{}
 	for i := byte(0); i < 96; i++ {
@@ -57,13 +57,18 @@ func makeTestState() (Database, common.Hash, []*testAccount) {
 			obj.SetCode(crypto.Keccak256Hash([]byte{i, i, i, i, i}), []byte{i, i, i, i, i})
 			acc.code = []byte{i, i, i, i, i}
 		}
+		key := randString(10)
+		value := []byte(randString(20))
+		valueKey := crypto.Keccak256Hash(value)
+		obj.setState(key, valueKey, value)
+		valueKeys[valueKey] = value
 		state.updateStateObject(obj)
 		accounts = append(accounts, acc)
 	}
 	root, _ := state.Commit(false)
 
 	// Return the generated state
-	return db, root, accounts
+	return db, root, accounts, valueKeys
 }
 
 // checkStateAccounts cross references a reconstructed state with an expected
@@ -136,7 +141,7 @@ func TestIterativeStateSyncBatched(t *testing.T)    { testIterativeStateSync(t, 
 
 func testIterativeStateSync(t *testing.T, batch int) {
 	// Create a random state to copy
-	srcDb, srcRoot, srcAccounts := makeTestState()
+	srcDb, srcRoot, srcAccounts, _ := makeTestState()
 
 	// Create a destination state and sync with the scheduler
 	dstDb := ethdb.NewMemDatabase()
@@ -168,7 +173,7 @@ func testIterativeStateSync(t *testing.T, batch int) {
 // partial results are returned, and the others sent only later.
 func TestIterativeDelayedStateSync(t *testing.T) {
 	// Create a random state to copy
-	srcDb, srcRoot, srcAccounts := makeTestState()
+	srcDb, srcRoot, srcAccounts, _ := makeTestState()
 
 	// Create a destination state and sync with the scheduler
 	dstDb := ethdb.NewMemDatabase()
@@ -205,7 +210,7 @@ func TestIterativeRandomStateSyncBatched(t *testing.T)    { testIterativeRandomS
 
 func testIterativeRandomStateSync(t *testing.T, batch int) {
 	// Create a random state to copy
-	srcDb, srcRoot, srcAccounts := makeTestState()
+	srcDb, srcRoot, srcAccounts, _ := makeTestState()
 
 	// Create a destination state and sync with the scheduler
 	dstDb := ethdb.NewMemDatabase()
@@ -245,7 +250,7 @@ func testIterativeRandomStateSync(t *testing.T, batch int) {
 // partial results are returned (Even those randomly), others sent only later.
 func TestIterativeRandomDelayedStateSync(t *testing.T) {
 	// Create a random state to copy
-	srcDb, srcRoot, srcAccounts := makeTestState()
+	srcDb, srcRoot, srcAccounts, _ := makeTestState()
 
 	// Create a destination state and sync with the scheduler
 	dstDb := ethdb.NewMemDatabase()
@@ -290,7 +295,7 @@ func TestIterativeRandomDelayedStateSync(t *testing.T) {
 // the database.
 func TestIncompleteStateSync(t *testing.T) {
 	// Create a random state to copy
-	srcDb, srcRoot, srcAccounts := makeTestState()
+	srcDb, srcRoot, srcAccounts, valueKeys := makeTestState()
 
 	checkTrieConsistency(srcDb.TrieDB().DiskDB().(ethdb.Database), srcRoot)
 
@@ -343,8 +348,12 @@ func TestIncompleteStateSync(t *testing.T) {
 		value, _ := dstDb.Get(key)
 
 		dstDb.Delete(key)
-		if err := checkStateConsistency(dstDb, added[0]); err == nil {
-			t.Fatalf("trie inconsistency not caught, missing: %x", key)
+
+		// Skip value key
+		if _, ok := valueKeys[common.BytesToHash(key)]; !ok {
+			if err := checkStateConsistency(dstDb, added[0]); err == nil {
+				t.Fatalf("trie inconsistency not caught, missing: %x", key)
+			}
 		}
 		dstDb.Put(key, value)
 	}

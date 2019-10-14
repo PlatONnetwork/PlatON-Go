@@ -288,6 +288,21 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 		return nil
 	}
 
+	invalidMsg := func(epoch, view uint64) bool {
+		if (epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()) ||
+			(epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()+1) ||
+			(epoch == cbft.state.Epoch()+1 && view == 0) {
+			return false
+		}
+		return true
+	}
+
+	cMsg := msg.Msg.(ctypes.ConsensusMsg)
+	if invalidMsg(cMsg.EpochNum(), cMsg.ViewNum()) {
+		cbft.log.Debug("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
+		return nil
+	}
+
 	err := cbft.recordMessage(msg)
 	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
@@ -456,7 +471,7 @@ func (cbft *Cbft) receiveLoop() {
 				// If the verification signature is abnormal,
 				// the peer node is added to the local blacklist
 				// and disconnected.
-				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID)
+				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID, "err", err)
 				cbft.network.MarkBlacklist(msg.PeerID)
 				cbft.network.RemovePeer(msg.PeerID)
 			}
@@ -528,7 +543,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err, "peerMsgCh", len(cbft.peerMsgCh))
 	}
 	return err
 }
@@ -741,15 +756,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
-
-	cbft.network.Broadcast(prepareBlock)
-	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
-
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
 		return
 	}
+
+	// write sendPrepareBlock info to wal
+	if !cbft.isLoading() {
+		cbft.bridge.SendPrepareBlock(prepareBlock)
+	}
+	cbft.network.Broadcast(prepareBlock)
+	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
 
 	if err := cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex); err != nil {
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
@@ -757,11 +775,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.txPool.Reset(block)
-
-	// write sendPrepareBlock info to wal
-	if !cbft.isLoading() {
-		cbft.bridge.SendPrepareBlock(prepareBlock)
-	}
 
 	cbft.findQCBlock()
 
@@ -1213,7 +1226,7 @@ func (cbft *Cbft) threshold(num int) int {
 func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumCert, lockBlock *types.Block, qcBlock *types.Block) {
 	extra, err := ctypes.EncodeExtra(byte(cbftVersion), commitQC)
 	if err != nil {
-		cbft.log.Error("Encode extra error", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
+		cbft.log.Error("Encode extra error", "number", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
 		return
 	}
 
@@ -1231,8 +1244,9 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 		cbft.updateChainStateHook(qcState, lockState, commitState)
 	}
 	cbft.log.Info("CommitBlock, send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
+	cpy := types.NewBlockWithHeader(commitBlock.Header()).WithBody(commitBlock.Transactions(), commitBlock.ExtraData())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:              commitBlock,
+		Block:              cpy,
 		ExtraData:          extra,
 		SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },
