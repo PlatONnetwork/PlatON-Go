@@ -421,7 +421,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
 							if shouldSeal {
 								if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
-									log.Debug("Begin to package new block regularly ")
+									log.Debug("Begin to package new block regularly")
 									blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
 									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
 									continue

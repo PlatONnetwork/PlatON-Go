@@ -51,7 +51,7 @@ func TestFetch(t *testing.T) {
 		case b := <-result:
 			assert.NotNil(t, b)
 			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 4; j++ {
+			for j := 1; j < 3; j++ {
 				msg := &protocols.PrepareVote{
 					Epoch:          nodes[0].engine.state.Epoch(),
 					ViewNumber:     nodes[0].engine.state.ViewNumber(),
@@ -136,7 +136,7 @@ func TestSyncBlock(t *testing.T) {
 		case b := <-result:
 			assert.NotNil(t, b)
 			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 4; j++ {
+			for j := 1; j < 3; j++ {
 				msg := &protocols.PrepareVote{
 					Epoch:          nodes[0].engine.state.Epoch(),
 					ViewNumber:     nodes[0].engine.state.ViewNumber(),

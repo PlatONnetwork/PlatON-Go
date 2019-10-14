@@ -59,8 +59,9 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 	executor := func(msg ctypes.Message) {
 		defer func() {
 			cbft.log.Debug("Close fetching")
-			utils.SetFalse(&cbft.fetching)
+			//utils.SetFalse(&cbft.fetching)
 		}()
+		cbft.log.Debug("Receive QCBlockList", "msg", msg.String())
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
 			for _, block := range blockList.Blocks {
@@ -163,7 +164,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 
 	cbft.log.Debug("Start fetching", "id", id, "basBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 
-	utils.SetTrue(&cbft.fetching)
+	//utils.SetTrue(&cbft.fetching)
 	cbft.fetcher.AddTask(id, match, executor, expire)
 	cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: baseBlockHash, BlockNumber: baseBlockNumber})
 }
@@ -201,7 +202,7 @@ func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) e
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
 		if prepareBlock != nil {
-			cbft.log.Debug("Send PrepareBlock", "prepareBlock", prepareBlock.String())
+			cbft.log.Debug("Send PrepareBlock", "peer", id, "prepareBlock", prepareBlock.String())
 			cbft.network.Send(id, prepareBlock)
 		}
 
@@ -225,6 +226,7 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 
 // OnBlockQuorumCert handles the message type of BlockQuorumCertMsg.
 func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) error {
+	cbft.log.Debug("Receive BlockQuorumCert", "peer", id, "msg", msg.String())
 	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
 		cbft.log.Trace("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
 		return fmt.Errorf("msg is not match current state")
@@ -242,6 +244,7 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block not exist")
 	}
 	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), msg.BlockQC); err != nil {
+		cbft.log.Error("Failed to verify prepareQC", "err", err.Error())
 		return &authFailedError{err}
 	}
 

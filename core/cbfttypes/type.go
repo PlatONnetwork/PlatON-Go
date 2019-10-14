@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 	"math/big"
 	"sort"
@@ -115,7 +116,7 @@ func (vn *ValidateNode) Verify(data, sign []byte) error {
 	}
 
 	if !sig.Verify(vn.BlsPubKey, string(data)) {
-		return errors.New("bls verifies signature fail")
+		return errors.New(fmt.Sprintf("bls verifies signature fail, data:%s, sign:%s, pubkey:%s", hexutil.Encode(data), hexutil.Encode(sign), hexutil.Encode(vn.BlsPubKey.Serialize())))
 	}
 	return nil
 }
