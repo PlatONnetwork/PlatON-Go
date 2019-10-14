@@ -679,6 +679,39 @@ func TestSnapshotDB_Ranking5(t *testing.T) {
 
 }
 
+//func TestSnapshotDB_RankingITR(t *testing.T) {
+//	ch := new(testchain)
+//	blockchain = ch
+//	initDB()
+//	defer dbInstance.Clear()
+//	for i := 0; i < 200; i++ {
+//		ch.addBlock()
+//		kv := generatekvWithPrefix(1000, "timetosay")
+//		if err := newBlockBaseDB(ch.CurrentHeader(), kv); err != nil {
+//			t.Error(err)
+//		}
+//	}
+//
+//	for i := 0; i < 200; i++ {
+//		ch.addBlock()
+//		kv := generatekvWithPrefix(10000, "aba")
+//		if err := newBlockCommited(ch.CurrentHeader(), kv); err != nil {
+//			t.Error(err)
+//		}
+//	}
+//
+//	for i := 0; i < 200; i++ {
+//		ch.addBlock()
+//		kv := generatekvWithPrefix(1000, "abc")
+//		if err := newBlockRecognizedDirect(ch.CurrentHeader(), kv); err != nil {
+//			t.Error(err)
+//		}
+//	}
+//
+//	dbInstance.Ranking(ch.CurrentHeader().Hash(), []byte("ab"), 101)
+//
+//}
+
 func TestSnapshotDB_Ranking3(t *testing.T) {
 	ch := new(testchain)
 	blockchain = ch
