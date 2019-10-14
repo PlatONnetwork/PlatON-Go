@@ -18,6 +18,7 @@
 package eth
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -128,6 +129,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
+	b, _ := json.Marshal(chainConfig)
+	fmt.Println("啦啦", string(b))
 	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
 		chainConfig.Cbft.Period = config.CbftConfig.Period
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount
