@@ -194,7 +194,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(3),  // 3 minutes
+				ExpectedMinutes:     uint64(6),  // 6 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
@@ -209,25 +209,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal: uint32(6),
-				//PackAmountHighAbnormal:         uint32(2),
-				//PackAmountLowSlashRate:         uint32(10),
-				//PackAmountHighSlashRate:        uint32(50),
+				PackAmountAbnormal:             uint32(6),
 				DuplicateSignHighSlashing:      uint32(100),
 				NumberOfBlockRewardForSlashing: uint32(20),
 				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(160),
-				//VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds:   uint64(160),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
 				TextProposalVote_DurationSeconds:      uint64(160),
-				//TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:      float64(0.50),
-				TextProposal_SupportRate:   float64(0.667),
-				CancelProposal_VoteRate:    float64(0.50),
-				CancelProposal_SupportRate: float64(0.667),
+				TextProposal_VoteRate:                 float64(0.50),
+				TextProposal_SupportRate:              float64(0.667),
+				CancelProposal_VoteRate:               float64(0.50),
+				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
