@@ -350,6 +350,12 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 func (self *stateObject) setState(key string, valueKey common.Hash, value []byte) {
 	cpy := make([]byte, len(value))
 	copy(cpy, value)
+
+	// delete value storage
+	if dirtyValue, ok := self.dirtyStorage[key]; ok {
+		delete(self.dirtyValueStorage, dirtyValue)
+	}
+
 	self.dirtyStorage[key] = valueKey
 	self.dirtyValueStorage[valueKey] = cpy
 }
@@ -361,15 +367,17 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		delete(self.dirtyStorage, key)
 
 		if valueKey == self.originStorage[key] {
+			delete(self.dirtyValueStorage, valueKey)
+			continue
+		}
+
+		if valueKey == emptyStorage || (valueKey == common.Hash{}) {
+			delete(self.dirtyValueStorage, valueKey)
+			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
 
 		self.originStorage[key] = valueKey
-
-		if valueKey == emptyStorage {
-			self.setError(tr.TryDelete([]byte(key)))
-			continue
-		}
 
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
@@ -378,7 +386,6 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		if value, ok := self.dirtyValueStorage[valueKey]; ok {
 			delete(self.dirtyValueStorage, valueKey)
 			self.originValueStorage[valueKey] = value
-			self.setError(tr.TryUpdateValue(valueKey.Bytes(), value))
 		}
 	}
 
@@ -399,12 +406,21 @@ func (self *stateObject) CommitTrie(db Database) error {
 		return self.dbErr
 	}
 
-	for h, v := range self.originValueStorage {
-		if h != emptyStorage && !bytes.Equal(v, []byte{}) {
-			self.trie.TryUpdateValue(h.Bytes(), v)
+	root, err := self.trie.Commit(func(leaf []byte, parent common.Hash) error {
+		var valueKey common.Hash
+		_, content, _, err := rlp.Split(leaf)
+		if err != nil {
+			self.setError(err)
 		}
-	}
-	root, err := self.trie.Commit(nil)
+		valueKey.SetBytes(content)
+		if value, ok := self.originValueStorage[valueKey]; ok {
+			self.db.db.TrieDB().InsertBlob(valueKey, value)
+		}
+
+		self.db.db.TrieDB().Reference(valueKey, parent)
+		return nil
+	})
+
 	if err == nil {
 		self.data.Root = root
 	}
