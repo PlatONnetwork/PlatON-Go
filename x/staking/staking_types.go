@@ -914,7 +914,7 @@ type DelRelatedQueue = []*DelegateRelated
 
 type UnStakeItem struct {
 	// this is the nodeAddress
-	KeySuffix       []byte
+	NodeAddress     common.Address
 	StakingBlockNum uint64
 }
 
