@@ -1238,6 +1238,8 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 			Fatalf("Failed to load bls key from file: %v", err)
 		}
 		cfg.BlsPriKey = priKey
+	} else {
+		cfg.BlsPriKey = nodeCfg.BlsKey()
 	}
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {

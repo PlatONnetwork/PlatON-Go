@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"unsafe"
@@ -102,6 +103,17 @@ func LoadBLS(file string) (*SecretKey, error) {
 	}
 	err = sec.SetLittleEndian(key)
 	return &sec, err
+}
+
+func SaveBLS(file string, key *SecretKey) error {
+	k := hex.EncodeToString(key.GetLittleEndian())
+	return ioutil.WriteFile(file, []byte(k), 0600)
+}
+
+func GenerateKey() *SecretKey {
+	var privateKey SecretKey
+	privateKey.SetByCSPRNG()
+	return &privateKey
 }
 
 // Serialize --
