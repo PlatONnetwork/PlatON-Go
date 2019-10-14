@@ -170,8 +170,7 @@ func TestStakingPlugin_BeginBlock(t *testing.T) {
 func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
 	newPlugins()
@@ -190,17 +189,18 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	// build ancestor nonces
 	_, nonces := build_vrf_Nonce()
 	enValue, err := rlp.EncodeToBytes(nonces)
-	if nil != err {
-		t.Error("Failed to rlp vrf nonces", "err", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp vrf nonces: %v", err)) {
 		return
 	}
 
 	// new block
 	privateKey, err := crypto.GenerateKey()
-	if nil != err {
-		t.Errorf("Failed to generate random Address private key: %v", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 		return
 	}
+
 	nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	currentNumber := big.NewInt(1)
@@ -222,19 +222,16 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		privateKey, err := crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random NodeId private key: %v", err)) {
 			return
 		}
 
 		nodeId := discover.PubkeyID(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random Address private key: %v", err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 			return
 		}
-
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 		var blsKey bls.SecretKey
@@ -347,8 +344,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	// round index
 	round_index, err := rlp.EncodeToBytes(roundIndexArr)
-	if nil != err {
-		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error: %v", err)) {
 		return
 	}
 	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
@@ -358,8 +354,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
-	if nil != err {
-		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
 	// Store Current Round validator
@@ -378,7 +373,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
-		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
+		return
 	}
 
 	/**
@@ -406,11 +402,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	fmt.Println("currentHash Election", currentHash.Hex())
-
 	err = StakingInstance().EndBlock(currentHash, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)) {
 		return
 	}
 
@@ -459,17 +452,13 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}
 	currentHash = header.Hash()
 
-	fmt.Println("currentHash ElectionNextList", currentHash.Hex())
 	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
 		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
 		return
 	}
 
 	err = StakingInstance().EndBlock(currentHash, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)
-		return
-	}
+	assert.Nil(t, err, fmt.Sprintf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err))
 }
 
 func TestStakingPlugin_Confirmed(t *testing.T) {
@@ -495,17 +484,16 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	// build ancestor nonces
 	_, nonces := build_vrf_Nonce()
 	enValue, err := rlp.EncodeToBytes(nonces)
-	if nil != err {
-		t.Error("Failed to rlp vrf nonces", "err", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp vrf nonces: %v", err)) {
 		return
 	}
 
 	// new block
 	privateKey, err := crypto.GenerateKey()
-	if nil != err {
-		t.Errorf("Failed to generate random Address private key: %v", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 		return
 	}
+
 	nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	currentNumber := big.NewInt(1)
@@ -535,8 +523,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		nodeId := discover.PubkeyID(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random Address private key: %v", err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 			return
 		}
 
@@ -617,18 +604,17 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	// current epoch start and end indexs
 	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
-	if nil != err {
-		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error: %v", err)) {
 		return
 	}
+
 	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
 		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	epochArr, err := rlp.EncodeToBytes(validatorQueue)
-	if nil != err {
-		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
 	// Store Epoch validators
@@ -651,10 +637,10 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	// round index
 	round_index, err := rlp.EncodeToBytes(roundIndexArr)
-	if nil != err {
-		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error: %v", err)) {
 		return
 	}
+
 	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
 		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
 		return
@@ -662,8 +648,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
-	if nil != err {
-		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
 	// Store Current Round validator
@@ -682,7 +667,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
-		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
+		return
 	}
 
 	/**
@@ -710,11 +696,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	fmt.Println("currentHash Election", currentHash.Hex())
-
 	err = StakingInstance().EndBlock(currentHash, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)) {
 		return
 	}
 
@@ -729,20 +712,17 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	blockElection := types.NewBlock(header, nil, nil)
 
 	err = StakingInstance().Confirmed(blockElection)
-	if nil != err {
-		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
-		return
-	}
+	assert.Nil(t, err, fmt.Sprintf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err))
 
 }
 
 func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
+
 	newPlugins()
 
 	build_gov_data(state)
@@ -760,17 +740,14 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 	/**
 	Start Create Staking
 	*/
-	if err := create_staking(state, blockNumber, blockHash, 1, 0, t); nil != err {
-		t.Error("Failed to Create Staking", err)
-	}
-
+	err = create_staking(state, blockNumber, blockHash, 1, 0, t)
+	assert.Nil(t, err, fmt.Sprintf("Failed to Create Staking: %v", err))
 }
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
 	newPlugins()
@@ -803,23 +780,16 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	Start Get Candidate Info
 	*/
 	can, err := getCandidate(blockHash, index)
-
-	assert.True(t, nil == err)
-
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
-
 	t.Log("Get Candidate Info is:", can)
-
-	//canByte, _ := json.Marshal(can)
-	//t.Log("Get Candidate Info is:", string(canByte))
 
 }
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
 	newPlugins()
@@ -856,19 +826,17 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
 	can, err := StakingInstance().GetCandidateInfoByIrr(addr)
-	assert.True(t, nil == err)
 
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateInfoByIrr: %v", err))
 	assert.True(t, nil != can)
-	canByte, _ := json.Marshal(can)
-	t.Log("Get Candidate Info is:", string(canByte))
+	t.Log("Get Candidate Info is:", can)
 
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
 	newPlugins()
@@ -904,8 +872,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	*/
 
 	queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64())
-	assert.True(t, nil == err)
-
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateList: %v", err))
 	assert.Equal(t, count, len(queue))
 	queueByte, _ := json.Marshal(queue)
 	t.Log("Get CandidateList Info is:", string(queueByte))
@@ -914,8 +881,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
 	newPlugins()
@@ -967,8 +933,8 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	c.ExternalId = "What is this ?"
 	c.Website = "www.baidu.com"
 	c.Details = "This is buidu website ?"
-	if err := StakingInstance().EditCandidate(blockHash2, blockNumber2, c); nil != err {
-		t.Error("Failed to EditCandidate", err)
+	err = StakingInstance().EditCandidate(blockHash2, blockNumber2, c)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to EditCandidate: %v", err)) {
 		return
 	}
 
@@ -978,21 +944,18 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	}
 
 	// get Candidate info after edit
-	if can, err := getCandidate(blockHash2, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		return
-	}
+	can, err := getCandidate(blockHash2, index)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
+
 }
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to build the state: %v", err)) {
 		return
 	}
 	newPlugins()
