@@ -78,9 +78,11 @@ func TestIPCAttachWelcome(t *testing.T) {
 	}
 	// Note: we need --shh because testAttachWelcome checks for default
 	// list of ipc modules and shh is included there.
+	//geth := runGeth(t,
+	//	"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+	//	"--shh", "--ipcpath", ipc)
 	geth := runGeth(t,
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
-		"--shh", "--ipcpath", ipc)
+		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--ipcpath", ipc)
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
 	testAttachWelcome(t, geth, "ipc:"+ipc, ipcAPIs)

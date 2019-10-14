@@ -158,13 +158,12 @@ func (e *GenesisMismatchError) Error() string {
 func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 
 	if genesis != nil && genesis.Config == nil {
+		log.Error("Failed to SetupGenesisBlock, the config of genesis is nil")
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
 
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
-	// todo test
-	log.Debug("Genesis stored Hash", "hash", stored.Hex())
 
 	if (stored == common.Hash{}) {
 		if genesis == nil {
@@ -176,6 +175,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(); nil != err {
+			log.Error("Failed to check economic config", "err", err)
 			return nil, common.Hash{}, err
 		}
 		var sdb snapshotdb.DB
@@ -192,8 +192,8 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 	// Check whether the genesis block is already written.
 	if genesis != nil {
 		hash := genesis.ToBlock(nil, nil).Hash()
-		log.Debug("check genesis Hash compare", "hash", hash, "stored", stored)
 		if hash != stored {
+			log.Error("Failed to compare the genesisHash and stored", "genesisHash", hash, "stored", stored)
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 	}
@@ -226,10 +226,12 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 	// are returned to the caller unless we're already at block zero.
 	height := rawdb.ReadHeaderNumber(db, rawdb.ReadHeadHeaderHash(db))
 	if height == nil {
+		log.Error("Failed to query header number by header hash", "headerHash", rawdb.ReadHeadHeaderHash(db))
 		return newcfg, stored, fmt.Errorf("missing block number for head header hash")
 	}
 	compatErr := storedcfg.CheckCompatible(newcfg, *height)
 	if compatErr != nil && *height != 0 && compatErr.RewindTo != 0 {
+		log.Error("Failed to CheckCompatible", "height", *height, "err", compatErr)
 		return newcfg, stored, compatErr
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
