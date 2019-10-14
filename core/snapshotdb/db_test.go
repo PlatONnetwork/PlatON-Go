@@ -205,8 +205,8 @@ func randomString2(s string) []byte {
 	if s != "" {
 		b.Write([]byte(s))
 	}
-	for i := 0; i < 4; i++ {
-		b.WriteByte(' ' + byte(rand.Int()))
+	for i := 0; i < 8; i++ {
+		b.WriteByte(' ' + byte(rand.Uint64()))
 	}
 	return b.Bytes()
 }
