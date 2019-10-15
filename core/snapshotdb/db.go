@@ -136,11 +136,13 @@ func (s *snapshotDB) recover() error {
 			return err
 		}
 	} else {
-		base := big.NewInt(int64(baseNum))
-		block := fileToRecover[len(fileToRecover)-1]
-		highest := big.NewInt(int64(block.Num))
-		if err := s.SetCurrent(block.BlockHash, *base, *highest); err != nil {
-			return err
+		if len(fileToRecover) > 0 {
+			base := big.NewInt(int64(baseNum))
+			block := fileToRecover[len(fileToRecover)-1]
+			highest := big.NewInt(int64(block.Num))
+			if err := s.SetCurrent(block.BlockHash, *base, *highest); err != nil {
+				return err
+			}
 		}
 	}
 

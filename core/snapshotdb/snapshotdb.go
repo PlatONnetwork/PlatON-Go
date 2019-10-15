@@ -277,10 +277,10 @@ func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 }
 
 func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) error {
-	logger.Debug("SetCurrent", "current", s.current)
 	s.current.HighestNum = &height
 	s.current.BaseNum = &base
 	s.current.HighestHash = highestHash
+	logger.Debug("SetCurrent", "current", s.current)
 	if err := s.saveCurrentToBaseDB("", s.current); err != nil {
 		return err
 	}

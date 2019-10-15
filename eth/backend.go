@@ -235,10 +235,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
 		// - ppos
-		if err := recoverSnapshotDB(blockChainCache); err != nil {
-			log.Error("recover SnapshotDB fail", "error", err)
-			return nil, errors.New("Failed to recover SnapshotDB")
-		}
+
 		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 			agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
@@ -255,6 +252,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
 			handlePlugin(reactor)
 			agency = reactor
+		}
+
+		if err := recoverSnapshotDB(blockChainCache); err != nil {
+			log.Error("recover SnapshotDB fail", "error", err)
+			return nil, errors.New("Failed to recover SnapshotDB")
 		}
 
 		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
