@@ -59,8 +59,9 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 	executor := func(msg ctypes.Message) {
 		defer func() {
 			cbft.log.Debug("Close fetching")
-			utils.SetFalse(&cbft.fetching)
+			//utils.SetFalse(&cbft.fetching)
 		}()
+		cbft.log.Debug("Receive QCBlockList", "msg", msg.String())
 		if blockList, ok := msg.(*protocols.QCBlockList); ok {
 			// Execution block
 			for _, block := range blockList.Blocks {
@@ -149,7 +150,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 						return
 					}
 				}
-
 				if err := cbft.OnInsertQCBlock(filteredForkedBlocks, filteredForkedQCs); err != nil {
 					cbft.log.Error("Insert forked block failed", "error", err)
 				}
@@ -164,7 +164,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 
 	cbft.log.Debug("Start fetching", "id", id, "basBlockHash", baseBlockHash, "baseBlockNumber", baseBlockNumber)
 
-	utils.SetTrue(&cbft.fetching)
+	//utils.SetTrue(&cbft.fetching)
 	cbft.fetcher.AddTask(id, match, executor, expire)
 	cbft.network.Send(id, &protocols.GetQCBlockList{BlockHash: baseBlockHash, BlockNumber: baseBlockNumber})
 }
@@ -175,11 +175,8 @@ func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) 
 		for i := uint32(0); i <= pb.BlockIndex; i++ {
 			b := cbft.state.ViewBlockByIndex(i)
 			if b == nil {
-				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
-					go cbft.ReceiveMessage(pb)
-				} else {
-					cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
-				}
+				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
+
 			}
 		}
 	}
@@ -192,13 +189,9 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 		for i := uint32(0); i <= vote.BlockIndex; i++ {
 			b, qc := cbft.state.ViewBlockAndQC(i)
 			if b == nil {
-				if pb := cbft.csPool.GetPrepareBlock(i); pb != nil {
-					go cbft.ReceiveMessage(pb)
-				} else {
-					cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
-				}
+				cbft.SyncPrepareBlock(id, cbft.state.Epoch(), cbft.state.ViewNumber(), i)
 			} else if qc == nil {
-				cbft.SyncBlockQuorumCert(id, b.NumberU64(), b.Hash())
+				cbft.SyncBlockQuorumCert(id, b.NumberU64(), b.Hash(), i)
 			}
 		}
 	}
@@ -209,7 +202,7 @@ func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) e
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
 		if prepareBlock != nil {
-			cbft.log.Debug("Send PrepareBlock", "prepareBlock", prepareBlock.String())
+			cbft.log.Debug("Send PrepareBlock", "peer", id, "prepareBlock", prepareBlock.String())
 			cbft.network.Send(id, prepareBlock)
 		}
 
@@ -233,17 +226,16 @@ func (cbft *Cbft) OnGetBlockQuorumCert(id string, msg *protocols.GetBlockQuorumC
 
 // OnBlockQuorumCert handles the message type of BlockQuorumCertMsg.
 func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) error {
+	cbft.log.Debug("Receive BlockQuorumCert", "peer", id, "msg", msg.String())
 	if msg.BlockQC.Epoch != cbft.state.Epoch() || msg.BlockQC.ViewNumber != cbft.state.ViewNumber() {
-		cbft.log.Debug("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
+		cbft.log.Trace("Receive BlockQuorumCert response failed", "local.epoch", cbft.state.Epoch(), "local.viewNumber", cbft.state.ViewNumber(), "msg", msg.String())
 		return fmt.Errorf("msg is not match current state")
 	}
 
 	if _, qc := cbft.blockTree.FindBlockAndQC(msg.BlockQC.BlockHash, msg.BlockQC.BlockNumber); qc != nil {
-		cbft.log.Debug("Block has exist", "msg", msg.String())
+		cbft.log.Trace("Block has exist", "msg", msg.String())
 		return fmt.Errorf("block already exists")
 	}
-
-	cbft.csPool.AddPrepareQC(msg.BlockQC.BlockIndex, &ctypes.MsgInfo{PeerID: id, Msg: msg})
 
 	// If blockQC comes the block must exist
 	block := cbft.state.ViewBlockByIndex(msg.BlockQC.BlockIndex)
@@ -252,9 +244,11 @@ func (cbft *Cbft) OnBlockQuorumCert(id string, msg *protocols.BlockQuorumCert) e
 		return fmt.Errorf("block not exist")
 	}
 	if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), msg.BlockQC); err != nil {
+		cbft.log.Error("Failed to verify prepareQC", "err", err.Error())
 		return &authFailedError{err}
 	}
 
+	cbft.log.Info("Receive blockQuorumCert, try insert prepareQC", "view", cbft.state.ViewString(), "blockQuorumCert", msg.BlockQC.String())
 	cbft.insertPrepareQC(msg.BlockQC)
 	return nil
 }
@@ -463,7 +457,7 @@ func (cbft *Cbft) OnLatestStatus(id string, msg *protocols.LatestStatus) error {
 // block information exists locally. If not, send a network request to get
 // the block data.
 func (cbft *Cbft) OnPrepareBlockHash(id string, msg *protocols.PrepareBlockHash) error {
-	cbft.log.Debug("Received message on OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
+	cbft.log.Debug("Received message OnPrepareBlockHash", "from", id, "msgHash", msg.MsgHash(), "message", msg.String())
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		block := cbft.state.ViewBlockByIndex(msg.BlockIndex)
 		if block == nil {
@@ -547,6 +541,7 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 	epoch, viewNumber, _, _, _, _ := viewChangeQC.MaxBlock()
 	if cbft.state.Epoch() == epoch && cbft.state.ViewNumber() == viewNumber {
 		if err := cbft.verifyViewChangeQC(msg.ViewChangeQC); err == nil {
+			cbft.log.Info("Receive viewChangeQuorumCert, try change view by viewChangeQC", "view", cbft.state.ViewString(), "viewChangeQC", viewChangeQC.String())
 			cbft.tryChangeViewByViewChange(msg.ViewChangeQC)
 		} else {
 			cbft.log.Debug("Verify ViewChangeQC failed", "err", err)
@@ -631,7 +626,7 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 				knownVotes := cbft.state.AllPrepareVoteByIndex(index)
 				unKnownSet := utils.NewBitArray(uint32(len))
 				for i := uint32(0); i < unKnownSet.Size(); i++ {
-					if vote := cbft.csPool.GetPrepareVote(index, i); vote != nil {
+					if vote := cbft.csPool.GetPrepareVote(cbft.state.Epoch(), cbft.state.ViewNumber(), index, i); vote != nil {
 						go cbft.ReceiveMessage(vote)
 						continue
 					}
@@ -789,6 +784,9 @@ func calAverage(latencyList *list.List) int64 {
 }
 
 func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, blockIndex uint32) {
+	if msg := cbft.csPool.GetPrepareBlock(epoch, viewNumber, blockIndex); msg != nil {
+		go cbft.ReceiveMessage(msg)
+	}
 	if cbft.syncingCache.AddOrReplace(blockIndex) {
 		msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
 		if id == "" {
@@ -801,7 +799,10 @@ func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, b
 	}
 }
 
-func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash) {
+func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash, blockIndex uint32) {
+	if msg := cbft.csPool.GetPrepareQC(cbft.state.Epoch(), cbft.state.ViewNumber(), blockIndex); msg != nil {
+		go cbft.ReceiveMessage(msg)
+	}
 	if cbft.syncingCache.AddOrReplace(blockHash) {
 		msg := &protocols.GetBlockQuorumCert{BlockHash: blockHash, BlockNumber: blockNumber}
 		cbft.network.Send(id, msg)

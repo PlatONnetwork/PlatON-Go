@@ -321,8 +321,6 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return err
 	} else if tobeCanceled == nil {
 		return TobeCanceledProposalNotFound
-	} else if cp.EndVotingBlock >= tobeCanceled.GetEndVotingBlock() {
-		return EndVotingRoundsTooLarge
 	} else if tobeCanceled.GetProposalType() != Version {
 		return TobeCanceledProposalTypeError
 	} else if votingList, err := ListVotingProposal(blockHash); err != nil {
@@ -330,6 +328,8 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return err
 	} else if !xutil.InHashList(cp.TobeCanceled, votingList) {
 		return TobeCanceledProposalNotAtVoting
+	} else if cp.EndVotingBlock >= tobeCanceled.GetEndVotingBlock() {
+		return EndVotingRoundsTooLarge
 	}
 	return nil
 }

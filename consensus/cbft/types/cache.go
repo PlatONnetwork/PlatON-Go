@@ -1,8 +1,7 @@
 package types
 
 import (
-	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"sync"
 	"time"
 )
@@ -56,7 +55,7 @@ func (s *SyncCache) Len() int {
 	return len(s.items)
 }
 
-type CSMsgPool struct {
+type viewCache struct {
 	prepareBlocks map[uint32]*MsgInfo
 	prepareVotes  map[uint32]map[uint32]*MsgInfo
 	prepareQC     map[uint32]*MsgInfo
@@ -65,8 +64,8 @@ type CSMsgPool struct {
 	qcMetric      map[uint32]uint32
 }
 
-func NewCSMsgPool() *CSMsgPool {
-	return &CSMsgPool{
+func newViewCache() *viewCache {
+	return &viewCache{
 		prepareBlocks: make(map[uint32]*MsgInfo),
 		prepareVotes:  make(map[uint32]map[uint32]*MsgInfo),
 		prepareQC:     make(map[uint32]*MsgInfo),
@@ -76,85 +75,82 @@ func NewCSMsgPool() *CSMsgPool {
 	}
 }
 
-// Add prepare block to cache. There is no strict distinction between the blocks of the current view,
-// which will be cleared from the cache after each acquisition, so that the new block can re-enter the cache.
-func (cs *CSMsgPool) AddPrepareBlock(blockIndex uint32, msg *MsgInfo) {
-	cs.prepareBlocks[blockIndex] = msg
+// Add prepare block to cache.
+func (v *viewCache) addPrepareBlock(blockIndex uint32, msg *MsgInfo) {
+	v.prepareBlocks[blockIndex] = msg
 }
 
 // Get prepare block and clear it from the cache
-func (cs *CSMsgPool) GetPrepareBlock(index uint32) *MsgInfo {
-	if m, ok := cs.prepareBlocks[index]; ok {
-		cs.addBlockMetric(index)
-		delete(cs.prepareBlocks, index)
+func (v *viewCache) getPrepareBlock(index uint32) *MsgInfo {
+	if m, ok := v.prepareBlocks[index]; ok {
+		v.addBlockMetric(index)
+		delete(v.prepareBlocks, index)
 		return m
 	}
 	return nil
 }
 
-func (cs *CSMsgPool) addBlockMetric(index uint32) {
-	if m, ok := cs.blockMetric[index]; ok {
-		cs.blockMetric[index] = m + 1
+func (v *viewCache) addBlockMetric(index uint32) {
+	if m, ok := v.blockMetric[index]; ok {
+		v.blockMetric[index] = m + 1
 	} else {
-		cs.blockMetric[index] = 1
+		v.blockMetric[index] = 1
 	}
 }
 
-// Add prepare block to cache. There is no strict distinction between the blocks of the current view,
-// which will be cleared from the cache after each acquisition, so that the new block can re-enter the cache.
-func (cs *CSMsgPool) AddPrepareQC(blockIndex uint32, msg *MsgInfo) {
-	cs.prepareQC[blockIndex] = msg
+// Add prepare block to cache.
+func (v *viewCache) addPrepareQC(blockIndex uint32, msg *MsgInfo) {
+	v.prepareQC[blockIndex] = msg
 }
 
 // Get prepare QC and clear it from the cache
-func (cs *CSMsgPool) GetPrepareQC(index uint32) *MsgInfo {
-	if m, ok := cs.prepareQC[index]; ok {
-		cs.addQCMetric(index)
-		delete(cs.prepareQC, index)
+func (v *viewCache) getPrepareQC(index uint32) *MsgInfo {
+	if m, ok := v.prepareQC[index]; ok {
+		v.addQCMetric(index)
+		delete(v.prepareQC, index)
 		return m
 	}
 	return nil
 }
 
-func (cs *CSMsgPool) getBlockMetric(index uint32) uint32 {
-	if m, ok := cs.blockMetric[index]; ok {
+func (v *viewCache) getBlockMetric(index uint32) uint32 {
+	if m, ok := v.blockMetric[index]; ok {
 		return m
 	}
 	return 0
 }
 
-func (cs *CSMsgPool) addQCMetric(index uint32) {
-	if m, ok := cs.qcMetric[index]; ok {
-		cs.qcMetric[index] = m + 1
+func (v *viewCache) addQCMetric(index uint32) {
+	if m, ok := v.qcMetric[index]; ok {
+		v.qcMetric[index] = m + 1
 	} else {
-		cs.qcMetric[index] = 1
+		v.qcMetric[index] = 1
 	}
 }
 
-func (cs *CSMsgPool) getQCMetric(index uint32) uint32 {
-	if m, ok := cs.qcMetric[index]; ok {
+func (v *viewCache) getQCMetric(index uint32) uint32 {
+	if m, ok := v.qcMetric[index]; ok {
 		return m
 	}
 	return 0
 }
 
-// Add prepare votes to cache. There is no strict distinction between the votes of the current view,
-// which will be cleared from the cache after each acquisition, so that the new votes can re-enter the cache.
-func (cs *CSMsgPool) AddPrepareVote(blockIndex uint32, validatorIndex uint32, msg *MsgInfo) {
-	if votes, ok := cs.prepareVotes[blockIndex]; ok {
+// Add prepare votes to cache.
+func (v *viewCache) addPrepareVote(blockIndex uint32, validatorIndex uint32, msg *MsgInfo) {
+	if votes, ok := v.prepareVotes[blockIndex]; ok {
 		votes[validatorIndex] = msg
 	} else {
 		votes := make(map[uint32]*MsgInfo)
 		votes[validatorIndex] = msg
-		cs.prepareVotes[blockIndex] = votes
+		v.prepareVotes[blockIndex] = votes
 	}
 }
 
 // Get prepare vote and clear it from the cache
-func (cs *CSMsgPool) GetPrepareVote(blockIndex uint32, validatorIndex uint32) *MsgInfo {
-	if p, ok := cs.prepareVotes[blockIndex]; ok {
+func (v *viewCache) getPrepareVote(blockIndex uint32, validatorIndex uint32) *MsgInfo {
+	if p, ok := v.prepareVotes[blockIndex]; ok {
 		if m, ok := p[validatorIndex]; ok {
-			cs.addVoteMetric(blockIndex, validatorIndex)
+			v.addVoteMetric(blockIndex, validatorIndex)
 			delete(p, validatorIndex)
 			return m
 		}
@@ -162,8 +158,8 @@ func (cs *CSMsgPool) GetPrepareVote(blockIndex uint32, validatorIndex uint32) *M
 	return nil
 }
 
-func (cs *CSMsgPool) addVoteMetric(blockIndex uint32, validatorIndex uint32) {
-	if votes, ok := cs.voteMetric[blockIndex]; ok {
+func (v *viewCache) addVoteMetric(blockIndex uint32, validatorIndex uint32) {
+	if votes, ok := v.voteMetric[blockIndex]; ok {
 		if m, ok := votes[validatorIndex]; ok {
 			votes[validatorIndex] = m + 1
 		} else {
@@ -172,12 +168,12 @@ func (cs *CSMsgPool) addVoteMetric(blockIndex uint32, validatorIndex uint32) {
 	} else {
 		votes := make(map[uint32]uint32)
 		votes[validatorIndex] = 1
-		cs.voteMetric[blockIndex] = votes
+		v.voteMetric[blockIndex] = votes
 	}
 }
 
-func (cs *CSMsgPool) getVoteMetric(blockIndex uint32, validatorIndex uint32) uint32 {
-	if votes, ok := cs.voteMetric[blockIndex]; ok {
+func (v *viewCache) getVoteMetric(blockIndex uint32, validatorIndex uint32) uint32 {
+	if votes, ok := v.voteMetric[blockIndex]; ok {
 		if m, ok := votes[validatorIndex]; ok {
 			return m
 		}
@@ -185,28 +181,178 @@ func (cs *CSMsgPool) getVoteMetric(blockIndex uint32, validatorIndex uint32) uin
 	return 0
 }
 
-func (cs *CSMsgPool) Purge() {
+type epochCache struct {
+	views map[uint64]*viewCache
+}
 
-	for k, v := range cs.blockMetric {
-		log.Debug(fmt.Sprintf("pool block index:%d, count:%d", k, v))
+func newEpochCache() *epochCache {
+	return &epochCache{
+		views: make(map[uint64]*viewCache),
 	}
+}
 
-	for k, v := range cs.voteMetric {
-		for vl, c := range v {
-			log.Debug(fmt.Sprintf("pool vote index:%d, validator:%d, count:%d", k, vl, c))
+func (e *epochCache) matchViewCache(view uint64) *viewCache {
+	for k, v := range e.views {
+		if k == view {
+			return v
 		}
 	}
+	newView := newViewCache()
+	e.views[view] = newView
+	return newView
+}
 
-	for k, v := range cs.qcMetric {
-		log.Debug(fmt.Sprintf("pool QC index:%d, count:%d", k, v))
+func (e *epochCache) findViewCache(view uint64) *viewCache {
+	for k, v := range e.views {
+		if k == view {
+			return v
+		}
+	}
+	return nil
+}
+
+func (e *epochCache) purge(view uint64) {
+	for k, _ := range e.views {
+		if k < view {
+			delete(e.views, k)
+		}
+	}
+}
+
+type CSMsgPool struct {
+	epochs   map[uint64]*epochCache
+	minEpoch uint64
+	minView  uint64
+}
+
+func NewCSMsgPool() *CSMsgPool {
+	return &CSMsgPool{
+		epochs:   make(map[uint64]*epochCache),
+		minEpoch: math.MaxInt64,
+		minView:  math.MaxInt64,
+	}
+}
+
+func (cs *CSMsgPool) invalidEpochView(epoch, view uint64) bool {
+	if cs.minEpoch == epoch && cs.minView == view ||
+		cs.minEpoch == epoch && cs.minView+1 == view ||
+		cs.minEpoch+1 == epoch && view == 0 {
+		return false
+	}
+	return true
+}
+
+// Add prepare block to cache.
+func (cs *CSMsgPool) AddPrepareBlock(blockIndex uint32, msg *MsgInfo) {
+	if csMsg, ok := msg.Msg.(ConsensusMsg); ok {
+		if cs.invalidEpochView(csMsg.EpochNum(), csMsg.ViewNum()) || msg.Inner {
+			return
+		}
+		cs.matchEpochCache(csMsg.EpochNum()).
+			matchViewCache(csMsg.ViewNum()).
+			addPrepareBlock(blockIndex, msg)
+	}
+}
+
+// Get prepare block and clear it from the cache
+func (cs *CSMsgPool) GetPrepareBlock(epoch, view uint64, index uint32) *MsgInfo {
+	if cs.invalidEpochView(epoch, view) {
+		return nil
 	}
 
-	cs.prepareBlocks = make(map[uint32]*MsgInfo)
-	cs.prepareVotes = make(map[uint32]map[uint32]*MsgInfo)
-	cs.prepareQC = make(map[uint32]*MsgInfo)
+	viewCache := cs.findViewCache(epoch, view)
+	if viewCache != nil {
+		return viewCache.getPrepareBlock(index)
+	}
+	return nil
+}
 
-	cs.blockMetric = make(map[uint32]uint32)
-	cs.voteMetric = make(map[uint32]map[uint32]uint32)
-	cs.qcMetric = make(map[uint32]uint32)
+// Add prepare block to cache.
+func (cs *CSMsgPool) AddPrepareQC(epoch, view uint64, blockIndex uint32, msg *MsgInfo) {
+	if cs.invalidEpochView(epoch, view) || msg.Inner {
+		return
+	}
 
+	cs.matchEpochCache(epoch).
+		matchViewCache(epoch).
+		addPrepareQC(blockIndex, msg)
+}
+
+// Get prepare QC and clear it from the cache
+func (cs *CSMsgPool) GetPrepareQC(epoch, view uint64, index uint32) *MsgInfo {
+	if cs.invalidEpochView(epoch, view) {
+		return nil
+	}
+
+	viewCache := cs.findViewCache(epoch, view)
+	if viewCache != nil {
+		return viewCache.getPrepareQC(index)
+	}
+	return nil
+}
+
+// Add prepare votes to cache.
+func (cs *CSMsgPool) AddPrepareVote(blockIndex uint32, validatorIndex uint32, msg *MsgInfo) {
+	if csMsg, ok := msg.Msg.(ConsensusMsg); ok {
+		if cs.invalidEpochView(csMsg.EpochNum(), csMsg.ViewNum()) || msg.Inner {
+			return
+		}
+		cs.matchEpochCache(csMsg.EpochNum()).
+			matchViewCache(csMsg.ViewNum()).
+			addPrepareVote(blockIndex, validatorIndex, msg)
+	}
+}
+
+// Get prepare vote and clear it from the cache
+func (cs *CSMsgPool) GetPrepareVote(epoch, view uint64, blockIndex uint32, validatorIndex uint32) *MsgInfo {
+	if cs.invalidEpochView(epoch, view) {
+		return nil
+	}
+
+	viewCache := cs.findViewCache(epoch, view)
+	if viewCache != nil {
+		return viewCache.getPrepareVote(blockIndex, validatorIndex)
+	}
+	return nil
+}
+
+func (cs *CSMsgPool) Purge(epoch, view uint64) {
+
+	for k, v := range cs.epochs {
+		if k < epoch {
+			delete(cs.epochs, k)
+		} else {
+			v.purge(view)
+		}
+	}
+	cs.minEpoch = epoch
+	cs.minView = view
+}
+
+func (cs *CSMsgPool) matchEpochCache(epoch uint64) *epochCache {
+	for k, v := range cs.epochs {
+		if k == epoch {
+			return v
+		}
+	}
+	newEpoch := newEpochCache()
+	cs.epochs[epoch] = newEpoch
+	return newEpoch
+}
+
+func (cs *CSMsgPool) findEpochCache(epoch uint64) *epochCache {
+	for k, v := range cs.epochs {
+		if k == epoch {
+			return v
+		}
+	}
+	return nil
+}
+
+func (cs *CSMsgPool) findViewCache(epoch, view uint64) *viewCache {
+	epochCache := cs.findEpochCache(epoch)
+	if epochCache != nil {
+		return epochCache.findViewCache(view)
+	}
+	return nil
 }

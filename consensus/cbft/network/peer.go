@@ -352,6 +352,10 @@ func (p *peer) sendLoop() {
 			msgType := protocols.MessageType(msg.Message())
 			if err := p2p.Send(p.rw, msgType, msg.Message()); err != nil {
 				log.Error("Send message fail", "peer", p.PeerID(), "msg", msg.Message().String(), "err", err)
+			} else {
+				if msg.Mode() == types.FullMode {
+					p.MarkMessageHash(msg.Message().MsgHash())
+				}
 			}
 		case <-p.term:
 			return

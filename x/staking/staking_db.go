@@ -3,7 +3,6 @@ package staking
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -187,7 +186,7 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 	item_key := GetUnStakeItemKey(epoch, v)
 
 	unStakeItem := &UnStakeItem{
-		KeySuffix:       canAddr.Bytes(),
+		NodeAddress:     canAddr,
 		StakingBlockNum: stakeBlockNumber,
 	}
 
@@ -332,76 +331,6 @@ func (db *StakingDB) DelDelegateStoreBySuffix(blockHash common.Hash, suffix []by
 	log.Debug("DelDelegateStoreBySuffix", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
 
 	return db.del(blockHash, key)
-}
-
-func (db *StakingDB) AddUnDelegateItemStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
-	epoch, stakeBlockNumber uint64, amount *big.Int) error {
-
-	count_key := GetUnDelegateCountKey(epoch)
-
-	val, err := db.get(blockHash, count_key)
-	var v uint64
-	switch {
-	case nil != err && err != snapshotdb.ErrNotFound:
-		return err
-	case nil == err && len(val) != 0:
-		v = common.BytesToUint64(val)
-	}
-
-	v++
-
-	// todo test
-	log.Debug("AddUnDelegateItemStore before put count ", "blockHash", blockHash.Hex(), "count_key", hex.EncodeToString(count_key), "val", hex.EncodeToString(common.Uint64ToBytes(v)))
-
-	if err := db.put(blockHash, count_key, common.Uint64ToBytes(v)); nil != err {
-		return err
-	}
-	item_key := GetUnDelegateItemKey(epoch, v)
-
-	suffix := append(delAddr.Bytes(), append(nodeId.Bytes(), common.Uint64ToBytes(stakeBlockNumber)...)...)
-
-	unDelegateItem := &UnDelegateItem{
-		KeySuffix: suffix,
-		Amount:    amount,
-	}
-
-	item, err := rlp.EncodeToBytes(unDelegateItem)
-	if nil != err {
-		return err
-	}
-
-	// todo test
-	log.Debug("AddUnDelegateItemStore before put item ", "blockHash", blockHash.Hex(), "item_key", hex.EncodeToString(item_key), "val", hex.EncodeToString(item))
-
-	return db.put(blockHash, item_key, item)
-}
-
-func (db *StakingDB) GetUnDelegateCountStore(blockHash common.Hash, epoch uint64) (uint64, error) {
-
-	count_key := GetUnDelegateCountKey(epoch)
-
-	val, err := db.get(blockHash, count_key)
-	if nil != err {
-		return 0, err
-	}
-
-	return common.BytesToUint64(val), nil
-}
-
-func (db *StakingDB) GetUnDelegateItemStore(blockHash common.Hash, epoch, index uint64) (*UnDelegateItem, error) {
-
-	item_key := GetUnDelegateItemKey(epoch, index)
-
-	itemByte, err := db.get(blockHash, item_key)
-	if nil != err {
-		return nil, err
-	}
-
-	var unDelegateItem UnDelegateItem
-	if err := rlp.DecodeBytes(itemByte, &unDelegateItem); nil != err {
-		return nil, err
-	}
-	return &unDelegateItem, nil
 }
 
 func (db *StakingDB) DelUnDelegateCountStore(blockHash common.Hash, epoch uint64) error {
@@ -689,4 +618,28 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 	} else {
 		return false, fmt.Errorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
 	}
+}
+
+func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.Address) error {
+	value, err := rlp.EncodeToBytes(arry)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, key, value)
+}
+
+func (db *StakingDB) DelRoundValidatorAddrs(blockHash common.Hash, key []byte) error {
+	return db.del(blockHash, key)
+}
+
+func (db *StakingDB) LoadRoundValidatorAddrs(blockHash common.Hash, key []byte) ([]common.Address, error) {
+	rlpValue, err := db.get(blockHash, key)
+	if nil != err {
+		return nil, err
+	}
+	var value []common.Address
+	if err := rlp.DecodeBytes(rlpValue, &value); nil != err {
+		return nil, err
+	}
+	return value, nil
 }

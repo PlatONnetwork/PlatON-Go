@@ -64,6 +64,7 @@ type Message interface {
 type MsgInfo struct {
 	Msg    Message
 	PeerID string
+	Inner  bool
 }
 
 func (m MsgInfo) String() string {
@@ -75,6 +76,15 @@ func NewMsgInfo(message Message, id string) *MsgInfo {
 	return &MsgInfo{
 		Msg:    message,
 		PeerID: id,
+		Inner:  false,
+	}
+}
+
+func NewInnerMsgInfo(message Message, id string) *MsgInfo {
+	return &MsgInfo{
+		Msg:    message,
+		PeerID: id,
+		Inner:  true,
 	}
 }
 

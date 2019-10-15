@@ -105,7 +105,7 @@ type PrepareBlock struct {
 
 func (pb *PrepareBlock) String() string {
 	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d,ProposalIndex:%d,ParentHash:%s}",
-		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex, pb.ProposalIndex, pb.Block.ParentHash().String())
+		pb.Epoch, pb.ViewNumber, pb.Block.Hash().TerminalString(), pb.Block.NumberU64(), pb.BlockIndex, pb.ProposalIndex, pb.Block.ParentHash().TerminalString())
 }
 
 func (pb *PrepareBlock) MsgHash() common.Hash {
@@ -172,7 +172,7 @@ type PrepareVote struct {
 }
 
 func (pv *PrepareVote) String() string {
-	return fmt.Sprintf("{Epoch:%d,VN:%d,BlockHash:%s,BlockNumber:%d,BlockIndex:%d,ValidatorIndex:%d}",
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,Hash:%s,Number:%d,BlockIndex:%d,ValidatorIndex:%d}",
 		pv.Epoch, pv.ViewNumber, pv.BlockHash.TerminalString(), pv.BlockNumber, pv.BlockIndex, pv.ValidatorIndex)
 }
 
@@ -225,6 +225,13 @@ func (pv *PrepareVote) Sign() []byte {
 
 func (pv *PrepareVote) SetSign(sign []byte) {
 	pv.Signature.SetBytes(sign)
+}
+func (pv *PrepareVote) EqualState(vote *PrepareVote) bool {
+	return pv.Epoch == vote.Epoch &&
+		pv.ViewNumber == vote.ViewNumber &&
+		pv.BlockHash == vote.BlockHash &&
+		pv.BlockNumber == vote.BlockNumber &&
+		pv.BlockIndex == vote.BlockIndex
 }
 
 // ViewChange is message structure for view switching.
@@ -425,8 +432,8 @@ type BlockQuorumCert struct {
 }
 
 func (s *BlockQuorumCert) String() string {
-	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d}",
-		s.BlockQC.ViewNumber, s.BlockQC.BlockHash.TerminalString(), s.BlockQC.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d,Hash:%s,Number:%d}",
+		s.BlockQC.Epoch, s.BlockQC.ViewNumber, s.BlockQC.BlockIndex, s.BlockQC.BlockHash.TerminalString(), s.BlockQC.BlockNumber)
 }
 
 func (s *BlockQuorumCert) MsgHash() common.Hash {

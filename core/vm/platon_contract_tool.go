@@ -7,10 +7,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 )
 
-func exec_platon_contract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
+func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
 
 	// verify the tx data by contracts method
-	_, fn, params, err := plugin.Verify_tx_data(input, command)
+	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
 		log.Error("Failed to verify contract tx", "err", err)
 		return nil, err

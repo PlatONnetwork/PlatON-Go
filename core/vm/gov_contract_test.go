@@ -190,6 +190,15 @@ func buildGetProgramVersionInput() []byte {
 	return common.MustRlpEncode(input)
 }
 
+func buildGetAccuVerifiersCountInput(proposalID, blockHash common.Hash) []byte {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2105))) // func type code
+	input = append(input, common.MustRlpEncode(proposalID))
+	input = append(input, common.MustRlpEncode(blockHash))
+	return common.MustRlpEncode(input)
+}
+
 var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{0, "", ""}))
 
 func buildBlock2() {
@@ -1085,6 +1094,30 @@ func TestGovContract_GetActiveVersion(t *testing.T) {
 	buildBlock2()
 
 	runGovContract(gc, buildGetActiveVersionInput(), t)
+}
+
+func TestGovContract_getAccuVerifiersCount(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitVersionInput(), t)
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildGetAccuVerifiersCountInput(txHashArr[0], lastBlockHash), t)
+}
+
+func TestGovContract_getAccuVerifiersCount_wrongProposalID(t *testing.T) {
+	setup(t)
+	defer clear(t)
+
+	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
+	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildSubmitVersionInput(), t)
+	//submit a proposal and vote for it.
+	runGovContract(gc, buildGetAccuVerifiersCountInput(txHashArr[1], lastBlockHash), t, gov.ProposalNotFound)
 }
 
 func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErrors ...error) {

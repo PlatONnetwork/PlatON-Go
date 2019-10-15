@@ -374,11 +374,11 @@ func opSha3(pc *uint64, interpreter *EVMInterpreter, contract *Contract, memory 
 	offset, size := stack.pop(), stack.pop()
 	data := memory.Get(offset.Int64(), size.Int64())
 	hash := crypto.Keccak256(data)
-	evm := interpreter.evm
-
-	if evm.vmConfig.EnablePreimageRecording {
-		evm.StateDB.AddPreimage(common.BytesToHash(hash), data)
-	}
+	/*
+		evm := interpreter.evm
+		if evm.vmConfig.EnablePreimageRecording {
+			evm.StateDB.AddPreimage(common.BytesToHash(hash), data)
+		}*/
 	stack.push(interpreter.intPool.get().SetBytes(hash))
 
 	interpreter.intPool.put(offset, size)

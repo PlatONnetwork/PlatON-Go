@@ -129,6 +129,7 @@ func TallyVoteValue(proposalID common.Hash, state xcom.StateDB) (yeas, nays, abs
 	return yes, no, abst, err
 }
 
+/*
 func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
 	var voterList []discover.NodeID
 	valueList, err := ListVoteValue(proposalID, state)
@@ -141,6 +142,20 @@ func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.N
 
 	return voterList, nil
 }
+*/
+
+func GetVotedVerifierMap(proposalID common.Hash, state xcom.StateDB) (map[discover.NodeID]struct{}, error) {
+	valueList, err := ListVoteValue(proposalID, state)
+	if err != nil {
+		return nil, err
+	}
+
+	votedMap := make(map[discover.NodeID]struct{}, len(valueList))
+	for _, value := range valueList {
+		votedMap[value.VoteNodeID] = struct{}{}
+	}
+	return votedMap, nil
+}
 
 func SetTallyResult(tallyResult TallyResult, state xcom.StateDB) error {
 	value, err := json.Marshal(tallyResult)
@@ -152,6 +167,13 @@ func SetTallyResult(tallyResult TallyResult, state xcom.StateDB) error {
 }
 
 func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, error) {
+	proposal, err := GetProposal(proposalID, state)
+	if err != nil {
+		return nil, err
+	} else if proposal == nil {
+		return nil, ProposalNotFound
+	}
+
 	value := state.GetState(vm.GovContractAddr, KeyTallyResult(proposalID))
 
 	if len(value) == 0 {

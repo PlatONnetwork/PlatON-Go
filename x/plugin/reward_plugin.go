@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -86,7 +88,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 }
 
 // Confirmed does nothing
-func (rmp *RewardMgrPlugin) Confirmed(block *types.Block) error {
+func (rmp *RewardMgrPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
 
@@ -146,12 +148,12 @@ func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash 
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
 
-	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("Failed to allocateStakingReward: call GetVerifierList is failed", "blockNumber", blockNumber, "hash", blockHash, "err", err)
 		return err
 	}
-	rmp.rewardStakingByValidatorList(state, list, reward)
+	rmp.rewardStakingByValidatorList(state, verifierList, reward)
 	return nil
 }
 

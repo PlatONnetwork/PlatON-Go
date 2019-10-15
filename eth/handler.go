@@ -191,9 +191,12 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	getBlockByHash := func(hash common.Hash) *types.Block {
 		return manager.blockchain.GetBlockByHash(hash)
 	}
+	decodeExtra := func(extra []byte) (common.Hash, uint64, error) {
+		return manager.engine.DecodeExtra(extra)
+	}
 
 	//manager.fetcher = fetcher.New(GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
-	manager.fetcher = fetcher.New(getBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
+	manager.fetcher = fetcher.New(getBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer, decodeExtra)
 
 	return manager, nil
 }
