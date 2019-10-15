@@ -143,6 +143,12 @@ func (s *snapshotDB) recover() error {
 			if err := s.SetCurrent(block.BlockHash, *base, *highest); err != nil {
 				return err
 			}
+		} else {
+			//no recover block,so set current highest and base the same
+			base := big.NewInt(int64(baseNum))
+			if err := s.SetCurrent(common.ZeroHash, *base, *base); err != nil {
+				return err
+			}
 		}
 	}
 
