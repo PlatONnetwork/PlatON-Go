@@ -505,7 +505,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
 	s.unCommit.Set(hash, block)
-	//logger.Info("NewBlock", "num", block.Number, "hash", hash.String())
+	logger.Info("NewBlock", "num", block.Number, "hash", hash.String())
 	return nil
 }
 
@@ -702,7 +702,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.unCommit.Lock()
 	delete(s.unCommit.blocks, hash)
 	s.unCommit.Unlock()
-	//logger.Info("[snapshotDB]commit block", "num", block.Number, "hash", hash.String())
+	logger.Info("[snapshotDB]commit block", "num", block.Number, "hash", hash.String())
 	return nil
 }
 
