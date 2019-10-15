@@ -235,6 +235,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
 		// - ppos
+
 		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 			agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
