@@ -277,10 +277,10 @@ func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 }
 
 func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) error {
-	logger.Debug("SetCurrent", "current", s.current)
 	s.current.HighestNum = &height
 	s.current.BaseNum = &base
 	s.current.HighestHash = highestHash
+	logger.Debug("SetCurrent", "current", s.current)
 	if err := s.saveCurrentToBaseDB("", s.current); err != nil {
 		return err
 	}
@@ -468,7 +468,7 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 		}
 		itr.Release()
 	}
-	logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number, "len", len(s.committed), "commitNum", commitNum)
+	//logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number, "len", len(s.committed), "commitNum", commitNum)
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		logger.Error("write to baseDB fail", "err", err)
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
@@ -758,6 +758,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	var itrs []iterator.Iterator
 	var parentHash common.Hash
 	parentHash = hash
+	//	t := time.Now()
 	s.unCommit.RLock()
 	for {
 		if block, ok := s.unCommit.blocks[parentHash]; ok {
@@ -768,7 +769,9 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		}
 	}
 	s.unCommit.RUnlock()
+	//	logger.Info("Ranking uncommit", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
 
+	//	t = time.Now()
 	s.commitLock.RLock()
 	for i := len(s.committed) - 1; i >= 0; i-- {
 		block := s.committed[i]
@@ -778,18 +781,24 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		}
 	}
 	s.commitLock.RUnlock()
+	//	logger.Info("Ranking commit", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
 
+	//	t = time.Now()
 	//put  unCommit and commit itr to heap
 	rankingHeap := newRankingHeap(rangeNumber)
 	for i := 0; i < len(itrs); i++ {
 		rankingHeap.itr2Heap(itrs[i], false, false)
 	}
+	//	logger.Info("Ranking heap", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
 
+	//	t = time.Now()
 	//put baseDB itr to heap
 	itr := s.baseDB.NewIterator(prefix, nil)
 	rankingHeap.itr2Heap(itr, true, true)
+	//	logger.Info("Ranking base", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
 
 	//generate memdb Iterator
+	//	t = time.Now()
 	mdb := memdb.New(DefaultComparer, rangeNumber)
 	for rankingHeap.heap.Len() > 0 {
 		kv := heap.Pop(&rankingHeap.heap).(kv)
@@ -797,6 +806,8 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 			return iterator.NewEmptyIterator(errors.New("put to mdb fail" + err.Error()))
 		}
 	}
+	rankingHeap = nil
+	//	logger.Info("Ranking pop", "rangeNumber", rangeNumber, "hash", hash, "duration", time.Since(t))
 	return mdb.NewIterator(nil)
 }
 

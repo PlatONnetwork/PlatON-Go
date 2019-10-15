@@ -10,13 +10,13 @@ import (
 func newRankingHeap(hepNum int) *rankingHeap {
 	r := new(rankingHeap)
 	r.hepMaxNum = hepNum
-	r.handledKey = make([][]byte, 0)
+	r.handledKey = make(map[string]struct{}, 300)
 	r.heap = make(kvsMaxToMin, 0)
 	return r
 }
 
 type rankingHeap struct {
-	handledKey [][]byte
+	handledKey map[string]struct{}
 	//max heap
 	heap      kvsMaxToMin
 	hepMaxNum int
@@ -31,16 +31,14 @@ func (r *rankingHeap) geMaxHeap(k []byte) bool {
 }
 
 func (r *rankingHeap) addHandledKey(key []byte) {
-	handled := make([]byte, len(key))
-	copy(handled, key)
-	r.handledKey = append(r.handledKey, handled)
+	tmpKey := make([]byte, len(key))
+	copy(tmpKey, key)
+	r.handledKey[string(tmpKey)] = struct{}{}
 }
 
 func (r *rankingHeap) findHandledKey(key []byte) bool {
-	for _, value := range r.handledKey {
-		if bytes.Equal(key, value) {
-			return true
-		}
+	if _, ok := r.handledKey[string(key)]; ok {
+		return true
 	}
 	return false
 }
@@ -51,44 +49,42 @@ func (r *rankingHeap) findHandledKey(key []byte) bool {
 // the key must less than the top.
 func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
 	unlimited := r.hepMaxNum <= 0
-	for itr.Next() {
-		k, v := itr.Key(), itr.Value()
-		if unlimited {
+	if unlimited {
+		for itr.Next() {
+			k, v := itr.Key(), itr.Value()
 			if r.findHandledKey(k) {
 				continue
 			}
 			r.push2Heap(k, v, deepCopy)
-		} else {
-			if r.heap.Len() < r.hepMaxNum {
-				if r.findHandledKey(k) {
-					continue
-				}
-				r.push2Heap(k, v, deepCopy)
-			} else {
-				keyGEHeapTop := r.geMaxHeap(k)
-				if baseDB && keyGEHeapTop {
-					break
-				}
-				if r.findHandledKey(k) {
-					continue
-				}
-				if !keyGEHeapTop {
-					r.push2Heap(k, v, deepCopy)
-				}
+			r.addHandledKey(k)
+		}
+	} else {
+		for itr.Next() {
+			k, v := itr.Key(), itr.Value()
+			if r.findHandledKey(k) {
+				continue
+			}
+			if r.heap.Len() >= r.hepMaxNum && bytes.Compare(k, r.heap[0].key) >= 0 {
+				r.addHandledKey(k)
+				break
+			}
+			r.push2Heap(k, v, deepCopy)
+			r.addHandledKey(k)
+			for r.heap.Len() > r.hepMaxNum {
+				heap.Pop(&r.heap)
 			}
 		}
-		r.addHandledKey(k)
 	}
+
 	itr.Release()
 }
 
 func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
 	condtion := v == nil || len(v) == 0
 	if !condtion {
-		if r.hepMaxNum > 0 && r.heap.Len() >= r.hepMaxNum {
-			heap.Pop(&r.heap)
-		}
-
+		//if r.hepMaxNum > 0 && r.heap.Len() >= r.hepMaxNum {
+		//	heap.Pop(&r.heap)
+		//}
 		if deepCopy {
 			sk, sv := make([]byte, len(k)), make([]byte, len(v))
 			copy(sk, k)
