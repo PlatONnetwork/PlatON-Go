@@ -922,22 +922,15 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 // Status returns the status data of the consensus engine.
-func (cbft *Cbft) Status() string {
-	type Status struct {
-		Tree  *ctypes.BlockTree `json:"blockTree"`
-		State *cstate.ViewState `json:"state"`
-	}
-	status := make(chan string, 1)
+func (cbft *Cbft) Status() *Status {
+	status := make(chan *Status, 1)
 	cbft.asyncCallCh <- func() {
 		s := &Status{
-			Tree:  cbft.blockTree,
-			State: cbft.state,
+			Tree:      cbft.blockTree,
+			State:     cbft.state,
+			Validator: cbft.IsConsensusNode(),
 		}
-		if t, err := json.Marshal(s); err == nil {
-			status <- string(t)
-		} else {
-			status <- ""
-		}
+		status <- s
 	}
 	return <-status
 }

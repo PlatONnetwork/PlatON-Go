@@ -97,6 +97,25 @@ type viewBlocks struct {
 	Blocks map[uint32]viewBlock `json:"blocks"`
 }
 
+func (v *viewBlocks) MarshalJSON() ([]byte, error) {
+	type viewBlocks struct {
+		Hash   common.Hash `json:"hash"`
+		Number uint64      `json:"number"`
+		Index  uint32      `json:"blockIndex"`
+	}
+
+	vv := make(map[uint32]viewBlocks)
+	for index, block := range v.Blocks {
+		vv[index] = viewBlocks{
+			Hash:   block.hash(),
+			Number: block.number(),
+			Index:  block.blockIndex(),
+		}
+	}
+
+	return json.Marshal(vv)
+}
+
 func newViewBlocks() *viewBlocks {
 	return &viewBlocks{
 		Blocks: make(map[uint32]viewBlock),
