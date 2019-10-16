@@ -152,24 +152,6 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 				config.EthereumNetworkID = 3
 			}
 		}
-		if config.EthereumGenesis == BetanetGenesis() {
-			genesis.Config = params.BetanetChainConfig
-			if config.EthereumNetworkID == 1 {
-				config.EthereumNetworkID = 3
-			}
-		}
-		if config.EthereumGenesis == InnerTestnetGenesis() {
-			genesis.Config = params.InnerTestnetChainConfig
-			if config.EthereumNetworkID == 1 {
-				config.EthereumNetworkID = 3
-			}
-		}
-		if config.EthereumGenesis == InnerDevnetGenesis() {
-			genesis.Config = params.InnerDevnetChainConfig
-			if config.EthereumNetworkID == 1 {
-				config.EthereumNetworkID = 3
-			}
-		}
 	}
 	// Register the Ethereum protocol if requested
 	if config.EthereumEnabled {
