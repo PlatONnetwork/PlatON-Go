@@ -205,7 +205,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds:   uint64(160),
@@ -252,7 +252,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				DuplicateSignHighSlashing:      uint32(100),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(20),
-				EvidenceValidEpoch:             uint32(27),
+				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds:   uint64(160),
