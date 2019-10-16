@@ -88,6 +88,7 @@ type headerFilterTask struct {
 	peer    string          // The source peer of block headers
 	headers []*types.Header // Collection of headers to filter
 	time    time.Time       // Arrival time of the headers
+	result  chan *headerFilterTask
 }
 
 // bodyFilterTask represents a batch of block bodies (transactions)
@@ -97,6 +98,7 @@ type bodyFilterTask struct {
 	transactions [][]*types.Transaction // Collection of transactions per block bodies
 	time         time.Time              // Arrival time of the blocks' contents
 	extraData    [][]byte
+	result       chan *bodyFilterTask
 }
 
 // inject represents a schedules import operation.
@@ -229,11 +231,12 @@ func (f *Fetcher) Enqueue(peer string, block *types.Block) error {
 
 // FilterHeaders extracts all the headers that were explicitly requested by the fetcher,
 // returning those that should be handled differently.
-func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.Time) []*types.Header {
+func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, t time.Time) []*types.Header {
 	log.Trace("Filtering headers", "peer", peer, "headers", len(headers))
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *headerFilterTask)
+	result := make(chan *headerFilterTask, 1)
 
 	select {
 	case f.headerFilter <- filter:
@@ -242,13 +245,14 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 	}
 	// Request the filtering of the header list
 	select {
-	case filter <- &headerFilterTask{peer: peer, headers: headers, time: time}:
+	case filter <- &headerFilterTask{peer: peer, headers: headers, time: t, result: result}:
 	case <-f.quit:
 		return nil
 	}
 	// Retrieve the headers remaining after filtering
 	select {
-	case task := <-filter:
+	case task := <-result:
+		log.Debug("Filtering headers", "peer", peer, "headers", len(task.headers), "duration", time.Since(t))
 		return task.headers
 	case <-f.quit:
 		return nil
@@ -257,11 +261,12 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, extraData [][]byte, time time.Time) ([][]*types.Transaction, [][]byte) {
+func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, extraData [][]byte, t time.Time) ([][]*types.Transaction, [][]byte) {
 	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions))
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
+	result := make(chan *bodyFilterTask, 1)
 
 	select {
 	case f.bodyFilter <- filter:
@@ -270,14 +275,14 @@ func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction,
 	}
 	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, extraData: extraData, time: time}:
+	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, extraData: extraData, time: t, result: result}:
 	case <-f.quit:
 		return nil, nil
 	}
 	// Retrieve the bodies remaining after filtering
 	select {
-	case task := <-filter:
-		log.Debug("FilterBodies", "transactions", len(task.transactions), "extra", len(task.extraData))
+	case task := <-result:
+		log.Debug("FilterBodies", "peer", peer, "transactions", len(task.transactions), "extra", len(task.extraData), "completing", len(f.completing), "duration", time.Since(t))
 		return task.transactions, task.extraData
 	case <-f.quit:
 		return nil, nil
@@ -495,7 +500,7 @@ func (f *Fetcher) loop() {
 			}
 			headerFilterOutMeter.Mark(int64(len(unknown)))
 			select {
-			case filter <- &headerFilterTask{headers: unknown, time: task.time}:
+			case task.result <- &headerFilterTask{headers: unknown, time: task.time}:
 			case <-f.quit:
 				return
 			}
@@ -534,7 +539,6 @@ func (f *Fetcher) loop() {
 
 				for hash, announce := range f.completing {
 					if f.queued[hash] == nil {
-						txnHash := types.DeriveSha(types.Transactions(task.transactions[i]))
 						equalExtra := func() bool {
 							if len(task.extraData[i]) == 0 {
 								return true
@@ -542,7 +546,13 @@ func (f *Fetcher) loop() {
 							bh, _, err := f.decodeExtra(task.extraData[i])
 							return err == nil && hash == bh
 						}()
-						if txnHash == announce.header.TxHash && equalExtra && announce.origin == task.peer {
+
+						if !equalExtra {
+							continue
+						}
+
+						txnHash := types.DeriveSha(types.Transactions(task.transactions[i]))
+						if txnHash == announce.header.TxHash && announce.origin == task.peer {
 							// Mark the body matched, reassemble if still unknown
 							matched = true
 
@@ -564,10 +574,9 @@ func (f *Fetcher) loop() {
 					continue
 				}
 			}
-
 			bodyFilterOutMeter.Mark(int64(len(task.transactions)))
 			select {
-			case filter <- task:
+			case task.result <- task:
 			case <-f.quit:
 				return
 			}
@@ -740,6 +749,23 @@ func (f *Fetcher) forgetHash(hash common.Hash) {
 			delete(f.announces, announce.origin)
 		}
 		delete(f.completing, hash)
+	}
+
+	// Remove any finish completions and decrement the DOS counters.
+	// The pending completions may be lost there repsones in some
+	// reasons(network issue, lost packet etc.), will persist in pending
+	// instead of remove. And will cause a long time at filter bodies.
+	for hash, announce := range f.completing {
+		if f.getBlock(hash) != nil {
+			if announce != nil {
+				f.announces[announce.origin]--
+				if f.announces[announce.origin] == 0 {
+					delete(f.announces, announce.origin)
+				}
+			}
+			delete(f.completing, hash)
+			log.Debug("Removing pending completion", "origin", announce.origin, "hash", hash)
+		}
 	}
 }
 
