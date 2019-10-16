@@ -27,7 +27,7 @@ func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, rc.FnSigns())
+	return execPlatonContract(input, rc.FnSigns())
 }
 
 func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
@@ -54,8 +54,8 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	blockHash := rc.Evm.BlockHash
 	state := rc.Evm.StateDB
 
-	log.Info("Call createRestrictingPlan of RestrictingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNum.Uint64(), "blockHash", blockHash.Hex(), "from", from.Hex())
+	log.Info("Call createRestrictingPlan of RestrictingContract", "blockNumber", blockNum.Uint64(),
+		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String(), "account", account.String())
 
 	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
 		return nil, ErrOutOfGas
@@ -79,7 +79,8 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	default:
-		log.Error("AddRestrictingRecord failed to createRestrictingPlan", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64(), "error", err)
+		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
+			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "error", err)
 		return nil, err
 	}
 }
@@ -88,26 +89,18 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 // first output param is a slice of byte of restricting info;
 // the secend output param is the result what plugin executed GetRestrictingInfo returns.
 func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byte, error) {
-	txHash := rc.Evm.StateDB.TxHash()
 	currNumber := rc.Evm.BlockNumber
 	state := rc.Evm.StateDB
 
-	log.Info("Call getRestrictingInfo of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
+	log.Info("Call getRestrictingInfo of RestrictingContract", "blockNumber", currNumber.Uint64(), "account", account.String())
 
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
 	//var res xcom.Result
 	if err != nil {
-		//res.Status = false
-		//res.Data = ""
-		//res.ErrMsg = "get restricting info:" + err.Error()
 		return xcom.NewFailResult(err), nil
 	} else {
-		//res.Status = true
-		//res.Data = string(result)
-		//res.ErrMsg = "ok"
 		return xcom.NewSuccessResult(string(result)), nil
 	}
-	//return json.Marshal(res)
 }
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {

@@ -411,7 +411,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 func contiguousChainBlock(p *types.Block, s *types.Block) bool {
 	contiguous := p.NumberU64()+1 == s.NumberU64() && p.Hash() == s.ParentHash()
 	if !contiguous {
-		log.Error("Non contiguous block", "sNumber", s.NumberU64(), "sParentHash", s.ParentHash(), "pNumber", p.NumberU64(), "pHash", p.Hash())
+		log.Info("Non contiguous block", "sNumber", s.NumberU64(), "sParentHash", s.ParentHash(), "pNumber", p.NumberU64(), "pHash", p.Hash())
 	}
 	return contiguous
 }

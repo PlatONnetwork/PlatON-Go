@@ -31,7 +31,8 @@ import (
 )
 
 const (
-	ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 shh:1.0 txpool:1.0 web3:1.0"
+	//ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 shh:1.0 txpool:1.0 web3:1.0"
+	ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 txpool:1.0 web3:1.0"
 	httpAPIs = "net:1.0 platon:1.0 rpc:1.0 web3:1.0"
 )
 
@@ -39,9 +40,12 @@ const (
 // then terminated by closing the input stream.
 func TestConsoleWelcome(t *testing.T) {
 	// Start a platon console, make sure it's cleaned up and terminate the console
+	//geth := runGeth(t,
+	//	"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+	//	"--shh", "console")
+
 	geth := runGeth(t,
-		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none",
-		"--shh", "console")
+		"--port", "0", "--maxpeers", "0", "--nodiscover", "--nat", "none", "console")
 
 	// Gather all the infos the welcome message needs to contain
 	geth.SetTemplateFunc("goos", func() string { return runtime.GOOS })

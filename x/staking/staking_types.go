@@ -816,8 +816,6 @@ type Delegation struct {
 	RestrictingPlan *big.Int
 	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
 	RestrictingPlanHes *big.Int
-	// Total amount in all cancellation plans
-	Reduction *big.Int
 }
 
 func (del *Delegation) String() string {
@@ -827,15 +825,13 @@ func (del *Delegation) String() string {
 		"Released": "%d", 
 		"ReleasedHes": %d, 
 		"RestrictingPlan": %d,
-		"RestrictingPlanHes": %d,
-		"Reduction": "%d"
+		"RestrictingPlanHes": %d
 	}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
 		del.RestrictingPlan,
-		del.RestrictingPlanHes,
-		del.Reduction)
+		del.RestrictingPlanHes)
 }
 
 type DelegationHex struct {
@@ -849,8 +845,6 @@ type DelegationHex struct {
 	RestrictingPlan *hexutil.Big
 	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
 	RestrictingPlanHes *hexutil.Big
-	// Total amount in all cancellation plans
-	Reduction *hexutil.Big
 }
 
 func (delHex *DelegationHex) String() string {
@@ -860,15 +854,13 @@ func (delHex *DelegationHex) String() string {
 		"Released": "%s", 
 		"ReleasedHes": %s, 
 		"RestrictingPlan": %s,
-		"RestrictingPlanHes": %s,
-		"Reduction": "%s"
+		"RestrictingPlanHes": %s
 	}`,
 		delHex.DelegateEpoch,
 		delHex.Released,
 		delHex.ReleasedHes,
 		delHex.RestrictingPlan,
-		delHex.RestrictingPlanHes,
-		delHex.Reduction)
+		delHex.RestrictingPlanHes)
 }
 
 type DelegationEx struct {
@@ -888,8 +880,7 @@ func (dex *DelegationEx) String() string {
 		"Released": "%s", 
 		"ReleasedHes": %s, 
 		"RestrictingPlan": %s,
-		"RestrictingPlanHes": %s,
-		"Reduction": "%s"
+		"RestrictingPlanHes": %s
 	}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
@@ -898,8 +889,7 @@ func (dex *DelegationEx) String() string {
 		dex.Released,
 		dex.ReleasedHes,
 		dex.RestrictingPlan,
-		dex.RestrictingPlanHes,
-		dex.Reduction)
+		dex.RestrictingPlanHes)
 }
 
 type DelegateRelated struct {
@@ -924,15 +914,15 @@ type DelRelatedQueue = []*DelegateRelated
 
 type UnStakeItem struct {
 	// this is the nodeAddress
-	KeySuffix       []byte
+	NodeAddress     common.Address
 	StakingBlockNum uint64
 }
 
-type UnDelegateItem struct {
-	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
-	KeySuffix []byte
-	Amount    *big.Int
-}
+//type UnDelegateItem struct {
+//	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
+//	KeySuffix []byte
+//	Amount    *big.Int
+//}
 
 type ValArrIndex struct {
 	Start uint64

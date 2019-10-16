@@ -123,8 +123,7 @@ type Config struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	MinerNotify    []string `toml:",omitempty"`
-	MinerExtraData []byte   `toml:",omitempty"`
+	MinerExtraData []byte `toml:",omitempty"`
 	MinerGasFloor  uint64
 	MinerGasCeil   uint64
 	MinerGasPrice  *big.Int
@@ -160,16 +159,8 @@ type Config struct {
 	// Gas Price Oracle options
 	GPO gasprice.Config
 
-	// Enables tracking of SHA3 preimages in the VM
-	EnablePreimageRecording bool
-
 	// Miscellaneous options
 	DocRoot string `toml:"-"`
-
-	// Type of the EWASM interpreter ("" for detault)
-	EWASMInterpreter string
-	// Type of the EVM interpreter ("" for default)
-	EVMInterpreter string
 
 	// MPC pool options
 	//MPCPool core.MPCPoolConfig

@@ -24,34 +24,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-//var (
-//	AmountIllegalErrStr      = common.NewBizError(100, "This amount is too low")
-//	CanAlreadyExistsErrStr   = common.NewBizError(101, "This candidate is already exists")
-//	CanNotExistErrStr        = common.NewBizError(102, "This candidate is not exist")
-//	CreateCanErrStr          = common.NewBizError(103, "Create candidate failed")
-//	CanStatusInvalidErrStr   = common.NewBizError(104, "This candidate status was invalided")
-//	CanNoAllowDelegateErrStr = common.NewBizError(105, "This candidate is not allow to delegate")
-//	DelegateNotExistErrStr   = common.NewBizError(106, "This is delegate is not exist")
-//	DelegateErrStr           = common.NewBizError(107, "Delegate failed")
-//	DelegateVonTooLowStr     = common.NewBizError(108, "Delegate deposit too low")
-//	EditCanErrStr            = common.NewBizError(109, "Edit candidate failed")
-//	GetVerifierListErrStr    = common.NewBizError(110, "Getting verifierList is failed")
-//	GetValidatorListErrStr   = common.NewBizError(111, "Getting validatorList is failed")
-//	GetCandidateListErrStr   = common.NewBizError(112, "Getting candidateList is failed")
-//	GetDelegateRelatedErrStr = common.NewBizError(113, "Getting related of delegate is failed")
-//	IncreaseStakingErrStr    = common.NewBizError(114, "IncreaseStaking failed")
-//	ProgramVersionErrStr     = common.NewBizError(115, "The program version of the relates node's is too low")
-//	ProgramVersionSignErrStr = common.NewBizError(116, "The program version sign is wrong")
-//	QueryCanErrStr           = common.NewBizError(117, "Query candidate info failed")
-//	QueryDelErrSTr           = common.NewBizError(118, "Query delegate info failed")
-//	StakeVonTooLowStr        = common.NewBizError(119, "Staking deposit too low")
-//	StakingAddrNoSomeErrStr  = common.NewBizError(120, "Address must be the same as initiated staking")
-//	DescriptionLenErrStr     = common.NewBizError(121, "The Description length is wrong")
-//	WithdrewCanErrStr        = common.NewBizError(122, "Withdrew candidate failed")
-//	WithdrewDelegateErrStr   = common.NewBizError(123, "Withdrew delegate failed")
-//	WrongBlsPubKeyStr        = common.NewBizError(124, "The bls public key is wrong")
-//)
-
 const (
 	CreateStakingEvent     = "1000"
 	EditorCandidateEvent   = "1001"
@@ -74,7 +46,7 @@ func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, stkc.FnSigns())
+	return execPlatonContract(input, stkc.FnSigns())
 }
 
 func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
@@ -598,6 +570,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 		}
 
 	}
+
 	event := xcom.OkResultByte
 	stkc.goodLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent,
 		string(event), "withdrewStaking")
@@ -700,7 +673,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		del.RestrictingPlan = new(big.Int).SetInt64(0)
 		del.ReleasedHes = new(big.Int).SetInt64(0)
 		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
-		del.Reduction = new(big.Int).SetInt64(0)
 	}
 
 	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canOld, typ, amount)

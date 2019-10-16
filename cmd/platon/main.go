@@ -59,7 +59,7 @@ var (
 		utils.PasswordFileFlag,
 		utils.BootnodesFlag,
 		utils.BootnodesV4Flag,
-		utils.BootnodesV5Flag,
+		//	utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
@@ -92,24 +92,22 @@ var (
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
-		utils.MinerNotifyFlag,
 		utils.MinerGasTargetFlag,
 		utils.MinerLegacyGasTargetFlag,
 		utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
 		utils.MinerLegacyGasPriceFlag,
-		utils.MinerExtraDataFlag,
+		//	utils.MinerExtraDataFlag,
 		utils.MinerLegacyExtraDataFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
-		utils.DiscoveryV5Flag,
+		//	utils.DiscoveryV5Flag,
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
 		utils.DeveloperPeriodFlag,
 		utils.TestnetFlag,
 		utils.InnerTimeFlag,
-		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
@@ -118,8 +116,6 @@ var (
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
-		utils.EWASMInterpreterFlag,
-		utils.EVMInterpreterFlag,
 		configFileFlag,
 	}
 
@@ -137,11 +133,11 @@ var (
 		utils.IPCPathFlag,
 	}
 
-	whisperFlags = []cli.Flag{
-		utils.WhisperEnabledFlag,
-		utils.WhisperMaxMessageSizeFlag,
-		utils.WhisperRestrictConnectionBetweenLightClientsFlag,
-	}
+	//whisperFlags = []cli.Flag{
+	//	utils.WhisperEnabledFlag,
+	//	utils.WhisperMaxMessageSizeFlag,
+	//	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
+	//}
 
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnableInfluxDBFlag,
@@ -196,8 +192,6 @@ func init() {
 		consoleCommand,
 		attachCommand,
 		javascriptCommand,
-		// See misccmd.go:
-		makecacheCommand,
 		versionCommand,
 		bugCommand,
 		licenseCommand,
@@ -210,7 +204,7 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, whisperFlags...)
+	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	// for mpc
@@ -236,9 +230,10 @@ func init() {
 		}
 
 		//init wasm logfile
-		if err := debug.SetupWasmLog(ctx); err != nil {
-			return err
-		}
+
+		//if err := debug.SetupWasmLog(ctx); err != nil {
+		//	return err
+		//}
 
 		// Cap the cache allowance and tune the garbage collector
 		var mem gosigar.Mem

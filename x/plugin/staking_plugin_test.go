@@ -141,8 +141,6 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	del.RestrictingPlan = common.Big0
 	del.ReleasedHes = common.Big0
 	del.RestrictingPlanHes = common.Big0
-	del.Reduction = common.Big0
-
 	//amount := common.Big257  // FAIL
 	amount, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
 
@@ -714,7 +712,11 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	blockElection := types.NewBlock(header, nil, nil)
 
-	err = StakingInstance().Confirmed(blockElection)
+	next, err := StakingInstance().getNextValList(blockElection.Hash(), blockElection.Number().Uint64(), QueryStartNotIrr)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getNextValList, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err))
+
+	err = StakingInstance().Confirmed(next.Arr[0].NodeId, blockElection)
 	assert.Nil(t, err, fmt.Sprintf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err))
 
 }
@@ -1564,142 +1566,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to GetRelatedListByDelAddr: %v", err))
 	assert.True(t, nil != rel)
 	t.Log("Get RelateList Info is:", rel)
-}
-
-func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
-
-	state, genesis, err := newChainState()
-	if nil != err {
-		t.Error("Failed to build the state", err)
-		return
-	}
-	newPlugins()
-
-	build_gov_data(state)
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
-		t.Error("newBlock err", err)
-		return
-	}
-
-	index := 1
-
-	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
-		t.Error("Failed to Create Staking", err)
-		return
-	}
-
-	var c *staking.Candidate
-
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
-	}
-
-	// Delegate
-	_, err = delegate(state, blockHash, blockNumber, c, 0, index, t)
-	if nil != err {
-		t.Error("Failed to Delegate:", err)
-		return
-	}
-
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-		return
-	}
-
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
-		return
-	}
-
-	t.Log("Finished Delegate ~~")
-	// get Delegate info
-	del := getDelegate(blockHash2, blockNumber.Uint64(), index, t)
-
-	// Add UnDelegateItem
-	stakingDB := staking.NewStakingDB()
-
-	epoch := xutil.CalculateEpoch(blockNumber2.Uint64())
-
-	amount := new(big.Int).Add(c.Released, c.RestrictingPlan)
-
-	delAddr := addrArr[index+1]
-
-	err = StakingInstance().addUnDelegateItem(blockNumber2.Uint64(), blockHash2, delAddr, c.NodeId, epoch, c.StakingBlockNum, amount)
-
-	if !assert.Nil(t, err, fmt.Sprintf("Failed to addUnDelegateItem: %v", err)) {
-		return
-	}
-
-	del.Reduction = new(big.Int).Add(del.Reduction, amount)
-	// update del
-	if err := stakingDB.SetDelegateStore(blockHash2, delAddr, c.NodeId, c.StakingBlockNum, del); nil != err {
-		t.Error("Failed to Update Delegate When AddUnDelegateItemStore:", err)
-		return
-	}
-
-	if err := stakingDB.DelCanPowerStore(blockHash2, c); nil != err {
-		t.Error("Failed to DelCanPowerStore:", err)
-		return
-	}
-
-	// change candidate shares
-	c.Shares = new(big.Int).Sub(c.Shares, amount)
-
-	canAddr, _ := xutil.NodeId2Addr(c.NodeId)
-
-	if err := stakingDB.SetCandidateStore(blockHash2, canAddr, c); nil != err {
-		t.Error("Failed to SetCandidateStore:", err)
-		return
-	}
-
-	if err := stakingDB.SetCanPowerStore(blockHash2, canAddr, c); nil != err {
-		t.Error("Failed to SetCanPowerStore:", err)
-		return
-	}
-
-	/**
-	Start HandleUnDelegateItem
-	*/
-	err = StakingInstance().HandleUnDelegateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.ActiveUnDelFreezeRatio())
-	if nil != err {
-		t.Error("Failed to HandleUnDelegateItem:", err)
-		return
-	}
-
-	if err := sndb.Commit(blockHash2); nil != err {
-		t.Error("Commit 2 err", err)
-		return
-	}
-
-	t.Log("Finished HandleUnDelegateItem ~~")
-
-	// get Candiddate
-	can, err := getCandidate(blockHash2, index)
-
-	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
-		return
-	}
-	assert.True(t, nil != can)
-	t.Log("Get Candidate Info is:", can)
-
-	// get Delegate
-	del = getDelegate(blockHash2, c.StakingBlockNum, index, t)
-
-	assert.Nil(t, err, fmt.Sprintf("Failed to getDelegate: %v", err))
-	assert.True(t, nil != del)
-	t.Log("Get Delegate Info is:", del)
-
 }
 
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {

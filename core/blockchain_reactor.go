@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -17,6 +15,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -35,6 +34,7 @@ type BlockChainReactor struct {
 	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
 	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
 	validatorMode string                    // mode: static, inner, ppos
+	NodeId        discover.NodeID           // The nodeId of current node
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 }
@@ -44,7 +44,7 @@ var (
 	bcr     *BlockChainReactor
 )
 
-func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChainReactor {
+func NewBlockChainReactor(mux *event.TypeMux) *BlockChainReactor {
 	bcrOnce.Do(func() {
 		log.Info("Init BlockChainReactor ...")
 		bcr = &BlockChainReactor{
@@ -58,10 +58,9 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 
 func (bcr *BlockChainReactor) Start(mode string) {
 	bcr.setValidatorMode(mode)
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	if mode == common.PPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
-
 		// start the loop rutine
 		go bcr.loop()
 	}
@@ -98,32 +97,7 @@ func (bcr *BlockChainReactor) loop() {
 				log.Error("blockchain_reactor receive bft result type error")
 				continue
 			}
-			bcr.Commit(cbftResult.Block)
-			//if err:= ;err!=nil{
-			//
-			//}
-			//block :=
-			//// Short circuit when receiving empty result.
-			//if block == nil {
-			//	log.Error("blockchain_reactor receive Cbft result error, block is nil")
-			//	continue
-			//}
-			//
-			///**
-			//notify P2P module the nodeId of the next round validator
-			//*/
-			//if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
-			//	if err := plugin.Confirmed(block); nil != err {
-			//		log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
-			//	}
-			//
-			//}
-			//
-			//log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
-			//if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
-			//	log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
-			//	continue
-			//}
+			bcr.commit(cbftResult.Block)
 		// stop this routine
 		case done := <-bcr.exitCh:
 			close(bcr.exitCh)
@@ -135,7 +109,7 @@ func (bcr *BlockChainReactor) loop() {
 
 }
 
-func (bcr *BlockChainReactor) Commit(block *types.Block) error {
+func (bcr *BlockChainReactor) commit(block *types.Block) error {
 	if block == nil {
 		log.Error("blockchain_reactor receive Cbft result error, block is nil")
 		return nil
@@ -144,7 +118,7 @@ func (bcr *BlockChainReactor) Commit(block *types.Block) error {
 	notify P2P module the nodeId of the next round validator
 	*/
 	if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
-		if err := plugin.Confirmed(block); nil != err {
+		if err := plugin.Confirmed(bcr.NodeId, block); nil != err {
 			log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 		}
 
@@ -154,6 +128,13 @@ func (bcr *BlockChainReactor) Commit(block *types.Block) error {
 	if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 		log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 		return err
+	}
+	return nil
+}
+
+func (bcr *BlockChainReactor) OnCommit(block *types.Block) error {
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+		return bcr.commit(block)
 	}
 	return nil
 }
@@ -170,16 +151,17 @@ func (bcr *BlockChainReactor) setValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
-func (bcr *BlockChainReactor) SetVRF_handler(vher *handler.VrfHandler) {
+func (bcr *BlockChainReactor) SetVRFhandler(vher *handler.VrfHandler) {
 	bcr.vh = vher
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE && nil != privateKey {
 		if nil != bcr.vh {
 			bcr.vh.SetPrivateKey(privateKey)
 		}
 		plugin.SlashInstance().SetPrivateKey(privateKey)
+		bcr.NodeId = discover.PubkeyID(&privateKey.PublicKey)
 	}
 }
 
@@ -360,7 +342,7 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 		return nil
 	}
 	if contract != nil {
-		if fcode, _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+		if fcode, _, _, err := plugin.VerifyTxData(input, contract.FnSigns()); nil != err {
 			return err
 		} else {
 			return contract.CheckGasPrice(tx.GasPrice(), fcode)

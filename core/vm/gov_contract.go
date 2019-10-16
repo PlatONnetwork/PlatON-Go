@@ -45,7 +45,7 @@ func (gc *GovContract) RequiredGas(input []byte) uint64 {
 }
 
 func (gc *GovContract) Run(input []byte) ([]byte, error) {
-	return exec_platon_contract(input, gc.FnSigns())
+	return execPlatonContract(input, gc.FnSigns())
 }
 
 func (gc *GovContract) FnSigns() map[uint16]interface{} {
@@ -334,6 +334,13 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		"blockHash", blockHash,
 		"proposalID", proposalID)
 
+	proposal, err := gov.GetProposal(proposalID, gc.Evm.StateDB)
+	if err != nil {
+		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
+	} else if proposal == nil {
+		return gc.callHandler("getAccuVerifiesCount", nil, gov.ProposalNotFound)
+	}
+
 	list, err := gov.ListAccuVerifier(blockHash, proposalID)
 	if err != nil {
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
@@ -341,7 +348,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 
 	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, gc.Evm.StateDB)
 	if err != nil {
-		return gc.callHandler("getAccuVerifiesCount", []uint16{uint16(0), uint16(0), uint16(0), uint16(0)}, common.InternalError.Wrap(err.Error()))
+		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
 
 	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}

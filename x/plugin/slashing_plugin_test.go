@@ -36,7 +36,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	return si, chain.StateDB
 }
 
-func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T, stateDb xcom.StateDB) {
+func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
 	stakingDB := staking.NewStakingDB()
 
 	sender := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
@@ -60,11 +60,9 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	nodeIdC := nodeIdArr[2]
 	addrC, _ := xutil.NodeId2Addr(nodeIdC)
 
-	var blsKey1 bls.SecretKey
-	blsKey1.SetByCSPRNG()
 	c1 := &staking.Candidate{
 		NodeId:             nodeIdA,
-		BlsPubKey:          *blsKey1.GetPublicKey(),
+		BlsPubKey:          *blsKey.GetPublicKey(),
 		StakingAddress:     sender,
 		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
@@ -196,6 +194,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, t *testing.T
 	setVerifierList(blockHash, epochArr)
 	setRoundValList(blockHash, preArr)
 	setRoundValList(blockHash, curArr)
+	stk.storeRoundValidatorAddrs(blockHash, 1, queue)
 	balance, ok := new(big.Int).SetString("9999999999999999999999999999999999999999999999999", 10)
 	if !ok {
 		panic("set balance fail")
@@ -217,7 +216,9 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, phash, common.ZeroHash); err != nil {
 		t.Fatal(err)
 	}
-	buildStakingData(common.ZeroHash, pri, t, stateDB)
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	buildStakingData(common.ZeroHash, pri, blsKey, t, stateDB)
 
 	phash = common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
 	if err := snapshotdb.Instance().Flush(phash, blockNumber); err != nil {
@@ -300,7 +301,13 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	buildStakingData(common.ZeroHash, nil, t, stateDB)
+	var nodeBlsKey bls.SecretKey
+	nodeBlsSkByte, err := hex.DecodeString("f91a76833f65af2fe971955fceb147fbf963d8b165942e957204d73944423a2c")
+	if nil != err {
+		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
+	}
+	nodeBlsKey.SetLittleEndian(nodeBlsSkByte)
+	buildStakingData(common.ZeroHash, crypto.HexMustToECDSA("4cb47bd14a95fa89e40303b56df2e152fd3ece3657db9c76b9f3beb1abd0c301"), nodeBlsKey, t, stateDB)
 	if err := snapshotdb.Instance().Flush(chash, blockNumber); nil != err {
 		t.Fatal(err)
 	}
@@ -313,41 +320,41 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	si.SetDecodeEvidenceFun(evidence.NewEvidence)
 	GovPluginInstance()
 	data := `{
-           "prepareA": {
-            "epoch": 1,
-            "viewNumber": 1,
-            "blockHash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
-            "blockNumber": 1,
-            "blockIndex": 1,
-            "validateNode": {
-             "index": 0,
-             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
-             "nodeId": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
-             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
-            },
-            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
-           },
-           "prepareB": {
-            "epoch": 1,
-            "viewNumber": 1,
-            "blockHash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
-            "blockNumber": 1,
-            "blockIndex": 1,
-            "validateNode": {
-             "index": 0,
-             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
-             "nodeId": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
-             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
-            },
-            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
-           }
-          }`
+	"prepareA": {
+		"epoch": 1,
+		"viewNumber": 1,
+		"blockHash": "0x74093e065b4ef5eefc6247e22917ac6ad5f38d9214f2217efd3615f8c69f6492",
+		"blockNumber": 1,
+		"blockIndex": 1,
+		"validateNode": {
+			"index": 0,
+			"address": "0xb8819949231dc7304c5906928751fd87ee489146",
+			"nodeId": "a7a369700eaac3ced34e58c5d44fc78e85d09f3c214c521e7371ffbe7bd678a649422b280aea99fe6af118b8f5aac2c76ed3d86534556fd204759f61ae9bfeda",
+			"blsPubKey": "3804db9244b172c1e5eb1ff52412bc42f0a8f1572aed04fa994d16fc1e2bafd4957dfc66269f89f8b7e6debbc5f1181902bcf20ea1d2737cac407d3e8e173e49e6eda171ee3be8f7576e3b77395bd059408eac4eb768d3057d083b3ed9287995"
+		},
+		"signature": "0x9d983b860cfa25356e624632808e4045fbddb4e57e497745c118e69c5ef4bbfda8afae2ad5daea94fa7979778106b48900000000000000000000000000000000"
+	},
+	"prepareB": {
+		"epoch": 1,
+		"viewNumber": 1,
+		"blockHash": "0xa50d1eb4746d685bf0277d70a7094d0278582ddaa68c354a05f45ffb78fa1a3b",
+		"blockNumber": 1,
+		"blockIndex": 1,
+		"validateNode": {
+			"index": 0,
+			"address": "0xb8819949231dc7304c5906928751fd87ee489146",
+			"nodeId": "a7a369700eaac3ced34e58c5d44fc78e85d09f3c214c521e7371ffbe7bd678a649422b280aea99fe6af118b8f5aac2c76ed3d86534556fd204759f61ae9bfeda",
+			"blsPubKey": "3804db9244b172c1e5eb1ff52412bc42f0a8f1572aed04fa994d16fc1e2bafd4957dfc66269f89f8b7e6debbc5f1181902bcf20ea1d2737cac407d3e8e173e49e6eda171ee3be8f7576e3b77395bd059408eac4eb768d3057d083b3ed9287995"
+		},
+		"signature": "0xc730346898c50361f705526dfb4bd8e3e8df8af7bfb152d9fd10e697433c29961859f0658c2dc68a32b2c3dd3841858700000000000000000000000000000000"
+	}
+}`
 	data2 := `{
            "prepareA": {
             "epoch": 1,
             "viewNumber": 1,
             "blockHash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
-            "blockNumber": 2,
+            "blockNumber": 1,
             "blockIndex": 1,
             "validateNode": {
              "index": 0,
@@ -361,7 +368,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
             "epoch": 1,
             "viewNumber": 1,
             "blockHash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
-            "blockNumber": 2,
+            "blockNumber": 1,
             "blockIndex": 1,
             "validateNode": {
              "index": 0,
@@ -411,13 +418,14 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
+	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, sender)
+	assert.NotNil(t, err)
 	if err := si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
 		t.Fatal(err)
 	}
-	if value, err := si.CheckDuplicateSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
+	if value, err := si.CheckDuplicateSign(common.HexToAddress("0xb8819949231dc7304c5906928751fd87ee489146"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
-
 	evidence2, err := si.DecodeEvidence(1, data2)
 	if nil != err {
 		t.Fatal(err)

@@ -73,35 +73,80 @@ func (s *snapshotDB) recover() error {
 	baseNum := s.current.BaseNum.Uint64()
 	highestNum := s.current.HighestNum.Uint64()
 	//read Journal
-	if blockchain == nil {
+
+	fileToRecover, fileToRemove := make([]fileDesc, 0), make([]fileDesc, 0)
+	if blockchain != nil {
 		for _, fd := range fds {
 			if baseNum < fd.Num && fd.Num <= highestNum {
-				block, err := s.getBlockFromJournal(fd)
-				if err != nil {
-					return err
+				if header := blockchain.GetHeaderByHash(fd.BlockHash); header == nil {
+					fileToRemove = append(fileToRemove, fd)
+				} else {
+					fileToRecover = append(fileToRecover, fd)
 				}
-				s.committed = append(s.committed, block)
-				logger.Debug("recover block ", "num", block.Number, "hash", block.BlockHash.String())
-				continue
-			}
-			if err := s.storage.Remove(fd); err != nil {
-				return err
+			} else {
+				fileToRemove = append(fileToRemove, fd)
 			}
 		}
 	} else {
 		for _, fd := range fds {
 			if baseNum < fd.Num && fd.Num <= highestNum {
-				if header := blockchain.GetHeaderByHash(fd.BlockHash); header != nil {
-					block, err := s.getBlockFromJournal(fd)
-					if err != nil {
-						return err
-					}
-					s.committed = append(s.committed, block)
-					logger.Debug("recover block with block chain", "num", block.Number, "hash", block.BlockHash.String())
-					continue
-				}
+				fileToRecover = append(fileToRecover, fd)
+			} else {
+				fileToRemove = append(fileToRemove, fd)
 			}
+		}
+	}
+	for _, fd := range fileToRemove {
+		logger.Info("recovering, removeing journal no need", "num", fd.Num)
+		if err := s.storage.Remove(fd); err != nil {
+			return err
+		}
+	}
+
+	var (
+		journalBroken      bool = false
+		lastNotBrokenBlock *blockData
+	)
+
+	for _, fd := range fileToRecover {
+		if journalBroken {
+			logger.Info("recovering, some block is broken,remove left", "num", fd.Num)
 			if err := s.storage.Remove(fd); err != nil {
+				return err
+			}
+			continue
+		}
+		block, err := s.getBlockFromJournal(fd)
+		if err != nil {
+			journalBroken = true
+			logger.Info("recovering, block is broken,remove it", "num", fd.Num, "err", err)
+			if err := s.storage.Remove(fd); err != nil {
+				return err
+			}
+			continue
+		}
+		s.committed = append(s.committed, block)
+		lastNotBrokenBlock = block
+		logger.Debug("recover block ", "num", block.Number, "hash", block.BlockHash.String())
+	}
+
+	if journalBroken {
+		base := big.NewInt(int64(baseNum))
+		if err := s.SetCurrent(lastNotBrokenBlock.BlockHash, *base, *lastNotBrokenBlock.Number); err != nil {
+			return err
+		}
+	} else {
+		if len(fileToRecover) > 0 {
+			base := big.NewInt(int64(baseNum))
+			block := fileToRecover[len(fileToRecover)-1]
+			highest := big.NewInt(int64(block.Num))
+			if err := s.SetCurrent(block.BlockHash, *base, *highest); err != nil {
+				return err
+			}
+		} else {
+			//no recover block,so set current highest and base the same
+			base := big.NewInt(int64(baseNum))
+			if err := s.SetCurrent(common.ZeroHash, *base, *base); err != nil {
 				return err
 			}
 		}
