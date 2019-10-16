@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -104,19 +106,17 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			for _, validator := range preRoundValArr {
 				nodeId := validator.NodeId
 				amount := result[nodeId]
-				if amount > xcom.PackAmountAbnormal() {
+				if amount > 0 {
 					continue
 				}
-				var slashType int
-				if amount == 0 {
-					slashType = staking.LowRatioDel
-				} else {
-					slashType = staking.LowRatio
-				}
-				slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+				slashType := staking.LowRatioDel
+				slashAmount := common.Big0
 				sumAmount := calcSumAmount(header.Number.Uint64(), validator)
-				if slashAmount.Cmp(sumAmount) > 0 {
-					slashAmount = sumAmount
+				if xcom.NumberOfBlockRewardForSlashing() > 0 {
+					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+					if slashAmount.Cmp(sumAmount) > 0 {
+						slashAmount = sumAmount
+					}
 				}
 				log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
 					"packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "sumAmount", sumAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
@@ -303,7 +303,8 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			return errNotValidator
 		}
 		sumAmount := calcSumAmount(blockNumber, candidate)
-		slashAmount := calcSlashAmount(sumAmount, xcom.DuplicateSignHighSlash())
+
+		slashAmount := calcSlashAmountFloat(sumAmount, xcom.DuplicateSignHighSlash())
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 
@@ -404,6 +405,18 @@ func calcSlashAmount(sumAmount *big.Int, rate uint32) *big.Int {
 	if sumAmount.Cmp(common.Big0) > 0 {
 		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
 		return amount.Div(amount, new(big.Int).SetUint64(100))
+	}
+	return new(big.Int).SetInt64(0)
+}
+
+func calcSlashAmountFloat(sumAmount *big.Int, rate float64) *big.Int {
+	if sumAmount.Cmp(common.Big0) > 0 && rate > 0 {
+		strAmount := decimal.NewFromBigInt(sumAmount, 0).Mul(decimal.NewFromFloat(rate)).Truncate(0).String()
+		amount, ok := new(big.Int).SetString(strAmount, 10)
+		if ok {
+			return amount
+		}
+		log.Error("Amount type conversion failed", "sumAmount", sumAmount, "calcAmount", strAmount, "rate", rate)
 	}
 	return new(big.Int).SetInt64(0)
 }

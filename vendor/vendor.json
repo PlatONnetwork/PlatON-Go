@@ -510,6 +510,12 @@
 			"revisionTime": "2016-06-18T19:32:21Z"
 		},
 		{
+			"checksumSHA1": "L0C5m24Kba1KQVRAUjTZAWaPNjI=",
+			"path": "github.com/shopspring/decimal",
+			"revision": "f1972eb1d1f519e2e5f4b51f2dea765e8c93a130",
+			"revisionTime": "2019-10-09T02:57:16Z"
+		},
+		{
 			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "890a5c3458b43e6104ff5da8dfa139d013d77544",
