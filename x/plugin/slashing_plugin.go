@@ -7,8 +7,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/shopspring/decimal"
-
 	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -304,7 +302,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		}
 		sumAmount := calcSumAmount(blockNumber, candidate)
 
-		slashAmount := calcSlashAmountFloat(sumAmount, xcom.DuplicateSignHighSlash())
+		slashAmount := calcSlashAmount(sumAmount, xcom.DuplicateSignHighSlash())
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
 
@@ -404,19 +402,7 @@ func calcSumAmount(blockNumber uint64, candidate *staking.Candidate) *big.Int {
 func calcSlashAmount(sumAmount *big.Int, rate uint32) *big.Int {
 	if sumAmount.Cmp(common.Big0) > 0 {
 		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
-		return amount.Div(amount, new(big.Int).SetUint64(100))
-	}
-	return new(big.Int).SetInt64(0)
-}
-
-func calcSlashAmountFloat(sumAmount *big.Int, rate float64) *big.Int {
-	if sumAmount.Cmp(common.Big0) > 0 && rate > 0 {
-		strAmount := decimal.NewFromBigInt(sumAmount, 0).Mul(decimal.NewFromFloat(rate)).Truncate(0).String()
-		amount, ok := new(big.Int).SetString(strAmount, 10)
-		if ok {
-			return amount
-		}
-		log.Error("Amount type conversion failed", "sumAmount", sumAmount, "calcAmount", strAmount, "rate", rate)
+		return amount.Div(amount, new(big.Int).SetUint64(10000))
 	}
 	return new(big.Int).SetInt64(0)
 }
