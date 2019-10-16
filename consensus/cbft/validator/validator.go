@@ -365,11 +365,6 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 				eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
 				log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
 			}
-		} else {
-			for _, nodeID := range vp.prevValidators.NodeList() {
-				eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
-				log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
-			}
 		}
 	}
 
