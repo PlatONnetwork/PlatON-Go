@@ -88,36 +88,6 @@ func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * CalcBlocksEachEpoch()
 }
 
-func IsElection(blockNumber uint64) bool {
-	tmp := blockNumber + xcom.ElectionDistance()
-	mod := tmp % ConsensusSize()
-	return mod == 0
-}
-
-func IsSwitch(blockNumber uint64) bool {
-	mod := blockNumber % ConsensusSize()
-	return mod == 0
-}
-
-// IsSettlementPeriod checks the block if it is the end of a epoch
-func IsSettlementPeriod(blockNumber uint64) bool {
-	size := CalcBlocksEachEpoch()
-	mod := blockNumber % uint64(size)
-	return mod == 0
-}
-
-func IsYearEnd(blockNumber uint64) bool {
-	size := CalcBlocksEachYear()
-	return blockNumber > 0 && blockNumber%size == 0
-}
-
-func IsSpecialBlock(blockNumber uint64) bool {
-	if IsElection(blockNumber) || IsSwitch(blockNumber) || IsSettlementPeriod(blockNumber) || IsYearEnd(blockNumber) {
-		return true
-	}
-	return false
-}
-
 // calculate the Epoch number by blockNumber
 func CalculateEpoch(blockNumber uint64) uint64 {
 	size := CalcBlocksEachEpoch()
@@ -215,16 +185,53 @@ func CalActiveBlock(endVotingBlock uint64) uint64 {
 	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
 }
 
+func IsSpecialBlock(blockNumber uint64) bool {
+	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) || IsBeginOfEpoch(blockNumber) || IsBeginOfConsensus(blockNumber) {
+		return true
+	}
+	return false
+}
+
+func IsYearBegin(blockNumber uint64) bool {
+	size := CalcBlocksEachYear()
+	mod := blockNumber % size
+	return mod == 1
+}
+
 // IsBeginOfEpoch returns true if current block is the first block of a Epoch
 func IsBeginOfEpoch(blockNumber uint64) bool {
 	size := CalcBlocksEachEpoch()
-	mod := blockNumber % uint64(size)
+	mod := blockNumber % size
 	return mod == 1
 }
 
 // IsBeginOfConsensus returns true if current block is the first block of a Consensus Cycle
 func IsBeginOfConsensus(blockNumber uint64) bool {
 	size := ConsensusSize()
-	mod := blockNumber % uint64(size)
+	mod := blockNumber % size
 	return mod == 1
+}
+
+func IsYearEnd(blockNumber uint64) bool {
+	size := CalcBlocksEachYear()
+	mod := blockNumber % size
+	return mod == 0
+}
+
+func IsEndOfEpoch(blockNumber uint64) bool {
+	size := CalcBlocksEachEpoch()
+	mod := blockNumber % size
+	return mod == 0
+}
+
+func IsEndOfConsensus(blockNumber uint64) bool {
+	size := ConsensusSize()
+	mod := blockNumber % size
+	return mod == 0
+}
+
+func IsElection(blockNumber uint64) bool {
+	tmp := blockNumber + xcom.ElectionDistance()
+	mod := tmp % ConsensusSize()
+	return mod == 0
 }
