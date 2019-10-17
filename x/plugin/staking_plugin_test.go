@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
@@ -188,17 +190,18 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	// build ancestor nonces
 	_, nonces := build_vrf_Nonce()
 	enValue, err := rlp.EncodeToBytes(nonces)
-	if nil != err {
-		t.Error("Failed to rlp vrf nonces", "err", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp vrf nonces: %v", err)) {
 		return
 	}
 
 	// new block
 	privateKey, err := crypto.GenerateKey()
-	if nil != err {
-		t.Errorf("Failed to generate random Address private key: %v", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 		return
 	}
+
 	nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	currentNumber := big.NewInt(1)
@@ -220,19 +223,16 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		privateKey, err := crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random NodeId private key: %v", err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random NodeId private key: %v", err)) {
 			return
 		}
 
 		nodeId := discover.PubkeyID(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random Address private key: %v", err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 			return
 		}
-
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 		var blsKey bls.SecretKey
@@ -345,8 +345,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	// round index
 	round_index, err := rlp.EncodeToBytes(roundIndexArr)
-	if nil != err {
-		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error: %v", err)) {
 		return
 	}
 	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
@@ -356,8 +355,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
-	if nil != err {
-		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
 	// Store Current Round validator
@@ -376,7 +374,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
-		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
+		return
 	}
 
 	/**
@@ -404,11 +403,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	fmt.Println("currentHash Election", currentHash.Hex())
-
 	err = StakingInstance().EndBlock(currentHash, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to EndBlock, blockNumber: %d, err: %v", currentNumber, err)) {
 		return
 	}
 
@@ -457,17 +453,13 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}
 	currentHash = header.Hash()
 
-	fmt.Println("currentHash ElectionNextList", currentHash.Hex())
 	if err := sndb.NewBlock(currentNumber, header.ParentHash, currentHash); nil != err {
 		t.Errorf("Failed to snapshotDB New Block, err: %v", err)
 		return
 	}
 
 	err = StakingInstance().EndBlock(currentHash, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)
-		return
-	}
+	assert.Nil(t, err, fmt.Sprintf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err))
 }
 
 func TestStakingPlugin_Confirmed(t *testing.T) {
@@ -493,17 +485,16 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	// build ancestor nonces
 	_, nonces := build_vrf_Nonce()
 	enValue, err := rlp.EncodeToBytes(nonces)
-	if nil != err {
-		t.Error("Failed to rlp vrf nonces", "err", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp vrf nonces: %v", err)) {
 		return
 	}
 
 	// new block
 	privateKey, err := crypto.GenerateKey()
-	if nil != err {
-		t.Errorf("Failed to generate random Address private key: %v", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 		return
 	}
+
 	nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	currentNumber := big.NewInt(1)
@@ -533,8 +524,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		nodeId := discover.PubkeyID(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
-		if nil != err {
-			t.Errorf("Failed to generate random Address private key: %v", err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
 			return
 		}
 
@@ -615,18 +605,17 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	// current epoch start and end indexs
 	epoch_index, err := rlp.EncodeToBytes(epochIndexArr)
-	if nil != err {
-		t.Errorf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Store Epoch Validators start and end index: rlp encodeing failed. error: %v", err)) {
 		return
 	}
+
 	if err := sndb.PutBaseDB(staking.GetEpochIndexKey(), epoch_index); nil != err {
 		t.Errorf("Failed to Store Epoch Validators start and end index: PutBaseDB failed. error:%s", err.Error())
 		return
 	}
 
 	epochArr, err := rlp.EncodeToBytes(validatorQueue)
-	if nil != err {
-		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
 	// Store Epoch validators
@@ -649,10 +638,10 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	// round index
 	round_index, err := rlp.EncodeToBytes(roundIndexArr)
-	if nil != err {
-		t.Errorf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to Store Round Validators start and end indexs: rlp encodeing failed. error: %v", err)) {
 		return
 	}
+
 	if err := sndb.PutBaseDB(staking.GetRoundIndexKey(), round_index); nil != err {
 		t.Errorf("Failed to Store Round Validators start and end indexs: PutBaseDB failed. error:%s", err.Error())
 		return
@@ -660,8 +649,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
-	if nil != err {
-		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
 	// Store Current Round validator
@@ -680,7 +668,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
-		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
+		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
+		return
 	}
 
 	/**
@@ -708,11 +697,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	fmt.Println("currentHash Election", currentHash.Hex())
-
 	err = StakingInstance().EndBlock(currentHash, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to EndBlock, blockNumber: %d, err: %v", currentNumber, err)) {
 		return
 	}
 
@@ -727,15 +713,11 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	blockElection := types.NewBlock(header, nil, nil)
 
 	next, err := StakingInstance().getNextValList(blockElection.Hash(), blockElection.Number().Uint64(), QueryStartNotIrr)
-	if nil != err {
-		t.Errorf("Failed to getNextValList, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
-		return
-	}
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getNextValList, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err))
+
 	err = StakingInstance().Confirmed(next.Arr[0].NodeId, blockElection)
-	if nil != err {
-		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
-		return
-	}
+	assert.Nil(t, err, fmt.Sprintf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err))
 
 }
 
@@ -746,6 +728,7 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 		t.Error("Failed to build the state", err)
 		return
 	}
+
 	newPlugins()
 
 	build_gov_data(state)
@@ -763,10 +746,8 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 	/**
 	Start Create Staking
 	*/
-	if err := create_staking(state, blockNumber, blockHash, 1, 0, t); nil != err {
-		t.Error("Failed to Create Staking", err)
-	}
-
+	err = create_staking(state, blockNumber, blockHash, 1, 0, t)
+	assert.Nil(t, err, fmt.Sprintf("Failed to Create Staking: %v", err))
 }
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
@@ -806,15 +787,9 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	Start Get Candidate Info
 	*/
 	can, err := getCandidate(blockHash, index)
-
-	assert.True(t, nil == err)
-
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
-
 	t.Log("Get Candidate Info is:", can)
-
-	//canByte, _ := json.Marshal(can)
-	//t.Log("Get Candidate Info is:", string(canByte))
 
 }
 
@@ -859,11 +834,10 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
 	can, err := StakingInstance().GetCandidateInfoByIrr(addr)
-	assert.True(t, nil == err)
 
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateInfoByIrr: %v", err))
 	assert.True(t, nil != can)
-	canByte, _ := json.Marshal(can)
-	t.Log("Get Candidate Info is:", string(canByte))
+	t.Log("Get Candidate Info is:", can)
 
 }
 
@@ -907,8 +881,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	*/
 
 	queue, err := StakingInstance().GetCandidateList(blockHash, blockNumber.Uint64())
-	assert.True(t, nil == err)
-
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateList: %v", err))
 	assert.Equal(t, count, len(queue))
 	queueByte, _ := json.Marshal(queue)
 	t.Log("Get CandidateList Info is:", string(queueByte))
@@ -970,8 +943,8 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	c.ExternalId = "What is this ?"
 	c.Website = "www.baidu.com"
 	c.Details = "This is buidu website ?"
-	if err := StakingInstance().EditCandidate(blockHash2, blockNumber2, c); nil != err {
-		t.Error("Failed to EditCandidate", err)
+	err = StakingInstance().EditCandidate(blockHash2, blockNumber2, c)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to EditCandidate: %v", err)) {
 		return
 	}
 
@@ -981,14 +954,12 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	}
 
 	// get Candidate info after edit
-	if can, err := getCandidate(blockHash2, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		return
-	}
+	can, err := getCandidate(blockHash2, index)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
+
 }
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
@@ -1043,8 +1014,9 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 	/**
 	Start IncreaseStaking
 	*/
-	if err := StakingInstance().IncreaseStaking(state, blockHash2, blockNumber2, common.Big256, uint16(0), c); nil != err {
-		t.Error("Failed to IncreaseStaking", err)
+	err = StakingInstance().IncreaseStaking(state, blockHash2, blockNumber2, common.Big256, uint16(0), c)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to IncreaseStaking: %v", err)) {
 		return
 	}
 
@@ -1055,15 +1027,11 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 	// get Candidate info
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-	if can, err := StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
-		//if can, err := StakingInstance().GetCandidateInfo(blockHash2, addr); nil != err {
-		t.Error("Failed to Get Candidate info After Increase", err)
-	} else {
+	can, err := StakingInstance().GetCandidateInfoByIrr(addr)
 
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info After Increase is:", string(canByte))
-		c = can
-	}
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 }
 
@@ -1100,16 +1068,14 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		return
 	}
 
-	var c *staking.Candidate
 	// Get Candidate Info
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	can, err := getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1119,8 +1085,9 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 	/**
 	Start WithdrewStaking
 	*/
-	if err := StakingInstance().WithdrewStaking(state, blockHash2, blockNumber2, c); nil != err {
-		t.Error("Failed to WithdrewStaking", err)
+	err = StakingInstance().WithdrewStaking(state, blockHash2, blockNumber2, can)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewStaking: %v", err)) {
 		return
 	}
 
@@ -1180,13 +1147,13 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// Get Candidate Info
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	can, err := getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -1197,12 +1164,10 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	Start HandleUnCandidateItem
 	*/
 	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.UnStakeFreezeRatio())
-	if nil != err {
-		t.Error("Failed to HandleUnCandidateItem:", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to HandleUnCandidateItem: %v", err)) {
 		return
 	}
-
-	t.Log("Finish HandleUnCandidateItem ~~")
 
 	// get Candidate info
 	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
@@ -1248,16 +1213,14 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		return
 	}
 
-	var c *staking.Candidate
 	// Get Candidate Info
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	can, err := getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1267,7 +1230,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	/**
 	Start Delegate
 	*/
-	_, err = delegate(state, blockHash2, blockNumber2, c, 0, index, t)
+	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, t)
 	if nil != err {
 		t.Error("Failed to Delegate:", err)
 		return
@@ -1278,14 +1241,11 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	}
 	t.Log("Finish Delegate ~~")
-	if can, err := getCandidate(blockHash2, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		return
-	}
+	can, err = getCandidate(blockHash2, index)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 }
 
@@ -1316,21 +1276,18 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		return
 	}
 
-	var c *staking.Candidate
 	// Get Candidate Info
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	can, err := getCandidate(blockHash, index)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	// Delegate
-	del, err := delegate(state, blockHash, blockNumber, c, 0, index, t)
-	if nil != err {
-		t.Error("Failed to Delegate:", err)
+	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
 	}
 
@@ -1340,13 +1297,13 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	}
 
 	t.Log("Finish delegate ~~")
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	can, err = getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1358,8 +1315,8 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	*/
 	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, common.Big257, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del)
-	if nil != err {
-		t.Error("Failed to WithdrewDelegate:", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
 		return
 	}
 
@@ -1367,14 +1324,11 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		t.Error("Commit 2 err", err)
 	}
 	t.Log("Finish WithdrewDelegate ~~")
-	if can, err := getCandidate(blockHash2, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
-		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		return
-	}
+	can, err = getCandidate(blockHash2, index)
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 }
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
@@ -1411,16 +1365,13 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 	t.Log("Finish delegate ~~")
 
-	var c *staking.Candidate
+	can, err := getCandidate(blockHash, index)
 
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1428,9 +1379,9 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 	}
 
 	// Delegate
-	_, err = delegate(state, blockHash2, blockNumber2, c, 0, index, t)
-	if nil != err {
-		t.Error("Failed to Delegate:", err)
+	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, t)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
 	}
 
@@ -1441,7 +1392,9 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 	t.Log("Finished Delegate ~~")
 	// get Delegate info
-	getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+	del := getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+	assert.True(t, nil != del)
+	t.Log("Get Delegate Info is:", del)
 }
 
 func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
@@ -1477,15 +1430,13 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 		return
 	}
 
-	var c *staking.Candidate
-	if can, err := getCandidate(blockHash, index); nil != err {
-		t.Errorf("Failed to Get candidate info, err: %v", err)
+	can, err := getCandidate(blockHash, index)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err)) {
 		return
-	} else {
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
 	}
+	assert.True(t, nil != can)
+	t.Log("Get Candidate Info is:", can)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
@@ -1494,9 +1445,9 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
 	t.Log("Start delegate ~~")
 	// Delegate
-	_, err = delegate(state, blockHash2, blockNumber2, c, 0, index, t)
-	if nil != err {
-		t.Error("Failed to Delegate:", err)
+	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, t)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
 	}
 
@@ -1515,8 +1466,9 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 		return
 	}
 
-	delByte, _ := json.Marshal(del)
-	t.Log("Get Delegate is:", string(delByte))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetDelegateInfoByIrr: %v", err))
+	assert.True(t, nil != del)
+	t.Log("Get Delegate Info is:", del)
 
 }
 
@@ -1567,9 +1519,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
 			return
 		}
-
-		//t.Log("First: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
-
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
@@ -1601,9 +1550,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
 			return
 		}
-
-		//t.Log("Second: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
-
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
@@ -1616,13 +1562,10 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	Start get RelatedList
 	*/
 	rel, err := StakingInstance().GetRelatedListByDelAddr(blockHash2, addrArr[1+1])
-	if nil != err {
-		t.Error("Failed to GetRelatedListByDelAddr:", err)
-		return
-	}
 
-	relByte, _ := json.Marshal(rel)
-	t.Log("Get RelatedList is:", string(relByte))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetRelatedListByDelAddr: %v", err))
+	assert.True(t, nil != rel)
+	t.Log("Get RelateList Info is:", rel)
 }
 
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
@@ -1770,8 +1713,8 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	new_verifierArr.Arr = queue
 
 	err = setVerifierList(blockHash, new_verifierArr)
-	if nil != err {
-		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to VerifierList: %v", err)) {
 		return
 	}
 
@@ -1784,7 +1727,6 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		Start ElectNextVerifierList
 	*/
 	targetNum := xutil.EpochSize() * xutil.ConsensusSize()
-	fmt.Println("targetNum:", targetNum)
 
 	targetNumInt := big.NewInt(int64(targetNum))
 
@@ -1794,9 +1736,8 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	}
 
 	err = StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), state)
-	if nil != err {
-		t.Errorf("Failed to ElectNextVerifierList, err: %v", err)
-	}
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to ElectNextVerifierList: %v", err))
 
 }
 
@@ -1994,9 +1935,8 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}
 
 	err = StakingInstance().Election(blockHash2, header, state)
-	if nil != err {
-		t.Errorf("Failed to Election, err: %v", err)
-	}
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to Election: %v", err))
 
 }
 
@@ -2193,10 +2133,8 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slashItemQueue = append(slashItemQueue, slashItem2)
 
 	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slashItemQueue...)
-	if nil != err {
-		t.Errorf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err)
-		return
-	}
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err))
 
 }
 
@@ -2311,10 +2249,8 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	*/
 	for i, can := range queue {
 		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
-		if nil != err {
-			t.Errorf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err)
-			return
-		}
+
+		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
 
 }
@@ -2407,8 +2343,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+		if !assert.Nil(t, err, fmt.Sprintf("Failed to Create Staking, num: %d, err: %v", i, err)) {
 			return
 		}
 
@@ -2441,10 +2376,16 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	}
 
 	t.Log("Store Curr Epoch VerifierList", "len", len(epoch_Arr.Arr))
-	setVerifierList(blockHash, epoch_Arr)
+	if err := setVerifierList(blockHash, epoch_Arr); nil != err {
+		log.Error("Failed to setVerifierList", err)
+		return
+	}
 
 	t.Log("Store CuRR Round Validator", "len", len(epoch_Arr.Arr))
-	setRoundValList(blockHash, curr_Arr)
+	if err := setRoundValList(blockHash, curr_Arr); nil != err {
+		log.Error("Failed to setVerifierList", err)
+		return
+	}
 
 	// Commit Block 1
 	if err := sndb.Commit(blockHash); nil != err {
@@ -2461,9 +2402,8 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	Start ProposalPassedNotify
 	*/
 	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
-	if nil != err {
-		t.Errorf("Failed to ProposalPassedNotify, err: %v", err)
-	}
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
@@ -2720,11 +2660,11 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	t.Log("GetCandidateONEpoch by QueryStartNotIrr:", string(canArr))
 
 	canQueue, err = StakingInstance().GetCandidateONEpoch(currentHash, currentNumber.Uint64(), QueryStartIrr)
-	if nil != err {
-		t.Errorf("Failed to GetCandidateONEpoch by QueryStartIrr, err: %v", err)
-	}
-	canArr, _ = json.Marshal(canQueue)
-	t.Log("GetCandidateONEpoch by QueryStartIrr:", string(canArr))
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateONEpoch by QueryStartIrr, err: %v", err))
+
+	assert.True(t, 0 != len(canQueue))
+	t.Log("GetCandidateONEpoch by QueryStartIrr:", canQueue)
 }
 
 func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
@@ -2981,12 +2921,11 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	t.Log("GetCandidateONRound by QueryStartNotIrr:", string(canArr))
 
 	canQueue, err = StakingInstance().GetCandidateONRound(currentHash, currentNumber.Uint64(), CurrentRound, QueryStartIrr)
-	if nil != err {
-		t.Errorf("Failed to GetCandidateONRound by QueryStartIrr, err: %v", err)
-		return
-	}
-	canArr, _ = json.Marshal(canQueue)
-	t.Log("GetCandidateONRound by QueryStartIrr:", string(canArr))
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateONRound by QueryStartIrr, err: %v", err))
+
+	assert.True(t, 0 != len(canQueue))
+	t.Log("GetCandidateONRound by QueryStartIrr:", canQueue)
 
 }
 
@@ -3229,8 +3168,6 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start GetValidatorList CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start  GetValidatorList
 	*/
@@ -3248,10 +3185,10 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		t.Errorf("Failed to GetValidatorList by QueryStartIrr, err: %v", err)
 		return
 	}
-	validatorExArr, _ = json.Marshal(validatorExQueue)
-	t.Log("GetValidatorList by QueryStartIrr:", string(validatorExArr))
 
-	t.Log("validatorList[0]", validatorExQueue[0])
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetValidatorList by QueryStartIrr, err: %v", err))
+	assert.True(t, 0 != len(validatorExQueue))
+	t.Log("GetValidatorList by QueryStartIrr:", validatorExQueue)
 
 }
 
@@ -3494,8 +3431,6 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start GetVerifierLIst CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start GetVerifierList
 	*/
@@ -3509,12 +3444,10 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	t.Log("GetVerifierList by QueryStartNotIrr:", string(validatorExArr))
 
 	validatorExQueue, err = StakingInstance().GetVerifierList(currentHash, currentNumber.Uint64(), QueryStartIrr)
-	if nil != err {
-		t.Errorf("Failed to GetVerifierList by QueryStartIrr, err: %v", err)
-		return
-	}
-	validatorExArr, _ = json.Marshal(validatorExQueue)
-	t.Log("GetVerifierList by QueryStartIrr:", string(validatorExArr))
+
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetVerifierList by QueryStartIrr, err: %v", err))
+	assert.True(t, 0 != len(validatorExQueue))
+	t.Log("GetVerifierList by QueryStartIrr:", validatorExQueue)
 
 }
 
@@ -3757,19 +3690,14 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start ListCurrentValidatorID CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start  ListCurrentValidatorID
 	*/
 	validatorIdQueue, err := StakingInstance().ListCurrentValidatorID(currentHash, currentNumber.Uint64())
-	if nil != err {
-		t.Errorf("Failed to ListCurrentValidatorID, err: %v", err)
-		return
-	}
 
-	validatorIdArr, _ := json.Marshal(validatorIdQueue)
-	t.Log("ListCurrentValidatorID:", string(validatorIdArr))
+	assert.Nil(t, err, fmt.Sprintf("Failed to ListCurrentValidatorID, err: %v", err))
+	assert.True(t, 0 != len(validatorIdQueue))
+	t.Log("ListCurrentValidatorID:", validatorIdQueue)
 
 }
 
@@ -4012,19 +3940,14 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start ListVerifierNodeId CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start  ListVerifierNodeID
 	*/
 	validatorIdQueue, err := StakingInstance().ListVerifierNodeID(currentHash, currentNumber.Uint64())
-	if nil != err {
-		t.Errorf("Failed to ListVerifierNodeID, err: %v", err)
-		return
-	}
 
-	validatorIdArr, _ := json.Marshal(validatorIdQueue)
-	t.Log("ListVerifierNodeID:", string(validatorIdArr))
+	assert.Nil(t, err, fmt.Sprintf("Failed to ListVerifierNodeID, err: %v", err))
+	assert.True(t, 0 != len(validatorIdQueue))
+	t.Log("ListVerifierNodeID:", validatorIdQueue)
 }
 
 func TestStakingPlugin_IsCandidate(t *testing.T) {
@@ -4386,8 +4309,6 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start IsCurrValidator CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start  IsCurrValidator
 	*/
@@ -4643,7 +4564,6 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start IsCurrVerifier CurrBlockHash", currentHash.Hex())
 	/**
 	Start  IsCurrVerifier
 	*/
@@ -4899,14 +4819,14 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start GetLastNumber CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start  GetLastNumber
 	*/
 	endNumber := StakingInstance().GetLastNumber(currentNumber.Uint64())
 
-	t.Log("GetLastNumber the endNumber is:", endNumber)
+	round := xutil.CalculateRound(currentNumber.Uint64())
+	blockNum := round * xutil.ConsensusSize()
+	assert.True(t, endNumber == blockNum, fmt.Sprintf("currentNumber: %d, currentRound: %d endNumber: %d, targetNumber: %d", currentNumber, round, endNumber, blockNum))
 
 }
 
@@ -5149,18 +5069,14 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start GetValidator CurrBlockHash", currentHash.Hex())
-
 	/**
 	Start  GetValidator
 	*/
 	valArr, err := StakingInstance().GetValidator(currentNumber.Uint64())
-	if nil != err {
-		t.Errorf("Failed to GetValidator, err: %v", err)
-	}
 
-	arrJson, _ := json.Marshal(valArr)
-	t.Log("GetValidator the validators is:", string(arrJson))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetValidator, err: %v", err))
+	assert.True(t, nil != valArr)
+	t.Log("GetValidator the validators is:", valArr)
 
 }
 
@@ -5403,7 +5319,6 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Start IsCandidateNode CurrBlockHash", currentHash.Hex())
 	/**
 	Start  IsCandidateNode
 	*/
