@@ -3,8 +3,8 @@ package staking
 import "github.com/PlatONnetwork/PlatON-Go/common"
 
 var (
-	ErrWrongBlsPubKey            = common.NewBizError(301000, "The bls public key is wrong")
-	ErrWrongBlsPubKeyProof       = common.NewBizError(301001, "The bls proof is wrong")
+	ErrWrongBlsPubKey            = common.NewBizError(301000, "Wrong bls public key")
+	ErrWrongBlsPubKeyProof       = common.NewBizError(301001, "Wrong bls public key proof")
 	ErrDescriptionLen            = common.NewBizError(301002, "The Description length is wrong")
 	ErrWrongProgramVersionSign   = common.NewBizError(301003, "The program version sign is wrong")
 	ErrProgramVersionTooLow      = common.NewBizError(301004, "The program version of the relates node's is too low")
