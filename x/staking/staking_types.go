@@ -914,7 +914,7 @@ type DelRelatedQueue = []*DelegateRelated
 
 type UnStakeItem struct {
 	// this is the nodeAddress
-	KeySuffix       []byte
+	NodeAddress     common.Address
 	StakingBlockNum uint64
 }
 
@@ -932,10 +932,6 @@ type ValArrIndex struct {
 type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
-
-	//xcom.PrintObject("Call ConstantAppend, queue", queue)
-	//xcom.PrintObject("Call ConstantAppend, index", index)
-	//log.Debug("Call ConstantAppend", "size", size)
 
 	queue = append(queue, index)
 	if size < len(queue) {

@@ -40,24 +40,21 @@ type stakingConfig struct {
 }
 
 type slashingConfig struct {
-	PackAmountAbnormal             uint32 // The number of blocks packed per round, reaching this value is abnormal
-	DuplicateSignHighSlashing      uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum
+	DuplicateSignHighSlashing      uint32 // Proportion of fines when double signing occurs
 	DuplicateSignReportReward      uint32 // The percentage of rewards for whistleblowers, calculated from the penalty
 	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
 	EvidenceValidEpoch             uint32 // Validity period of evidence (unit is  epochs)
 }
 
 type governanceConfig struct {
-	VersionProposalVote_DurationSeconds uint64 // max Consensus-Round counts for version proposal's vote duration.
-	//VersionProposalVote_ConsensusRounds   uint64  // max Consensus-Round counts for version proposal's vote duration.
+	VersionProposalVote_DurationSeconds   uint64  // max Consensus-Round counts for version proposal's vote duration.
 	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
 	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
 	TextProposalVote_DurationSeconds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	//TextProposalVote_ConsensusRounds      uint64  // default Consensus-Round counts for text proposal's vote duration.
-	TextProposal_VoteRate      float64 // the text proposal will pass if the vote rate exceeds this value.
-	TextProposal_SupportRate   float64 // the text proposal will pass if the vote support reaches this value.
-	CancelProposal_VoteRate    float64 // the cancel proposal will pass if the vote rate exceeds this value.
-	CancelProposal_SupportRate float64 // the cancel proposal will pass if the vote support reaches this value.
+	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
+	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
+	CancelProposal_VoteRate               float64 // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
@@ -98,12 +95,8 @@ func GetEc(netId int8) *EconomicModel {
 }
 
 const (
-	DefaultMainNet      = iota // PlatON default main net flag
-	DefaultAlphaTestNet        // PlatON default Alpha test net flag
-	DefaultBetaTestNet         // PlatON default Beta test net flag
-	DefaultInnerTestNet        // PlatON default inner test net flag
-	DefaultInnerDevNet         // PlatON default inner development net flag
-	DefaultDeveloperNet        // PlatON default developer net flag
+	DefaultMainNet = iota // PlatON default main net flag
+	DefaultTestNet        // PlatON default test net flag
 )
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
@@ -111,37 +104,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		ok                    bool
 		stakeThresholdCount   string
 		minimumThresholdCount string
-		platONFundCount       string
+		cdfundCount           string
 		stakeThreshold        *big.Int
 		minimumThreshold      *big.Int
-		platONFundBalance     *big.Int
+		cdfundBalance         *big.Int
 	)
 
 	switch netId {
 	case DefaultMainNet:
-		stakeThresholdCount = "5000000000000000000000000" // 500W von
-		minimumThresholdCount = "10000000000000000000"    // 10 von
-		platONFundCount = "2000000000000000000000000000"  // 20 billion von
-	case DefaultAlphaTestNet:
-		stakeThresholdCount = "5000000000000000000000000"
+		stakeThresholdCount = "1000000000000000000000000" // 100W LAT
+		minimumThresholdCount = "10000000000000000000"    // 10 LAT
+		cdfundCount = "331811981000000000000000000"       // 3.31811981  thousand millions LAT
+	case DefaultTestNet:
+		stakeThresholdCount = "1000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
-	case DefaultBetaTestNet:
-		stakeThresholdCount = "5000000000000000000000000"
+		cdfundCount = "331811981000000000000000000"
+	default: // DefaultTestNet
+		stakeThresholdCount = "1000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
-	case DefaultInnerTestNet:
-		stakeThresholdCount = "5000000000000000000000000"
-		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
-	case DefaultInnerDevNet:
-		stakeThresholdCount = "5000000000000000000000000"
-		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
-	default: // DefaultDeveloperNet
-		stakeThresholdCount = "5000000000000000000000000"
-		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
+		cdfundCount = "331811981000000000000000000"
 	}
 
 	if stakeThreshold, ok = new(big.Int).SetString(stakeThresholdCount, 10); !ok {
@@ -150,7 +131,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	if minimumThreshold, ok = new(big.Int).SetString(minimumThresholdCount, 10); !ok {
 		return nil
 	}
-	if platONFundBalance, ok = new(big.Int).SetString(platONFundCount, 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString(cdfundCount, 10); !ok {
 		return nil
 	}
 
@@ -173,23 +154,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:             uint32(6),
-				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignHighSlashing:      uint32(1000),
 				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(20),
+				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
-				//VersionProposalVote_ConsensusRounds:   uint64(2419),
+				VersionProposalVote_DurationSeconds:   uint64(14 * 24 * 3600),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
 				TextProposalVote_DurationSeconds:      uint64(14 * 24 * 3600),
-				//TextProposalVote_ConsensusRounds:      uint64(2419),
-				TextProposal_VoteRate:      float64(0.50),
-				TextProposal_SupportRate:   float64(0.667),
-				CancelProposal_VoteRate:    float64(0.50),
-				CancelProposal_SupportRate: float64(0.667),
+				TextProposal_VoteRate:                 float64(0.50),
+				TextProposal_SupportRate:              float64(0.667),
+				CancelProposal_VoteRate:               float64(0.50),
+				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -197,16 +175,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05"),
-				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"),
-				CDFBalance:        new(big.Int).SetInt64(0),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 
-	case DefaultAlphaTestNet:
+	case DefaultTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(3),  // 3 minutes
+				ExpectedMinutes:     uint64(6),  // 6 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
@@ -221,23 +199,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:             uint32(6),
-				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignHighSlashing:      uint32(1000),
 				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(20),
+				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(160),
-				//VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds:   uint64(160),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
 				TextProposalVote_DurationSeconds:      uint64(160),
-				//TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:      float64(0.50),
-				TextProposal_SupportRate:   float64(0.667),
-				CancelProposal_VoteRate:    float64(0.50),
-				CancelProposal_SupportRate: float64(0.667),
+				TextProposal_VoteRate:                 float64(0.50),
+				TextProposal_SupportRate:              float64(0.667),
+				CancelProposal_VoteRate:               float64(0.50),
+				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -245,9 +220,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        new(big.Int).SetInt64(0),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 
@@ -269,10 +244,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:             uint32(6),
-				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignHighSlashing:      uint32(1000),
 				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(20),
+				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
@@ -317,10 +291,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:             uint32(6),
-				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignHighSlashing:      uint32(1000),
 				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(20),
+				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
@@ -365,10 +338,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:             uint32(6),
-				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignHighSlashing:      uint32(1000),
 				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(20),
+				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
@@ -395,20 +367,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 		}
 
-	default: // DefaultDeveloperNet
-		// Default is inner develop net config
+
+	default: // DefaultTestNet
+		// Default is test net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				//ExpectedMinutes:     uint64(3),  // 3 minutes
-				//NodeBlockTimeWindow: uint64(10), // 10 seconds
-				//PerRoundBlocks:      uint64(10),
-				//ValidatorCount:      uint64(4),
-				//AdditionalCycleTime: uint64(28),
-				ExpectedMinutes:     uint64(10), // 3 minutes
-				NodeBlockTimeWindow: uint64(20), // 20 seconds
+				ExpectedMinutes:     uint64(3),  // 3 minutes
+				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
 				ValidatorCount:      uint64(4),
-				AdditionalCycleTime: uint64(40),
+				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:              stakeThreshold,
@@ -419,23 +387,20 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				PackAmountAbnormal:             uint32(6),
-				DuplicateSignHighSlashing:      uint32(100),
+				DuplicateSignHighSlashing:      uint32(1000),
 				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(20),
+				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(160),
-				//VersionProposalVote_ConsensusRounds:   uint64(4),
+				VersionProposalVote_DurationSeconds:   uint64(160),
 				VersionProposalActive_ConsensusRounds: uint64(5),
 				VersionProposal_SupportRate:           float64(0.667),
 				TextProposalVote_DurationSeconds:      uint64(160),
-				//TextProposalVote_ConsensusRounds:      uint64(4),
-				TextProposal_VoteRate:      float64(0.50),
-				TextProposal_SupportRate:   float64(0.667),
-				CancelProposal_VoteRate:    float64(0.50),
-				CancelProposal_SupportRate: float64(0.667),
+				TextProposal_VoteRate:                 float64(0.50),
+				TextProposal_SupportRate:              float64(0.667),
+				CancelProposal_VoteRate:               float64(0.50),
+				CancelProposal_SupportRate:            float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -443,9 +408,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        new(big.Int).SetInt64(0),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 	}
@@ -530,12 +495,8 @@ func CheckEconomicModel() error {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
-	if ec.Common.PerRoundBlocks <= uint64(ec.Slashing.PackAmountAbnormal) {
-		return errors.New("The PackAmountAbnormal must be less than to the PerRoundBlocks")
-	}
-
-	if 0 > ec.Slashing.DuplicateSignHighSlashing || 100 < ec.Slashing.DuplicateSignHighSlashing {
-		return errors.New("The DuplicateSignHighSlashing must be greater than or equal to 0 and less than or equal to 100")
+	if ec.Slashing.DuplicateSignHighSlashing < 0 || ec.Slashing.DuplicateSignHighSlashing > 10000 {
+		return errors.New("DuplicateSignHighSlashing must be a floating point value between 0 and 10000")
 	}
 
 	if 0 > ec.Slashing.DuplicateSignReportReward || 100 < ec.Slashing.DuplicateSignReportReward {
@@ -621,10 +582,6 @@ func ActiveUnDelFreezeRatio() uint64 {
 /******
  * Slashing config
  ******/
-func PackAmountAbnormal() uint32 {
-	return ec.Slashing.PackAmountAbnormal
-}
-
 func DuplicateSignHighSlash() uint32 {
 	return ec.Slashing.DuplicateSignHighSlashing
 }
@@ -656,7 +613,6 @@ func PlatONFoundationYear() uint32 {
  * Governance config
  ******/
 func VersionProposalVote_ConsensusRounds() uint64 {
-	//return ec.Gov.VersionProposalVote_ConsensusRounds
 	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 
@@ -669,7 +625,6 @@ func VersionProposal_SupportRate() float64 {
 }
 
 func TextProposalVote_ConsensusRounds() uint64 {
-	//return ec.Gov.TextProposalVote_ConsensusRounds
 	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
 }
 

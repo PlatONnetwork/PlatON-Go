@@ -70,7 +70,8 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(dupType consensus.Evidence
 
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// If it is the first block in each round, Delete old pack amount record.
-	if (header.Number.Uint64()%xutil.ConsensusSize() == 1) && header.Number.Uint64() > 1 {
+	// Do this from the second consensus round
+	if xutil.IsBeginOfConsensus(header.Number.Uint64()) && header.Number.Uint64() > 1 {
 		if err := sp.switchEpoch(header.Number.Uint64(), blockHash); nil != err {
 			log.Error("Failed to slashingPlugin switchEpoch fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
@@ -81,6 +82,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 		return err
 	}
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
+	// Do this from the second consensus round
 	if header.Number.Uint64() > xutil.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash",
 			blockHash.TerminalString(), "consensusSize", xutil.ConsensusSize(), "electionDistance", xcom.ElectionDistance())
@@ -91,7 +93,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to slashingPlugin GetPrePackAmount is nil", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("packAmount data not found")
 			}
-			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), PreviousRound, QueryStartIrr)
+			preRoundValArr, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), PreviousRound, QueryStartIrr)
 			if nil != err {
 				log.Error("Failed to slashingPlugin BeginBlock, call GetCandidateONRound is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return err
@@ -99,22 +101,20 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 			slashQueue := make(staking.SlashQueue, 0)
 
-			for _, validator := range validatorList {
+			for _, validator := range preRoundValArr {
 				nodeId := validator.NodeId
 				amount := result[nodeId]
-				if amount > xcom.PackAmountAbnormal() {
+				if amount > 0 {
 					continue
 				}
-				var slashType int
-				if amount == 0 {
-					slashType = staking.LowRatioDel
-				} else {
-					slashType = staking.LowRatio
-				}
-				slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+				slashType := staking.LowRatioDel
+				slashAmount := common.Big0
 				sumAmount := calcSumAmount(header.Number.Uint64(), validator)
-				if slashAmount.Cmp(sumAmount) > 0 {
-					slashAmount = sumAmount
+				if xcom.NumberOfBlockRewardForSlashing() > 0 {
+					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+					if slashAmount.Cmp(sumAmount) > 0 {
+						slashAmount = sumAmount
+					}
 				}
 				log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
 					"packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "sumAmount", sumAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
@@ -301,6 +301,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 			return errNotValidator
 		}
 		sumAmount := calcSumAmount(blockNumber, candidate)
+
 		slashAmount := calcSlashAmount(sumAmount, xcom.DuplicateSignHighSlash())
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
@@ -401,7 +402,7 @@ func calcSumAmount(blockNumber uint64, candidate *staking.Candidate) *big.Int {
 func calcSlashAmount(sumAmount *big.Int, rate uint32) *big.Int {
 	if sumAmount.Cmp(common.Big0) > 0 {
 		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
-		return amount.Div(amount, new(big.Int).SetUint64(100))
+		return amount.Div(amount, new(big.Int).SetUint64(10000))
 	}
 	return new(big.Int).SetInt64(0)
 }

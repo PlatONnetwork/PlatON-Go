@@ -96,15 +96,18 @@ func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
 // If the template starts with a newline, the newline is removed
 // before matching.
 func (tt *TestCmd) Expect(tplsource string) {
+
 	// Generate the expected output by running the template.
 	tpl := template.Must(template.New("").Funcs(tt.Func).Parse(tplsource))
 	wantbuf := new(bytes.Buffer)
 	if err := tpl.Execute(wantbuf, tt.Data); err != nil {
 		panic(err)
 	}
+
 	// Trim exactly one newline at the beginning. This makes tests look
 	// much nicer because all expect strings are at column 0.
 	want := bytes.TrimPrefix(wantbuf.Bytes(), []byte("\n"))
+
 	if err := tt.matchExactOutput(want); err != nil {
 		tt.Fatal(err)
 	}
@@ -112,6 +115,7 @@ func (tt *TestCmd) Expect(tplsource string) {
 }
 
 func (tt *TestCmd) matchExactOutput(want []byte) error {
+
 	buf := make([]byte, len(want))
 	n := 0
 	tt.withKillTimeout(func() { n, _ = io.ReadFull(tt.stdout, buf) })

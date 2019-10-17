@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -130,7 +131,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			{
 				input:  largePlans,
 				expect: errCountRestrictPlansInvalid,
-				des:    "must less than monthOfThreeYear",
+				des:    fmt.Sprintf("must less than %d", restrictTxPlanSize),
 			},
 			{
 				input:  largeMountPlans,
