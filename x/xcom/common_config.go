@@ -105,25 +105,25 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		ok                    bool
 		stakeThresholdCount   string
 		minimumThresholdCount string
-		platONFundCount       string
+		cdfundCount           string
 		stakeThreshold        *big.Int
 		minimumThreshold      *big.Int
-		platONFundBalance     *big.Int
+		cdfundBalance         *big.Int
 	)
 
 	switch netId {
 	case DefaultMainNet:
-		stakeThresholdCount = "5000000000000000000000000" // 500W LAT
+		stakeThresholdCount = "1000000000000000000000000" // 100W LAT
 		minimumThresholdCount = "10000000000000000000"    // 10 LAT
-		platONFundCount = "2000000000000000000000000000"  // 20 billion LAT
+		cdfundCount = "331811981000000000000000000"       // 3.31811981  thousand millions LAT
 	case DefaultTestNet:
-		stakeThresholdCount = "5000000000000000000000000"
+		stakeThresholdCount = "1000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
+		cdfundCount = "331811981000000000000000000"
 	default: // DefaultTestNet
-		stakeThresholdCount = "5000000000000000000000000"
+		stakeThresholdCount = "1000000000000000000000000"
 		minimumThresholdCount = "10000000000000000000"
-		platONFundCount = "2000000000000000000000000000"
+		cdfundCount = "331811981000000000000000000"
 	}
 
 	if stakeThreshold, ok = new(big.Int).SetString(stakeThresholdCount, 10); !ok {
@@ -132,7 +132,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	if minimumThreshold, ok = new(big.Int).SetString(minimumThresholdCount, 10); !ok {
 		return nil
 	}
-	if platONFundBalance, ok = new(big.Int).SetString(platONFundCount, 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString(cdfundCount, 10); !ok {
 		return nil
 	}
 
@@ -177,9 +177,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05"),
-				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"),
-				CDFBalance:        new(big.Int).SetInt64(0),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 
@@ -223,9 +223,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        new(big.Int).SetInt64(0),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 
@@ -270,9 +270,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			},
 			InnerAcc: innerAccount{
 				PlatONFundAccount: common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				PlatONFundBalance: new(big.Int).Set(platONFundBalance),
+				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0xc1f330b214668beac2e6418dd651b09c759a4bf5"),
-				CDFBalance:        new(big.Int).SetInt64(0),
+				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
 	}

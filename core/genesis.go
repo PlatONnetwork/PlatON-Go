@@ -381,8 +381,9 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 
+	// TODO this should change
 	generalAddr := common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
-	generalBalance, _ := new(big.Int).SetString("8050000000000000000000000000", 10)
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
@@ -403,11 +404,12 @@ func DefaultGenesisBlock() *Genesis {
 	return &genesis
 }
 
-// DefaultTestnetGenesisBlock returns the network genesis block.
+// DefaultTestnetGenesisBlock returns the PlatON test net genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
+	// TODO this should change
 	generalAddr := common.HexToAddress("0x9bbac0df99f269af1473fd384cb0970b95311001")
-	generalBalance, _ := new(big.Int).SetString("8050000000000000000000000000", 10)
+	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
@@ -421,7 +423,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
 		},
-		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
+		EconomicModel: xcom.GetEc(xcom.DefaultTestNet),
 	}
 	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
