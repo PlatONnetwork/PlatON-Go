@@ -144,7 +144,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(1000),
+				DuplicateSignHighSlashing:      uint32(10),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(27),
@@ -189,7 +189,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(1000),
+				DuplicateSignHighSlashing:      uint32(10),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
@@ -235,7 +235,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(1000),
+				DuplicateSignHighSlashing:      uint32(10),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
