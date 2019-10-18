@@ -313,8 +313,9 @@ func CheckEconomicModel() error {
 		return errors.New(fmt.Sprintf("The StakeThreshold must be greater than %s von", common.Big0.String()))
 	}
 
-	if ec.Staking.StakeThreshold.Cmp(MillionLAT) > 0 {
-		return errors.New(fmt.Sprintf("The StakeThreshold must be less than or equal to %s von", MillionLAT.String()))
+	// the StakeThreshold must be less than geneStakeAmount
+	if ec.Staking.StakeThreshold.Cmp(GeneStakingAmount) > 0 {
+		return errors.New(fmt.Sprintf("The StakeThreshold must be less than or equal to %s von", GeneStakingAmount.String()))
 	}
 
 	if ec.Staking.HesitateRatio < 1 {
