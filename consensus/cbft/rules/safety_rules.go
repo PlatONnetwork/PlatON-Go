@@ -154,8 +154,8 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 	}
 
 	doubtDuplicate := func() bool {
-		for i := 0; i < r.viewState.ViewBlockSize(); i++ {
-			local := r.viewState.ViewBlockByIndex(uint32(i))
+		for i := uint32(0); i <= r.viewState.MaxViewBlockIndex(); i++ {
+			local := r.viewState.ViewBlockByIndex(i)
 			if local != nil && local.NumberU64() == block.BlockNum() && local.Hash() != block.Block.Hash() {
 				return true
 			}
@@ -259,8 +259,8 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 	}
 
 	doubtDuplicate := func() bool {
-		for i := 0; i < r.viewState.ViewVoteSize(); i++ {
-			local := r.viewState.FindPrepareVote(uint32(i), vote.ValidatorIndex)
+		for i := uint32(0); i <= r.viewState.MaxViewVoteIndex(); i++ {
+			local := r.viewState.FindPrepareVote(i, vote.ValidatorIndex)
 			if local != nil && local.BlockNumber == vote.BlockNumber && local.BlockHash != vote.BlockHash {
 				return true
 			}

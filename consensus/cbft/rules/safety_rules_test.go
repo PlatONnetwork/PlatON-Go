@@ -159,7 +159,6 @@ func testBaseSafetyRulesPrepareBlockRules(t *testing.T, viewState *state.ViewSta
 		{newCommonError(diffPreIndexBlock), true, false, false, false, newPrepareBlock(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, nextIndex, nil), nil, nil},
 		{nil, false, false, false, false, newPrepareBlock(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), nextIndex, nil), nil, nil},
 	}
-	//invokePrepareBlockRules(t, rules, tests)
 	invokePrepareBlockRules(t, rules, tests)
 	// change the view
 	viewState.ResetView(Epoch, ViewNumber+1)
@@ -186,13 +185,13 @@ func testBaseSafetyRulesPrepareVoteRules(t *testing.T, viewState *state.ViewStat
 	}
 
 	qcBlock := viewState.HighestQCBlock()
-	pv := newPrepareVote(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, amount-1)
+	pv := newPrepareVote(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, amount-2)
 	viewState.AddPrepareVote(0, pv)
 
 	tests := []testCase{
 		{newCommonError(overVoteIndexLimit), true, false, false, false, nil, newPrepareVote(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, amount+1), nil},
 		{newFetchError(existVote), true, false, false, false, nil, pv, nil},
-		{newFetchError(noExistPrepare), false, false, false, true, nil, newPrepareVote(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, amount-2), nil},
+		{newFetchError(noExistPrepare), false, false, false, true, nil, newPrepareVote(Epoch, ViewNumber, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+2, amount-1), nil},
 		{newCommonError(viewNumberTooLow), true, false, false, false, nil, newPrepareVote(Epoch, ViewNumber-1, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, 0), nil},
 		{newCommonError(viewNumberTooHigh), false, true, false, false, nil, newPrepareVote(Epoch, ViewNumber+1, common.BytesToHash(utils.Rand32Bytes(32)), qcBlock.NumberU64()+1, 0), nil},
 		{newCommonError(alreadyQCBlock), true, false, false, false, nil, newPrepareVote(Epoch, ViewNumber, qcBlock.Hash(), qcBlock.NumberU64(), 0), nil},
