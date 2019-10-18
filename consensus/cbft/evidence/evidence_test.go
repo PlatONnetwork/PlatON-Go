@@ -114,6 +114,13 @@ func TestDuplicatePrepareBlockEvidence(t *testing.T) {
 
 	b2, _ := json.MarshalIndent(ed2, "", " ")
 	assert.Equal(t, b, b2)
+
+	// test NewEvidence
+	dp := evdata.DP[0]
+	dpSeri, _ := json.MarshalIndent(dp, "", " ")
+	pbEvidence, err := NewEvidence(DuplicatePrepareBlockType, string(dpSeri))
+	assert.Nil(t, err)
+	assert.Nil(t, pbEvidence.Validate())
 }
 
 func TestDuplicatePrepareVoteEvidence(t *testing.T) {
