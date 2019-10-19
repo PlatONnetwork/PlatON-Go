@@ -338,7 +338,7 @@ func CheckEconomicModel() error {
 		return errors.New("DuplicateSignHighSlashing must be a floating point value between 0 and 10000")
 	}
 
-	if ec.Slashing.DuplicateSignReportReward < 0 || 100 < ec.Slashing.DuplicateSignReportReward {
+	if ec.Slashing.DuplicateSignReportReward < 0 || ec.Slashing.DuplicateSignReportReward > 100 {
 		return errors.New("The DuplicateSignReportReward must be greater than or equal to 0 and less than or equal to 100")
 	}
 
