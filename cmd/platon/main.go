@@ -107,7 +107,6 @@ var (
 		utils.NodeKeyHexFlag,
 		utils.DeveloperPeriodFlag,
 		utils.TestnetFlag,
-		utils.InnerTimeFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
