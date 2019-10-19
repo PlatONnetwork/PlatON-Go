@@ -617,12 +617,14 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	}
 
 	cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
-	if len(header.Extra) < consensus.ExtraSeal {
+	if len(header.Extra) < consensus.ExtraSeal+int(params.MaximumExtraDataSize) {
 		cbft.log.Error("Verify header fail, missing signature", "number", header.Number, "hash", header.Hash)
+		return fmt.Errorf("verify header fail, missing signature, number:%d, hash:%s", header.Number.Uint64(), header.Hash().String())
 	}
 
 	if err := cbft.validatorPool.VerifyHeader(header); err != nil {
 		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "err", err)
+		return fmt.Errorf("verify header fail, number:%d, hash:%s, err:%s", header.Number.Uint64(), header.Hash().String(), err.Error())
 	}
 	return nil
 }
@@ -922,22 +924,15 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 // Status returns the status data of the consensus engine.
-func (cbft *Cbft) Status() string {
-	type Status struct {
-		Tree  *ctypes.BlockTree `json:"blockTree"`
-		State *cstate.ViewState `json:"state"`
-	}
-	status := make(chan string, 1)
+func (cbft *Cbft) Status() *Status {
+	status := make(chan *Status, 1)
 	cbft.asyncCallCh <- func() {
 		s := &Status{
-			Tree:  cbft.blockTree,
-			State: cbft.state,
+			Tree:      cbft.blockTree,
+			State:     cbft.state,
+			Validator: cbft.IsConsensusNode(),
 		}
-		if t, err := json.Marshal(s); err == nil {
-			status <- string(t)
-		} else {
-			status <- ""
-		}
+		status <- s
 	}
 	return <-status
 }

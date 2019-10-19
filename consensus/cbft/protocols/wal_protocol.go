@@ -80,8 +80,12 @@ func (c *ConfirmedViewChange) String() string {
 	if c == nil {
 		return ""
 	}
-	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]",
-		c.Epoch, c.ViewNumber, c.QC.BlockIndex, c.QC.BlockNumber, c.QC.BlockHash.String())
+	if c.QC != nil {
+		return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockIndex:%d, blockNumber:%d, blockHash:%s]",
+			c.Epoch, c.ViewNumber, c.QC.BlockIndex, c.QC.BlockNumber, c.QC.BlockHash.String())
+	}
+	return fmt.Sprintf("[epoch:%d, viewNumber:%d, blockNumber:%d, blockHash:%s]",
+		c.Epoch, c.ViewNumber, c.Block.NumberU64(), c.Block.Hash().String())
 }
 
 // SendViewChange indicates the viewChange sent by the local node.

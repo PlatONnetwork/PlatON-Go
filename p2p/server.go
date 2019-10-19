@@ -44,10 +44,9 @@ const (
 	defaultDialTimeout = 15 * time.Second
 
 	// Connectivity defaults.
-	maxActiveDialTasks         = 16
-	defaultMaxPendingPeers     = 50
-	defaultDialRatio           = 3
-	maxActiveNonconsensusPeers = 5
+	maxActiveDialTasks     = 16
+	defaultMaxPendingPeers = 50
+	defaultDialRatio       = 3
 
 	// Maximum time allowed for reading a complete message.
 	// This is effectively the amount of time a connection can be idle.
@@ -731,9 +730,8 @@ running:
 					p.rw.set(dynDialedConn, true)
 				}
 				srv.log.Debug("Remove consensus flag", "peer", n.ID, "consensus", srv.consensus)
-				if srv.nonConsensusConns(peers) > maxActiveNonconsensusPeers && len(peers) >= srv.MaxPeers && !p.rw.is(staticDialedConn|trustedConn) {
-					srv.log.Debug("Disconnect non-consensus node", "peer", n.ID, "flags", p.rw.flags, "peers", len(peers),
-						"non-consensus", srv.nonConsensusConns(peers), "consensus", srv.consensus)
+				if len(peers) > srv.MaxPeers && !p.rw.is(staticDialedConn|trustedConn) {
+					srv.log.Debug("Disconnect non-consensus node", "peer", n.ID, "flags", p.rw.flags, "peers", len(peers), "consensus", srv.consensus)
 					p.Disconnect(DiscRequested)
 				}
 			}
@@ -860,10 +858,10 @@ func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inbound
 
 func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
 	// Disconnect over limit non-consensus node.
-	if srv.consensus && len(peers) >= srv.MaxPeers && srv.nonConsensusConns(peers) > maxActiveNonconsensusPeers {
+	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) {
 		for _, p := range peers {
 			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
-				log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers), "non-consensus", srv.nonConsensusConns(peers))
+				log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
 				p.Disconnect(DiscRequested)
 				break
 			}
@@ -871,8 +869,6 @@ func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCo
 	}
 
 	switch {
-	case !c.is(trustedConn|staticDialedConn|consensusDialedConn) && srv.consensus && srv.nonConsensusConns(peers) >= maxActiveNonconsensusPeers:
-		return DiscTooManyPeers
 	case !c.is(trustedConn|staticDialedConn|consensusDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
 	case !c.is(trustedConn|consensusDialedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
@@ -899,16 +895,6 @@ func (srv *Server) maxDialedConns() int {
 		r = defaultDialRatio
 	}
 	return srv.MaxPeers / r
-}
-
-func (srv *Server) nonConsensusConns(peers map[discover.NodeID]*Peer) int {
-	var c int
-	for _, p := range peers {
-		if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
-			c += 1
-		}
-	}
-	return c
 }
 
 type tempError interface {

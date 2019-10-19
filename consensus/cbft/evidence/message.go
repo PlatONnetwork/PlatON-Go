@@ -21,17 +21,23 @@ type EvidencePrepare struct {
 	BlockHash    common.Hash      `json:"blockHash"`
 	BlockNumber  uint64           `json:"blockNumber"`
 	BlockIndex   uint32           `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
+	BlockData    []byte           `json:"blockData"`
 	ValidateNode *EvidenceNode    `json:"validateNode"`
 	Signature    ctypes.Signature `json:"signature"`
 }
 
 func NewEvidencePrepare(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode) (*EvidencePrepare, error) {
+	blockData, err := rlp.EncodeToBytes(pb.Block)
+	if err != nil {
+		return nil, err
+	}
 	return &EvidencePrepare{
 		Epoch:        pb.Epoch,
 		ViewNumber:   pb.ViewNumber,
 		BlockHash:    pb.Block.Hash(),
 		BlockNumber:  pb.Block.NumberU64(),
 		BlockIndex:   pb.BlockIndex,
+		BlockData:    crypto.Keccak256(blockData),
 		ValidateNode: NewEvidenceNode(node),
 		Signature:    pb.Signature,
 	}, nil
@@ -41,8 +47,7 @@ func (ep *EvidencePrepare) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		ep.Epoch,
 		ep.ViewNumber,
-		ep.BlockHash,
-		ep.BlockNumber,
+		ep.BlockData,
 		ep.BlockIndex,
 		ep.ValidateNode.Index,
 	})
