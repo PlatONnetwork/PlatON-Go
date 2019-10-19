@@ -21,7 +21,7 @@ type EvidencePrepare struct {
 	BlockHash    common.Hash      `json:"blockHash"`
 	BlockNumber  uint64           `json:"blockNumber"`
 	BlockIndex   uint32           `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
-	BlockData    []byte           `json:"blockData"`
+	BlockData    common.Hash      `json:"blockData"`
 	ValidateNode *EvidenceNode    `json:"validateNode"`
 	Signature    ctypes.Signature `json:"signature"`
 }
@@ -37,7 +37,7 @@ func NewEvidencePrepare(pb *protocols.PrepareBlock, node *cbfttypes.ValidateNode
 		BlockHash:    pb.Block.Hash(),
 		BlockNumber:  pb.Block.NumberU64(),
 		BlockIndex:   pb.BlockIndex,
-		BlockData:    crypto.Keccak256(blockData),
+		BlockData:    common.BytesToHash(crypto.Keccak256(blockData)),
 		ValidateNode: NewEvidenceNode(node),
 		Signature:    pb.Signature,
 	}, nil
