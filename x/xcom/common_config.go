@@ -330,7 +330,7 @@ func CheckEconomicModel() error {
 		return errors.New("The PlatONFoundationYear must be greater than or equal to 1")
 	}
 
-	if ec.Reward.NewBlockRate < 0 || 100 < ec.Reward.NewBlockRate {
+	if ec.Reward.NewBlockRate < 0 || ec.Reward.NewBlockRate > 100 {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
