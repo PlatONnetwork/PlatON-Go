@@ -313,8 +313,9 @@ func CheckEconomicModel() error {
 		return errors.New(fmt.Sprintf("The StakeThreshold must be greater than %s von", common.Big0.String()))
 	}
 
-	if ec.Staking.StakeThreshold.Cmp(MillionLAT) > 0 {
-		return errors.New(fmt.Sprintf("The StakeThreshold must be less than or equal to %s von", MillionLAT.String()))
+	// the StakeThreshold must be less than geneStakeAmount
+	if ec.Staking.StakeThreshold.Cmp(GeneStakingAmount) > 0 {
+		return errors.New(fmt.Sprintf("The StakeThreshold must be less than or equal to %s von", GeneStakingAmount.String()))
 	}
 
 	if ec.Staking.HesitateRatio < 1 {
@@ -329,7 +330,7 @@ func CheckEconomicModel() error {
 		return errors.New("The PlatONFoundationYear must be greater than or equal to 1")
 	}
 
-	if ec.Reward.NewBlockRate < 0 || 100 < ec.Reward.NewBlockRate {
+	if ec.Reward.NewBlockRate < 0 || ec.Reward.NewBlockRate > 100 {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
@@ -337,7 +338,7 @@ func CheckEconomicModel() error {
 		return errors.New("DuplicateSignHighSlashing must be a floating point value between 0 and 10000")
 	}
 
-	if ec.Slashing.DuplicateSignReportReward < 0 || 100 < ec.Slashing.DuplicateSignReportReward {
+	if ec.Slashing.DuplicateSignReportReward < 0 || ec.Slashing.DuplicateSignReportReward > 100 {
 		return errors.New("The DuplicateSignReportReward must be greater than or equal to 0 and less than or equal to 100")
 	}
 
