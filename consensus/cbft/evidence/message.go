@@ -47,6 +47,8 @@ func (ep *EvidencePrepare) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		ep.Epoch,
 		ep.ViewNumber,
+		ep.BlockHash,
+		ep.BlockNumber,
 		ep.BlockData,
 		ep.BlockIndex,
 		ep.ValidateNode.Index,

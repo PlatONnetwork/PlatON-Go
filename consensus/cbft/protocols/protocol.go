@@ -143,6 +143,8 @@ func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		pb.Epoch,
 		pb.ViewNumber,
+		pb.Block.Hash(),
+		pb.Block.NumberU64(),
 		crypto.Keccak256(blockData),
 		pb.BlockIndex,
 		pb.ProposalIndex,
