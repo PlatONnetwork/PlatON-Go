@@ -552,6 +552,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 				return nil, nil, errors.New("not find  current block")
 			}
 			if headers[0].Number.Uint64() != currentNumber || headers[0].Hash() != current.Hash() {
+				p.log.Error("retrieved hash chain is invalid", "current num", currentNumber, "remote current num", headers[0].Number.Uint64(), "current hash", current.Hash(), "remote current hash", headers[0].Hash())
 				return nil, nil, errInvalidChain
 			}
 			if headers[1] == nil {
@@ -581,14 +582,15 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-	if b, err := d.snapshotDB.BaseNum(); err != nil {
-		return nil, 0, errors.New("get snapshotdb baseNum fail")
-	} else {
-		if b.Uint64() != 0 {
-			d.snapshotDB.Clear()
-			d.snapshotDB = snapshotdb.Instance()
-		}
-	}
+	//if b, err := d.snapshotDB.BaseNum(); err != nil {
+	//	return nil, 0, errors.New("get snapshotdb baseNum fail")
+	//}
+	//else {
+	//	if b.Uint64() != 0 {
+	//		d.snapshotDB.Clear()
+	//		d.snapshotDB = snapshotdb.Instance()
+	//	}
+	//}
 	defer func() {
 		if err != nil {
 			d.snapshotDB.Clear()

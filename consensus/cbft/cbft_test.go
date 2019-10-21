@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"math/big"
 	"testing"
 	"time"
@@ -70,6 +71,70 @@ func TestBls(t *testing.T) {
 
 	pb := &protocols.PrepareVote{}
 	cbft.signMsgByBls(pb)
+	msg, _ := pb.CannibalizeBytes()
+	assert.Nil(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
+}
+
+func TestPrepareBlockBls(t *testing.T) {
+	bls.Init(bls.BLS12_381)
+	pk, sk := GenerateKeys(1)
+	owner := sk[0]
+	node := params.CbftNode{
+		Node:      *discover.NewNode(discover.PubkeyID(&pk[0].PublicKey), nil, 0, 0),
+		BlsPubKey: *sk[0].GetPublicKey(),
+	}
+	agency := validator.NewStaticAgency([]params.CbftNode{node})
+
+	cbft := &Cbft{
+		validatorPool: validator.NewValidatorPool(agency, 0, 0, node.Node.ID),
+		config: ctypes.Config{
+			Option: &ctypes.OptionsConfig{
+				BlsPriKey: owner,
+			},
+		},
+	}
+
+	header := &types.Header{
+		Number:      big.NewInt(int64(1)),
+		ParentHash:  common.BytesToHash(utils.Rand32Bytes(32)),
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
+		Root:        common.BytesToHash(utils.Rand32Bytes(32)),
+		Coinbase:    common.Address{},
+		GasLimit:    10000000000,
+	}
+
+	txs := make([]*types.Transaction, 0)
+	receipts := make([]*types.Receipt, 0)
+	for i := 0; i < 1000; i++ {
+		tx := types.NewTransaction(uint64(i), common.BytesToAddress(utils.Rand32Bytes(32)), big.NewInt(9000000000), 90000, big.NewInt(11111), []byte{0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x99})
+		txs = append(txs, tx)
+		receipt := &types.Receipt{
+			Status:            types.ReceiptStatusFailed,
+			CumulativeGasUsed: 1,
+			Logs: []*types.Log{
+				{Address: common.BytesToAddress([]byte{0x11})},
+				{Address: common.BytesToAddress([]byte{0x01, 0x11})},
+			},
+			TxHash:          common.BytesToHash([]byte{0x11, 0x11}),
+			ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
+			GasUsed:         111111,
+		}
+		receipts = append(receipts, receipt)
+	}
+
+	block := types.NewBlock(header, txs, receipts)
+	pb := &protocols.PrepareBlock{
+		Epoch:         100,
+		ViewNumber:    99,
+		Block:         block,
+		BlockIndex:    9,
+		ProposalIndex: 24,
+	}
+	tstart := time.Now()
+	cbft.signMsgByBls(pb)
+	t.Log("sign elapsed", "time", time.Since(tstart))
 	msg, _ := pb.CannibalizeBytes()
 	assert.Nil(t, cbft.validatorPool.Verify(0, 0, msg, pb.Sign()))
 }
@@ -252,7 +317,7 @@ func TestChangeView(t *testing.T) {
 
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 10; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 
@@ -566,7 +631,7 @@ func TestInsertChain(t *testing.T) {
 	parent := nodes[0].chain.Genesis()
 	hasQCBlock := make([]*types.Block, 0)
 	for i := 0; i < 10; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 

@@ -186,7 +186,7 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 	item_key := GetUnStakeItemKey(epoch, v)
 
 	unStakeItem := &UnStakeItem{
-		KeySuffix:       canAddr.Bytes(),
+		NodeAddress:     canAddr,
 		StakingBlockNum: stakeBlockNumber,
 	}
 

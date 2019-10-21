@@ -140,12 +140,8 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.CacheFlag,
-			utils.SyncModeFlag,
+			//	utils.SyncModeFlag,
 			utils.TestnetFlag,
-			utils.BetanetFlag,
-			utils.InnerTestnetFlag,
-			utils.InnerDevnetFlag,
-			utils.InnerTimeFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -437,10 +433,11 @@ func copyDb(ctx *cli.Context) error {
 	// Initialize a new chain for the running node to sync into
 	stack := makeFullNode(ctx)
 	chain, chainDb := utils.MakeChain(ctx, stack)
+	syncmode := downloader.FastSync
+	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
+	localSnapshotDB := snapshotdb.Instance()
 
-	syncmode := *utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	dl := downloader.New(syncmode, chainDb, snapshotdb.Instance(), new(event.TypeMux), chain, nil, nil)
-
+	dl := downloader.New(syncmode, chainDb, localSnapshotDB, new(event.TypeMux), chain, nil, nil)
 	// Create a source peer to satisfy downloader requests from
 	db, err := ethdb.NewLDBDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
 	if err != nil {
@@ -450,18 +447,18 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sdb, err := snapshotdb.Open(ctx.Args().Get(1))
+	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1))
 	if err != nil {
 		return err
 	}
-	peer := downloader.NewFakePeer("local", db, sdb, hc, dl)
+	peer := downloader.NewFakePeer("local", db, peerSnapshotDB, hc, dl)
 	if err = dl.RegisterPeer("local", 63, peer); err != nil {
 		return err
 	}
 	// Synchronise with the simulated peer
 	start := time.Now()
-
-	currentHeader := hc.CurrentHeader()
+	base, _ := peerSnapshotDB.BaseNum()
+	currentHeader := hc.GetHeaderByNumber(base.Uint64())
 	if err = dl.Synchronise("local", currentHeader.Hash(), currentHeader.Number, syncmode); err != nil {
 		return err
 	}
@@ -477,7 +474,7 @@ func copyDb(ctx *cli.Context) error {
 		utils.Fatalf("Compaction failed: %v", err)
 	}
 	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
-
+	localSnapshotDB.Close()
 	return nil
 }
 

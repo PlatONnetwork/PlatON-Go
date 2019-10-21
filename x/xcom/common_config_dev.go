@@ -2,8 +2,9 @@
 
 package xcom
 
-func init() {
+import "github.com/PlatONnetwork/PlatON-Go/log"
 
-	GetEc(DefaultDeveloperNet)
-	//GetEc(DefaultAlphaTestNet)
+func init() {
+	log.Info("Init ppos common config", "network name", "DefaultTestNet", "network value", DefaultTestNet)
+	GetEc(DefaultTestNet)
 }

@@ -119,8 +119,8 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "platon", "shh")
-	cfg.WSModules = append(cfg.WSModules, "platon", "shh")
+	cfg.HTTPModules = append(cfg.HTTPModules, "platon")
+	cfg.WSModules = append(cfg.WSModules, "platon")
 	cfg.IPCPath = "platon.ipc"
 	return cfg
 }
@@ -224,6 +224,7 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, gethConfig) {
 	stack, cfg := makeConfigNode(ctx)
+	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
 	utils.RegisterEthService(stack, &cfg.Eth)
 

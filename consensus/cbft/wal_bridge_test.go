@@ -38,7 +38,7 @@ func TestUpdateChainState(t *testing.T) {
 
 	parent := node.chain.Genesis()
 	for i := 0; i < 3; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, node)
 		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		node.engine.OnSeal(block, result, nil)
 
@@ -111,7 +111,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	node.engine.state.SetExecuting(1, true) // lockBlock
 
 	// base lock seal duplicate qc
-	block := NewBlock(lock.Hash(), lock.NumberU64()+1)
+	block := NewBlockWithSign(lock.Hash(), lock.NumberU64()+1, node)
 	assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 	node.engine.OnSeal(block, result, nil)
 
@@ -157,7 +157,7 @@ func TestRecordCbftMsg(t *testing.T) {
 	viewChangeQC := makeViewChangeQC(epoch, viewNumber, parent.NumberU64())
 	node.engine.bridge.ConfirmViewChange(epoch, viewNumber, parent, qc, viewChangeQC)
 	for i := 0; i < 10; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, node)
 		assert.True(t, node.engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		node.engine.OnSeal(block, result, nil)
 
@@ -238,7 +238,7 @@ func makePrepareQC(epoch, viewNumber uint64, parent *types.Block, blockIndex uin
 		Number:      big.NewInt(int64(parent.NumberU64() + 1)),
 		ParentHash:  parent.Hash(),
 		Time:        big.NewInt(time.Now().UnixNano()),
-		Extra:       make([]byte, 77),
+		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
 		Root:        common.BytesToHash(utils.Rand32Bytes(32)),
 	}

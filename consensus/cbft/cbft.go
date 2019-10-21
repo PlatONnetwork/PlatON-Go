@@ -209,9 +209,8 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 
 	//Initialize block tree
-	//block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
-	block := chain.CurrentBlock()
-
+	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+	//block := chain.CurrentBlock()
 	isGenesis := func() bool {
 		return block.NumberU64() == 0
 	}
@@ -286,6 +285,21 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	if !cbft.running() {
 		cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
+		return nil
+	}
+
+	invalidMsg := func(epoch, view uint64) bool {
+		if (epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()) ||
+			(epoch == cbft.state.Epoch() && view == cbft.state.ViewNumber()+1) ||
+			(epoch == cbft.state.Epoch()+1 && view == 0) {
+			return false
+		}
+		return true
+	}
+
+	cMsg := msg.Msg.(ctypes.ConsensusMsg)
+	if invalidMsg(cMsg.EpochNum(), cMsg.ViewNum()) {
+		cbft.log.Debug("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
 		return nil
 	}
 
@@ -457,7 +471,7 @@ func (cbft *Cbft) receiveLoop() {
 				// If the verification signature is abnormal,
 				// the peer node is added to the local blacklist
 				// and disconnected.
-				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID)
+				cbft.log.Error("Verify signature failed, will add to blacklist", "peerID", msg.PeerID, "err", err)
 				cbft.network.MarkBlacklist(msg.PeerID)
 				cbft.network.RemovePeer(msg.PeerID)
 			}
@@ -529,7 +543,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err, "peerMsgCh", len(cbft.peerMsgCh))
 	}
 	return err
 }
@@ -603,12 +617,14 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	}
 
 	cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
-	if len(header.Extra) < consensus.ExtraSeal {
+	if len(header.Extra) < consensus.ExtraSeal+int(params.MaximumExtraDataSize) {
 		cbft.log.Error("Verify header fail, missing signature", "number", header.Number, "hash", header.Hash)
+		return fmt.Errorf("verify header fail, missing signature, number:%d, hash:%s", header.Number.Uint64(), header.Hash().String())
 	}
 
 	if err := cbft.validatorPool.VerifyHeader(header); err != nil {
 		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "err", err)
+		return fmt.Errorf("verify header fail, number:%d, hash:%s, err:%s", header.Number.Uint64(), header.Hash().String(), err.Error())
 	}
 	return nil
 }
@@ -742,15 +758,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.state.SetExecuting(prepareBlock.BlockIndex, true)
-
-	cbft.network.Broadcast(prepareBlock)
-	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
-
 	if err := cbft.OnPrepareBlock("", prepareBlock); err != nil {
 		cbft.log.Error("Check Seal Block failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
 		cbft.state.SetExecuting(prepareBlock.BlockIndex-1, true)
 		return
 	}
+
+	// write sendPrepareBlock info to wal
+	if !cbft.isLoading() {
+		cbft.bridge.SendPrepareBlock(prepareBlock)
+	}
+	cbft.network.Broadcast(prepareBlock)
+	cbft.log.Info("Broadcast PrepareBlock", "prepareBlock", prepareBlock.String())
 
 	if err := cbft.signBlock(block.Hash(), block.NumberU64(), prepareBlock.BlockIndex); err != nil {
 		cbft.log.Error("Sign PrepareBlock failed", "err", err, "hash", block.Hash(), "number", block.NumberU64())
@@ -758,11 +777,6 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	cbft.txPool.Reset(block)
-
-	// write sendPrepareBlock info to wal
-	if !cbft.isLoading() {
-		cbft.bridge.SendPrepareBlock(prepareBlock)
-	}
 
 	cbft.findQCBlock()
 
@@ -910,22 +924,15 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 // Status returns the status data of the consensus engine.
-func (cbft *Cbft) Status() string {
-	type Status struct {
-		Tree  *ctypes.BlockTree `json:"blockTree"`
-		State *cstate.ViewState `json:"state"`
-	}
-	status := make(chan string, 1)
+func (cbft *Cbft) Status() *Status {
+	status := make(chan *Status, 1)
 	cbft.asyncCallCh <- func() {
 		s := &Status{
-			Tree:  cbft.blockTree,
-			State: cbft.state,
+			Tree:      cbft.blockTree,
+			State:     cbft.state,
+			Validator: cbft.IsConsensusNode(),
 		}
-		if t, err := json.Marshal(s); err == nil {
-			status <- string(t)
-		} else {
-			status <- ""
-		}
+		status <- s
 	}
 	return <-status
 }
@@ -1214,7 +1221,7 @@ func (cbft *Cbft) threshold(num int) int {
 func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumCert, lockBlock *types.Block, qcBlock *types.Block) {
 	extra, err := ctypes.EncodeExtra(byte(cbftVersion), commitQC)
 	if err != nil {
-		cbft.log.Error("Encode extra error", "nubmer", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
+		cbft.log.Error("Encode extra error", "number", commitBlock.Number(), "hash", commitBlock.Hash(), "cbftVersion", cbftVersion)
 		return
 	}
 
@@ -1232,8 +1239,9 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 		cbft.updateChainStateHook(qcState, lockState, commitState)
 	}
 	cbft.log.Info("CommitBlock, send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
+	cpy := types.NewBlockWithHeader(commitBlock.Header()).WithBody(commitBlock.Transactions(), commitBlock.ExtraData())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
-		Block:              commitBlock,
+		Block:              cpy,
 		ExtraData:          extra,
 		SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() { cbft.bridge.UpdateChainState(qcState, lockState, commitState) },

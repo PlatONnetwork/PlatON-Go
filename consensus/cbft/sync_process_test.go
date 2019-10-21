@@ -41,7 +41,7 @@ func TestFetch(t *testing.T) {
 	qcBlocks := &protocols.QCBlockList{}
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 3; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 		fetchBlock = block
@@ -51,7 +51,7 @@ func TestFetch(t *testing.T) {
 		case b := <-result:
 			assert.NotNil(t, b)
 			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 4; j++ {
+			for j := 1; j < 3; j++ {
 				msg := &protocols.PrepareVote{
 					Epoch:          nodes[0].engine.state.Epoch(),
 					ViewNumber:     nodes[0].engine.state.ViewNumber(),
@@ -126,7 +126,7 @@ func TestSyncBlock(t *testing.T) {
 	qcBlocks := &protocols.QCBlockList{}
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 3; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 		fetchBlock = block
@@ -136,7 +136,7 @@ func TestSyncBlock(t *testing.T) {
 		case b := <-result:
 			assert.NotNil(t, b)
 			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 4; j++ {
+			for j := 1; j < 3; j++ {
 				msg := &protocols.PrepareVote{
 					Epoch:          nodes[0].engine.state.Epoch(),
 					ViewNumber:     nodes[0].engine.state.ViewNumber(),

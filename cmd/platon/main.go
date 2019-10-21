@@ -105,11 +105,8 @@ var (
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
+		utils.DeveloperPeriodFlag,
 		utils.TestnetFlag,
-		utils.BetanetFlag,
-		utils.InnerTestnetFlag,
-		utils.InnerDevnetFlag,
-		utils.InnerTimeFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
@@ -178,8 +175,8 @@ func init() {
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
-		importCommand,
-		exportCommand,
+		//importCommand,
+		//exportCommand,
 		importPreimagesCommand,
 		exportPreimagesCommand,
 		copydbCommand,

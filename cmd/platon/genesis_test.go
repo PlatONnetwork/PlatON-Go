@@ -61,25 +61,24 @@ var customGenesisTests = []struct {
             "AdditionalCycleTime":16
         },
         "Staking":{
-            "StakeThreshold":               5000000000000000000000000,
+            "StakeThreshold":               1000000000000000000000000,
             "MinimumThreshold":             10000000000000000000,
             "EpochValidatorNum":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2,
-            "ActiveUnDelegateFreezeRatio":  0
+            "UnStakeFreezeRatio":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "PackAmountHighAbnormal":  2,
-           "PackAmountLowSlashRate":  10,
-           "PackAmountHighSlashRate":  50,
-           "DuplicateSignHighSlashing": 100
+           "DuplicateSignHighSlashing": 100,
+           "DuplicateSignReportReward": 50,
+           "NumberOfBlockRewardForSlashing":20, 
+           "EvidenceValidEpoch":1
         },
         "Gov": {
-            "VersionProposalVote_ConsensusRounds": 4,
+            "VersionProposalVote_DurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
             "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_ConsensusRounds": 4,
+            "TextProposalVote_DurationSeconds": 160,
             "TextProposal_VoteRate": 0.5,
             "TextProposal_SupportRate": 0.667,          
             "CancelProposal_VoteRate": 0.50,
@@ -88,6 +87,12 @@ var customGenesisTests = []struct {
         "Reward":{
             "NewBlockRate": 50,
             "PlatONFoundationYear": 10 
+        },
+        "InnerAcc":{
+            "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "PlatONFundBalance": 0,
+            "CDFAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "CDFBalance": 331811981000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -147,25 +152,24 @@ var customGenesisTests = []struct {
             "AdditionalCycleTime":16
         },
         "Staking":{
-            "StakeThreshold":               5000000000000000000000000,
+            "StakeThreshold":               1000000000000000000000000,
             "MinimumThreshold":             10000000000000000000,
             "EpochValidatorNum":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2,
-            "ActiveUnDelegateFreezeRatio":  0
+            "UnStakeFreezeRatio":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "PackAmountHighAbnormal":  2,
-           "PackAmountLowSlashRate":  10,
-           "PackAmountHighSlashRate":  50,
-           "DuplicateSignHighSlashing": 100
+           "DuplicateSignHighSlashing": 100,
+           "DuplicateSignReportReward": 50,
+           "NumberOfBlockRewardForSlashing":20, 
+           "EvidenceValidEpoch":1
         },
         "Gov": {
-            "VersionProposalVote_ConsensusRounds": 4,
+            "VersionProposalVote_DurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
             "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_ConsensusRounds": 4,
+            "TextProposalVote_DurationSeconds": 160,
             "TextProposal_VoteRate": 0.5,
             "TextProposal_SupportRate": 0.667,          
             "CancelProposal_VoteRate": 0.50,
@@ -174,6 +178,12 @@ var customGenesisTests = []struct {
         "Reward":{
             "NewBlockRate": 50,
             "PlatONFoundationYear": 10 
+        },
+        "InnerAcc":{
+            "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "PlatONFundBalance": 0,
+            "CDFAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "CDFBalance": 331811981000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -233,25 +243,24 @@ var customGenesisTests = []struct {
             "AdditionalCycleTime":16
         },
         "Staking":{
-            "StakeThreshold":               5000000000000000000000000,
+            "StakeThreshold":               1000000000000000000000000,
             "MinimumThreshold":             10000000000000000000,
             "EpochValidatorNum":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2,
-            "ActiveUnDelegateFreezeRatio":  0
+            "UnStakeFreezeRatio":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "PackAmountHighAbnormal":  2,
-           "PackAmountLowSlashRate":  10,
-           "PackAmountHighSlashRate":  50,
-           "DuplicateSignHighSlashing": 100
+           "DuplicateSignHighSlashing": 100,
+           "DuplicateSignReportReward": 50,
+           "NumberOfBlockRewardForSlashing":20, 
+           "EvidenceValidEpoch":1
         },
         "Gov": {
-            "VersionProposalVote_ConsensusRounds": 4,
+            "VersionProposalVote_DurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
             "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_ConsensusRounds": 4,
+            "TextProposalVote_DurationSeconds": 160,
             "TextProposal_VoteRate": 0.5,
             "TextProposal_SupportRate": 0.667,          
             "CancelProposal_VoteRate": 0.50,
@@ -260,6 +269,12 @@ var customGenesisTests = []struct {
         "Reward":{
             "NewBlockRate": 50,
             "PlatONFoundationYear": 10 
+        },
+        "InnerAcc":{
+            "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "PlatONFundBalance": 0,
+            "CDFAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "CDFBalance": 331811981000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",

@@ -27,7 +27,7 @@ import (
 // Tests that the node iterator indeed walks over the entire database contents.
 func TestNodeIteratorCoverage(t *testing.T) {
 	// Create some arbitrary test state to iterate
-	db, root, _ := makeTestState()
+	db, root, _, valueKeys := makeTestState()
 
 	state, err := New(root, db)
 	if err != nil {
@@ -48,7 +48,9 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	}
 	for _, hash := range db.TrieDB().Nodes() {
 		if _, ok := hashes[hash]; !ok {
-			t.Errorf("state entry not reported %x", hash)
+			if _, ok := valueKeys[hash]; !ok {
+				t.Errorf("state entry not reported %x", hash)
+			}
 		}
 	}
 	for _, key := range db.TrieDB().DiskDB().(*ethdb.MemDatabase).Keys() {

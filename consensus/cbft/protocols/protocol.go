@@ -136,11 +136,16 @@ func (pb *PrepareBlock) NodeIndex() uint32 {
 }
 
 func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
+	blockData, err := rlp.EncodeToBytes(pb.Block)
+	if err != nil {
+		return nil, err
+	}
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		pb.Epoch,
 		pb.ViewNumber,
 		pb.Block.Hash(),
 		pb.Block.NumberU64(),
+		crypto.Keccak256(blockData),
 		pb.BlockIndex,
 		pb.ProposalIndex,
 	})
@@ -432,8 +437,8 @@ type BlockQuorumCert struct {
 }
 
 func (s *BlockQuorumCert) String() string {
-	return fmt.Sprintf("{ViewNumber:%d,Hash:%s,Number:%d}",
-		s.BlockQC.ViewNumber, s.BlockQC.BlockHash.TerminalString(), s.BlockQC.BlockNumber)
+	return fmt.Sprintf("{Epoch:%d,ViewNumber:%d,BlockIndex:%d,Hash:%s,Number:%d}",
+		s.BlockQC.Epoch, s.BlockQC.ViewNumber, s.BlockQC.BlockIndex, s.BlockQC.BlockHash.TerminalString(), s.BlockQC.BlockNumber)
 }
 
 func (s *BlockQuorumCert) MsgHash() common.Hash {
