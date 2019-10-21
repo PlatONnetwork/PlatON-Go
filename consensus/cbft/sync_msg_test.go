@@ -30,7 +30,7 @@ type SyncMsgTestSuite struct {
 
 func (suit *SyncMsgTestSuite) SetupTest() {
 	suit.view = newTestView(false, testNodeNumber)
-	suit.blockOne = NewBlock(suit.view.genesisBlock.Hash(), 1)
+	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
 	suit.epoch = suit.view.Epoch()
@@ -254,7 +254,7 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertErr() {
 
 // 要一个块
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith1() {
-	suit.view.setBlockQC(5)
+	suit.view.setBlockQC(5, suit.view.allNode[0])
 	lockBlock := suit.view.firstProposer().state.HighestLockBlock()
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   lockBlock.Hash(),
@@ -276,7 +276,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith1() {
 
 // 要两个块
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith2() {
-	suit.view.setBlockQC(5)
+	suit.view.setBlockQC(5, suit.view.allNode[0])
 	commitBlock := suit.view.firstProposer().state.HighestCommitBlock()
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   commitBlock.Hash(),
@@ -298,7 +298,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith2() {
 
 // 要三个块
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith3() {
-	suit.view.setBlockQC(3)
+	suit.view.setBlockQC(3, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.genesisBlock.Hash(),
 		BlockNumber: suit.view.genesisBlock.NumberU64(),
@@ -319,7 +319,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith3() {
 
 // 要四个块
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListTooLow() {
-	suit.view.setBlockQC(5)
+	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.genesisBlock.Hash(),
 		BlockNumber: suit.view.genesisBlock.NumberU64(),
@@ -334,7 +334,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListTooLow() {
 
 // 要0个块
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListEqual() {
-	suit.view.setBlockQC(5)
+	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		BlockNumber: suit.view.firstProposer().state.HighestQCBlock().NumberU64(),
@@ -349,7 +349,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListEqual() {
 
 // number与hash不匹配的
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListDifNumber() {
-	suit.view.setBlockQC(5)
+	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		BlockNumber: suit.view.firstProposer().state.HighestQCBlock().NumberU64() + 1,

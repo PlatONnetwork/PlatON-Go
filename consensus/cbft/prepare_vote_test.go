@@ -31,7 +31,7 @@ type PrepareVoteTestSuite struct {
 
 func (suit *PrepareVoteTestSuite) SetupTest() {
 	suit.view = newTestView(false, testNodeNumber)
-	suit.blockOne = NewBlock(suit.view.genesisBlock.Hash(), 1)
+	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
 	suit.epoch = suit.view.Epoch()
@@ -60,16 +60,16 @@ func (suit *PrepareVoteTestSuite) waitVote() {
 // 收到区块，生成对应的投票
 // 校验块高与块哈希一致
 func (suit *PrepareVoteTestSuite) TestBuildPrepareVote() {
-	suit.view.setBlockQC(10)
-	block11 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
+	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
 	block11QC := mockBlockQC(suit.view.allNode, block11, 0, oldQC)
 	// suit.view.firstProposer().insertQCBlock(block11, block11QC.BlockQC)
 	insertBlock(suit.view.firstProposer(), block11, block11QC.BlockQC)
-	block12 := NewBlock(block11.Hash(), 12)
+	block12 := NewBlockWithSign(block11.Hash(), 12, suit.view.allNode[1])
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
-		suit.view.secondProposerIndex(), block12, block11QC.BlockQC, nil)
+		suit.view.secondProposerIndex(), block12, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
 		suit.T().Fatal(err.Error())
 	}
@@ -151,9 +151,9 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsZeroButNotParentQC(
 // 校验不通过
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroButNotParentQC() {
 	suit.insertOneBlock()
-	block2 := NewBlock(suit.blockOne.Hash(), 2)
+	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
-		suit.view.firstProposerIndex(), block2, suit.blockOneQC.BlockQC, nil)
+		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock); err != nil {
 		suit.T().Fatal(err.Error())
 	}
@@ -169,9 +169,9 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroButNotParent
 // 父区块非零但blockIndex為0的不携带ParentQC的prepareVote消息
 // 校验不通过
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroAndBlockIndexNotParentQC() {
-	suit.view.setBlockQC(10)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
 	n, h := suit.view.firstProposer().HighestQCBlockBn()
-	block1 := NewBlock(h, n+1)
+	block1 := NewBlockWithSign(h, n+1, suit.view.allNode[1])
 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(h, n)
 	fmt.Println(qc.String())
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
@@ -191,7 +191,7 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroAndBlockInde
 // blockNumber=1,qc偽造的消息
 // 校验不通过
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithBlockNumberIsOneAndErrParentQC() {
-	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	block1 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
 	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), block1, nil, nil)
@@ -220,8 +220,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithNotPrepareBlock() {
 // 区块超出一轮出块数限制的prepareVote消息
 // 校验不通过
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithExceedLimit() {
-	suit.view.setBlockQC(10)
-	block11 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 21)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
+	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 21, suit.view.allNode[1])
 	n, h := suit.view.firstProposer().HighestQCBlockBn()
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(h, n)
 	prepareVote := mockPrepareVote(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 10,
@@ -263,7 +263,7 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteDu() {
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.secondProposer().state.AddPrepareBlock(prepareBlock)
-	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	block1 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	prepareVote1 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), nil)
@@ -321,7 +321,7 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotParentQC() {
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().NodeID().String(), prepareBlock1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	block2 := NewBlock(suit.blockOne.Hash(), 2)
+	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	prepareBlock2 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
 		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err != nil {
@@ -343,7 +343,7 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentErrParentQC() {
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock1); err != nil {
 		suit.T().Fatal("FAIL")
 	}
-	block2 := NewBlock(suit.blockOne.Hash(), 2)
+	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	prepareBlock2 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
 		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err != nil {
@@ -362,21 +362,21 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentErrParentQC() {
 // 达成prepareQC时，存在子区块prepareVote
 // 校验通过，发送子区块的投票
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCHasChild() {
-	suit.view.setBlockQC(10)
-	block11 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
+	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
 	block11QC := mockBlockQC(suit.view.allNode, block11, 0, oldQC)
 	// suit.view.firstProposer().insertQCBlock(block11, block11QC.BlockQC)
 	insertBlock(suit.view.firstProposer(), block11, block11QC.BlockQC)
-	block12 := NewBlock(block11.Hash(), 12)
+	block12 := NewBlockWithSign(block11.Hash(), 12, suit.view.allNode[1])
 	prepareBlock12 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
 		suit.view.secondProposerIndex(), block12, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock12); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	block12QC := mockBlockQC(suit.view.allNode, block12, 1, block11QC.BlockQC)
-	block13 := NewBlock(block12.Hash(), 13)
+	block13 := NewBlockWithSign(block12.Hash(), 13, suit.view.allNode[1])
 	prepareBlock13 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 2,
 		suit.view.secondProposerIndex(), block13, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock13); err != nil {
@@ -392,8 +392,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCHasChild() {
 // 达成prepareQC时，不存在子区块prepareVote
 // 校验commit和lock
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCNotHasChild() {
-	suit.view.setBlockQC(5)
-	block6 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 6)
+	suit.view.setBlockQC(5, suit.view.allNode[0])
+	block6 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 6, suit.view.allNode[0])
 	qc := mockBlockQC(suit.view.allNode, block6, 0, nil)
 	suit.view.secondProposer().insertQCBlock(block6, qc.BlockQC)
 	commitNumber, _ := suit.view.secondProposer().HighestCommitBlockBn()

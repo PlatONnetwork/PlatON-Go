@@ -129,7 +129,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
 	suit.createEvPool(paths)
-	suit.view.setBlockQC(10)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),
@@ -175,7 +175,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifViewNumber() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
 	suit.createEvPool(paths)
-	suit.view.setBlockQC(10)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),
@@ -211,7 +211,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifEpoch() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
 	suit.createEvPool(paths)
-	suit.view.setBlockQC(10)
+	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),

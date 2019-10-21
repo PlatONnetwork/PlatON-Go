@@ -30,7 +30,7 @@ type VerifyQCTestSuite struct {
 
 func (suit *VerifyQCTestSuite) SetupTest() {
 	suit.view = newTestView(false, testNodeNumber)
-	suit.blockOne = NewBlock(suit.view.genesisBlock.Hash(), 1)
+	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
 	suit.epoch = suit.view.Epoch()

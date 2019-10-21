@@ -164,11 +164,11 @@ func (tv *testView) Epoch() uint64 {
 	return tv.firstCbft.state.Epoch()
 }
 
-func (tv *testView) setBlockQC(number int) {
+func (tv *testView) setBlockQC(number int, node *TestCBFT) {
 	proposerNode := tv.currentProposer(tv.firstCbft)
 	block := proposerNode.state.HighestQCBlock()
 	if block.NumberU64() == 0 {
-		b := NewBlock(block.Hash(), 1)
+		b := NewBlockWithSign(block.Hash(), 1, node)
 		newBlockQC := mockBlockQC(tv.allNode, b, proposerNode.state.NextViewBlockIndex(), nil)
 		for _, cbft := range tv.allCbft {
 			insertBlock(cbft, b, newBlockQC.BlockQC)
@@ -192,7 +192,7 @@ func (tv *testView) setBlockQC(number int) {
 	blockHash := block.Hash()
 	blockNumber := block.NumberU64()
 	for i := uint64(1); i <= uint64(number); i++ {
-		b := NewBlock(blockHash, blockNumber+1)
+		b := NewBlockWithSign(blockHash, blockNumber+1, node)
 		newBlockQC := mockBlockQC(tv.allNode, b, proposerNode.state.NextViewBlockIndex(), qc)
 		qc = &ctypes.QuorumCert{
 			Epoch:        newBlockQC.BlockQC.Epoch,

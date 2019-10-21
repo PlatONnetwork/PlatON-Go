@@ -44,7 +44,7 @@ func (suit *ViewChangeTestSuite) createEvPool(paths []string) {
 
 func (suit *ViewChangeTestSuite) SetupTest() {
 	suit.view = newTestView(false, testNodeNumber)
-	suit.blockOne = NewBlock(suit.view.genesisBlock.Hash(), 1)
+	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstCbft.state.ViewNumber()
 }
@@ -173,10 +173,10 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckZero() {
 // blockNumber为零的prepareQC不为空的viewChange消息
 // 校验通过，ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeCheckZeroPrepareQCNotNil() {
-	suit.view.setBlockQC(9)
+	suit.view.setBlockQC(9, suit.view.allNode[0])
 	_, h := suit.view.firstProposer().HighestQCBlockBn()
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
-	block := NewBlock(h, 12)
+	block := NewBlockWithSign(h, 12, suit.view.allNode[1])
 	errQC := mockErrBlockQC(notConsensusNodes, block, 8, nil)
 	errViewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		h, 0, suit.view.firstProposerIndex(), errQC.BlockQC)
@@ -188,7 +188,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckZeroPrepareQCNotNil() {
 // Block领先本地HighestQCBlock的viewChange消息
 // 校验通过，ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeLeadHighestQCBlock() {
-	block2 := NewBlock(suit.blockOne.Hash(), 2)
+	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
 	suit.insertOneBlock()
 	suit.view.firstProposer().insertQCBlock(block2, block2QC.BlockQC)
@@ -203,7 +203,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeLeadHighestQCBlock() {
 // Block落后本地HighestQCBlock的viewChange消息
 // 校验通过，ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeBehindHighestQCBlock() {
-	block2 := NewBlock(suit.blockOne.Hash(), 2)
+	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
 	suit.insertOneBlock()
 	suit.view.secondProposer().insertQCBlock(block2, block2QC.BlockQC)
