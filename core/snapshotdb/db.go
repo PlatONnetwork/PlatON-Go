@@ -74,6 +74,9 @@ func (s *snapshotDB) recover() error {
 	highestNum := s.current.HighestNum.Uint64()
 	//read Journal
 
+	if fds[0].Num > baseNum+1 {
+		return fmt.Errorf("wal is not enough,want recover  from %v,have %v", baseNum+1, fds[0].Num)
+	}
 	fileToRecover, fileToRemove := make([]fileDesc, 0), make([]fileDesc, 0)
 	if blockchain != nil {
 		for _, fd := range fds {
