@@ -23,6 +23,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
+const (
+	HundredDenominator     = 100
+	TenThousandDenominator = 10000
+)
+
 var (
 	// The prefix key of the number of blocks packed in the recording node
 	packAmountPrefix = []byte("nodePackAmount")
@@ -109,7 +114,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 				slashType := staking.LowRatioDel
 				slashAmount := common.Big0
-				sumAmount := calcSumAmount(header.Number.Uint64(), validator)
+				sumAmount := calcCanTotalBalance(header.Number.Uint64(), validator)
 				if xcom.NumberOfBlockRewardForSlashing() > 0 {
 					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
 					if slashAmount.Cmp(sumAmount) > 0 {
@@ -300,13 +305,13 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 				"evidenceBlockNumber", evidence.BlockNumber(), "addr", evidence.Address().Hex())
 			return errNotValidator
 		}
-		sumAmount := calcSumAmount(blockNumber, candidate)
+		totalBalance := calcCanTotalBalance(blockNumber, candidate)
+		slashAmount := calcAmountByRate(totalBalance, uint64(xcom.DuplicateSignHighSlash()), TenThousandDenominator)
 
-		slashAmount := calcSlashAmount(sumAmount, xcom.DuplicateSignHighSlash())
 		log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-			"nodeId", candidate.NodeId.String(), "sumAmount", sumAmount, "rate", xcom.DuplicateSignHighSlash(), "slashAmount", slashAmount, "reporter", caller.Hex())
+			"nodeId", candidate.NodeId.TerminalString(), "totalBalance", totalBalance, "rate", xcom.DuplicateSignHighSlash()/TenThousandDenominator, "slashAmount", slashAmount, "reporter", caller.Hex())
 
-		toCallerAmount := calcSlashAmount(slashAmount, xcom.DuplicateSignReportReward())
+		toCallerAmount := calcAmountByRate(slashAmount, uint64(xcom.DuplicateSignReportReward()), HundredDenominator)
 		toCallerItem := &staking.SlashNodeItem{
 			NodeId:      candidate.NodeId,
 			Amount:      toCallerAmount,
@@ -324,7 +329,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 
 		if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, toCallerItem, toRewardPoolItem); nil != err {
 			log.Error("slashing failed SlashCandidates failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-				"nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
+				"nodeId", candidate.NodeId.TerminalString(), "err", err)
 			return errSlashingFail
 		}
 		sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), evidence.Type(), stateDB)
@@ -393,16 +398,16 @@ func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	}
 }
 
-func calcSumAmount(blockNumber uint64, candidate *staking.Candidate) *big.Int {
+func calcCanTotalBalance(blockNumber uint64, candidate *staking.Candidate) *big.Int {
 	// Recalculate the quality deposit
 	lazyCalcStakeAmount(xutil.CalculateEpoch(blockNumber), candidate)
 	return new(big.Int).Add(candidate.Released, candidate.RestrictingPlan)
 }
 
-func calcSlashAmount(sumAmount *big.Int, rate uint32) *big.Int {
-	if sumAmount.Cmp(common.Big0) > 0 {
-		amount := new(big.Int).Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
-		return amount.Div(amount, new(big.Int).SetUint64(10000))
+func calcAmountByRate(balance *big.Int, numerator, denominator uint64) *big.Int {
+	if balance.Cmp(common.Big0) > 0 {
+		amount := new(big.Int).Mul(balance, new(big.Int).SetUint64(numerator))
+		return amount.Div(amount, new(big.Int).SetUint64(denominator))
 	}
 	return new(big.Int).SetInt64(0)
 }

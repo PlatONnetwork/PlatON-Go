@@ -152,12 +152,7 @@ var (
 		Value: DirectoryString{homeDir()},
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
-	InnerTimeFlag   = cli.Uint64Flag{
-		Name:  "innertime",
-		Usage: "inner time",
-		Value: 1546300800000,
-	}
-	SyncModeFlag = TextMarshalerFlag{
+	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
@@ -1153,11 +1148,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
-	}
-
-	// TODO inner time
-	if ctx.GlobalIsSet(InnerTimeFlag.Name) {
-		InnerTimeFlag.Value = ctx.GlobalUint64(InnerTimeFlag.Name)
 	}
 
 	// Override any default configs for hard coded networks.
