@@ -72,6 +72,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		1105: stkc.getCandidateInfo,
 		1106: stkc.getHistoryVerifierList,
 		1107: stkc.getHistoryValidatorList,
+		1108: stkc.getNodeVersion,
 	}
 }
 
@@ -866,6 +867,26 @@ func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]by
 
 	// todo test
 	log.Debug("getHistoryValidatorList", "valArr", string(arrByte))
+	return data, nil
+}
+
+func (stkc *StakingContract) getNodeVersion(blockNumber *big.Int) ([]byte, error) {
+
+	arr, err := stkc.Plugin.GetNodeVersion( blockNumber.Uint64())
+	if nil != err {
+		data := xcom.NewFailResultByBiz(staking.ErrGetValidatorList.Wrap(err.Error()))
+		return data, nil
+	}
+
+	if nil == arr {
+		data := xcom.NewFailResultByBiz(staking.ErrGetValidatorList.Wrap("getNodeVersion info is not found"))
+		return data, nil
+	}
+
+	arrByte, _ := json.Marshal(arr)
+	data := xcom.NewSuccessResult(string(arrByte))
+
+	log.Debug("getNodeVersion", "valArr", string(arrByte))
 	return data, nil
 }
 

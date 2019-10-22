@@ -953,3 +953,14 @@ type SlashNodeItem struct {
 }
 
 type SlashQueue []*SlashNodeItem
+
+type NodeIdVersion struct {
+	BlockNumber uint64
+	Version uint32
+	ProgramVersion uint32
+	NodeIds []discover.NodeID
+}
+
+type VersionList struct {
+	NodeIdVersionKey []string
+}

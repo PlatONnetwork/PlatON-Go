@@ -3213,19 +3213,19 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	// build genesis veriferList and validatorList
+	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
 
-		var index int
-		if i >= len(balanceStr) {
-			index = i % (len(balanceStr) - 1)
-		}
+	for j := 0; j < 1000; j++ {
+
+		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -3253,11 +3253,14 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 
 		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
+			BlsPubKey:       *blsKey.GetPublicKey(),
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
-			StakingBlockNum: uint64(i),
+			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -3268,19 +3271,45 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(j),
 				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(j) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(j) + " Super Node",
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
-		if nil != err {
-			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+		// Store Candidate power
+		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
+			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
+		}
+
+		// Store Candidate info
+		canKey := staking.CandidateKeyByAddr(canAddr)
+		if val, err := rlp.EncodeToBytes(canTmp); nil != err {
+			t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+			return
+		} else {
+
+			if err := sndb.PutBaseDB(canKey, val); nil != err {
+				t.Errorf("Failed to Store Candidate info: PutBaseDB failed. error:%s", err.Error())
+				return
+			}
+		}
+
+		if j < int(xcom.EpochValidatorNum()) {
+			v := &staking.Validator{
+				NodeAddress: canAddr,
+				NodeId:      canTmp.NodeId,
+				BlsPubKey:   canTmp.BlsPubKey,
+				StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
+					fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+				ValidatorTerm: 0,
+			}
+			validatorQueue[j] = v
 		}
 	}
 
@@ -3398,7 +3427,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 				validatorQueue[j] = v
 			}
 
-			epoch_Arr := &staking.Validator_array{
+			epoch_Arr := &staking.ValidatorArray{
 				Start: 1,
 				End:   xutil.CalcBlocksEachEpoch(),
 				Arr:   validatorQueue,
@@ -3406,7 +3435,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 			// start := old_verifierArr.End + 1
 			//	end := old_verifierArr.End + xutil.CalcBlocksEachEpoch()
 
-			curr_Arr := &staking.Validator_array{
+			curr_Arr := &staking.ValidatorArray{
 				Start: 1,
 				End:   xutil.ConsensusSize(),
 				Arr:   validatorQueue,
@@ -3485,13 +3514,13 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 					t.Error("Storage previous nonce failed", "num", i+1, "Hash", curr_Hash.Hex(), "err", err)
 					return
 				} else {
-					sndb.Put(curr_Hash, xcom.NonceStorageKey, enValue)
+					sndb.Put(curr_Hash, handler.NonceStorageKey, enValue)
 				}
 			}
 
 			// TODO Must be this
 			if xutil.IsElection(header.Number.Uint64()) {
-				err = plugin.StakingInstance().Election(curr_Hash, header)
+				err = StakingInstance().Election(curr_Hash, header, state)
 				if nil != err {
 					t.Errorf("Failed to Election, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
 					return
@@ -3518,13 +3547,14 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 	config := &eth.Config{
 	}
 	hDB, _ := eth.CreateDB(ctx, config, "historydata")
-	plugin.STAKING_DB = &plugin.StakingDB{
+	STAKING_DB = &StakingDB{
 		HistoryDB:  hDB,
 	}
 
 	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil)
 	//blockElection := types.NewBlock(headerMap[electionNum], nil, nil)
-	err = plugin.StakingInstance().Confirmed(blockSwitch)
+	var dn discover.NodeID
+	err = StakingInstance().Confirmed(dn, blockSwitch)
 	if nil != err {
 		return
 	}
@@ -3532,7 +3562,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 	/**
 	Start GetVerifierList
 	*/
-	validatorExQueue, err := plugin.StakingInstance().GetHistoryValidatorList(blockHash2, headerMap[switchNum].Number.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	validatorExQueue, err := StakingInstance().GetHistoryValidatorList(blockHash2, headerMap[switchNum].Number.Uint64(), CurrentRound, QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetHistoryValidatorList by QueryStartNotIrr, err: %v", err)
 		return
@@ -3819,7 +3849,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(genesis.Hash().Bytes())
+	handler.NewVrfHandler(genesis.Hash().Bytes())
 
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -3882,7 +3912,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4004,7 +4034,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 				validatorQueue[j] = v
 			}
 
-			epoch_Arr := &staking.Validator_array{
+			epoch_Arr := &staking.ValidatorArray{
 				Start: 1,
 				End:   xutil.CalcBlocksEachEpoch(),
 				Arr:   validatorQueue,
@@ -4012,7 +4042,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 			// start := old_verifierArr.End + 1
 			//	end := old_verifierArr.End + xutil.CalcBlocksEachEpoch()
 
-			curr_Arr := &staking.Validator_array{
+			curr_Arr := &staking.ValidatorArray{
 				Start: 1,
 				End:   xutil.ConsensusSize(),
 				Arr:   validatorQueue,
@@ -4091,13 +4121,13 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 					t.Error("Storage previous nonce failed", "num", i+1, "Hash", curr_Hash.Hex(), "err", err)
 					return
 				} else {
-					sndb.Put(curr_Hash, xcom.NonceStorageKey, enValue)
+					sndb.Put(curr_Hash, handler.NonceStorageKey, enValue)
 				}
 			}
 
 			// TODO Must be this
 			if xutil.IsElection(header.Number.Uint64()) {
-				err = plugin.StakingInstance().Election(curr_Hash, header)
+				err = StakingInstance().Election(curr_Hash, header, state)
 				if nil != err {
 					t.Errorf("Failed to Election, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
 					return
@@ -4124,13 +4154,14 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 	config := &eth.Config{
 	}
 	hDB, _ := eth.CreateDB(ctx, config, "historydata")
-	plugin.STAKING_DB = &plugin.StakingDB{
+	STAKING_DB = &StakingDB{
 		HistoryDB:  hDB,
 	}
 
 	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil)
 	//blockElection := types.NewBlock(headerMap[electionNum], nil, nil)
-	err = plugin.StakingInstance().Confirmed(blockSwitch)
+	var dn discover.NodeID
+	err = StakingInstance().Confirmed(dn,blockSwitch)
 	if nil != err {
 		return
 	}
@@ -4138,7 +4169,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 	/**
 	Start GetVerifierList
 	*/
-	validatorExQueue, err := plugin.StakingInstance().GetHistoryVerifierList(blockHash2, uint64(switchNum), plugin.QueryStartNotIrr)
+	validatorExQueue, err := StakingInstance().GetHistoryVerifierList(blockHash2, uint64(switchNum), QueryStartNotIrr)
 	if nil != err {
 		t.Errorf("Failed to GetHistoryVerifierList by QueryStartNotIrr, err: %v", err)
 		return
