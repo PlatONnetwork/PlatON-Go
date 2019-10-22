@@ -220,7 +220,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		}
 	}
 
-	if xutil.IsSettlementPeriod(block.NumberU64()) {
+	if xutil.IsEndOfEpoch(block.NumberU64()) {
 		current, err := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 		if nil != err {
 			log.Error("Failed to Query Current Round verifiers on stakingPlugin Confirmed When Settletmetn block",
