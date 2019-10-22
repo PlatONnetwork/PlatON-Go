@@ -123,7 +123,6 @@ type Engine interface {
 
 	HasBlock(hash common.Hash, number uint64) bool
 
-	Status() string
 	GetBlockByHash(hash common.Hash) *types.Block
 
 	CurrentBlock() *types.Block

@@ -71,7 +71,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.S
 		StakingEpoch:       uint32(1),
 		StakingBlockNum:    uint64(1),
 		Shares:             common.Big256,
-		Released:           common.Big256,
+		Released:           new(big.Int).Mul(common.Big256, new(big.Int).SetUint64(1000)),
 		ReleasedHes:        common.Big32,
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
@@ -264,7 +264,7 @@ func buildBlock(t *testing.T, maxNumber int, stateDb xcom.StateDB) (*ecdsa.Priva
 	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
 		blockNum := big.NewInt(int64(i + 1))
-		if i == int(xcom.PackAmountAbnormal()) {
+		if i == int(1) {
 			sk = pri2
 		}
 		header := &types.Header{
@@ -297,21 +297,21 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	_, genesis, _ := newChainState()
 	si, stateDB := initInfo(t)
 	blockNumber := new(big.Int).SetUint64(1)
-	chash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
+	commitHash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
 	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
 	var nodeBlsKey bls.SecretKey
-	nodeBlsSkByte, err := hex.DecodeString("f91a76833f65af2fe971955fceb147fbf963d8b165942e957204d73944423a2c")
+	nodeBlsSkByte, err := hex.DecodeString("72fc21a19510d93d726746602344f96bf181efdd8d6d95be1a2a2de59bd59501")
 	if nil != err {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}
 	nodeBlsKey.SetLittleEndian(nodeBlsSkByte)
-	buildStakingData(common.ZeroHash, crypto.HexMustToECDSA("4cb47bd14a95fa89e40303b56df2e152fd3ece3657db9c76b9f3beb1abd0c301"), nodeBlsKey, t, stateDB)
-	if err := snapshotdb.Instance().Flush(chash, blockNumber); nil != err {
+	buildStakingData(common.ZeroHash, crypto.HexMustToECDSA("f976838ffad88eb7cb45217e0d74c71a1adcb03d550aea9c32df4cfd41e1e0ca"), nodeBlsKey, t, stateDB)
+	if err := snapshotdb.Instance().Flush(commitHash, blockNumber); nil != err {
 		t.Fatal(err)
 	}
-	if err := snapshotdb.Instance().Commit(chash); nil != err {
+	if err := snapshotdb.Instance().Commit(commitHash); nil != err {
 		t.Fatal(err)
 	}
 	defer func() {
@@ -319,83 +319,121 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	}()
 	si.SetDecodeEvidenceFun(evidence.NewEvidence)
 	GovPluginInstance()
-	data := `{
-	"prepareA": {
-		"epoch": 1,
-		"viewNumber": 1,
-		"blockHash": "0x74093e065b4ef5eefc6247e22917ac6ad5f38d9214f2217efd3615f8c69f6492",
-		"blockNumber": 1,
-		"blockIndex": 1,
-		"validateNode": {
-			"index": 0,
-			"address": "0xb8819949231dc7304c5906928751fd87ee489146",
-			"nodeId": "a7a369700eaac3ced34e58c5d44fc78e85d09f3c214c521e7371ffbe7bd678a649422b280aea99fe6af118b8f5aac2c76ed3d86534556fd204759f61ae9bfeda",
-			"blsPubKey": "3804db9244b172c1e5eb1ff52412bc42f0a8f1572aed04fa994d16fc1e2bafd4957dfc66269f89f8b7e6debbc5f1181902bcf20ea1d2737cac407d3e8e173e49e6eda171ee3be8f7576e3b77395bd059408eac4eb768d3057d083b3ed9287995"
-		},
-		"signature": "0x9d983b860cfa25356e624632808e4045fbddb4e57e497745c118e69c5ef4bbfda8afae2ad5daea94fa7979778106b48900000000000000000000000000000000"
-	},
-	"prepareB": {
-		"epoch": 1,
-		"viewNumber": 1,
-		"blockHash": "0xa50d1eb4746d685bf0277d70a7094d0278582ddaa68c354a05f45ffb78fa1a3b",
-		"blockNumber": 1,
-		"blockIndex": 1,
-		"validateNode": {
-			"index": 0,
-			"address": "0xb8819949231dc7304c5906928751fd87ee489146",
-			"nodeId": "a7a369700eaac3ced34e58c5d44fc78e85d09f3c214c521e7371ffbe7bd678a649422b280aea99fe6af118b8f5aac2c76ed3d86534556fd204759f61ae9bfeda",
-			"blsPubKey": "3804db9244b172c1e5eb1ff52412bc42f0a8f1572aed04fa994d16fc1e2bafd4957dfc66269f89f8b7e6debbc5f1181902bcf20ea1d2737cac407d3e8e173e49e6eda171ee3be8f7576e3b77395bd059408eac4eb768d3057d083b3ed9287995"
-		},
-		"signature": "0xc730346898c50361f705526dfb4bd8e3e8df8af7bfb152d9fd10e697433c29961859f0658c2dc68a32b2c3dd3841858700000000000000000000000000000000"
-	}
-}`
-	data2 := `{
+	normalData := `{
            "prepareA": {
             "epoch": 1,
             "viewNumber": 1,
-            "blockHash": "0x86c86e7ddb977fbd2f1d0b5cb92510c230775deef02b60d161c3912244473b54",
+            "blockHash": "0x3ba21ce163d1ca763d0772b70e652259608b3f40c0641238813f1cac708b75c5",
             "blockNumber": 1,
             "blockIndex": 1,
+            "blockData": "0x94ac820f54471ae9a32342f8a86e516944ec333a717241428ed997c4d3c1c8e3",
             "validateNode": {
              "index": 0,
-             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
-             "nodeId": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
-             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
+             "address": "0x85396cdef1d2800c621361437c2439c59c934038",
+             "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
+             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
             },
-            "signature": "0x8c77b2178239fd525b774845cc7437ecdf5e6175ab4cc49dcb93eae6df288fd978e5290f59420f93bba22effd768f38900000000000000000000000000000000"
+            "signature": "0xcd01a6ed0ee36d346fc0cf2eaa0151b775e22ffd97a8c9c5fada22f43deee2940776a3da82e2ba9ea4499037c4a3321200000000000000000000000000000000"
            },
            "prepareB": {
             "epoch": 1,
             "viewNumber": 1,
-            "blockHash": "0xeccd7a0b7793a74615721e883ab5223de30c5cf4d2ced9ab9dfc782e8604d416",
+            "blockHash": "0xb337d296f74ac7063f180bbd86834377fd77459e414b87c547787a384010490e",
             "blockNumber": 1,
             "blockIndex": 1,
+            "blockData": "0xc789252723b04c60fc4566abefa23aa4e9ef18d9b4ebd1b083a564700cbb8891",
             "validateNode": {
              "index": 0,
-             "address": "0x076c72c53c569df9998448832a61371ac76d0d05",
-             "nodeId": "b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511",
-             "blsPubKey": "6021741b867202a3e60b91452d80e98f148aefadbb5ff1860f1fec5a8af14be20ca81fd73c231d6f67d4c9d2d516ac1297c8126ed7c441e476c0623c157638ea3b5b2189f3a20a78b2fd5fb32e5d7de055e4d2a0c181d05892be59cf01f8ab88"
+             "address": "0x85396cdef1d2800c621361437c2439c59c934038",
+             "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
+             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
             },
-            "signature": "0x5213b4122f8f86874f537fa9eda702bba2e47a7b8ecc0ff997101d675a174ee5884ec85e8ea5155c5a6ad6b55326670d00000000000000000000000000000000"
+            "signature": "0x06ebc53e4227a89c6a7f2adf978436cb829fbc47d4e6189569fb240a2c8c1f0a2b3b63fdbf905aaa3f1ffe7b0b4d7e8e00000000000000000000000000000000"
+           }
+          }`
+
+	normalData2 := `{
+           "prepareA": {
+            "epoch": 1,
+            "viewNumber": 1,
+            "blockHash": "0xbb6d4b83af8667929a9cb4918bbf790a97bb136775353765388d0add3437cde6",
+            "blockNumber": 1,
+            "blockIndex": 1,
+            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
+            "validateNode": {
+             "index": 0,
+             "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
+             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
+            },
+            "signature": "0x36015fee15253487e8125b86505377d8540b1a95d1a6b13f714baa55b12bd06ec7d5755a98230cdc88858470afa8cb0000000000000000000000000000000000"
+           },
+           "prepareB": {
+            "epoch": 1,
+            "viewNumber": 1,
+            "blockHash": "0xf46c45f7ebb4a999dd030b9f799198b785654293dbe41aa7e909223af0e8c4ba",
+            "blockNumber": 1,
+            "blockIndex": 1,
+            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
+            "validateNode": {
+             "index": 0,
+             "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
+             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
+            },
+            "signature": "0x783892b9b766f9f4c2a1d45b1fd53ca9ea56a82e38a998939edc17bc7fd756267d3c145c03bc6c1412302cf590645d8200000000000000000000000000000000"
+           }
+          }`
+
+	abnormalData := `{
+           "prepareA": {
+            "epoch": 1,
+            "viewNumber": 1,
+            "blockHash": "0x2973fa91cd5cc27cc598bf2bb72d074a2fcfd17f820135f5343401ef59909d31",
+            "blockNumber": 1,
+            "blockIndex": 1,
+            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
+            "validateNode": {
+             "index": 0,
+             "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
+             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
+            },
+            "signature": "0x36015fee15253487e8125b86505377d8540b1a95d1a6b13f714baa55b12bd06ec7d5755a98230cdc88858470afa8cb0000000000000000000000000000000000"
+           },
+           "prepareB": {
+            "epoch": 1,
+            "viewNumber": 1,
+            "blockHash": "0xf46c45f7ebb4a999dd030b9f799198b785654293dbe41aa7e909223af0e8c4ba",
+            "blockNumber": 1,
+            "blockIndex": 1,
+            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
+            "validateNode": {
+             "index": 0,
+             "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
+             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
+             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
+            },
+            "signature": "0x783892b9b766f9f4c2a1d45b1fd53ca9ea56a82e38a998939edc17bc7fd756267d3c145c03bc6c1412302cf590645d8200000000000000000000000000000000"
            }
           }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	addr := common.HexToAddress("0x076c72c53c569df9998448832a61371ac76d0d05")
-	nodeId, err := discover.HexID("b68b23496b820f4133e42b747f1d4f17b7fd1cb6b065c613254a5717d856f7a56dabdb0e30657f18fb9074c7cb60eb62a6b35ad61898da407dae2cb8efe68511")
+	stakingAddr := common.HexToAddress("0x195667cdefcad94c521bdff0bf85079761e0f8f3")
+	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}
-	var blsKey bls.SecretKey
-	skbyte, err := hex.DecodeString("155b9a6f5575b9b5a4d8658f616660a549674b36c858e6c606d08ec5c20c4637")
+	var stakingBlsKey bls.SecretKey
+	blsSkByte, err := hex.DecodeString("b36d4c3c3e8ee7fba3fbedcda4e0493e699cd95b68594093a8498c618680480a")
 	if nil != err {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}
-	blsKey.SetLittleEndian(skbyte)
+	stakingBlsKey.SetLittleEndian(blsSkByte)
 	can := &staking.Candidate{
-		NodeId:          nodeId,
-		BlsPubKey:       *blsKey.GetPublicKey(),
-		StakingAddress:  addr,
-		BenefitAddress:  addr,
+		NodeId:          stakingNodeId,
+		BlsPubKey:       *stakingBlsKey.GetPublicKey(),
+		StakingAddress:  stakingAddr,
+		BenefitAddress:  stakingAddr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
 		ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -406,37 +444,49 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
 	}
-	stateDB.CreateAccount(addr)
-	stateDB.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
-	if err := snapshotdb.Instance().NewBlock(blockNumber, chash, common.ZeroHash); nil != err {
+	stateDB.CreateAccount(stakingAddr)
+	stateDB.AddBalance(stakingAddr, new(big.Int).SetUint64(1000000000000000000))
+	if err := snapshotdb.Instance().NewBlock(blockNumber, commitHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
+	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, stakingAddr, can); nil != err {
 		t.Fatal(err)
 	}
-	evidence1, err := si.DecodeEvidence(1, data)
+	normalEvidence, err := si.DecodeEvidence(1, normalData)
 	if nil != err {
 		t.Fatal(err)
 	}
-	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, sender)
+	// Report yourself, expect failure
+	err = si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, sender)
 	assert.NotNil(t, err)
-	if err := si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
+	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	if value, err := si.CheckDuplicateSign(common.HexToAddress("0xb8819949231dc7304c5906928751fd87ee489146"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
+	if value, err := si.CheckDuplicateSign(common.HexToAddress("0x85396cdef1d2800c621361437c2439c59c934038"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
-	evidence2, err := si.DecodeEvidence(1, data2)
+	abnormalEvidence, err := si.DecodeEvidence(1, abnormalData)
 	if nil != err {
 		t.Fatal(err)
 	}
-	err = si.Slash(evidence2, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	err = si.Slash(abnormalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender)
 	assert.NotNil(t, err)
 
-	err = si.Slash(evidence1, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	// Repeat report, expected failure
+	err = si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender)
 	assert.NotNil(t, err)
 
-	err = si.Slash(evidence1, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.EvidenceValidEpoch())*2).Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	// Report outdated evidence, expected failure
+	err = si.Slash(abnormalEvidence, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.EvidenceValidEpoch())*2).Uint64(), stateDB, anotherSender)
+	assert.NotNil(t, err)
+
+	normalEvidence2, err := si.DecodeEvidence(1, normalData2)
+	if nil != err {
+		t.Fatal(err)
+	}
+
+	// Report candidate nodes, expected failure
+	err = si.Slash(normalEvidence2, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender)
 	assert.NotNil(t, err)
 }
 

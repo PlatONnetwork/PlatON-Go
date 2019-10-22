@@ -97,6 +97,25 @@ type viewBlocks struct {
 	Blocks map[uint32]viewBlock `json:"blocks"`
 }
 
+func (v *viewBlocks) MarshalJSON() ([]byte, error) {
+	type viewBlocks struct {
+		Hash   common.Hash `json:"hash"`
+		Number uint64      `json:"number"`
+		Index  uint32      `json:"blockIndex"`
+	}
+
+	vv := make(map[uint32]viewBlocks)
+	for index, block := range v.Blocks {
+		vv[index] = viewBlocks{
+			Hash:   block.hash(),
+			Number: block.number(),
+			Index:  block.blockIndex(),
+		}
+	}
+
+	return json.Marshal(vv)
+}
+
 func newViewBlocks() *viewBlocks {
 	return &viewBlocks{
 		Blocks: make(map[uint32]viewBlock),
@@ -190,6 +209,16 @@ func (v *viewVotes) addVote(id uint32, vote *protocols.PrepareVote) {
 
 func (v *viewVotes) index(i uint32) *prepareVotes {
 	return v.Votes[i]
+}
+
+func (v *viewVotes) MaxIndex() uint32 {
+	max := uint32(math.MaxUint32)
+	for index, _ := range v.Votes {
+		if max == math.MaxUint32 || index > max {
+			max = index
+		}
+	}
+	return max
 }
 
 func (v *viewVotes) clear() {
@@ -426,12 +455,16 @@ func (vs *ViewState) Deadline() time.Time {
 	return vs.viewTimer.deadline
 }
 
-func (vs *ViewState) NumViewBlocks() uint32 {
-	return uint32(vs.viewBlocks.len())
-}
-
 func (vs *ViewState) NextViewBlockIndex() uint32 {
 	return vs.viewBlocks.MaxIndex() + 1
+}
+
+func (vs *ViewState) MaxViewBlockIndex() uint32 {
+	max := vs.viewBlocks.MaxIndex()
+	if max == math.MaxUint32 {
+		return 0
+	}
+	return max
 }
 
 func (vs *ViewState) MaxQCIndex() uint32 {
@@ -440,6 +473,14 @@ func (vs *ViewState) MaxQCIndex() uint32 {
 
 func (vs *ViewState) ViewVoteSize() int {
 	return len(vs.viewVotes.Votes)
+}
+
+func (vs *ViewState) MaxViewVoteIndex() uint32 {
+	max := vs.viewVotes.MaxIndex()
+	if max == math.MaxUint32 {
+		return 0
+	}
+	return max
 }
 
 func (vs *ViewState) PrepareVoteLenByIndex(index uint32) int {

@@ -53,7 +53,7 @@ var (
 // with the given number of blocks already known, and potential notification
 // channels for different events.
 func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func(int, *core.BlockGen), newtx chan<- []*types.Transaction) (*ProtocolManager, *ethdb.MemDatabase, error) {
-	xcom.GetEc(xcom.DefaultInnerTestNet)
+	xcom.GetEc(xcom.DefaultTestNet)
 	var (
 		evmux = new(event.TypeMux)
 		//	engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, nil)

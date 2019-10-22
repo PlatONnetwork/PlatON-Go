@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -60,7 +61,7 @@ func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 	result := make(chan *types.Block, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < reach; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 
@@ -128,25 +129,29 @@ func FakeViewChangeQC(t *testing.T, node *TestCBFT, epoch, viewNumber uint64, no
 }
 
 // NewBlock returns a bad block for testing.
-func NewBadBlock(parent common.Hash, number uint64) *types.Block {
+func NewBadBlock(parent common.Hash, number uint64, node *TestCBFT) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
 		Time:        big.NewInt(time.Now().UnixNano()),
-		Extra:       make([]byte, 77),
+		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b422")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
+
+	sign, _ := node.engine.signFn(header.SealHash().Bytes())
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sign[:])
+
 	block := types.NewBlockWithHeader(header)
 	return block
 }
 
-func newPrepareBlock(epoch, viewNumber uint64, parentHash common.Hash, blockNumber uint64, blockIndex uint32, nodeIndex uint32, parentQC *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, secretKeys *bls.SecretKey, badBlock bool, t *testing.T) *protocols.PrepareBlock {
-	block := NewBlock(parentHash, blockNumber)
+func newPrepareBlock(epoch, viewNumber uint64, parentHash common.Hash, blockNumber uint64, blockIndex uint32, nodeIndex uint32, parentQC *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, secretKeys *bls.SecretKey, badBlock bool, node *TestCBFT, t *testing.T) *protocols.PrepareBlock {
+	block := NewBlockWithSign(parentHash, blockNumber, node)
 	if badBlock {
-		block = NewBadBlock(parentHash, blockNumber)
+		block = NewBadBlock(parentHash, blockNumber, node)
 	}
 	p := &protocols.PrepareBlock{
 		Epoch:         epoch,
@@ -215,7 +220,7 @@ func TestPB01(t *testing.T) {
 	// validator fake future index prepare
 	proposalIndex := uint32(1)
 	fakeHash := common.BytesToHash(utils.Rand32Bytes(32))
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), fakeHash, qc.BlockNumber+3, qc.BlockIndex+3, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), fakeHash, qc.BlockNumber+3, qc.BlockIndex+3, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	_, ok := err.(rules.SafetyError)
@@ -237,7 +242,7 @@ func TestPB03(t *testing.T) {
 
 	// seal duplicate prepareBlock
 	proposalIndex := uint32(0)
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, lockQC.BlockIndex+1, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, lockQC.BlockIndex+1, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	_, ok := err.(*evidence.DuplicatePrepareBlockEvidence)
@@ -267,7 +272,7 @@ func TestPB04(t *testing.T) {
 	// base lock block seal first index prepare
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	_, ok := err.(authFailedError)
@@ -292,7 +297,7 @@ func TestPB05(t *testing.T) {
 	// base lock block seal first index prepare
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	_, ok := err.(authFailedError)
@@ -315,7 +320,7 @@ func TestPB06(t *testing.T) {
 	// base lock block seal first index prepare
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	_, ok := err.(authFailedError)
@@ -334,7 +339,7 @@ func TestPB07(t *testing.T) {
 	// base lock block seal first index prepare
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), lockBlock.Hash(), lockBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	_, ok := err.(authFailedError)
@@ -355,7 +360,7 @@ func TestPB08(t *testing.T) {
 	blockIndex := uint32(0)
 	viewChangeQC := FakeViewChangeQC(t, nodes[1], nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, proposalIndex, qc)
 
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	assert.NotNil(t, err)
@@ -372,7 +377,7 @@ func TestPB09(t *testing.T) {
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
 
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	err1, ok := err.(rules.SafetyError)
@@ -392,7 +397,7 @@ func TestPB10(t *testing.T) {
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
 
-	p := newPrepareBlock(nodes[0].engine.state.Epoch()+2, nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch()+2, nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
 	assert.NotNil(t, err)
@@ -412,7 +417,7 @@ func TestPB11(t *testing.T) {
 	// base qc block seal bad block
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, true, t)
+	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, true, nodes[0], t)
 
 	result := make(chan interface{}, 1)
 	nodes[0].engine.executeStatusHook = func(status *executor.BlockExecuteStatus) {
@@ -508,9 +513,9 @@ func TestVT05(t *testing.T) {
 
 	// proposal seal next two prepare,p1 and p2
 	proposalIndex := uint32(0)
-	p1 := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, qc.BlockIndex+1, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p1 := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, qc.BlockIndex+1, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	nodes[0].engine.OnPrepareBlock("id", p1)
-	p2 := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), p1.Block.Hash(), p1.Block.NumberU64()+1, p1.BlockIndex+1, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, t)
+	p2 := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), p1.Block.Hash(), p1.Block.NumberU64()+1, p1.BlockIndex+1, proposalIndex, nil, nil, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	nodes[0].engine.OnPrepareBlock("id", p2)
 
 	// validator fake p1QC and vote p2

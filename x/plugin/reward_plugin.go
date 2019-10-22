@@ -69,7 +69,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	log.Debug("Call EndBlock on reward_plugin: after call calculateExpectReward", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "stakingReward", stakingReward, "packageBlockReward", newBlockReward)
 
-	if xutil.IsSettlementPeriod(blockNumber) {
+	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
 			return err
 		}
@@ -148,12 +148,12 @@ func (rmp *RewardMgrPlugin) allocateStakingReward(blockNumber uint64, blockHash 
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
 
-	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
 		log.Error("Failed to allocateStakingReward: call GetVerifierList is failed", "blockNumber", blockNumber, "hash", blockHash, "err", err)
 		return err
 	}
-	rmp.rewardStakingByValidatorList(state, list, reward)
+	rmp.rewardStakingByValidatorList(state, verifierList, reward)
 	return nil
 }
 

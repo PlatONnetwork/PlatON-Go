@@ -362,17 +362,10 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 		// with other validators in the consensus stages.
 		if isValidatorAfter {
 			for _, nodeID := range vp.currentValidators.NodeList() {
-				if vp.nodeID == nodeID {
-					// Ignore myself
-					continue
-				}
-
 				eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
 				log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
 			}
 		}
-
-		// We are still not a consensus node, just update validator list.
 	}
 
 	return nil
