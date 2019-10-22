@@ -3,6 +3,7 @@ package staking
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -56,18 +57,33 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 }
 
 func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Address) (*Candidate, error) {
+	start := time.Now()
+
 	key := CandidateKeyByAddr(addr)
 
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, CandidateKeyByAddr", "duration", nanodura)
+
+	start = time.Now()
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
 		return nil, err
 	}
-	var can Candidate
 
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, Getting CandidateInfo", "duration", nanodura)
+
+	start = time.Now()
+
+	var can Candidate
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
 	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, DecodeBytes CandidateInfo", "duration", nanodura)
+
 	return &can, nil
 }
 
@@ -122,14 +138,21 @@ func (db *StakingDB) GetCandidateStoreByIrrWithSuffix(suffix []byte) (*Candidate
 
 func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
 
+	start := time.Now()
+
 	key := CandidateKeyByAddr(addr)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, CandidateKeyByAddr", "duration", nanodura)
+
+	start = time.Now()
 
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
 	} else {
 
-		// todo test
-		log.Debug("SetCandidateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(val))
+		nanodura := time.Since(start).Nanoseconds()
+		log.Info("Call delegate, EncodeToBytes CandidateInfo", "duration", nanodura)
 
 		return db.put(blockHash, key, val)
 	}
@@ -138,26 +161,27 @@ func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Addres
 func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Address) error {
 	key := CandidateKeyByAddr(addr)
 
-	// todo test
-	log.Debug("DelCandidateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
-
 	return db.del(blockHash, key)
 }
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
+	start := time.Now()
+
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 
-	// todo test
-	log.Debug("SetCanPowerStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(addr.Bytes()))
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, TallyPowerKey", "duration", nanodura)
 
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
+
+	start := time.Now()
 	key := TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 
-	// todo test
-	log.Debug("DelCanPowerStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key))
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, TallyPowerKey", "duration", nanodura)
 
 	return db.del(blockHash, key)
 }
@@ -243,17 +267,31 @@ func (db *StakingDB) DelUnStakeItemStore(blockHash common.Hash, epoch, index uin
 }
 
 func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
+	start := time.Now()
+
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, GetDelegateKey", "duration", nanodura)
+
+	start = time.Now()
 
 	delByte, err := db.get(blockHash, key)
 	if nil != err {
 		return nil, err
 	}
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, Getting Delegation", "duration", nanodura)
 
+	start = time.Now()
 	var del Delegation
 	if err := rlp.DecodeBytes(delByte, &del); nil != err {
 		return nil, err
 	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, DecodeBytes Delegation", "duration", nanodura)
+
 	return &del, nil
 }
 
@@ -288,15 +326,22 @@ func (db *StakingDB) GetDelegateStoreBySuffix(blockHash common.Hash, keySuffix [
 
 func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
 	stakeBlockNumber uint64, del *Delegation) error {
+
+	start := time.Now()
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, GetDelegateKey", "duration", nanodura)
+
+	start = time.Now()
 
 	delByte, err := rlp.EncodeToBytes(del)
 	if nil != err {
 		return err
 	}
 
-	// todo test
-	log.Debug("SetDelegateStore", "blockHash", blockHash.Hex(), "key", hex.EncodeToString(key), "val", hex.EncodeToString(delByte))
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, EncodeToBytes Delegation", "duration", nanodura)
 
 	return db.put(blockHash, key, delByte)
 }
