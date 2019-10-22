@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
@@ -774,8 +775,12 @@ func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	delAddr common.Address, del *staking.Delegation, can *staking.Candidate, typ uint16, amount *big.Int) error {
 
+	start := time.Now()
 	pubKey, _ := can.NodeId.Pubkey()
 	canAddr := crypto.PubkeyToAddress(*pubKey)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, nodeId to canAddr on staking_plugin", "duration", nanodura)
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
@@ -821,6 +826,8 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	del.DelegateEpoch = uint32(epoch)
 
+	start = time.Now()
+
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Store Delegate info is failed",
@@ -829,6 +836,11 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		return err
 	}
 
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, SetDelegateStore on staking_plugin", "duration", nanodura)
+
+	start = time.Now()
+
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Delete Candidate old power is failed",
@@ -836,8 +848,13 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		return err
 	}
 
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, DelCanPowerStore on staking_plugin", "duration", nanodura)
+
 	// add the candidate power
 	can.Shares = new(big.Int).Add(can.Shares, amount)
+
+	start = time.Now()
 
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -846,12 +863,20 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		return err
 	}
 
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, SetCanPowerStore on staking_plugin", "duration", nanodura)
+
+	start = time.Now()
+
 	// update can info about Shares
 	if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Store Candidate info is failed",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 		return err
 	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, SetCandidateStore on staking_plugin", "duration", nanodura)
 
 	return nil
 }
