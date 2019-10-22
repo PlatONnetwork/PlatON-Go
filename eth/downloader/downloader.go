@@ -96,6 +96,7 @@ var (
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
 	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 62)")
+	errSyncStop                = errors.New("sync is finish ,stop now ")
 )
 
 type Downloader struct {
@@ -337,6 +338,15 @@ func (d *Downloader) Synchronise(id string, head common.Hash, bn *big.Int, mode 
 		errEmptyHeaderSet, errPeersUnavailable, errTooOld,
 		errInvalidAncestor, errInvalidChain:
 		log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
+		if d.dropPeer == nil {
+			// The dropPeer method is nil when `--copydb` is used for a local copy.
+			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
+			log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", id)
+		} else {
+			d.dropPeer(id)
+		}
+	case errSyncStop:
+		log.Warn("Synchronisation stop, dropping peer", "peer", id, "err", err)
 		if d.dropPeer == nil {
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
@@ -1564,13 +1574,30 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 
 // processFullSyncContent takes fetch results from the queue and imports them into the chain.
 func (d *Downloader) processFullSyncContent() error {
+	var (
+		stop bool
+		pnum int
+	)
 	for {
 		results := d.queue.Results(true)
 		if len(results) == 0 {
 			return nil
 		}
+		if stop {
+			return errSyncStop
+		}
 		if d.chainInsertHook != nil {
 			d.chainInsertHook(results)
+		}
+		for i := 0; i < len(results); i++ {
+			if results[i].Hash.String() == "0xf0be4fe085ad98f355a9797b7d2a3927cc53f2e8354567f6142ab8b954572b3c" {
+				stop = true
+				pnum = i
+				break
+			}
+		}
+		if stop {
+			results = results[0:pnum]
 		}
 		if err := d.importBlockResults(results); err != nil {
 			return err
