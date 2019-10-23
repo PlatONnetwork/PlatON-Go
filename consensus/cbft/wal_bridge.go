@@ -3,9 +3,10 @@ package cbft
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"reflect"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -37,6 +38,8 @@ type Bridge interface {
 	SendPrepareBlock(pb *protocols.PrepareBlock)
 	SendPrepareVote(block *types.Block, vote *protocols.PrepareVote)
 	GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error)
+
+	Close()
 }
 
 // emptyBridge is a empty implementation for Bridge
@@ -60,6 +63,10 @@ func (b *emptyBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepar
 
 func (b *emptyBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
 	return nil, nil
+}
+
+func (b *emptyBridge) Close() {
+
 }
 
 // baseBridge is a default implementation for Bridge
@@ -219,6 +226,10 @@ func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepare
 
 func (b *baseBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
 	return b.cbft.wal.GetViewChangeQC(epoch, viewNumber)
+}
+
+func (b *baseBridge) Close() {
+	b.cbft.wal.Close()
 }
 
 // recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
