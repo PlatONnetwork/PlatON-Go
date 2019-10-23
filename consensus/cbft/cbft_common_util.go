@@ -47,12 +47,33 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
 		Time:        big.NewInt(time.Now().UnixNano()),
-		Extra:       make([]byte, 77),
+		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0xb6fab529276f585867834c4d5727d9627d086774a4f1550d52139e92f2e8ed32")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0xe66ce30318e38fb19f7fa2ea783d8d8c1db74c979dddfc56a460aeb772781a41")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
+
+	block := types.NewBlockWithHeader(header)
+	return block
+}
+
+// NewBlock returns a new block for testing.
+func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.Block {
+	header := &types.Header{
+		Number:      big.NewInt(int64(number)),
+		ParentHash:  parent,
+		Time:        big.NewInt(time.Now().UnixNano()),
+		Extra:       make([]byte, 97),
+		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0xe66ce30318e38fb19f7fa2ea783d8d8c1db74c979dddfc56a460aeb772781a41")),
+		Coinbase:    common.Address{},
+		GasLimit:    10000000000,
+	}
+
+	sign, _ := node.engine.signFn(header.SealHash().Bytes())
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sign[:])
+
 	block := types.NewBlockWithHeader(header)
 	return block
 }

@@ -81,7 +81,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
-	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
+	if xutil.IsEndOfEpoch(header.Number.Uint64()) {
 
 		// handle UnStaking Item
 		err := sk.HandleUnCandidateItem(state, header.Number.Uint64(), blockHash, epoch)

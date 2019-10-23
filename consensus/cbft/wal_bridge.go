@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"reflect"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -81,6 +82,7 @@ func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
 // If the write fails, the process will stop
 // lockChainState or commitChainState may be nil, if it is nil, we only append qc to the qcChain array
 func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
+	tStart := time.Now()
 	var chainState *protocols.ChainState
 	var err error
 	// load current consensus state
@@ -115,7 +117,7 @@ func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols
 	if err != nil {
 		panic(fmt.Sprintf("update chain state error: %s", err.Error()))
 	}
-	log.Info("Success to update chainState", "commitState", commitState.String(), "lockState", lockState.String(), "qcState", qcState.String())
+	log.Info("Success to update chainState", "commitState", commitState.String(), "lockState", lockState.String(), "qcState", qcState.String(), "elapsed", time.Since(tStart))
 }
 
 // newChainState tries to update consensus state to wal
@@ -154,6 +156,7 @@ func (b *baseBridge) addQCState(qc *protocols.State, chainState *protocols.Chain
 // at the same time we will record the current fileID and fileSequence.
 // the next time the platon node restart, we will recovery the msg from this check point.
 func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+	tStart := time.Now()
 	meta := &wal.ViewChangeMessage{
 		Epoch:      epoch,
 		ViewNumber: viewNumber,
@@ -174,30 +177,36 @@ func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Bl
 	if viewChangeQC != nil {
 		b.cbft.wal.UpdateViewChangeQC(epoch, viewNumber, viewChangeQC)
 	}
+	log.Debug("Success to confirm viewChange", "confirmedViewChange", vc.String(), "elapsed", time.Since(tStart))
 }
 
 // SendViewChange tries to update SendViewChange consensus msg to wal.
 func (b *baseBridge) SendViewChange(view *protocols.ViewChange) {
+	tStart := time.Now()
 	s := &protocols.SendViewChange{
 		ViewChange: view,
 	}
 	if err := b.cbft.wal.WriteSync(s); err != nil {
 		panic(fmt.Sprintf("write send viewChange error, err:%s", err.Error()))
 	}
+	log.Debug("Success to send viewChange", "view", view.String(), "elapsed", time.Since(tStart))
 }
 
 // SendPrepareBlock tries to update SendPrepareBlock consensus msg to wal.
 func (b *baseBridge) SendPrepareBlock(pb *protocols.PrepareBlock) {
+	tStart := time.Now()
 	s := &protocols.SendPrepareBlock{
 		Prepare: pb,
 	}
 	if err := b.cbft.wal.WriteSync(s); err != nil {
 		panic(fmt.Sprintf("write send prepareBlock error, err:%s", err.Error()))
 	}
+	log.Debug("Success to send prepareBlock", "prepareBlock", pb.String(), "elapsed", time.Since(tStart))
 }
 
 // SendPrepareVote tries to update SendPrepareVote consensus msg to wal.
 func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.PrepareVote) {
+	tStart := time.Now()
 	s := &protocols.SendPrepareVote{
 		Block: block,
 		Vote:  vote,
@@ -205,6 +214,7 @@ func (b *baseBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepare
 	if err := b.cbft.wal.WriteSync(s); err != nil {
 		panic(fmt.Sprintf("write send prepareVote error, err:%s", err.Error()))
 	}
+	log.Debug("Success to send prepareVote", "prepareVote", vote.String(), "elapsed", time.Since(tStart))
 }
 
 func (b *baseBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {

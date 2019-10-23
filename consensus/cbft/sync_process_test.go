@@ -41,7 +41,7 @@ func TestFetch(t *testing.T) {
 	qcBlocks := &protocols.QCBlockList{}
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 3; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 		fetchBlock = block
@@ -126,7 +126,7 @@ func TestSyncBlock(t *testing.T) {
 	qcBlocks := &protocols.QCBlockList{}
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 3; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
+		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
 		nodes[0].engine.OnSeal(block, result, nil)
 		fetchBlock = block

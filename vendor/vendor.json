@@ -522,6 +522,12 @@
 			"revisionTime": "2017-07-05T02:17:15Z"
 		},
 		{
+			"checksumSHA1": "Gdemly/PmiR5HyjdiUFWHugrQm0=",
+			"path": "github.com/stretchr/testify/suite",
+			"revision": "5b93e2dc01fd8fbf32aa74a198b0ebe78f6f6b6f",
+			"revisionTime": "2018-12-05T23:58:52Z"
+		},
+		{
 			"checksumSHA1": "k6zbR5hiI10hkWtiK91rIY5s5/E=",
 			"path": "github.com/syndtr/goleveldb/leveldb",
 			"revision": "c4c61651e9e37fa117f53c5a906d3b63090d8445",

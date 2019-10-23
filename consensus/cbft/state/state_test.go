@@ -19,7 +19,7 @@ func TestNewViewState(t *testing.T) {
 
 	assert.Equal(t, uint64(1), viewState.Epoch())
 	assert.Equal(t, uint64(1), viewState.ViewNumber())
-	assert.Equal(t, uint32(0), viewState.NumViewBlocks())
+	assert.Equal(t, 0, viewState.ViewBlockSize())
 	assert.Equal(t, uint32(0), viewState.NextViewBlockIndex())
 	assert.Equal(t, uint32(math.MaxUint32), viewState.MaxQCIndex())
 	assert.Equal(t, 0, viewState.ViewVoteSize())
@@ -124,16 +124,18 @@ func TestViewVotes(t *testing.T) {
 	viewState := NewViewState(BaseMs, nil)
 	votes := viewState.viewVotes
 	prepareVotes := []*protocols.PrepareVote{
-		{BlockIndex: uint32(0)},
-		{BlockIndex: uint32(1)},
-		{BlockIndex: uint32(2)},
+		{BlockIndex: uint32(5)},
+		{BlockIndex: uint32(6)},
+		{BlockIndex: uint32(7)},
 	}
 
 	for i, p := range prepareVotes {
 		viewState.AddPrepareVote(uint32(i), p)
 		votes.addVote(uint32(i), p)
 	}
-	assert.Len(t, viewState.AllPrepareVoteByIndex(0), 1)
+	assert.Equal(t, 3, len(viewState.viewVotes.Votes))
+	assert.Equal(t, uint32(7), viewState.MaxViewVoteIndex())
+	assert.Len(t, viewState.AllPrepareVoteByIndex(5), 1)
 	assert.Equal(t, viewState.PrepareVoteLenByIndex(uint32(len(prepareVotes))), 0)
 	assert.Len(t, viewState.AllPrepareVoteByIndex(uint32(len(prepareVotes))), 0)
 

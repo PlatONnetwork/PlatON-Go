@@ -136,11 +136,16 @@ func (pb *PrepareBlock) NodeIndex() uint32 {
 }
 
 func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
+	blockData, err := rlp.EncodeToBytes(pb.Block)
+	if err != nil {
+		return nil, err
+	}
 	buf, err := rlp.EncodeToBytes([]interface{}{
 		pb.Epoch,
 		pb.ViewNumber,
 		pb.Block.Hash(),
 		pb.Block.NumberU64(),
+		crypto.Keccak256(blockData),
 		pb.BlockIndex,
 		pb.ProposalIndex,
 	})

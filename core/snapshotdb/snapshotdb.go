@@ -429,16 +429,20 @@ func (s *snapshotDB) findToWrite() int {
 		kvsize    int
 		commitNum int
 	)
-	for i := 0; i < len(s.committed); i++ {
-		if i < 10 {
-			if kvsize > kvLIMIT {
-				commitNum = i - 1
+	if len(s.committed) > 200 {
+		commitNum = 100
+	} else {
+		for i := 0; i < len(s.committed); i++ {
+			if i < 10 {
+				if kvsize > kvLIMIT {
+					commitNum = i - 1
+					break
+				}
+				kvsize += s.committed[i].data.Len()
+			} else {
+				commitNum = i
 				break
 			}
-			kvsize += s.committed[i].data.Len()
-		} else {
-			commitNum = i
-			break
 		}
 	}
 	if commitNum == 0 {

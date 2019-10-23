@@ -152,12 +152,7 @@ var (
 		Value: DirectoryString{homeDir()},
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
-	InnerTimeFlag   = cli.Uint64Flag{
-		Name:  "innertime",
-		Usage: "inner time",
-		Value: 1546300800000,
-	}
-	SyncModeFlag = TextMarshalerFlag{
+	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
@@ -310,11 +305,12 @@ var (
 		MinerExtraDataFlag = cli.StringFlag{
 			Name:  "miner.extradata",
 			Usage: "Block extra data set by the miner (default = client version)",
-		}*/
-	MinerLegacyExtraDataFlag = cli.StringFlag{
-		Name:  "extradata",
-		Usage: "Block extra data set by the miner (default = client version, deprecated, use --miner.extradata)",
-	}
+		}
+		MinerLegacyExtraDataFlag = cli.StringFlag{
+			Name:  "extradata",
+			Usage: "Block extra data set by the miner (default = client version, deprecated, use --miner.extradata)",
+		}
+	*/
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -1132,13 +1128,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
 	}
-	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
-	}
 	/*
-		if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
-			cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
-		}*/
+		if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
+			cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
+		}
+
+			if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
+				cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
+			}*/
 	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
 	}
@@ -1153,11 +1150,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
-	}
-
-	// TODO inner time
-	if ctx.GlobalIsSet(InnerTimeFlag.Name) {
-		InnerTimeFlag.Value = ctx.GlobalUint64(InnerTimeFlag.Name)
 	}
 
 	// Override any default configs for hard coded networks.

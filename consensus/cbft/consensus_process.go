@@ -27,6 +27,10 @@ import (
 // Whether to start synchronization
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
+	if err := cbft.VerifyHeader(nil, msg.Block.Header(), false); err != nil {
+		cbft.log.Error("Verify header fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
+		return err
+	}
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 
@@ -319,7 +323,6 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			}
 			return false
 		}
-
 		if block != nil && hasExecuted() {
 			cbft.insertQCBlock(block, qc)
 		}

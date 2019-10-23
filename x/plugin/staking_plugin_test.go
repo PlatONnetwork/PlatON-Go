@@ -3435,13 +3435,10 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	Start GetVerifierList
 	*/
 	validatorExQueue, err := StakingInstance().GetVerifierList(currentHash, currentNumber.Uint64(), QueryStartNotIrr)
-	if nil != err {
-		t.Errorf("Failed to GetVerifierList by QueryStartNotIrr, err: %v", err)
-		return
-	}
 
-	validatorExArr, _ := json.Marshal(validatorExQueue)
-	t.Log("GetVerifierList by QueryStartNotIrr:", string(validatorExArr))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetVerifierList by QueryStartNotIrr, err: %v", err))
+	assert.True(t, 0 != len(validatorExQueue))
+	t.Log("GetVerifierList by QueryStartNotIrr:", validatorExQueue)
 
 	validatorExQueue, err = StakingInstance().GetVerifierList(currentHash, currentNumber.Uint64(), QueryStartIrr)
 
