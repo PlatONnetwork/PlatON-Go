@@ -305,11 +305,12 @@ var (
 		MinerExtraDataFlag = cli.StringFlag{
 			Name:  "miner.extradata",
 			Usage: "Block extra data set by the miner (default = client version)",
-		}*/
-	MinerLegacyExtraDataFlag = cli.StringFlag{
-		Name:  "extradata",
-		Usage: "Block extra data set by the miner (default = client version, deprecated, use --miner.extradata)",
-	}
+		}
+		MinerLegacyExtraDataFlag = cli.StringFlag{
+			Name:  "extradata",
+			Usage: "Block extra data set by the miner (default = client version, deprecated, use --miner.extradata)",
+		}
+	*/
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -1127,13 +1128,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
 	}
-	if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
-		cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
-	}
 	/*
-		if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
-			cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
-		}*/
+		if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
+			cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
+		}
+
+			if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
+				cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
+			}*/
 	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
 	}
