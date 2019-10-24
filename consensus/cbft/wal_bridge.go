@@ -3,9 +3,10 @@ package cbft
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"reflect"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -362,7 +363,10 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			return err
 		}
 		if should {
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
+			node, err := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
+			if err != nil {
+				return err
+			}
 			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
 		}
 
