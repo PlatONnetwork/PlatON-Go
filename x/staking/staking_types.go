@@ -1,10 +1,8 @@
 package staking
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -29,7 +27,7 @@ const (
 	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
 
-const SWeightItem = 4
+//const SWeightItem = 4
 
 func Is_Valid(status uint32) bool {
 	return !Is_Invalid(status)
@@ -109,38 +107,8 @@ func Is_Invalid_Withdrew(status uint32) bool {
 
 // The Candidate info
 type Candidate struct {
-	NodeId discover.NodeID
-	// bls public key
-	BlsPubKey bls.PublicKey
-	// The account used to initiate the staking
-	StakingAddress common.Address
-	// The account receive the block rewards and the staking rewards
-	BenefitAddress common.Address
-	// The tx index at the time of staking
-	StakingTxIndex uint32
-	// The version of the node program
-	// (Store Large Verson: the 2.1.x large version is 2.1.0)
-	ProgramVersion uint32
-	// The candidate status
-	// Reference `THE CANDIDATE  STATUS`
-	Status uint32
-	// The epoch number at staking or edit
-	StakingEpoch uint32
-	// Block height at the time of staking
-	StakingBlockNum uint64
-	// All vons of staking and delegated
-	Shares *big.Int
-	// The staking von  is circulating for effective epoch (in effect)
-	Released *big.Int
-	// The staking von  is circulating for hesitant epoch (in hesitation)
-	ReleasedHes *big.Int
-	// The staking von  is RestrictingPlan for effective epoch (in effect)
-	RestrictingPlan *big.Int
-	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
-	RestrictingPlanHes *big.Int
-
-	// Node desc
-	Description
+	*CandidateBase
+	*CandidateMutable
 }
 
 func (can *Candidate) String() string {
@@ -165,8 +133,8 @@ func (can *Candidate) String() string {
 		"Website": "%s",
 		"Details": "%s"
 	}`,
-		can.NodeId.String(),
-		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
 		can.StakingTxIndex,
@@ -185,10 +153,171 @@ func (can *Candidate) String() string {
 		can.Details)
 }
 
+type CandidateBase struct {
+	NodeId discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKeyHex
+	// The account used to initiate the staking
+	StakingAddress common.Address
+	// The account receive the block rewards and the staking rewards
+	BenefitAddress common.Address
+	// The tx index at the time of staking
+	StakingTxIndex uint32
+	// The version of the node program
+	// (Store Large Verson: the 2.1.x large version is 2.1.0)
+	ProgramVersion uint32
+	// Block height at the time of staking
+	StakingBlockNum uint64
+	// Node desc
+	Description
+}
+
+func (can *CandidateBase) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d,  
+		"StakingBlockNum": %d,
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s"
+	}`,
+		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
+		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
+		can.StakingTxIndex,
+		can.ProgramVersion,
+		can.StakingBlockNum,
+		can.ExternalId,
+		can.NodeName,
+		can.Website,
+		can.Details)
+}
+
+type CandidateMutable struct {
+	// The candidate status
+	// Reference `THE CANDIDATE  STATUS`
+	Status uint32
+	// The epoch number at staking or edit
+	StakingEpoch uint32
+	// All vons of staking and delegated
+	Shares *big.Int
+	// The staking von  is circulating for effective epoch (in effect)
+	Released *big.Int
+	// The staking von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *big.Int
+	// The staking von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *big.Int
+	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *big.Int
+}
+
+func (can *CandidateMutable) String() string {
+	return fmt.Sprintf(`
+	{
+		"Status": %d, 
+		"StakingEpoch": %d,
+		"Shares": %d,
+		"Released": %d,
+		"ReleasedHes": %d,
+		"RestrictingPlan": %d,
+		"RestrictingPlanHes": %d,
+	}`,
+		can.Status,
+		can.StakingEpoch,
+		can.Shares,
+		can.Released,
+		can.ReleasedHes,
+		can.RestrictingPlan,
+		can.RestrictingPlanHes)
+}
+
+func (can *CandidateMutable) Is_Valid() bool {
+	return Is_Valid(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid() bool {
+	return Is_Invalid(can.Status)
+}
+
+func (can *CandidateMutable) Is_PureInvalid() bool {
+	return Is_PureInvalid(can.Status)
+}
+
+func (can *CandidateMutable) Is_LowRatio() bool {
+	return Is_LowRatio(can.Status)
+}
+
+func (can *CandidateMutable) Is_PureLowRatio() bool {
+	return Is_PureLowRatio(can.Status)
+}
+
+func (can *CandidateMutable) Is_NotEnough() bool {
+	return Is_NotEnough(can.Status)
+}
+
+func (can *CandidateMutable) Is_PureNotEnough() bool {
+	return Is_PureNotEnough(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid_LowRatio() bool {
+	return Is_Invalid_LowRatio(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid_NotEnough() bool {
+	return Is_Invalid_NotEnough(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid_LowRatio_NotEnough() bool {
+	return Is_Invalid_LowRatio_NotEnough(can.Status)
+}
+
+func (can *CandidateMutable) Is_LowRatio_NotEnough() bool {
+	return Is_LowRatio_NotEnough(can.Status)
+}
+
+func (can *CandidateMutable) Is_DuplicateSign() bool {
+	return Is_DuplicateSign(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid_DuplicateSign() bool {
+	return Is_Invalid_DuplicateSign(can.Status)
+}
+
+func (can *CandidateMutable) Is_LowRatioDel() bool {
+	return Is_LowRatioDel(can.Status)
+}
+
+func (can *CandidateMutable) Is_PureLowRatioDel() bool {
+	return Is_PureLowRatioDel(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid_LowRatioDel() bool {
+	return Is_Invalid_LowRatioDel(can.Status)
+}
+
+func (can *CandidateMutable) Is_Withdrew() bool {
+	return Is_Withdrew(can.Status)
+}
+
+func (can *CandidateMutable) Is_PureWithdrew() bool {
+	return Is_PureWithdrew(can.Status)
+}
+
+func (can *CandidateMutable) Is_Invalid_Withdrew() bool {
+	return Is_Invalid_Withdrew(can.Status)
+}
+
 // Display amount field using 0x hex
 type CandidateHex struct {
 	NodeId             discover.NodeID
-	BlsPubKey          bls.PublicKey
+	BlsPubKey          bls.PublicKeyHex
 	StakingAddress     common.Address
 	BenefitAddress     common.Address
 	StakingTxIndex     uint32
@@ -226,8 +355,8 @@ func (can *CandidateHex) String() string {
 		"Website": "%s",
 		"Details": "%s"
 	}`,
-		can.NodeId.String(),
-		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
 		can.StakingTxIndex,
@@ -301,21 +430,31 @@ type CandidateHexQueue []*CandidateHex
 // the Validator info
 // They are Simplified Candidate
 // They are consensus nodes and Epoch nodes snapshot
-type Validator struct {
+/*type Validator struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
 	// bls public key
-	BlsPubKey bls.PublicKey
+	BlsPubKey bls.PublicKeyHex
 	// The weight snapshot
 	// NOTE:
 	// converted from the weight snapshot of Candidate, they array order is:
 	//
 	// programVersion, candidate.shares, stakingBlocknum, stakingTxindex
 	//
-	// They origin type is: uint32, *big.int, uint64, uint32
+	// They origin type is: uint32, *big.Int, uint64, uint32
 	StakingWeight [SWeightItem]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
+}*/
+type Validator struct {
+	ProgramVersion  uint32
+	StakingTxIndex  uint32
+	ValidatorTerm   uint32 // Validator's term in the consensus round
+	StakingBlockNum uint64
+	NodeAddress     common.Address
+	NodeId          discover.NodeID
+	BlsPubKey       bls.PublicKeyHex
+	Shares          *big.Int
 }
 
 func (val *Validator) String() string {
@@ -324,49 +463,57 @@ func (val *Validator) String() string {
 		"NodeId": "%s", 
 		"NodeAddress": "%s",
 		"BlsPubKey": "%s", 
-		"StakingWeight": %s, 
+		"ProgramVersion": %d, 
+		"Shares": %d,
+		"StakingBlockNum": %d,
+		"StakingTxIndex": %d,
 		"ValidatorTerm": %d
 	}`,
 		val.NodeId.String(),
 		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
-		fmt.Sprintf("%x", val.BlsPubKey.Serialize()),
-		fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),
+		fmt.Sprintf("%x", val.BlsPubKey.Bytes()),
+		val.ProgramVersion,
+		val.Shares,
+		val.StakingBlockNum,
+		val.StakingTxIndex,
 		val.ValidatorTerm)
+	/*fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),*/
 }
 
-func (val *Validator) GetProgramVersion() (uint32, error) {
-	version := val.StakingWeight[0]
-	v, err := strconv.Atoi(version)
-	if nil != err {
-		return 0, err
-	}
-	return uint32(v), nil
-}
-func (val *Validator) GetShares() (*big.Int, error) {
-	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
-	if !ok {
-		return nil, errors.New("parse bigInt failed from validator's shares")
-	}
-	return shares, nil
-}
+//func (val *Validator) GetProgramVersion() (uint32, error) {
+//	version := val.StakingWeight[0]
+//	v, err := strconv.Atoi(version)
+//	if nil != err {
+//		return 0, err
+//	}
+//	return uint32(v), nil
+//}
 
-func (val *Validator) GetStakingBlockNumber() (uint64, error) {
-	stakingBlockNumber := val.StakingWeight[2]
-	num, err := strconv.ParseUint(stakingBlockNumber, 10, 64)
-	if nil != err {
-		return 0, err
-	}
-	return uint64(num), nil
-}
+//func (val *Validator) GetShares() (*big.Int, error) {
+//	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
+//	if !ok {
+//		return nil, errors.New("parse bigInt failed from validator's shares")
+//	}
+//	return shares, nil
+//}
 
-func (val *Validator) GetStakingTxIndex() (uint32, error) {
-	txIndex := val.StakingWeight[3]
-	index, err := strconv.Atoi(txIndex)
-	if nil != err {
-		return 0, err
-	}
-	return uint32(index), nil
-}
+//func (val *Validator) GetStakingBlockNumber() (uint64, error) {
+//	stakingBlockNumber := val.StakingWeight[2]
+//	num, err := strconv.ParseUint(stakingBlockNumber, 10, 64)
+//	if nil != err {
+//		return 0, err
+//	}
+//	return uint64(num), nil
+//}
+
+//func (val *Validator) GetStakingTxIndex() (uint32, error) {
+//	txIndex := val.StakingWeight[3]
+//	index, err := strconv.Atoi(txIndex)
+//	if nil != err {
+//		return 0, err
+//	}
+//	return uint32(index), nil
+//}
 
 type ValidatorQueue []*Validator
 
@@ -436,12 +583,10 @@ func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
 func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 
 	compareTxIndexFunc := func(l, r *Validator) int {
-		leftTxIndex, _ := l.GetStakingTxIndex()
-		rightTxIndex, _ := r.GetStakingTxIndex()
 		switch {
-		case leftTxIndex > rightTxIndex:
+		case l.StakingTxIndex > r.StakingTxIndex:
 			return -1
-		case leftTxIndex < rightTxIndex:
+		case l.StakingTxIndex < r.StakingTxIndex:
 			return 1
 		default:
 			return 0
@@ -449,12 +594,11 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareBlockNumberFunc := func(l, r *Validator) int {
-		leftNum, _ := l.GetStakingBlockNumber()
-		rightNum, _ := r.GetStakingBlockNumber()
+
 		switch {
-		case leftNum > rightNum:
+		case l.StakingBlockNum > r.StakingBlockNum:
 			return -1
-		case leftNum < rightNum:
+		case l.StakingBlockNum < r.StakingBlockNum:
 			return 1
 		default:
 			return compareTxIndexFunc(l, r)
@@ -462,13 +606,11 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareSharesFunc := func(l, r *Validator) int {
-		leftShares, _ := l.GetShares()
-		rightShares, _ := r.GetShares()
 
 		switch {
-		case leftShares.Cmp(rightShares) < 0:
+		case l.Shares.Cmp(r.Shares) < 0:
 			return -1
-		case leftShares.Cmp(rightShares) > 0:
+		case l.Shares.Cmp(r.Shares) > 0:
 			return 1
 		default:
 			return compareBlockNumberFunc(l, r)
@@ -483,13 +625,11 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	} else if !leftOk && rightOk {
 		return 1
 	} else {
-		leftVersion, _ := left.GetProgramVersion()
-		rightVersion, _ := right.GetProgramVersion()
 
 		switch {
-		case leftVersion < rightVersion:
+		case left.ProgramVersion < right.ProgramVersion:
 			return -1
-		case leftVersion > rightVersion:
+		case left.ProgramVersion > right.ProgramVersion:
 			return 1
 		default:
 			return compareSharesFunc(left, right)
@@ -528,12 +668,11 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
-		leftTxIndex, _ := l.GetStakingTxIndex()
-		rightTxIndex, _ := r.GetStakingTxIndex()
+
 		switch {
-		case leftTxIndex > rightTxIndex:
+		case l.StakingTxIndex > r.StakingTxIndex:
 			return 1
-		case leftTxIndex < rightTxIndex:
+		case l.StakingTxIndex < r.StakingTxIndex:
 			return -1
 		default:
 			return 0
@@ -542,12 +681,10 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare BlockNumber
 	compareBlockNumberFunc := func(l, r *Validator) int {
-		leftNum, _ := l.GetStakingBlockNumber()
-		rightNum, _ := r.GetStakingBlockNumber()
 		switch {
-		case leftNum > rightNum:
+		case l.StakingBlockNum > r.StakingBlockNum:
 			return 1
-		case leftNum < rightNum:
+		case l.StakingBlockNum < r.StakingBlockNum:
 			return -1
 		default:
 			return compareTxIndexFunc(l, r)
@@ -556,13 +693,11 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare Shares
 	compareSharesFunc := func(l, r *Validator) int {
-		leftShares, _ := l.GetShares()
-		rightShares, _ := r.GetShares()
 
 		switch {
-		case leftShares.Cmp(rightShares) < 0:
+		case l.Shares.Cmp(r.Shares) < 0:
 			return 1
-		case leftShares.Cmp(rightShares) > 0:
+		case l.Shares.Cmp(r.Shares) > 0:
 			return -1
 		default:
 			return compareBlockNumberFunc(l, r)
@@ -582,8 +717,8 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareVersionFunc := func(l, r *Validator) int {
-		lversion, _ := l.GetProgramVersion()
-		rversion, _ := r.GetProgramVersion()
+		lversion := l.ProgramVersion
+		rversion := r.ProgramVersion
 		switch {
 		case lversion > rversion:
 			return -1
@@ -667,12 +802,11 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 
 	// 5. TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
-		leftTxIndex, _ := l.GetStakingTxIndex()
-		rightTxIndex, _ := r.GetStakingTxIndex()
+
 		switch {
-		case leftTxIndex > rightTxIndex:
+		case l.StakingTxIndex > r.StakingTxIndex:
 			return -1
-		case leftTxIndex < rightTxIndex:
+		case l.StakingTxIndex < r.StakingTxIndex:
 			return 1
 		default:
 			return 0
@@ -681,32 +815,16 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 
 	// 4. BlockNumber
 	compareBlockNumberFunc := func(l, r *Validator) int {
-		leftNum, _ := l.GetStakingBlockNumber()
-		rightNum, _ := r.GetStakingBlockNumber()
+
 		switch {
-		case leftNum > rightNum:
+		case l.StakingBlockNum > r.StakingBlockNum:
 			return -1
-		case leftNum < rightNum:
+		case l.StakingBlockNum < r.StakingBlockNum:
 			return 1
 		default:
 			return compareTxIndexFunc(l, r)
 		}
 	}
-
-	//// 3. Shares
-	//compareSharesFunc := func(l, r *Validator) int {
-	//	leftShares, _ := l.GetShares()
-	//	rightShares, _ := r.GetShares()
-	//
-	//	switch {
-	//	case leftShares.Cmp(rightShares) < 0:
-	//		return -1
-	//	case leftShares.Cmp(rightShares) > 0:
-	//		return 1
-	//	default:
-	//		return compareBlockNumberFunc(l, r)
-	//	}
-	//}
 
 	// 2. Term
 	compareTermFunc := func(l, r *Validator) int {
@@ -722,8 +840,8 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 	}
 
 	// 1. ProgramVersion
-	lVersion, _ := left.GetProgramVersion()
-	rVersion, _ := right.GetProgramVersion()
+	lVersion := left.ProgramVersion
+	rVersion := right.ProgramVersion
 	if lVersion < rVersion {
 		return -1
 	} else if lVersion > rVersion {
@@ -747,7 +865,7 @@ type ValidatorEx struct {
 	//NodeAddress common.Address
 	NodeId discover.NodeID
 	// bls public key
-	BlsPubKey bls.PublicKey
+	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
@@ -788,7 +906,7 @@ func (vex *ValidatorEx) String() string {
 	}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
-		fmt.Sprintf("%x", vex.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BenefitAddress.Bytes()),
 		vex.StakingTxIndex,

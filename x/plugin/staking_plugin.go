@@ -171,20 +171,6 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 	return nil
 }
 
-//func distinct(list, target staking.ValidatorQueue) staking.ValidatorQueue {
-//	currentMap := make(map[discover.NodeID]bool)
-//	for _, v := range target {
-//		currentMap[v.NodeId] = true
-//	}
-//	result := make(staking.ValidatorQueue, 0)
-//	for _, v := range list {
-//		if _, ok := currentMap[v.NodeId]; !ok {
-//			result = append(result, v)
-//		}
-//	}
-//	return result
-//}
-
 func (sk *StakingPlugin) addConsensusNode(nodes staking.ValidatorQueue) {
 	for _, node := range nodes {
 		sk.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: node.NodeId})
@@ -195,8 +181,16 @@ func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash, addr common.Add
 	return sk.db.GetCandidateStore(blockHash, addr)
 }
 
+func (sk *StakingPlugin) GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error) {
+	return sk.db.GetCanBaseStore(blockHash, addr)
+}
+
+func (sk *StakingPlugin) GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error) {
+	return sk.db.GetCanMutableStore(blockHash, addr)
+}
+
 func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNumber uint64, addr common.Address) (*staking.CandidateHex, error) {
-	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	can, err := sk.GetCandidateInfo(blockHash, addr)
 	if nil != err {
 		return nil, err
 	}
@@ -213,8 +207,15 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 	return sk.db.GetCandidateStoreByIrr(addr)
 }
 
-func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
-	amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
+func (sk *StakingPlugin) GetCanBaseByIrr(addr common.Address) (*staking.CandidateBase, error) {
+	return sk.db.GetCanBaseStoreByIrr(addr)
+}
+func (sk *StakingPlugin) GetCanMutableByIrr(addr common.Address) (*staking.CandidateMutable, error) {
+	return sk.db.GetCanMutableStoreByIrr(addr)
+}
+
+func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
+	typ uint16, addr common.Address, can *staking.Candidate) error {
 
 	log.Debug("Call CreateCandidate", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
 		"nodeId", can.NodeId.String())
@@ -1139,15 +1140,18 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
-			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+		//powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
+		//	fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        can.NodeId,
-			BlsPubKey:     can.BlsPubKey,
-			StakingWeight: powerStr,
-			ValidatorTerm: 0,
+			NodeAddress:     addr,
+			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
+			ProgramVersion:  can.ProgramVersion,
+			Shares:          can.Shares,
+			StakingBlockNum: can.StakingBlockNum,
+			StakingTxIndex:  can.StakingTxIndex,
+			ValidatorTerm:   0,
 		}
 		queue = append(queue, val)
 	}
@@ -1212,7 +1216,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			can = c
 		}
 
-		shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
@@ -1222,7 +1226,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			StakingTxIndex:  can.StakingTxIndex,
 			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(shares),
+			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
 		}
@@ -1370,7 +1374,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			can = c
 		}
 
-		shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
 
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
@@ -1380,7 +1384,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			StakingTxIndex:  can.StakingTxIndex,
 			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(shares),
+			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
 		}
@@ -2392,13 +2396,14 @@ func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Va
 	for i, v := range arr {
 
 		pubKey, _ := v.NodeId.Pubkey()
+		blsPk, _ := v.BlsPubKey.ParseBlsPubKey()
 
 		vn := &cbfttypes.ValidateNode{
 			Index:     uint32(i),
 			Address:   v.NodeAddress,
 			PubKey:    pubKey,
 			NodeID:    v.NodeId,
-			BlsPubKey: &v.BlsPubKey,
+			BlsPubKey: blsPk,
 		}
 
 		valMap[v.NodeId] = vn
@@ -2541,31 +2546,17 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	}
 	sumWeights := new(big.Int)
 	svList := make(sortValidatorQueue, 0)
-	for _, validator := range validatorList {
-		weights, err := validator.GetShares()
-		if nil != err {
-			return nil, err
-		}
-		weights.Div(weights, new(big.Int).SetUint64(1e18))
+	for _, val := range validatorList {
+
+		weights := new(big.Int).Div(val.Shares, new(big.Int).SetUint64(1e18))
 		sumWeights.Add(sumWeights, weights)
-		version, err := validator.GetProgramVersion()
-		if nil != err {
-			return nil, err
-		}
-		blockNumber, err := validator.GetStakingBlockNumber()
-		if nil != err {
-			return nil, err
-		}
-		txIndex, err := validator.GetStakingTxIndex()
-		if nil != err {
-			return nil, err
-		}
+
 		sv := &sortValidator{
-			v:           validator,
+			v:           val,
 			weights:     int64(weights.Uint64()),
-			version:     version,
-			blockNumber: blockNumber,
-			txIndex:     txIndex,
+			version:     val.ProgramVersion,
+			blockNumber: val.StakingBlockNum,
+			txIndex:     val.StakingTxIndex,
 		}
 		svList = append(svList, sv)
 	}
@@ -2574,10 +2565,13 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	if nil != err {
 		return nil, err
 	}
+
 	// todo This is an empirical formula, and the follow-up will make a better determination.
 	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.ConsValidatorNum()) / sumWeightsFloat
+
 	log.Info("probabilityElection Basic parameter on Election", "validatorListSize", len(validatorList),
 		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen, "epochValidatorNum", xcom.EpochValidatorNum())
+
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
 		target, err := strconv.ParseFloat(resultStr, 64)

@@ -50,94 +50,180 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 	return db.db.GetLastKVHash(blockHash)
 }
 
+// about candidate ...
+
 func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.Address) (*Candidate, error) {
-	start := time.Now()
-
-	key := CandidateKeyByAddr(addr)
-
-	nanodura := time.Since(start).Nanoseconds()
-	log.Info("Call delegate, CandidateKeyByAddr", "duration", nanodura)
-
-	start = time.Now()
-	canByte, err := db.get(blockHash, key)
-
+	base, err := db.GetCanBaseStore(blockHash, addr)
+	if nil != err {
+		return nil, err
+	}
+	mutable, err := db.GetCanMutableStore(blockHash, addr)
 	if nil != err {
 		return nil, err
 	}
 
-	nanodura = time.Since(start).Nanoseconds()
-	log.Info("Call delegate, Getting CandidateInfo", "duration", nanodura)
-
-	start = time.Now()
-
-	var can Candidate
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
-		return nil, err
-	}
-
-	nanodura = time.Since(start).Nanoseconds()
-	log.Info("Call delegate, DecodeBytes CandidateInfo", "duration", nanodura)
-
-	return &can, nil
+	can := &Candidate{}
+	can.CandidateBase = base
+	can.CandidateMutable = mutable
+	return can, nil
 }
 
 func (db *StakingDB) GetCandidateStoreByIrr(addr common.Address) (*Candidate, error) {
-	key := CandidateKeyByAddr(addr)
-	canByte, err := db.getFromCommitted(key)
-
+	base, err := db.GetCanBaseStoreByIrr(addr)
 	if nil != err {
 		return nil, err
 	}
-	var can Candidate
-
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	mutable, err := db.GetCanMutableStoreByIrr(addr)
+	if nil != err {
 		return nil, err
 	}
-	return &can, nil
+
+	can := &Candidate{}
+	can.CandidateBase = base
+	can.CandidateMutable = mutable
+	return can, nil
 }
 
 func (db *StakingDB) GetCandidateStoreWithSuffix(blockHash common.Hash, suffix []byte) (*Candidate, error) {
-	key := CandidateKeyBySuffix(suffix)
-
-	// todo test
-	log.Debug("GetCandidateStoreWithSuffix: Query can", "key", hex.EncodeToString(key))
-
-	canByte, err := db.get(blockHash, key)
-
+	base, err := db.GetCanBaseStoreWithSuffix(blockHash, suffix)
 	if nil != err {
 		return nil, err
 	}
-	var can Candidate
-
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	mutable, err := db.GetCanMutableStoreWithSuffix(blockHash, suffix)
+	if nil != err {
 		return nil, err
 	}
-	return &can, nil
+
+	can := &Candidate{}
+	can.CandidateBase = base
+	can.CandidateMutable = mutable
+	return can, nil
 }
 
 func (db *StakingDB) GetCandidateStoreByIrrWithSuffix(suffix []byte) (*Candidate, error) {
-	key := CandidateKeyBySuffix(suffix)
-	canByte, err := db.getFromCommitted(key)
-
+	base, err := db.GetCanBaseStoreByIrrWithSuffix(suffix)
 	if nil != err {
 		return nil, err
 	}
-	var can Candidate
-
-	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+	mutable, err := db.GetCanMutableStoreByIrrWithSuffix(suffix)
+	if nil != err {
 		return nil, err
 	}
-	return &can, nil
+
+	can := &Candidate{}
+	can.CandidateBase = base
+	can.CandidateMutable = mutable
+	return can, nil
 }
 
 func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
 
+	if err := db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
+		return err
+	}
+	if err := db.SetCanMutableStore(blockHash, addr, can.CandidateMutable); nil != err {
+		return err
+	}
+	return nil
+}
+
+func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Address) error {
+	if err := db.DelCanBaseStore(blockHash, addr); nil != err {
+		return err
+	}
+	if err := db.DelCanMutableStore(blockHash, addr); nil != err {
+		return err
+	}
+	return nil
+}
+
+// about canbase ...
+
+func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, addr common.Address) (*CandidateBase, error) {
 	start := time.Now()
 
-	key := CandidateKeyByAddr(addr)
+	key := CanBaseKeyByAddr(addr)
 
 	nanodura := time.Since(start).Nanoseconds()
-	log.Info("Call delegate, CandidateKeyByAddr", "duration", nanodura)
+	log.Info("Call delegate, CanBaseKeyByAddr", "duration", nanodura)
+
+	start = time.Now()
+	canByte, err := db.get(blockHash, key)
+
+	if nil != err {
+		return nil, err
+	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, Getting CandidateBase", "duration", nanodura)
+
+	start = time.Now()
+
+	var can CandidateBase
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, DecodeBytes CandidateBase", "duration", nanodura)
+
+	return &can, nil
+}
+
+func (db *StakingDB) GetCanBaseStoreByIrr(addr common.Address) (*CandidateBase, error) {
+	key := CanBaseKeyByAddr(addr)
+	canByte, err := db.getFromCommitted(key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can CandidateBase
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) GetCanBaseStoreWithSuffix(blockHash common.Hash, suffix []byte) (*CandidateBase, error) {
+	key := CanBaseKeyBySuffix(suffix)
+
+	canByte, err := db.get(blockHash, key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can CandidateBase
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) GetCanBaseStoreByIrrWithSuffix(suffix []byte) (*CandidateBase, error) {
+	key := CanBaseKeyBySuffix(suffix)
+	canByte, err := db.getFromCommitted(key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can CandidateBase
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, addr common.Address, can *CandidateBase) error {
+
+	start := time.Now()
+
+	key := CanBaseKeyByAddr(addr)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, CanBaseKeyByAddr", "duration", nanodura)
 
 	start = time.Now()
 
@@ -146,17 +232,124 @@ func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.Addres
 	} else {
 
 		nanodura := time.Since(start).Nanoseconds()
-		log.Info("Call delegate, EncodeToBytes CandidateInfo", "duration", nanodura)
+		log.Info("Call delegate, EncodeToBytes CandidateBase", "duration", nanodura)
 
 		return db.put(blockHash, key, val)
 	}
 }
 
-func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.Address) error {
-	key := CandidateKeyByAddr(addr)
-
+func (db *StakingDB) DelCanBaseStore(blockHash common.Hash, addr common.Address) error {
+	key := CanBaseKeyByAddr(addr)
 	return db.del(blockHash, key)
 }
+
+// about canmutable ...
+
+func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.Address) (*CandidateMutable, error) {
+	start := time.Now()
+
+	key := CanMutableKeyByAddr(addr)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, CanMutableKeyByAddr", "duration", nanodura)
+
+	start = time.Now()
+	canByte, err := db.get(blockHash, key)
+
+	if nil != err {
+		return nil, err
+	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, Getting CandidateMutable", "duration", nanodura)
+
+	start = time.Now()
+
+	var can CandidateMutable
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, DecodeBytes CandidateMutable", "duration", nanodura)
+
+	return &can, nil
+}
+
+func (db *StakingDB) GetCanMutableStoreByIrr(addr common.Address) (*CandidateMutable, error) {
+	key := CanMutableKeyByAddr(addr)
+	canByte, err := db.getFromCommitted(key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can CandidateMutable
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) GetCanMutableStoreWithSuffix(blockHash common.Hash, suffix []byte) (*CandidateMutable, error) {
+	key := CanMutableKeyBySuffix(suffix)
+
+	canByte, err := db.get(blockHash, key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can CandidateMutable
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*CandidateMutable, error) {
+	key := CanMutableKeyBySuffix(suffix)
+	canByte, err := db.getFromCommitted(key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can CandidateMutable
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.Address, can *CandidateMutable) error {
+
+	start := time.Now()
+
+	key := CanMutableKeyByAddr(addr)
+
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, CanMutableKeyByAddr", "duration", nanodura)
+
+	start = time.Now()
+
+	if val, err := rlp.EncodeToBytes(can); nil != err {
+		return err
+	} else {
+
+		nanodura := time.Since(start).Nanoseconds()
+		log.Info("Call delegate, EncodeToBytes CandidateMutable", "duration", nanodura)
+
+		return db.put(blockHash, key, val)
+	}
+}
+
+func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.Address) error {
+	key := CanMutableKeyByAddr(addr)
+	return db.del(blockHash, key)
+}
+
+// about candidate power ...
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.Address, can *Candidate) error {
 	start := time.Now()
@@ -179,6 +372,8 @@ func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) err
 
 	return db.del(blockHash, key)
 }
+
+// about UnStakeItem ...
 
 func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.Address, stakeBlockNumber uint64) error {
 
@@ -259,6 +454,8 @@ func (db *StakingDB) DelUnStakeItemStore(blockHash common.Hash, epoch, index uin
 
 	return db.del(blockHash, item_key)
 }
+
+// about delegate ...
 
 func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
 	start := time.Now()
@@ -389,6 +586,8 @@ func (db *StakingDB) DelUnDelegateItemStore(blockHash common.Hash, epoch, index 
 	return db.del(blockHash, item_key)
 }
 
+// about epoch validates ...
+
 func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
 	value, err := rlp.EncodeToBytes(indexArr)
 	if nil != err {
@@ -473,6 +672,8 @@ func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, en
 
 	return db.del(blockHash, GetEpochValArrKey(start, end))
 }
+
+// about round validators
 
 func (db *StakingDB) SetRoundValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
 	value, err := rlp.EncodeToBytes(indexArr)
@@ -559,21 +760,19 @@ func (db *StakingDB) DelRoundValListByBlockHash(blockHash common.Hash, start, en
 	return db.del(blockHash, GetRoundValArrKey(start, end))
 }
 
+// iterator ...
+
 func (db *StakingDB) IteratorCandidatePowerByBlockHash(blockHash common.Hash, ranges int) iterator.Iterator {
 	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)
 }
-
-//func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
-//	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
-//	return db.ranking(common.ZeroHash, prefix, ranges)
-//}
 
 func (db *StakingDB) IteratorDelegateByBlockHashWithAddr(blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
 	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
 	return db.ranking(blockHash, prefix, ranges)
 }
 
-// add the account staking Reference Count
+// about account staking reference count ...
+
 func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Address) error {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -596,7 +795,6 @@ func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Addres
 	return db.put(blockHash, key, common.Uint64ToBytes(v))
 }
 
-// sub the account staking Reference Count
 func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Address) error {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -633,7 +831,6 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	}
 }
 
-// check the account staking Reference Count
 func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Address) (bool, error) {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -658,6 +855,8 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 		return false, fmt.Errorf("Account Stake Reference Count cannot be negative, account: %s", addr.String())
 	}
 }
+
+// about round validator's addrs ...
 
 func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.Address) error {
 	value, err := rlp.EncodeToBytes(arry)

@@ -117,7 +117,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// parse bls publickey
-	blsPk, err := parseBlsPubKey(blsPubKey)
+	blsPk, err := blsPubKey.ParseBlsPubKey()
 	if nil != err {
 
 		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKey)
@@ -212,27 +212,30 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	/**
 	init candidate info
 	*/
-	canNew := &staking.Candidate{
+	canBase := &staking.CandidateBase{
 		NodeId:          nodeId,
-		BlsPubKey:       *blsPk,
+		BlsPubKey:       blsPubKey,
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		Shares:          amount,
+		ProgramVersion:  currVersion,
+		Description:     *desc,
+	}
 
-		// Prevent null pointer initialization
+	canMutable := &staking.CandidateMutable{
+		Shares:             amount,
 		Released:           new(big.Int).SetInt64(0),
 		ReleasedHes:        new(big.Int).SetInt64(0),
 		RestrictingPlan:    new(big.Int).SetInt64(0),
 		RestrictingPlanHes: new(big.Int).SetInt64(0),
-
-		Description: *desc,
 	}
 
-	canNew.ProgramVersion = currVersion
+	can := &staking.Candidate{}
+	can.CandidateBase = canBase
+	can.CandidateMutable = canMutable
 
-	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
+	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, can)
 
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
@@ -249,7 +252,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if isDeclareVersion {
 		// Declare new Version
-		err := gov.DeclareVersion(canNew.StakingAddress, canNew.NodeId,
+		err := gov.DeclareVersion(canBase.StakingAddress, canBase.NodeId,
 			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), stkc.Plugin, state)
 		if nil != err {
 			log.Error("Failed to CreateCandidate with govplugin DelareVersion failed",
@@ -268,20 +271,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	event := xcom.OkResultByte
 	stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 	return event, nil
-}
-
-func parseBlsPubKey(entries bls.PublicKeyHex) (*bls.PublicKey, error) {
-	pubKeyByte, err := entries.MarshalText()
-	if nil != err {
-		return nil, err
-	}
-
-	var blsPk bls.PublicKey
-	if err := blsPk.UnmarshalText(pubKeyByte); nil != err {
-
-		return nil, err
-	}
-	return &blsPk, nil
 }
 
 func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {

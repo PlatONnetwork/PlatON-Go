@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	CandidatePrefixStr       = "Can"
+	CanBasePrefixStr         = "CanBase"
+	CanMutablePrefixStr      = "CanMut"
 	CanPowerPrefixStr        = "Power"
 	UnStakeCountKeyStr       = "UnStakeCount"
 	UnStakeItemKeyStr        = "UnStakeItem"
@@ -23,12 +24,13 @@ const (
 	RoundIndexKeyStr         = "RoundIndex"
 	RoundValArrPrefixStr     = "RoundValArr"
 	AccountStakeRcPrefixStr  = "AccStakeRc"
-	PPOSHASHStr              = "PPOS_HASH"
+	PPOSHASHStr              = "PPOSHASH"
 	RoundValAddrArrPrefixStr = "RoundValAddrArr"
 )
 
 var (
-	CandidateKeyPrefix    = []byte(CandidatePrefixStr)
+	CanBaseKeyPrefix      = []byte(CanBasePrefixStr)
+	CanMutableKeyPrefix   = []byte(CanMutablePrefixStr)
 	CanPowerKeyPrefix     = []byte(CanPowerPrefixStr)
 	UnStakeCountKey       = []byte(UnStakeCountKeyStr)
 	UnStakeItemKey        = []byte(UnStakeItemKeyStr)
@@ -41,41 +43,63 @@ var (
 	RoundValArrPrefix     = []byte(RoundValArrPrefixStr)
 	AccountStakeRcPrefix  = []byte(AccountStakeRcPrefixStr)
 	PPOSHASHKey           = []byte(PPOSHASHStr)
-	b104Len               = len(math.MaxBig104.Bytes())
 	RoundValAddrArrPrefix = []byte(RoundValAddrArrPrefixStr)
+
+	b104Len = len(math.MaxBig104.Bytes())
 )
 
-func CandidateKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
+// CanBase ...
+func CanBaseKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
 
 	if pk, err := nodeId.Pubkey(); nil != err {
 		return nil, err
 	} else {
 		addr := crypto.PubkeyToAddress(*pk)
-		return append(CandidateKeyPrefix, addr.Bytes()...), nil
+		return append(CanBaseKeyPrefix, addr.Bytes()...), nil
+	}
+}
+func CanBaseKeyByPubKey(p ecdsa.PublicKey) []byte {
+	addr := crypto.PubkeyToAddress(p)
+	return append(CanBaseKeyPrefix, addr.Bytes()...)
+}
+func CanBaseKeyByAddr(addr common.Address) []byte {
+	return append(CanBaseKeyPrefix, addr.Bytes()...)
+}
+func CanBaseKeyBySuffix(addr []byte) []byte {
+	return append(CanBaseKeyPrefix, addr...)
+}
+
+// CanMutable ...
+func CanMutableKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
+
+	if pk, err := nodeId.Pubkey(); nil != err {
+		return nil, err
+	} else {
+		addr := crypto.PubkeyToAddress(*pk)
+		return append(CanMutableKeyPrefix, addr.Bytes()...), nil
 	}
 }
 
-func CandidateKeyByPubKey(p ecdsa.PublicKey) []byte {
+func CanMutableKeyByPubKey(p ecdsa.PublicKey) []byte {
 	addr := crypto.PubkeyToAddress(p)
-	return append(CandidateKeyPrefix, addr.Bytes()...)
+	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 
-func CandidateKeyByAddr(addr common.Address) []byte {
-	return append(CandidateKeyPrefix, addr.Bytes()...)
+func CanMutableKeyByAddr(addr common.Address) []byte {
+	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 
-func CandidateKeyBySuffix(addr []byte) []byte {
-	return append(CandidateKeyPrefix, addr...)
+func CanMutableKeyBySuffix(addr []byte) []byte {
+	return append(CanMutableKeyPrefix, addr...)
 }
 
-// need to add ProgramVersion
+// the candidate power key
 func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programVersion uint32) []byte {
 
 	subVersion := math.MaxInt32 - programVersion
-
 	sortVersion := common.Uint32ToBytes(subVersion)
-	priority := new(big.Int).Sub(math.MaxBig104, shares)
 
+	priority := new(big.Int).Sub(math.MaxBig104, shares)
 	zeros := make([]byte, b104Len)
 	prio := append(zeros, priority.Bytes()...)
 
@@ -109,22 +133,6 @@ func GetUnDelegateCountKey(epoch uint64) []byte {
 func GetUnDelegateItemKey(epoch, index uint64) []byte {
 	return append(UnDelegateItemKey, append(common.Uint64ToBytes(epoch), common.Uint64ToBytes(index)...)...)
 }
-
-//func GetEpochValidatorKey() []byte {
-//	return EpochValidatorKey
-//}
-//
-//func GetPreRoundValidatorKey() []byte {
-//	return PreRoundValidatorKey
-//}
-//
-//func GetCurRoundValidatorKey() []byte {
-//	return CurRoundValidatorKey
-//}
-//
-//func GetNextRoundValidatorKey() []byte {
-//	return NextRoundValidatorKey
-//}
 
 func GetEpochIndexKey() []byte {
 	return EpochIndexKey
