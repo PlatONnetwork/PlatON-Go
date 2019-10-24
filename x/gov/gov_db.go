@@ -101,7 +101,10 @@ func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, err
 }
 
 func UpdateVoteValue(proposalID common.Hash, voteValueList []VoteValue, state xcom.StateDB) error {
-	voteListBytes, _ := json.Marshal(voteValueList)
+	voteListBytes, err := json.Marshal(voteValueList)
+	if err != nil {
+		return err
+	}
 	state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
 	return nil
 }
