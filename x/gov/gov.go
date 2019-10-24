@@ -303,7 +303,10 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
-				nodeAddress, _ := xutil.NodeId2Addr(verifier.NodeId)
+				nodeAddress, err := xutil.NodeId2Addr(verifier.NodeId)
+				if err != nil {
+					return err
+				}
 				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
 				if err != nil {
 					return VerifierInfoNotFound
@@ -442,7 +445,9 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 				}
 				if idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
-					UpdateVoteValue(proposalID, voteValueList, state)
+					if err := UpdateVoteValue(proposalID, voteValueList, state); err != nil {
+						return err
+					}
 				}
 			}
 
