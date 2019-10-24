@@ -373,7 +373,10 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			return err
 		}
 		if should {
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
+			node, err := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
+			if err != nil {
+				return err
+			}
 			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
 		}
 

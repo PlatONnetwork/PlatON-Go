@@ -1409,6 +1409,35 @@ func (cbft *Cbft) checkPrepareQC(msg ctypes.ConsensusMsg) error {
 	return nil
 }
 
+func (cbft *Cbft) doubtDuplicate(msg ctypes.ConsensusMsg, node *cbfttypes.ValidateNode) error {
+	switch cm := msg.(type) {
+	case *protocols.PrepareBlock:
+		if err := cbft.evPool.AddPrepareBlock(cm, node); err != nil {
+			if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
+				cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
+				return err
+			}
+		}
+	case *protocols.PrepareVote:
+		if err := cbft.evPool.AddPrepareVote(cm, node); err != nil {
+			if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
+				cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
+				return err
+			}
+		}
+	case *protocols.ViewChange:
+		if err := cbft.evPool.AddViewChange(cm, node); err != nil {
+			if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
+				cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
+				return err
+			}
+		}
+	default:
+		return authFailedError{err: fmt.Errorf("invalid consensusMsg")}
+	}
+	return nil
+}
+
 func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.ValidateNode, error) {
 	// check if the consensusMsg must take prepareQC, Otherwise maybe panic
 	if err := cbft.checkPrepareQC(msg); err != nil {
@@ -1424,6 +1453,11 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 
 	if err != nil {
 		return nil, authFailedError{err: errors.Wrap(err, "get validator failed")}
+	}
+
+	// check that the consensusMsg is duplicate
+	if err = cbft.doubtDuplicate(msg, vnode); err != nil {
+		return nil, err
 	}
 
 	var (
@@ -1468,6 +1502,9 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 			oriHash = localQC.BlockHash
 		} else {
 			parentBlock := cbft.state.ViewBlockByIndex(cm.BlockIndex - 1)
+			if parentBlock == nil {
+				return nil, fmt.Errorf("parentBlock not exists,blockIndex:%d", cm.BlockIndex-1)
+			}
 			oriNumber = parentBlock.NumberU64()
 			oriHash = parentBlock.Hash()
 		}
