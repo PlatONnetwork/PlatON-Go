@@ -78,6 +78,7 @@ func WriteEconomicModel(db DatabaseWriter, hash common.Hash, ec *xcom.EconomicMo
 	if ec == nil {
 		return
 	}
+
 	data, err := json.Marshal(ec)
 	if err != nil {
 		log.Crit("Failed to JSON encode EconomicModel config", "err", err)
@@ -93,11 +94,12 @@ func ReadEconomicModel(db DatabaseReader, hash common.Hash, ec *xcom.EconomicMod
 	if len(data) == 0 {
 		return nil
 	}
+
+	// reset the global ec
 	if err := json.Unmarshal(data, ec); err != nil {
 		log.Error("Invalid EconomicModel JSON", "hash", hash, "err", err)
 		return nil
 	}
-
 	return ec
 }
 

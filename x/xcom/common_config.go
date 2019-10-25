@@ -108,6 +108,10 @@ func GetEc(netId int8) *EconomicModel {
 	return ec
 }
 
+func ResetEconomicDefaultConfig(newEc *EconomicModel) {
+	ec = newEc
+}
+
 const (
 	DefaultMainNet = iota // PlatON default main net flag
 	DefaultTestNet        // PlatON default test net flag
@@ -355,29 +359,22 @@ func ExpectedMinutes() uint64 {
 // set the value by genesis block
 func SetNodeBlockTimeWindow(period uint64) {
 	if ec != nil {
-		fmt.Println("改 NodeBlockTimeWindow 为:", period)
 		ec.Common.NodeBlockTimeWindow = period
-		fmt.Println("改完 NodeBlockTimeWindow", "ec", fmt.Sprintf("%+v", ec))
 	}
 }
 func SetPerRoundBlocks(amount uint64) {
 	if ec != nil {
-		fmt.Println("改 PerRoundBlocks 为:", amount)
 		ec.Common.PerRoundBlocks = amount
-		fmt.Println("改完 PerRoundBlocks", "ec", fmt.Sprintf("%+v", ec))
 	}
 }
 
 func Interval() uint64 {
-	fmt.Println("查 Interval ", "ec", fmt.Sprintf("%+v", ec))
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
 func BlocksWillCreate() uint64 {
-	fmt.Println("查 BlocksWillCreate ", "ec", fmt.Sprintf("%+v", ec))
 	return ec.Common.PerRoundBlocks
 }
 func ConsValidatorNum() uint64 {
-	fmt.Println("查 ConsValidatorNum ", "ec", fmt.Sprintf("%+v", ec))
 	return ec.Common.ValidatorCount
 }
 
