@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -19,7 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	coreVM "github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -290,12 +287,6 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
 		return nil
-	}
-
-	// The default codeHash value will be set for all PlatON built-in contracts to avoid account deletion.
-	for innerContractAddr := range coreVM.PlatONPrecompiledContracts {
-		stateObject := statedb.GetOrNewStateObject(innerContractAddr)
-		stateObject.SetCode(crypto.Keccak256Hash(innerContractAddr.Bytes()), nil)
 	}
 
 	// Store genesis yearEnd reward balance item
