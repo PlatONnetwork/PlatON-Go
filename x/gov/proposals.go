@@ -345,6 +345,74 @@ func (cp *CancelProposal) String() string {
 		cp.ProposalID, cp.ProposalType, cp.PIPID, cp.Proposer, cp.SubmitBlock, cp.EndVotingBlock, cp.TobeCanceled.Hex())
 }
 
+type ParamItem struct {
+	currentValue string
+	newValue     string
+	activeEpoch  uint64
+}
+type ParamProposal struct {
+	ProposalID     common.Hash
+	ProposalType   ProposalType
+	PIPID          string
+	SubmitBlock    uint64
+	EndVotingBlock uint64
+	Proposer       discover.NodeID
+	Result         TallyResult `json:"-"`
+	ParamName      string
+	ParamItem      ParamItem
+}
+
+func (pp *ParamProposal) GetProposalID() common.Hash {
+	return pp.ProposalID
+}
+
+func (pp *ParamProposal) GetProposalType() ProposalType {
+	return pp.ProposalType
+}
+
+func (pp *ParamProposal) GetPIPID() string {
+	return pp.PIPID
+}
+
+func (pp *ParamProposal) GetSubmitBlock() uint64 {
+	return pp.SubmitBlock
+}
+
+func (pp *ParamProposal) GetEndVotingBlock() uint64 {
+	return pp.EndVotingBlock
+}
+
+func (pp *ParamProposal) GetProposer() discover.NodeID {
+	return pp.Proposer
+}
+
+func (pp *ParamProposal) GetTallyResult() TallyResult {
+	return pp.Result
+}
+
+func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
+	if pp.ProposalType != Cancel {
+		return ProposalTypeError
+	}
+
+	if err := verifyBasic(pp, state); err != nil {
+		return err
+	}
+	//todo:
+	return nil
+}
+
+func (pp *ParamProposal) String() string {
+	return fmt.Sprintf(`Proposal %x: 
+  Type:               	%x
+  PIPID:			    %s
+  Proposer:            	%x
+  SubmitBlock:        	%d
+  EndVotingBlock:   	%d
+  TobeCanceled:   		%s`,
+		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock)
+}
+
 func verifyBasic(p Proposal, state xcom.StateDB) error {
 	log.Debug("verify proposal basic parameters", "proposalID", p.GetProposalID(), "proposer", p.GetProposer(), "pipID", p.GetPIPID(), "endVotingBlock", p.GetEndVotingBlock(), "submitBlock", p.GetSubmitBlock())
 
