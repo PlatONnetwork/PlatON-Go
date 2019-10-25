@@ -52,7 +52,7 @@ func (suit *EvidenceTestSuite) SetupTest() {
 	suit.epoch = suit.view.firstCbft.state.Epoch()
 }
 
-// 双viewChange
+// Double view change
 func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
@@ -124,7 +124,7 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifEpoch() {
 	suit.Equal("{}", ev)
 }
 
-// 双出
+// duplicateEvidence
 func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
@@ -242,7 +242,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifEpoch() {
 	suit.Equal("{}", ev)
 }
 
-// 双签
+// duplicate sign
 func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
