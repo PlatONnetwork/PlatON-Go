@@ -24,10 +24,8 @@ const (
 	LessThanFoundationYearDeveloperRate    = 100
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
-
-	IncreaseIssue = 40
-
-	RewardPoolIncreaseRate = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+	IncreaseIssue                          = 40
+	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
 )
 
 var (
