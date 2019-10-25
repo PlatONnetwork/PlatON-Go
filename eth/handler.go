@@ -170,8 +170,13 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	if len(manager.SubProtocols) == 0 {
 		return nil, errIncompatibleConfig
 	}
+
+	decodeExtra := func(extra []byte) (common.Hash, uint64, error) {
+		return manager.engine.DecodeExtra(extra)
+	}
+
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, blockchain, nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, blockchain, nil, manager.removePeer, decodeExtra)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
@@ -190,9 +195,6 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 	getBlockByHash := func(hash common.Hash) *types.Block {
 		return manager.blockchain.GetBlockByHash(hash)
-	}
-	decodeExtra := func(extra []byte) (common.Hash, uint64, error) {
-		return manager.engine.DecodeExtra(extra)
 	}
 
 	//manager.fetcher = fetcher.New(GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)

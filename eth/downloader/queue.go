@@ -43,6 +43,8 @@ var (
 	errStaleDelivery    = errors.New("stale delivery")
 )
 
+type decodeExtraFn func([]byte) (common.Hash, uint64, error)
+
 // fetchRequest is a currently running data retrieval operation.
 type fetchRequest struct {
 	Peer    *peerConnection // Peer to which the request was sent
@@ -96,10 +98,12 @@ type queue struct {
 	lock   *sync.Mutex
 	active *sync.Cond
 	closed bool
+
+	decodeExtra decodeExtraFn
 }
 
 // newQueue creates a new download queue for scheduling block retrieval.
-func newQueue() *queue {
+func newQueue(decodeExtra decodeExtraFn) *queue {
 	lock := new(sync.Mutex)
 	return &queue{
 		headerPendPool:   make(map[string]*fetchRequest),
@@ -115,6 +119,7 @@ func newQueue() *queue {
 		resultCache:      make([]*fetchResult, blockCacheItems),
 		active:           sync.NewCond(lock),
 		lock:             lock,
+		decodeExtra:      decodeExtra,
 	}
 }
 
@@ -771,8 +776,17 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
+	equalExtra := func(header *types.Header, extra []byte) bool {
+		if q.decodeExtra == nil || len(extra) == 0 {
+			return true
+		}
+
+		bh, _, err := q.decodeExtra(extra)
+		return err == nil && bh == header.Hash()
+	}
+
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash {
+		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash && !equalExtra(header, extraData[index]) {
 			return errInvalidBody
 		}
 		result.Transactions = txLists[index]
