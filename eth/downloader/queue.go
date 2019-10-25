@@ -777,7 +777,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 	defer q.lock.Unlock()
 
 	equalExtra := func(header *types.Header, extra []byte) bool {
-		if q.decodeExtra == nil || len(extra) == 0 {
+		if q.decodeExtra == nil {
 			return true
 		}
 
