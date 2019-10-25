@@ -71,11 +71,11 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
 	switch err.(type) {
 	case nil:
-		event := xcom.OkResultByte
+		event := xcom.OkReceiptByte
 		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	case *common.BizError:
-		event := xcom.NewFailResult(err)
+		event := xcom.NewFailedResult(err)
 		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 		return event, nil
 	default:
@@ -97,9 +97,9 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
 	//var res xcom.Result
 	if err != nil {
-		return xcom.NewFailResult(err), nil
+		return xcom.NewFailedResult(err), nil
 	} else {
-		return xcom.NewSuccessResult(string(result)), nil
+		return xcom.NewOkResult(string(result)), nil
 	}
 }
 

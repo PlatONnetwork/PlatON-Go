@@ -46,12 +46,11 @@ type commonConfig struct {
 }
 
 type stakingConfig struct {
-	StakeThreshold              *big.Int // The Staking minimum threshold allowed
-	MinimumThreshold            *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
-	EpochValidatorNum           uint64   // The epoch (billing cycle) validators count
-	HesitateRatio               uint64   // Each hesitation period is a multiple of the epoch
-	UnStakeFreezeRatio          uint64   // The freeze period of the withdrew Staking (unit is  epochs)
-	ActiveUnDelegateFreezeRatio uint64   // The freeze period of the delegate was invalidated due to active withdrew delegate (unit is  epochs)
+	StakeThreshold     *big.Int // The Staking minimum threshold allowed
+	MinimumThreshold   *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
+	EpochValidatorNum  uint64   // The epoch (billing cycle) validators count
+	HesitateRatio      uint64   // Each hesitation period is a multiple of the epoch
+	UnStakeFreezeRatio uint64   // The freeze period of the withdrew Staking (unit is  epochs)
 }
 
 type slashingConfig struct {
@@ -136,12 +135,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:              new(big.Int).Set(MillionLAT),
-				MinimumThreshold:            new(big.Int).Set(TenLAT),
-				EpochValidatorNum:           uint64(101),
-				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(28), // freezing 28 epoch
-				ActiveUnDelegateFreezeRatio: uint64(0),
+				StakeThreshold:     new(big.Int).Set(MillionLAT),
+				MinimumThreshold:   new(big.Int).Set(TenLAT),
+				EpochValidatorNum:  uint64(101),
+				HesitateRatio:      uint64(1),
+				UnStakeFreezeRatio: uint64(28), // freezing 28 epoch
 			},
 			Slashing: slashingConfig{
 				DuplicateSignHighSlashing:      uint32(10),
@@ -181,12 +179,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:              new(big.Int).Set(MillionLAT),
-				MinimumThreshold:            new(big.Int).Set(TenLAT),
-				EpochValidatorNum:           uint64(24),
-				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(2),
-				ActiveUnDelegateFreezeRatio: uint64(0),
+				StakeThreshold:     new(big.Int).Set(MillionLAT),
+				MinimumThreshold:   new(big.Int).Set(TenLAT),
+				EpochValidatorNum:  uint64(24),
+				HesitateRatio:      uint64(1),
+				UnStakeFreezeRatio: uint64(2),
 			},
 			Slashing: slashingConfig{
 				DuplicateSignHighSlashing:      uint32(10),
@@ -227,12 +224,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:              new(big.Int).Set(MillionLAT),
-				MinimumThreshold:            new(big.Int).Set(TenLAT),
-				EpochValidatorNum:           uint64(24),
-				HesitateRatio:               uint64(1),
-				UnStakeFreezeRatio:          uint64(2),
-				ActiveUnDelegateFreezeRatio: uint64(0),
+				StakeThreshold:     new(big.Int).Set(MillionLAT),
+				MinimumThreshold:   new(big.Int).Set(TenLAT),
+				EpochValidatorNum:  uint64(24),
+				HesitateRatio:      uint64(1),
+				UnStakeFreezeRatio: uint64(2),
 			},
 			Slashing: slashingConfig{
 				DuplicateSignHighSlashing:      uint32(10),
@@ -359,22 +355,29 @@ func ExpectedMinutes() uint64 {
 // set the value by genesis block
 func SetNodeBlockTimeWindow(period uint64) {
 	if ec != nil {
+		fmt.Println("改 NodeBlockTimeWindow 为:", period)
 		ec.Common.NodeBlockTimeWindow = period
+		fmt.Println("改完 NodeBlockTimeWindow", "ec", fmt.Sprintf("%+v", ec))
 	}
 }
 func SetPerRoundBlocks(amount uint64) {
 	if ec != nil {
+		fmt.Println("改 PerRoundBlocks 为:", amount)
 		ec.Common.PerRoundBlocks = amount
+		fmt.Println("改完 PerRoundBlocks", "ec", fmt.Sprintf("%+v", ec))
 	}
 }
 
 func Interval() uint64 {
+	fmt.Println("查 Interval ", "ec", fmt.Sprintf("%+v", ec))
 	return ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 }
 func BlocksWillCreate() uint64 {
+	fmt.Println("查 BlocksWillCreate ", "ec", fmt.Sprintf("%+v", ec))
 	return ec.Common.PerRoundBlocks
 }
 func ConsValidatorNum() uint64 {
+	fmt.Println("查 ConsValidatorNum ", "ec", fmt.Sprintf("%+v", ec))
 	return ec.Common.ValidatorCount
 }
 
@@ -412,10 +415,6 @@ func ElectionDistance() uint64 {
 
 func UnStakeFreezeRatio() uint64 {
 	return ec.Staking.UnStakeFreezeRatio
-}
-
-func ActiveUnDelFreezeRatio() uint64 {
-	return ec.Staking.ActiveUnDelegateFreezeRatio
 }
 
 /******

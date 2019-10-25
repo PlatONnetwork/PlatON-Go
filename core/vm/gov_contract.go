@@ -358,8 +358,8 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) ([]byte, error) {
 	var event = strconv.Itoa(int(fcode))
 	if err != nil {
-		if _, ok := err.(*common.BizError); ok {
-			resultBytes := xcom.NewFailResult(err)
+		if bizErr, ok := err.(*common.BizError); ok {
+			resultBytes := xcom.FailedReceipt(bizErr)
 			xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(resultBytes))
 			log.Warn("Execute GovContract failed.(Business error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "result", string(resultBytes))
 			return resultBytes, nil
@@ -369,25 +369,25 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 		}
 	} else {
 		log.Debug("Execute GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash())
-		xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(xcom.OkResultByte))
-		return xcom.OkResultByte, nil
+		xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(xcom.OkReceiptByte))
+		return xcom.OkReceiptByte, nil
 	}
 }
 
 func (gc *GovContract) callHandler(funcName string, resultValue interface{}, err error) ([]byte, error) {
 	if nil != err {
 		log.Error("call GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "err", err)
-		resultBytes := xcom.NewFailResult(err)
+		resultBytes := xcom.NewFailedResult(err)
 		return resultBytes, nil
 	}
 	jsonByte, e := json.Marshal(resultValue)
 	if nil != e {
-		log.Debug("call GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "err", err)
-		resultBytes := xcom.NewFailResult(e)
+		log.Error("call GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "err", err)
+		resultBytes := xcom.NewFailedResult(e)
 		return resultBytes, nil
 	} else {
 		log.Debug("call GovContract success", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash(), "returnValue", string(jsonByte))
-		resultBytes := xcom.NewSuccessResult(string(jsonByte))
+		resultBytes := xcom.NewOkResult(string(jsonByte))
 		return resultBytes, nil
 	}
 }

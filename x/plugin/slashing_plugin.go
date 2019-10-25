@@ -74,7 +74,8 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 		log.Error("slashingPlugin setPackAmount fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 		return err
 	}
-	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
+	// If it is the 230th block of each round,
+	// it will punish the node with abnormal block rate.
 	// Do this from the second consensus round
 	if header.Number.Uint64() > xutil.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash",
@@ -96,21 +97,21 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 			for _, validator := range preRoundValArr {
 				nodeId := validator.NodeId
-				amount := result[nodeId]
-				if amount > 0 {
+				count := result[nodeId]
+				if count > 0 {
 					continue
 				}
 				slashType := staking.LowRatioDel
 				slashAmount := common.Big0
-				sumAmount := calcCanTotalBalance(header.Number.Uint64(), validator)
+				totalBalance := calcCanTotalBalance(header.Number.Uint64(), validator)
 				if xcom.NumberOfBlockRewardForSlashing() > 0 {
 					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
-					if slashAmount.Cmp(sumAmount) > 0 {
-						slashAmount = sumAmount
+					if slashAmount.Cmp(totalBalance) > 0 {
+						slashAmount = totalBalance
 					}
 				}
 				log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-					"packAmount", amount, "slashType", slashType, "slashAmount", slashAmount, "sumAmount", sumAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
+					"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
 
 				slashItem := &staking.SlashNodeItem{
 					NodeId:      nodeId,
