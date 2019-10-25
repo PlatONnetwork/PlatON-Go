@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -116,7 +117,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// parse bls publickey
-	blsPk, err := parseBlsPubKey(blsPubKey)
+	blsPk, err := blsPubKey.ParseBlsPubKey()
 	if nil != err {
 
 		event := xcom.NewFailResultByBiz(staking.ErrWrongBlsPubKey)
@@ -211,27 +212,30 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	/**
 	init candidate info
 	*/
-	canNew := &staking.Candidate{
+	canBase := &staking.CandidateBase{
 		NodeId:          nodeId,
-		BlsPubKey:       *blsPk,
+		BlsPubKey:       blsPubKey,
 		StakingAddress:  from,
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		Shares:          amount,
+		ProgramVersion:  currVersion,
+		Description:     *desc,
+	}
 
-		// Prevent null pointer initialization
+	canMutable := &staking.CandidateMutable{
+		Shares:             amount,
 		Released:           new(big.Int).SetInt64(0),
 		ReleasedHes:        new(big.Int).SetInt64(0),
 		RestrictingPlan:    new(big.Int).SetInt64(0),
 		RestrictingPlanHes: new(big.Int).SetInt64(0),
-
-		Description: *desc,
 	}
 
-	canNew.ProgramVersion = currVersion
+	can := &staking.Candidate{}
+	can.CandidateBase = canBase
+	can.CandidateMutable = canMutable
 
-	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
+	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, can)
 
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
@@ -248,7 +252,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if isDeclareVersion {
 		// Declare new Version
-		err := gov.DeclareVersion(canNew.StakingAddress, canNew.NodeId,
+		err := gov.DeclareVersion(canBase.StakingAddress, canBase.NodeId,
 			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), stkc.Plugin, state)
 		if nil != err {
 			log.Error("Failed to CreateCandidate with govplugin DelareVersion failed",
@@ -267,20 +271,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	event := xcom.OkResultByte
 	stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 	return event, nil
-}
-
-func parseBlsPubKey(entries bls.PublicKeyHex) (*bls.PublicKey, error) {
-	pubKeyByte, err := entries.MarshalText()
-	if nil != err {
-		return nil, err
-	}
-
-	var blsPk bls.PublicKey
-	if err := blsPk.UnmarshalText(pubKeyByte); nil != err {
-
-		return nil, err
-	}
-	return &blsPk, nil
 }
 
 func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
@@ -578,7 +568,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 }
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
-
+	begin := time.Now()
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -607,11 +597,15 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return event, nil
 	}
 
+	start := time.Now()
+
 	// check account
 	hasStake, err := stkc.Plugin.HasStake(blockHash, from)
 	if nil != err {
 		return nil, err
 	}
+	nanodura := time.Since(start).Nanoseconds()
+	log.Info("Call delegate, HasStake", "duration", nanodura)
 
 	if hasStake {
 
@@ -620,19 +614,25 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from.Hex()), "delegate")
 		return event, nil
 	}
-
+	start = time.Now()
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to delegate by parse nodeId", "txHash", txHash, "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return nil, err
 	}
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, NodeId2Addr on staking_contract", "duration", nanodura)
 
+	start = time.Now()
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to delegate by GetCandidateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, GetCandidateInfo", "duration", nanodura)
 
 	if nil == canOld {
 		event := xcom.NewFailResultByBiz(staking.ErrCanNoExist)
@@ -657,11 +657,16 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return event, nil
 	}
 
+	start = time.Now()
+
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canOld.StakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to delegate by GetDelegateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
+
+	nanodura = time.Since(start).Nanoseconds()
+	log.Info("Call delegate, GetDelegateInfo", "duration", nanodura)
 
 	if nil == del {
 
@@ -689,6 +694,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		}
 	}
 	event := xcom.OkResultByte
+	end := time.Since(begin).Nanoseconds()
+	log.Info("Call delegate, finished", "duration", end)
 	stkc.goodLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 	return event, nil
 }

@@ -524,43 +524,50 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 
 func (s *snapshotDB) getFromUnCommit(hash common.Hash, key []byte) ([]byte, error) {
 	s.unCommit.RLock()
-	defer s.unCommit.RUnlock()
+	//defer s.unCommit.RUnlock()
 	for {
 		if block, ok := s.unCommit.blocks[hash]; ok {
 			if hash == block.ParentHash {
+				s.unCommit.RUnlock()
 				return nil, errors.New("getFromRecognized loop error")
 			}
 			v, err := block.data.Get(key)
 			if err == nil {
+				s.unCommit.RUnlock()
 				return v, nil
 			}
 			if err == memdb.ErrNotFound {
 				hash = block.ParentHash
 				continue
 			}
+			s.unCommit.RUnlock()
 			return nil, err
 		} else {
 			break
 		}
 	}
+	s.unCommit.RUnlock()
 	return nil, ErrNotFound
 }
 
 func (s *snapshotDB) getFromCommit(key []byte) ([]byte, error) {
 	s.commitLock.RLock()
-	defer s.commitLock.RUnlock()
+	//defer s.commitLock.RUnlock()
 	if len(s.committed) > 0 {
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			v, err := s.committed[i].data.Get(key)
 			if err == nil {
+				s.commitLock.RUnlock()
 				return v, nil
 			}
 			if err == memdb.ErrNotFound {
 				continue
 			}
+			s.commitLock.RUnlock()
 			return nil, err
 		}
 	}
+	s.commitLock.RUnlock()
 	return nil, ErrNotFound
 }
 

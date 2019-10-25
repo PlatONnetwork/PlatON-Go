@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -83,21 +85,23 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 		node := initQueue[index]
 
-		can := &staking.Candidate{
-			NodeId:             node.Node.ID,
-			BlsPubKey:          node.BlsPubKey,
-			StakingAddress:     xcom.CDFAccount(),
-			BenefitAddress:     vm.RewardManagerPoolAddr,
-			StakingTxIndex:     uint32(index), // txIndex from zero to n
-			ProgramVersion:     version,
-			Status:             staking.Valided,
-			StakingEpoch:       uint32(0),
-			StakingBlockNum:    uint64(0),
-			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
-			Released:           new(big.Int).Set(xcom.GeneStakingAmount),
-			ReleasedHes:        new(big.Int).SetInt64(0),
-			RestrictingPlan:    new(big.Int).SetInt64(0),
-			RestrictingPlanHes: new(big.Int).SetInt64(0),
+		var keyHex bls.PublicKeyHex
+		if b, err := node.BlsPubKey.MarshalText(); nil != err {
+			return err
+		} else {
+			if err := keyHex.UnmarshalText(b); nil != err {
+				return err
+			}
+		}
+
+		base := &staking.CandidateBase{
+			NodeId:          node.Node.ID,
+			BlsPubKey:       keyHex,
+			StakingAddress:  xcom.CDFAccount(),
+			BenefitAddress:  vm.RewardManagerPoolAddr,
+			StakingTxIndex:  uint32(index), // txIndex from zero to n
+			ProgramVersion:  version,
+			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",
 				NodeName:   "platon.node." + fmt.Sprint(index+1),
@@ -106,42 +110,70 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			},
 		}
 
-		nodeAddr, err := xutil.NodeId2Addr(can.NodeId)
-		if err != nil {
-			return fmt.Errorf("Failed to convert nodeID to address. nodeId:%s, error:%s",
-				can.NodeId.String(), err.Error())
+		mutable := &staking.CandidateMutable{
+			Status:             staking.Valided,
+			StakingEpoch:       uint32(0),
+			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
+			Released:           new(big.Int).Set(xcom.GeneStakingAmount),
+			ReleasedHes:        new(big.Int).SetInt64(0),
+			RestrictingPlan:    new(big.Int).SetInt64(0),
+			RestrictingPlanHes: new(big.Int).SetInt64(0),
 		}
 
-		key := staking.CandidateKeyByAddr(nodeAddr)
+		nodeAddr, err := xutil.NodeId2Addr(base.NodeId)
+		if err != nil {
+			return fmt.Errorf("Failed to convert nodeID to address. nodeId:%s, error:%s",
+				base.NodeId.String(), err.Error())
+		}
 
-		if val, err := rlp.EncodeToBytes(can); nil != err {
-			return fmt.Errorf("Failed to Store Candidate Info: rlp encodeing failed. nodeId:%s, error:%s",
-				can.NodeId.String(), err.Error())
+		// about CanBase ...
+		baseKey := staking.CanBaseKeyByAddr(nodeAddr)
+		if val, err := rlp.EncodeToBytes(base); nil != err {
+			return fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. nodeId:%s, error:%s",
+				base.NodeId.String(), err.Error())
 		} else {
 
-			lastHash, err = putbasedbFn(key, val, lastHash)
+			lastHash, err = putbasedbFn(baseKey, val, lastHash)
 			if nil != err {
-				return fmt.Errorf("Failed to Store Candidate Info: PutBaseDB failed. nodeId:%s, error:%s",
-					can.NodeId.String(), err.Error())
+				return fmt.Errorf("Failed to Store CanBase Info: PutBaseDB failed. nodeId:%s, error:%s",
+					base.NodeId.String(), err.Error())
 			}
 
 		}
 
-		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+		// about CanMutable ...
+		mutableKey := staking.CanMutableKeyByAddr(nodeAddr)
+		if val, err := rlp.EncodeToBytes(mutable); nil != err {
+			return fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. nodeId:%s, error:%s",
+				base.NodeId.String(), err.Error())
+		} else {
+
+			lastHash, err = putbasedbFn(mutableKey, val, lastHash)
+			if nil != err {
+				return fmt.Errorf("Failed to Store CanMutable Info: PutBaseDB failed. nodeId:%s, error:%s",
+					base.NodeId.String(), err.Error())
+			}
+
+		}
+
+		// about can power ...
+		powerKey := staking.TallyPowerKey(mutable.Shares, base.StakingBlockNum, base.StakingTxIndex, base.ProgramVersion)
 		lastHash, err = putbasedbFn(powerKey, nodeAddr.Bytes(), lastHash)
 		if nil != err {
 			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s",
-				can.NodeId.String(), err.Error())
+				base.NodeId.String(), err.Error())
 		}
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
-			NodeAddress: nodeAddr,
-			NodeId:      can.NodeId,
-			BlsPubKey:   can.BlsPubKey,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Released.String(),
-				fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)},
-			ValidatorTerm: 0,
+			NodeAddress:     nodeAddr,
+			NodeId:          base.NodeId,
+			BlsPubKey:       base.BlsPubKey,
+			ProgramVersion:  base.ProgramVersion,
+			Shares:          mutable.Shares,
+			StakingBlockNum: base.StakingBlockNum,
+			StakingTxIndex:  base.StakingTxIndex,
+			ValidatorTerm:   0,
 		}
 		validatorQueue[index] = validator
 
