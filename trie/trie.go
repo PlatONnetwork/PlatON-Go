@@ -478,3 +478,61 @@ func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	defer returnHasherToPool(h)
 	return h.hash(t.root, db, true)
 }
+func (t *Trie) DeepCopyTrie() *Trie {
+	var cpyRoot node
+	switch n := t.root.(type) {
+	case *shortNode:
+		cpyRoot = n.copy()
+	case *fullNode:
+		cpyRoot = n.copy()
+	}
+	t.copyNode(cpyRoot)
+	return &Trie{
+		db:           t.db,
+		root:         cpyRoot,
+		originalRoot: t.originalRoot,
+		cachegen:     t.cachegen,
+		cachelimit:   t.cachelimit,
+	}
+}
+
+func (t *Trie) copyNode(n node) {
+
+	//hash, dirty := n.cache()
+	switch n := n.(type) {
+	case *shortNode:
+		if _, ok := n.Val.(valueNode); !ok {
+			if hash, dirty := n.cache(); hash != nil && !dirty {
+				n.Val = hash
+			} else {
+				switch child := n.Val.(type) {
+				case *shortNode:
+					n.Val = child.copy()
+				case *fullNode:
+					n.Val = child.copy()
+				}
+				t.copyNode(n.Val)
+			}
+		}
+
+	case *fullNode:
+		for i := 0; i < 16; i++ {
+			if n.Children[i] != nil {
+				if _, ok := n.Children[i].(valueNode); !ok {
+
+					if hash, dirty := n.Children[i].cache(); hash != nil && !dirty {
+						n.Children[i] = hash
+					} else {
+						switch child := n.Children[i].(type) {
+						case *shortNode:
+							n.Children[i] = child.copy()
+						case *fullNode:
+							n.Children[i] = child.copy()
+						}
+						t.copyNode(n.Children[i])
+					}
+				}
+			}
+		}
+	}
+}

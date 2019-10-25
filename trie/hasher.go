@@ -103,6 +103,7 @@ func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 	// the dirty flag in commit mode. It's fine to assign these values directly
 	// without copying the node first because hashChildren copies it.
 	cachedHash, _ := hashed.(hashNode)
+
 	switch cn := cached.(type) {
 	case *shortNode:
 		cn.flags.hash = cachedHash
@@ -188,6 +189,7 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 
 		db.lock.Lock()
 		db.insert(hash, h.tmp, n)
+		db.insertFreshNode(hash)
 		db.lock.Unlock()
 
 		// Track external references from account->storage trie

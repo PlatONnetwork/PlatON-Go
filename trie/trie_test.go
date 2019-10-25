@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -28,6 +29,7 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -88,7 +90,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, _ := trie.Commit(nil)
 	if !memonly {
-		triedb.Commit(root, true)
+		triedb.Commit(root, true, true)
 	}
 
 	trie, _ = New(root, triedb)
@@ -337,7 +339,7 @@ func TestCacheUnload(t *testing.T) {
 	updateString(trie, key2, "this is the branch of key2.")
 
 	root, _ := trie.Commit(nil)
-	trie.db.Commit(root, true)
+	trie.db.Commit(root, true, true)
 
 	// Commit the trie repeatedly and access key1.
 	// The branch containing it is loaded from DB exactly two times:
@@ -617,4 +619,81 @@ func updateString(trie *Trie, k, v string) {
 
 func deleteString(trie *Trie, k string) {
 	trie.Delete([]byte(k))
+}
+
+func TestDeepCopy(t *testing.T) {
+	memdb := ethdb.NewMemDatabase()
+	triedb := NewDatabase(memdb)
+	root := common.Hash{}
+	tr, _ := NewSecure(root, triedb, 0)
+	start := time.Now()
+	kv := make(map[string][]byte)
+	k, v := randBytes(32), randBytes(32)
+	parent := root
+	for j := 0; j < 1; j++ {
+		start = time.Now()
+		for i := 1; i < 100; i++ {
+			binary.BigEndian.PutUint32(k, uint32(i))
+			binary.BigEndian.PutUint32(v, uint32(i))
+			tr.Update(k, v)
+			kv[string(k)] = v
+		}
+
+		root, _ = tr.Commit(nil)
+		parent = root
+		triedb.Reference(root, common.Hash{})
+		triedb.Commit(root, false, false)
+		fmt.Println("commit db", "count", j, time.Since(start))
+	}
+
+	tr2, _ := NewSecure(root, triedb, 0)
+	for i := 100; i < 200; i++ {
+		binary.BigEndian.PutUint32(k, uint32(i))
+		binary.BigEndian.PutUint32(v, uint32(i))
+		tr2.Update(k, v)
+		kv[string(k)] = v
+	}
+
+	//root, _ = tr2.Commit(nil)
+	root = tr2.Hash()
+
+	cpy := tr2.Copy()
+
+	iter := tr2.NodeIterator(nil)
+	cpyIter := cpy.NodeIterator(nil)
+	count := 0
+	for iter.Next(true) {
+		if !cpyIter.Next(true) {
+			t.Fatal("cpy iter failed, next error")
+		}
+		if !bytes.Equal(iter.Path(), cpyIter.Path()) {
+			t.Fatal("iter path failed")
+		}
+		if !bytes.Equal(iter.Parent().Bytes(), cpyIter.Parent().Bytes()) {
+			t.Fatal("iter parent failed")
+		}
+		if iter.Leaf() {
+			if !bytes.Equal(iter.LeafBlob(), iter.LeafBlob()) {
+				t.Fatal("iter leaf blob failed")
+			}
+			if !bytes.Equal(iter.LeafKey(), iter.LeafKey()) {
+				t.Fatal("iter leaf key failed")
+			}
+		}
+		if iter.Hash() != cpyIter.Hash() {
+			t.Fatal("cpy iter failed", iter.Hash(), cpyIter.Hash())
+		}
+		count++
+	}
+	root, _ = tr2.Commit(nil)
+	triedb.Reference(root, common.Hash{})
+	assert.Nil(t, triedb.Commit(root, false, false))
+	triedb.DereferenceDB(parent)
+	cpyRoot, _ := cpy.Commit(nil)
+	if root != cpyRoot {
+		t.Fatal("cpyroot failed")
+	}
+	assert.Nil(t, triedb.Commit(cpyRoot, false, false))
+	triedb.DereferenceDB(cpyRoot)
+	fmt.Println(count)
 }
