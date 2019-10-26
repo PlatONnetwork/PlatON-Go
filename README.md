@@ -1,6 +1,7 @@
 ## Go PlatON
 
-Welcome to the PlatON source code repository! This software is Ethereum-based and it has changed some peculiarities according the PlatON's [whitepaper](https://www.platon.network/static/pdf/en/PlatON_A%20High-Efficiency%20Trustless%20Computing%20Network_Whitepaper_EN.pdf).
+Welcome to the PlatON-Go source code repository! This is an Ethereum-based、high-performance and high-security implementation of the PlatON protocol.
+we have developed most of peculiarities according the PlatON's [whitepaper](https://www.platon.network/static/pdf/en/PlatON_A%20High-Efficiency%20Trustless%20Computing%20Network_Whitepaper_EN.pdf).
 
 [![Build Status](https://travis-ci.com/PlatONnetwork/PlatON-Go.svg?branch=feature%2Fbump-version-to-0.7)](https://travis-ci.com/PlatONnetwork/PlatON-Go)
 
@@ -10,7 +11,7 @@ For prerequisites and detailed build instructions please read the
 [Installation Instructions](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Installation-Instructions)
 on the Docs.
 
-Building platon requires both a Go (version 1.7 or later) and a C compiler.
+Building platon requires both a Go (version 1.11 or later) and a C compiler.
 You can install them using your favourite package manager.
 Once the dependencies are installed, run
 
