@@ -18,14 +18,12 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"runtime"
-	"strings"
-
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"gopkg.in/urfave/cli.v1"
+	"os"
+	"runtime"
 )
 
 var (
@@ -49,7 +47,7 @@ The output of this command is supposed to be machine-readable.
 )
 
 func version(ctx *cli.Context) error {
-	fmt.Println(strings.Title(clientIdentifier))
+	fmt.Println("PlatON")
 	fmt.Println("Version:", params.VersionWithMeta)
 	if gitCommit != "" {
 		fmt.Println("Git Commit:", gitCommit)
