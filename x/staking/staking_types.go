@@ -160,7 +160,7 @@ func (can *Candidate) IsNotEmpty() bool {
 }
 
 func (can *Candidate) IsEmpty() bool {
-	return can == nil
+	return nil == can
 }
 
 type CandidateBase struct {
@@ -215,7 +215,7 @@ func (can *CandidateBase) IsNotEmpty() bool {
 }
 
 func (can *CandidateBase) IsEmpty() bool {
-	return can == nil
+	return nil == can
 }
 
 type CandidateMutable struct {
@@ -268,12 +268,16 @@ func (can *CandidateMutable) AddShares(amount *big.Int) {
 	can.Shares = new(big.Int).Add(can.Shares, amount)
 }
 
+func (can *CandidateMutable) SubShares(amount *big.Int) {
+	can.Shares = new(big.Int).Sub(can.Shares, amount)
+}
+
 func (can *CandidateMutable) IsNotEmpty() bool {
 	return !can.IsEmpty()
 }
 
 func (can *CandidateMutable) IsEmpty() bool {
-	return can == nil
+	return nil == can
 }
 
 func (can *CandidateMutable) Is_Valid() bool {
@@ -418,7 +422,7 @@ func (can *CandidateHex) IsNotEmpty() bool {
 }
 
 func (can *CandidateHex) IsEmpty() bool {
-	return can == nil
+	return nil == can
 }
 
 //// EncodeRLP implements rlp.Encoder

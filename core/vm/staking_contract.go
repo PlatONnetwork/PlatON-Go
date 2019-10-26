@@ -691,7 +691,6 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	}
 
 	if txHash == common.ZeroHash {
-		log.Warn("Call withdrewDelegate current txHash is empty!!")
 		return nil, nil
 	}
 

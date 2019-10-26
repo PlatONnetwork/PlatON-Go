@@ -33,12 +33,10 @@ func (db *StakingDB) getFromCommitted(key []byte) ([]byte, error) {
 }
 
 func (db *StakingDB) put(blockHash common.Hash, key, value []byte) error {
-
 	return db.db.Put(blockHash, key, value)
 }
 
 func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
-
 	return db.db.Del(blockHash, key)
 }
 

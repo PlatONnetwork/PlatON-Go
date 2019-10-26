@@ -99,7 +99,6 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		"verifierID", verifier.TerminalString())
 
 	if txHash == common.ZeroHash {
-		log.Warn("current txHash is empty!!")
 		return nil, nil
 	}
 
@@ -135,7 +134,6 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		"endVotingRounds", endVotingRounds)
 
 	if txHash == common.ZeroHash {
-		log.Warn("current txHash is empty!!")
 		return nil, nil
 	}
 
@@ -173,7 +171,6 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		"tobeCanceled", tobeCanceledProposalID)
 
 	if txHash == common.ZeroHash {
-		log.Warn("current txHash is empty!!")
 		return nil, nil
 	}
 
@@ -211,7 +208,6 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		"programVersionSign", programVersionSign)
 
 	if txHash == common.ZeroHash {
-		log.Warn("current txHash is empty!!")
 		return nil, nil
 	}
 
@@ -245,7 +241,6 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 		"programVersionString", xutil.ProgramVersion2Str(programVersion))
 
 	if txHash == common.ZeroHash {
-		log.Warn("current txHash is empty!!")
 		return nil, nil
 	}
 
