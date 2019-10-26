@@ -9,7 +9,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -74,19 +73,10 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		}
 	}
 
-	var node *cbfttypes.ValidateNode
-	var err error
-	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
+	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
 		cbft.log.Error("Failed to verify prepareBlock", "prepare", msg.String(), "error", err.Error())
 		signatureCheckFailureMeter.Mark(1)
 		return err
-	}
-
-	if err := cbft.evPool.AddPrepareBlock(msg, node); err != nil {
-		if _, ok := err.(*evidence.DuplicatePrepareBlockEvidence); ok {
-			cbft.log.Warn("Receive DuplicatePrepareBlockEvidence msg", "err", err.Error())
-			return err
-		}
 	}
 
 	// The new block is notified by the PrepareBlockHash to the nodes in the network.
@@ -130,13 +120,6 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 		return err
 	}
 
-	if err := cbft.evPool.AddPrepareVote(msg, node); err != nil {
-		if _, ok := err.(*evidence.DuplicatePrepareVoteEvidence); ok {
-			cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
-			return err
-		}
-	}
-
 	cbft.state.AddPrepareVote(uint32(node.Index), msg)
 	cbft.log.Info("Receive new prepareVote", "msgHash", msg.MsgHash(), "vote", msg.String(), "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
 
@@ -164,13 +147,6 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	if node, err = cbft.verifyConsensusMsg(msg); err != nil {
 		cbft.log.Error("Failed to verify viewChange", "viewChange", msg.String(), "error", err.Error())
 		return err
-	}
-
-	if err := cbft.evPool.AddViewChange(msg, node); err != nil {
-		if _, ok := err.(*evidence.DuplicateViewChangeEvidence); ok {
-			cbft.log.Warn("Receive DuplicateViewChangeEvidence msg", "err", err.Error())
-			return err
-		}
 	}
 
 	cbft.state.AddViewChange(uint32(node.Index), msg)

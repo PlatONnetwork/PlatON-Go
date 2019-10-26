@@ -128,6 +128,7 @@ func TestUpdateViewChangeQC(t *testing.T) {
 			assert.Nil(t, err)
 		}
 	}
+	time.Sleep(time.Second)
 	// Only keep last epoch
 	for i = epochBegin; i < epochEnd; i++ {
 		for j = viewBegin; j < viewEnd; j++ {
