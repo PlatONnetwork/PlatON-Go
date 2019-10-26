@@ -20,7 +20,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config        *params.ChainConfig                         `json:"config"`
 		EconomicModel *xcom.EconomicModel                         `json:"EconomicModel"`
-		Nonce         []byte                                      `json:"nonce"`
+		Nonce         hexutil.Bytes                               `json:"nonce"`
 		Timestamp     math.HexOrDecimal64                         `json:"timestamp"`
 		ExtraData     hexutil.Bytes                               `json:"extraData"`
 		GasLimit      math.HexOrDecimal64                         `json:"gasLimit"   gencodec:"required"`
@@ -55,7 +55,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
 		Config        *params.ChainConfig                         `json:"config"`
 		EconomicModel *xcom.EconomicModel                         `json:"EconomicModel"`
-		Nonce         []byte                                      `json:"nonce"`
+		Nonce         *hexutil.Bytes                              `json:"nonce"`
 		Timestamp     *math.HexOrDecimal64                        `json:"timestamp"`
 		ExtraData     *hexutil.Bytes                              `json:"extraData"`
 		GasLimit      *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
@@ -78,7 +78,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 
 	if dec.Nonce != nil {
-		g.Nonce = dec.Nonce
+		g.Nonce = *dec.Nonce
 	}
 	if dec.Timestamp != nil {
 		g.Timestamp = uint64(*dec.Timestamp)

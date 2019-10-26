@@ -213,7 +213,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.MinerLegacyGasTargetFlag,
 			utils.MinerLegacyGasPriceFlag,
-			utils.MinerLegacyExtraDataFlag,
+			//	utils.MinerLegacyExtraDataFlag,
 		},
 	},
 	//{

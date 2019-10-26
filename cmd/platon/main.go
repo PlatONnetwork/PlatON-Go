@@ -98,7 +98,7 @@ var (
 		utils.MinerGasPriceFlag,
 		utils.MinerLegacyGasPriceFlag,
 		//	utils.MinerExtraDataFlag,
-		utils.MinerLegacyExtraDataFlag,
+		//utils.MinerLegacyExtraDataFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
 		//	utils.DiscoveryV5Flag,

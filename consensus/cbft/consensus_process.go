@@ -299,7 +299,6 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			}
 			return false
 		}
-
 		if block != nil && hasExecuted() {
 			cbft.insertQCBlock(block, qc)
 		}
