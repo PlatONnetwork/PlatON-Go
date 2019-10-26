@@ -124,51 +124,51 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifEpoch() {
 	suit.Equal("{}", ev)
 }
 
-// 双出
-func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
-	paths := createPaths(len(suit.view.allCbft))
-	defer removePaths(paths)
-	suit.createEvPool(paths)
-	suit.view.setBlockQC(10, suit.view.allNode[0])
-	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
-	header := &types.Header{
-		Number:      big.NewInt(int64(11)),
-		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
-		Time:        big.NewInt(time.Now().UnixNano() + 100),
-		Extra:       make([]byte, 77),
-		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Coinbase:    common.Address{},
-		GasLimit:    100000000001,
-	}
-	block2 := types.NewBlockWithHeader(header)
-	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
-		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
-	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch,
-		suit.oldViewNumber+1, 0,
-		suit.view.secondProposerIndex(), block1, qc, nil)
-	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock1); err != nil {
-		suit.T().Fatal(err.Error())
-	}
-	// time.Sleep(time.Millisecond * 10)
-	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
-		suit.view.secondProposerIndex(), block2, qc, nil)
-	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err == nil {
-		suit.T().Error("FAIL")
-	}
-	ev := suit.view.firstProposer().Evidences()
-	var duplicatePrepareBlock *evidence.EvidenceData
-	if err := json.Unmarshal([]byte(ev), &duplicatePrepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
-	}
-	if len(duplicatePrepareBlock.DP) == 0 {
-		suit.T().Fatal("Evidences is empty")
-	}
-	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.NodeID)
-	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.BlsPubKey.Serialize())
-	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.NodeID)
-	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.BlsPubKey.Serialize())
-}
+// // 双出
+// func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
+// 	paths := createPaths(len(suit.view.allCbft))
+// 	defer removePaths(paths)
+// 	suit.createEvPool(paths)
+// 	suit.view.setBlockQC(10, suit.view.allNode[0])
+// 	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+// 	header := &types.Header{
+// 		Number:      big.NewInt(int64(11)),
+// 		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
+// 		Time:        big.NewInt(time.Now().UnixNano() + 100),
+// 		Extra:       make([]byte, 77),
+// 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+// 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+// 		Coinbase:    common.Address{},
+// 		GasLimit:    100000000001,
+// 	}
+// 	block2 := types.NewBlockWithHeader(header)
+// 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
+// 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
+// 	prepareBlock1 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch,
+// 		suit.oldViewNumber+1, 0,
+// 		suit.view.secondProposerIndex(), block1, qc, nil)
+// 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock1); err != nil {
+// 		suit.T().Fatal(err.Error())
+// 	}
+// 	// time.Sleep(time.Millisecond * 10)
+// 	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
+// 		suit.view.secondProposerIndex(), block2, qc, nil)
+// 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err == nil {
+// 		suit.T().Error("FAIL")
+// 	}
+// 	ev := suit.view.firstProposer().Evidences()
+// 	var duplicatePrepareBlock *evidence.EvidenceData
+// 	if err := json.Unmarshal([]byte(ev), &duplicatePrepareBlock); err != nil {
+// 		suit.T().Fatal(err.Error())
+// 	}
+// 	if len(duplicatePrepareBlock.DP) == 0 {
+// 		suit.T().Fatal("Evidences is empty")
+// 	}
+// 	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.NodeID)
+// 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareB.ValidateNode.BlsPubKey.Serialize())
+// 	suit.EqualValues(suit.view.secondProposer().config.Option.NodeID, duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.NodeID)
+// 	suit.EqualValues(suit.view.secondProposer().config.Option.BlsPriKey.GetPublicKey().Serialize(), duplicatePrepareBlock.DP[0].PrepareA.ValidateNode.BlsPubKey.Serialize())
+// }
 
 // prepare block view number dif
 func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifViewNumber() {
