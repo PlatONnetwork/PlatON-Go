@@ -458,10 +458,10 @@ func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block, index ui
 // shouldRecovery check if the consensus msg needs to be recovery.
 // if the msg does not belong to the current view or the msg number is smaller than the qc number discard it.
 func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
-	if cbft.lowerViewState(msg) {
-		return false, fmt.Errorf("lower view state, curEpoch:%d, curViewNum:%d, msgEpoch:%d, msgViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
-	}
 	if cbft.higherViewState(msg) {
+		return false, fmt.Errorf("higher view state, curEpoch:%d, curViewNum:%d, msgEpoch:%d, msgViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
+	}
+	if cbft.lowerViewState(msg) {
 		// The state may have reached the automatic switch point, so advance to the next view
 		return false, nil
 	}
