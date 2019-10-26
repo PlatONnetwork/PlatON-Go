@@ -56,12 +56,13 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		length = len(g.Config.Cbft.InitialNodes)
 	}
 
-	// Check the balance of PlatON Foundation
-	needStaking := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(int64(length)))
+	// Check the balance of Staking Account
+	needStaking := new(big.Int).Mul(xcom.GeneStakingAmount, big.NewInt(int64(length)))
 	remain := stateDB.GetBalance(xcom.CDFAccount())
+
 	if remain.Cmp(needStaking) < 0 {
-		return fmt.Errorf("Failed to store genesis staking data, the balance of PlatON-Foundation is no enough. "+
-			"balance: %s, need staking: %s", remain.String(), needStaking.String())
+		return fmt.Errorf("Failed to store genesis staking data, the balance of '%s' is no enough. "+
+			"balance: %s, need staking: %s", xcom.CDFAccount().String(), remain.String(), needStaking.String())
 	}
 
 	initQueue := g.Config.Cbft.InitialNodes
@@ -78,10 +79,6 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		return newHash, nil
 	}
 
-	// hard code genesis staking balance
-	// 1000W von
-	geneStakingAmount, _ := new(big.Int).SetString("1500000000000000000000000", 10)
-
 	for index := 0; index < length; index++ {
 
 		node := initQueue[index]
@@ -96,8 +93,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			StakingBlockNum:    uint64(0),
-			Shares:             geneStakingAmount,
-			Released:           geneStakingAmount,
+			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
+			Released:           new(big.Int).Set(xcom.GeneStakingAmount),
 			ReleasedHes:        new(big.Int).SetInt64(0),
 			RestrictingPlan:    new(big.Int).SetInt64(0),
 			RestrictingPlanHes: new(big.Int).SetInt64(0),
@@ -148,8 +145,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		}
 		validatorQueue[index] = validator
 
-		stateDB.SubBalance(xcom.CDFAccount(), geneStakingAmount)
-		stateDB.AddBalance(vm.StakingContractAddr, geneStakingAmount)
+		stateDB.SubBalance(xcom.CDFAccount(), new(big.Int).Set(xcom.GeneStakingAmount))
+		stateDB.AddBalance(vm.StakingContractAddr, new(big.Int).Set(xcom.GeneStakingAmount))
 	}
 
 	// store the account staking Reference Count

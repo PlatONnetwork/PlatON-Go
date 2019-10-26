@@ -22,6 +22,21 @@ const (
 	GovernanceRule
 )
 
+var (
+
+	// 10 LAT
+	TenLAT, _ = new(big.Int).SetString("10000000000000000000", 10)
+
+	// hard code genesis staking balance
+	// 150W LAT
+	GeneStakingAmount, _ = new(big.Int).SetString("1500000000000000000000000", 10)
+
+	// 100W LAT
+	MillionLAT, _ = new(big.Int).SetString("1000000000000000000000000", 10)
+	// 1000W LAT
+	TenMillionLAT, _ = new(big.Int).SetString("10000000000000000000000000", 10)
+)
+
 type commonConfig struct {
 	ExpectedMinutes     uint64 // expected minutes every epoch
 	NodeBlockTimeWindow uint64 // Node block time window (uint: seconds)
@@ -101,37 +116,12 @@ const (
 
 func getDefaultEMConfig(netId int8) *EconomicModel {
 	var (
-		ok                    bool
-		stakeThresholdCount   string
-		minimumThresholdCount string
-		cdfundCount           string
-		stakeThreshold        *big.Int
-		minimumThreshold      *big.Int
-		cdfundBalance         *big.Int
+		ok            bool
+		cdfundBalance *big.Int
 	)
 
-	switch netId {
-	case DefaultMainNet:
-		stakeThresholdCount = "1000000000000000000000000" // 100W LAT
-		minimumThresholdCount = "10000000000000000000"    // 10 LAT
-		cdfundCount = "331811981000000000000000000"       // 3.31811981  thousand millions LAT
-	case DefaultTestNet:
-		stakeThresholdCount = "1000000000000000000000000"
-		minimumThresholdCount = "10000000000000000000"
-		cdfundCount = "331811981000000000000000000"
-	default: // DefaultTestNet
-		stakeThresholdCount = "1000000000000000000000000"
-		minimumThresholdCount = "10000000000000000000"
-		cdfundCount = "331811981000000000000000000"
-	}
-
-	if stakeThreshold, ok = new(big.Int).SetString(stakeThresholdCount, 10); !ok {
-		return nil
-	}
-	if minimumThreshold, ok = new(big.Int).SetString(minimumThresholdCount, 10); !ok {
-		return nil
-	}
-	if cdfundBalance, ok = new(big.Int).SetString(cdfundCount, 10); !ok {
+	// 3.31811981  thousand millions LAT
+	if cdfundBalance, ok = new(big.Int).SetString("331811981000000000000000000", 10); !ok {
 		return nil
 	}
 
@@ -146,15 +136,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:              stakeThreshold,
-				MinimumThreshold:            minimumThreshold,
+				StakeThreshold:              new(big.Int).Set(MillionLAT),
+				MinimumThreshold:            new(big.Int).Set(TenLAT),
 				EpochValidatorNum:           uint64(101),
 				HesitateRatio:               uint64(1),
 				UnStakeFreezeRatio:          uint64(28), // freezing 28 epoch
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(1000),
+				DuplicateSignHighSlashing:      uint32(10),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(27),
@@ -191,15 +181,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:              stakeThreshold,
-				MinimumThreshold:            minimumThreshold,
+				StakeThreshold:              new(big.Int).Set(MillionLAT),
+				MinimumThreshold:            new(big.Int).Set(TenLAT),
 				EpochValidatorNum:           uint64(24),
 				HesitateRatio:               uint64(1),
 				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(1000),
+				DuplicateSignHighSlashing:      uint32(10),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
@@ -237,15 +227,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:              stakeThreshold,
-				MinimumThreshold:            minimumThreshold,
+				StakeThreshold:              new(big.Int).Set(MillionLAT),
+				MinimumThreshold:            new(big.Int).Set(TenLAT),
 				EpochValidatorNum:           uint64(24),
 				HesitateRatio:               uint64(1),
 				UnStakeFreezeRatio:          uint64(2),
 				ActiveUnDelegateFreezeRatio: uint64(0),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(1000),
+				DuplicateSignHighSlashing:      uint32(10),
 				DuplicateSignReportReward:      uint32(50),
 				NumberOfBlockRewardForSlashing: uint32(0),
 				EvidenceValidEpoch:             uint32(1),
@@ -315,33 +305,24 @@ func CheckEconomicModel() error {
 		return errors.New("The EpochValidatorNum must be greater than or equal to the ValidatorCount")
 	}
 
-	var (
-		ok               bool
-		minimumThreshold *big.Int
-		stakeThreshold   *big.Int
-	)
-
-	if minimumThreshold, ok = new(big.Int).SetString("10000000000000000000", 10); !ok {
-		return errors.New("*big.Int SetString error")
+	if ec.Staking.MinimumThreshold.Cmp(TenLAT) < 0 {
+		return errors.New(fmt.Sprintf("The MinimumThreshold must be greater than or equal to %s von", TenLAT.String()))
 	}
 
-	if ec.Staking.MinimumThreshold.Cmp(minimumThreshold) < 0 {
-		return errors.New("The MinimumThreshold must be greater than or equal to 10 LAT")
+	if ec.Staking.StakeThreshold.Cmp(common.Big0) <= 0 {
+		return errors.New(fmt.Sprintf("The StakeThreshold must be greater than %s von", common.Big0.String()))
 	}
 
-	if stakeThreshold, ok = new(big.Int).SetString("10000000000000000000000000", 10); !ok {
-		return errors.New("*big.Int SetString error")
-	}
-
-	if ec.Staking.StakeThreshold.Cmp(stakeThreshold) > 0 {
-		return errors.New("The StakeThreshold must be less than or equal to 10000000 LAT")
+	// the StakeThreshold must be less than geneStakeAmount
+	if ec.Staking.StakeThreshold.Cmp(GeneStakingAmount) > 0 {
+		return errors.New(fmt.Sprintf("The StakeThreshold must be less than or equal to %s von", GeneStakingAmount.String()))
 	}
 
 	if ec.Staking.HesitateRatio < 1 {
 		return errors.New("The HesitateRatio must be greater than or equal to 1")
 	}
 
-	if 1 > ec.Staking.UnStakeFreezeRatio {
+	if ec.Staking.UnStakeFreezeRatio < 1 {
 		return errors.New("The UnStakeFreezeRatio must be greater than or equal to 1")
 	}
 
@@ -349,7 +330,7 @@ func CheckEconomicModel() error {
 		return errors.New("The PlatONFoundationYear must be greater than or equal to 1")
 	}
 
-	if 0 > ec.Reward.NewBlockRate || 100 < ec.Reward.NewBlockRate {
+	if ec.Reward.NewBlockRate < 0 || ec.Reward.NewBlockRate > 100 {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
@@ -357,7 +338,7 @@ func CheckEconomicModel() error {
 		return errors.New("DuplicateSignHighSlashing must be a floating point value between 0 and 10000")
 	}
 
-	if 0 > ec.Slashing.DuplicateSignReportReward || 100 < ec.Slashing.DuplicateSignReportReward {
+	if ec.Slashing.DuplicateSignReportReward < 0 || ec.Slashing.DuplicateSignReportReward > 100 {
 		return errors.New("The DuplicateSignReportReward must be greater than or equal to 0 and less than or equal to 100")
 	}
 

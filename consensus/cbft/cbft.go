@@ -1027,6 +1027,7 @@ func (cbft *Cbft) Close() error {
 	if cbft.asyncExecutor != nil {
 		cbft.asyncExecutor.Stop()
 	}
+	cbft.bridge.Close()
 	return nil
 }
 

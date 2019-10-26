@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -14,7 +15,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 const (
@@ -113,6 +113,8 @@ type baseWal struct {
 	path    string // Wal working directory
 	metaDB  IWALDatabase
 	journal *journal
+
+	cachedChainState atomic.Value //*protocols.ChainState
 }
 
 // NewWal creates a new wal to update and load consensus state.
@@ -178,16 +180,20 @@ func (wal *baseWal) UpdateChainState(chainState *protocols.ChainState) error {
 		return err
 	}
 	// Write the chainState to the WAL database
-	err = wal.metaDB.Put(chainStateKey, data, &opt.WriteOptions{Sync: true})
+	err = wal.metaDB.Put(chainStateKey, data, nil)
 	if err != nil {
 		return err
 	}
+	wal.cachedChainState.Store(chainState)
 	log.Debug("Success to update chainState")
 	return nil
 }
 
 // LoadChainState tries to load consensus state from leveldb
 func (wal *baseWal) LoadChainState(recovery recoveryChainStateFn) error {
+	if wal.cachedChainState.Load() != nil {
+		return recovery(wal.cachedChainState.Load().(*protocols.ChainState))
+	}
 	// open wal database
 	data, err := wal.metaDB.Get(chainStateKey)
 	if err != nil {
@@ -200,6 +206,7 @@ func (wal *baseWal) LoadChainState(recovery recoveryChainStateFn) error {
 		log.Error("Failed to decode chainState")
 		return errGetChainState
 	}
+	wal.cachedChainState.Store(&cs)
 	return recovery(&cs)
 }
 
@@ -241,7 +248,7 @@ func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 		return err
 	}
 	// Write the ViewChangeMeta to the WAL database
-	err = wal.metaDB.Put(viewChangeKey, data, &opt.WriteOptions{Sync: true})
+	err = wal.metaDB.Put(viewChangeKey, data, nil)
 	if err != nil {
 		return err
 	}
@@ -293,7 +300,7 @@ func (wal *baseWal) UpdateViewChangeQC(epoch uint64, viewNumber uint64, viewChan
 		return err
 	}
 	// Write the ViewChangeQC to the WAL database
-	err = wal.metaDB.Put(viewChangeQCKey(epoch, viewNumber), data, &opt.WriteOptions{Sync: true})
+	err = wal.metaDB.Put(viewChangeQCKey(epoch, viewNumber), data, nil)
 	if err != nil {
 		return err
 	}
