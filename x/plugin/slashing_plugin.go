@@ -116,7 +116,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				slashAmount := common.Big0
 				sumAmount := calcCanTotalBalance(header.Number.Uint64(), validator)
 				if xcom.NumberOfBlockRewardForSlashing() > 0 {
-					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
+					slashAmount = calcEndBlockSlashAmount(header.Number.Uint64(), state)
 					if slashAmount.Cmp(sumAmount) > 0 {
 						slashAmount = sumAmount
 					}
