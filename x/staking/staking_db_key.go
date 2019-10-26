@@ -4,6 +4,8 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -96,7 +98,9 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 // the candidate power key
 func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programVersion uint32) []byte {
 
-	subVersion := math.MaxInt32 - programVersion
+	// Only sort Major and Minor
+	// eg. 1.1.x => 1.1.0
+	subVersion := math.MaxInt32 - xutil.CalcVersion(programVersion)
 	sortVersion := common.Uint32ToBytes(subVersion)
 
 	priority := new(big.Int).Sub(math.MaxBig104, shares)
@@ -105,8 +109,23 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
-	return append(CanPowerKeyPrefix, append(sortVersion, append(prio,
-		append(num, txIndex...)...)...)...)
+
+	// some index of pivots
+	indexPre := len(CanPowerKeyPrefix)
+	indexVersion := indexPre + len(sortVersion)
+	indexPrio := indexVersion + len(prio)
+	indexNum := indexPrio + len(num)
+	size := indexNum + len(txIndex)
+
+	// construct key
+	key := make([]byte, size)
+	copy(key[:len(CanPowerKeyPrefix)], CanPowerKeyPrefix)
+	copy(key[indexPre:indexVersion], sortVersion)
+	copy(key[indexVersion:indexPrio], prio)
+	copy(key[indexPrio:indexNum], num)
+	copy(key[indexNum:], txIndex)
+
+	return key
 }
 
 func GetUnStakeCountKey(epoch uint64) []byte {
@@ -114,12 +133,40 @@ func GetUnStakeCountKey(epoch uint64) []byte {
 }
 
 func GetUnStakeItemKey(epoch, index uint64) []byte {
-	return append(UnStakeItemKey, append(common.Uint64ToBytes(epoch), common.Uint64ToBytes(index)...)...)
+
+	epochByte := common.Uint64ToBytes(epoch)
+	indexByte := common.Uint64ToBytes(index)
+
+	markPre := len(UnStakeItemKey)
+	markEpoch := markPre + len(epochByte)
+	size := markEpoch + len(indexByte)
+
+	key := make([]byte, size)
+	copy(key[:markPre], UnStakeItemKey)
+	copy(key[markPre:markEpoch], epochByte)
+	copy(key[markEpoch:], indexByte)
+
+	return key
 }
 
 func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) []byte {
-	return append(DelegateKeyPrefix, append(delAddr.Bytes(), append(nodeId.Bytes(),
-		common.Uint64ToBytes(stakeBlockNumber)...)...)...)
+
+	delAddrByte := delAddr.Bytes()
+	nodeIdByte := nodeId.Bytes()
+	stakeNumByte := common.Uint64ToBytes(stakeBlockNumber)
+
+	markPre := len(DelegateKeyPrefix)
+	markDelAddr := markPre + len(delAddrByte)
+	markNodeId := markDelAddr + len(nodeIdByte)
+	size := markNodeId + len(stakeNumByte)
+
+	key := make([]byte, size)
+	copy(key[:markPre], DelegateKeyPrefix)
+	copy(key[markPre:markDelAddr], delAddrByte)
+	copy(key[markDelAddr:markNodeId], nodeIdByte)
+	copy(key[markNodeId:], stakeNumByte)
+
+	return key
 }
 
 func GetDelegateKeyBySuffix(suffix []byte) []byte {
@@ -131,7 +178,20 @@ func GetUnDelegateCountKey(epoch uint64) []byte {
 }
 
 func GetUnDelegateItemKey(epoch, index uint64) []byte {
-	return append(UnDelegateItemKey, append(common.Uint64ToBytes(epoch), common.Uint64ToBytes(index)...)...)
+
+	epochByte := common.Uint64ToBytes(epoch)
+	indexByte := common.Uint64ToBytes(index)
+
+	markPre := len(UnDelegateItemKey)
+	markEpoch := markPre + len(epochByte)
+	size := markEpoch + len(indexByte)
+
+	key := make([]byte, size)
+	copy(key[:markPre], UnDelegateItemKey)
+	copy(key[markPre:markEpoch], epochByte)
+	copy(key[markEpoch:], indexByte)
+
+	return key
 }
 
 func GetEpochIndexKey() []byte {
@@ -141,7 +201,17 @@ func GetEpochIndexKey() []byte {
 func GetEpochValArrKey(start, end uint64) []byte {
 	startByte := common.Uint64ToBytes(start)
 	endByte := common.Uint64ToBytes(end)
-	return append(EpochValArrPrefix, append(startByte, endByte...)...)
+
+	markPre := len(EpochValArrPrefix)
+	markStart := markPre + len(startByte)
+	size := markStart + len(endByte)
+
+	key := make([]byte, size)
+	copy(key[:markPre], EpochValArrPrefix)
+	copy(key[markPre:markStart], startByte)
+	copy(key[markStart:], endByte)
+
+	return key
 }
 
 func GetRoundIndexKey() []byte {
@@ -151,7 +221,17 @@ func GetRoundIndexKey() []byte {
 func GetRoundValArrKey(start, end uint64) []byte {
 	startByte := common.Uint64ToBytes(start)
 	endByte := common.Uint64ToBytes(end)
-	return append(RoundValArrPrefix, append(startByte, endByte...)...)
+
+	markPre := len(RoundValArrPrefix)
+	markStart := markPre + len(startByte)
+	size := markStart + len(endByte)
+
+	key := make([]byte, size)
+	copy(key[:markPre], RoundValArrPrefix)
+	copy(key[markPre:markStart], startByte)
+	copy(key[markStart:], endByte)
+
+	return key
 }
 
 func GetAccountStakeRcKey(addr common.Address) []byte {

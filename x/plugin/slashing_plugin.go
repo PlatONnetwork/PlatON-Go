@@ -145,7 +145,7 @@ func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) 
 
 func (sp *SlashingPlugin) getPackAmount(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID) (uint32, error) {
 	value, err := sp.db.Get(blockHash, buildKey(blockNumber, nodeId.Bytes()))
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return 0, err
 	}
 	var amount uint32

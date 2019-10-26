@@ -186,7 +186,7 @@ func CalActiveBlock(endVotingBlock uint64) uint64 {
 }
 
 func IsSpecialBlock(blockNumber uint64) bool {
-	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) || IsBeginOfEpoch(blockNumber) || IsBeginOfConsensus(blockNumber) {
+	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) {
 		return true
 	}
 	return false

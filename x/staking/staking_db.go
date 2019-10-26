@@ -382,7 +382,7 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 	val, err := db.get(blockHash, count_key)
 	var v uint64
 	switch {
-	case nil != err && err != snapshotdb.ErrNotFound:
+	case snapshotdb.NonDbNotFoundErr(err):
 		return err
 	case nil == err && len(val) != 0:
 		v = common.BytesToUint64(val)
@@ -778,7 +778,7 @@ func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Addres
 	val, err := db.get(blockHash, key)
 	var v uint64
 	switch {
-	case nil != err && err != snapshotdb.ErrNotFound:
+	case snapshotdb.NonDbNotFoundErr(err):
 		return err
 	case nil == err && len(val) != 0:
 		v = common.BytesToUint64(val)
@@ -800,7 +800,7 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	val, err := db.get(blockHash, key)
 	var v uint64
 	switch {
-	case nil != err && err != snapshotdb.ErrNotFound:
+	case snapshotdb.NonDbNotFoundErr(err):
 		return err
 	case nil == err && len(val) != 0:
 		v = common.BytesToUint64(val)
@@ -836,9 +836,9 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 	val, err := db.get(blockHash, key)
 	var v uint64
 	switch {
-	case nil != err && err != snapshotdb.ErrNotFound:
+	case snapshotdb.NonDbNotFoundErr(err):
 		return false, err
-	case nil != err && err == snapshotdb.ErrNotFound:
+	case snapshotdb.IsDbNotFoundErr(err):
 		return false, nil
 	case nil == err && len(val) != 0:
 		v = common.BytesToUint64(val)
