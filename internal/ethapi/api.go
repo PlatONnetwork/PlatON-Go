@@ -1083,15 +1083,16 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 	if block == nil {
 		return nil, err;
 	}
-	response, error := s.rpcOutputBlock(block, true, true)
-	if error != nil  {
-		return nil, error;
-	}
-	xcom.PrintObject("rpcGetTransactionByBlock, query block data:", response)
-	queue := make([]map[string]interface{}, len(response))
-	for key, value := range response {
-		transactionHash := value.(common.Hash)
-		tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), transactionHash)
+	//response, error := s.rpcOutputBlock(block, true, true)
+	//if error != nil  {
+	//	return nil, error;
+	//}
+	xcom.PrintObject("rpcGetTransactionByBlock, query block data:", block)
+
+	queue := make([]map[string]interface{}, len(block.Transactions()))
+	for key, value := range block.Transactions() {
+		log.Debug("rpcGetTransactionByBlock, query tx ","txHash:",value.Hash())
+		tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), value.Hash())
 		if tx == nil {
 			log.Error("rpcGetTransactionByBlock, get tx error","blockHash:",blockHash,"blockNumber:",blockNumber,"index:",index)
 			continue
@@ -1113,7 +1114,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		fields := map[string]interface{}{
 			"blockHash":         blockHash,
 			"blockNumber":       hexutil.Uint64(blockNumber),
-			"transactionHash":   transactionHash,
+			"transactionHash":   value.Hash(),
 			"transactionIndex":  hexutil.Uint64(index),
 			"from":              from,
 			"to":                tx.To(),
