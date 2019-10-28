@@ -62,14 +62,17 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
-	VersionProposalVote_DurationSeconds   uint64  // max Consensus-Round counts for version proposal's vote duration.
+	VersionProposalVote_DurationSeconds   uint64  // voting duration, it will count into Consensus-Round.
 	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
 	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
-	TextProposalVote_DurationSeconds      uint64  // default Consensus-Round counts for text proposal's vote duration.
+	TextProposalVote_DurationSeconds      uint64  // voting duration, it will count into Consensus-Round.
 	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
 	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
 	CancelProposal_VoteRate               float64 // the cancel proposal will pass if the vote rate exceeds this value.
 	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
+	ParamProposalVote_DurationSeconds     uint64  // voting duration, it will count into Epoch Round.
+	ParamProposal_VoteRate                float64 // the param proposal will pass if the vote rate exceeds this value.
+	ParamProposal_SupportRate             float64 // the param proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
@@ -158,6 +161,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+				ParamProposalVote_DurationSeconds:     uint64(14 * 24 * 3600),
+				ParamProposal_VoteRate:                float64(0.50),
+				ParamProposal_SupportRate:             float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -203,6 +209,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+				ParamProposalVote_DurationSeconds:     uint64(14 * 24 * 3600),
+				ParamProposal_VoteRate:                float64(0.50),
+				ParamProposal_SupportRate:             float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -249,6 +258,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				TextProposal_SupportRate:              float64(0.667),
 				CancelProposal_VoteRate:               float64(0.50),
 				CancelProposal_SupportRate:            float64(0.667),
+				ParamProposalVote_DurationSeconds:     uint64(14 * 24 * 3600),
+				ParamProposal_VoteRate:                float64(0.50),
+				ParamProposal_SupportRate:             float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -451,8 +463,12 @@ func PlatONFoundationYear() uint32 {
 /******
  * Governance config
  ******/
-func VersionProposalVote_ConsensusRounds() uint64 {
+/*func VersionProposalVote_ConsensusRounds() uint64 {
 	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
+}*/
+
+func VersionProposalVote_DurationSeconds() uint64 {
+	return ec.Gov.VersionProposalVote_DurationSeconds
 }
 
 func VersionProposalActive_ConsensusRounds() uint64 {
@@ -463,10 +479,12 @@ func VersionProposal_SupportRate() float64 {
 	return ec.Gov.VersionProposal_SupportRate
 }
 
-func TextProposalVote_ConsensusRounds() uint64 {
+/*func TextProposalVote_ConsensusRounds() uint64 {
 	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
+}*/
+func TextProposalVote_DurationSeconds() uint64 {
+	return ec.Gov.TextProposalVote_DurationSeconds
 }
-
 func TextProposal_VoteRate() float64 {
 	return ec.Gov.TextProposal_VoteRate
 }
@@ -481,6 +499,18 @@ func CancelProposal_VoteRate() float64 {
 
 func CancelProposal_SupportRate() float64 {
 	return ec.Gov.CancelProposal_SupportRate
+}
+
+func ParamProposalVote_DurationSeconds() uint64 {
+	return ec.Gov.ParamProposalVote_DurationSeconds
+}
+
+func ParamProposal_VoteRate() float64 {
+	return ec.Gov.ParamProposal_VoteRate
+}
+
+func ParamProposal_SupportRate() float64 {
+	return ec.Gov.ParamProposal_SupportRate
 }
 
 /******

@@ -211,12 +211,12 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return ActiveVersionError
 	}
 
-	votingVP, err := FindVotingVersionProposal(blockHash, state)
+	proposal, err := FindVotingProposal(Version, blockHash, blockNumber, state)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
 	}
-
+	votingVP := proposal.(*VersionProposal)
 	//there is a voting version proposal
 	if votingVP != nil {
 		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
@@ -375,9 +375,9 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	return idList, nil
 }
 
-// find a cancel proposal at voting stage
-func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*CancelProposal, error) {
-	log.Debug("call findVotingCancelProposal", "blockHash", blockHash, "blockNumber", blockNumber)
+// find a proposal at voting stage
+func FindVotingProposal(proposalType ProposalType, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (Proposal, error) {
+	log.Debug("call FindVotingProposal", "proposalType", proposalType, "blockHash", blockHash, "blockNumber", blockNumber)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting proposal error", "blockHash", blockHash)
@@ -388,9 +388,8 @@ func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state x
 		if err != nil {
 			return nil, err
 		}
-		if p.GetProposalType() == Cancel {
-			vp := p.(*CancelProposal)
-			return vp, nil
+		if p.GetProposalType() == proposalType {
+			return p, nil
 		}
 	}
 	return nil, nil
@@ -467,6 +466,31 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 		}
 	}
 	return nil
+}
+
+func SetGovernParam(paramName string, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
+	paramItem := ParamItem{"", initValue, activeBlockNumber}
+	return addGovernParam(paramName, paramItem, currentBlockHash)
+}
+
+func GetGovernParam(paramName string, blockNumber uint64, blockHash common.Hash) (string, error) {
+	paramItem, err := findGovernParam(paramName, blockHash)
+	if err != nil {
+		return "", err
+	}
+	if paramItem == nil {
+		return "", GovernParamNotFound
+	} else {
+		if blockNumber >= paramItem.ActiveBlock {
+			return paramItem.Value, nil
+		} else {
+			return paramItem.StaleValue, nil
+		}
+	}
+}
+
+func UpdateGovernParam(paramName string, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	return updateGovernParam(paramName, newValue, activeBlock, blockHash)
 }
 
 // check if the node a candidate, and the caller address is same as the staking address

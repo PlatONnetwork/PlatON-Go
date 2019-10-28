@@ -20,6 +20,7 @@ import (
 const (
 	SubmitText            = uint16(2000)
 	SubmitVersion         = uint16(2001)
+	SubmitParam           = uint16(2002)
 	Vote                  = uint16(2003)
 	Declare               = uint16(2004)
 	SubmitCancel          = uint16(2005)
@@ -27,6 +28,7 @@ const (
 	GetResult             = uint16(2101)
 	ListProposal          = uint16(2102)
 	GetActiveVersion      = uint16(2103)
+	GetGovernParam        = uint16(2104)
 	GetAccuVerifiersCount = uint16(2105)
 )
 
@@ -56,12 +58,14 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		Vote:          gc.vote,
 		Declare:       gc.declareVersion,
 		SubmitCancel:  gc.submitCancel,
+		SubmitParam:   gc.submitParam,
 
 		// Get
 		GetProposal:           gc.getProposal,
 		GetResult:             gc.getTallyResult,
 		ListProposal:          gc.listProposal,
 		GetActiveVersion:      gc.getActiveVersion,
+		GetGovernParam:        gc.getGovernParam,
 		GetAccuVerifiersCount: gc.getAccuVerifiersCount,
 	}
 }
@@ -80,7 +84,12 @@ func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 		if gasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
 			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
 		}
+	case SubmitParam:
+		if gasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
+			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+		}
 	}
+
 	return nil
 }
 
@@ -191,6 +200,44 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	}
 	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
+}
+
+func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, paramName, newValue string, endVotingEpochRounds uint64) ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
+
+	log.Debug("call submitParam of GovContract",
+		"from", from.Hex(),
+		"txHash", txHash,
+		"blockNumber", blockNumber,
+		"PIPID", pipID,
+		"verifierID", verifier.TerminalString(),
+		"paramName", paramName,
+		"newValue", newValue,
+		"endVotingEpochRounds", endVotingEpochRounds)
+
+	if txHash == common.ZeroHash {
+		log.Warn("current txHash is empty!!")
+		return nil, nil
+	}
+
+	if !gc.Contract.UseGas(params.SubmitParamProposalGas) {
+		return nil, ErrOutOfGas
+	}
+	p := &gov.ParamProposal{
+		PIPID:                pipID,
+		ProposalType:         gov.Text,
+		SubmitBlock:          blockNumber,
+		ProposalID:           txHash,
+		Proposer:             verifier,
+		ParamName:            paramName,
+		NewValue:             newValue,
+		EndVotingEpochRounds: endVotingEpochRounds,
+	}
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	return gc.nonCallHandler("submitParam", SubmitText, err)
 }
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
@@ -353,6 +400,22 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 
 	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
 	return gc.callHandler("getAccuVerifiesCount", returnValue, nil)
+}
+
+// getGovernParam returns the govern parameter's value in current block.
+func (gc *GovContract) getGovernParam(paramName string) ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
+	log.Debug("call getGovernParam of GovContract",
+		"from", from.Hex(),
+		"txHash", txHash,
+		"blockNumber", blockNumber)
+
+	proposal, err := gov.GetGovernParam(paramName, blockNumber, blockHash)
+
+	return gc.callHandler("getGovernParam", proposal, err)
 }
 
 func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) ([]byte, error) {

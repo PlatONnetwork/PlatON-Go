@@ -83,6 +83,19 @@ func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
+// CalcBlocksEachEpoch returns the epoch duration in seconds
+func CalcEpochDuration() uint64 {
+	return CalcBlocksEachEpoch() * xcom.Interval()
+}
+
+func CalcConsensusRounds(seconds uint64) uint64 {
+	return seconds / (xcom.Interval() * ConsensusSize())
+}
+
+func CalcEpochRounds(seconds uint64) uint64 {
+	return seconds / CalcEpochDuration()
+}
+
 // calculate returns how many blocks per year.
 func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * CalcBlocksEachEpoch()
@@ -180,7 +193,12 @@ func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
 }
 
-// active-block = the begin of a consensus period, so, It's possible that active-block is the begin block of a settlement epoch
+func CalEndVotingBlockForParamProposal(blockNumber uint64, endVotingEpochRounds uint64) uint64 {
+	blocksPerEpoach := CalcBlocksEachEpoch()
+	return blockNumber + blocksPerEpoach - blockNumber%blocksPerEpoach + endVotingEpochRounds*blocksPerEpoach
+}
+
+// active-block = the begin of a consensus period, so, it is possible that active-block also is the begin of a epoch.
 func CalActiveBlock(endVotingBlock uint64) uint64 {
 	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
 }
