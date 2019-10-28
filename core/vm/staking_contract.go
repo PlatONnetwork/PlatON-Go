@@ -102,14 +102,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if len(blsPubKey) != BLSPUBKEYLEN {
 		receipt := fmt.Sprint(staking.ErrWrongBlsPubKey.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN), "createStaking")
 		return []byte(receipt), nil
 	}
 
 	if len(blsProof) != BLSPROOFLEN {
 		receipt := fmt.Sprint(staking.ErrWrongBlsPubKeyProof.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN), "createStaking")
 		return []byte(receipt), nil
 	}
@@ -118,7 +118,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	blsPk, err := blsPubKey.ParseBlsPubKey()
 	if nil != err {
 		receipt := fmt.Sprint(staking.ErrWrongBlsPubKey.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			fmt.Sprintf("failed to parse blspubkey: %s", err.Error()), "createStaking")
 		return []byte(receipt), nil
 	}
@@ -126,7 +126,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// verify bls proof
 	if err := verifyBlsProof(blsProof, blsPk); nil != err {
 		receipt := fmt.Sprint(staking.ErrWrongBlsPubKeyProof.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			fmt.Sprintf("failed to verify bls proof: %s", err.Error()), "createStaking")
 		return []byte(receipt), nil
 	}
@@ -134,14 +134,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// validate programVersion sign
 	if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
 		receipt := fmt.Sprint(staking.ErrWrongProgramVersionSign.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			"call IsSignedByNodeID is failed", "createStaking")
 		return []byte(receipt), nil
 	}
 
 	if !xutil.CheckStakeThreshold(amount) {
 		receipt := fmt.Sprint(staking.ErrStakeVonTooLow.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			fmt.Sprintf("staking threshold: %d, deposit: %d", xcom.StakeThreshold(),
 				amount), "createStaking")
 		return []byte(receipt), nil
@@ -156,7 +156,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 	if err := desc.CheckLength(); nil != err {
 		receipt := fmt.Sprint(staking.ErrDescriptionLen.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			staking.ErrDescriptionLen.Msg+":"+err.Error(), "createStaking")
 		return []byte(receipt), nil
 	}
@@ -175,7 +175,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		err := fmt.Sprintf("input Version: %s, current valid Version: %s",
 			xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion))
 		receipt := fmt.Sprint(staking.ErrProgramVersionTooLow.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt, err, "createStaking")
+		stkc.badLog(CreateStakingEvent, receipt, err, "createStaking")
 		return []byte(receipt), nil
 
 	} else if inputVersion > currVersion {
@@ -198,7 +198,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if canOld.IsNotEmpty() {
 		receipt := fmt.Sprint(staking.ErrCanAlreadyExist.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+		stkc.badLog(CreateStakingEvent, receipt,
 			"can is not nil", "createStaking")
 		return []byte(receipt), nil
 	}
@@ -234,7 +234,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			receipt := fmt.Sprint(bizErr.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt,
+			stkc.badLog(CreateStakingEvent, receipt,
 				fmt.Sprintf("failed to createStaking: %s", bizErr.Error()), "createStaking")
 			return []byte(receipt), nil
 		} else {
@@ -258,12 +258,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			}
 
 			receipt := fmt.Sprint(staking.ErrDeclVsFialedCreateCan.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt, err.Error(), "createStaking")
+			stkc.badLog(CreateStakingEvent, receipt, err.Error(), "createStaking")
 			return []byte(receipt), nil
 		}
 	}
 	receipt := fmt.Sprint(common.NoErr.Code)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, receipt, "createStaking")
+	stkc.goodLog(CreateStakingEvent, receipt, "createStaking")
 	return []byte(receipt), nil
 }
 
@@ -291,12 +291,12 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
 	from := stkc.Contract.CallerAddress
-	state := stkc.Evm.StateDB
 
 	log.Info("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "benefitAddress", benefitAddress.String(),
-		"nodeId", nodeId.String(), "externalId", externalId, "nodeName", nodeName,
-		"website", website, "details", details, "from", from.Hex())
+		"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+		"benefitAddress", benefitAddress.String(), "nodeId", nodeId.String(),
+		"externalId", externalId, "nodeName", nodeName, "website", website,
+		"details", details, "from", from.Hex())
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
 		return nil, ErrOutOfGas
@@ -316,27 +316,27 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to editCandidate by GetCandidateInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "err", err)
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return nil, err
 	}
 
 	if canOld.IsEmpty() {
 		receipt := fmt.Sprint(staking.ErrCanNoExist.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, receipt,
+		stkc.badLog(EditorCandidateEvent, receipt,
 			"can is nil", "editCandidate")
 		return []byte(receipt), nil
 	}
 
 	if canOld.Is_Invalid() {
 		receipt := fmt.Sprint(staking.ErrCanStatusInvalid.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, receipt,
+		stkc.badLog(EditorCandidateEvent, receipt,
 			fmt.Sprintf("can status is: %d", canOld.Status), "editCandidate")
 		return []byte(receipt), nil
 	}
 
 	if from != canOld.StakingAddress {
 		receipt := fmt.Sprint(staking.ErrNoSameStakingAddr.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, receipt,
+		stkc.badLog(EditorCandidateEvent, receipt,
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
 			"editCandidate")
 		return []byte(receipt), nil
@@ -356,7 +356,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	if err := desc.CheckLength(); nil != err {
 		err := common.NewBizError(staking.ErrDescriptionLen.Code, staking.ErrDescriptionLen.Msg+":"+err.Error())
 		receipt := fmt.Sprint(staking.ErrDescriptionLen.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, receipt,
+		stkc.badLog(EditorCandidateEvent, receipt,
 			err.Error(), "editCandidate")
 		return []byte(receipt), nil
 	}
@@ -367,7 +367,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			receipt := fmt.Sprint(bizErr.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, receipt,
+			stkc.badLog(EditorCandidateEvent, receipt,
 				fmt.Sprintf("failed to editCandidate: %s", bizErr.Error()), "editCandidate")
 			return []byte(receipt), nil
 		} else {
@@ -378,7 +378,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	}
 	receipt := fmt.Sprint(common.NoErr.Code)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, receipt, "editCandidate")
+	stkc.goodLog(EditorCandidateEvent, receipt, "editCandidate")
 	return []byte(receipt), nil
 }
 
@@ -404,7 +404,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	if !xutil.CheckMinimumThreshold(amount) {
 		receipt := fmt.Sprint(staking.ErrIncreaseStakeVonTooLow.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, receipt,
+		stkc.badLog(IncreaseStakingEvent, receipt,
 			fmt.Sprintf("increase staking threshold: %d, deposit: %d", xcom.MinimumThreshold(),
 				amount), "increaseStaking")
 		return []byte(receipt), nil
@@ -426,21 +426,21 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	if canOld.IsEmpty() {
 		receipt := fmt.Sprint(staking.ErrCanNoExist.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, receipt,
+		stkc.badLog(IncreaseStakingEvent, receipt,
 			"can is nil", "increaseStaking")
 		return []byte(receipt), nil
 	}
 
 	if canOld.Is_Invalid() {
 		receipt := fmt.Sprint(staking.ErrCanStatusInvalid.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, receipt,
+		stkc.badLog(IncreaseStakingEvent, receipt,
 			fmt.Sprintf("can status is: %d", canOld.Status), "increaseStaking")
 		return []byte(receipt), nil
 	}
 
 	if from != canOld.StakingAddress {
 		receipt := fmt.Sprint(staking.ErrNoSameStakingAddr.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, receipt,
+		stkc.badLog(IncreaseStakingEvent, receipt,
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
 			"increaseStaking")
 		return []byte(receipt), nil
@@ -451,7 +451,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			receipt := fmt.Sprint(bizErr.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, receipt,
+			stkc.badLog(IncreaseStakingEvent, receipt,
 				fmt.Sprintf("failed to increaseStaking: %s", bizErr.Error()), "increaseStaking")
 			return []byte(receipt), nil
 		} else {
@@ -462,7 +462,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 
 	}
 	receipt := fmt.Sprint(common.NoErr.Code)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, receipt, "increaseStaking")
+	stkc.goodLog(IncreaseStakingEvent, receipt, "increaseStaking")
 	return []byte(receipt), nil
 }
 
@@ -501,21 +501,21 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	if canOld.IsEmpty() {
 		receipt := fmt.Sprint(staking.ErrCanNoExist.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, receipt,
+		stkc.badLog(WithdrewCandidateEvent, receipt,
 			"can is nil", "withdrewStaking")
 		return []byte(receipt), nil
 	}
 
 	if canOld.Is_Invalid() {
 		receipt := fmt.Sprint(staking.ErrCanStatusInvalid.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, receipt,
+		stkc.badLog(WithdrewCandidateEvent, receipt,
 			fmt.Sprintf("can status is: %d", canOld.Status), "withdrewStaking")
 		return []byte(receipt), nil
 	}
 
 	if from != canOld.StakingAddress {
 		receipt := fmt.Sprint(staking.ErrNoSameStakingAddr.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, receipt,
+		stkc.badLog(WithdrewCandidateEvent, receipt,
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
 			"withdrewStaking")
 		return []byte(receipt), nil
@@ -525,7 +525,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			receipt := fmt.Sprint(bizErr.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, receipt,
+			stkc.badLog(WithdrewCandidateEvent, receipt,
 				fmt.Sprintf("failed to withdrewStaking: %s", bizErr.Error()), "withdrewStaking")
 			return []byte(receipt), nil
 		} else {
@@ -537,8 +537,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	}
 
 	receipt := fmt.Sprint(common.NoErr.Code)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent,
-		receipt, "withdrewStaking")
+	stkc.goodLog(WithdrewCandidateEvent, receipt, "withdrewStaking")
 	return []byte(receipt), nil
 }
 
@@ -564,7 +563,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if !xutil.CheckMinimumThreshold(amount) {
 		receipt := fmt.Sprint(staking.ErrDelegateVonTooLow.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt,
+		stkc.badLog(DelegateEvent, receipt,
 			fmt.Sprintf("delegate threshold: %d, deposit: %d", xcom.MinimumThreshold(),
 				amount), "delegate")
 		return []byte(receipt), nil
@@ -582,7 +581,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if hasStake {
 		receipt := fmt.Sprint(staking.ErrAccountNoAllowToDelegate.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt,
+		stkc.badLog(DelegateEvent, receipt,
 			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from.Hex()), "delegate")
 		return []byte(receipt), nil
 	}
@@ -609,14 +608,14 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if canMutable.IsEmpty() {
 		receipt := fmt.Sprint(staking.ErrCanNoExist.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt,
+		stkc.badLog(DelegateEvent, receipt,
 			"can is nil", "delegate")
 		return []byte(receipt), nil
 	}
 
 	if canMutable.Is_Invalid() {
 		receipt := fmt.Sprint(staking.ErrCanStatusInvalid.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt,
+		stkc.badLog(DelegateEvent, receipt,
 			fmt.Sprintf("can status is: %d", canMutable.Status), "delegate")
 		return []byte(receipt), nil
 	}
@@ -626,7 +625,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	// If the candidate’s benefitaAddress is the RewardManagerPoolAddr, no delegation is allowed
 	if canBase.BenefitAddress == vm.RewardManagerPoolAddr {
 		receipt := fmt.Sprint(staking.ErrCanNoAllowDelegate.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt,
+		stkc.badLog(DelegateEvent, receipt,
 			"the can benefitAddr is reward addr", "delegate")
 		return []byte(receipt), nil
 	}
@@ -659,7 +658,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			receipt := fmt.Sprint(bizErr.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt,
+			stkc.badLog(DelegateEvent, receipt,
 				fmt.Sprintf("failed to delegate: %s", bizErr.Error()), "delegate")
 			return []byte(receipt), nil
 		} else {
@@ -670,7 +669,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	end := time.Since(begin).Nanoseconds()
 	log.Info("Call delegate, finished", "duration", end)
 	receipt := fmt.Sprint(common.NoErr.Code)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, DelegateEvent, receipt, "delegate")
+	stkc.goodLog(DelegateEvent, receipt, "delegate")
 	return []byte(receipt), nil
 }
 
@@ -696,7 +695,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 	if !xutil.CheckMinimumThreshold(amount) {
 		receipt := fmt.Sprint(staking.ErrWithdrewDelegateVonTooLow.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, receipt,
+		stkc.badLog(WithdrewDelegateEvent, receipt,
 			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", xcom.MinimumThreshold(),
 				amount), "withdrewDelegate")
 		return []byte(receipt), nil
@@ -711,7 +710,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 	if del.IsEmpty() {
 		receipt := fmt.Sprint(staking.ErrDelegateNoExist.Code)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, receipt,
+		stkc.badLog(WithdrewDelegateEvent, receipt,
 			"del is nil", "withdrewDelegate")
 		return []byte(receipt), nil
 	}
@@ -720,7 +719,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			receipt := fmt.Sprint(bizErr.Code)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, receipt,
+			stkc.badLog(WithdrewDelegateEvent, receipt,
 				fmt.Sprintf("failed to withdrewDelegate: %s", bizErr.Error()), "withdrewDelegate")
 			return []byte(receipt), nil
 		} else {
@@ -729,7 +728,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		}
 	}
 	receipt := fmt.Sprint(common.NoErr.Code)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, receipt, "withdrewDelegate")
+	stkc.goodLog(WithdrewDelegateEvent, receipt, "withdrewDelegate")
 	return []byte(receipt), nil
 }
 
@@ -940,14 +939,20 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	return data, nil
 }
 
-func (stkc *StakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
-	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
+func (stkc *StakingContract) goodLog(eventType, eventData, callFn string) {
+
+	txHash := stkc.Evm.StateDB.TxHash()
+	blockNumber := stkc.Evm.BlockNumber.Uint64()
+	xcom.AddLog(stkc.Evm.StateDB, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Info("Call "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "receipt: ", eventData)
 }
 
-func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, reason, callFn string) {
-	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
+func (stkc *StakingContract) badLog(eventType, eventData, reason, callFn string) {
+
+	txHash := stkc.Evm.StateDB.TxHash()
+	blockNumber := stkc.Evm.BlockNumber.Uint64()
+	xcom.AddLog(stkc.Evm.StateDB, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Warn("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "receipt: ", eventData, "the reason", reason)
 }

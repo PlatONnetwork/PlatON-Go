@@ -2,6 +2,7 @@ package vm
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -66,19 +67,19 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 		return nil, ErrOutOfGas
 	}
 
-	sender := sc.Contract.CallerAddress
-	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
-
-	if nil != err {
-		return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, common.InvalidParameter.Wrap(err.Error())), nil
-	}
 	if !sc.Contract.UseGas(params.DuplicateEvidencesGas) {
 		return nil, ErrOutOfGas
 	}
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
-	if err := sc.Plugin.Slash(evidence, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
+
+	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
+	if nil != err {
+		return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, common.InvalidParameter.Wrap(err.Error())), nil
+	}
+
+	if err := sc.Plugin.Slash(evidence, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, from); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, bizErr), nil
 		} else {
@@ -90,6 +91,7 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 
 // Check if the node has double sign behavior at a certain block height
 func (sc *SlashingContract) CheckDuplicateSign(dupType uint8, addr common.Address, blockNumber uint64) ([]byte, error) {
+	log.Info("CheckDuplicateSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "dupType", dupType)
 	txHash, err := sc.Plugin.CheckDuplicateSign(addr, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
 	var data string
 

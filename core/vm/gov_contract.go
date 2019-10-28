@@ -98,13 +98,14 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		"PIPID", pipID,
 		"verifierID", verifier.TerminalString())
 
+	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
+		return nil, ErrOutOfGas
+	}
+
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
 
-	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
-		return nil, ErrOutOfGas
-	}
 	p := &gov.TextProposal{
 		PIPID:        pipID,
 		ProposalType: gov.Text,
@@ -133,12 +134,12 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		"newVersionString", xutil.ProgramVersion2Str(newVersion),
 		"endVotingRounds", endVotingRounds)
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	p := &gov.VersionProposal{
@@ -170,12 +171,12 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		"endVotingRounds", endVotingRounds,
 		"tobeCanceled", tobeCanceledProposalID)
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if !gc.Contract.UseGas(params.SubmitCancelProposalGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	p := &gov.CancelProposal{
@@ -207,12 +208,12 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 		"programVersionString", xutil.ProgramVersion2Str(programVersion),
 		"programVersionSign", programVersionSign)
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if !gc.Contract.UseGas(params.VoteGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	option := gov.ParseVoteOption(op)
@@ -240,12 +241,12 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 		"programVersion", programVersion,
 		"programVersionString", xutil.ProgramVersion2Str(programVersion))
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
-
 	if !gc.Contract.UseGas(params.DeclareVersionGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
 	}
 
 	err := gov.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)

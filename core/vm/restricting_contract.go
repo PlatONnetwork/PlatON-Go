@@ -72,12 +72,12 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	switch err.(type) {
 	case nil:
 		receipt := fmt.Sprint(common.NoErr.Code)
-		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, receipt, "createRestrictingPlan")
+		rc.goodLog(CreateRestrictingPlanEvent, receipt, "createRestrictingPlan")
 		return []byte(receipt), nil
 	case *common.BizError:
 		bizErr := err.(*common.BizError)
 		receipt := fmt.Sprint(bizErr.Code)
-		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, receipt, bizErr.Msg, "createRestrictingPlan")
+		rc.badLog(CreateRestrictingPlanEvent, receipt, bizErr.Msg, "createRestrictingPlan")
 		return []byte(receipt), nil
 	default:
 		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
@@ -103,12 +103,18 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	}
 }
 
-func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
-	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
+func (rc *RestrictingContract) goodLog(eventType, eventData, callFn string) {
+
+	txHash := rc.Evm.StateDB.TxHash()
+	blockNumber := rc.Evm.BlockNumber.Uint64()
+	xcom.AddLog(rc.Evm.StateDB, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
 	log.Info("Successed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData)
 }
 
-func (rc *RestrictingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, reason, callFn string) {
-	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
+func (rc *RestrictingContract) badLog(eventType, eventData, reason, callFn string) {
+
+	txHash := rc.Evm.StateDB.TxHash()
+	blockNumber := rc.Evm.BlockNumber.Uint64()
+	xcom.AddLog(rc.Evm.StateDB, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
 	log.Debug("Failed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData, "reason", reason)
 }

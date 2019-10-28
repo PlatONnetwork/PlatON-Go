@@ -62,10 +62,10 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		lastYear = thisYear - 1
 	}
 
-	stakingReward, newBlockReward := rmp.calculateExpectReward(thisYear, lastYear, state)
+	stakingReward, packageReward := rmp.calculateExpectReward(thisYear, lastYear, state)
 
 	log.Debug("Call EndBlock on reward_plugin: after call calculateExpectReward", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "stakingReward", stakingReward, "packageBlockReward", newBlockReward)
+		"blockHash", blockHash.Hex(), "stakingReward", stakingReward, "packageBlockReward", packageReward)
 
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
@@ -73,7 +73,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 	}
 
-	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, newBlockReward, state)
+	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, packageReward, state)
 
 	// the block at the end of each year, additional issuance
 	if xutil.IsYearEnd(blockNumber) {

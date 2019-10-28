@@ -485,6 +485,16 @@ func (queue CandidateHexQueue) IsEmpty() bool {
 	return len(queue) == 0
 }
 
+type CandidateBaseQueue []*CandidateBase
+
+func (queue CandidateBaseQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue CandidateBaseQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
+
 // the Validator info
 // They are Simplified Candidate
 // They are consensus nodes and Epoch nodes snapshot
@@ -539,6 +549,14 @@ func (val *Validator) String() string {
 }
 
 type ValidatorQueue []*Validator
+
+func (queue ValidatorQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue ValidatorQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
 
 type CandidateMap map[discover.NodeID]*Candidate
 
