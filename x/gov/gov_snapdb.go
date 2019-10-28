@@ -190,3 +190,46 @@ func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover
 	}
 	return nil, nil
 }
+
+func addGovernParam(paramName string, paramItem ParamItem, blockHash common.Hash) error {
+	return put(blockHash, KeyParam(paramName), paramItem)
+}
+
+func findGovernParam(paramName string, blockHash common.Hash) (*ParamItem, error) {
+	value, err := get(blockHash, KeyParam(paramName))
+	if err != nil && err != snapshotdb.ErrNotFound {
+		return nil, err
+	}
+
+	if len(value) > 0 {
+		var paramItem ParamItem
+		if err := rlp.DecodeBytes(value, &paramItem); err != nil {
+			return nil, err
+		} else {
+			return &paramItem, nil
+		}
+	}
+	return nil, nil
+}
+
+func updateGovernParam(paramName string, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	value, err := get(blockHash, KeyParam(paramName))
+	if err != nil && err != snapshotdb.ErrNotFound {
+		return err
+	}
+
+	if len(value) > 0 {
+		var paramItem ParamItem
+		if err := rlp.DecodeBytes(value, &paramItem); err != nil {
+			return err
+		}
+		paramItem.StaleValue = paramItem.Value
+		paramItem.Value = newValue
+		paramItem.ActiveBlock = activeBlock
+
+		if err := put(blockHash, KeyParam(paramName), paramItem); err != nil {
+			return err
+		}
+	}
+	return GovernParamNotFound
+}

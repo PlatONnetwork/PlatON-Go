@@ -424,27 +424,6 @@ func GetExistProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, err
 	}
 }
 
-// find a version proposal at voting stage
-func FindVotingVersionProposal(blockHash common.Hash, state xcom.StateDB) (*VersionProposal, error) {
-	log.Debug("call findVotingVersionProposal", "blockHash", blockHash)
-	idList, err := ListVotingProposal(blockHash)
-	if err != nil {
-		log.Error("find voting version proposal failed", "blockHash", blockHash)
-		return nil, err
-	}
-	for _, proposalID := range idList {
-		p, err := GetExistProposal(proposalID, state)
-		if err != nil {
-			return nil, err
-		}
-		if p.GetProposalType() == Version {
-			vp := p.(*VersionProposal)
-			return vp, nil
-		}
-	}
-	return nil, nil
-}
-
 func ListActiveVersion(state xcom.StateDB) ([]ActiveVersionValue, error) {
 	avListBytes := state.GetState(vm.GovContractAddr, KeyActiveVersions())
 	if len(avListBytes) == 0 {

@@ -35,3 +35,16 @@ type ActiveVersionValue struct {
 	ActiveVersion uint32 `json:"ActiveVersion"`
 	ActiveBlock   uint64 `json:"ActiveBlock"`
 }
+
+type ParamItem struct {
+	StaleValue  string
+	Value       string
+	ActiveBlock uint64
+}
+
+var GovernParams = map[string]ParamItem{
+	"paramName1": ParamItem{"", "1", 0},
+	"paramName2": ParamItem{"", "1", 0},
+	"paramName3": ParamItem{"", "1", 0},
+	"paramName4": ParamItem{"", "1", 0},
+}
