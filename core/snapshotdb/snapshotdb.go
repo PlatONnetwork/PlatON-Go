@@ -8,6 +8,9 @@ import (
 	"os"
 	"sync"
 
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -89,6 +92,9 @@ var (
 
 	instance sync.Mutex
 
+	baseDBcache   int
+	baseDBhandles int
+
 	logger = log.Root().New("package", "snapshotdb")
 
 	//ErrNotFound when db not found
@@ -157,6 +163,11 @@ func SetDBBlockChain(n Chain) {
 	logger.Info("set blockchain")
 }
 
+func SetDBOptions(cache int, handles int) {
+	baseDBcache = cache
+	baseDBhandles = handles
+}
+
 //Instance return the Instance of the db
 func Instance() DB {
 	instance.Lock()
@@ -171,13 +182,20 @@ func Instance() DB {
 	return dbInstance
 }
 
-func Open(path string) (DB, error) {
+func Open(path string, cache int, handles int) (DB, error) {
 	s, err := openFile(path, false)
 	if err != nil {
 		logger.Error("open db file fail", "error", err, "path", path)
 		return nil, err
 	}
-	baseDB, err := leveldb.OpenFile(getBaseDBPath(path), nil)
+	logger.Info("Allocated cache and file handles", "cache", cache, "handles", handles)
+
+	baseDB, err := leveldb.OpenFile(getBaseDBPath(path), &opt.Options{
+		OpenFilesCacheCapacity: handles,
+		BlockCacheCapacity:     cache / 2 * opt.MiB,
+		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
+		Filter:                 filter.NewBloomFilter(10),
+	})
 	if err != nil {
 		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
 			baseDB, err = leveldb.RecoverFile(getBaseDBPath(path), nil)
@@ -235,7 +253,7 @@ func copyDB(from, to *snapshotDB) {
 }
 
 func initDB() error {
-	dbInterface, err := Open(dbpath)
+	dbInterface, err := Open(dbpath, baseDBcache, baseDBhandles)
 	if err != nil {
 		return err
 	}
@@ -309,7 +327,7 @@ func (s *snapshotDB) SetEmpty() error {
 	if err := s.Clear(); err != nil {
 		return err
 	}
-	dbInterface, err := Open(path)
+	dbInterface, err := Open(path, baseDBcache, baseDBhandles)
 	if err != nil {
 		return err
 	}
