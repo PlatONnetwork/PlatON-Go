@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -64,20 +65,20 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		return nil, ErrOutOfGas
 	}
 	if txHash == common.ZeroHash {
-		log.Warn("Call createRestrictingPlan current txHash is empty!!")
 		return nil, nil
 	}
 
 	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
 	switch err.(type) {
 	case nil:
-		event := xcom.OkResultByte
-		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
-		return event, nil
+		receipt := fmt.Sprint(common.NoErr.Code)
+		rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, receipt, "createRestrictingPlan")
+		return []byte(receipt), nil
 	case *common.BizError:
-		event := xcom.NewFailResult(err)
-		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
-		return event, nil
+		bizErr := err.(*common.BizError)
+		receipt := fmt.Sprint(bizErr.Code)
+		rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, receipt, bizErr.Msg, "createRestrictingPlan")
+		return []byte(receipt), nil
 	default:
 		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "error", err)
@@ -95,20 +96,19 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	log.Info("Call getRestrictingInfo of RestrictingContract", "blockNumber", currNumber.Uint64(), "account", account.String())
 
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
-	//var res xcom.Result
 	if err != nil {
-		return xcom.NewFailResult(err), nil
+		return xcom.NewFailedResult(err), nil
 	} else {
-		return xcom.NewSuccessResult(string(result)), nil
+		return xcom.NewOkResult(string(result)), nil
 	}
 }
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
-	log.Info("Successed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
+	log.Info("Successed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData)
 }
 
-func (rc *RestrictingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
+func (rc *RestrictingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, reason, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
-	log.Debug("Failed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
+	log.Debug("Failed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData, "reason", reason)
 }

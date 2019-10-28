@@ -310,7 +310,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
 				if err != nil {
 					return VerifierInfoNotFound
-				} else if staking.Is_Invalid(candidate.Status) {
+				} else if candidate.Is_Invalid() {
 					return VerifierStatusInvalid
 				}
 				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)

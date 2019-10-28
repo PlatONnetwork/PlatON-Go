@@ -191,17 +191,17 @@ func initGenesis(ctx *cli.Context) error {
 	defer file.Close()
 
 	genesis := new(core.Genesis)
-	// init EconomicModel config
-	genesis.EconomicModel = utils.GetEconomicDefaultConfig(ctx)
 
+	// init EconomicModel config
 	if err := json.NewDecoder(file).Decode(&genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-
+	xcom.ResetEconomicDefaultConfig(genesis.EconomicModel)
 	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
 	if nil != genesis && nil != genesis.Config && nil != genesis.Config.Cbft && nil != genesis.EconomicModel {
 		xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
 		xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+
 	}
 
 	// check EconomicModel configuration

@@ -199,7 +199,7 @@ func buildGetAccuVerifiersCountInput(proposalID, blockHash common.Hash) []byte {
 	return common.MustRlpEncode(input)
 }
 
-var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{0, "", ""}))
+var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{0, "ok"}))
 
 func buildBlock2() {
 	state := gc.Evm.StateDB.(*mock.MockStateDB)

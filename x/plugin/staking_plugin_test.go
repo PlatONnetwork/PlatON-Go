@@ -1093,7 +1093,7 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
 	t.Log("Finish WithdrewStaking ~~")
 	// get Candidate info
-	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
+	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
 		t.Logf("expect candidate info is no found, err: %v", err)
 		return
 	} else {
@@ -1170,7 +1170,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// get Candidate info
-	if _, err := getCandidate(blockHash2, index); nil != err && err == snapshotdb.ErrNotFound {
+	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
 		t.Logf("expect candidate info is no found, err: %v", err)
 		return
 	} else {

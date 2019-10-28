@@ -849,3 +849,11 @@ func (s *snapshotDB) Close() error {
 	logger.Info("snapshotdb closed")
 	return nil
 }
+
+func IsDbNotFoundErr(err error) bool {
+	return nil != err && err == ErrNotFound
+}
+
+func NonDbNotFoundErr(err error) bool {
+	return nil != err && err != ErrNotFound
+}

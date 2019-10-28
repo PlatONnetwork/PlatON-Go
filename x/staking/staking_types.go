@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -17,91 +19,91 @@ const (
 	#	  THE CANDIDATE  STATUS     #
 	######   ######   ######   ######
 	*/
-	Invalided     = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	LowRatio                  // 0010: The candidate was low package ratio AND no delete
-	NotEnough                 // 0100: The current candidate's von does not meet the minimum staking threshold
-	DuplicateSign             // 1000: The Duplicate package or Duplicate sign
-	LowRatioDel               // 0001,0000: The lowRatio AND must delete
-	Withdrew                  // 0010,0000: The Active withdrew
-	Valided       = 0         // 0000: The current candidate is in force
-	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
+	Invalided     CandidateStatus = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
+	LowRatio                                  // 0010: The candidate was low package ratio AND no delete
+	NotEnough                                 // 0100: The current candidate's von does not meet the minimum staking threshold
+	DuplicateSign                             // 1000: The Duplicate package or Duplicate sign
+	LowRatioDel                               // 0001,0000: The lowRatio AND must delete
+	Withdrew                                  // 0010,0000: The Active withdrew
+	Valided       = 0                         // 0000: The current candidate is in force
+	NotExist      = 1 << 31                   // 1000,xxxx,... : The candidate is not exist
 )
 
-//const SWeightItem = 4
+type CandidateStatus uint32
 
-func Is_Valid(status uint32) bool {
-	return !Is_Invalid(status)
+func (status CandidateStatus) Is_Valid() bool {
+	return !status.Is_Invalid()
 }
 
-func Is_Invalid(status uint32) bool {
+func (status CandidateStatus) Is_Invalid() bool {
 	return status&Invalided == Invalided
 }
 
-func Is_PureInvalid(status uint32) bool {
+func (status CandidateStatus) Is_PureInvalid() bool {
 	return status&Invalided == status|Invalided
 }
 
-func Is_LowRatio(status uint32) bool {
+func (status CandidateStatus) Is_LowRatio() bool {
 	return status&LowRatio == LowRatio
 }
 
-func Is_PureLowRatio(status uint32) bool {
+func (status CandidateStatus) Is_PureLowRatio() bool {
 	return status&LowRatio == status|LowRatio
 }
 
-func Is_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_NotEnough() bool {
 	return status&NotEnough == NotEnough
 }
 
-func Is_PureNotEnough(status uint32) bool {
+func (status CandidateStatus) Is_PureNotEnough() bool {
 	return status&NotEnough == status|NotEnough
 }
 
-func Is_Invalid_LowRatio(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_LowRatio() bool {
 	return status&(Invalided|LowRatio) == (Invalided | LowRatio)
 }
 
-func Is_Invalid_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_NotEnough() bool {
 	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
 }
 
-func Is_Invalid_LowRatio_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_LowRatio_NotEnough() bool {
 	return status&(Invalided|LowRatio|NotEnough) == (Invalided | LowRatio | NotEnough)
 }
 
-func Is_LowRatio_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_LowRatio_NotEnough() bool {
 	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
 }
 
-func Is_DuplicateSign(status uint32) bool {
+func (status CandidateStatus) Is_DuplicateSign() bool {
 	return status&DuplicateSign == DuplicateSign
 }
 
-func Is_Invalid_DuplicateSign(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_DuplicateSign() bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
-func Is_LowRatioDel(status uint32) bool {
+func (status CandidateStatus) Is_LowRatioDel() bool {
 	return status&LowRatioDel == LowRatioDel
 }
 
-func Is_PureLowRatioDel(status uint32) bool {
+func (status CandidateStatus) Is_PureLowRatioDel() bool {
 	return status&LowRatioDel == status|LowRatioDel
 }
 
-func Is_Invalid_LowRatioDel(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_LowRatioDel() bool {
 	return status&(Invalided|LowRatioDel) == (Invalided | LowRatioDel)
 }
 
-func Is_Withdrew(status uint32) bool {
+func (status CandidateStatus) Is_Withdrew() bool {
 	return status&Withdrew == Withdrew
 }
 
-func Is_PureWithdrew(status uint32) bool {
+func (status CandidateStatus) Is_PureWithdrew() bool {
 	return status&Withdrew == status|Withdrew
 }
 
-func Is_Invalid_Withdrew(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_Withdrew() bool {
 	return status&(Invalided|Withdrew) == (Invalided | Withdrew)
 }
 
@@ -153,6 +155,14 @@ func (can *Candidate) String() string {
 		can.Details)
 }
 
+func (can *Candidate) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *Candidate) IsEmpty() bool {
+	return nil == can
+}
+
 type CandidateBase struct {
 	NodeId discover.NodeID
 	// bls public key
@@ -200,10 +210,18 @@ func (can *CandidateBase) String() string {
 		can.Details)
 }
 
+func (can *CandidateBase) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *CandidateBase) IsEmpty() bool {
+	return nil == can
+}
+
 type CandidateMutable struct {
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
-	Status uint32
+	Status CandidateStatus
 	// The epoch number at staking or edit
 	StakingEpoch uint32
 	// All vons of staking and delegated
@@ -238,80 +256,104 @@ func (can *CandidateMutable) String() string {
 		can.RestrictingPlanHes)
 }
 
+func (can *CandidateMutable) CleanLowRatioStatus() {
+	can.Status &^= LowRatio
+}
+
+func (can *CandidateMutable) CleanShares() {
+	can.Shares = new(big.Int).SetInt64(0)
+}
+
+func (can *CandidateMutable) AddShares(amount *big.Int) {
+	can.Shares = new(big.Int).Add(can.Shares, amount)
+}
+
+func (can *CandidateMutable) SubShares(amount *big.Int) {
+	can.Shares = new(big.Int).Sub(can.Shares, amount)
+}
+
+func (can *CandidateMutable) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *CandidateMutable) IsEmpty() bool {
+	return nil == can
+}
+
 func (can *CandidateMutable) Is_Valid() bool {
-	return Is_Valid(can.Status)
+	return can.Status.Is_Valid()
 }
 
 func (can *CandidateMutable) Is_Invalid() bool {
-	return Is_Invalid(can.Status)
+	return can.Status.Is_Invalid()
 }
 
 func (can *CandidateMutable) Is_PureInvalid() bool {
-	return Is_PureInvalid(can.Status)
+	return can.Status.Is_PureInvalid()
 }
 
 func (can *CandidateMutable) Is_LowRatio() bool {
-	return Is_LowRatio(can.Status)
+	return can.Status.Is_LowRatio()
 }
 
 func (can *CandidateMutable) Is_PureLowRatio() bool {
-	return Is_PureLowRatio(can.Status)
+	return can.Status.Is_PureLowRatio()
 }
 
 func (can *CandidateMutable) Is_NotEnough() bool {
-	return Is_NotEnough(can.Status)
+	return can.Status.Is_NotEnough()
 }
 
 func (can *CandidateMutable) Is_PureNotEnough() bool {
-	return Is_PureNotEnough(can.Status)
+	return can.Status.Is_PureNotEnough()
 }
 
 func (can *CandidateMutable) Is_Invalid_LowRatio() bool {
-	return Is_Invalid_LowRatio(can.Status)
+	return can.Status.Is_Invalid_LowRatio()
 }
 
 func (can *CandidateMutable) Is_Invalid_NotEnough() bool {
-	return Is_Invalid_NotEnough(can.Status)
+	return can.Status.Is_Invalid_NotEnough()
 }
 
 func (can *CandidateMutable) Is_Invalid_LowRatio_NotEnough() bool {
-	return Is_Invalid_LowRatio_NotEnough(can.Status)
+	return can.Status.Is_Invalid_LowRatio_NotEnough()
 }
 
 func (can *CandidateMutable) Is_LowRatio_NotEnough() bool {
-	return Is_LowRatio_NotEnough(can.Status)
+	return can.Status.Is_LowRatio_NotEnough()
 }
 
 func (can *CandidateMutable) Is_DuplicateSign() bool {
-	return Is_DuplicateSign(can.Status)
+	return can.Status.Is_DuplicateSign()
 }
 
 func (can *CandidateMutable) Is_Invalid_DuplicateSign() bool {
-	return Is_Invalid_DuplicateSign(can.Status)
+	return can.Status.Is_Invalid_DuplicateSign()
 }
 
 func (can *CandidateMutable) Is_LowRatioDel() bool {
-	return Is_LowRatioDel(can.Status)
+	return can.Status.Is_LowRatioDel()
 }
 
 func (can *CandidateMutable) Is_PureLowRatioDel() bool {
-	return Is_PureLowRatioDel(can.Status)
+	return can.Status.Is_PureLowRatioDel()
 }
 
 func (can *CandidateMutable) Is_Invalid_LowRatioDel() bool {
-	return Is_Invalid_LowRatioDel(can.Status)
+	return can.Status.Is_Invalid_LowRatioDel()
 }
 
 func (can *CandidateMutable) Is_Withdrew() bool {
-	return Is_Withdrew(can.Status)
+	return can.Status.Is_Withdrew()
 }
 
 func (can *CandidateMutable) Is_PureWithdrew() bool {
-	return Is_PureWithdrew(can.Status)
+	return can.Status.Is_PureWithdrew()
 }
 
 func (can *CandidateMutable) Is_Invalid_Withdrew() bool {
-	return Is_Invalid_Withdrew(can.Status)
+	return can.Status.Is_Invalid_Withdrew()
 }
 
 // Display amount field using 0x hex
@@ -322,7 +364,7 @@ type CandidateHex struct {
 	BenefitAddress     common.Address
 	StakingTxIndex     uint32
 	ProgramVersion     uint32
-	Status             uint32
+	Status             CandidateStatus
 	StakingEpoch       uint32
 	StakingBlockNum    uint64
 	Shares             *hexutil.Big
@@ -373,6 +415,14 @@ func (can *CandidateHex) String() string {
 		can.NodeName,
 		can.Website,
 		can.Details)
+}
+
+func (can *CandidateHex) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *CandidateHex) IsEmpty() bool {
+	return nil == can
 }
 
 //// EncodeRLP implements rlp.Encoder
@@ -427,6 +477,14 @@ func (desc *Description) CheckLength() error {
 type CandidateQueue []*Candidate
 type CandidateHexQueue []*CandidateHex
 
+func (queue CandidateHexQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue CandidateHexQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
+
 // the Validator info
 // They are Simplified Candidate
 // They are consensus nodes and Epoch nodes snapshot
@@ -479,41 +537,6 @@ func (val *Validator) String() string {
 		val.ValidatorTerm)
 	/*fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),*/
 }
-
-//func (val *Validator) GetProgramVersion() (uint32, error) {
-//	version := val.StakingWeight[0]
-//	v, err := strconv.Atoi(version)
-//	if nil != err {
-//		return 0, err
-//	}
-//	return uint32(v), nil
-//}
-
-//func (val *Validator) GetShares() (*big.Int, error) {
-//	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
-//	if !ok {
-//		return nil, errors.New("parse bigInt failed from validator's shares")
-//	}
-//	return shares, nil
-//}
-
-//func (val *Validator) GetStakingBlockNumber() (uint64, error) {
-//	stakingBlockNumber := val.StakingWeight[2]
-//	num, err := strconv.ParseUint(stakingBlockNumber, 10, 64)
-//	if nil != err {
-//		return 0, err
-//	}
-//	return uint64(num), nil
-//}
-
-//func (val *Validator) GetStakingTxIndex() (uint32, error) {
-//	txIndex := val.StakingWeight[3]
-//	index, err := strconv.Atoi(txIndex)
-//	if nil != err {
-//		return 0, err
-//	}
-//	return uint32(index), nil
-//}
 
 type ValidatorQueue []*Validator
 
@@ -626,10 +649,13 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 		return 1
 	} else {
 
+		lversion := xutil.CalcVersion(left.ProgramVersion)
+		rversion := xutil.CalcVersion(right.ProgramVersion)
+
 		switch {
-		case left.ProgramVersion < right.ProgramVersion:
+		case lversion < rversion:
 			return -1
-		case left.ProgramVersion > right.ProgramVersion:
+		case lversion > rversion:
 			return 1
 		default:
 			return compareSharesFunc(left, right)
@@ -717,8 +743,8 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareVersionFunc := func(l, r *Validator) int {
-		lversion := l.ProgramVersion
-		rversion := r.ProgramVersion
+		lversion := xutil.CalcVersion(l.ProgramVersion)
+		rversion := xutil.CalcVersion(r.ProgramVersion)
 		switch {
 		case lversion > rversion:
 			return -1
@@ -750,31 +776,31 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 		// compare slash
 		switch {
-		case Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status):
+		case lCan.Is_DuplicateSign() && !rCan.Is_DuplicateSign():
 			return 1
-		case !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+		case !lCan.Is_DuplicateSign() && rCan.Is_DuplicateSign():
 			return -1
-		case Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+		case lCan.Is_DuplicateSign() && rCan.Is_DuplicateSign():
 			// compare Shares
 			return compareSharesFunc(left, right)
 		default:
 			// compare low ratio delete
 			// compare low ratio
 			switch {
-			case Is_LowRatioDel(lCan.Status) && !Is_LowRatioDel(rCan.Status):
+			case lCan.Is_LowRatioDel() && !rCan.Is_LowRatioDel():
 				return 1
-			case !Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
+			case !lCan.Is_LowRatioDel() && rCan.Is_LowRatioDel():
 				return -1
-			case Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
+			case lCan.Is_LowRatioDel() && rCan.Is_LowRatioDel():
 				// compare Shares
 				return compareSharesFunc(left, right)
 			default:
 				switch {
-				case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
+				case lCan.Is_LowRatio() && !rCan.Is_LowRatio():
 					return 1
-				case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				case !lCan.Is_LowRatio() && rCan.Is_LowRatio():
 					return -1
-				case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				case lCan.Is_LowRatio() && rCan.Is_LowRatio():
 					// compare Shares
 					return compareSharesFunc(left, right)
 				default:
@@ -840,8 +866,8 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 	}
 
 	// 1. ProgramVersion
-	lVersion := left.ProgramVersion
-	rVersion := right.ProgramVersion
+	lVersion := xutil.CalcVersion(left.ProgramVersion)
+	rVersion := xutil.CalcVersion(right.ProgramVersion)
 	if lVersion < rVersion {
 		return -1
 	} else if lVersion > rVersion {
@@ -920,7 +946,15 @@ func (vex *ValidatorEx) String() string {
 		vex.ValidatorTerm)
 }
 
-type ValidatorExQueue = []*ValidatorEx
+type ValidatorExQueue []*ValidatorEx
+
+func (queue ValidatorExQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue ValidatorExQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
 
 // the Delegate information
 type Delegation struct {
@@ -952,6 +986,14 @@ func (del *Delegation) String() string {
 		del.RestrictingPlanHes)
 }
 
+func (del *Delegation) IsNotEmpty() bool {
+	return !del.IsEmpty()
+}
+
+func (del *Delegation) IsEmpty() bool {
+	return nil == del
+}
+
 type DelegationHex struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint32
@@ -979,6 +1021,14 @@ func (delHex *DelegationHex) String() string {
 		delHex.ReleasedHes,
 		delHex.RestrictingPlan,
 		delHex.RestrictingPlanHes)
+}
+
+func (del *DelegationHex) IsNotEmpty() bool {
+	return !del.IsEmpty()
+}
+
+func (del *DelegationHex) IsEmpty() bool {
+	return nil == del
 }
 
 type DelegationEx struct {
@@ -1010,6 +1060,14 @@ func (dex *DelegationEx) String() string {
 		dex.RestrictingPlanHes)
 }
 
+func (dex *DelegationEx) IsNotEmpty() bool {
+	return !dex.IsEmpty()
+}
+
+func (dex *DelegationEx) IsEmpty() bool {
+	return nil == dex
+}
+
 type DelegateRelated struct {
 	Addr            common.Address
 	NodeId          discover.NodeID
@@ -1028,7 +1086,23 @@ func (dr *DelegateRelated) String() string {
 		dr.StakingBlockNum)
 }
 
-type DelRelatedQueue = []*DelegateRelated
+func (dr *DelegateRelated) IsNotEmpty() bool {
+	return !dr.IsEmpty()
+}
+
+func (dr *DelegateRelated) IsEmpty() bool {
+	return nil == dr
+}
+
+type DelRelatedQueue []*DelegateRelated
+
+func (queue DelRelatedQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue DelRelatedQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
 
 type UnStakeItem struct {
 	// this is the nodeAddress
@@ -1065,7 +1139,7 @@ type SlashNodeItem struct {
 	// the amount of von with slashed
 	Amount *big.Int
 	// slash type
-	SlashType int
+	SlashType CandidateStatus
 	// the benefit adrr who will receive the slash amount of von
 	BenefitAddr common.Address
 }

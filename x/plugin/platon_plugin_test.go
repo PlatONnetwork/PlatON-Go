@@ -703,7 +703,7 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetRoundValIndexByBlockHash(blockHash)
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to setRoundValList: Query round valIndex is failed", "blockHash",
 			blockHash.Hex(), "Start", valArr.Start, "End", valArr.End, "err", err)
 		return err
@@ -764,7 +764,7 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetEpochValIndexByBlockHash(blockHash)
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to setVerifierList: Query epoch valIndex is failed", "blockHash",
 			blockHash.Hex(), "Start", valArr.Start, "End", valArr.End, "err", err)
 		return err
