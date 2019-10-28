@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"time"
 
@@ -1086,20 +1087,23 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 	if error != nil  {
 		return nil, error;
 	}
-	log.Debug("查询区块返回数据","reponse:",response)
+	xcom.PrintObject("rpcGetTransactionByBlock, query block data:", response)
 	queue := make([]map[string]interface{}, len(response))
 	for key, value := range response {
 		transactionHash := value.(common.Hash)
 		tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), transactionHash)
 		if tx == nil {
-			return nil, nil
+			log.Error("rpcGetTransactionByBlock, get tx error","blockHash:",blockHash,"blockNumber:",blockNumber,"index:",index)
+			continue
 		}
 		receipts, err := s.b.GetReceipts(ctx, blockHash)
 		if err != nil {
-			return nil, err
+			log.Error("rpcGetTransactionByBlock, get receipt error","receipts:",receipts)
+			continue
 		}
 		if len(receipts) <= int(index) {
-			return nil, nil
+			log.Error("rpcGetTransactionByBlock, get receipt length error","receipts:",receipts,"index:",index)
+			continue
 		}
 		receipt := receipts[index]
 
@@ -1135,7 +1139,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		}
 		queue[key] = fields;
 	}
-	log.Debug("wow,查询区块返回数据","queue:",queue)
+	xcom.PrintObject("rpcGetTransactionByBlock,get block transaction return:", queue)
 	return queue, nil
 }
 
