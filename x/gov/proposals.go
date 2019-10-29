@@ -222,7 +222,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return NewVersionError
 	}
 
-	if exist, err := FindVotingProposal(Version, blockHash, submitBlock, state); err != nil {
+	if exist, err := FindVotingProposal(Version, blockHash, state); err != nil {
 		return err
 	} else if exist != nil {
 		return VotingVersionProposalExist
@@ -309,7 +309,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, cp.EndVotingRounds)
 	cp.EndVotingBlock = endVotingBlock
 
-	if exist, err := FindVotingProposal(Cancel, blockHash, submitBlock, state); err != nil {
+	if exist, err := FindVotingProposal(Cancel, blockHash, state); err != nil {
 		log.Error("find voting cancel proposal error", "err", err)
 		return err
 	} else if exist != nil {
@@ -346,16 +346,16 @@ func (cp *CancelProposal) String() string {
 }
 
 type ParamProposal struct {
-	ProposalID           common.Hash
-	ProposalType         ProposalType
-	PIPID                string
-	SubmitBlock          uint64
-	EndVotingEpochRounds uint64
-	EndVotingBlock       uint64
-	Proposer             discover.NodeID
-	Result               TallyResult `json:"-"`
-	ParamName            string
-	NewValue             string
+	ProposalID     common.Hash
+	ProposalType   ProposalType
+	PIPID          string
+	SubmitBlock    uint64
+	EndVotingBlock uint64
+	Proposer       discover.NodeID
+	Result         TallyResult `json:"-"`
+	Module         string
+	Name           string
+	NewValue       string
 }
 
 func (pp *ParamProposal) GetProposalID() common.Hash {
@@ -390,33 +390,26 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	if pp.ProposalType != Cancel {
 		return ProposalTypeError
 	}
-
-	if pp.EndVotingEpochRounds <= 0 {
-		return EndVotingRoundsTooSmall
-	}
-
-	if pp.EndVotingEpochRounds > xutil.CalcEpochRounds(xcom.ParamProposalVote_DurationSeconds()) {
-		return EndVotingRoundsTooLarge
-	}
-
 	if err := verifyBasic(pp, state); err != nil {
 		return err
 	}
 
-	endVotingBlock := xutil.CalEndVotingBlockForParamProposal(submitBlock, pp.EndVotingEpochRounds)
+	if ParamVerifierMap[pp.Name](pp.NewValue) {
+		return GovernParamValueError
+	}
+
+	endVotingBlock := xutil.CalEndVotingBlockForParamProposal(submitBlock, xcom.ParamProposalVote_DurationSeconds())
 	pp.EndVotingBlock = endVotingBlock
 
-	support := false
-	for k, _ := range GovernParams {
-		if k == pp.ParamName {
-			support = true
-		}
-	}
-	if !support {
+	param, err := FindGovernParam(pp.Module, pp.Name, blockHash)
+	if err != nil {
+		log.Error("find govern parameter error", "err", err)
+		return err
+	} else if param == nil {
 		return UnsupportedGovernParam
 	}
 
-	if exist, err := FindVotingProposal(Param, blockHash, submitBlock, state); err != nil {
+	if exist, err := FindVotingProposal(Param, blockHash, state); err != nil {
 		log.Error("find voting param proposal error", "err", err)
 		return err
 	} else if exist != nil {
@@ -432,9 +425,10 @@ func (pp *ParamProposal) String() string {
   Proposer:            	%x
   SubmitBlock:        	%d
   EndVotingBlock:   	%d
-  ParamName:   			%s
+  Module:   			%s
+  Name:   				%s
   NewValue:   			%s`,
-		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock, pp.ParamName, pp.NewValue)
+		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock, pp.Name, pp.NewValue)
 }
 
 func verifyBasic(p Proposal, state xcom.StateDB) error {

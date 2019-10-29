@@ -391,7 +391,7 @@ func tallyParam(pp *gov.ParamProposal, blockHash common.Hash, blockNumber uint64
 	if pass, err := tally(gov.Param, pp.ProposalID, blockHash, blockNumber, state); err != nil {
 		return false, err
 	} else if pass {
-		if err := gov.UpdateGovernParam(pp.ParamName, pp.NewValue, blockNumber+1, blockHash); err != nil {
+		if err := gov.UpdateGovernParamValue(pp.Module, pp.Name, pp.NewValue, blockNumber+1, blockHash); err != nil {
 			return false, err
 		}
 	}

@@ -51,4 +51,5 @@ var (
 	UnsupportedGovernParam   = common.NewBizError(302031, "unsupported govern parameter")
 	VotingParamProposalExist = common.NewBizError(302032, "another param proposal at voting stage")
 	GovernParamNotFound      = common.NewBizError(302033, "govern parameter not found")
+	GovernParamValueError    = common.NewBizError(302033, "govern parameter value error")
 )
