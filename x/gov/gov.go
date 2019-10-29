@@ -14,8 +14,10 @@ import (
 type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
-	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateHexQueue, error)
+	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 
@@ -307,7 +309,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 				if err != nil {
 					return err
 				}
-				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
+				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
 				if err != nil {
 					return VerifierInfoNotFound
 				} else if candidate.Is_Invalid() {
@@ -533,7 +535,7 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 		return err
 	}
 
-	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
+	candidateList, err := stk.GetCanBaseList(blockHash, blockNumber)
 	if err != nil {
 		log.Error("list candidates error", "blockHash", blockHash)
 		return err

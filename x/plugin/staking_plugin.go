@@ -195,7 +195,7 @@ func (sk *StakingPlugin) GetCandidateCompactInfo(blockHash common.Hash, blockNum
 	}
 
 	epoch := xutil.CalculateEpoch(blockNumber)
-	lazyCalcStakeAmount(epoch, can)
+	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 	canHex := buildCanHex(can)
 
 	return canHex, nil
@@ -357,7 +357,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	log.Debug("Call IncreaseStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"epoch", epoch, "nodeId", can.NodeId.String(), "account", can.StakingAddress.Hex(), "typ", typ, "amount", amount)
 
-	lazyCalcStakeAmount(epoch, can)
+	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 
 	if typ == FreeVon {
 		origin := state.GetBalance(can.StakingAddress)
@@ -424,7 +424,7 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 	log.Debug("Call WithdrewStaking", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"epoch", epoch, "nodeId", can.NodeId.String())
 
-	lazyCalcStakeAmount(epoch, can)
+	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate old power is failed",
@@ -607,7 +607,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 	log.Debug("Call handleUnStake Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"epoch", epoch, "nodeId", can.NodeId.String())
 
-	lazyCalcStakeAmount(epoch, can)
+	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
@@ -1452,9 +1452,42 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, blockNumber uin
 			return nil, err
 		}
 
-		lazyCalcStakeAmount(epoch, can)
+		lazyCalcStakeAmount(epoch, can.CandidateMutable)
 		canHex := buildCanHex(can)
 		queue = append(queue, canHex)
+	}
+
+	// todo test
+	log.Debug("GetCandidateList: loop count", "count", count)
+
+	return queue, nil
+}
+
+func (sk *StakingPlugin) GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error) {
+
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
+	queue := make(staking.CandidateBaseQueue, 0)
+
+	count := 0
+
+	for iter.Valid(); iter.Next(); {
+
+		count++
+
+		// todo test
+		log.Debug("GetCandidateList: iter", "key", hex.EncodeToString(iter.Key()))
+
+		addrSuffix := iter.Value()
+		can, err := sk.db.GetCanBaseStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			return nil, err
+		}
+		queue = append(queue, can)
 	}
 
 	// todo test
@@ -1579,11 +1612,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
-	// TODO test
-	slashAddrQueue := make([]discover.NodeID, 0)
+
 	withdrewQueue := make([]discover.NodeID, 0)
-	lowVersionQueue := make([]discover.NodeID, 0)
-	// need to clean lowRatio status
 	lowRatioValidAddrs := make([]common.Address, 0)                 // The addr of candidate that need to clean lowRatio status
 	lowRatioValidMap := make(map[common.Address]*staking.Candidate) // The map collect candidate info that need to clean lowRatio status
 
@@ -1617,7 +1647,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		if checkHaveSlash(can.Status) {
 			removeCans[v.NodeId] = can
-			slashAddrQueue = append(slashAddrQueue, v.NodeId)
 			hasSlashLen++
 			isSlash = true
 		}
@@ -1638,12 +1667,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		// from the validators because the version is too low
 		if can.ProgramVersion < currVersion {
 			removeCans[v.NodeId] = can
-			lowVersionQueue = append(lowVersionQueue, v.NodeId)
+			needRMLowVersionLen++
 		}
 
 		currMap[v.NodeId] = struct{}{}
 	}
-	needRMLowVersionLen = len(lowVersionQueue)
 
 	// Exclude the current consensus round validators from the validators of the Epoch
 	diffQueue := make(staking.ValidatorQueue, 0)
@@ -1693,6 +1721,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 	needRMwithdrewLen = len(withdrewQueue)
 
+	// some validators that meets the following conditions must be replaced first.
+	// eg.
+	// 1. Be reported as evil
+	// 2. The package ratio is low and the remaining deposit balance is less than the minimum staking threshold
+	// 3. The version number in the validator's real-time details
+	// 	  is lower than the version of the governance module on the current chain.
+	// 4. withdrew staking and not in the current epoch validator list
+	//
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
 	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
@@ -1753,32 +1789,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return err
 	}
 
-	// todo test
-	if len(slashAddrQueue) != 0 {
-		xcom.PrintObject("Election Remove Slashing nodeId", slashAddrQueue)
-	}
-
-	// todo test
-	if len(withdrewQueue) != 0 {
-		xcom.PrintObject("Election Remove Withdrew nodeId", withdrewQueue)
-	}
-
-	// todo test
-	if len(lowVersionQueue) != 0 {
-		xcom.PrintObject("Election Remove Low version nodeId", lowVersionQueue)
-	}
-
 	// update candidate status
 	// Must sort
 	for _, canAddr := range lowRatioValidAddrs {
 
 		can := lowRatioValidMap[canAddr]
-
 		// clean the low package ratio status
 		can.CleanLowRatioStatus()
-
-		// TODO test
-		xcom.PrintObject("Call Election, clean lowratio, nodeId:"+can.NodeId.String()+", can Info:", can)
 
 		addr, _ := xutil.NodeId2Addr(can.NodeId)
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
@@ -1888,7 +1905,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	}
 
 	epoch := xutil.CalculateEpoch(blockNumber)
-	lazyCalcStakeAmount(epoch, can)
+	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 
 	// Balance that can only be effective for Slash
 	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
@@ -2342,7 +2359,7 @@ func buildCbftValidators(start uint64, arr staking.ValidatorQueue) *cbfttypes.Va
 	return res
 }
 
-func lazyCalcStakeAmount(epoch uint64, can *staking.Candidate) {
+func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 
 	changeAmountEpoch := can.StakingEpoch
 
