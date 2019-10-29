@@ -1083,10 +1083,6 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 	if block == nil {
 		return nil, err;
 	}
-	//response, error := s.rpcOutputBlock(block, true, true)
-	//if error != nil  {
-	//	return nil, error;
-	//}
 	xcom.PrintObject("rpcGetTransactionByBlock, query block data:", block)
 
 	queue := make([]map[string]interface{}, len(block.Transactions()))
@@ -1108,26 +1104,26 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		}
 		receipt := receipts[index]
 
-		var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
-		from, _ := types.Sender(signer, tx)
+		//var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
+		//from, _ := types.Sender(signer, tx)
 
 		fields := map[string]interface{}{
-			"blockHash":         blockHash,
-			"blockNumber":       hexutil.Uint64(blockNumber),
+			//"blockHash":         blockHash,
+			//"blockNumber":       hexutil.Uint64(blockNumber),
 			"transactionHash":   value.Hash(),
 			"transactionIndex":  hexutil.Uint64(index),
-			"from":              from,
-			"to":                tx.To(),
+			//"from":              from,
+			//"to":                tx.To(),
 			"gasUsed":           hexutil.Uint64(receipt.GasUsed),
-			"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
-			"contractAddress":   nil,
+			//"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
+			//"contractAddress":   nil,
 			"logs":              receipt.Logs,
-			"logsBloom":         receipt.Bloom,
+			//"logsBloom":         receipt.Bloom,
 		}
 
 		// Assign receipt status or post state.
 		if len(receipt.PostState) > 0 {
-			fields["root"] = hexutil.Bytes(receipt.PostState)
+			//fields["root"] = hexutil.Bytes(receipt.PostState)
 		} else {
 			fields["status"] = hexutil.Uint(receipt.Status)
 		}
@@ -1135,9 +1131,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			fields["logs"] = [][]*types.Log{}
 		}
 		// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
-		if receipt.ContractAddress != (common.Address{}) {
-			fields["contractAddress"] = receipt.ContractAddress
-		}
+		//if receipt.ContractAddress != (common.Address{}) {
+		//	fields["contractAddress"] = receipt.ContractAddress
+		//}
 		queue[key] = fields;
 	}
 	xcom.PrintObject("rpcGetTransactionByBlock,get block transaction return:", queue)
