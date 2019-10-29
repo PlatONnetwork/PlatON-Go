@@ -60,7 +60,7 @@ func (suit *SyncMsgTestSuite) insertOneQCBlock() {
 	}
 }
 
-// 正常的
+// normal
 func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
@@ -80,11 +80,11 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
 	}
 }
 
-// epoch落后的
-// epoch领先的
-// viewNumber领先的
-// viewNumber落后的
-// blockIndex不存在的
+// Epoch behind
+// Epoch leading
+// viewNumber leading
+// Behind viewNumber
+// blockIndex does not exist
 func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
@@ -92,27 +92,27 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 		name string
 		data *protocols.GetPrepareBlock
 	}{
-		{name: "epoch落后的", data: &protocols.GetPrepareBlock{
+		{name: "Epoch behind", data: &protocols.GetPrepareBlock{
 			Epoch:      suit.epoch - 1,
 			ViewNumber: suit.oldViewNumber,
 			BlockIndex: 0,
 		}},
-		{name: "epoch领先的", data: &protocols.GetPrepareBlock{
+		{name: "Epoch leading", data: &protocols.GetPrepareBlock{
 			Epoch:      suit.epoch + 1,
 			ViewNumber: suit.oldViewNumber,
 			BlockIndex: 0,
 		}},
-		{name: "viewNumber领先的", data: &protocols.GetPrepareBlock{
+		{name: "viewNumber leading", data: &protocols.GetPrepareBlock{
 			Epoch:      suit.epoch,
 			ViewNumber: suit.oldViewNumber + 1,
 			BlockIndex: 0,
 		}},
-		{name: "viewNumber落后的", data: &protocols.GetPrepareBlock{
+		{name: "Behind viewNumber", data: &protocols.GetPrepareBlock{
 			Epoch:      suit.epoch,
 			ViewNumber: math.MaxUint32,
 			BlockIndex: 0,
 		}},
-		{name: "blockIndex不存在的", data: &protocols.GetPrepareBlock{
+		{name: "blockIndex does not exist", data: &protocols.GetPrepareBlock{
 			Epoch:      suit.epoch,
 			ViewNumber: suit.oldViewNumber,
 			BlockIndex: 1,
@@ -137,7 +137,7 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 	}
 }
 
-// 正常的
+// normal
 func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCert() {
 	suit.insertOneQCBlock()
 	getQC := &protocols.GetBlockQuorumCert{
@@ -155,7 +155,7 @@ func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCert() {
 	}
 }
 
-// 错误的
+// wrong
 func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCertErr() {
 	fmt.Println(suit.view.genesisBlock.Root().String())
 	suit.insertOneQCBlock()
@@ -173,7 +173,7 @@ func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCertErr() {
 	}
 }
 
-// 正常的
+// normal
 func (suit *SyncMsgTestSuite) TestOnBlockQuorumCert() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
@@ -187,7 +187,7 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCert() {
 	}
 }
 
-// 正常的 本地已经存在的
+// normal Locally existing
 func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertExists() {
 	suit.insertOneQCBlock()
 	time.Sleep(time.Millisecond * 20)
@@ -198,7 +198,7 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertExists() {
 	}
 }
 
-// 正常的 本地不存在这个块的
+// normal Local does not exist in this block
 func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertBlockNotExists() {
 	if err := suit.view.secondProposer().OnBlockQuorumCert("", suit.blockOneQC); err == nil {
 		suit.T().Fatal("fail")
@@ -207,12 +207,12 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertBlockNotExists() {
 	}
 }
 
-// 错误的
-// epoch落后的
-// epoch领先的
-// viewNumber领先的
-// viewNumber落后的
-// 签名不足的
+// wrong
+// Epoch behind
+// Epoch leading
+// viewNumber leading
+// Behind viewNumber
+// Insufficient signature
 func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertErr() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
@@ -252,7 +252,7 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertErr() {
 	}
 }
 
-// 要一个块
+// Want a block
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith1() {
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	lockBlock := suit.view.firstProposer().state.HighestLockBlock()
@@ -274,7 +274,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith1() {
 	}
 }
 
-// 要两个块
+// Want two blocks
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith2() {
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	commitBlock := suit.view.firstProposer().state.HighestCommitBlock()
@@ -296,7 +296,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith2() {
 	}
 }
 
-// 要三个块
+// Want three blocks
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith3() {
 	suit.view.setBlockQC(3, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
@@ -317,7 +317,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith3() {
 	}
 }
 
-// 要四个块
+// Want four blocks
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListTooLow() {
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
@@ -332,7 +332,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListTooLow() {
 	}
 }
 
-// 要0个块
+// Want 0 blocks
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListEqual() {
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
@@ -347,7 +347,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListEqual() {
 	}
 }
 
-// number与hash不匹配的
+// Number and hash does not match
 func (suit *SyncMsgTestSuite) TestOnGetQCBlockListDifNumber() {
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
@@ -364,7 +364,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListDifNumber() {
 	}
 }
 
-// 正常的
+// normal
 func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
@@ -405,7 +405,7 @@ func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
 	}
 }
 
-// 正常的
+// normal
 func (suit *SyncMsgTestSuite) TestOnPrepareVotes() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
@@ -430,7 +430,7 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotes() {
 	}
 }
 
-// 重复的
+// Repeated
 func (suit *SyncMsgTestSuite) TestOnPrepareVotesDup() {
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.firstProposer().state.AddPrepareBlock(pb)

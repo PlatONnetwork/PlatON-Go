@@ -49,31 +49,31 @@ func (suit *ViewChangeTestSuite) SetupTest() {
 	suit.oldViewNumber = suit.view.firstCbft.state.ViewNumber()
 }
 
-// 发起viewChange
-// 校验本地viewChangeLen=1
+// Initiate viewChange
+// Verify local viewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeBuild() {
 	time.Sleep((testPeriod + 200) * time.Millisecond)
 	suit.Equal(1, suit.view.secondProposer().state.ViewChangeLen())
 }
 
-// 发起viewChange
-// 非共识节点不会发起viewChange,校验本地viewChangeLen=0
+// Initiate viewChange
+// Non-consensus nodes do not Initiate viewChange, check local viewChangeLen=0
 func (suit *ViewChangeTestSuite) TestViewChangeBuildWithNotConsensus() {
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 1)
 	time.Sleep((testPeriod + 200) * time.Millisecond)
 	suit.Equal(0, notConsensusNodes[0].engine.state.ViewChangeLen())
 }
 
-// viewChange消息基本校验
-// 1.缺少签名的viewChange消息
-// 2.blockNumber与blockHash不匹配的viewChange消息
-// 3.签名与验证人不一致的viewChange消息
-// 4.提议人非共识节点的viewChange消息
-// 5.prepareQC伪造的viewChange消息
-// 6.blockNumber不为零的prepareQC为空的viewChange消息
-// 7.携带的prepareQC不满足N-f
-// 8.epoch大于本地的
-// 9.epoch小于本地的
+// viewChange message basic check
+// 1.Missing signed viewChange message
+// 2.blockChange message that blockNumber does not match blockHash
+// 3.Signature inconsistency with the certifier viewChange message
+// 4.Proposal non-consensus node viewChange message
+// 5.prepareQC forged viewChange message
+// 6.prepareQC with blockNumber not zero is an empty viewChange message
+// 7.Carrying prepareQC does not satisfy N-f
+// 8.Epoch is larger than local
+// 9.Epoch is smaller than local
 func (suit *ViewChangeTestSuite) TestViewChangeCheckErr() {
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
 	errQC := mockErrBlockQC(notConsensusNodes, suit.view.genesisBlock, 0, nil)
@@ -147,8 +147,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckErr() {
 	}
 }
 
-// Block与HighestQCBlock本地一致的viewChange消息
-// 校验通过，ViewChangeLen=1
+// Block and HighestQCBlock local consistent viewChange message
+// Verification passed, ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeCheckCorrect() {
 	suit.insertOneBlock()
 	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
@@ -159,8 +159,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckCorrect() {
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
 }
 
-// blockNumber为零的prepareQC为空的viewChange消息
-// 校验通过，ViewChangeLen=1
+// prepareQC with blockNumber zero is an empty viewChange message
+// Verification passed, ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeCheckZero() {
 	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
@@ -170,8 +170,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckZero() {
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
 }
 
-// blockNumber为零的prepareQC不为空的viewChange消息
-// 校验通过，ViewChangeLen=1
+// prepareQC with blockNumber zero is not empty viewChange message
+// Verification passed, ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeCheckZeroPrepareQCNotNil() {
 	suit.view.setBlockQC(9, suit.view.allNode[0])
 	_, h := suit.view.firstProposer().HighestQCBlockBn()
@@ -185,8 +185,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckZeroPrepareQCNotNil() {
 	}
 }
 
-// Block领先本地HighestQCBlock的viewChange消息
-// 校验通过，ViewChangeLen=1
+// Block leads the local HighestQCBlock viewChange message
+// Verification passed, ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeLeadHighestQCBlock() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
@@ -200,8 +200,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeLeadHighestQCBlock() {
 	suit.Equal(1, suit.view.secondProposer().state.ViewChangeLen())
 }
 
-// Block落后本地HighestQCBlock的viewChange消息
-// 校验通过，ViewChangeLen=1
+// Block behind the local HighestQCBlock viewChange message
+// Verification passed, ViewChangeLen=1
 func (suit *ViewChangeTestSuite) TestViewChangeBehindHighestQCBlock() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
@@ -215,8 +215,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeBehindHighestQCBlock() {
 	suit.Equal(1, suit.view.secondProposer().state.ViewChangeLen())
 }
 
-// viewNumber小于当前viewNumber
-// 校验不通过，ViewChangeLen=0
+// viewNumber is less than the current viewNumber
+// The verification fails, ViewChangeLen=0
 func (suit *ViewChangeTestSuite) TestViewChangeViewNumberBehind() {
 	suit.insertOneBlock()
 	suit.view.secondProposer().state.ResetView(1, 2)
@@ -230,8 +230,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeViewNumberBehind() {
 	suit.Equal(0, suit.view.secondProposer().state.ViewChangeLen())
 }
 
-// viewNumber大于当前viewNumber
-// 校验不通过，ViewChangeLen=0
+// viewNumber is greater than the current viewNumber
+// The verification fails, ViewChangeLen=0
 func (suit *ViewChangeTestSuite) TestViewChangeViewNumberLead() {
 	suit.insertOneBlock()
 	viewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.firstProposer().state.ViewNumber()+1, suit.blockOne.Hash(),
@@ -244,8 +244,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeViewNumberLead() {
 	suit.Equal(0, suit.view.secondProposer().state.ViewChangeLen())
 }
 
-// 收到已经处理过的viewChange消息
-// 校验通过，ViewChangeLen不变
+// Received a viewChange message that has been processed
+// Verification passed, ViewChangeLen unchanged
 func (suit *ViewChangeTestSuite) TestCheckCorrectViewChangeRepeat() {
 	suit.insertOneBlock()
 	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(), suit.blockOne.Hash(),
@@ -260,8 +260,8 @@ func (suit *ViewChangeTestSuite) TestCheckCorrectViewChangeRepeat() {
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
 }
 
-// 同一人，基于不同区块的viewChange消息
-// 校验不通过，返回双viewChange的错误
+// The same person, viewChange message based on different blocks
+// The verification fails, and the error of returning double viewChange is returned.
 func (suit *ViewChangeTestSuite) TestViewChangeRepeatWithDifBlock() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
@@ -285,8 +285,8 @@ func (suit *ViewChangeTestSuite) TestViewChangeRepeatWithDifBlock() {
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
 }
 
-// 非共识节点收到viewChange
-// 校验通过
+// Non-consensus nodes receive viewChange
+// Verification pass
 func (suit *ViewChangeTestSuite) TestViewChangeNotConsensus() {
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 1)
 	suit.insertOneBlock()
