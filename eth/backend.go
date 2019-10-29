@@ -525,8 +525,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 func (s *Ethereum) Stop() error {
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
-	s.engine.Close()
 	s.protocolManager.Stop()
+	s.engine.Close()
 	if s.lesServer != nil {
 		s.lesServer.Stop()
 	}
