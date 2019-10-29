@@ -339,13 +339,6 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
 	}
 
-	// Initialized Govern Parameters
-	for _, param := range gov.GenesisGovernParams {
-		if err := gov.SetGovernParam(param.ParamItem.Module, param.ParamItem.Name, param.ParamItem.Desc, param.ParamValue.Value, param.ParamValue.ActiveBlock, block.Hash()); err != nil {
-			panic(fmt.Errorf("Failed to init govern parameter in snapshotdb, paramName:%s, paramValue:%s, error:%s", param.ParamItem.Module+"/"+param.ParamItem.Name, param.ParamValue.Value, err.Error()))
-		}
-	}
-
 	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
 	return block
 }
