@@ -3,9 +3,10 @@ package cbft
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"reflect"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -37,6 +38,8 @@ type Bridge interface {
 	SendPrepareBlock(pb *protocols.PrepareBlock)
 	SendPrepareVote(block *types.Block, vote *protocols.PrepareVote)
 	GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error)
+
+	Close()
 }
 
 // emptyBridge is a empty implementation for Bridge
@@ -60,6 +63,10 @@ func (b *emptyBridge) SendPrepareVote(block *types.Block, vote *protocols.Prepar
 
 func (b *emptyBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.ViewChangeQC, error) {
 	return nil, nil
+}
+
+func (b *emptyBridge) Close() {
+
 }
 
 // baseBridge is a default implementation for Bridge
@@ -221,6 +228,10 @@ func (b *baseBridge) GetViewChangeQC(epoch uint64, viewNumber uint64) (*ctypes.V
 	return b.cbft.wal.GetViewChangeQC(epoch, viewNumber)
 }
 
+func (b *baseBridge) Close() {
+	b.cbft.wal.Close()
+}
+
 // recoveryChainState tries to recovery consensus chainState from wal when the platon node restart.
 // need to do some necessary checks based on the latest blockchain block.
 // execute commit/lock/qcs block and load the corresponding state to cbft consensus.
@@ -362,7 +373,10 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			return err
 		}
 		if should {
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
+			node, err := cbft.validatorPool.GetValidatorByNodeID(m.ViewChange.Epoch, cbft.config.Option.NodeID)
+			if err != nil {
+				return err
+			}
 			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
 		}
 
@@ -444,14 +458,29 @@ func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block, index ui
 // shouldRecovery check if the consensus msg needs to be recovery.
 // if the msg does not belong to the current view or the msg number is smaller than the qc number discard it.
 func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
-	if !cbft.equalViewState(msg) {
-		return false, fmt.Errorf("non equal view state, curEpoch:%d, curViewNum:%d, preEpoch:%d, preViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
+	if cbft.higherViewState(msg) {
+		return false, fmt.Errorf("higher view state, curEpoch:%d, curViewNum:%d, msgEpoch:%d, msgViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
 	}
+	if cbft.lowerViewState(msg) {
+		// The state may have reached the automatic switch point, so advance to the next view
+		return false, nil
+	}
+	// equalViewState
 	highestQCBlockBn, _ := cbft.HighestQCBlockBn()
 	return msg.BlockNumber() > highestQCBlockBn, nil
 }
 
-// equalViewState check if the view is equal.
+// equalViewState check if the msg view is equal with current.
 func (cbft *Cbft) equalViewState(msg protocols.WalMsg) bool {
 	return msg.Epoch() == cbft.state.Epoch() && msg.ViewNumber() == cbft.state.ViewNumber()
+}
+
+// lowerViewState check if the msg view is lower than current.
+func (cbft *Cbft) lowerViewState(msg protocols.WalMsg) bool {
+	return msg.Epoch() < cbft.state.Epoch() || msg.Epoch() == cbft.state.Epoch() && msg.ViewNumber() < cbft.state.ViewNumber()
+}
+
+// higherViewState check if the msg view is higher than current.
+func (cbft *Cbft) higherViewState(msg protocols.WalMsg) bool {
+	return msg.Epoch() > cbft.state.Epoch() || msg.Epoch() == cbft.state.Epoch() && msg.ViewNumber() > cbft.state.ViewNumber()
 }
