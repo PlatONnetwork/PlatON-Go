@@ -34,7 +34,7 @@ func (suit *SyncMsgTestSuite) SetupTest() {
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
 	suit.epoch = suit.view.Epoch()
-	msgCh := make(chan *ctypes.MsgPackage, 100)
+	msgCh := make(chan *ctypes.MsgPackage, 10240)
 	suit.msgCh = msgCh
 	f := func(msg *ctypes.MsgPackage) {
 		select {
