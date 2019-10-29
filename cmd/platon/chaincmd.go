@@ -437,7 +437,7 @@ func copyDb(ctx *cli.Context) error {
 	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
 	localSnapshotDB := snapshotdb.Instance()
 
-	dl := downloader.New(syncmode, chainDb, localSnapshotDB, new(event.TypeMux), chain, nil, nil)
+	dl := downloader.New(syncmode, chainDb, localSnapshotDB, new(event.TypeMux), chain, nil, nil, nil)
 	// Create a source peer to satisfy downloader requests from
 	db, err := ethdb.NewLDBDatabase(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name), 256)
 	if err != nil {
