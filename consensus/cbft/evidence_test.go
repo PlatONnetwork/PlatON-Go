@@ -2,12 +2,14 @@ package cbft
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -130,17 +132,19 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
-	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),
 		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		Time:        big.NewInt(time.Now().UnixNano() + 100),
-		Extra:       make([]byte, 77),
+		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Coinbase:    common.Address{},
 		GasLimit:    100000000001,
 	}
+	sign, _ := suit.view.allNode[1].engine.signFn(header.SealHash().Bytes())
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sign[:])
 	block2 := types.NewBlockWithHeader(header)
 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
@@ -155,6 +159,8 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 		suit.view.secondProposerIndex(), block2, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().NodeID().String(), prepareBlock2); err == nil {
 		suit.T().Error("FAIL")
+	} else {
+		fmt.Println(err.Error())
 	}
 	ev := suit.view.firstProposer().Evidences()
 	var duplicatePrepareBlock *evidence.EvidenceData
