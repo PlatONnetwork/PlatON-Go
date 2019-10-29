@@ -222,10 +222,14 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return NewVersionError
 	}
 
-	if exist, err := FindVotingProposal(Version, blockHash, state); err != nil {
+	if exist, err := FindVotingProposal(blockHash, state, Version, Param); err != nil {
 		return err
 	} else if exist != nil {
-		return VotingVersionProposalExist
+		if exist.GetProposalType() == Version {
+			return VotingVersionProposalExist
+		} else {
+			return VotingParamProposalExist
+		}
 	}
 
 	//another VersionProposal in Pre-active process，exit
@@ -309,7 +313,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, cp.EndVotingRounds)
 	cp.EndVotingBlock = endVotingBlock
 
-	if exist, err := FindVotingProposal(Cancel, blockHash, state); err != nil {
+	if exist, err := FindVotingProposal(blockHash, state, Cancel); err != nil {
 		log.Error("find voting cancel proposal error", "err", err)
 		return err
 	} else if exist != nil {
@@ -321,7 +325,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return err
 	} else if tobeCanceled == nil {
 		return TobeCanceledProposalNotFound
-	} else if tobeCanceled.GetProposalType() != Version {
+	} else if tobeCanceled.GetProposalType() != Version && tobeCanceled.GetProposalType() != Param {
 		return TobeCanceledProposalTypeError
 	} else if votingList, err := ListVotingProposal(blockHash); err != nil {
 		log.Error("list voting proposal error", "err", err)
@@ -409,11 +413,15 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return UnsupportedGovernParam
 	}
 
-	if exist, err := FindVotingProposal(Param, blockHash, state); err != nil {
+	if exist, err := FindVotingProposal(blockHash, state, Param, Version); err != nil {
 		log.Error("find voting param proposal error", "err", err)
 		return err
 	} else if exist != nil {
-		return VotingParamProposalExist
+		if exist.GetProposalType() == Param {
+			return VotingParamProposalExist
+		} else {
+			return VotingVersionProposalExist
+		}
 	}
 	return nil
 }

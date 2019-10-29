@@ -213,7 +213,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return ActiveVersionError
 	}
 
-	proposal, err := FindVotingProposal(Version, blockHash, state)
+	proposal, err := FindVotingProposal(blockHash, state, Version)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
@@ -378,8 +378,11 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 }
 
 // find a proposal at voting stage
-func FindVotingProposal(proposalType ProposalType, blockHash common.Hash, state xcom.StateDB) (Proposal, error) {
-	log.Debug("call FindVotingProposal", "proposalType", proposalType, "blockHash", blockHash)
+func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
+	log.Debug("call FindVotingProposal", "proposalTypes", proposalTypes, "blockHash", blockHash)
+	if len(proposalTypes) == 0 {
+		return nil, common.InvalidParameter
+	}
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting proposal error", "blockHash", blockHash)
@@ -390,8 +393,11 @@ func FindVotingProposal(proposalType ProposalType, blockHash common.Hash, state 
 		if err != nil {
 			return nil, err
 		}
-		if p.GetProposalType() == proposalType {
-			return p, nil
+
+		for _, typ := range proposalTypes {
+			if p.GetProposalType() == typ {
+				return p, nil
+			}
 		}
 	}
 	return nil, nil

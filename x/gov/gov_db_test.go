@@ -251,21 +251,21 @@ func TestGovDB_ListEndProposalID(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, common.Hash{0x01}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if err := MoveVotingProposalIDToEnd(blockHash, common.Hash{0x01}); err != nil {
+	if err := MoveVotingProposalIDToEnd(common.Hash{0x01}, blockHash); err != nil {
 		t.Errorf("MoveVotingProposalIDToEnd error,%s", err)
 	}
 
 	if err := AddVotingProposalID(blockHash, common.Hash{0x02}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if err := MoveVotingProposalIDToEnd(blockHash, common.Hash{0x02}); err != nil {
+	if err := MoveVotingProposalIDToEnd(common.Hash{0x02}, blockHash); err != nil {
 		t.Errorf("MoveVotingProposalIDToEnd error,%s", err)
 	}
 
 	if err := AddVotingProposalID(blockHash, common.Hash{0x04}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if err := MoveVotingProposalIDToEnd(blockHash, common.Hash{0x04}); err != nil {
+	if err := MoveVotingProposalIDToEnd(common.Hash{0x04}, blockHash); err != nil {
 		t.Errorf("MoveVotingProposalIDToEnd error,%s", err)
 	}
 
@@ -369,7 +369,7 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
-		if err := MoveVotingProposalIDToEnd(blockHash, proposalIds[i]); err != nil {
+		if err := MoveVotingProposalIDToEnd(proposalIds[i], blockHash); err != nil {
 			t.Fatalf("move voting proposal to end failed...%s", err)
 		} else {
 			proposalIdsEnd = append(proposalIdsEnd, proposalIds[i])
@@ -676,7 +676,7 @@ func TestGovDB_FindVotingVersionProposal_success(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingProposal(Version, blockHash, statedb); err != nil {
+	if p, err := FindVotingProposal(blockHash, statedb, Version); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
 
 	} else if p == nil {
@@ -708,7 +708,7 @@ func TestGovDB_FindVotingVersionProposal_NoVersionProposalID(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingProposal(Version, blockHash, statedb); err != nil {
+	if p, err := FindVotingProposal(blockHash, statedb, Version); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
 
 	} else if p == nil {
@@ -749,7 +749,7 @@ func TestGovDB_FindVotingVersionProposal_DataError(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingProposal(Version, blockHash, statedb); err != nil {
+	if p, err := FindVotingProposal(blockHash, statedb, Version); err != nil {
 		if err == ProposalNotFound {
 			t.Log("throw a exception correctly if data error")
 		} else {

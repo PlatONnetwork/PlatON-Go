@@ -145,6 +145,14 @@ func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, 
 	return yes, no, abst, err
 }
 
+func ClearVoteValue(proposalID common.Hash, blockHash common.Hash) error {
+	if err := del(blockHash, KeyVote(proposalID)); err != nil {
+		log.Error("clear vote value in snapshot db failed", "proposalID", proposalID, "blockHash", blockHash.String(), "error", err)
+		return err
+	}
+	return nil
+}
+
 /*
 func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
 	var voterList []discover.NodeID
@@ -312,7 +320,7 @@ func remove(list []common.Hash, item common.Hash) []common.Hash {
 	return list
 }
 
-func MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) error {
+func MoveVotingProposalIDToEnd(proposalID common.Hash, blockHash common.Hash) error {
 
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {

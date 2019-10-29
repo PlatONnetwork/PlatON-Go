@@ -70,74 +70,43 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 
 	if isVersionProposal {
 		log.Debug("found pre-active version proposal", "proposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash, "activeBlockNumber", versionProposal.GetActiveBlock())
-		// the active block number = N*
-		if blockNumber >= versionProposal.GetActiveBlock() && (blockNumber-versionProposal.GetActiveBlock())%xutil.ConsensusSize() == 0 {
-			currentValidatorList, err := stk.ListCurrentValidatorID(blockHash, blockNumber)
-			if err != nil {
-				log.Error("list current round validators failed.", "blockHash", blockHash, "blockNumber", blockNumber)
+		if blockNumber == versionProposal.GetActiveBlock() {
+			log.Debug("it's time to active the pre-active version proposal")
+			tallyResult, err := gov.GetTallyResult(preActiveVersionProposalID, state)
+			if err != nil || tallyResult == nil {
+				log.Error("find pre-active version proposal tally result failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
 				return err
 			}
-			var updatedNodes int = 0
-			var totalValidators int = len(currentValidatorList)
+			//update tally status to "active"
+			tallyResult.Status = gov.Active
 
-			//all active validators (including node that has either voted or declared)
-			activeList, err := gov.GetActiveNodeList(blockHash, preActiveVersionProposalID)
-			if err != nil {
-				log.Error("list all active nodes failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
+			if err := gov.SetTallyResult(*tallyResult, state); err != nil {
+				log.Error("update version proposal tally result failed.", "preActiveVersionProposalID", preActiveVersionProposalID)
 				return err
 			}
 
-			activeMap := make(map[discover.NodeID]struct{}, len(activeList))
-			for _, activeNode := range activeList {
-				activeMap[activeNode] = struct{}{}
-			}
-
-			//check if all validators are active
-			for _, validator := range currentValidatorList {
-				if _, isActive := activeMap[validator]; isActive {
-					updatedNodes++
+			if versionProposal.GetActiveBlock() != blockNumber {
+				versionProposal.ActiveBlock = blockNumber
+				if err := gov.SetProposal(versionProposal, state); err != nil {
+					log.Error("update activeBlock of version proposal failed.", "preActiveVersionProposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 				}
 			}
 
-			log.Debug("check active criteria", "blockNumber", blockNumber, "blockHash", blockHash, "pre-active nodes", updatedNodes, "total validators", totalValidators, "activeList", activeList, "currentValidator", currentValidatorList)
-			if updatedNodes == totalValidators {
-				log.Debug("the pre-active version proposal has passed")
-				tallyResult, err := gov.GetTallyResult(preActiveVersionProposalID, state)
-				if err != nil || tallyResult == nil {
-					log.Error("find pre-active version proposal tally result failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
-					return err
-				}
-				//change tally status to "active"
-				tallyResult.Status = gov.Active
-
-				if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-					log.Error("update version proposal tally result failed.", "preActiveVersionProposalID", preActiveVersionProposalID)
-					return err
-				}
-
-				if versionProposal.GetActiveBlock() != blockNumber {
-					versionProposal.ActiveBlock = blockNumber
-					if err := gov.SetProposal(versionProposal, state); err != nil {
-						log.Error("update activeBlock of version proposal failed.", "preActiveVersionProposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash)
-					}
-				}
-
-				if err = gov.MovePreActiveProposalIDToEnd(blockHash, preActiveVersionProposalID); err != nil {
-					log.Error("move version proposal ID to EndProposalID list failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
-					return err
-				}
-
-				if err = gov.ClearActiveNodes(blockHash, preActiveVersionProposalID); err != nil {
-					log.Error("clear version proposal active nodes failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
-					return err
-				}
-
-				if err = gov.AddActiveVersion(versionProposal.NewVersion, blockNumber, state); err != nil {
-					log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
-					return err
-				}
-				log.Debug("version proposal active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
+			if err = gov.MovePreActiveProposalIDToEnd(blockHash, preActiveVersionProposalID); err != nil {
+				log.Error("move version proposal ID to EndProposalID list failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
+				return err
 			}
+
+			if err = gov.ClearActiveNodes(blockHash, preActiveVersionProposalID); err != nil {
+				log.Error("clear version proposal active nodes failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
+				return err
+			}
+
+			if err = gov.AddActiveVersion(versionProposal.NewVersion, blockNumber, state); err != nil {
+				log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+				return err
+			}
+			log.Debug("version proposal active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
 	return nil
@@ -288,7 +257,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 		}
 
 	} else {
-		if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID); err != nil {
+		if err := gov.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
 			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
 			return err
 		}
@@ -311,6 +280,11 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 		return err
 	}
 
+	if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
+		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
+		return err
+	}
+
 	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return nil
 }
@@ -325,7 +299,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 	} else if pass {
 		if proposal, err := gov.GetExistProposal(cp.TobeCanceled, state); err != nil {
 			return false, err
-		} else if proposal.GetProposalType() != gov.Version {
+		} else if proposal.GetProposalType() != gov.Version && proposal.GetProposalType() != gov.Param {
 			return false, gov.TobeCanceledProposalTypeError
 		}
 		if votingProposalIDList, err := gov.ListVotingProposalID(blockHash); err != nil {
@@ -346,7 +320,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 					AccuVerifiers: 0,
 				}
 			} else if tallyResult.Status != gov.Voting {
-				log.Error("the version proposal to be canceled is not at voting stage, but the cancel proposal is passed")
+				log.Error("the to be canceled proposal is not at voting stage, but the cancel proposal is passed")
 				return false, err
 			}
 			verifierList, err := gov.ListAccuVerifier(blockHash, cp.TobeCanceled)
@@ -369,19 +343,21 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 			tallyResult.CanceledBy = cp.ProposalID
 
 			if err := gov.SetTallyResult(*tallyResult, state); err != nil {
-				log.Error("version proposal is canceled failed, cannot save its tally result", "tallyResult", tallyResult)
+				log.Error("to cancel a proposal failed, cannot save its tally result", "tallyResult", tallyResult)
 				return false, err
 			}
 
-			if err := gov.ClearActiveNodes(blockHash, cp.TobeCanceled); err != nil {
+			if cp.ProposalType == gov.Version {
+				if err := gov.ClearActiveNodes(blockHash, cp.TobeCanceled); err != nil {
+					return false, err
+				}
+			}
+
+			if err := gov.MoveVotingProposalIDToEnd(cp.TobeCanceled, blockHash); err != nil {
 				return false, err
 			}
 
-			if err := gov.MoveVotingProposalIDToEnd(blockHash, cp.TobeCanceled); err != nil {
-				return false, err
-			}
-
-			log.Debug("version proposal is canceled success by others", "proposalID", cp.TobeCanceled, "tallyResult", tallyResult)
+			log.Debug("successfully canceled a proposal", "proposalID", cp.TobeCanceled, "tallyResult", tallyResult)
 		}
 	}
 	return true, nil
@@ -454,10 +430,16 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 		return false, err
 	}
 	//gov.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
-	if err := gov.MoveVotingProposalIDToEnd(blockHash, proposalID); err != nil {
-		log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
+	if err := gov.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
+		log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
 		return false, err
 	}
+
+	if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
+		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
+		return false, err
+	}
+
 	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return status == gov.Pass, nil
 }

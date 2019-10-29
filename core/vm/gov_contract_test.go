@@ -716,7 +716,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 	runGovContract(gc, buildSubmitVersionInput(), t)
 
 	//move the proposal ID from voting-list to end-list
-	gov.MoveVotingProposalIDToEnd(blockHash2, txHashArr[2])
+	gov.MoveVotingProposalIDToEnd(txHashArr[2], blockHash2)
 
 	buildBlock3()
 
