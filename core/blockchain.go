@@ -191,18 +191,18 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, err
 	}
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
-	for hash := range BadHashes {
-		if header := bc.GetHeaderByHash(hash); header != nil {
-			// get the canonical block corresponding to the offending header's number
-			headerByNumber := bc.GetHeaderByNumber(header.Number.Uint64())
-			// make sure the headerByNumber (if present) is in our current canonical chain
-			if headerByNumber != nil && headerByNumber.Hash() == header.Hash() {
-				log.Error("Found bad hash, rewinding chain", "number", header.Number, "hash", header.ParentHash)
-				bc.SetHead(header.Number.Uint64() - 1)
-				log.Error("Chain rewind was successful, resuming normal operation")
-			}
-		}
-	}
+	//for hash := range BadHashes {
+	//	if header := bc.GetHeaderByHash(hash); header != nil {
+	//		// get the canonical block corresponding to the offending header's number
+	//		headerByNumber := bc.GetHeaderByNumber(header.Number.Uint64())
+	//		// make sure the headerByNumber (if present) is in our current canonical chain
+	//		if headerByNumber != nil && headerByNumber.Hash() == header.Hash() {
+	//			log.Error("Found bad hash, rewinding chain", "number", header.Number, "hash", header.ParentHash)
+	//			bc.SetHead(header.Number.Uint64() - 1)
+	//			log.Error("Chain rewind was successful, resuming normal operation")
+	//		}
+	//	}
+	//}
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
@@ -223,14 +223,16 @@ func (bc *BlockChain) loadLastState() error {
 	if head == (common.Hash{}) {
 		// Corrupt or empty database, init from scratch
 		log.Warn("Empty database, resetting chain")
-		return bc.Reset()
+		return errors.New("Empty database, resetting chain")
+		// return bc.Reset()
 	}
 	// Make sure the entire head block is available
 	currentBlock := bc.GetBlockByHash(head)
 	if currentBlock == nil {
 		// Corrupt or empty database, init from scratch
 		log.Warn("Head block missing, resetting chain", "hash", head)
-		return bc.Reset()
+		return errors.New("Head block missing, resetting chain")
+		//return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
 	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
@@ -402,9 +404,9 @@ func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 }
 
 // Reset purges the entire blockchain, restoring it to its genesis state.
-func (bc *BlockChain) Reset() error {
-	return bc.ResetWithGenesisBlock(bc.genesisBlock)
-}
+//func (bc *BlockChain) Reset() error {
+//	return bc.ResetWithGenesisBlock(bc.genesisBlock)
+//}
 
 // ResetWithGenesisBlock purges the entire blockchain, restoring it to the
 // specified genesis state.
@@ -442,10 +444,6 @@ func (bc *BlockChain) repair(head **types.Block) error {
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
-
-		num := (*head).NumberU64() - 1
-		fmt.Println(num)
-
 		// Otherwise rewind one block and recheck state availability there
 		(*head) = bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
 	}
@@ -1113,10 +1111,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			break
 		}
 		// If the header is a banned one, straight out abort
-		if BadHashes[block.Hash()] {
-			bc.reportBlock(block, nil, ErrBlacklistedHash)
-			return i, events, coalescedLogs, ErrBlacklistedHash
-		}
+		//if BadHashes[block.Hash()] {
+		//	bc.reportBlock(block, nil, ErrBlacklistedHash)
+		//	return i, events, coalescedLogs, ErrBlacklistedHash
+		//}
 		// Wait for the block's verification to complete
 		//bstart := time.Now()
 

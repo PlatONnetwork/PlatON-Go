@@ -23,6 +23,44 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
+func runContractSendTransaction(contract *StakingContract, params [][]byte, title string, t *testing.T) {
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf(title+" encode rlp data fail: %v", err)
+	} else {
+		t.Log(title+" data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+	assert.True(t, nil == err)
+	var r uint32
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, common.OkCode, r)
+}
+
+func runContractCall(contract *StakingContract, params [][]byte, title string, t *testing.T) {
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		t.Errorf("%s encode rlp data fail: %v", title, err)
+		return
+	} else {
+		t.Logf("%s data rlp: %s", title, hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := contract.Run(buf.Bytes())
+
+	assert.True(t, nil == err)
+	var r xcom.Result
+	err = json.Unmarshal(res, &r)
+	assert.True(t, nil == err)
+	assert.Equal(t, common.OkCode, r.Code)
+	t.Logf("%s the result: %s", title, r.Ret)
+}
+
 // Custom func
 func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB, index int, t *testing.T) *StakingContract {
 
@@ -48,18 +86,12 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
-	//programVersion, _ := rlp.EncodeToBytes(uint(1793))
 
 	node.GetCryptoHandler().SetPrivateKey(priKeyArr[index])
-	//xcom.GetCryptoHandler().SetPrivateKey(crypto.HexMustToECDSA("6988ba552730892c82f0acd4ea0ac5e630b752c0afe41c35fc1d42e5d2de97e5"))
 
 	versionSign := common.VersionSign{}
 	versionSign.SetBytes(node.GetCryptoHandler().MustSign(initProgramVersion))
-	//versionSign.SetBytes(xcom.GetCryptoHandler().MustSign(uint32(1793)))
 	sign, _ := rlp.EncodeToBytes(versionSign)
-
-	//fmt.Println("The versionSign", versionSign.Hex())
-	//return nil
 
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
@@ -91,23 +123,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.Moc
 	params = append(params, blsPkm)
 	params = append(params, proofRlp)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("createStaking encode rlp data fail: %v", err)
-	} else {
-		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract, params, "createStaking", t)
 
 	return contract
 }
@@ -127,25 +143,7 @@ func create_delegate(contract *StakingContract, index int, t *testing.T) {
 	params = append(params, nodeId)
 	params = append(params, amount)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Error("delegate encode rlp data fail", err)
-		return
-	} else {
-		t.Log("delegate data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the delegate result Msg:", r.ErrMsg)
-
+	runContractSendTransaction(contract, params, "delegate", t)
 }
 
 func getCandidate(contract *StakingContract, index int, t *testing.T) {
@@ -157,25 +155,7 @@ func getCandidate(contract *StakingContract, index int, t *testing.T) {
 	params = append(params, fnType)
 	params = append(params, nodeId)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("getCandidate encode rlp data fail: %v", err)
-		return
-	} else {
-		t.Log("getCandidate data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the Candidate info:", r.Data)
-
+	runContractCall(contract, params, "getCandidate Info", t)
 }
 
 /**
@@ -264,24 +244,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	params = append(params, website)
 	params = append(params, details)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("edit candidate encode rlp data fail: %v", err)
-		return
-	} else {
-		t.Log("edit candidate data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract2.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the editStaking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract2, params, "editCandidate", t)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
@@ -352,23 +315,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	params = append(params, typ)
 	params = append(params, amount)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Error("increaseStaking encode rlp data fail", err)
-		return
-	} else {
-		t.Log("increaseStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract2.Run(buf.Bytes())
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the increaseStaking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract2, params, "increaseStaking", t)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
@@ -435,32 +382,12 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	params = append(params, fnType)
 	params = append(params, nodeId)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Error("withdrewStaking encode rlp data fail", err)
-		return
-	} else {
-		t.Log("withdrewStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract2.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the withdrew candidate result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract2, params, "withdrewStaking", t)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
-
-	// get CandidateInfo
-	//getCandidate(contract2, index, t)
 
 }
 
@@ -589,24 +516,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	params = append(params, nodeId)
 	params = append(params, amount)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Error("delegate encode rlp data fail", err)
-		return
-	} else {
-		t.Log("delegate data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract2.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the withdelegate result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract2, params, "withdrewDelegate", t)
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
@@ -625,7 +535,6 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -652,24 +561,7 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 
 	params = append(params, fnType)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("getVerifierList encode rlp data fail:%v", err)
-		return
-	} else {
-		t.Log("getVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the getVerifierList result Data:", r.Data)
+	runContractCall(contract, params, "getVerifierList", t)
 
 }
 
@@ -681,7 +573,6 @@ func TestStakingContract_getValidatorList(t *testing.T) {
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -708,24 +599,7 @@ func TestStakingContract_getValidatorList(t *testing.T) {
 
 	params = append(params, fnType)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("getValidatorList encode rlp data fail:%v", err)
-		return
-	} else {
-		t.Log("getValidatorList data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the getValidatorList result Data:", r.Data)
+	runContractCall(contract, params, "getValidatorList", t)
 
 }
 
@@ -733,7 +607,6 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 
-	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -755,8 +628,6 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
-
-	//sndb.Compaction()
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
@@ -780,24 +651,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 
 	params = append(params, fnType)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("getCandidateList encode rlp data fail:%v", err)
-		return
-	} else {
-		t.Log("getCandidateList data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the getCandidateList result Data:", r.Data)
+	runContractCall(contract, params, "getCandidateList", t)
 
 }
 
@@ -853,29 +707,12 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1103))
-	delAddr, _ := rlp.EncodeToBytes(sender)
+	delAddr, _ := rlp.EncodeToBytes(delegateSender)
 
 	params = append(params, fnType)
 	params = append(params, delAddr)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Error("getRelatedListByDelAddr encode rlp data fail", err)
-		return
-	} else {
-		t.Log("getRelatedListByDelAddr data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract2.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the getRelatedListByDelAddr result Data:", r.Data)
+	runContractCall(contract2, params, "getRelatedListByDelAddr", t)
 }
 
 func TestStakingContract_getDelegateInfo(t *testing.T) {
@@ -945,24 +782,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	params = append(params, delAddr)
 	params = append(params, nodeId)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Error("getDelegateInfo encode rlp data fail", err)
-		return
-	} else {
-		t.Log("getDelegateInfo data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract2.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the getDelegateInfo result Data:", r.Data)
+	runContractCall(contract2, params, "getDelegateInfo", t)
 }
 
 func TestStakingContract_getCandidateInfo(t *testing.T) {
