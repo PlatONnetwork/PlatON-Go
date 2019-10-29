@@ -56,9 +56,9 @@ func (suit *PrepareVoteTestSuite) waitVote() {
 	time.Sleep(time.Millisecond * 500)
 }
 
-// 构造prepareVote消息
-// 收到区块，生成对应的投票
-// 校验块高与块哈希一致
+// Construct prepareVote message
+// Receive the block and generate the corresponding vote
+// Check block height is consistent with block hash
 func (suit *PrepareVoteTestSuite) TestBuildPrepareVote() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -81,12 +81,12 @@ func (suit *PrepareVoteTestSuite) TestBuildPrepareVote() {
 
 }
 
-// prepareVote消息基本校验
-// 1.没有签名的
-// 2.签名与validatorIndex不一致的
-// 3.签名不是验证节点的
-// 4.epoch 太大
-// 5.epoch 太小
+// prepareVote message basic check
+// 1.Unsigned
+// 2.The signature is inconsistent with the validatorIndex
+// 3.The signature is not the verification node
+// 4.epoch too big
+// 5.epoch too small
 func (suit *PrepareVoteTestSuite) TestCheckErrPrepareVote() {
 	_, notConsensusKey := GenerateKeys(1)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -129,8 +129,8 @@ func (suit *PrepareVoteTestSuite) TestCheckErrPrepareVote() {
 	}
 }
 
-// 父区块为零的不携带ParentQC的prepareVote消息
-// 校验通过
+// ParentVote message that does not carry ParentQC with zero parent block
+// Verification pass
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsZeroButNotParentQC() {
 	epoch := suit.view.Epoch()
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -147,8 +147,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsZeroButNotParentQC(
 	suit.Equal(suit.view.firstProposerIndex(), suit.view.secondProposer().state.AllPrepareVoteByIndex(0)[0].ValidatorIndex)
 }
 
-// 父区块非零的不携带ParentQC的prepareVote消息
-// 校验不通过
+// The parent block is non-zero and does not carry the parentVC prepareVote message.
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroButNotParentQC() {
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
@@ -166,8 +166,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroButNotParent
 	}
 }
 
-// 父区块非零但blockIndex為0的不携带ParentQC的prepareVote消息
-// 校验不通过
+// The parent block is non-zero but the blockIndex is 0. The parentVote message does not carry ParentQC.
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroAndBlockIndexNotParentQC() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	n, h := suit.view.firstProposer().HighestQCBlockBn()
@@ -188,8 +188,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotZeroAndBlockInde
 	}
 }
 
-// blockNumber=1,qc偽造的消息
-// 校验不通过
+// blockNumber=1, qc forged message
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithBlockNumberIsOneAndErrParentQC() {
 	block1 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
@@ -205,8 +205,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithBlockNumberIsOneAndErrParen
 	}
 }
 
-// 未收到prepareBlock先收到的prepareVote消息
-// 校验不通过
+// Received the prepareVote message received by prepareBlock first
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithNotPrepareBlock() {
 	prepareVote := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), nil)
@@ -217,8 +217,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithNotPrepareBlock() {
 	}
 }
 
-// 区块超出一轮出块数限制的prepareVote消息
-// 校验不通过
+// The prepareVote message that the block exceeds the limit of one round of the block number
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithExceedLimit() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 21, suit.view.allNode[1])
@@ -233,9 +233,9 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithExceedLimit() {
 	}
 }
 
-// 收到重复的prepareVote消息
-// 合法的prepareVote消息
-// 第一次校验通过，第二次提示投票已经存在，票总数为1
+// Received duplicate prepareVote messages
+// Legal prepareVote message
+// The first Verification pass, the second prompt vote already exists, the total number of votes is 1
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithRepeat() {
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
@@ -254,8 +254,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithRepeat() {
 	suit.Equal(1, suit.view.secondProposer().state.PrepareVoteLenByIndex(0))
 }
 
-// 双签
-// 返回双签错误
+// duplicate sign
+// Return duplicate sign error
 func (suit *PrepareVoteTestSuite) TestPrepareVoteDu() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
@@ -284,8 +284,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteDu() {
 	}
 }
 
-// viewNumber小于当前viewNumber
-// 校验不通过
+// viewNumber is less than the current viewNumber
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithViewNumberTooLow() {
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
@@ -300,8 +300,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithViewNumberTooLow() {
 	}
 }
 
-// viewNumber大于当前viewNumber
-// 校验不通过，触发同步
+// viewNumber is greater than the current viewNumber
+// Verification failed，Trigger synchronization
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithViewNumberTooHigh() {
 	prepareVote := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0, suit.view.firstProposerIndex(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), nil)
@@ -312,8 +312,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithViewNumberTooHigh() {
 	}
 }
 
-// Vote的父区块在本节点未达成prepareQC
-// 校验通过
+// Vote's parent block did not reach prepareQC on this node
+// Verification pass
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotParentQC() {
 	qc := mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -334,8 +334,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentIsNotParentQC() {
 	}
 }
 
-// Vote的父区块在发送节点未达成prepareQC（不合法）
-// 校验不通过
+// Vote's parent block did not reach prepareQC on the sending node (not legal)
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentErrParentQC() {
 	qc := mockBlockQC(suit.view.allNode[0:1], suit.blockOne, 0, nil)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -359,8 +359,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentErrParentQC() {
 	}
 }
 
-// 达成prepareQC时，存在子区块prepareVote
-// 校验通过，发送子区块的投票
+// When the prepareQC is reached, there is a sub-block prepareVote
+// Verification pass, sending sub-block votes
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCHasChild() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -389,8 +389,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCHasChild() {
 	suit.Equal(0, suit.view.firstProposer().state.PendingPrepareVote().Len())
 }
 
-// 达成prepareQC时，不存在子区块prepareVote
-// 校验commit和lock
+// When the prepareQC is reached, there is no sub-block prepareVote
+// Verify commit and lock
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCNotHasChild() {
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	block6 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 6, suit.view.allNode[0])
@@ -402,8 +402,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithParentQCNotHasChild() {
 	suit.Equal(uint64(5), lockNumber)
 }
 
-// 数据合法的超时的prepareVote消息
-// 校验不通过
+// Data valid timeout prepareVote message
+// Verification failed
 func (suit *PrepareVoteTestSuite) TestPrepareVoteWithTimeout() {
 	prepareVote := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
@@ -419,8 +419,8 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithTimeout() {
 	}
 }
 
-// 数据刚好满足2f+1的prepareQC消息
-// 校验通过
+// The data just meets the 2f+1 prepareQC message
+// Verification pass
 func (suit *PrepareVoteTestSuite) TestPrepareVote2fAndOne() {
 	qc := mockBlockQC(suit.view.allNode[0:3], suit.blockOne, 0, nil)
 	if err := suit.view.secondProposer().verifyPrepareQC(suit.blockOne.NumberU64(), suit.blockOne.Hash(), qc.BlockQC); err != nil {
@@ -469,8 +469,8 @@ func (cbft *Cbft) generateErrPrepareQC(votes map[uint32]*protocols.PrepareVote) 
 	return qc
 }
 
-// 非共识节点收到prepareVote
-// 校验通过
+// Non-consensus nodes receive prepareVote
+// Verification pass
 func (suit *PrepareVoteTestSuite) TestPrepareVoteOfNotConsensus() {
 	notConsensus := mockNotConsensusNode(false, suit.view.nodeParams, 1)
 	prepareVote := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne.Hash(),

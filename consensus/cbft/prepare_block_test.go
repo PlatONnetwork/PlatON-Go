@@ -57,14 +57,14 @@ func (suit *PrepareBlockTestSuite) waitVote() {
 	time.Sleep(time.Millisecond * 500)
 }
 
-// prepareBlock消息基本校验
-// 1.缺少签名的prepareBlock消息
-// 2.签名与提议人索引不一致的prepareBlock消息
-// 3.出块节点不是当前提议节点的prepareBlock消息
-// 4.提议人索引与提议人不匹配的prepareBlock消息
-// 5.提议人非共识节点的prepareBlock消息
-// 6.epoch 太大
-// 7.epoch 太小
+// prepareBlock message basic check
+// 1.Missing signed prepareBlock message
+// 2.a prepareBlock message whose signature is inconsistent with the proposer index
+// 3.The block node is not the prepareBlock message of the current proposed node.
+// 4.The proposer index matches the prepareBlock message that does not match the proposer
+// 5.The prepareBlock message of the proposer non-consensus node
+// 6.epoch too big
+// 7.epoch too small
 func (suit *PrepareBlockTestSuite) TestCheckErrPrepareBlock() {
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 1)
 	// suit.view.secondProposer().state.ResetView(suit.view.Epoch(), suit.oldViewNumber+1)
@@ -124,8 +124,8 @@ func (suit *PrepareBlockTestSuite) TestCheckErrPrepareBlock() {
 	}
 }
 
-// 携带prepareQC和viewChangeQC的prepareBlock消息，本节点未完成viewChangeQC
-// 校验通过，blockIndex为0的票数为1，viewNumber+1
+// Carry the prepareBlock message of prepareQC and viewChangeQC. The node does not complete viewChangeQC.
+// The verification passes, the number of votes with blockIndex 0 is 1, viewNumber+1
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAndViewChangeQC() {
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
@@ -141,8 +141,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAnd
 	suit.Equal(suit.oldViewNumber+1, suit.view.firstProposer().state.ViewNumber())
 }
 
-// 携带prepareQC和viewChangeQC的prepareBlock消息,接收消息的节点已经收到viewChangeQC
-// 校验通过，blockIndex为0的票数为1，viewNumber不变
+// Carry the prepareBlock message of prepareQC and viewChangeQC, and the node receiving the message has received the viewChangeQC.
+// The verification passes, the number of votes with blockIndex 0 is 1, and the viewNumber is unchanged.
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAndViewChangeQCHadViewChangQC() {
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
@@ -162,14 +162,14 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAnd
 	suit.Equal(suit.oldViewNumber+1, suit.view.firstProposer().state.ViewNumber())
 }
 
-// viewChangeQC的第一个块,接收消息的节点未收到viewChangeQC
-// 1.不携带viewChangeQC的prepareBlock消息
-// 2.不携带prepareQC的prepareBlock消息
-// 3.不携带prepareQC和viewChangeQC的prepareBlock消息
-// 4.blockIndex为1的prepareBlock消息
-// 5.携带prepareQC，携带不满足2f+1的viewChangeQC
-// 6.epoch 太大
-// 7.epoch 太小
+// The first block of viewChangeQC, the node receiving the message did not receive viewChangeQC
+// 1.Does not carry the prepareBlock message of viewChangeQC
+// 2.Does not carry the prepareBlock message of prepareQC
+// 3.The prepareBlock message does not carry prepareQC and viewChangeQC
+// 4.prepareBlock message with blockIndex 1
+// 5.Carry prepareQC and carry viewChangeQC that does not satisfy 2f+1
+// 6.epoch too big
+// 7.epoch too small
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBlock() {
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
@@ -235,12 +235,12 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBloc
 	}
 }
 
-// viewChangeQC的第一个块,接收消息的节点已经收到viewChangeQC
-// 1.不携带viewChangeQC的prepareBlock消息
-// 2.不携带prepareQC的prepareBlock消息
-// 3.不携带prepareQC和viewChangeQC的prepareBlock消息
-// 4.blockIndex为1的prepareBlock消息
-// 5.携带prepareQC，携带不满足2f+1的viewChangeQC
+// The first block of viewChangeQC, the node receiving the message has received viewChangeQC
+// 1.Does not carry the prepareBlock message of viewChangeQC
+// 2.Does not carry the prepareBlock message of prepareQC
+// 3.The prepareBlock message does not carry prepareQC and viewChangeQC
+// 4.prepareBlock message with blockIndex 1
+// 5.Carry prepareQC and carry viewChangeQC that does not satisfy 2f+1
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBlockHadViewChangQC() {
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
@@ -295,8 +295,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBloc
 	}
 }
 
-// viewChangeQC的第一个块,出块节点HighestQCBlock领先本地HighestQCBlock的prepareBlock消息,收到块的节点未完成viewChangeQC
-// 由于落后，会触发同步,校验无法通过，返回错误值为 viewNumber higher then local(local:0, msg:1)
+// The first block of viewChangeQC, the block node HighestQCBlock leads the prepareBlock message of the local HighestQCBlock, and the node receiving the block does not complete the viewChangeQC
+// Due to backwardness, synchronization will be triggered, verification will not pass, and the error value returned is viewNumber higher then local(local:0, msg:1)
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTooHigh() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block3 := NewBlockWithSign(block2.Hash(), 3, suit.view.allNode[0])
@@ -313,8 +313,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTo
 	}
 }
 
-// viewChangeQC的第一个块,出块节点HighestQCBlock落后本地HighestQCBlock的prepareBlock消息,收到块的节点未完成viewChangeQC
-// 校验无法通过，返回错误值为 viewNumber higher then local(local:0, msg:1)
+// The first block of viewChangeQC, the block node HighestQCBlock is behind the local HighestQCBlock prepareBlock message, and the node receiving the block is not completed viewChangeQC
+// The verification failed, and the error value returned is viewNumber higher then local(local:0, msg:1)
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTooLow() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
@@ -330,8 +330,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTo
 	}
 }
 
-// viewChangeQC的第一个块,出块节点HighestQCBlock落后本地HighestQCBlock的prepareBlock消息,收到块的节点已经完成viewChangeQC,此时没有基于viewQC.MaxBlock
-// 校验无法通过
+// The first block of viewChangeQC, the block node HighestQCBlock is behind the local HighestQCBlock prepareBlock message, the node receiving the block has completed viewChangeQC, and this time is not based on viewQC.MaxBlock
+// Verification cannot pass
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTooLowHad() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
@@ -347,8 +347,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTo
 	}
 }
 
-// viewChangeQC的第一个块,没有基于viewQC.MaxBlock,收到块的节点未完成viewChangeQC
-// 校验无法通过
+// The first block of viewChangeQC, not based on viewQC.MaxBlock, the node that received the block did not complete viewChangeQC
+// Verification cannot pass
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockNotWithMaxBlock() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
@@ -364,8 +364,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockNo
 	}
 }
 
-// 最后一个块确认的第一个块,blockNumber相同的hash不同prepareBlock消息
-// 第一个块通过，第二个校验不通过，对应的PrepareVoteLen=1，返回双出error
+// The first block confirmed by the last block, the hash with the same blockNumber is different from the prepareBlock message.
+// The first block passes, the second check fails, and the corresponding PrepareVoteLen=1 returns double evidence error.
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithDifHash() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
@@ -410,8 +410,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithDifHash() {
 	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
 }
 
-// 最后一个块确认的第一个块,携带prepareQC的prepareBlock消息
-// 校验通过，PrepareVoteLenByIndex(0)=1
+// The first block confirmed by the last block, carrying the prepareBlock message of prepareQC
+// Verification pass，PrepareVoteLenByIndex(0)=1
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQC() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[0])
@@ -425,7 +425,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQC() {
 	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
 }
 
-// 第一个块，携带错误的qc
+// The first block, carrying the wrong qc
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithNumberIsOne() {
 	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 1, suit.view.allNode[0])
 	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
@@ -437,7 +437,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithNumberIsOne() {
 	}
 }
 
-// 非第一个块,携带错误的qc
+// Non-first block, carrying the wrong qc
 func (suit *PrepareBlockTestSuite) TestPrepareBlockWithBlockIndexNotIsZero() {
 	suit.insertOneBlock()
 	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 2, suit.view.allNode[0])
@@ -450,8 +450,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockWithBlockIndexNotIsZero() {
 	}
 }
 
-// 最后一个块确认的第一个块,不携带prepareQC的prepareBlock消息
-// 校验不通过
+// The first block confirmed by the last block, Does not carry the prepareBlock message of prepareQC
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCNotQC() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -464,8 +464,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCNotQC() {
 	}
 }
 
-// 最后一个块确认的第一个块,blockIndex为1的prepareBlock消息
-// 校验不通过
+// The first block confirmed by the last block, prepareBlock message with blockIndex 1
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCBlockIndexIsOne() {
 	// oldEpoch := suit.view.Epoch()
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -481,8 +481,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCBlockIndexI
 	}
 }
 
-// 最后一个块确认的第一个块,出块节点HighestQCBlock领先本地HighestQCBlock的prepareBlock消息
-// 校验不通过，触发同步
+// The first block confirmed by the last block, the block node HighestQCBlock leads the prepareBlock message of the local HighestQCBlock
+// Verification failed，Trigger synchronization
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCLead() {
 	otherNode := suit.view.thirdProposer()
 	suit.view.setBlockQC(9, suit.view.allNode[0])
@@ -502,8 +502,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCLead() {
 	}
 }
 
-// viewNumber小于当前viewNumber
-// 校验不通过
+// viewNumber is less than the current viewNumber
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooLow() {
 	// oldEpoch := suit.view.Epoch()
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -522,8 +522,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooLow() 
 	}
 }
 
-// viewNumber大于当前viewNumber
-// 校验不通过，触发同步
+// viewNumber is greater than the current viewNumber
+// Verification failed，Trigger synchronization
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooHigh() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -541,8 +541,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooHigh()
 	}
 }
 
-// 上一个块prepareQC的prepareBlock
-// 校验通过，票数+1
+// PreviousBlock of the previous block prepareQC
+// Verification pass, number of votes +1
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentQC() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -561,8 +561,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentQC() {
 	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(1))
 }
 
-// 上一个块未prepareQC的prepareBlock
-// 校验通过，pengding中对于区块存在票数
+// Previous block without prepareQC prepareBlock
+// Verification pass，There are votes for the block in pengding
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentNotQC() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -585,8 +585,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentNotQC() {
 
 }
 
-// 块数超出一轮限制
-// 校验不通过
+// The number of blocks exceeds the limit of one round
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithAmountTooMany() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -599,8 +599,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithAmountTooMany() {
 	}
 }
 
-// 相同块高，不同哈希的prepareBlock
-// 第二个校验不通过，双出error
+// Same block height, different hash of prepareBlock
+// The second Verification failed, double evidence error
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberRepeat() {
 	paths := createPaths(len(suit.view.allCbft))
 	defer removePaths(paths)
@@ -623,8 +623,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberRepeat()
 	}
 }
 
-// 块高不连续的prepareBlock,区块hash连续
-// 校验不通过
+// Block high discontinuous prepareBlock, block hash continuous
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberDiscontinuous() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -643,8 +643,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberDisconti
 	}
 }
 
-// 区块哈希不连续块高连续的prepareBlock
-// 校验不通过
+// Block hash discontinuous block high continuous prepareBlock
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockHashDiscontinuous() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	fmt.Println(suit.view.firstProposer().state.HighestQCBlock().NumberU64())
@@ -664,8 +664,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockHashDiscontinu
 	}
 }
 
-// BlockIndex与实际区块index不匹配的prepareBlock
-// 校验不通过
+// The prepareBlock whose BlockIndex does not match the actual block index
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexErr() {
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -685,8 +685,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexErr() {
 
 }
 
-// 本地区块存在相同 BlockIndex 区块，但BlockHash，BlockNumber 不相等
-// 校验不通过
+// The same BlockIndex block exists in this local block, but BlockHash, BlockNumber are not equal
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexRepeat() {
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
@@ -701,8 +701,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexRepeat() 
 	}
 }
 
-// 数据正确的重复的prepareBlock消息
-// 校验不通过
+// Data correctly repeating prepareBlock message
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockDup() {
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
@@ -716,8 +716,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockDup() {
 	}
 }
 
-// 本地不存在BlockIndex对应的前一个索引区块的prepareBlock消息
-// 校验不通过
+// There is no prepareBlock message of the previous index block corresponding to the BlockIndex.
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockBlockIndexTooHigh() {
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
@@ -729,8 +729,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockBlockIndexTooHigh() {
 	}
 }
 
-// 数据正确的超时的prepareBlock消息
-// 校验不通过
+// The correct timeout of the data is the prepareBlock message
+// Verification failed
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithTimeout() {
 	time.Sleep((testPeriod + 200) * time.Millisecond)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -742,8 +742,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithTimeout() {
 	}
 }
 
-// 非共识节点收到合法prepareBlock消息
-// 校验通过
+// Non-consensus node receives a valid prepareBlock message
+// Verification pass
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithNotConsensus() {
 	notConsensus := mockNotConsensusNode(false, suit.view.nodeParams, 1)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
