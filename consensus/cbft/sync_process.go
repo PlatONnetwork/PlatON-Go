@@ -729,7 +729,10 @@ func (cbft *Cbft) AvgLatency() time.Duration {
 	cbft.netLatencyLock.Lock()
 	defer cbft.netLatencyLock.Unlock()
 	// The intersection of peerSets and consensusNodes.
-	target, _ := cbft.network.AliveConsensusNodeIDs()
+	target, err := cbft.network.AliveConsensusNodeIDs()
+	if err != nil {
+		return time.Duration(0)
+	}
 	var (
 		avgSum     int64
 		result     int64
