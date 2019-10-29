@@ -273,7 +273,18 @@ func listGovernParamItem(module string, blockHash common.Hash) ([]*ParamItem, er
 		if err := rlp.DecodeBytes(itemBytes, &itemList); err != nil {
 			return nil, err
 		}
-		return itemList, nil
+		if len(module) == 0 {
+			return itemList, nil
+		} else {
+			idx := 0
+			for _, item := range itemList {
+				if item.Module == module {
+					itemList[idx] = item
+					idx++
+				}
+			}
+			return itemList[:idx], nil
+		}
 	}
 	return nil, nil
 }
