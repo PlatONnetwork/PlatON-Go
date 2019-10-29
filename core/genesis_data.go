@@ -350,6 +350,40 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	return nil
 }
 
+func genesisInitGovernParam(snapDB snapshotdb.DB) error {
+	var paramList = []*gov.GovernParam{
+		{
+			ParamItem:     &gov.ParamItem{"PPOS", "paramName1", "paramName1"},
+			ParamValue:    &gov.ParamValue{"", "10", 0},
+			ParamVerifier: func(value string) bool { return true },
+		},
+		{
+			ParamItem:     &gov.ParamItem{"PPOS", "paramName2", "paramName2"},
+			ParamValue:    &gov.ParamValue{"", "100000", 0},
+			ParamVerifier: func(value string) bool { return true },
+		},
+	}
+
+	var paramItemList []*gov.ParamItem
+	for _, param := range paramList {
+		paramItemList = append(paramItemList, param.ParamItem)
+
+		key := gov.KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
+		value := common.MustRlpEncode(param.ParamValue)
+		if err := snapDB.PutBaseDB(key, value); err != nil {
+			return err
+		}
+		gov.RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+	}
+
+	key := gov.KeyParamItems()
+	value := common.MustRlpEncode(paramItemList)
+	if err := snapDB.PutBaseDB(key, value); err != nil {
+		return err
+	}
+	return nil
+}
+
 func generateKVHash(k, v []byte, oldHash common.Hash) common.Hash {
 	var buf bytes.Buffer
 	buf.Write(k)

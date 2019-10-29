@@ -31,9 +31,12 @@ type ActiveVersionValue struct {
 	ActiveBlock   uint64 `json:"ActiveBlock"`
 }
 
+type ParamVerifier func(value string) bool
+
 type GovernParam struct {
-	ParamItem  *ParamItem
-	ParamValue *ParamValue
+	ParamItem     *ParamItem
+	ParamValue    *ParamValue
+	ParamVerifier ParamVerifier
 }
 
 type ParamItem struct {
@@ -48,7 +51,6 @@ type ParamValue struct {
 	ActiveBlock uint64 `json:"ActiveBlock"`
 }
 
-var GenesisGovernParams = []GovernParam{
-	{&ParamItem{"PPOS", "paramName1", "paramName1"}, &ParamValue{"", "10", 0}},
-	{&ParamItem{"PPOS", "paramName2", "paramName2"}, &ParamValue{"", "1000", 0}},
+var paramVerifier = func(value string) bool {
+	return true
 }

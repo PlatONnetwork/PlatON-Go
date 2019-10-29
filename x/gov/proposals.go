@@ -428,7 +428,7 @@ func (pp *ParamProposal) String() string {
   Module:   			%s
   Name:   				%s
   NewValue:   			%s`,
-		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock, pp.Name, pp.NewValue)
+		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock, pp.Module, pp.Name, pp.NewValue)
 }
 
 func verifyBasic(p Proposal, state xcom.StateDB) error {

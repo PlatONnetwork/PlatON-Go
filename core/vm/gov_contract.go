@@ -392,7 +392,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
 
-	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, gc.Evm.StateDB)
+	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, blockHash)
 	if err != nil {
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}

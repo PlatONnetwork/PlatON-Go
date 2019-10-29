@@ -241,6 +241,7 @@ func updateGovernParamValue(module, name, newValue string, activeBlock uint64, b
 		if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
 			return err
 		}
+		return nil
 	}
 	return GovernParamNotFound
 }
@@ -255,7 +256,7 @@ func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, erro
 		if value, err := findGovernParamValue(item.Module, item.Name, blockHash); err != nil {
 			return nil, err
 		} else {
-			param := &GovernParam{item, value}
+			param := &GovernParam{item, value, nil}
 			paraList = append(paraList, param)
 		}
 	}

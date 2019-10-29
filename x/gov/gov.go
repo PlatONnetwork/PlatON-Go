@@ -169,7 +169,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if node has voted
-	votedMap, err := GetVotedVerifierMap(vote.ProposalID, state)
+	votedMap, err := GetVotedVerifierMap(vote.ProposalID, blockHash)
 	if err != nil {
 		log.Error("get voted verifier map error", "proposalID", vote.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
 		return err
@@ -180,7 +180,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//handle storage
-	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
+	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, blockHash); err != nil {
 		log.Error("save vote error", "proposalID", vote.ProposalID)
 		return err
 	}
@@ -223,7 +223,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 	if votingVP != nil {
 		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
 
-		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, state)
+		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, blockHash)
 		if err != nil {
 			log.Error("get voted verifier map error", "proposalID", votingVP.ProposalID)
 			return err
@@ -406,7 +406,7 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 	} else {
 		var maxEndVotingBlock = uint64(0)
 		for _, proposalID := range proposalIDList {
-			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
 				return 0, err
 			} else {
 				for _, voteValue := range voteValueList {
@@ -433,7 +433,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 		return err
 	} else if len(votingProposalIDList) > 0 {
 		for _, proposalID := range votingProposalIDList {
-			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
 				return err
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
@@ -446,7 +446,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 				}
 				if idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
-					if err := UpdateVoteValue(proposalID, voteValueList, state); err != nil {
+					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
 						return err
 					}
 				}
@@ -470,12 +470,10 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	return nil
 }
 
-type ParamVerifier func(value string) bool
-
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func RegGovernParamVerifier(name string, callback ParamVerifier) {
-	ParamVerifierMap[name] = callback
+func RegGovernParamVerifier(module, name string, callback ParamVerifier) {
+	ParamVerifierMap[module+"/"+name] = callback
 }
 
 func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
@@ -517,7 +515,7 @@ func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, 
 			if value, err := findGovernParamValue(module, name, blockHash); err != nil {
 				return nil, err
 			} else if value != nil {
-				param := &GovernParam{item, value}
+				param := &GovernParam{item, value, nil}
 				return param, nil
 			}
 		}

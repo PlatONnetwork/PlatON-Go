@@ -3,6 +3,10 @@ package gov
 import (
 	"encoding/json"
 
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -54,6 +58,13 @@ func GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
 			return nil, e
 		}
 		return &proposal, nil
+	} else if pType == byte(Param) {
+		var proposal ParamProposal
+		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to param proposal")
+			return nil, e
+		}
+		return &proposal, nil
 	} else {
 		return nil, common.InternalError.Wrap("Incorrect proposal type.")
 	}
@@ -78,44 +89,46 @@ func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, err
 }
 
 //Add the Vote detail
-func AddVoteValue(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) error {
-	voteValueList, err := ListVoteValue(proposalID, state)
+func AddVoteValue(proposalID common.Hash, voter discover.NodeID, option VoteOption, blockHash common.Hash) error {
+	voteValueList, err := ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return err
 	}
 	voteValueList = append(voteValueList, VoteValue{voter, option})
-	return UpdateVoteValue(proposalID, voteValueList, state)
+	return UpdateVoteValue(proposalID, voteValueList, blockHash)
 }
 
 //list vote detail
-func ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, error) {
-	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
-	if len(voteListBytes) == 0 {
-		return nil, nil
-	}
-	var voteList []VoteValue
-	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
+func ListVoteValue(proposalID common.Hash, blockHash common.Hash) ([]VoteValue, error) {
+	voteListBytes, err := get(blockHash, KeyVote(proposalID))
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return nil, err
+	}
+
+	var voteList []VoteValue
+	if len(voteListBytes) > 0 {
+		if err = rlp.DecodeBytes(voteListBytes, &voteList); err != nil {
+			return nil, err
+		}
 	}
 	return voteList, nil
 }
 
-func UpdateVoteValue(proposalID common.Hash, voteValueList []VoteValue, state xcom.StateDB) error {
-	voteListBytes, err := json.Marshal(voteValueList)
-	if err != nil {
+func UpdateVoteValue(proposalID common.Hash, voteValueList []VoteValue, blockHash common.Hash) error {
+	//state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
+	if err := put(blockHash, KeyVote(proposalID), voteValueList); err != nil {
 		return err
 	}
-	state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
 	return nil
 }
 
 // TallyVoteValue statistics vote option for a proposal
-func TallyVoteValue(proposalID common.Hash, state xcom.StateDB) (yeas, nays, abstentions uint16, e error) {
+func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, abstentions uint16, e error) {
 	yes := uint16(0)
 	no := uint16(0)
 	abst := uint16(0)
 
-	voteList, err := ListVoteValue(proposalID, state)
+	voteList, err := ListVoteValue(proposalID, blockHash)
 	if err == nil {
 		for _, v := range voteList {
 			if v.VoteOption == Yes {
@@ -147,8 +160,8 @@ func ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.N
 }
 */
 
-func GetVotedVerifierMap(proposalID common.Hash, state xcom.StateDB) (map[discover.NodeID]struct{}, error) {
-	valueList, err := ListVoteValue(proposalID, state)
+func GetVotedVerifierMap(proposalID common.Hash, blockHash common.Hash) (map[discover.NodeID]struct{}, error) {
+	valueList, err := ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return nil, err
 	}
