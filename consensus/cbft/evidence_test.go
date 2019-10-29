@@ -48,7 +48,7 @@ func (suit *EvidenceTestSuite) createEvPool(paths []string) {
 
 func (suit *EvidenceTestSuite) SetupTest() {
 	suit.view = newTestView(false, testNodeNumber)
-	suit.blockOne = NewBlock(suit.view.genesisBlock.Hash(), 1)
+	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstCbft.state.ViewNumber()
 	suit.epoch = suit.view.firstCbft.state.Epoch()
@@ -182,17 +182,19 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifViewNumber() {
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
-	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),
 		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		Time:        big.NewInt(time.Now().UnixNano() + 100),
-		Extra:       make([]byte, 77),
+		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Coinbase:    common.Address{},
 		GasLimit:    100000000001,
 	}
+	sign, _ := suit.view.allNode[1].engine.signFn(header.SealHash().Bytes())
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sign[:])
 	block2 := types.NewBlockWithHeader(header)
 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
@@ -218,17 +220,19 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifEpoch() {
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
-	block1 := NewBlock(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11)
+	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),
 		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		Time:        big.NewInt(time.Now().UnixNano() + 100),
-		Extra:       make([]byte, 77),
+		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Coinbase:    common.Address{},
 		GasLimit:    100000000001,
 	}
+	sign, _ := suit.view.allNode[1].engine.signFn(header.SealHash().Bytes())
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sign[:])
 	block2 := types.NewBlockWithHeader(header)
 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		suit.view.firstProposer().state.HighestQCBlock().NumberU64())
@@ -256,7 +260,7 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.secondProposer().state.AddPrepareBlock(prepareBlock)
-	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	block1 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	prepareVote1 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), nil)
@@ -291,7 +295,7 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifViewNumber() {
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.secondProposer().state.AddPrepareBlock(prepareBlock)
-	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	block1 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	prepareVote1 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber+1, 0,
 		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), nil)
@@ -317,7 +321,7 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifEpoch() {
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.secondProposer().state.AddPrepareBlock(prepareBlock)
-	block1 := NewBlock(suit.view.genesisBlock.Hash(), 1)
+	block1 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	prepareVote1 := mockPrepareVote(suit.view.firstProposerBlsKey(), suit.epoch+1, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), nil)
