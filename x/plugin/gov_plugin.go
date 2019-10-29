@@ -250,7 +250,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	}
 	verifiersCnt := uint16(len(verifierList))
 
-	voteList, err := gov.ListVoteValue(proposalID, state)
+	voteList, err := gov.ListVoteValue(proposalID, blockHash)
 	if err != nil {
 		return err
 	}
@@ -355,7 +355,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 			}
 			verifiersCnt := uint16(len(verifierList))
 
-			voteList, err := gov.ListVoteValue(cp.TobeCanceled, state)
+			voteList, err := gov.ListVoteValue(cp.TobeCanceled, blockHash)
 			if err != nil {
 				return false, err
 			}
@@ -410,7 +410,7 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 
 	status := gov.Voting
 
-	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, state)
+	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, blockHash)
 	if err != nil {
 		return false, err
 	}
