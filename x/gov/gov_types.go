@@ -26,25 +26,29 @@ type VoteValue struct {
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
-type ParamValue struct {
-	Name  string `json:"Name"`
-	Value string `json:"Value"`
-}
-
 type ActiveVersionValue struct {
 	ActiveVersion uint32 `json:"ActiveVersion"`
 	ActiveBlock   uint64 `json:"ActiveBlock"`
 }
 
-type ParamItem struct {
-	StaleValue  string
-	Value       string
-	ActiveBlock uint64
+type GovernParam struct {
+	ParamItem  *ParamItem
+	ParamValue *ParamValue
 }
 
-var GovernParams = map[string]ParamItem{
-	"paramName1": ParamItem{"", "1", 0},
-	"paramName2": ParamItem{"", "1", 0},
-	"paramName3": ParamItem{"", "1", 0},
-	"paramName4": ParamItem{"", "1", 0},
+type ParamItem struct {
+	Module string `json:"Module"`
+	Name   string `json:"Name"`
+	Desc   string `json:"Desc"`
+}
+
+type ParamValue struct {
+	StaleValue  string `json:"StaleValue"`
+	Value       string `json:"Value"`
+	ActiveBlock uint64 `json:"ActiveBlock"`
+}
+
+var GenesisGovernParams = []GovernParam{
+	{&ParamItem{"PPOS", "paramName1", "paramName1"}, &ParamValue{"", "10", 0}},
+	{&ParamItem{"PPOS", "paramName2", "paramName2"}, &ParamValue{"", "1000", 0}},
 }

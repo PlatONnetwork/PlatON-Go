@@ -18,7 +18,8 @@ var (
 	keyPrefixActiveVersions    = []byte("ActiveVersions")
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
-	keyPrefixParam             = []byte("Param")
+	keyPrefixParamItems        = []byte("ParamItems")
+	keyPrefixParamValue        = []byte("ParamValue")
 	keyPrefixPIPIDs            = []byte("PIPIDs")
 )
 
@@ -82,10 +83,12 @@ func KeyPIPIDs() []byte {
 	return keyPrefixPIPIDs
 }
 
-func KeyParam(paramName string) []byte {
+func KeyParamItems() []byte {
+	return keyPrefixParamItems
+}
+func KeyParamValue(module, name string) []byte {
 	return bytes.Join([][]byte{
-		keyPrefixParam,
-		[]byte(paramName),
+		keyPrefixParamValue,
+		[]byte(module + "/" + name),
 	}, KeyDelimiter)
-
 }

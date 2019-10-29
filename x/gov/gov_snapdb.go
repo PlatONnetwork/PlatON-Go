@@ -191,45 +191,89 @@ func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover
 	return nil, nil
 }
 
-func addGovernParam(paramName string, paramItem ParamItem, blockHash common.Hash) error {
-	return put(blockHash, KeyParam(paramName), paramItem)
+func addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash common.Hash) error {
+	itemList, err := listGovernParamItem("", blockHash)
+	if err != nil {
+		return nil
+	}
+	itemList = append(itemList, &ParamItem{module, name, desc})
+	if err := put(blockHash, keyPrefixParamItems, itemList); err != nil {
+		return err
+	}
+
+	if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
+		return err
+	}
+	return nil
 }
 
-func findGovernParam(paramName string, blockHash common.Hash) (*ParamItem, error) {
-	value, err := get(blockHash, KeyParam(paramName))
+func findGovernParamValue(module, name string, blockHash common.Hash) (*ParamValue, error) {
+	value, err := get(blockHash, KeyParamValue(module, name))
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
 	if len(value) > 0 {
-		var paramItem ParamItem
-		if err := rlp.DecodeBytes(value, &paramItem); err != nil {
+		var paramValue ParamValue
+		if err := rlp.DecodeBytes(value, &paramValue); err != nil {
 			return nil, err
 		} else {
-			return &paramItem, nil
+			return &paramValue, nil
 		}
 	}
 	return nil, nil
 }
 
-func updateGovernParam(paramName string, newValue string, activeBlock uint64, blockHash common.Hash) error {
-	value, err := get(blockHash, KeyParam(paramName))
+func updateGovernParamValue(module, name, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	value, err := get(blockHash, KeyParamValue(module, name))
 	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
-
 	if len(value) > 0 {
-		var paramItem ParamItem
-		if err := rlp.DecodeBytes(value, &paramItem); err != nil {
+		var paramValue ParamValue
+		if err := rlp.DecodeBytes(value, &paramValue); err != nil {
 			return err
 		}
-		paramItem.StaleValue = paramItem.Value
-		paramItem.Value = newValue
-		paramItem.ActiveBlock = activeBlock
+		paramValue.StaleValue = paramValue.Value
+		paramValue.Value = newValue
+		paramValue.ActiveBlock = activeBlock
 
-		if err := put(blockHash, KeyParam(paramName), paramItem); err != nil {
+		if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
 			return err
 		}
 	}
 	return GovernParamNotFound
+}
+
+func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
+	itemList, err := listGovernParamItem(module, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	var paraList []*GovernParam
+	for _, item := range itemList {
+		if value, err := findGovernParamValue(item.Module, item.Name, blockHash); err != nil {
+			return nil, err
+		} else {
+			param := &GovernParam{item, value}
+			paraList = append(paraList, param)
+		}
+	}
+	return paraList, nil
+}
+
+func listGovernParamItem(module string, blockHash common.Hash) ([]*ParamItem, error) {
+	itemBytes, err := get(blockHash, KeyParamItems())
+	if err != nil && err != snapshotdb.ErrNotFound {
+		return nil, err
+	}
+
+	if len(itemBytes) > 0 {
+		var itemList []*ParamItem
+		if err := rlp.DecodeBytes(itemBytes, &itemList); err != nil {
+			return nil, err
+		}
+		return itemList, nil
+	}
+	return nil, nil
 }

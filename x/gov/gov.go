@@ -211,7 +211,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return ActiveVersionError
 	}
 
-	proposal, err := FindVotingProposal(Version, blockHash, blockNumber, state)
+	proposal, err := FindVotingProposal(Version, blockHash, state)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
@@ -376,8 +376,8 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 }
 
 // find a proposal at voting stage
-func FindVotingProposal(proposalType ProposalType, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (Proposal, error) {
-	log.Debug("call FindVotingProposal", "proposalType", proposalType, "blockHash", blockHash, "blockNumber", blockNumber)
+func FindVotingProposal(proposalType ProposalType, blockHash common.Hash, state xcom.StateDB) (Proposal, error) {
+	log.Debug("call FindVotingProposal", "proposalType", proposalType, "blockHash", blockHash)
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting proposal error", "blockHash", blockHash)
@@ -468,29 +468,59 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	return nil
 }
 
-func SetGovernParam(paramName string, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
-	paramItem := ParamItem{"", initValue, activeBlockNumber}
-	return addGovernParam(paramName, paramItem, currentBlockHash)
+type ParamVerifier func(value string) bool
+
+var ParamVerifierMap = make(map[string]ParamVerifier)
+
+func RegGovernParamVerifier(name string, callback ParamVerifier) {
+	ParamVerifierMap[name] = callback
 }
 
-func GetGovernParam(paramName string, blockNumber uint64, blockHash common.Hash) (string, error) {
-	paramItem, err := findGovernParam(paramName, blockHash)
+func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
+	paramValue := &ParamValue{"", initValue, activeBlockNumber}
+	return addGovernParam(module, name, desc, paramValue, currentBlockHash)
+}
+
+func GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
+	paramValue, err := findGovernParamValue(module, name, blockHash)
 	if err != nil {
 		return "", err
 	}
-	if paramItem == nil {
+	if paramValue == nil {
 		return "", GovernParamNotFound
 	} else {
-		if blockNumber >= paramItem.ActiveBlock {
-			return paramItem.Value, nil
+		if blockNumber >= paramValue.ActiveBlock {
+			return paramValue.Value, nil
 		} else {
-			return paramItem.StaleValue, nil
+			return paramValue.StaleValue, nil
 		}
 	}
 }
 
-func UpdateGovernParam(paramName string, newValue string, activeBlock uint64, blockHash common.Hash) error {
-	return updateGovernParam(paramName, newValue, activeBlock, blockHash)
+func UpdateGovernParamValue(module, name string, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	return updateGovernParamValue(module, name, newValue, activeBlock, blockHash)
+}
+
+func ListGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
+	return listGovernParam(module, blockHash)
+}
+
+func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, error) {
+	itemList, err := listGovernParamItem(module, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range itemList {
+		if item.Name == name {
+			if value, err := findGovernParamValue(module, name, blockHash); err != nil {
+				return nil, err
+			} else if value != nil {
+				param := &GovernParam{item, value}
+				return param, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 // check if the node a candidate, and the caller address is same as the staking address

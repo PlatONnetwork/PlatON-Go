@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -599,13 +601,14 @@ func TestGovDB_FindVotingVersionProposal_success(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingVersionProposal(blockHash, statedb); err != nil {
+	if p, err := FindVotingProposal(Version, blockHash, statedb); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
 
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
 	} else {
-		t.Log("find voting proposal ID success", "proposalID", p.ProposalID)
+		vp := p.(*VersionProposal)
+		t.Log("find voting proposal ID success", "proposalID", vp.ProposalID)
 	}
 }
 
@@ -634,13 +637,14 @@ func TestGovDB_FindVotingVersionProposal_NoVersionProposalID(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingVersionProposal(blockHash, statedb); err != nil {
+	if p, err := FindVotingProposal(Version, blockHash, statedb); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
 
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
 	} else {
-		t.Log("find voting proposal ID success", "proposalID", p.ProposalID)
+		vp := p.(*VersionProposal)
+		t.Log("find voting proposal ID success", "proposalID", vp.ProposalID)
 	}
 }
 
@@ -677,7 +681,7 @@ func TestGovDB_FindVotingVersionProposal_DataError(t *testing.T) {
 	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingVersionProposal(blockHash, statedb); err != nil {
+	if p, err := FindVotingProposal(Version, blockHash, statedb); err != nil {
 		if err == ProposalNotFound {
 			t.Log("throw a exception correctly if data error")
 		} else {
@@ -686,7 +690,8 @@ func TestGovDB_FindVotingVersionProposal_DataError(t *testing.T) {
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
 	} else {
-		t.Log("find voting proposal ID success", "proposalID", p.ProposalID)
+		vp := p.(*VersionProposal)
+		t.Log("find voting proposal ID success", "proposalID", vp.ProposalID)
 	}
 }
 
@@ -710,6 +715,26 @@ func TestGovDB_ListActiveVersion(t *testing.T) {
 		t.Fatal("list active version error")
 	} else if len(avList) != 2 {
 		t.Fatal("count of active version error")
+	}
+}
+
+func TestGovDB_AddGovernParam(t *testing.T) {
+	Init()
+	defer snapdbTest.Clear()
+
+	if err := addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, common.Hash{0x1}); err != nil {
+		t.Fatalf("add govern param error...%s", err)
+	}
+}
+
+func TestGovDB_FindGovernParamValue(t *testing.T) {
+	Init()
+	defer snapdbTest.Clear()
+
+	if item, err := findGovernParamValue("PPOS", "testName1", common.Hash{0x1}); err != nil {
+		t.Fatalf("add govern param error...%s", err)
+	} else if item.Value == "initValue" {
+		assert.Equal(t, "initValue", item.Value, "error")
 	}
 }
 

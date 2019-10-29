@@ -29,8 +29,9 @@ const (
 	GetResult             = uint16(2101)
 	ListProposal          = uint16(2102)
 	GetActiveVersion      = uint16(2103)
-	GetGovernParam        = uint16(2104)
+	GetGovernParamValue   = uint16(2104)
 	GetAccuVerifiersCount = uint16(2105)
+	ListGovernParam       = uint16(2106)
 )
 
 var (
@@ -66,8 +67,9 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		GetResult:             gc.getTallyResult,
 		ListProposal:          gc.listProposal,
 		GetActiveVersion:      gc.getActiveVersion,
-		GetGovernParam:        gc.getGovernParam,
+		GetGovernParamValue:   gc.getGovernParamValue,
 		GetAccuVerifiersCount: gc.getAccuVerifiersCount,
+		ListGovernParam:       gc.listGovernParam,
 	}
 }
 
@@ -200,7 +202,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
 }
 
-func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, paramName, newValue string, endVotingEpochRounds uint64) ([]byte, error) {
+func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, module, name, newValue string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash
@@ -212,9 +214,9 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, param
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
 		"verifierID", verifier.TerminalString(),
-		"paramName", paramName,
-		"newValue", newValue,
-		"endVotingEpochRounds", endVotingEpochRounds)
+		"module", module,
+		"name", name,
+		"newValue", newValue)
 
 	if txHash == common.ZeroHash {
 		log.Warn("current txHash is empty!!")
@@ -225,14 +227,14 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, param
 		return nil, ErrOutOfGas
 	}
 	p := &gov.ParamProposal{
-		PIPID:                pipID,
-		ProposalType:         gov.Text,
-		SubmitBlock:          blockNumber,
-		ProposalID:           txHash,
-		Proposer:             verifier,
-		ParamName:            paramName,
-		NewValue:             newValue,
-		EndVotingEpochRounds: endVotingEpochRounds,
+		PIPID:        pipID,
+		ProposalType: gov.Text,
+		SubmitBlock:  blockNumber,
+		ProposalID:   txHash,
+		Proposer:     verifier,
+		Module:       module,
+		Name:         name,
+		NewValue:     newValue,
 	}
 	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
 	return gc.nonCallHandler("submitParam", SubmitText, err)
@@ -398,20 +400,36 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 	return gc.callHandler("getAccuVerifiesCount", returnValue, nil)
 }
 
-// getGovernParam returns the govern parameter's value in current block.
-func (gc *GovContract) getGovernParam(paramName string) ([]byte, error) {
+// getGovernParamValue returns the govern parameter's value in current block.
+func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.BlockNumber.Uint64()
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
-	log.Debug("call getGovernParam of GovContract",
+	log.Debug("call getGovernParamValue of GovContract",
 		"from", from.Hex(),
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	proposal, err := gov.GetGovernParam(paramName, blockNumber, blockHash)
+	value, err := gov.GetGovernParamValue(module, name, blockNumber, blockHash)
 
-	return gc.callHandler("getGovernParam", proposal, err)
+	return gc.callHandler("getGovernParamValue", value, err)
+}
+
+// listGovernParam returns the module's govern parameters; if module is empty, return all govern parameters
+func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockHash := gc.Evm.BlockHash
+	txHash := gc.Evm.StateDB.TxHash()
+	log.Debug("call listGovernParam of GovContract",
+		"from", from.Hex(),
+		"txHash", txHash,
+		"blockNumber", blockNumber)
+
+	paramList, err := gov.ListGovernParam(module, blockHash)
+
+	return gc.callHandler("listGovernParam", paramList, err)
 }
 
 func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) ([]byte, error) {
