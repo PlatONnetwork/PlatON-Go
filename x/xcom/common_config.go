@@ -61,17 +61,17 @@ type slashingConfig struct {
 }
 
 type governanceConfig struct {
-	VersionProposalVote_DurationSeconds   uint64  // voting duration, it will count into Consensus-Round.
-	VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
-	VersionProposal_SupportRate           float64 // the version proposal will pass if the support rate exceeds this value.
-	TextProposalVote_DurationSeconds      uint64  // voting duration, it will count into Consensus-Round.
-	TextProposal_VoteRate                 float64 // the text proposal will pass if the vote rate exceeds this value.
-	TextProposal_SupportRate              float64 // the text proposal will pass if the vote support reaches this value.
-	CancelProposal_VoteRate               float64 // the cancel proposal will pass if the vote rate exceeds this value.
-	CancelProposal_SupportRate            float64 // the cancel proposal will pass if the vote support reaches this value.
-	ParamProposalVote_DurationSeconds     uint64  // voting duration, it will count into Epoch Round.
-	ParamProposal_VoteRate                float64 // the param proposal will pass if the vote rate exceeds this value.
-	ParamProposal_SupportRate             float64 // the param proposal will pass if the vote support reaches this value.
+	VersionProposalVote_DurationSeconds uint64 // voting duration, it will count into Consensus-Round.
+	//VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
+	VersionProposal_SupportRate       float64 // the version proposal will pass if the support rate exceeds this value.
+	TextProposalVote_DurationSeconds  uint64  // voting duration, it will count into Consensus-Round.
+	TextProposal_VoteRate             float64 // the text proposal will pass if the vote rate exceeds this value.
+	TextProposal_SupportRate          float64 // the text proposal will pass if the vote support reaches this value.
+	CancelProposal_VoteRate           float64 // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposal_SupportRate        float64 // the cancel proposal will pass if the vote support reaches this value.
+	ParamProposalVote_DurationSeconds uint64  // voting duration, it will count into Epoch Round.
+	ParamProposal_VoteRate            float64 // the param proposal will pass if the vote rate exceeds this value.
+	ParamProposal_SupportRate         float64 // the param proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
@@ -155,17 +155,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:             uint32(27),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds:   uint64(14 * 24 * 3600),
-				VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_DurationSeconds:      uint64(14 * 24 * 3600),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
-				ParamProposalVote_DurationSeconds:     uint64(14 * 24 * 3600),
-				ParamProposal_VoteRate:                float64(0.50),
-				ParamProposal_SupportRate:             float64(0.667),
+				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				//VersionProposalActive_ConsensusRounds: uint64(5),
+				VersionProposal_SupportRate:       float64(0.667),
+				TextProposalVote_DurationSeconds:  uint64(14 * 24 * 3600),
+				TextProposal_VoteRate:             float64(0.50),
+				TextProposal_SupportRate:          float64(0.667),
+				CancelProposal_VoteRate:           float64(0.50),
+				CancelProposal_SupportRate:        float64(0.667),
+				ParamProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposal_VoteRate:            float64(0.50),
+				ParamProposal_SupportRate:         float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -202,17 +202,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds:   uint64(160),
-				VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_DurationSeconds:      uint64(160),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
-				ParamProposalVote_DurationSeconds:     uint64(14 * 24 * 3600),
-				ParamProposal_VoteRate:                float64(0.50),
-				ParamProposal_SupportRate:             float64(0.667),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalActive_ConsensusRounds: uint64(5),
+				VersionProposal_SupportRate:       float64(0.667),
+				TextProposalVote_DurationSeconds:  uint64(160),
+				TextProposal_VoteRate:             float64(0.50),
+				TextProposal_SupportRate:          float64(0.667),
+				CancelProposal_VoteRate:           float64(0.50),
+				CancelProposal_SupportRate:        float64(0.667),
+				ParamProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposal_VoteRate:            float64(0.50),
+				ParamProposal_SupportRate:         float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -250,17 +250,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				EvidenceValidEpoch:             uint32(1),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds:   uint64(160),
-				VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposal_SupportRate:           float64(0.667),
-				TextProposalVote_DurationSeconds:      uint64(160),
-				TextProposal_VoteRate:                 float64(0.50),
-				TextProposal_SupportRate:              float64(0.667),
-				CancelProposal_VoteRate:               float64(0.50),
-				CancelProposal_SupportRate:            float64(0.667),
-				ParamProposalVote_DurationSeconds:     uint64(14 * 24 * 3600),
-				ParamProposal_VoteRate:                float64(0.50),
-				ParamProposal_SupportRate:             float64(0.667),
+				VersionProposalVote_DurationSeconds: uint64(160),
+				//VersionProposalActive_ConsensusRounds: uint64(5),
+				VersionProposal_SupportRate:       float64(0.667),
+				TextProposalVote_DurationSeconds:  uint64(160),
+				TextProposal_VoteRate:             float64(0.50),
+				TextProposal_SupportRate:          float64(0.667),
+				CancelProposal_VoteRate:           float64(0.50),
+				CancelProposal_SupportRate:        float64(0.667),
+				ParamProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposal_VoteRate:            float64(0.50),
+				ParamProposal_SupportRate:         float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -467,9 +467,9 @@ func VersionProposalVote_DurationSeconds() uint64 {
 	return ec.Gov.VersionProposalVote_DurationSeconds
 }
 
-func VersionProposalActive_ConsensusRounds() uint64 {
+/*func VersionProposalActive_ConsensusRounds() uint64 {
 	return ec.Gov.VersionProposalActive_ConsensusRounds
-}
+}*/
 
 func VersionProposal_SupportRate() float64 {
 	return ec.Gov.VersionProposal_SupportRate

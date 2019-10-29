@@ -200,7 +200,8 @@ func CalEndVotingBlockForParamProposal(blockNumber uint64, endVotingEpochRounds 
 
 // active-block = the begin of a consensus period, so, it is possible that active-block also is the begin of a epoch.
 func CalActiveBlock(endVotingBlock uint64) uint64 {
-	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
+	//return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
+	return endVotingBlock + xcom.ElectionDistance() + 1
 }
 
 func IsSpecialBlock(blockNumber uint64) bool {
