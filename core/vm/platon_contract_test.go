@@ -317,82 +317,108 @@ func build_staking_data(genesisHash common.Hash) {
 
 	var blsKey1 bls.SecretKey
 	blsKey1.SetByCSPRNG()
+	var blsKeyHex1 bls.PublicKeyHex
+	b1, _ := blsKey1.GetPublicKey().MarshalText()
+	if err := blsKeyHex1.UnmarshalText(b1); nil != err {
+		log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+		return
+	}
 	c1 := &staking.Candidate{
-		NodeId:             nodeId_A,
-		BlsPubKey:          *blsKey1.GetPublicKey(),
-		StakingAddress:     sender,
-		BenefitAddress:     addrArr[0],
-		StakingTxIndex:     uint32(2),
-		ProgramVersion:     uint32(1),
-		Status:             staking.Valided,
-		StakingEpoch:       uint32(1),
-		StakingBlockNum:    uint64(1),
-		Shares:             common.Big256,
-		Released:           common.Big2,
-		ReleasedHes:        common.Big32,
-		RestrictingPlan:    common.Big1,
-		RestrictingPlanHes: common.Big257,
-		Description: staking.Description{
-			ExternalId: "xxccccdddddddd",
-			NodeName:   "I Am " + fmt.Sprint(1),
-			Website:    "www.baidu.com",
-			Details:    "this is  baidu ~~",
+		CandidateBase: &staking.CandidateBase{
+			NodeId:          nodeId_A,
+			BlsPubKey:       blsKeyHex1,
+			StakingAddress:  sender,
+			BenefitAddress:  addrArr[0],
+			StakingTxIndex:  uint32(2),
+			ProgramVersion:  uint32(1),
+			StakingBlockNum: uint64(1),
+			Description: staking.Description{
+				ExternalId: "xxccccdddddddd",
+				NodeName:   "I Am " + fmt.Sprint(1),
+				Website:    "www.baidu.com",
+				Details:    "this is  baidu ~~",
+			},
+		},
+		CandidateMutable: &staking.CandidateMutable{
+			Status:             staking.Valided,
+			StakingEpoch:       uint32(1),
+			Shares:             common.Big256,
+			Released:           common.Big2,
+			ReleasedHes:        common.Big32,
+			RestrictingPlan:    common.Big1,
+			RestrictingPlanHes: common.Big257,
 		},
 	}
 
 	var blsKey2 bls.SecretKey
 	blsKey2.SetByCSPRNG()
+	var blsKeyHex2 bls.PublicKeyHex
+	b2, _ := blsKey2.GetPublicKey().MarshalText()
+	if err := blsKeyHex2.UnmarshalText(b2); nil != err {
+		log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+		return
+	}
 	c2 := &staking.Candidate{
-		NodeId:             nodeId_B,
-		BlsPubKey:          *blsKey2.GetPublicKey(),
-		StakingAddress:     sender,
-		BenefitAddress:     addrArr[1],
-		StakingTxIndex:     uint32(3),
-		ProgramVersion:     uint32(1),
-		Status:             staking.Valided,
-		StakingEpoch:       uint32(1),
-		StakingBlockNum:    uint64(1),
-		Shares:             common.Big256,
-		Released:           common.Big2,
-		ReleasedHes:        common.Big32,
-		RestrictingPlan:    common.Big1,
-		RestrictingPlanHes: common.Big257,
-		Description: staking.Description{
-			ExternalId: "SFSFSFSFSFSFSSFS",
-			NodeName:   "I Am " + fmt.Sprint(2),
-			Website:    "www.JD.com",
-			Details:    "this is  JD ~~",
+		CandidateBase: &staking.CandidateBase{
+			NodeId:          nodeId_B,
+			BlsPubKey:       blsKeyHex2,
+			StakingAddress:  sender,
+			BenefitAddress:  addrArr[1],
+			StakingTxIndex:  uint32(3),
+			ProgramVersion:  uint32(1),
+			StakingBlockNum: uint64(1),
+			Description: staking.Description{
+				ExternalId: "SFSFSFSFSFSFSSFS",
+				NodeName:   "I Am " + fmt.Sprint(2),
+				Website:    "www.JD.com",
+				Details:    "this is  JD ~~",
+			},
+		},
+		CandidateMutable: &staking.CandidateMutable{
+			Status:             staking.Valided,
+			StakingEpoch:       uint32(1),
+			Shares:             common.Big256,
+			Released:           common.Big2,
+			ReleasedHes:        common.Big32,
+			RestrictingPlan:    common.Big1,
+			RestrictingPlanHes: common.Big257,
 		},
 	}
 
 	var blsKey3 bls.SecretKey
 	blsKey3.SetByCSPRNG()
+	var blsKeyHex3 bls.PublicKeyHex
+	b3, _ := blsKey3.GetPublicKey().MarshalText()
+	if err := blsKeyHex3.UnmarshalText(b3); nil != err {
+		log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+		return
+	}
 	c3 := &staking.Candidate{
-		NodeId:             nodeId_C,
-		BlsPubKey:          *blsKey3.GetPublicKey(),
-		StakingAddress:     sender,
-		BenefitAddress:     addrArr[2],
-		StakingTxIndex:     uint32(4),
-		ProgramVersion:     uint32(1),
-		Status:             staking.Valided,
-		StakingEpoch:       uint32(1),
-		StakingBlockNum:    uint64(1),
-		Shares:             common.Big256,
-		Released:           common.Big2,
-		ReleasedHes:        common.Big32,
-		RestrictingPlan:    common.Big1,
-		RestrictingPlanHes: common.Big257,
-		Description: staking.Description{
-			ExternalId: "FWAGGDGDGG",
-			NodeName:   "I Am " + fmt.Sprint(3),
-			Website:    "www.alibaba.com",
-			Details:    "this is  alibaba ~~",
+		CandidateBase: &staking.CandidateBase{
+			NodeId:          nodeId_C,
+			BlsPubKey:       blsKeyHex3,
+			StakingAddress:  sender,
+			BenefitAddress:  addrArr[2],
+			StakingTxIndex:  uint32(4),
+			ProgramVersion:  uint32(1),
+			StakingBlockNum: uint64(1),
+			Description: staking.Description{
+				ExternalId: "FWAGGDGDGG",
+				NodeName:   "I Am " + fmt.Sprint(3),
+				Website:    "www.alibaba.com",
+				Details:    "this is  alibaba ~~",
+			},
+		},
+		CandidateMutable: &staking.CandidateMutable{
+			Status:             staking.Valided,
+			StakingEpoch:       uint32(1),
+			Shares:             common.Big256,
+			Released:           common.Big2,
+			ReleasedHes:        common.Big32,
+			RestrictingPlan:    common.Big1,
+			RestrictingPlanHes: common.Big257,
 		},
 	}
-
-	//canArr = append(canArr, c1)
-	//canArr = append(canArr, c2)
-	//canArr = append(canArr, c3)
 
 	stakingDB.SetCanPowerStore(blockHash, addr_A, c1)
 	stakingDB.SetCanPowerStore(blockHash, addr_B, c2)
@@ -405,27 +431,36 @@ func build_staking_data(genesisHash common.Hash) {
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		NodeAddress:   addr_A,
-		NodeId:        c1.NodeId,
-		BlsPubKey:     c1.BlsPubKey,
-		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
-		ValidatorTerm: 0,
+		NodeAddress:     addr_A,
+		NodeId:          c1.NodeId,
+		BlsPubKey:       c1.BlsPubKey,
+		ProgramVersion:  c1.ProgramVersion,
+		Shares:          c1.Shares,
+		StakingBlockNum: c1.StakingBlockNum,
+		StakingTxIndex:  c1.StakingTxIndex,
+		ValidatorTerm:   0,
 	}
 
 	v2 := &staking.Validator{
-		NodeAddress:   addr_B,
-		NodeId:        c2.NodeId,
-		BlsPubKey:     c2.BlsPubKey,
-		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
-		ValidatorTerm: 0,
+		NodeAddress:     addr_B,
+		NodeId:          c2.NodeId,
+		BlsPubKey:       c2.BlsPubKey,
+		ProgramVersion:  c2.ProgramVersion,
+		Shares:          c2.Shares,
+		StakingBlockNum: c2.StakingBlockNum,
+		StakingTxIndex:  c2.StakingTxIndex,
+		ValidatorTerm:   0,
 	}
 
 	v3 := &staking.Validator{
-		NodeAddress:   addr_C,
-		NodeId:        c3.NodeId,
-		BlsPubKey:     c3.BlsPubKey,
-		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
-		ValidatorTerm: 0,
+		NodeAddress:     addr_C,
+		NodeId:          c3.NodeId,
+		BlsPubKey:       c3.BlsPubKey,
+		ProgramVersion:  c3.ProgramVersion,
+		Shares:          c3.Shares,
+		StakingBlockNum: c3.StakingBlockNum,
+		StakingTxIndex:  c3.StakingTxIndex,
+		ValidatorTerm:   0,
 	}
 
 	queue = append(queue, v1)
@@ -531,26 +566,37 @@ func build_staking_data_more(block uint64) {
 
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
-		canTmp := &staking.Candidate{
-			NodeId:          nodeId,
-			BlsPubKey:       *blsKey.GetPublicKey(),
-			StakingAddress:  sender,
-			BenefitAddress:  addr,
-			StakingBlockNum: uint64(1),
-			StakingTxIndex:  uint32(i + 1),
-			Shares:          balance,
-			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-			// Prevent null pointer initialization
-			Released:           common.Big0,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
+		var blsKeyHex bls.PublicKeyHex
+		b, _ := blsKey.GetPublicKey().MarshalText()
+		if err := blsKeyHex.UnmarshalText(b); nil != err {
+			log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+			return
+		}
 
-			Description: staking.Description{
-				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
-				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
-				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
-				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+		canTmp := &staking.Candidate{
+			CandidateBase: &staking.CandidateBase{
+				NodeId:          nodeId,
+				BlsPubKey:       blsKeyHex,
+				StakingAddress:  sender,
+				BenefitAddress:  addr,
+				StakingBlockNum: uint64(1),
+				StakingTxIndex:  uint32(i + 1),
+				ProgramVersion:  xutil.CalcVersion(initProgramVersion),
+
+				Description: staking.Description{
+					NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+					ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+					Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+					Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+				},
+			},
+			CandidateMutable: &staking.CandidateMutable{
+				Shares: balance,
+				// Prevent null pointer initialization
+				Released:           common.Big0,
+				ReleasedHes:        common.Big0,
+				RestrictingPlan:    common.Big0,
+				RestrictingPlanHes: common.Big0,
 			},
 		}
 
@@ -560,12 +606,14 @@ func build_staking_data_more(block uint64) {
 		stakingDB.SetCandidateStore(hash, canAddr, canTmp)
 
 		v := &staking.Validator{
-			NodeAddress: canAddr,
-			NodeId:      canTmp.NodeId,
-			BlsPubKey:   canTmp.BlsPubKey,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
-				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
-			ValidatorTerm: 0,
+			NodeAddress:     canAddr,
+			NodeId:          canTmp.NodeId,
+			BlsPubKey:       canTmp.BlsPubKey,
+			ProgramVersion:  canTmp.ProgramVersion,
+			Shares:          canTmp.Shares,
+			StakingBlockNum: canTmp.StakingBlockNum,
+			StakingTxIndex:  canTmp.StakingTxIndex,
+			ValidatorTerm:   0,
 		}
 		validatorArr = append(validatorArr, v)
 	}
