@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"time"
 
@@ -1083,11 +1082,9 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 	if block == nil {
 		return nil, err;
 	}
-	xcom.PrintObject("rpcGetTransactionByBlock, query block data:", block)
 
 	queue := make([]map[string]interface{}, len(block.Transactions()))
 	for key, value := range block.Transactions() {
-		log.Debug("rpcGetTransactionByBlock, query tx ","txHash:",value.Hash())
 		tx, blockHash, blockNumber, index := rawdb.ReadTransaction(s.b.ChainDb(), value.Hash())
 		if tx == nil {
 			log.Error("rpcGetTransactionByBlock, get tx error","blockHash:",blockHash,"blockNumber:",blockNumber,"index:",index)
@@ -1106,7 +1103,17 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 
 		//var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
 		//from, _ := types.Sender(signer, tx)
-
+		rb := types.ReceiptBlock{
+			Logs:make([]*types.LogBlock, len(receipt.Logs)),
+		}
+		for logIndex, logsValue := range receipt.Logs {
+			tb := &types.LogBlock{
+				Data : hexutil.Encode(logsValue.Data),
+				Index : logsValue.Index,
+				Removed : logsValue.Removed,
+			}
+			rb.Logs[logIndex] = tb
+		}
 		fields := map[string]interface{}{
 			//"blockHash":         blockHash,
 			//"blockNumber":       hexutil.Uint64(blockNumber),
@@ -1117,16 +1124,16 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			"gasUsed":           hexutil.Uint64(receipt.GasUsed),
 			//"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
 			//"contractAddress":   nil,
-			"logs":              receipt.Logs,
+			"logs":              rb.Logs,
 			//"logsBloom":         receipt.Bloom,
 		}
 
 		// Assign receipt status or post state.
-		if len(receipt.PostState) > 0 {
+		//if len(receipt.PostState) > 0 {
 			//fields["root"] = hexutil.Bytes(receipt.PostState)
-		} else {
+		//} else {
 			fields["status"] = hexutil.Uint(receipt.Status)
-		}
+		//}
 		if receipt.Logs == nil {
 			fields["logs"] = [][]*types.Log{}
 		}
@@ -1136,7 +1143,6 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 		//}
 		queue[key] = fields;
 	}
-	xcom.PrintObject("rpcGetTransactionByBlock,get block transaction return:", queue)
 	return queue, nil
 }
 
