@@ -32,6 +32,8 @@ func (s *snapshotDB) schedule() {
 		if atomic.CompareAndSwapInt32(&s.snapshotLockC, snapshotUnLock, snapshotLock) {
 			if err := s.Compaction(); err != nil {
 				logger.Error("compaction fail", "err", err)
+				s.dbError = err
+				s.corn.Stop()
 			}
 			counter.reset()
 			atomic.StoreInt32(&s.snapshotLockC, snapshotUnLock)

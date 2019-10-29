@@ -447,7 +447,7 @@ func copyDb(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1))
+	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(1), ctx.GlobalInt(utils.CacheFlag.Name), 256)
 	if err != nil {
 		return err
 	}
