@@ -24,7 +24,7 @@ var (
 
 func Init() {
 	snapdbTest = snapshotdb.Instance()
-	c := mock.NewChain(nil)
+	c := mock.NewChain()
 	statedb = c.StateDB
 }
 
