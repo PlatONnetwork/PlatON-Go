@@ -238,15 +238,7 @@ type CandidateMutable struct {
 
 func (can *CandidateMutable) String() string {
 	return fmt.Sprintf(`
-	{
-		"Status": %d, 
-		"StakingEpoch": %d,
-		"Shares": %d,
-		"Released": %d,
-		"ReleasedHes": %d,
-		"RestrictingPlan": %d,
-		"RestrictingPlanHes": %d,
-	}`,
+	{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
@@ -527,16 +519,7 @@ type Validator struct {
 
 func (val *Validator) String() string {
 	return fmt.Sprintf(`
-	{
-		"NodeId": "%s", 
-		"NodeAddress": "%s",
-		"BlsPubKey": "%s", 
-		"ProgramVersion": %d, 
-		"Shares": %d,
-		"StakingBlockNum": %d,
-		"StakingTxIndex": %d,
-		"ValidatorTerm": %d
-	}`,
+	{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
 		val.NodeId.String(),
 		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
 		fmt.Sprintf("%x", val.BlsPubKey.Bytes()),
@@ -545,7 +528,6 @@ func (val *Validator) String() string {
 		val.StakingBlockNum,
 		val.StakingTxIndex,
 		val.ValidatorTerm)
-	/*fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),*/
 }
 
 type ValidatorQueue []*Validator
@@ -905,6 +887,10 @@ type ValidatorArray struct {
 	Arr ValidatorQueue
 }
 
+func (v ValidatorArray) String() string {
+	return fmt.Sprintf(`{"Start": %d, "End": %d, "Arr": %+v}`, v.Start, v.End, v.Arr)
+}
+
 type ValidatorEx struct {
 	//NodeAddress common.Address
 	NodeId discover.NodeID
@@ -1137,6 +1123,10 @@ type UnStakeItem struct {
 type ValArrIndex struct {
 	Start uint64
 	End   uint64
+}
+
+func (vindex *ValArrIndex) String() string {
+	return fmt.Sprintf(`{"Start": %d, "End": %d}`, vindex.Start, vindex.End)
 }
 
 type ValArrIndexQueue []*ValArrIndex

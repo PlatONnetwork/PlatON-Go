@@ -2,7 +2,6 @@ package vm
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strconv"
 
@@ -437,9 +436,9 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 	var event = strconv.Itoa(int(fcode))
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receit := fmt.Sprint(bizErr.Code)
+			receit := strconv.Itoa(int(bizErr.Code))
 			xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, receit)
-			log.Warn("Execute GovContract failed.(Business error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
+			log.Error("Execute GovContract failed.(Business error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
 				"txHash", gc.Evm.StateDB.TxHash(), "receipt", receit, "reason", bizErr.Msg)
 			return []byte(receit), nil
 		} else {
@@ -448,9 +447,7 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 			return nil, err
 		}
 	} else {
-		log.Debug("Execute GovContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
-			"txHash", gc.Evm.StateDB.TxHash())
-		receipt := fmt.Sprint(common.NoErr.Code)
+		receipt := strconv.Itoa(int(common.NoErr.Code))
 		xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, receipt)
 		return []byte(receipt), nil
 	}

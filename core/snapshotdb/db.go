@@ -7,10 +7,8 @@ import (
 	"io"
 	"math/big"
 	"path"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 )
@@ -190,12 +188,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		return errors.New("can't put read only block")
 	}
 
-	start := time.Now()
-
 	block.kvHash = s.generateKVHash(key, value, block.kvHash)
-
-	nanodura := time.Since(start).Nanoseconds()
-	log.Info("Call delegate, generateKVHash", "duration", nanodura)
 
 	if err := block.data.Put(key, value); err != nil {
 		s.unCommit.Unlock()

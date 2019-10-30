@@ -3,7 +3,6 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"strconv"
 
@@ -60,8 +59,8 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 	blockHash := sc.Evm.BlockHash
 	from := sc.Contract.CallerAddress
 
-	log.Info("Call ReportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"TxHash", txHash.Hex(), "from", from.Hex())
+	//log.Debug("Call ReportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+	//	"TxHash", txHash.Hex(), "from", from.Hex())
 
 	if !sc.Contract.UseGas(params.ReportDuplicateSignGas) {
 		return nil, ErrOutOfGas
@@ -79,7 +78,7 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 		return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, common.InvalidParameter.Wrap(err.Error())), nil
 	}
 
-	if err := sc.Plugin.Slash(evidence, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, from); nil != err {
+	if err := sc.Plugin.Slash(evidence, blockHash, blockNumber.Uint64(), sc.Evm.StateDB, from); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, bizErr), nil
 		} else {
@@ -108,11 +107,9 @@ func (sc *SlashingContract) buildReceipt(eventType int, callFn string, ok bool, 
 	var receipt string
 	blockNumber := sc.Evm.BlockNumber.Uint64()
 	if ok {
-		receipt = fmt.Sprint(common.NoErr.Code)
-		log.Info("Call "+callFn+" of slashingContract", "txHash", sc.Evm.StateDB.TxHash().Hex(),
-			"blockNumber", blockNumber, "receipt: ", receipt)
+		receipt = strconv.Itoa(int(common.NoErr.Code))
 	} else {
-		receipt = fmt.Sprint(err.Code)
+		receipt = strconv.Itoa(int(err.Code))
 		log.Error("Failed to "+callFn+" of slashingContract", "txHash", sc.Evm.StateDB.TxHash().Hex(),
 			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", err.Msg)
 	}
@@ -125,7 +122,7 @@ func (sc *SlashingContract) buildResult(callFn, data string, success bool, err *
 	blockNumber := sc.Evm.BlockNumber.Uint64()
 	if success {
 		result = xcom.OkResult(data)
-		log.Info("Call "+callFn+" of slashingContract", "txHash", sc.Evm.StateDB.TxHash().Hex(),
+		log.Debug("Call "+callFn+" of slashingContract", "txHash", sc.Evm.StateDB.TxHash().Hex(),
 			"blockNumber", blockNumber, "json: ", string(result))
 	} else {
 		result = xcom.FailResult(err)

@@ -81,11 +81,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 
-	/*// todo test
-	root := statedb.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, On StateProcessor", "blockNumber",
-		block.Number().Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", statedb))*/
-
 	if bcr != nil {
 		// EndBlocker()
 		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
@@ -94,12 +89,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, err
 		}
 	}
-
-	/*// TODO test
-	for _, r := range receipts {
-		rbyte, _ := json.Marshal(r.Logs)
-		log.Info("Print receipt log on StateProcessor, Before finalize", "blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "log", string(rbyte))
-	}*/
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
