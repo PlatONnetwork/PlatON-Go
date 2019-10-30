@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -59,6 +61,19 @@ func buildSubmitText(nodeID discover.NodeID, pipID string) []byte {
 	return common.MustRlpEncode(input)
 }
 
+func buildSubmitParam(nodeID discover.NodeID, pipID string, module, name, newValue string) []byte {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2002))) // func type code
+	input = append(input, common.MustRlpEncode(nodeID))       // param 1 ...
+	input = append(input, common.MustRlpEncode(pipID))
+	input = append(input, common.MustRlpEncode(module))
+	input = append(input, common.MustRlpEncode(name))
+	input = append(input, common.MustRlpEncode(newValue))
+
+	return common.MustRlpEncode(input)
+}
+
 func buildSubmitVersionInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
@@ -66,7 +81,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(xcom.VersionProposalVote_ConsensusRounds()))
+	input = append(input, common.MustRlpEncode(xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())))
 
 	return common.MustRlpEncode(input)
 }
@@ -89,7 +104,7 @@ func buildSubmitCancelInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
-	input = append(input, common.MustRlpEncode(xcom.VersionProposalVote_ConsensusRounds()-1))
+	input = append(input, common.MustRlpEncode(xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1))
 	input = append(input, common.MustRlpEncode(txHashArr[2]))
 	return common.MustRlpEncode(input)
 }
@@ -241,6 +256,7 @@ func setup(t *testing.T) {
 	build_staking_data(genesis.Hash())
 
 	sndb = snapshotdb.Instance()
+
 }
 
 func clear(t *testing.T) {
@@ -254,7 +270,7 @@ func TestGovContract_SubmitText(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(false, gc, buildSubmitTextInput(), t)
 }
 
 func TestGovContract_GetTextProposal(t *testing.T) {
@@ -266,10 +282,10 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	//submit a proposal and get it, this tx hash = txHashArr[2]
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(false, gc, buildSubmitTextInput(), t)
 
 	// get the Proposal by txHashArr[2]
-	runGovContract(gc, buildGetProposalInput(2), t)
+	runGovContract(true, gc, buildGetProposalInput(2), t)
 }
 
 func TestGovContract_SubmitText_Sender_wrong(t *testing.T) {
@@ -280,7 +296,7 @@ func TestGovContract_SubmitText_Sender_wrong(t *testing.T) {
 
 	gc.Contract.CallerAddress = anotherSender
 
-	runGovContract(gc, buildSubmitTextInput(), t, gov.TxSenderDifferFromStaking)
+	runGovContract(false, gc, buildSubmitTextInput(), t, gov.TxSenderDifferFromStaking)
 }
 
 func TestGovContract_SubmitText_PIPID_empty(t *testing.T) {
@@ -289,7 +305,7 @@ func TestGovContract_SubmitText_PIPID_empty(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitText(nodeIdArr[1], ""), t, gov.PIPIDEmpty)
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], ""), t, gov.PIPIDEmpty)
 }
 
 func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
@@ -298,9 +314,9 @@ func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
 
-	runGovContract(gc, buildSubmitText(nodeIdArr[1], "pipid1"), t, gov.PIPIDExist)
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t, gov.PIPIDExist)
 }
 
 func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
@@ -309,7 +325,28 @@ func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitText(discover.ZeroNodeID, "pipid1"), t, gov.ProposerEmpty)
+	runGovContract(false, gc, buildSubmitText(discover.ZeroNodeID, "pipid1"), t, gov.ProposerEmpty)
+}
+
+func TestGovContract_SubmitParam(t *testing.T) {
+	/*	setup(t)
+		defer clear(t)
+
+		chain := mock.NewChain()
+		//增加一个块
+		chain.AddBlock()
+
+		blockNumber := chain.CurrentHeader().Number.Uint64()
+		blockHash := chain.CurrentHeader().Hash()
+
+		if err := gov.SetGovernParam("PPOS", "paramName", "paramDesc", "initValue", blockNumber, blockHash); err != nil {
+			t.Error("error", err)
+		}
+
+		//增加一个块
+		chain.AddBlock()
+		runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", "PPOS", "paramName", "newValue"), t)
+	*/
 }
 
 func TestGovContract_SubmitVersion(t *testing.T) {
@@ -318,7 +355,7 @@ func TestGovContract_SubmitVersion(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {
@@ -331,9 +368,9 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
-	runGovContract(gc, buildGetProposalInput(2), t)
+	runGovContract(true, gc, buildGetProposalInput(2), t)
 }
 
 func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
@@ -343,19 +380,17 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xcom.VersionProposalVote_ConsensusRounds()), t)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t)
 
 	sndb.Commit(lastBlockHash)
-	sndb.Compaction()
 
 	buildBlockNoCommit(2)
 
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.VotingVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.VotingVersionProposalExist)
 
 	sndb.Commit(lastBlockHash) //commit
-	sndb.Compaction()          //write to level db
 
 }
 
@@ -367,7 +402,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -421,7 +456,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.PreActiveVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, 4), t, gov.PreActiveVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
@@ -430,7 +465,7 @@ func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), 4), t, gov.NewVersionError)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), 4), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
@@ -439,7 +474,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 0), t, gov.EndVotingRoundsTooSmall)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 0), t, gov.EndVotingRoundsTooSmall)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
@@ -449,7 +484,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	buildBlock2()
 
 	//the default rounds is 6 for developer test net
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 55), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 55), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_Float(t *testing.T) {
@@ -466,7 +501,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 	state := gc.Evm.StateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[2], blockHash2, 0)
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
@@ -474,7 +509,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(initProgramVersion))
 
-	runGovContract(gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t)
+	runGovContract(false, gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -492,11 +527,11 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *te
 	buildBlock2()
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
-	runGovContract(gc, buildDeclareInput(), t)
+	runGovContract(false, gc, buildDeclareInput(), t)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -514,7 +549,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 	buildBlock2()
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
@@ -523,7 +558,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
-	runGovContract(gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
+	runGovContract(false, gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
 
 }
 
@@ -537,19 +572,19 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
-	runGovContract(gc, buildVoteInput(0, 2), t)
+	runGovContract(false, gc, buildVoteInput(0, 2), t)
 
 	/*var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(initProgramVersion))*/
 
 	//declare new version
-	runGovContract(gc, buildDeclare(nodeIdArr[0], promoteVersion, versionSign), t)
+	runGovContract(false, gc, buildDeclare(nodeIdArr[0], promoteVersion, versionSign), t)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -568,19 +603,19 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareActiveVersion_ERROR
 	buildBlock2()
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
-	runGovContract(gc, buildVoteInput(0, 2), t)
+	runGovContract(false, gc, buildVoteInput(0, 2), t)
 
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(initProgramVersion))
 
 	//declare old version
-	runGovContract(gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t, gov.DeclareVersionError)
+	runGovContract(false, gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t, gov.DeclareVersionError)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -598,20 +633,20 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 	buildBlock2()
 
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
 	//vote new version
-	runGovContract(gc, buildVoteInput(0, 2), t)
+	runGovContract(false, gc, buildVoteInput(0, 2), t)
 
 	otherVersion := uint32(1<<16 | 3<<8 | 0)
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
 	//declare other version
-	runGovContract(gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
+	runGovContract(false, gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -630,10 +665,10 @@ func TestGovContract_SubmitCancel(t *testing.T) {
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	buildBlock3()
-	runGovContract(gc, buildSubmitCancelInput(), t)
+	runGovContract(false, gc, buildSubmitCancelInput(), t)
 
 }
 
@@ -644,18 +679,18 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal
-	runGovContract(gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xcom.VersionProposalVote_ConsensusRounds()), t)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t)
 
 	buildBlockNoCommit(1)
 	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 1)
 	//submit a proposal
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xcom.VersionProposalVote_ConsensusRounds()-1, txHashArr[0]), t)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[0]), t)
 
 	buildBlockNoCommit(3)
 
 	stateDB.Prepare(txHashArr[3], lastBlockHash, 0)
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPIDAnother", xcom.VersionProposalVote_ConsensusRounds()-1, txHashArr[0]), t, gov.VotingCancelProposalExist)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPIDAnother", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[0]), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
@@ -666,11 +701,11 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	buildBlock3()
 	//the version proposal's endVotingRounds=5
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 5, txHashArr[2]), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 5, txHashArr[2]), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testing.T) {
@@ -681,11 +716,11 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testin
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	buildBlock3()
 	//the version proposal's endVotingRounds=5
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[1]), t, gov.TobeCanceledProposalNotFound)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[1]), t, gov.TobeCanceledProposalNotFound)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal(t *testing.T) {
@@ -697,12 +732,12 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal
 
 	buildBlock2()
 	//txHash = txHashArr[2] is a text proposal
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(false, gc, buildSubmitTextInput(), t)
 
 	buildBlock3()
 
 	//try to cancel a text proposal
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[2]), t, gov.TobeCanceledProposalTypeError)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[2]), t, gov.TobeCanceledProposalTypeError)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t *testing.T) {
@@ -713,7 +748,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	//move the proposal ID from voting-list to end-list
 	gov.MoveVotingProposalIDToEnd(txHashArr[2], blockHash2)
@@ -721,7 +756,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 	buildBlock3()
 
 	//try to cancel a closed version proposal
-	runGovContract(gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[2]), t, gov.TobeCanceledProposalNotAtVoting)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", 4, txHashArr[2]), t, gov.TobeCanceledProposalNotAtVoting)
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
@@ -732,13 +767,13 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 	state.Prepare(txHashArr[2], blockHash2, 0)
 
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	buildBlock3()
 	//submit a proposal and get it.
-	runGovContract(gc, buildSubmitCancelInput(), t)
+	runGovContract(false, gc, buildSubmitCancelInput(), t)
 
-	runGovContract(gc, buildGetProposalInput(2), t)
+	runGovContract(true, gc, buildGetProposalInput(2), t)
 }
 
 func TestGovContract_Vote_VersionProposal(t *testing.T) {
@@ -746,8 +781,8 @@ func TestGovContract_Vote_VersionProposal(t *testing.T) {
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
-	runGovContract(gc, buildVoteInput(0, 2), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildVoteInput(0, 2), t)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -762,9 +797,9 @@ func TestGovContract_Vote_Duplicated(t *testing.T) {
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
-	runGovContract(gc, buildVoteInput(0, 2), t)
-	runGovContract(gc, buildVoteInput(0, 2), t, gov.VoteDuplicated)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildVoteInput(0, 2), t)
+	runGovContract(false, gc, buildVoteInput(0, 2), t, gov.VoteDuplicated)
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
@@ -779,9 +814,9 @@ func TestGovContract_Vote_OptionError(t *testing.T) {
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	// vote option = 0, it's wrong
-	runGovContract(gc, buildVote(0, 2, 0, promoteVersion, versionSign), t, gov.VoteOptionError)
+	runGovContract(false, gc, buildVote(0, 2, 0, promoteVersion, versionSign), t, gov.VoteOptionError)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -797,7 +832,7 @@ func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
@@ -807,7 +842,7 @@ func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
 
 	//verify vote new version, but it has not upgraded
 	// txIdx=4, not a proposalID
-	runGovContract(gc, buildVote(0, 4, 1, initProgramVersion, sign), t, gov.ProposalNotFound)
+	runGovContract(false, gc, buildVote(0, 4, 1, initProgramVersion, sign), t, gov.ProposalNotFound)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("list ActiveNode error", "err", err)
@@ -826,7 +861,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(false, gc, buildSubmitTextInput(), t)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -856,7 +891,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 
 	// vote option = 0, it's wrong
-	runGovContract(gc, buildVote(0, 0, 0, promoteVersion, versionSign), t, gov.ProposalNotAtVoting)
+	runGovContract(false, gc, buildVote(0, 0, 0, promoteVersion, versionSign), t, gov.ProposalNotAtVoting)
 
 	if nodeList, err := gov.GetActiveNodeList(lastBlockHash, txHashArr[0]); err != nil {
 		t.Error("cannot list ActiveNode")
@@ -873,7 +908,7 @@ func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
@@ -882,7 +917,7 @@ func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	sign.SetBytes(chandler.MustSign(initProgramVersion))
 
 	//verify vote new version, but it has not upgraded
-	runGovContract(gc, buildVote(0, 2, 1, initProgramVersion, sign), t, gov.VerifierNotUpgraded)
+	runGovContract(false, gc, buildVote(0, 2, 1, initProgramVersion, sign), t, gov.VerifierNotUpgraded)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("list ActiveNode error", "err", err)
@@ -898,7 +933,7 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	defer clear(t)
 	//submit a proposal and vote for it.
 	buildBlock2()
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
@@ -908,7 +943,7 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
 	//verify vote new version, but it has not upgraded
-	runGovContract(gc, buildVote(0, 2, 1, otherVersion, sign), t, gov.VerifierNotUpgraded)
+	runGovContract(false, gc, buildVote(0, 2, 1, otherVersion, sign), t, gov.VerifierNotUpgraded)
 
 	if nodeList, err := gov.GetActiveNodeList(blockHash2, txHashArr[2]); err != nil {
 		t.Error("list ActiveNode error", "err", err)
@@ -926,7 +961,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 	buildBlock2()
 
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	chandler := node.GetCryptoHandler()
 
@@ -935,7 +970,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 		var sign common.VersionSign
 		sign.SetBytes(chandler.MustSign(promoteVersion))
 		//verify vote new version, but it has not upgraded
-		runGovContract(gc, buildVote(i, 2, 1, promoteVersion, sign), t)
+		runGovContract(false, gc, buildVote(i, 2, 1, promoteVersion, sign), t)
 	}
 }
 
@@ -947,7 +982,7 @@ func TestGovContract_TextProposal_pass(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(false, gc, buildSubmitTextInput(), t)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -997,7 +1032,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -1076,14 +1111,14 @@ func TestGovContract_ListProposal(t *testing.T) {
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	stateDB.Prepare(txHashArr[1], lastBlockHash, 0)
-	runGovContract(gc, buildSubmitTextInput(), t)
+	runGovContract(false, gc, buildSubmitTextInput(), t)
 	sndb.Commit(lastBlockHash) //commit
 	sndb.Compaction()          //write to level db
 
-	runGovContract(gc, buildListProposalInput(), t)
+	runGovContract(true, gc, buildListProposalInput(), t)
 
 }
 
@@ -1093,7 +1128,7 @@ func TestGovContract_GetActiveVersion(t *testing.T) {
 
 	buildBlock2()
 
-	runGovContract(gc, buildGetActiveVersionInput(), t)
+	runGovContract(true, gc, buildGetActiveVersionInput(), t)
 }
 
 func TestGovContract_getAccuVerifiersCount(t *testing.T) {
@@ -1103,9 +1138,9 @@ func TestGovContract_getAccuVerifiersCount(t *testing.T) {
 	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildGetAccuVerifiersCountInput(txHashArr[0], lastBlockHash), t)
+	runGovContract(true, gc, buildGetAccuVerifiersCountInput(txHashArr[0], lastBlockHash), t)
 }
 
 func TestGovContract_getAccuVerifiersCount_wrongProposalID(t *testing.T) {
@@ -1115,30 +1150,38 @@ func TestGovContract_getAccuVerifiersCount_wrongProposalID(t *testing.T) {
 	stateDB := gc.Evm.StateDB.(*mock.MockStateDB)
 	stateDB.Prepare(txHashArr[0], lastBlockHash, 0)
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildSubmitVersionInput(), t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	//submit a proposal and vote for it.
-	runGovContract(gc, buildGetAccuVerifiersCountInput(txHashArr[1], lastBlockHash), t, gov.ProposalNotFound)
+	runGovContract(true, gc, buildGetAccuVerifiersCountInput(txHashArr[1], lastBlockHash), t, gov.ProposalNotFound)
 }
 
-func runGovContract(contract *GovContract, buf []byte, t *testing.T, expectedErrors ...error) {
+func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing.T, expectedErrors ...error) {
 	res, err := contract.Run(buf)
-
 	assert.True(t, nil == err)
 
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
+	var result xcom.Result
+	if callType {
+		err = json.Unmarshal(res, &result)
+		assert.True(t, nil == err)
+	} else {
+		var retCode uint32
+		err = json.Unmarshal(res, &retCode)
+		assert.True(t, nil == err)
+		result.Code = retCode
+	}
+
 	if expectedErrors != nil {
-		assert.NotEqual(t, common.OkCode, r.Code)
+		assert.NotEqual(t, common.OkCode, result.Code)
 		var expected = false
 		for _, expectedError := range expectedErrors {
-			expected = expected || strings.Contains(r.ErrMsg, expectedError.Error())
+			expectedCode, expectedMsg := common.DecodeError(expectedError)
+			expected = expected || result.Code == expectedCode || strings.Contains(result.Ret, expectedMsg)
 		}
 		assert.True(t, true, expected)
-		t.Log("the expected result Msg:", r.ErrMsg)
+		t.Log("the expected result Msg:", result.Ret)
 	} else {
-		assert.Equal(t, common.OkCode, r.Code)
-		t.Log("the expected result:", r)
+		assert.Equal(t, common.OkCode, result.Code)
+		t.Log("the expected result:", result)
 	}
 }
 
