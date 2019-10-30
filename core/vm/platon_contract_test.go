@@ -253,8 +253,8 @@ func newPlugins() {
 
 func newChainState() (*mock.MockStateDB, *types.Block, error) {
 
-	testGenesis := new(types.Block)
-	chain := mock.NewChain(testGenesis)
+	//	testGenesis := new(types.Block)
+	chain := mock.NewChain()
 	//	var state *state.StateDB
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)

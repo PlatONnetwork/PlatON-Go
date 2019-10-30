@@ -126,6 +126,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
 	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 

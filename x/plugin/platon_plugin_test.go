@@ -276,8 +276,8 @@ func newPlugins() {
 }
 
 func newChainState() (xcom.StateDB, *types.Block, error) {
-	testGenesis := new(types.Block)
-	chain := mock.NewChain(testGenesis)
+	//	testGenesis := new(types.Block)
+	chain := mock.NewChain()
 	//	var state *state.StateDB
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
@@ -636,7 +636,7 @@ func build_gov_data(state xcom.StateDB) {
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
-	chain := mock.NewChain(nil)
+	chain := mock.NewChain()
 
 	return chain.StateDB
 }
@@ -659,7 +659,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 		// build release amount record
-		releaseAmount := big.NewInt(int64(1E18))
+		releaseAmount := big.NewInt(int64(1e18))
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, releaseAmount.Bytes())
 
@@ -672,7 +672,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.CachePlanAmount = big.NewInt(int64(5E18))
+	user.CachePlanAmount = big.NewInt(int64(5e18))
 	user.StakingAmount = big.NewInt(0)
 	user.NeedRelease = big.NewInt(0)
 	user.ReleaseList = list
@@ -688,7 +688,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
 	stateDB.AddBalance(sender, sBalance)
-	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
+	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5e18)))
 }
 
 func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) error {

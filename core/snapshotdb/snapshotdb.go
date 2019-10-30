@@ -8,6 +8,11 @@ import (
 	"os"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -21,7 +26,9 @@ import (
 )
 
 const (
-	kvLIMIT = 2000
+	kvLIMIT          = 2000
+	JournalRemain    = 200
+	UnBlockNeedClean = 200
 )
 
 //DB the main snapshotdb interface
@@ -89,6 +96,9 @@ var (
 
 	instance sync.Mutex
 
+	baseDBcache   int
+	baseDBhandles int
+
 	logger = log.Root().New("package", "snapshotdb")
 
 	//ErrNotFound when db not found
@@ -119,32 +129,13 @@ type snapshotDB struct {
 	corn *cron.Cron
 
 	closed bool
+
+	dbError error
 }
 
 type Chain interface {
 	CurrentHeader() *types.Header
 	GetHeaderByHash(hash common.Hash) *types.Header
-}
-
-type unCommitBlocks struct {
-	blocks map[common.Hash]*blockData
-	sync.RWMutex
-}
-
-func (u *unCommitBlocks) Get(key common.Hash) *blockData {
-	u.RLock()
-	block, ok := u.blocks[key]
-	u.RUnlock()
-	if !ok {
-		return nil
-	}
-	return block
-}
-
-func (u *unCommitBlocks) Set(key common.Hash, block *blockData) {
-	u.Lock()
-	u.blocks[key] = block
-	u.Unlock()
 }
 
 func SetDBPathWithNode(path string) {
@@ -155,6 +146,11 @@ func SetDBPathWithNode(path string) {
 func SetDBBlockChain(n Chain) {
 	blockchain = n
 	logger.Info("set blockchain")
+}
+
+func SetDBOptions(cache int, handles int) {
+	baseDBcache = cache
+	baseDBhandles = handles
 }
 
 //Instance return the Instance of the db
@@ -171,13 +167,20 @@ func Instance() DB {
 	return dbInstance
 }
 
-func Open(path string) (DB, error) {
+func Open(path string, cache int, handles int) (DB, error) {
 	s, err := openFile(path, false)
 	if err != nil {
 		logger.Error("open db file fail", "error", err, "path", path)
 		return nil, err
 	}
-	baseDB, err := leveldb.OpenFile(getBaseDBPath(path), nil)
+	logger.Info("Allocated cache and file handles", "cache", cache, "handles", handles)
+
+	baseDB, err := leveldb.OpenFile(getBaseDBPath(path), &opt.Options{
+		OpenFilesCacheCapacity: handles,
+		BlockCacheCapacity:     cache / 2 * opt.MiB,
+		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
+		Filter:                 filter.NewBloomFilter(10),
+	})
 	if err != nil {
 		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
 			baseDB, err = leveldb.RecoverFile(getBaseDBPath(path), nil)
@@ -235,7 +238,7 @@ func copyDB(from, to *snapshotDB) {
 }
 
 func initDB() error {
-	dbInterface, err := Open(dbpath)
+	dbInterface, err := Open(dbpath, baseDBcache, baseDBhandles)
 	if err != nil {
 		return err
 	}
@@ -257,9 +260,11 @@ func (s *snapshotDB) cornStart() error {
 		logger.Error("set db corn compaction fail", "err", err)
 		return err
 	}
-	if err := s.corn.AddFunc("@every 3s", s.metrics); err != nil {
-		logger.Error("set db corn metrics fail", "err", err)
-		return err
+	if metrics.Enabled {
+		if err := s.corn.AddFunc("@every 3s", s.metrics); err != nil {
+			logger.Error("set db corn metrics fail", "err", err)
+			return err
+		}
 	}
 	s.corn.Start()
 	return nil
@@ -309,7 +314,7 @@ func (s *snapshotDB) SetEmpty() error {
 	if err := s.Clear(); err != nil {
 		return err
 	}
-	dbInterface, err := Open(path)
+	dbInterface, err := Open(path, baseDBcache, baseDBhandles)
 	if err != nil {
 		return err
 	}
@@ -384,6 +389,7 @@ func (s *snapshotDB) Compaction() error {
 		BaseNum:     new(big.Int).Set(s.current.BaseNum),
 	}); err != nil {
 		logger.Error("save base to current fail", "err", err)
+		return err
 	}
 	if err := s.rmExpireForkBlockJournal(); err != nil {
 		return err
@@ -398,6 +404,9 @@ func (s *snapshotDB) rmExpireForkBlockJournal() error {
 	if err != nil {
 		return err
 	}
+	if len(fds) < JournalRemain {
+		return nil
+	}
 	for _, fd := range fds {
 		if s.current.BaseNum.Uint64() >= fd.Num {
 			if err := s.storage.Remove(fd); err != nil {
@@ -411,7 +420,7 @@ func (s *snapshotDB) rmExpireForkBlockJournal() error {
 func (s *snapshotDB) rmExpireForkBlock() {
 	s.unCommit.Lock()
 	// if unCommit blocks length > 200,rm block below BaseNum
-	if len(s.unCommit.blocks) > 200 {
+	if len(s.unCommit.blocks) > UnBlockNeedClean {
 		for key, value := range s.unCommit.blocks {
 			if s.current.BaseNum.Cmp(value.Number) >= 0 {
 				delete(s.unCommit.blocks, key)
@@ -448,6 +457,9 @@ func (s *snapshotDB) findToWrite() int {
 	if commitNum == 0 {
 		commitNum++
 	}
+	if blockchain == nil {
+		return commitNum
+	}
 
 	header := blockchain.CurrentHeader()
 	var length = commitNum
@@ -472,7 +484,7 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 		}
 		itr.Release()
 	}
-	//logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number, "len", len(s.committed), "commitNum", commitNum)
+	logger.Debug("write to basedb", "from", s.committed[0].Number, "to", s.committed[commitNum-1].Number, "len", len(s.committed), "commitNum", commitNum)
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		logger.Error("write to baseDB fail", "err", err)
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
@@ -623,6 +635,9 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
+	if s.dbError != nil {
+		return s.dbError
+	}
 	s.unCommit.RLock()
 	block, ok := s.unCommit.blocks[s.getUnRecognizedHash()]
 	if !ok {
@@ -664,6 +679,9 @@ func (s *snapshotDB) theBlockIsCommit(block *blockData) bool {
 
 // Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) error {
+	if s.dbError != nil {
+		return s.dbError
+	}
 	s.unCommit.RLock()
 	block, ok := s.unCommit.blocks[hash]
 	s.unCommit.RUnlock()
@@ -729,7 +747,7 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 // content of snapshot are guaranteed to be consistent.
 // slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
-	logger.Info("begin walkbase db")
+	logger.Debug("begin walkbase db")
 	snapshot, err := s.baseDB.GetSnapshot()
 	if err != nil {
 		return errors.New("[snapshotdb] get snapshot fail:" + err.Error())

@@ -260,7 +260,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	if sdb == nil {
 		var err error
 		log.Info("begin open snapshotDB in tmp")
-		snapDB, err = snapshotdb.Open(path.Join(os.TempDir(), snapshotdb.DBPath))
+		snapDB, err = snapshotdb.Open(path.Join(os.TempDir(), snapshotdb.DBPath), 0, 0)
 		if err != nil {
 			panic(err)
 		}

@@ -26,7 +26,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	plugin.log = log.Root().New("package", "RestrictingPlugin")
 
 	t.Run("blockChain not arrived settle block height", func(t *testing.T) {
-		chain := mock.NewChain(nil)
+		chain := mock.NewChain()
 		buildDbRestrictingPlan(addrArr[0], t, chain.StateDB)
 		head := types.Header{Number: big.NewInt(1)}
 
@@ -67,7 +67,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	})
 
 	t.Run("blockChain arrived settle block height, restricting plan not exist", func(t *testing.T) {
-		chain := mock.NewChain(nil)
+		chain := mock.NewChain()
 		blockNumber := uint64(1) * xutil.CalcBlocksEachEpoch()
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
 		err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB)
@@ -338,7 +338,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 
 	t.Run("restricting account not exist", func(t *testing.T) {
-		chain := mock.NewChain(nil)
+		chain := mock.NewChain()
 		notFoundAccount := common.HexToAddress("0x11")
 		_, err := RestrictingInstance().GetRestrictingInfo(notFoundAccount, chain.StateDB)
 		if err != restricting.ErrAccountNotFound {
@@ -348,7 +348,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 
 	t.Run("restricting account exist", func(t *testing.T) {
 
-		chain := mock.NewChain(nil)
+		chain := mock.NewChain()
 		chain.StateDB.AddBalance(addrArr[1], big.NewInt(8e18))
 
 		plans := make([]restricting.RestrictingPlan, 0)

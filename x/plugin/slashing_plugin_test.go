@@ -32,7 +32,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	si := SlashInstance()
 	StakingInstance()
 	RestrictingInstance()
-	chain := mock.NewChain(nil)
+	chain := mock.NewChain()
 	return si, chain.StateDB
 }
 

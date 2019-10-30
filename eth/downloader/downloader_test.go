@@ -73,7 +73,7 @@ type downloadTester struct {
 // newTester creates a new downloader test mocker.
 func newTester() *downloadTester {
 	sdbPath := path.Join(os.TempDir(), fmt.Sprint(rand.Int63()))
-	sdb, err := snapshotdb.Open(sdbPath)
+	sdb, err := snapshotdb.Open(sdbPath, 0, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +90,7 @@ func newTester() *downloadTester {
 	tester.stateDb = rawdb.NewMemoryDatabase()
 	tester.stateDb.Put(testGenesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(0, tester.stateDb, sdb, new(event.TypeMux), tester, nil, tester.dropPeer)
+	tester.downloader = New(0, tester.stateDb, sdb, new(event.TypeMux), tester, nil, tester.dropPeer, nil)
 	return tester
 }
 
