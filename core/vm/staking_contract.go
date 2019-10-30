@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -544,6 +545,8 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
+	begin := time.Now()
+
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -652,6 +655,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 			return nil, err
 		}
 	}
+
+	log.Debug("Call delegate finished", "duration", time.Since(begin).Nanoseconds())
 
 	receipt := strconv.Itoa(int(common.NoErr.Code))
 	stkc.goodLog(DelegateEvent, receipt, "delegate")
