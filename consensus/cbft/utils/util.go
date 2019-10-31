@@ -58,14 +58,17 @@ func False(atm *int32) bool {
 	return atomic.LoadInt32(atm) == 0
 }
 
+// Set the specified variable to 0.
 func SetFalse(atm *int32) {
 	atomic.StoreInt32(atm, 0)
 }
 
+// Set the specified variable to 1.
 func SetTrue(atm *int32) {
 	atomic.StoreInt32(atm, 1)
 }
 
+// Represents a k-v key-value pair.
 type KeyValuePair struct {
 	Key   string
 	Value int64
