@@ -560,6 +560,8 @@ func (ps *PeerSet) Close() {
 	ps.closed = true
 }
 
+// printPeers timing printout output list
+// of neighbor nodes of the current node.
 func (ps *PeerSet) printPeers() {
 	// Output in 2 seconds
 	outTimer := time.NewTicker(time.Second * 5)
