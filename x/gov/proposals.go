@@ -404,7 +404,8 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return GovernParamValueError
 	}
 
-	endVotingBlock := xutil.CalEndVotingBlockForParamProposal(submitBlock, xcom.ParamProposalVote_DurationSeconds())
+	epochRounds := xutil.CalcEpochRounds(xcom.ParamProposalVote_DurationSeconds())
+	endVotingBlock := xutil.CalEndVotingBlockForParamProposal(submitBlock, epochRounds)
 	pp.EndVotingBlock = endVotingBlock
 
 	param, err := FindGovernParam(pp.Module, pp.Name, blockHash)
