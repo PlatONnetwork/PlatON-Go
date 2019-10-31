@@ -55,16 +55,10 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 	txHash := sc.Evm.StateDB.TxHash()
 	blockNumber := sc.Evm.BlockNumber
 	blockHash := sc.Evm.BlockHash
-
 	from := sc.Contract.CallerAddress
-
-	log.Info("Call ReportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"TxHash", txHash.Hex(), "from", from.Hex())
-
 	if !sc.Contract.UseGas(params.ReportDuplicateSignGas) {
 		return nil, ErrOutOfGas
 	}
-
 	sender := sc.Contract.CallerAddress
 	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
 
@@ -79,6 +73,8 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 		log.Warn("Call ReportDuplicateSign current txHash is empty!!")
 		return nil, nil
 	}
+	log.Info("Call ReportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"TxHash", txHash.Hex(), "from", from.Hex())
 	if err := sc.Plugin.Slash(evidence, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return sc.buildResult(ReportDuplicateSignEvent, "ReportDuplicateSign", "", false, bizErr), nil
