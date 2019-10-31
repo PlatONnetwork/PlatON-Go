@@ -232,6 +232,7 @@ func (pv *PrepareVote) Sign() []byte {
 func (pv *PrepareVote) SetSign(sign []byte) {
 	pv.Signature.SetBytes(sign)
 }
+
 func (pv *PrepareVote) EqualState(vote *PrepareVote) bool {
 	return pv.Epoch == vote.Epoch &&
 		pv.ViewNumber == vote.ViewNumber &&
@@ -275,6 +276,7 @@ func (vc *ViewChange) BHash() common.Hash {
 func (vc *ViewChange) EpochNum() uint64 {
 	return vc.Epoch
 }
+
 func (vc *ViewChange) ViewNum() uint64 {
 	return vc.ViewNumber
 }
@@ -433,8 +435,8 @@ func (s *GetBlockQuorumCert) BHash() common.Hash {
 // Aggregate signature response message, representing
 // aggregated signature information for a block.
 type BlockQuorumCert struct {
-	BlockQC     *ctypes.QuorumCert `json:"qc"` // Block aggregation signature information
-	messageHash atomic.Value       `json:"-" rlp:"-"`
+	BlockQC     *ctypes.QuorumCert `json:"qc"`        // Block aggregation signature information.
+	messageHash atomic.Value       `json:"-" rlp:"-"` // BlockQuorumCert hash value.
 }
 
 func (s *BlockQuorumCert) String() string {
