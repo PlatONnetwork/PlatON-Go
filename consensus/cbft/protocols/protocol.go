@@ -462,7 +462,7 @@ func (s *BlockQuorumCert) BHash() common.Hash {
 // Used to get block information that has reached QC.
 // Note: Get up to 3 blocks of data at a time.
 type GetQCBlockList struct {
-	BlockHash   common.Hash  `json:"blockHash"`
+	BlockHash   common.Hash  `json:"blockHash"`   // The hash to the block.
 	BlockNumber uint64       `json:"blockNumber"` // The number corresponding to the block.
 	messageHash atomic.Value `json:"-" rlp:"-"`
 }
