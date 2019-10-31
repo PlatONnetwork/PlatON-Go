@@ -53,7 +53,6 @@ func NewFetcher() *Fetcher {
 		tasks:   make(map[string]*task),
 		quit:    make(chan struct{}),
 	}
-
 	return fetcher
 }
 
@@ -133,6 +132,5 @@ func (f *Fetcher) loop() {
 			f.lock.Unlock()
 			return
 		}
-
 	}
 }
