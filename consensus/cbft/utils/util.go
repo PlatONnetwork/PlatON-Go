@@ -94,6 +94,8 @@ func (kvp *KeyValuePairList) Pop() interface{} {
 	return x
 }
 
+// Sort the Map according to the key,
+// return the list of sorted key-value pairs.
 func SortMap(m map[string]int64) KeyValuePairList {
 	p := make(KeyValuePairList, len(m))
 	i := 0
