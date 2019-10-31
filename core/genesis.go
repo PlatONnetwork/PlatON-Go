@@ -27,6 +27,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -293,7 +295,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
 	// Initialized Govern Parameters
-	if err := genesisInitGovernParam(snapDB); err != nil {
+	if err := gov.InitGenesisGovernParam(snapDB); err != nil {
 		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
 		panic("Failed to init govern parameter in snapshotdb")
 	}

@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -256,6 +258,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
 			handlePlugin(reactor)
 			agency = reactor
+
+			//register Govern parameter verifiers
+			gov.RegisterGovernParamVerifiers()
 		}
 
 		if err := recoverSnapshotDB(blockChainCache); err != nil {
