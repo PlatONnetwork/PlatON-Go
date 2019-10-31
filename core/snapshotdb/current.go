@@ -88,15 +88,15 @@ func (s *snapshotDB) loadCurrent() error {
 type current struct {
 	//	f           *os.File    `rlp:"-"`
 	//	path        string      `rlp:"-"`
-	HighestNum  *big.Int    `rlp:"nil"`
-	HighestHash common.Hash `rlp:"nil"`
-	BaseNum     *big.Int    `rlp:"nil"`
+	HighestNum  *big.Int `rlp:"nil"`
+	HighestHash common.Hash
+	BaseNum     *big.Int `rlp:"nil"`
 	//	sync.RWMutex `rlp:"-"`
 }
 
 type CurrentHighest struct {
-	Num  *big.Int    `rlp:"nil"`
-	Hash common.Hash `rlp:"nil"`
+	Num  *big.Int `rlp:"nil"`
+	Hash common.Hash
 }
 
 type CurrentBase struct {

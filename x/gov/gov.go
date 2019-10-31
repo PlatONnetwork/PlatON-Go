@@ -379,7 +379,7 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 
 // find a proposal at voting stage
 func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
-	log.Debug("call FindVotingProposal", "proposalTypes", proposalTypes, "blockHash", blockHash)
+
 	if len(proposalTypes) == 0 {
 		return nil, common.InvalidParameter
 	}
@@ -531,7 +531,6 @@ func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, 
 
 // check if the node a candidate, and the caller address is same as the staking address
 func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
-	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 
 	_, err := xutil.NodeId2Addr(nodeID)
 	if nil != err {

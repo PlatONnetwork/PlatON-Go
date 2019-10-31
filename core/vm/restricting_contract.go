@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"fmt"
 	"math/big"
+	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -55,7 +55,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	blockHash := rc.Evm.BlockHash
 	state := rc.Evm.StateDB
 
-	log.Info("Call createRestrictingPlan of RestrictingContract", "blockNumber", blockNum.Uint64(),
+	log.Debug("Call createRestrictingPlan of RestrictingContract", "blockNumber", blockNum.Uint64(),
 		"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String(), "account", account.String())
 
 	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
@@ -71,12 +71,12 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
 	switch err.(type) {
 	case nil:
-		receipt := fmt.Sprint(common.NoErr.Code)
+		receipt := strconv.Itoa(int(common.NoErr.Code))
 		rc.goodLog(CreateRestrictingPlanEvent, receipt, "createRestrictingPlan")
 		return []byte(receipt), nil
 	case *common.BizError:
 		bizErr := err.(*common.BizError)
-		receipt := fmt.Sprint(bizErr.Code)
+		receipt := strconv.Itoa(int(bizErr.Code))
 		rc.badLog(CreateRestrictingPlanEvent, receipt, bizErr.Msg, "createRestrictingPlan")
 		return []byte(receipt), nil
 	default:
@@ -93,7 +93,7 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	currNumber := rc.Evm.BlockNumber
 	state := rc.Evm.StateDB
 
-	log.Info("Call getRestrictingInfo of RestrictingContract", "blockNumber", currNumber.Uint64(), "account", account.String())
+	log.Debug("Call getRestrictingInfo of RestrictingContract", "blockNumber", currNumber.Uint64(), "account", account.String())
 
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
 	if err != nil {
@@ -105,10 +105,8 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 
 func (rc *RestrictingContract) goodLog(eventType, eventData, callFn string) {
 
-	txHash := rc.Evm.StateDB.TxHash()
 	blockNumber := rc.Evm.BlockNumber.Uint64()
 	xcom.AddLog(rc.Evm.StateDB, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
-	log.Info("Successed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData)
 }
 
 func (rc *RestrictingContract) badLog(eventType, eventData, reason, callFn string) {
@@ -116,5 +114,5 @@ func (rc *RestrictingContract) badLog(eventType, eventData, reason, callFn strin
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNumber := rc.Evm.BlockNumber.Uint64()
 	xcom.AddLog(rc.Evm.StateDB, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
-	log.Debug("Failed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData, "reason", reason)
+	log.Error("Failed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "receipt: ", eventData, "reason", reason)
 }

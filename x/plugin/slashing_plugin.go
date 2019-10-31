@@ -317,7 +317,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	totalBalance := calcCanTotalBalance(blockNumber, canMutable)
 	slashAmount := calcAmountByRate(totalBalance, uint64(xcom.DuplicateSignHighSlash()), TenThousandDenominator)
 
-	log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+	log.Debug("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "rate", xcom.DuplicateSignHighSlash()/TenThousandDenominator,
 		"slashAmount", slashAmount, "reporter", caller.Hex())
 
