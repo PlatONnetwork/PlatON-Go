@@ -29,20 +29,23 @@ import (
 // fakeCbft is a fake cbft for testing.It implements all
 // methods of the Cbft interface.
 type fakeCbft struct {
-	localPeer      *peer
-	consensusNodes []discover.NodeID
+	localPeer      *peer             // Represents a local peer
+	consensusNodes []discover.NodeID // All consensus nodes
 	writer         p2p.MsgReadWriter // Pipeline for receiving data.
 	peers          []*peer           // Pre-initialized node for testing.
 }
 
+// Returns the ID of the local node.
 func (s *fakeCbft) NodeID() discover.NodeID {
 	return s.localPeer.Peer.ID()
 }
 
+// Return all consensus nodes.
 func (s *fakeCbft) ConsensusNodes() ([]discover.NodeID, error) {
 	return s.consensusNodes, nil
 }
 
+// Return to simulation test configuration.
 func (s *fakeCbft) Config() *types.Config {
 	return &types.Config{
 		Option: &types.OptionsConfig{
@@ -59,23 +62,29 @@ func (s *fakeCbft) Config() *types.Config {
 	}
 }
 
+// ReceiveMessage receives consensus messages.
 func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveMessage, type: %T", msg.Msg))
 	return nil
 }
 
+// ReceiveSyncMsg receives synchronization messages.
 func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) error {
 	fmt.Println(fmt.Sprintf("ReceiveSyncMsg, type: %T", msg.Msg))
 	return nil
 }
 
+// Returns the highest local QC height.
 func (s *fakeCbft) HighestQCBlockBn() (uint64, common.Hash) {
 	return s.localPeer.QCBn(), common.Hash{}
 }
 
+// Returns the highest local Lock height.
 func (s *fakeCbft) HighestLockBlockBn() (uint64, common.Hash) {
 	return s.localPeer.LockedBn(), common.Hash{}
 }
+
+// Returns the highest local Commit height.
 func (s *fakeCbft) HighestCommitBlockBn() (uint64, common.Hash) {
 	return s.localPeer.CommitBn(), common.Hash{}
 }
