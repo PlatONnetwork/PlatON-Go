@@ -69,6 +69,8 @@ type peer struct {
 	pingList *list.List
 	listLock sync.RWMutex
 
+	// Message sending queue, the queue stores
+	// messages to be sent to the peer.
 	sendQueue chan *types.MsgPackage
 }
 
