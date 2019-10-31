@@ -85,13 +85,6 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
-			if versionProposal.GetActiveBlock() != blockNumber {
-				versionProposal.ActiveBlock = blockNumber
-				if err := gov.SetProposal(versionProposal, state); err != nil {
-					log.Error("update activeBlock of version proposal failed.", "preActiveVersionProposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash)
-				}
-			}
-
 			if err = gov.MovePreActiveProposalIDToEnd(blockHash, preActiveVersionProposalID); err != nil {
 				log.Error("move version proposal ID to EndProposalID list failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
 				return err
@@ -113,13 +106,19 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 }
 
 //implement BasePlugin
-
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
-	//the endVotingBlock must be consensus Election block
-	if !xutil.IsElection(blockNumber) {
+	//text/version/cancel proposal's end voting block is ElectionBlock
+	//param proposal's end voting block is end of Epoch
+	isEndOfEpoch := false
+	isElection := false
+	if xutil.IsElection(blockNumber) {
+		isElection = true
+	} else if xutil.IsEndOfEpoch(blockNumber) {
+		isEndOfEpoch = true
+	} else {
 		return nil
 	}
 
@@ -143,22 +142,22 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		if votingProposal.GetEndVotingBlock() == blockNumber {
 			log.Debug("current block is end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
 			//tally the results
-			if votingProposal.GetProposalType() == gov.Text {
+			if votingProposal.GetProposalType() == gov.Text && isElection {
 				_, err := tallyText(votingProposal.GetProposalID(), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
-			} else if votingProposal.GetProposalType() == gov.Version {
+			} else if votingProposal.GetProposalType() == gov.Version && isElection {
 				err = tallyVersion(votingProposal.(*gov.VersionProposal), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
-			} else if votingProposal.GetProposalType() == gov.Cancel {
+			} else if votingProposal.GetProposalType() == gov.Cancel && isElection {
 				_, err := tallyCancel(votingProposal.(*gov.CancelProposal), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
-			} else if votingProposal.GetProposalType() == gov.Param {
+			} else if votingProposal.GetProposalType() == gov.Param && isEndOfEpoch {
 				_, err := tallyParam(votingProposal.(*gov.ParamProposal), blockHash, blockNumber, state)
 				if err != nil {
 					return err
