@@ -82,10 +82,12 @@ func (kvp KeyValuePairList) Swap(i, j int)      { kvp[i], kvp[j] = kvp[j], kvp[i
 func (kvp KeyValuePairList) Len() int           { return len(kvp) }
 func (kvp KeyValuePairList) Less(i, j int) bool { return kvp[i].Value < kvp[j].Value }
 
+// Add an element.
 func (kvp *KeyValuePairList) Push(x interface{}) {
 	*kvp = append(*kvp, x.(KeyValuePair))
 }
 
+// Pop up an element.
 func (kvp *KeyValuePairList) Pop() interface{} {
 	old := *kvp
 	n := len(old)
