@@ -48,10 +48,12 @@ func MergeBytes(bts ...[]byte) []byte {
 	return response
 }
 
+// Returns whether the specified value is equal to 1.
 func True(atm *int32) bool {
 	return atomic.LoadInt32(atm) == 1
 }
 
+// Returns whether the specified value is equal to 0.
 func False(atm *int32) bool {
 	return atomic.LoadInt32(atm) == 0
 }
