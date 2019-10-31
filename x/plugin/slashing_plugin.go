@@ -223,7 +223,6 @@ func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common
 		if nil != err {
 			return nil, err
 		}
-		log.Debug("slashingPlugin GetPrePackAmount", "parentHash", parentHash.Hex(), "nodeId", nodeId.TerminalString(), "value", amount)
 		result[nodeId] = amount
 	}
 	return result, nil
