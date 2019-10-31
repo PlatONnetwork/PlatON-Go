@@ -593,7 +593,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, err
 	}
 
-	//canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
 	canMutable, err := stkc.Plugin.GetCanMutable(blockHash, canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to delegate by GetCandidateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)

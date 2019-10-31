@@ -19,8 +19,6 @@ const (
 	UnStakeCountKeyStr       = "UnStakeCount"
 	UnStakeItemKeyStr        = "UnStakeItem"
 	DelegatePrefixStr        = "Del"
-	UnDelegateCountKeyStr    = "UnDelCount"
-	UnDelegateItemKeyStr     = "UnDelItem"
 	EpochIndexKeyStr         = "EpochIndex"
 	EpochValArrPrefixStr     = "EpochValArr"
 	RoundIndexKeyStr         = "RoundIndex"
@@ -37,8 +35,6 @@ var (
 	UnStakeCountKey       = []byte(UnStakeCountKeyStr)
 	UnStakeItemKey        = []byte(UnStakeItemKeyStr)
 	DelegateKeyPrefix     = []byte(DelegatePrefixStr)
-	UnDelegateCountKey    = []byte(UnDelegateCountKeyStr)
-	UnDelegateItemKey     = []byte(UnDelegateItemKeyStr)
 	EpochIndexKey         = []byte(EpochIndexKeyStr)
 	EpochValArrPrefix     = []byte(EpochValArrPrefixStr)
 	RoundIndexKey         = []byte(RoundIndexKeyStr)
@@ -171,27 +167,6 @@ func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNu
 
 func GetDelegateKeyBySuffix(suffix []byte) []byte {
 	return append(DelegateKeyPrefix, suffix...)
-}
-
-func GetUnDelegateCountKey(epoch uint64) []byte {
-	return append(UnDelegateCountKey, common.Uint64ToBytes(epoch)...)
-}
-
-func GetUnDelegateItemKey(epoch, index uint64) []byte {
-
-	epochByte := common.Uint64ToBytes(epoch)
-	indexByte := common.Uint64ToBytes(index)
-
-	markPre := len(UnDelegateItemKey)
-	markEpoch := markPre + len(epochByte)
-	size := markEpoch + len(indexByte)
-
-	key := make([]byte, size)
-	copy(key[:markPre], UnDelegateItemKey)
-	copy(key[markPre:markEpoch], epochByte)
-	copy(key[markEpoch:], indexByte)
-
-	return key
 }
 
 func GetEpochIndexKey() []byte {
