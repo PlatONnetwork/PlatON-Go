@@ -475,13 +475,6 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	}
 	return nil
 }
-
-var ParamVerifierMap = make(map[string]ParamVerifier)
-
-func RegGovernParamVerifier(module, name string, callback ParamVerifier) {
-	ParamVerifierMap[module+"/"+name] = callback
-}
-
 func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
 	paramValue := &ParamValue{"", initValue, activeBlockNumber}
 	return addGovernParam(module, name, desc, paramValue, currentBlockHash)

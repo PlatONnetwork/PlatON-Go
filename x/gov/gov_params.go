@@ -7,16 +7,23 @@ import (
 
 var paramList = []*GovernParam{
 	{
-		ParamItem:     &ParamItem{"PPOS", "paramName1", "paramName1"},
+		ParamItem:     &ParamItem{"Staking", "1001", "xxxxx, range：(1,1000]"},
 		ParamValue:    &ParamValue{"", "10", 0},
 		ParamVerifier: func(value string) bool { return true },
 	},
 	{
-		ParamItem:     &ParamItem{"PPOS", "paramName2", "paramName2"},
+		ParamItem:     &ParamItem{"Slashing", "paramName2", "paramName2"},
+		ParamValue:    &ParamValue{"", "100000", 0},
+		ParamVerifier: func(value string) bool { return true },
+	},
+	{
+		ParamItem:     &ParamItem{"TxPool", "paramName3", "paramName2"},
 		ParamValue:    &ParamValue{"", "100000", 0},
 		ParamVerifier: func(value string) bool { return true },
 	},
 }
+
+var ParamVerifierMap = make(map[string]ParamVerifier)
 
 func InitGenesisGovernParam(snapDB snapshotdb.DB) error {
 	var paramItemList []*ParamItem
@@ -42,4 +49,8 @@ func RegisterGovernParamVerifiers() {
 	for _, param := range paramList {
 		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
 	}
+}
+
+func RegGovernParamVerifier(module, name string, callback ParamVerifier) {
+	ParamVerifierMap[module+"/"+name] = callback
 }

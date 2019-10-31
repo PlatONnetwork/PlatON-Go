@@ -228,7 +228,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 	}
 	p := &gov.ParamProposal{
 		PIPID:        pipID,
-		ProposalType: gov.Text,
+		ProposalType: gov.Param,
 		SubmitBlock:  blockNumber,
 		ProposalID:   txHash,
 		Proposer:     verifier,

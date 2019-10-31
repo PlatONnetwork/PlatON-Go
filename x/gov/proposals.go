@@ -391,14 +391,16 @@ func (pp *ParamProposal) GetTallyResult() TallyResult {
 }
 
 func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
-	if pp.ProposalType != Cancel {
+	if pp.ProposalType != Param {
 		return ProposalTypeError
 	}
 	if err := verifyBasic(pp, state); err != nil {
 		return err
 	}
 
-	if ParamVerifierMap[pp.Name](pp.NewValue) {
+	if verify, ok := ParamVerifierMap[pp.Module+"/"+pp.Name]; ok {
+		verify(pp.NewValue)
+	} else {
 		return GovernParamValueError
 	}
 

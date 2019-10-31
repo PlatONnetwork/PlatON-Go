@@ -147,7 +147,7 @@ func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, 
 
 func ClearVoteValue(proposalID common.Hash, blockHash common.Hash) error {
 	if err := del(blockHash, KeyVote(proposalID)); err != nil {
-		log.Error("clear vote value in snapshot db failed", "proposalID", proposalID, "blockHash", blockHash.String(), "error", err)
+		log.Error("clear vote value in snapshot db failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
 		return err
 	}
 	return nil
@@ -358,7 +358,7 @@ func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash)
 // Add the node that has made a new version declare or vote during voting period
 func AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) error {
 	if err := addActiveNode(blockHash, nodeID, proposalID); err != nil {
-		log.Error("add active node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("add active node to snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return err
 	}
 	return nil
@@ -368,7 +368,7 @@ func AddActiveNode(blockHash common.Hash, proposalID common.Hash, nodeID discove
 func GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
 	nodes, err := getActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("get active nodes from snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return nil, err
 	}
 	return nodes, nil
@@ -378,7 +378,7 @@ func GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) ([]discove
 func ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 	err := deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
-		log.Error("clear active nodes in snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("clear active nodes in snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return err
 	}
 	return nil
@@ -387,7 +387,7 @@ func ClearActiveNodes(blockHash common.Hash, proposalID common.Hash) error {
 // AccuVerifiers accumulates all distinct verifiers those can vote this proposal ID
 func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
 	if err := addAccuVerifiers(blockHash, proposalID, verifierList); err != nil {
-		log.Error("accumulates verifiers to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("accumulates verifiers to snapshot db failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return err
 	}
 	return nil
@@ -396,7 +396,7 @@ func AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList [
 // Get the total number of all voting verifiers
 func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
 	if l, err := getAccuVerifiers(blockHash, proposalID); err != nil {
-		log.Error("list accumulated verifiers failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
+		log.Error("list accumulated verifiers failed", "blockHash", blockHash.Hex(), "proposalID", proposalID, "error", err)
 		return nil, err
 	} else {
 		return l, nil
