@@ -34,8 +34,9 @@ func TestRewardPlugin(t *testing.T) {
 		SetYearEndBalance(mockDB, lastYear, yearBalance)
 		mockDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
 
-		stakingReward, newBlockReward := plugin.calculateExpectReward(thisYear, lastYear, mockDB)
-
+		plugin.stakingReward, plugin.newBlockReward = plugin.calculateExpectReward(thisYear, lastYear, mockDB)
+		stakingReward := plugin.stakingReward
+		newBlockReward := plugin.newBlockReward
 		expectStakingReward := new(big.Int).Sub(yearBalance, expectNewBlockReward)
 
 		assert.Equal(t, expectNewBlockReward.Div(expectNewBlockReward, big.NewInt(int64(blocks))), newBlockReward)
