@@ -47,19 +47,19 @@ const (
 
 // Peer represents a node in the network.
 type peer struct {
-	*p2p.Peer
-	id      string
-	rw      p2p.MsgReadWriter
-	version int           // Protocol version negotiated
-	term    chan struct{} // Termination channel to stop the broadcaster
+	*p2p.Peer                   // Network layer p2p reference.
+	id        string            // Peer id identifier
+	rw        p2p.MsgReadWriter //
+	version   int               // Protocol version negotiated
+	term      chan struct{}     // Termination channel to stop the broadcaster
 
 	// Node status information
-	highestQCBn *big.Int
-	qcLock      sync.RWMutex
-	lockedBn    *big.Int
-	lLock       sync.RWMutex
-	commitBn    *big.Int
-	cLock       sync.RWMutex
+	highestQCBn *big.Int     // The highest QC height of the node.
+	qcLock      sync.RWMutex //
+	lockedBn    *big.Int     // The highest Lock height of the node.
+	lLock       sync.RWMutex //
+	commitBn    *big.Int     // The highest Commit height of the node.
+	cLock       sync.RWMutex //
 
 	// Record the message received by the peer node.
 	// If the threshold is exceeded, the queue tail
