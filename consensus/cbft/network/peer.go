@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	errClosed                  = errors.New("peer set is closed")
-	errAlreadyRegistered       = errors.New("peer is already registered")
+	errClosed                  = errors.New("peer set is closed")               // errClosed represents the node is closed error message description.
+	errAlreadyRegistered       = errors.New("peer is already registered")       // errAlreadyRegistered represents a node registered error.
 	errNotRegistered           = errors.New("peer is not registered")           // errNotRegistered represents that the node is not registered.
 	errInvalidHandshakeMessage = errors.New("invalid handshake message params") // The parameters passed in the node handshake are not correct.
 	errForkBlock               = errors.New("forked block")                     // Means that when the block heights are equal and the block hashes are not equal.
