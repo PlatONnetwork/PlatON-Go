@@ -738,7 +738,7 @@ func (h *EngineManager) synchronize() {
 			}
 
 		case <-h.quitSend:
-			log.Error("synchronize quit")
+			log.Error("Synchronize quit")
 			return
 		}
 	}
@@ -746,8 +746,7 @@ func (h *EngineManager) synchronize() {
 
 // Select a node from the list of nodes that is larger than the specified value.
 //
-// bType:
-//  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
+// bType: 1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
 func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 	if len(peers) == 0 {
 		return nil, 0
@@ -790,5 +789,4 @@ func (h *EngineManager) Testing() {
 			}
 		}(v)
 	}
-
 }
