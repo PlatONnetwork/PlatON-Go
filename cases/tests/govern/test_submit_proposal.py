@@ -322,3 +322,27 @@ class TestSubmitCancel():
                                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('候选人发起升级提案结果为{}'.format(result))
         assert result.get('Code') == 302022
+
+    @pytest.mark.P2
+    def test_CP_PR_003_CP_PR_004(self, submit_version, client_list_obj):
+        pip_obj = submit_version
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        address = client_obj.node.staking_address
+        log.info('proposalinfo: {}'.format(proposalinfo))
+        result = client_obj.staking.withdrew_staking(address)
+        log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
+        assert result.get("Code") == 0
+        result = client_obj.pip.submitCancel(client_obj.node.node_id, str(time.time()), 1,
+                                                      proposalinfo.get('ProposalID'), address,
+                                              transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+        log.info('node exiting，cancel proposal result: {}'.format(result))
+        assert result.get('Code') == 302020
+
+        client_obj.economic.wait_settlement_blocknum(client_obj.node,
+                                                     number=client_obj.economic.unstaking_freeze_ratio)
+        result = client_obj.pip.submitCancel(client_obj.node.node_id, str(time.time()), 1,
+                                                      proposalinfo.get('ProposalID'), address,
+                                              transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+        log.info('exited node，cancel proposal result: {}'.format(result))
+        assert result.get('Code') == 302022
