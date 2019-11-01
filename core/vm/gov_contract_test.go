@@ -32,8 +32,8 @@ var (
 	versionSign common.VersionSign
 	chandler    *node.CryptoHandler
 
-	paramModule       = "testModule"
-	paramName         = "testName"
+	paramModule       = xcom.ModuleStaking
+	paramName         = xcom.KeyMaxValidators
 	defaultProposalID = txHashArr[1]
 )
 
@@ -345,7 +345,7 @@ func TestGovContract_SubmitParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
@@ -355,7 +355,7 @@ func TestGovContract_SubmitParam(t *testing.T) {
 			t.Fatal("not find proposal error")
 		} else {
 			pp := p.(*gov.ParamProposal)
-			assert.Equal(t, "newValue", pp.NewValue)
+			assert.Equal(t, "30", pp.NewValue)
 		}
 	}
 }
@@ -364,18 +364,18 @@ func TestGovContract_SubmitParam_thenSubmitParamFailed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[2], "pipid4", paramModule, paramName, "newValue22"), t, gov.VotingParamProposalExist)
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[2], "pipid4", paramModule, paramName, "35"), t, gov.VotingParamProposalExist)
 }
 
 func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
@@ -390,11 +390,11 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
-		assert.Equal(t, "10", value)
+		assert.Equal(t, "25", value)
 	}
 
 	//submit a proposal and vote for it.
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 	//runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
 
@@ -434,7 +434,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
-		assert.Equal(t, "newValue", value)
+		assert.Equal(t, "30", value)
 	}
 }
 
@@ -452,7 +452,7 @@ func TestGovContract_SubmitVersion_thenSubmitParamFailed(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t, gov.VotingVersionProposalExist)
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t, gov.VotingVersionProposalExist)
 }
 
 func TestGovContract_GetVersionProposal(t *testing.T) {

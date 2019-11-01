@@ -398,8 +398,10 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return err
 	}
 
-	if verify, ok := ParamVerifierMap[pp.Module+"/"+pp.Name]; ok {
-		verify(submitBlock, blockHash, pp.NewValue)
+	if paramVerifier, ok := ParamVerifierMap[pp.Module+"/"+pp.Name]; ok {
+		if err := paramVerifier(submitBlock, blockHash, pp.NewValue); err != nil {
+			return err
+		}
 	} else {
 		return GovernParamValueError
 	}

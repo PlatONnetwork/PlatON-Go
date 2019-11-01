@@ -215,7 +215,7 @@ func initParam() []*xcom.GovernParam {
 
 				// (0, +∞)
 				if gasLimit <= 0 {
-					return fmt.Errorf("The MaxBlockGasLimit must be (%d, %s)", xcom.Zero, xcom.PositiveInfinity)
+					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %s)", xcom.Zero, xcom.PositiveInfinity))
 				}
 
 				return nil
@@ -237,7 +237,7 @@ func initParam() []*xcom.GovernParam {
 
 				// (0, 10MB]
 				if txSize > xcom.CeilTxSize {
-					return fmt.Errorf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, xcom.CeilTxSize)
+					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, xcom.CeilTxSize))
 				}
 
 				return nil
