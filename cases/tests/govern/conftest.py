@@ -39,3 +39,12 @@ def submit_cancel(submit_version):
     log.info('发起取消提案结果为{}'.format(result))
     assert result.get('Code') == 0
     return pip_obj
+
+@pytest.fixture()
+def submit_text(client_verifier_obj):
+    pip_obj = client_verifier_obj.pip
+    result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('submit text result:'.format(result))
+    assert result.get('Code') == 0
+    return pip_obj
