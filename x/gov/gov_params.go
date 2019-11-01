@@ -205,7 +205,7 @@ func initParam() []*xcom.GovernParam {
 		*/
 		{
 			ParamItem:  &xcom.ParamItem{xcom.ModuleBlock, xcom.KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：(%d, %s)", xcom.Zero, xcom.PositiveInfinity)},
-			ParamValue: &xcom.ParamValue{strconv.Itoa(int(params.GenesisGasLimit)), "", 0},
+			ParamValue: &xcom.ParamValue{"", strconv.Itoa(int(params.GenesisGasLimit)), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
 				gasLimit, err := strconv.Atoi(value)
