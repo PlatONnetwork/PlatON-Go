@@ -43,3 +43,18 @@ def test_start_mini_node(global_test_env):
     log.info("部署{}个节点".format(num))
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
     global_test_env.check_block(multiple=num, node_list=global_test_env.consensus_node_list[0:num])
+
+
+@allure.title("正常启动所有节点,逐渐关闭f个")
+@pytest.mark.P0
+def test_start_all_node_close_f(global_test_env):
+    """
+    用例id：52
+    启动n个节点后，逐渐关闭f个，那么关闭节点的窗口期不出块
+    """
+    global_test_env.deploy_all()
+    global_test_env.check_block()
+    close_nodes = global_test_env.get_all_nodes()[0:global_test_env.max_byzantium]
+    global_test_env.stop_nodes(close_nodes)
+    global_test_env.check_block(need_number=30, multiple=2,
+                                node_list=global_test_env.get_all_nodes()[global_test_env.max_byzantium:])
