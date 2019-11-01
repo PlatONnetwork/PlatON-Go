@@ -64,3 +64,26 @@ def test_restart_all(global_test_env):
     after_block = max(global_test_env.block_numbers().values())
     log.info("重启后块高为:{}".format(after_block))
     assert after_block - current_block > 0, "重启后区块没有正常增长"
+
+
+@allure.title("测试fast模式同步")
+@pytest.mark.P2
+def test_syncmode(global_test_env):
+    """
+    同步
+    :return:
+    """
+    test_node = copy(global_test_env.get_a_normal_node())
+    test_node.clean()
+    new_cfg = copy(global_test_env.cfg)
+    new_cfg.syncmode = "fast"
+    test_node.cfg = new_cfg
+    log.info(global_test_env.cfg.syncmode)
+    test_node.deploy_me(global_test_env.cfg.genesis_tmp)
+    test_node.admin.addPeer(global_test_env.get_rand_node().enode)
+    time.sleep(5)
+    log.info("{}".format(test_node.web3.net.peerCount))
+    assert test_node.web3.net.peerCount > 0, "加入链失败"
+    global_test_env.check_block(200, 2)
+    time.sleep(5)
+    assert test_node.eth.blockNumber >= 200, "区块同步失败,当前块高{}".format(test_node.eth.blockNumber)
