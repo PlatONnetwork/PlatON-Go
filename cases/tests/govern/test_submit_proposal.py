@@ -346,3 +346,21 @@ class TestSubmitCancel():
                                               transaction_cfg=client_obj.pip.cfg.transaction_cfg)
         log.info('exited node，cancel proposal result: {}'.format(result))
         assert result.get('Code') == 302022
+
+    def test_CP_CR_001(self, submit_version):
+        pip_obj = submit_version
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('proposalinfo: {}'.format(proposalinfo))
+        endvoting_rounds = (math.ceil(proposalinfo.get('EndVotingBlock')/pip_obj.economic.consensus_size) - math.ceil(
+            pip_obj.node.block_number/pip_obj.economic.consensus_size)) / pip_obj.economic.consensus_size
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), endvoting_rounds,
+                                                      proposalinfo.get('ProposalID'), pip_obj.node.staking_address,
+                                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('endvoting_rounds:{}， cancel proposal result:{}'.format(endvoting_rounds, result))
+        assert result.get('Code') == 302009
+
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), endvoting_rounds+1,
+                                                      proposalinfo.get('ProposalID'), pip_obj.node.staking_address,
+                                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('endvoting_rounds:{}， cancel proposal result:{}'.format(endvoting_rounds+1, result))
+        assert result.get('Code') == 302009
