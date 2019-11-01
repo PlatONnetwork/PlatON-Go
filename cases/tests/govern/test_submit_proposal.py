@@ -289,3 +289,14 @@ class TestNoVerifierSubmitProposal():
                                            transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
         log.info('节点已退出，发起文本提案结果为{}'.format(result))
         assert result.get('Code') == 302022
+
+class TestSubmitCancel():
+    @pytest.mark.P0
+    def test_CP_WA_001(self, submit_version):
+        pip_obj = submit_version
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('获取升级提案信息为{}'.format(proposalinfo))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'), address,
+                             transaction_cfg=pip_obj.cfg.transaction_cfg)
+        assert result.get('Code') == 302021
