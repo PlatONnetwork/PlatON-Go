@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -109,6 +111,7 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 	var govGasCeil uint64
 	govGasCeilStr, err := gov.GetGovernParamValue(gov.ModuleBlock, gov.MaxBlockGasLimit, parent.Number().Uint64()+1, common.ZeroHash)
 	if nil != err {
+		log.Error("cannot find GasLimit from govern", "err", err)
 		govGasCeil = uint64(params.GenesisGasLimit)
 	} else {
 		ceil, _ := strconv.Atoi(govGasCeilStr)
