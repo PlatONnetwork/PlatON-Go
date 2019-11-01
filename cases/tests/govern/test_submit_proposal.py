@@ -230,3 +230,17 @@ class TestEndVotingRounds():
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proosalinfo.get('ProposalID'),
                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('submit cancel result: {}'.format(result))
+
+class TestNoVerifierSubmitProposal():
+    def test_VP_PR_002_TP_PR_002(self, client_new_node_obj):
+        pip_obj = client_new_node_obj
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000000)
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1, address,
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('新节点发起版本声明，结果为{}'.format(result))
+        assert result.get('Code') == 302022
+
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), address,
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('新节点发起版本声明，结果为{}'.format(result))
+        assert result.get('Code') == 302022
