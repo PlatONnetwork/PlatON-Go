@@ -205,7 +205,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Staking: stakingConfig{
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(24),
+				MaxValidators:         uint64(25),
 				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(2),
 			},
@@ -253,7 +253,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Staking: stakingConfig{
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(24),
+				MaxValidators:         uint64(25),
 				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(2),
 			},
@@ -295,28 +295,28 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 func CheckStakeThreshold(threshold *big.Int) error {
 
 	if threshold.Cmp(MillionLAT) < 0 {
-		return fmt.Errorf("The StakeThreshold must be [%d, %s) LAT", MillionLAT, PositiveInfinity)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %s) LAT", MillionLAT, PositiveInfinity))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
 	if threshold.Cmp(TenLAT) < 0 {
-		return fmt.Errorf("The OperatingThreshold must be [%d, %s) LAT", TenLAT, PositiveInfinity)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %s) LAT", TenLAT, PositiveInfinity))
 	}
 	return nil
 }
 
 func CheckMaxValidators(num int) error {
 	if num < CeilMaxConsensusVals || num > CeilMaxValidators {
-		return fmt.Errorf("The MaxValidators must be [%d, %d]", CeilMaxConsensusVals, CeilMaxValidators)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxValidators must be [%d, %d]", CeilMaxConsensusVals, CeilMaxValidators))
 	}
 	return nil
 }
 
 func CheckUnStakeFreezeDuration(duration, maxEvidenceAge int) error {
 	if duration <= maxEvidenceAge || duration > CeilUnStakeFreezeDuration {
-		return fmt.Errorf("The UnStakeFreezeDuration must be (%d, %d]", maxEvidenceAge, CeilUnStakeFreezeDuration)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", maxEvidenceAge, CeilUnStakeFreezeDuration))
 	}
 
 	return nil
@@ -324,28 +324,28 @@ func CheckUnStakeFreezeDuration(duration, maxEvidenceAge int) error {
 
 func CheckSlashFractionDuplicateSign(fraction int) error {
 	if fraction <= Zero || fraction > TenThousand {
-		return fmt.Errorf("SlashFractionDuplicateSign must be  (%d, %d]", Zero, TenThousand)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("SlashFractionDuplicateSign must be  (%d, %d]", Zero, TenThousand))
 	}
 	return nil
 }
 
 func CheckDuplicateSignReportReward(fraction int) error {
 	if fraction <= Zero || fraction > Eighty {
-		return fmt.Errorf("The DuplicateSignReportReward must be (%d, %d]", Zero, Eighty)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The DuplicateSignReportReward must be (%d, %d]", Zero, Eighty))
 	}
 	return nil
 }
 
 func CheckMaxEvidenceAge(age, unStakeFreezeDuration int) error {
 	if age <= Zero || age >= unStakeFreezeDuration {
-		return fmt.Errorf("The MaxEvidenceAge must be (%d, %d)", Zero, unStakeFreezeDuration)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxEvidenceAge must be (%d, %d)", Zero, unStakeFreezeDuration))
 	}
 	return nil
 }
 
 func CheckSlashBlocksReward(rewards int) error {
 	if rewards < Zero || rewards >= CeilBlocksReward {
-		return fmt.Errorf("The SlashBlocksReward must be [%d, %d)", Zero, CeilBlocksReward)
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The SlashBlocksReward must be [%d, %d)", Zero, CeilBlocksReward))
 	}
 
 	return nil

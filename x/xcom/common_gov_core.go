@@ -58,7 +58,7 @@ func GetGovernParamValue(module, name string, blockNumber uint64, blockHash comm
 		return "", err
 	}
 	if paramValue == nil {
-		return "", fmt.Errorf("Not found the %s.%s Govern value", module, name)
+		return "", common.InternalError
 	} else {
 		if blockNumber >= paramValue.ActiveBlock {
 			return paramValue.Value, nil
