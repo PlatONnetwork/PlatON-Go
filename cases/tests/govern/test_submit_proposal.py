@@ -28,3 +28,21 @@ def test_CP_SU_001_CP_UN_001(submit_cancel):
     assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
     pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+
+def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
+    pip_obj_tmp = no_version_proposal
+    result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version1, 1,
+                                       pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+    assert result.get("Code") == 302011
+
+    result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version2, 1,
+                                       pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+    assert result.get("Code") == 302011
+
+    result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version3, 1,
+                                       pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+    assert result.get("Code") == 302011
+
+    result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.chain_version, 1,
+                                   pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+    assert result.get("Code") == 302011
