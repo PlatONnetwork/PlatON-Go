@@ -81,3 +81,24 @@ def test_IT_IA_002_to_007(new_env):
     assert remain == int(surplus_amount), "剩余总账户初始金额:{}有误".format(remain)
     assert develop == 0, "社区开发者基金会账户金额：{} 有误".format(develop)
     assert reality_total == EconomicConfig.TOKEN_TOTAL, "初始化发行值{}有误".format(reality_total)
+
+    
+@allure.title("二次分配：转账金额：{value}")
+@pytest.mark.P0
+@pytest.mark.parametrize('value', [1000, 0.000000000000000001, 100000000])
+def test_IT_SD_004_to_006(client_consensus_obj, value):
+    """
+    IT_SD_006:二次分配：普通钱包转keyshard钱包
+    IT_SD_004:二次分配：转账金额为1von
+    IT_SD_005:二次分配：转账金额为1亿LAT
+    :param client_consensus_obj:
+    :param value:
+    :return:
+    """
+    balance = client_consensus_obj.node.eth.getBalance(
+        client_consensus_obj.node.web3.toChecksumAddress(0x493301712671Ada506ba6Ca7891F436D29185821))
+    value = client_consensus_obj.node.web3.toWei(value, 'ether')
+    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3, value)
+    balance = client_consensus_obj.node.eth.getBalance(client_consensus_obj.node.web3.toChecksumAddress(address))
+    log.info("交易之后账户：{}的余额：{}".format(address, balance))
+    assert balance == value, "转账金额:{}失败".format(balance)
