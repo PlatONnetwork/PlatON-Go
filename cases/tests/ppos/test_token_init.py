@@ -322,3 +322,43 @@ def test_AL_IE_004(client_new_node_obj_list):
     assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
     consensus_node_pledge_award_assertion(client_new_node_obj_list[1], address)
 
+
+@pytest.mark.P1
+def test_AL_BI_004(client_consensus_obj):
+    """
+    初始验证人退出后重新质押进来
+    :param client_consensus_obj:
+    :return:
+    """
+    developer_foundation_balance = client_consensus_obj.node.eth.getBalance(
+        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+    log.info("incentive_pool_balance: {}".format(developer_foundation_balance))
+    staking_balance = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    log.info("staking_balance: {}".format(staking_balance))
+
+    # 内置节点退回质押
+    result = client_consensus_obj.staking.withdrew_staking(
+        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+    assert result['Code'] == 0, "申请退回质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    # create account
+    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
+                                                                        client_consensus_obj.economic.create_staking_limit * 2)
+
+    # 等待退出质押
+    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, 1)
+    # 查看账户金额变化
+    developer_foundation_balance1 = client_consensus_obj.node.eth.getBalance(
+        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+    log.info("incentive_pool_balance: {}".format(developer_foundation_balance1))
+    staking_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    log.info("staking_balance: {}".format(staking_balance1))
+
+    assert developer_foundation_balance + EconomicConfig.DEVELOPER_STAKING_AMOUNT - developer_foundation_balance1 < client_consensus_obj.node.web3.toWei(
+        1, 'ether'), "error: developer_foundation_balance1: {}".format(developer_foundation_balance1)
+    assert staking_balance1 == staking_balance - EconomicConfig.DEVELOPER_STAKING_AMOUNT, "error: staking_balance1: {}".format(
+        staking_balance1)
+    # 节点重新质押
+    result = client_consensus_obj.staking.create_staking(0, address, address)
+    assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    # 质押奖励和出块奖励断言
+    no_consensus_node_pledge_award_assertion(client_consensus_obj, address, address)
