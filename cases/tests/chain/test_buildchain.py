@@ -59,3 +59,20 @@ def test_build_one_node_privatechain(global_test_env):
     join_node.admin.addPeer(test_node.enode)
     time.sleep(5)
     assert join_node.block_number > 0, "区块高度没有增长"
+
+
+@allure.title("测试不同initnode创始文件之间节点互连")
+@pytest.mark.P0
+def test_init_diff_genesis_join_chain(global_test_env):
+    global_test_env.deploy_all()
+    test_node = copy(global_test_env.get_a_normal_node())
+    log.info("test node :{}".format(test_node.node_mark))
+    genesis = from_dict(data_class=Genesis, data=global_test_env.genesis_config)
+    genesis.config.cbft.initialNodes = [{"node": test_node.enode, "blsPubKey": test_node.blspubkey}]
+    file = test_node.local_node_tmp + "/genesis.json"
+    genesis.to_file(file)
+    test_node.deploy_me(file)
+    log.info(test_node.running)
+    test_node.admin.addPeer(global_test_env.get_rand_node().enode)
+    time.sleep(5)
+    assert test_node.web3.net.peerCount == 0
