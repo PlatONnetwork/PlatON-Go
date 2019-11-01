@@ -11,6 +11,7 @@ class Delegate:
     >>>delegate=Delegate(env, node)
     >>>delegate.ppos.getDelegateInfo(...)
     """
+
     def __init__(self, env: TestEnvironment, node: Node):
         self.node = node
         self.economic = Economic(env)

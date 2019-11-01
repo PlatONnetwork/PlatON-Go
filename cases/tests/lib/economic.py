@@ -45,7 +45,7 @@ class Economic:
         self.add_staking_limit = self.genesis.EconomicModel.Staking.MinimumThreshold
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
-        #冻结结算周期
+        # 冻结结算周期
         self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeRatio
 
     @property
@@ -87,8 +87,8 @@ class Economic:
     def get_settlement_switchpoint(self, node: Node, number=0):
         """
         Get the last block of the current billing cycle
-        :param node: node object
-        :param number: number of billing cycles
+                :param node: node object
+                :param number: number of billing cycles
         :return:
         """
         block_number = self.settlement_size * number
@@ -99,8 +99,8 @@ class Economic:
     def get_front_settlement_switchpoint(self, node: Node, number=0):
         """
         Get a block height before the current billing cycle
-        :param node: node object
-        :param number: number of billing cycles
+                :param node: node object
+                :param number: number of billing cycles
         :return:
         """
         block_num = self.settlement_size * (number + 1)
@@ -111,8 +111,8 @@ class Economic:
     def wait_settlement_blocknum(self, node: Node, number=0):
         """
         Waiting for a billing cycle to settle
-        :param node:
-        :param number: number of billing cycles
+                :param node:
+                :param number: number of billing cycles
         :return:
         """
         end_block = self.get_settlement_switchpoint(node, number)

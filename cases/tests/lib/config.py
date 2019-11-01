@@ -40,6 +40,7 @@ class PipConfig:
     version9 = 526081
     transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
 
+
 class EconomicConfig:
     RELEASE_ZERO = 62215742.48691650
     TOKEN_TOTAL = 10250000000000000000000000000

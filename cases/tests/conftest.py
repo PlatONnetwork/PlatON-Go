@@ -4,10 +4,12 @@ from common.log import log
 from tests.lib.client import Client
 from tests.lib.utils import get_pledge_list, get_client_obj, get_staking_address
 
+
 @pytest.fixture()
 def staking_cfg():
     cfg = StakingConfig("externalId", "nodeName", "website", "details")
     return cfg
+
 
 @pytest.fixture()
 def client_list_obj(global_test_env, staking_cfg):
@@ -22,6 +24,7 @@ def client_list_obj(global_test_env, staking_cfg):
         client_list_obj.append(Client(global_test_env, node_obj, staking_cfg))
     return client_list_obj
 
+
 @pytest.fixture()
 def client_con_list_obj(global_test_env, staking_cfg):
     '''
@@ -34,6 +37,7 @@ def client_con_list_obj(global_test_env, staking_cfg):
     for node_obj in consensus_node_obj_list:
         client_con_list_obj.append(Client(global_test_env, node_obj, staking_cfg))
     return client_con_list_obj
+
 
 @pytest.fixture()
 def client_noc_list_obj(global_test_env, staking_cfg):
@@ -48,6 +52,7 @@ def client_noc_list_obj(global_test_env, staking_cfg):
         client_noc_list_obj.append(Client(global_test_env, node_obj, staking_cfg))
     return client_noc_list_obj
 
+
 @pytest.fixture()
 def client_consensus_obj(global_test_env, staking_cfg):
     '''
@@ -59,6 +64,7 @@ def client_consensus_obj(global_test_env, staking_cfg):
     client_consensus_obj = Client(global_test_env, consensus_node_obj, staking_cfg)
     return client_consensus_obj
 
+
 @pytest.fixture()
 def client_noconsensus_obj(global_test_env, staking_cfg):
     '''
@@ -69,6 +75,7 @@ def client_noconsensus_obj(global_test_env, staking_cfg):
     noconsensus_node_obj = global_test_env.get_a_normal_node()
     client_noconsensus_obj = Client(global_test_env, noconsensus_node_obj, staking_cfg)
     return client_noconsensus_obj
+
 
 @pytest.fixture()
 def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
@@ -88,6 +95,7 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
     client_obj = get_client_obj(nodeid, client_list_obj)
     return client_obj
 
+
 @pytest.fixture()
 def client_new_node_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
@@ -104,6 +112,7 @@ def client_new_node_obj(global_test_env, client_consensus_obj, client_list_obj):
     global_test_env.deploy_all()
     return get_client_obj(global_test_env.get_a_normal_node.node_id, client_list_obj)
 
+
 @pytest.fixture()
 def client_new_node_obj_list(global_test_env, client_noc_list_obj):
     '''
@@ -113,6 +122,7 @@ def client_new_node_obj_list(global_test_env, client_noc_list_obj):
     '''
     global_test_env.deploy_all()
     return client_noc_list_obj
+
 
 @pytest.fixture()
 def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj):

@@ -11,6 +11,7 @@ class Restricting:
     >>>res=Restricting(env, node)
     >>>res.ppos.getRestrictingInfo(...)
     """
+
     def __init__(self, env: TestEnvironment, node: Node):
         self.node = node
         self.economic = Economic(env)

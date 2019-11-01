@@ -16,6 +16,7 @@ class Client:
     >>>client = Client(env, node, cfg)
     >>>client.staking.create_staking(...)
     """
+
     def __init__(self, env: TestEnvironment, node: Node, cfg: StakingConfig):
         self.node = node
         self.economic = Economic(env)

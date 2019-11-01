@@ -321,8 +321,8 @@ class TestEnvironment:
     def deploy_nodes(self, node_list: Iterable[Node], genesis_file):
         """
         Deployment node
-        Choose whether to empty the environment depending on whether initialization is required
-        Upload all node files
+                Choose whether to empty the environment depending on whether initialization is required
+                Upload all node files
         :param node_list:
         :param genesis_file:
         """

@@ -252,11 +252,12 @@ def random_string(length=10):
     """
     return ''.join(
         random.choice(
-            string.ascii_lowercase
-            + string.ascii_uppercase
-            + string.digits
+            string.ascii_lowercase +
+            string.ascii_uppercase +
+            string.digits
         ) for _ in range(length)
     )
+
 
 def get_pip_obj(nodeid, pip_obj_list):
     '''
@@ -282,6 +283,7 @@ def get_pip_obj_list(nodeid_list, pip_obj_list):
         new_pip_obj_list.append(get_pip_obj(nodeid, pip_obj_list))
     return new_pip_obj_list
 
+
 def get_client_obj(nodeid, client_obj_list):
     '''
     根据节点id获取client对象
@@ -292,6 +294,7 @@ def get_client_obj(nodeid, client_obj_list):
     for client_obj in client_obj_list:
         if nodeid == client_obj.node.node_id:
             return client_obj
+
 
 def get_client_obj_list(nodeid_list, client_obj_list):
     '''
@@ -304,5 +307,3 @@ def get_client_obj_list(nodeid_list, client_obj_list):
     for nodeid in nodeid_list:
         new_client_obj_list.append(get_client_obj(nodeid, client_obj_list))
     return new_client_obj_list
-
-
