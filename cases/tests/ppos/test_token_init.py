@@ -168,3 +168,23 @@ def test_IT_SD_007(global_test_env):
     log.info("转账之后账户余额： {}".format(balance1))
     log.info("手续费： {}".format(node.web3.platon.gasPrice * 21000))
     assert balance == balance1 + node.web3.platon.gasPrice * 21000, "转账之后账户余额： {} 有误".format(balance1)
+
+    
+@pytest.mark.P0
+def test_IT_SD_008(global_test_env):
+    """
+    二次分配：普通账户转platON基金会账户
+    :return:
+    """
+    node = global_test_env.get_rand_node()
+    value = node.web3.toWei(1000, 'ether')
+    address, _ = global_test_env.account.generate_account(node.web3, value)
+    balance = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    result = global_test_env.account.sendTransaction(node.web3, '', address, EconomicConfig.INCENTIVEPOOL_ADDRESS,
+                                                     node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'))
+    assert result is not None, "用例失败"
+    balance1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("转账之后账户余额： {}".format(balance1))
+    log.info("手续费： {}".format(node.web3.platon.gasPrice * 21000))
+    assert balance1 == balance + node.web3.toWei(100,'ether') + node.web3.platon.gasPrice * 21000, "转账之后账户余额： {} 有误".format(
+        balance1)
