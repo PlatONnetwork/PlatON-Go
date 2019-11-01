@@ -53,7 +53,6 @@ func NewFetcher() *Fetcher {
 		tasks:   make(map[string]*task),
 		quit:    make(chan struct{}),
 	}
-
 	return fetcher
 }
 
@@ -96,6 +95,8 @@ func (f *Fetcher) Len() int {
 	return len(f.tasks)
 }
 
+// The main logic of fetcher, listening to tasks that require
+// fetcher and continuous processing.Simultaneously delete expired tasks.
 func (f *Fetcher) loop() {
 	fetchTimer := time.NewTimer(0)
 	for {
@@ -131,6 +132,5 @@ func (f *Fetcher) loop() {
 			f.lock.Unlock()
 			return
 		}
-
 	}
 }

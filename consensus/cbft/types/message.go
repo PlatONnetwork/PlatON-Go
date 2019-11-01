@@ -45,6 +45,8 @@ func ErrResp(code ErrCode, format string, v ...interface{}) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
 }
 
+// Consensus message interface, all consensus message
+// types must implement this interface.
 type ConsensusMsg interface {
 	EpochNum() uint64
 	ViewNum() uint64
@@ -55,6 +57,8 @@ type ConsensusMsg interface {
 	SetSign([]byte)
 }
 
+// Message interface, all message structures must
+// implement this interface.
 type Message interface {
 	String() string
 	MsgHash() common.Hash
