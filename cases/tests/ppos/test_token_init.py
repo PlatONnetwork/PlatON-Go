@@ -188,3 +188,37 @@ def test_IT_SD_008(global_test_env):
     log.info("手续费： {}".format(node.web3.platon.gasPrice * 21000))
     assert balance1 == balance + node.web3.toWei(100,'ether') + node.web3.platon.gasPrice * 21000, "转账之后账户余额： {} 有误".format(
         balance1)
+    
+def consensus_node_pledge_award_assertion(client_new_node_obj, address):
+    """
+    内置节点质押奖励断言
+    :param client_new_node_obj:
+    :param address:
+    :return:
+    """
+    blockNumber = client_new_node_obj.node.eth.blockNumber
+    log.info("当前块高：{}".format(blockNumber))
+    incentive_pool_balance = client_new_node_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("激励池余额：{}".format(incentive_pool_balance))
+    CandidateInfo = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info("质押人节点信息：{}".format(CandidateInfo))
+
+    # 等待质押节点到锁定期
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    time.sleep(5)
+    VerifierList = client_new_node_obj.ppos.getVerifierList()
+    log.info("当前验证人列表：{}".format(VerifierList))
+    ValidatorList = client_new_node_obj.ppos.getValidatorList()
+    log.info("当前共识验证人列表：{}".format(ValidatorList))
+    # 申请退回质押
+    result = client_new_node_obj.staking.withdrew_staking(address)
+    log.info("退回质押结果: {}".format(result))
+    assert result['Code'] == 0, "申请退回质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    # 等待当前结算结束
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    # 查看激励池金额
+    incentive_pool_balance2 = client_new_node_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("地址：{}, 金额：{}".format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool_balance2))
+
+    assert incentive_pool_balance2 - incentive_pool_balance < client_new_node_obj.node.web3.toWei(1, 'ether'), "激励池余额：{} 有误".format(
+        incentive_pool_balance2)
