@@ -19,7 +19,7 @@ def new_env(global_test_env):
 
 
 def test_copy_cfg(new_env):
-    # 不拷贝环境，通过fixture保留以原有环境配置
+    # Do not copy the environment, retain the original environment configuration through the fixture
     genesis = from_dict(data_class=Genesis, data=new_env.genesis_config)
     genesis.EconomicModel.Staking.StakeThreshold = 500000000000000000000000
     new_env.set_genesis(genesis.to_dict())
@@ -30,7 +30,7 @@ def test_copy_cfg(new_env):
 
 
 def test_copy_env(global_test_env):
-    # 拷贝环境，会对环境进行拷贝,不对环境配置,账号和节点拷贝
+    # Copy the environment, copy the environment, do not configure the environment, account and node copy
     new_env = global_test_env.copy_env()
     genesis = from_dict(data_class=Genesis, data=new_env.genesis_config)
     genesis.EconomicModel.Staking.StakeThreshold = 500000000000000000000000
