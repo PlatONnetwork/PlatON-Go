@@ -102,3 +102,51 @@ def test_IT_SD_004_to_006(client_consensus_obj, value):
     balance = client_consensus_obj.node.eth.getBalance(client_consensus_obj.node.web3.toChecksumAddress(address))
     log.info("交易之后账户：{}的余额：{}".format(address, balance))
     assert balance == value, "转账金额:{}失败".format(balance)
+
+@pytest.mark.P1
+@pytest.mark.parametrize('code', [1, 2, 3])
+def test_IT_SD_002_003_011(global_test_env, code):
+    """
+    IT_SD_002:二次分配：账户余额不足
+    IT_SD_003:二次分配：转账手续费不足
+    IT_SD_011:账户转账校验：转账gas费不足
+    :param global_test_env:
+    :param code:
+    :return:
+    """
+    node = global_test_env.get_rand_node()
+    value = node.web3.toWei(1000, 'ether')
+    address, _ = global_test_env.account.generate_account(node.web3, value)
+    if code == 1:
+        # 账户余额不足转账
+        try:
+            address1, _ = global_test_env.account.generate_account(node.web3, 0)
+            result = global_test_env.account.sendTransaction(node.web3, '', node.web3.toChecksumAddress(address),
+                                                             node.web3.toChecksumAddress(address1),
+                                                             node.web3.platon.gasPrice, 21000, 2000)
+            return_info = node.eth.waitForTransactionReceipt(result)
+            assert return_info is not None, "用例失败"
+        except Exception as e:
+            log.info("用例成功，异常信息：{} ".format(str(e)))
+    elif code == 2:
+        # 转账手续费不足
+        try:
+            address1, _ = global_test_env.account.generate_account(node.web3, 0)
+            result = global_test_env.account.sendTransaction(node.web3, '', node.web3.toChecksumAddress(address),
+                                                             node.web3.toChecksumAddress(address1),
+                                                             node.web3.platon.gasPrice, 21000, 1000)
+            return_info = node.eth.waitForTransactionReceipt(result)
+            assert return_info is not None, "用例失败"
+        except Exception as e:
+            log.info("用例成功，异常信息：{} ".format(str(e)))
+    elif code == 3:
+        # 转账gas费不足
+        try:
+            address1, _ = global_test_env.account.generate_account(node.web3, 0)
+            result = global_test_env.account.sendTransaction(node.web3, '', node.web3.toChecksumAddress(address),
+                                                             node.web3.toChecksumAddress(address1),
+                                                             node.web3.platon.gasPrice, 2100, 500)
+            return_info = node.eth.waitForTransactionReceipt(result)
+            assert return_info is not None, "用例失败"
+        except Exception as e:
+            log.info("用例成功，异常信息：{} ".format(str(e)))
