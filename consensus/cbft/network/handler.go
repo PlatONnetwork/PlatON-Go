@@ -425,7 +425,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 func (h *EngineManager) handleMsg(p *peer) error {
 	msg, err := p.ReadWriter().ReadMsg()
 	if err != nil {
-		p.Log().Error("read peer message error", "err", err)
+		p.Log().Error("Read peer message error", "err", err)
 		return err
 	}
 
@@ -560,7 +560,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 	case msg.Code == protocols.PongMsg:
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
-		log.Debug("handle a eth Pong message", "curTime", curTime)
+		log.Debug("Handle a eth Pong message", "curTime", curTime)
 		var pongTime protocols.Pong
 		if err := msg.Decode(&pongTime); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
@@ -569,7 +569,7 @@ func (h *EngineManager) handleMsg(p *peer) error {
 			// Return the first element of list l or nil if the list is empty.
 			frontPing := p.ListFront()
 			if frontPing == nil {
-				log.Trace("end of p.pingList")
+				log.Trace("End of p.pingList")
 				break
 			}
 			log.Trace("Front element of p.pingList", "element", frontPing)
@@ -579,10 +579,10 @@ func (h *EngineManager) handleMsg(p *peer) error {
 					if err != nil {
 						return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 					}
-					log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+					log.Trace("Calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 					latency := (curTime - tInt64) / 2 / 1000000
 					// Record the latency in metrics and output it. unit: second.
-					log.Trace("latency", "time", latency)
+					log.Trace("Latency", "time", latency)
 					h.engine.OnPong(p.id, latency)
 					propPeerLatencyMeter.Mark(latency)
 					break
@@ -738,7 +738,7 @@ func (h *EngineManager) synchronize() {
 			}
 
 		case <-h.quitSend:
-			log.Error("synchronize quit")
+			log.Error("Synchronize quit")
 			return
 		}
 	}
@@ -746,8 +746,7 @@ func (h *EngineManager) synchronize() {
 
 // Select a node from the list of nodes that is larger than the specified value.
 //
-// bType:
-//  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
+// bType: 1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
 func largerPeer(bType uint64, peers []*peer, number uint64) (*peer, uint64) {
 	if len(peers) == 0 {
 		return nil, 0
@@ -790,5 +789,4 @@ func (h *EngineManager) Testing() {
 			}
 		}(v)
 	}
-
 }

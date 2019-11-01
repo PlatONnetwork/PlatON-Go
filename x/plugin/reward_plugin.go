@@ -18,6 +18,9 @@ import (
 )
 
 type RewardMgrPlugin struct {
+	currentYear    uint32
+	stakingReward  *big.Int
+	newBlockReward *big.Int
 }
 
 const (
@@ -51,10 +54,8 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // for create new block, this is necessary. At last if current block is the last block at the end
 // of year, increasing issuance.
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-
 	blockNumber := head.Number.Uint64()
 
-	log.Debug("Call EndBlock on reward_plugin start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
 	thisYear := xutil.CalculateYear(blockNumber)
 	var lastYear uint32
@@ -62,10 +63,12 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		lastYear = thisYear - 1
 	}
 
-	stakingReward, packageReward := rmp.calculateExpectReward(thisYear, lastYear, state)
-
-	log.Debug("Call EndBlock on reward_plugin: after call calculateExpectReward", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "stakingReward", stakingReward, "packageBlockReward", packageReward)
+	if thisYear != rmp.currentYear {
+		rmp.stakingReward, rmp.newBlockReward = rmp.calculateExpectReward(thisYear, lastYear, state)
+		rmp.currentYear = thisYear
+	}
+	stakingReward := new(big.Int).Set(rmp.stakingReward)
+	newBlockReward := new(big.Int).Set(rmp.newBlockReward)
 
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
@@ -80,7 +83,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		rmp.increaseIssuance(thisYear, lastYear, state)
 	}
 
-	log.Debug("Call EndBlock on reward_plugin End")
 
 	return nil
 }

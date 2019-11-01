@@ -95,11 +95,11 @@ type PrepareBlock struct {
 	Epoch         uint64               `json:"epoch"`
 	ViewNumber    uint64               `json:"viewNumber"`
 	Block         *types.Block         `json:"blockHash"`
-	BlockIndex    uint32               `json:"blockIndex"` // The block number of the current ViewNumber proposal, 0....10
-	ProposalIndex uint32               `json:"proposalIndex"`
+	BlockIndex    uint32               `json:"blockIndex"`             // The block number of the current ViewNumber proposal, 0....10
+	ProposalIndex uint32               `json:"proposalIndex"`          // Proposer's index.
 	PrepareQC     *ctypes.QuorumCert   `json:"prepareQC" rlp:"nil"`    // N-f aggregate signature
 	ViewChangeQC  *ctypes.ViewChangeQC `json:"viewchangeQC" rlp:"nil"` // viewChange aggregate signature
-	Signature     ctypes.Signature     `json:"signature"`
+	Signature     ctypes.Signature     `json:"signature"`              // PrepareBlock signature information
 	messageHash   atomic.Value         `rlp:"-"`
 }
 
@@ -163,7 +163,8 @@ func (pb *PrepareBlock) SetSign(sign []byte) {
 	pb.Signature.SetBytes(sign)
 }
 
-// Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
+// Removed the validator address, index. Mainly to ensure
+// that the signature hash of the aggregate signature is consistent.
 type PrepareVote struct {
 	Epoch          uint64             `json:"epoch"`
 	ViewNumber     uint64             `json:"viewNumber"`
@@ -231,6 +232,7 @@ func (pv *PrepareVote) Sign() []byte {
 func (pv *PrepareVote) SetSign(sign []byte) {
 	pv.Signature.SetBytes(sign)
 }
+
 func (pv *PrepareVote) EqualState(vote *PrepareVote) bool {
 	return pv.Epoch == vote.Epoch &&
 		pv.ViewNumber == vote.ViewNumber &&
@@ -274,6 +276,7 @@ func (vc *ViewChange) BHash() common.Hash {
 func (vc *ViewChange) EpochNum() uint64 {
 	return vc.Epoch
 }
+
 func (vc *ViewChange) ViewNum() uint64 {
 	return vc.ViewNumber
 }
@@ -432,8 +435,8 @@ func (s *GetBlockQuorumCert) BHash() common.Hash {
 // Aggregate signature response message, representing
 // aggregated signature information for a block.
 type BlockQuorumCert struct {
-	BlockQC     *ctypes.QuorumCert `json:"qc"` // Block aggregation signature information
-	messageHash atomic.Value       `json:"-" rlp:"-"`
+	BlockQC     *ctypes.QuorumCert `json:"qc"`        // Block aggregation signature information.
+	messageHash atomic.Value       `json:"-" rlp:"-"` // BlockQuorumCert hash value.
 }
 
 func (s *BlockQuorumCert) String() string {
@@ -459,7 +462,7 @@ func (s *BlockQuorumCert) BHash() common.Hash {
 // Used to get block information that has reached QC.
 // Note: Get up to 3 blocks of data at a time.
 type GetQCBlockList struct {
-	BlockHash   common.Hash  `json:"blockHash"`
+	BlockHash   common.Hash  `json:"blockHash"`   // The hash to the block.
 	BlockNumber uint64       `json:"blockNumber"` // The number corresponding to the block.
 	messageHash atomic.Value `json:"-" rlp:"-"`
 }
