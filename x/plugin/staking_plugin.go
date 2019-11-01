@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -66,6 +67,8 @@ const (
 
 	ValidatorName = "Validator"
 	VerifierName  = "Verifier"
+	VersionData  = "VersionData"
+	VersionList  = "VersionList"
 )
 
 // Instance a global StakingPlugin
@@ -1517,6 +1520,45 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	return queue, nil
 }
 
+func (sk *StakingPlugin) GetNodeVersion(blockNumber uint64) ([]staking.NodeIdVersion,error){
+
+	log.Debug("wow,GetNodeVersion query number:", "num", blockNumber)
+	data, err := STAKING_DB.HistoryDB.Get([]byte(VersionList))
+	if nil != err {
+		return nil, err
+	}
+	var versionList staking.VersionList
+	err = rlp.DecodeBytes(data, &versionList)
+	if nil != err {
+		return nil, err
+	}
+	xcom.PrintObject("wow,GetNodeVersion", versionList)
+
+	queue := make([]staking.NodeIdVersion, 1,1)
+
+	for _, v := range versionList.NodeIdVersionKey{
+		vs := strings.Split(v, ":")
+		vsInt, err := strconv.ParseUint(vs[1], 10, 64)
+		if nil != err {
+			return nil, err
+		}
+		if vsInt > blockNumber {
+			data, err := STAKING_DB.HistoryDB.Get([]byte(v))
+			if nil != err {
+				return nil, err
+			}
+			var nodeIdVersion staking.NodeIdVersion
+			err = rlp.DecodeBytes(data, &nodeIdVersion)
+			if nil != err {
+				return nil, err
+			}
+			queue = append(queue, nodeIdVersion)
+		}
+
+	}
+	return queue, nil
+}
+
 func (sk *StakingPlugin) GetCandidateONRound(blockHash common.Hash, blockNumber uint64,
 	flag uint, isCommit bool) (staking.CandidateQueue, error) {
 
@@ -2405,6 +2447,34 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		}
 
 	}
+
+	dataKey:=VersionData + ":" + strconv.FormatUint(blockNumber, 10);
+	nodeIdVersions := &staking.NodeIdVersion{
+		BlockNumber:blockNumber,
+		Version: version,
+		ProgramVersion: programVersion,
+		NodeIds: nodeIds,
+	}
+	log.Debug("wow,set VersionData", "key ", dataKey)
+	data, _ := rlp.EncodeToBytes(nodeIdVersions)
+	STAKING_DB.HistoryDB.Put([]byte(dataKey), data)
+
+	listDataByte,_ := STAKING_DB.HistoryDB.Get([]byte(VersionList))
+	log.Debug("wow,get listDataByte", "data ", listDataByte)
+	var versionList staking.VersionList
+	if listDataByte!=nil {
+		rlp.DecodeBytes(listDataByte, versionList)
+	}
+	xcom.PrintObject("wow,set versionList", versionList)
+	newVersionList := make([]string, len(versionList.NodeIdVersionKey) + 1)
+	for index, value := range versionList.NodeIdVersionKey {
+		newVersionList[index] = value
+	}
+	newVersionList[len(versionList.NodeIdVersionKey) + 1] = dataKey
+	versionList.NodeIdVersionKey = newVersionList
+	xcom.PrintObject("wow,set newVersionList", newVersionList)
+	listDataByte,_ = rlp.EncodeToBytes(versionList)
+	STAKING_DB.HistoryDB.Put([]byte(VersionList), listDataByte)
 
 	return nil
 }
