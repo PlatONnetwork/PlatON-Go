@@ -76,3 +76,36 @@ def test_VP_SU_001_VP_UN_001(submit_version):
                                    pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('有处于投票期的升级提案，再次发起升级提案结果为{}'.format(result))
     assert result.get('Code') == 302012
+
+def test_VP_UN_002_CP_ID_002(submit_version, client_list_obj):
+    pip_obj = submit_version
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+    log.info('获取升级提案信息为{}'.format(proposalinfo))
+    verifier_list = get_pledge_list(pip_obj.node.ppos.getVerifierList)
+    log.info('verifier_list:{}'.format(verifier_list))
+    for nodeid in verifier_list:
+        pip_obj_tmp = get_client_obj(nodeid, client_list_obj).pip
+        log.info('节点id为{}'.format(pip_obj_tmp.node.node_id))
+        log.info('替换节点{}版本'.format(pip_obj_tmp.node.node_id))
+        upload_platon(pip_obj_tmp.node, pip_obj.cfg.PLATON_NEW_BIN)
+        log.info('进行节点重启')
+        pip_obj_tmp.node.restart()
+        result = pip_obj_tmp.vote(pip_obj_tmp.node.node_id, proposalinfo.get("ProposalID"), pip_obj_tmp.cfg.vote_option_yeas,
+                                  pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+        log.info('节点{}升级提案投票结果为{}'.format(pip_obj_tmp.node.node_id, result))
+        assert result.get('Code') == 0
+    wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+    status = pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID'))
+    log.info('投票截止快高，升级提案状态为{}'.format(status))
+    assert status == 4
+
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
+                                   pip_obj.node.staking_address,
+                                   transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('链上存在预生效的升级提案，再次发起升级提案结果为{}'.format(result))
+    assert result.get('Code') == 302013
+
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
+                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('there is preactive version proposal, submit cancel proposal result: {}'.format(result))
+    assert result.get('Code') == 302017
