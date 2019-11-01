@@ -257,3 +257,35 @@ class TestNoVerifierSubmitProposal():
                                                 transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('候选节点节点{}发起文本提案，结果为{}'.format(pip_obj.node.node_id, result))
         assert result.get('Code') == 302022
+
+    def test_VP_PR_003_VP_PR_004_TP_PR_003_TP_PR_004(self, client_verifier_obj):
+        address = client_verifier_obj.node.staking_address
+        result = client_verifier_obj.staking.withdrew_staking(address)
+        log.info('节点{}发起退质押结果为{}'.format(client_verifier_obj.node.node_id, result))
+        assert result.get("Code") == 0
+        log.info(client_verifier_obj.economic.account.find_pri_key(address))
+        result = client_verifier_obj.pip.submitVersion(client_verifier_obj.node.node_id, str(time.time()),
+                                                       client_verifier_obj.pip.cfg.version5, 1, address,
+                                              transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        log.info('节点退出中，发起升级提案结果为{}'.format(result))
+        assert result.get('Code') == 302020
+
+        result = client_verifier_obj.pip.submitText(client_verifier_obj.node.node_id, str(time.time()), address,
+                                           transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        log.info('节点退出中，发起文本提案结果为{}'.format(result))
+        assert result.get('Code') == 302020
+
+        client_verifier_obj.economic.wait_settlement_blocknum(client_verifier_obj.node,
+                                                              number=client_verifier_obj.economic.unstaking_freeze_ratio)
+        result = client_verifier_obj.pip.submitVersion(client_verifier_obj.node.node_id, str(time.time()),
+                                                       client_verifier_obj.pip.cfg.version5, 1, address,
+                                              transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        log.info('节点已退出，发起升级提案结果为{}'.format(result))
+        assert result.get('Code') == 302022
+
+        client_verifier_obj.economic.wait_settlement_blocknum(client_verifier_obj.node,
+                                                              number=client_verifier_obj.economic.unstaking_freeze_ratio)
+        result = client_verifier_obj.pip.submitText(client_verifier_obj.node.node_id, str(time.time()), address,
+                                           transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        log.info('节点已退出，发起文本提案结果为{}'.format(result))
+        assert result.get('Code') == 302022
