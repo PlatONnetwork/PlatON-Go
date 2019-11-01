@@ -169,3 +169,16 @@ def test_start_all_node_close_f_add_1_and_all(global_test_env):
     global_test_env.stop_nodes(test_nodes)
     global_test_env.start_nodes(test_nodes, False)
     global_test_env.check_block(need_number=20, multiple=2)
+
+
+@allure.title("正常启动所有节点,逐渐关闭f+1个,再逐步启动一个")
+@pytest.mark.P0
+def test_start_all_node_close_f_add_1_and_one(global_test_env):
+    """
+    启动所有节点后，逐渐关闭f+1个，那么关闭后将不会出块,等待重启后出块
+    """
+    global_test_env.deploy_all()
+    test_nodes = global_test_env.consensus_node_list[0:global_test_env.max_byzantium + 1]
+    global_test_env.stop_nodes(test_nodes)
+    global_test_env.start_nodes(test_nodes[global_test_env.max_byzantium:global_test_env.max_byzantium + 1], False)
+    global_test_env.check_block(multiple=5, node_list=global_test_env.consensus_node_list[global_test_env.max_byzantium:])
