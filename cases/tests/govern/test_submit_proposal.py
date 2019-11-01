@@ -187,3 +187,46 @@ class TestEndVotingRounds():
         log.info('计算投票截止块高为{},接口返回投票截止块高{}'.format(endvotingblock_count,
                                                    proposalinfo.get('EndVotingBlock')))
         assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
+
+    def test_VP_CR_005_VP_CR_006_TP_TE_001(self, pip_env, client_verifier_obj):
+        pip_obj = client_verifier_obj.pip
+        genesis = from_dict(data_class=Genesis, data=pip_env.genesis_config)
+        genesis.EconomicModel.Gov.VersionProposalVote_DurationSeconds = 3 * pip_obj.economic.consensus_size
+        genesis.EconomicModel.Gov.TextProposalVote_DurationSeconds = 5 * pip_obj.economic.consensus_size
+        pip_env.set_genesis(genesis.to_dict())
+        pip_env.deploy_all()
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 4,
+                                       pip_obj.node.staking_address,
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('投票共识轮数为3，发起升级提案结果为{}'.format(result))
+        assert result.get('Code') == 302010
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 0,
+                                       pip_obj.node.staking_address,
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('投票共识轮数为0，发起升级提案结果为{}'.format(result))
+        assert result.get('Code') == 302009
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3,
+                                       pip_obj.node.staking_address,
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('投票共识轮数为2，发起升级提案结果为{}'.format(result))
+        assert result.get('Code') == 0
+
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('发起文本提案结果为{}'.format(result))
+        assert result.get('Code') == 0
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
+        log.info('获取文本提案信息{}'.format(proposalinfo))
+        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 5
+                                         ) * pip_obj.economic.consensus_size - 20
+        log.info('计算投票截止块高为{},接口返回投票截止块高{}'.format(endvotingblock_count,
+                                                   proposalinfo.get('EndVotingBlock')))
+        assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
+
+        proosalinfo = pip_obj.get_effect_proposal_info_of_vote(1)
+        log.info('text proposalinfo: {}'.format(proosalinfo))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proosalinfo.get('ProposalID'),
+                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('submit cancel result: {}'.format(result))
