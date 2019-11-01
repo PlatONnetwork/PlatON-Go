@@ -58,3 +58,20 @@ def test_start_all_node_close_f(global_test_env):
     global_test_env.stop_nodes(close_nodes)
     global_test_env.check_block(need_number=30, multiple=2,
                                 node_list=global_test_env.get_all_nodes()[global_test_env.max_byzantium:])
+
+
+@allure.title("正常启动2f+1个节点,50秒后在启动一个")
+@pytest.mark.P2
+def test_start_2f1_node_and_start_one(global_test_env):
+    """
+    先启动2f+1个，50秒后在启动一个
+    """
+    num = int(2 * global_test_env.max_byzantium + 1)
+    log.info("部署{}个节点".format(num))
+    test_nodes = global_test_env.consensus_node_list[0:num]
+    global_test_env.deploy_nodes(node_list=test_nodes, genesis_file=global_test_env.cfg.genesis_tmp)
+    time.sleep(50)
+    start = max(global_test_env.block_numbers(node_list=test_nodes).values())
+    global_test_env.deploy_nodes(global_test_env.consensus_node_list[num:num + 1], genesis_file=global_test_env.cfg.genesis_tmp)
+    global_test_env.check_block(need_number=start + 10, multiple=2, node_list=global_test_env.consensus_node_list[0:num + 1])
+
