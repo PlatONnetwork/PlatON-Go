@@ -276,3 +276,22 @@ def no_consensus_node_pledge_award_assertion(client_new_node_obj, benifit_addres
             client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
 
 
+
+@pytest.mark.P1
+def test_AL_IE_003(client_new_node_obj_list):
+    """
+    自由账户创建质押节点且收益地址为激励池
+    :param client_new_node_obj_list:
+    :return:
+    """
+    log.info("节点id：{}".format(client_new_node_obj_list[0].node.node_id))
+    address, _ = client_new_node_obj_list[0].economic.account.generate_account(client_new_node_obj_list[0].node.web3,
+                                                                               client_new_node_obj_list[
+                                                                                   0].economic.create_staking_limit * 2)
+    log.info("质押账户地址: {}".format(address))
+    # 自由金额申请质押节点
+    result = client_new_node_obj_list[0].staking.create_staking(0, EconomicConfig.INCENTIVEPOOL_ADDRESS, address)
+    log.info("质押结果: {}".format(result))
+    assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    consensus_node_pledge_award_assertion(client_new_node_obj_list[0], address)
+
