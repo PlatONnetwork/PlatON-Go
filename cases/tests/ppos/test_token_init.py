@@ -352,7 +352,7 @@ def test_AL_BI_004(client_consensus_obj):
     log.info("incentive_pool_balance: {}".format(developer_foundation_balance1))
     staking_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
     log.info("staking_balance: {}".format(staking_balance1))
-
+    # 断言账户金额变化
     assert developer_foundation_balance + EconomicConfig.DEVELOPER_STAKING_AMOUNT - developer_foundation_balance1 < client_consensus_obj.node.web3.toWei(
         1, 'ether'), "error: developer_foundation_balance1: {}".format(developer_foundation_balance1)
     assert staking_balance1 == staking_balance - EconomicConfig.DEVELOPER_STAKING_AMOUNT, "error: staking_balance1: {}".format(
