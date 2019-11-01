@@ -300,3 +300,14 @@ class TestSubmitCancel():
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'), address,
                              transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert result.get('Code') == 302021
+
+    @pytest.mark.P0
+    def test_CP_PR_001(self, new_node_has_proposal):
+        pip_obj = new_node_has_proposal
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('升级提案信息为{}'.format(proposalinfo))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1,
+                                                    proposalinfo.get('ProposalID'),
+                                               address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        assert result.get('Code') == 302022
