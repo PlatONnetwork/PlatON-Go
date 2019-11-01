@@ -244,3 +244,16 @@ class TestNoVerifierSubmitProposal():
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('新节点发起版本声明，结果为{}'.format(result))
         assert result.get('Code') == 302022
+
+    def test_VP_PR_001_TP_PR_001(self, client_candidate_obj):
+        pip_obj = client_candidate_obj
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()),
+                                                pip_obj.cfg.version5, 1, pip_obj.node.staking_address,
+                                                transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('候选节点节点{}发起升级提案，结果为{}'.format(pip_obj.node.node_id, result))
+        assert result.get('Code') == 302022
+
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                                transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('候选节点节点{}发起文本提案，结果为{}'.format(pip_obj.node.node_id, result))
+        assert result.get('Code') == 302022
