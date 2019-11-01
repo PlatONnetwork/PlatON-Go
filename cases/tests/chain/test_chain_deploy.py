@@ -89,3 +89,20 @@ def test_start_2f(global_test_env):
     time.sleep(10)
     block = max([node.block_number for node in test_nodes])
     assert block == 0
+
+
+@allure.title("正常启动所有节点,逐渐关闭f+1个")
+@pytest.mark.P0
+def test_start_all_node_close_f_add_1(global_test_env):
+    """
+    启动所有节点后，逐渐关闭f+1个，那么关闭后将不会出块
+    """
+    global_test_env.deploy_all()
+    test_nodes = global_test_env.consensus_node_list[:global_test_env.max_byzantium + 1]
+    global_test_env.stop_nodes(test_nodes)
+    running_node = global_test_env.consensus_node_list[global_test_env.max_byzantium + 1:]
+    time.sleep(5)
+    start = max(global_test_env.block_numbers(running_node).values())
+    time.sleep(5)
+    end = max(global_test_env.block_numbers(running_node).values())
+    assert start == end
