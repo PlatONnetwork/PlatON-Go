@@ -108,3 +108,10 @@ def test_deconsensus_block_synchronize(global_test_env):
     assert test_node.web3.net.peerCount > 0, "加入链失败"
     global_test_env.check_block()
     assert test_node.block_number > 0, "非共识节点同步区块失败，块高：{}".format(test_node.block_number)
+
+
+@allure.title("测试相同创始文件之间节点互连")
+@pytest.mark.P0
+def test_init_same_genesis_join_chain(global_test_env):
+    test_node = global_test_env.normal_node_list[0]
+    assert test_node.web3.net.peerCount > 0, "加入链失败"
