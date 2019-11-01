@@ -205,7 +205,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Staking: stakingConfig{
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(24),
+				MaxValidators:         uint64(25),
 				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(2),
 			},
@@ -253,7 +253,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 			Staking: stakingConfig{
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
 				OperatingThreshold:    new(big.Int).Set(TenLAT),
-				MaxValidators:         uint64(24),
+				MaxValidators:         uint64(25),
 				HesitateRatio:         uint64(1),
 				UnStakeFreezeDuration: uint64(2),
 			},
