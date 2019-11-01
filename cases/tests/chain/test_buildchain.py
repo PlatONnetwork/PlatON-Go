@@ -37,10 +37,10 @@ def test_no_init_no_join_chain(global_test_env):
     log.info("deploy end")
     test_node.admin.addPeer(global_test_env.get_rand_node().enode)
     time.sleep(5)
-    assert test_node.web3.net.peerCount == 0, "连接节点数有增加"
+    assert test_node.web3.net.peerCount == 0, "the number of connected nodes has increased"
 
 
-@allure.title("测试部署单节点私链,同步单节点的区块")
+@allure.title("Test deployment of a single-node private chain, synchronization of single-node blocks")
 @pytest.mark.P0
 def test_build_one_node_privatechain(global_test_env):
     test_node = copy(global_test_env.get_a_normal_node())
@@ -52,13 +52,13 @@ def test_build_one_node_privatechain(global_test_env):
     genesis.to_file(file)
     test_node.deploy_me(file)
     time.sleep(5)
-    assert test_node.block_number > 0, "区块高度没有增长"
+    assert test_node.block_number > 0, "block height has not increased"
     join_node = copy(global_test_env.get_rand_node())
     log.info("join node:{}".format(join_node.node_mark))
     join_node.deploy_me(file)
     join_node.admin.addPeer(test_node.enode)
     time.sleep(5)
-    assert join_node.block_number > 0, "区块高度没有增长"
+    assert join_node.block_number > 0, "block height has not increased"
 
 
 @allure.title("测试不同initnode创始文件之间节点互连")
