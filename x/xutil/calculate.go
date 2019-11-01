@@ -3,7 +3,6 @@ package xutil
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -29,14 +28,6 @@ func CalcVersion(programVersion uint32) uint32 {
 
 func IsWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
-}
-
-func CheckStakeThreshold(stake *big.Int) bool {
-	return stake.Cmp(xcom.StakeThreshold()) >= 0
-}
-
-func CheckMinimumThreshold(balance *big.Int) bool {
-	return balance.Cmp(xcom.OperatingThreshold()) >= 0
 }
 
 // eg. 65536 => 1.0.0

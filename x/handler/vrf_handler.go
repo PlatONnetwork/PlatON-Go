@@ -103,18 +103,18 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 	return nil
 }
 
-func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Hash, hash common.Hash, nonce []byte) error {
-	log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
-		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "nonce", hex.EncodeToString(nonce))
+func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, blockHash common.Hash, nonce []byte) error {
+	log.Debug("Storage previous nonce", "current blockNumber", blockNumber.Uint64(), "parentHash",
+		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
-	if currentBlockNumber.Cmp(common.Big1) > 0 {
+	if blockNumber.Cmp(common.Big1) > 0 {
 		if value, err := vh.Load(parentHash); nil != err {
 			return err
 		} else {
 			nonces = make([][]byte, len(value))
 			copy(nonces, value)
-			log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
-				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "valueLength",
+			log.Debug("Storage previous nonce", "current blockNumber", blockNumber.Uint64(), "parentHash",
+				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "valueLength",
 				len(value), "MaxValidators", xcom.MaxValidators())
 			if uint64(len(nonces)) == xcom.MaxValidators() {
 				nonces = nonces[1:]
@@ -123,19 +123,19 @@ func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 	}
 	nonces = append(nonces, vrf.ProofToHash(nonce))
 	if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
-		log.Error("Storage previous nonce failed", "current blockNumber", currentBlockNumber.Uint64(),
-			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
+		log.Error("Storage previous nonce failed", "current blockNumber", blockNumber.Uint64(),
+			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()),
 			"key", string(NonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
 		return err
 	} else {
-		if err := vh.db.Put(hash, NonceStorageKey, enValue); nil != err {
-			log.Error("Storage previous nonce failed", "current blockNumber", currentBlockNumber.Uint64(),
-				"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
+		if err := vh.db.Put(blockHash, NonceStorageKey, enValue); nil != err {
+			log.Error("Storage previous nonce failed", "current blockNumber", blockNumber.Uint64(),
+				"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()),
 				"key", string(NonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "enValue", hex.EncodeToString(enValue), "err", err)
 			return err
 		}
-		log.Info("Storage previous nonce Success", "current blockNumber", currentBlockNumber.Uint64(),
-			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
+		log.Info("Storage previous nonce Success", "current blockNumber", blockNumber.Uint64(),
+			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()),
 			"valueLength", len(nonces), "MaxValidators", xcom.MaxValidators(), "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}

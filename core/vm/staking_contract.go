@@ -139,11 +139,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return []byte(receipt), nil
 	}
 
-	if !xutil.CheckStakeThreshold(amount) {
+	if ok, threshold := plugin.CheckStakeThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		receipt := strconv.Itoa(int(staking.ErrStakeVonTooLow.Code))
 		stkc.badLog(CreateStakingEvent, receipt,
-			fmt.Sprintf("staking threshold: %d, deposit: %d", xcom.StakeThreshold(),
-				amount), "createStaking")
+			fmt.Sprintf("staking threshold: %d, deposit: %d", threshold, amount), "createStaking")
 		return []byte(receipt), nil
 	}
 
@@ -403,11 +402,10 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return nil, nil
 	}
 
-	if !xutil.CheckMinimumThreshold(amount) {
+	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		receipt := strconv.Itoa(int(staking.ErrIncreaseStakeVonTooLow.Code))
 		stkc.badLog(IncreaseStakingEvent, receipt,
-			fmt.Sprintf("increase staking threshold: %d, deposit: %d", xcom.OperatingThreshold(),
-				amount), "increaseStaking")
+			fmt.Sprintf("increase staking threshold: %d, deposit: %d", threshold, amount), "increaseStaking")
 		return []byte(receipt), nil
 	}
 
@@ -562,11 +560,10 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, nil
 	}
 
-	if !xutil.CheckMinimumThreshold(amount) {
+	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		receipt := strconv.Itoa(int(staking.ErrDelegateVonTooLow.Code))
 		stkc.badLog(DelegateEvent, receipt,
-			fmt.Sprintf("delegate threshold: %d, deposit: %d", xcom.OperatingThreshold(),
-				amount), "delegate")
+			fmt.Sprintf("delegate threshold: %d, deposit: %d", threshold, amount), "delegate")
 		return []byte(receipt), nil
 	}
 
@@ -677,11 +674,10 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return nil, nil
 	}
 
-	if !xutil.CheckMinimumThreshold(amount) {
+	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		receipt := strconv.Itoa(int(staking.ErrWithdrewDelegateVonTooLow.Code))
 		stkc.badLog(WithdrewDelegateEvent, receipt,
-			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", xcom.OperatingThreshold(),
-				amount), "withdrewDelegate")
+			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", threshold, amount), "withdrewDelegate")
 		return []byte(receipt), nil
 	}
 

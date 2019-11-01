@@ -48,7 +48,7 @@ func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
 	bytes, err := get(blockHash, KeyPreActiveProposal())
 
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return common.Hash{}, err
 	}
 
@@ -68,7 +68,7 @@ func getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
 
 func getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, error) {
 	bytes, err := get(blockHash, key)
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 	var idList []common.Hash
@@ -111,7 +111,7 @@ func getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 
 func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
 	nodes, err := getActiveNodeList(blockHash, proposalId)
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 
@@ -126,7 +126,7 @@ func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId commo
 
 func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := get(blockHash, KeyActiveNodes(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 	var nodes []discover.NodeID
@@ -144,7 +144,7 @@ func deleteActiveNodeList(blockHash common.Hash, proposalId common.Hash) error {
 
 func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 	var accuVerifiers []discover.NodeID
@@ -176,7 +176,7 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 
 func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 
@@ -209,7 +209,7 @@ func addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash
 
 func findGovernParamValue(module, name string, blockHash common.Hash) (*ParamValue, error) {
 	value, err := get(blockHash, KeyParamValue(module, name))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 
@@ -226,7 +226,7 @@ func findGovernParamValue(module, name string, blockHash common.Hash) (*ParamVal
 
 func updateGovernParamValue(module, name, newValue string, activeBlock uint64, blockHash common.Hash) error {
 	value, err := get(blockHash, KeyParamValue(module, name))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 	if len(value) > 0 {
@@ -265,7 +265,7 @@ func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, erro
 
 func listGovernParamItem(module string, blockHash common.Hash) ([]*ParamItem, error) {
 	itemBytes, err := get(blockHash, KeyParamItems())
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 

@@ -824,7 +824,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	}
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
-	refundAmount := calcRealRefund(total, amount)
+	refundAmount := calcRealRefund(blockNumber.Uint64(), blockHash, total, amount)
 	realSub := refundAmount
 	lazyCalcDelegateAmount(epoch, del)
 	del.DelegateEpoch = uint32(epoch)
@@ -998,7 +998,14 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	currOriginVersion := gov.GetVersionForStaking(state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.MaxValidators()))
+	maxvalidators, err := getMaxValidators(blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to ElectNextVerifierList: query govern params `maxvalidators` is failed", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		return err
+	}
+
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, maxvalidators)
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1903,7 +1910,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	// need invalid candidate status
 	// need remove from verifierList
-	needInvalid, needRemove, changeStatus := handleSlashTypeFn(slashItem.SlashType, calcCandidateTotalAmount(can))
+	needInvalid, needRemove, changeStatus := handleSlashTypeFn(blockNumber, blockHash, slashItem.SlashType, calcCandidateTotalAmount(can))
 
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
@@ -2016,7 +2023,7 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 	return nil
 }
 
-func handleSlashTypeFn(slashType staking.CandidateStatus, remain *big.Int) (bool, bool, staking.CandidateStatus) {
+func handleSlashTypeFn(blockNumber uint64, blockHash common.Hash, slashType staking.CandidateStatus, remain *big.Int) (bool, bool, staking.CandidateStatus) {
 
 	var needInvalid, needRemove bool         // need invalid candidate status And need remove from verifierList
 	var changeStatus staking.CandidateStatus // need to add this status
@@ -2024,7 +2031,7 @@ func handleSlashTypeFn(slashType staking.CandidateStatus, remain *big.Int) (bool
 	switch slashType {
 	case staking.LowRatio:
 
-		if !xutil.CheckStakeThreshold(remain) {
+		if ok, _ := CheckStakeThreshold(blockNumber, blockHash, remain); !ok {
 			changeStatus |= staking.NotEnough
 			changeStatus |= staking.Invalided
 			needInvalid = true
@@ -2396,7 +2403,7 @@ func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byt
 func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
 		log.Error("Failed to probabilityElection", "validators Size", len(validatorList),
-			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "MaxValidators", xcom.MaxValidators())
+			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces))
 		return nil, staking.ErrWrongFuncParams
 	}
 	sumWeights := new(big.Int)
@@ -2425,7 +2432,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.MaxConsensusVals()) / sumWeightsFloat
 
 	log.Debug("Call probabilityElection Basic parameter on Election", "validatorListSize", len(validatorList),
-		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen, "epochValidatorNum", xcom.MaxValidators())
+		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen)
 
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
@@ -3074,11 +3081,11 @@ func calcDelegateTotalAmount(del *staking.Delegation) *big.Int {
 	return new(big.Int).Add(release, restrictingPlan)
 }
 
-func calcRealRefund(realtotal, amount *big.Int) *big.Int {
+func calcRealRefund(blockNumber uint64, blockHash common.Hash, realtotal, amount *big.Int) *big.Int {
 	refundAmount := new(big.Int).SetInt64(0)
 	sub := new(big.Int).Sub(realtotal, amount)
 	// When the sub less than threshold
-	if !xutil.CheckMinimumThreshold(sub) {
+	if ok, _ := CheckOperatingThreshold(blockNumber, blockHash, sub); !ok {
 		refundAmount = realtotal
 	} else {
 		refundAmount = amount
@@ -3104,4 +3111,50 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
 		Description:        can.Description,
 	}
+}
+
+func CheckStakeThreshold(blockNumber uint64, blockHash common.Hash, stake *big.Int) (bool, *big.Int) {
+
+	thresholdStr, err := gov.GetGovernParamValue(gov.ModuleStaking, gov.KeyStakeThreshold, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to CheckStakeThreshold, query governParams is failed", "err", err)
+		return false, common.Big0
+	}
+
+	threshold, ok := new(big.Int).SetString(thresholdStr, 10)
+	if !ok {
+		return ok, common.Big0
+	}
+
+	return stake.Cmp(threshold) >= 0, threshold
+}
+
+func CheckOperatingThreshold(blockNumber uint64, blockHash common.Hash, balance *big.Int) (bool, *big.Int) {
+
+	thresholdStr, err := gov.GetGovernParamValue(gov.ModuleStaking, gov.KeyOperatingThreshold, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to CheckOperatingThreshold, query governParams is failed", "err", err)
+		return false, common.Big0
+	}
+
+	threshold, ok := new(big.Int).SetString(thresholdStr, 10)
+	if !ok {
+		return ok, common.Big0
+	}
+
+	return balance.Cmp(threshold) >= 0, threshold
+}
+
+func getMaxValidators(blockNumber uint64, blockHash common.Hash) (int, error) {
+	maxvalidatorsStr, err := gov.GetGovernParamValue(gov.ModuleStaking, gov.MaxValidators, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	maxvalidators, err := strconv.Atoi(maxvalidatorsStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return maxvalidators, nil
 }
