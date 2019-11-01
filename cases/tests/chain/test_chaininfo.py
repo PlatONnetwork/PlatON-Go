@@ -51,3 +51,16 @@ def test_platon_versions(global_test_env):
     node = global_test_env.get_rand_node()
     cmd_list = node.run_ssh("{} version".format(node.remote_bin_file))
     assert global_test_env.version in cmd_list[1], "版本号不正确"
+
+
+@allure.title("测试重启所有共识节点")
+@pytest.mark.P0
+def test_restart_all(global_test_env):
+    current_block = max(global_test_env.block_numbers().values())
+    log.info("重启前块高:{}".format(current_block))
+    global_test_env.reset_all()
+    log.info("重启所有共识节点成功")
+    time.sleep(20)
+    after_block = max(global_test_env.block_numbers().values())
+    log.info("重启后块高为:{}".format(after_block))
+    assert after_block - current_block > 0, "重启后区块没有正常增长"
