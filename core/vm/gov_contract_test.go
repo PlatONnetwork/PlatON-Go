@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -24,13 +27,13 @@ import (
 )
 
 var (
-	govPlugin         *plugin.GovPlugin
-	gc                *GovContract
-	versionSign       common.VersionSign
-	chandler          *node.CryptoHandler
-	paramModule       = "PPOS"
-	paramName         = "paramName"
-	paramVerify       = func(val string) bool { return true }
+	govPlugin   *plugin.GovPlugin
+	gc          *GovContract
+	versionSign common.VersionSign
+	chandler    *node.CryptoHandler
+
+	paramModule       = "testModule"
+	paramName         = "testName"
 	defaultProposalID = txHashArr[1]
 )
 
@@ -38,11 +41,11 @@ func commit_sndb(chain *mock.Chain) {
 	/*
 		//Flush() signs a Hash to the current block which has no hash yet. Flush() do not write the data to database.
 		//in this file, all blocks in each test case has a hash already, so, do not call Flush()
-				if err := sndb.Flush(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number); err != nil {
+				if err := chain.SnapDB.Flush(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number); err != nil {
 					fmt.Println("commit_sndb error:", err)
 				}
 	*/
-	if err := sndb.Commit(chain.CurrentHeader().Hash()); err != nil {
+	if err := chain.SnapDB.Commit(chain.CurrentHeader().Hash()); err != nil {
 		fmt.Println("commit_sndb error:", err)
 	}
 }
@@ -55,7 +58,7 @@ func prepair_sndb(chain *mock.Chain, txHash common.Hash) {
 	}
 
 	//fmt.Println("prepair_sndb::::::", chain.CurrentHeader().ParentHash.Hex())
-	if err := sndb.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash()); err != nil {
+	if err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash()); err != nil {
 		fmt.Println("prepair_sndb error:", err)
 	}
 
@@ -252,7 +255,7 @@ func buildGetAccuVerifiersCountInput(proposalID, blockHash common.Hash) []byte {
 func setup(t *testing.T) *mock.Chain {
 	t.Log("setup()......")
 	//to turn on log's debug level
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*GovContract)
@@ -265,10 +268,10 @@ func setup(t *testing.T) *mock.Chain {
 	gc.Plugin = govPlugin
 	build_staking_data_new(chain)
 
-	if err := gov.SetGovernParam(paramModule, paramName, "desc", "initValue", chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.InitGenesisGovernParam(chain.SnapDB); err != nil {
 		t.Error("error", err)
 	}
-	gov.RegGovernParamVerifier(paramModule, paramName, paramVerify)
+	gov.RegisterGovernParamVerifiers()
 
 	commit_sndb(chain)
 
@@ -277,23 +280,27 @@ func setup(t *testing.T) *mock.Chain {
 	return chain
 }
 
-func clear(t *testing.T) {
+func clear(chain *mock.Chain, t *testing.T) {
 	t.Log("tear down()......")
-	sndb.Clear()
+	if err := chain.SnapDB.Clear(); err != nil {
+		t.Error("clear chain.SnapDB error", err)
+	}
+
 }
 
 func TestGovContract_SubmitText(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 	runGovContract(false, gc, buildSubmitTextInput(), t)
 }
 
 func TestGovContract_GetTextProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//submit a proposal and get it, this tx hash in gc is = txHashArr[1]
 	runGovContract(false, gc, buildSubmitTextInput(), t)
+
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
@@ -303,8 +310,8 @@ func TestGovContract_GetTextProposal(t *testing.T) {
 }
 
 func TestGovContract_SubmitText_Sender_wrong(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	gc.Contract.CallerAddress = anotherSender
 
@@ -312,15 +319,15 @@ func TestGovContract_SubmitText_Sender_wrong(t *testing.T) {
 }
 
 func TestGovContract_SubmitText_PIPID_empty(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], ""), t, gov.PIPIDEmpty)
 }
 
 func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
 
@@ -328,29 +335,129 @@ func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
 }
 
 func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitText(discover.ZeroNodeID, "pipid1"), t, gov.ProposerEmpty)
 }
 
 func TestGovContract_SubmitParam(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+
+	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	} else {
+		if p == nil {
+			t.Fatal("not find proposal error")
+		} else {
+			pp := p.(*gov.ParamProposal)
+			assert.Equal(t, "newValue", pp.NewValue)
+		}
+	}
+}
+
+func TestGovContract_SubmitParam_thenSubmitParamFailed(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[2], "pipid4", paramModule, paramName, "newValue22"), t, gov.VotingParamProposalExist)
+}
+
+func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	runGovContract(false, gc, buildSubmitVersionInput(), t, gov.VotingParamProposalExist)
+}
+
+func TestGovContract_SubmitParam_Pass(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Errorf("%s", err)
+	} else {
+		assert.Equal(t, "10", value)
+	}
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t)
+	//runGovContract(false, gc, buildSubmitTextInput(), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, txHashArr[1])
+	commit_sndb(chain)
+
+	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+
+	//skip empty block
+	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+	endBlock(chain, t)
+	commit_sndb(chain)
+
+	//at the end of voting block, the status=pass;
+	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.Pass {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	//from the next to voting block, the parameter value will be the new value
+	skip_emptyBlock(chain, p.GetEndVotingBlock()+1)
+	value, err = gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Errorf("%s", err)
+	} else {
+		assert.Equal(t, "newValue", value)
+	}
 }
 
 func TestGovContract_SubmitVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 }
 
+func TestGovContract_SubmitVersion_thenSubmitParamFailed(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "newValue"), t, gov.VotingVersionProposalExist)
+}
+
 func TestGovContract_GetVersionProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -361,7 +468,7 @@ func TestGovContract_GetVersionProposal(t *testing.T) {
 
 func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//submit a proposal
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t)
@@ -374,7 +481,7 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 
 func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it. the proposalID = txHashArr[1]
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
@@ -396,7 +503,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	//skip empty blocks
 	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
 
-	// build_staking_data_more will build a new block base on sndb.Current
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
 	endBlock(chain, t)
 	commit_sndb(chain)
@@ -420,20 +527,20 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 }
 
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, 0), t, gov.EndVotingRoundsTooSmall)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 
 	//the default rounds is 6 for developer test net
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
@@ -446,7 +553,7 @@ func TestGovContract_Float(t *testing.T) {
 
 func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -473,7 +580,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 
 func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -494,7 +601,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *te
 
 func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Error(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
@@ -515,7 +622,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 
 func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -542,7 +649,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 
 func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOldVersion_ERROR(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -572,7 +679,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOldVersion_ERROR(t 
 
 func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and get it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -602,7 +709,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 
 func TestGovContract_SubmitCancel(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
 
@@ -613,7 +720,7 @@ func TestGovContract_SubmitCancel(t *testing.T) {
 
 func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//submit a proposal
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t)
@@ -630,7 +737,7 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
 
@@ -640,7 +747,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 
 	commit_sndb(chain)
@@ -652,7 +759,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testin
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//txHash = txHashArr[2] is a text proposal
 	runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
@@ -664,7 +771,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -684,7 +791,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -700,7 +807,7 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 
 func TestGovContract_Vote_VersionProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -719,7 +826,7 @@ func TestGovContract_Vote_VersionProposal(t *testing.T) {
 }
 func TestGovContract_Vote_Duplicated(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -738,7 +845,7 @@ func TestGovContract_Vote_Duplicated(t *testing.T) {
 
 func TestGovContract_Vote_OptionError(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -758,7 +865,7 @@ func TestGovContract_Vote_OptionError(t *testing.T) {
 
 func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -785,7 +892,7 @@ func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
 
 func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
@@ -805,7 +912,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	//skip empty block
 	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
 
-	// build_staking_data_more will build a new block base on sndb.Current
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
 	endBlock(chain, t)
 	commit_sndb(chain)
@@ -825,7 +932,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 
 func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//the proposalID will be txHashArr[1]
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
@@ -854,7 +961,7 @@ func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 
 func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it. proposalID= txHashArr[1]
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -883,7 +990,7 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 
 func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it. proposalID= txHashArr[1]
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -901,7 +1008,7 @@ func TestGovContract_AllNodeVoteVersionProposal(t *testing.T) {
 
 func TestGovContract_TextProposal_pass(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitTextInput(), t)
 	commit_sndb(chain)
@@ -918,7 +1025,7 @@ func TestGovContract_TextProposal_pass(t *testing.T) {
 	//skip empty block
 	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
 
-	// build_staking_data_more will build a new block base on sndb.Current
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
 	endBlock(chain, t)
 	commit_sndb(chain)
@@ -938,7 +1045,7 @@ func TestGovContract_TextProposal_pass(t *testing.T) {
 
 func TestGovContract_VersionProposal_Active(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//submit a proposal and vote for it. proposalID= txHashArr[1]
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
@@ -957,7 +1064,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	//skip empty block
 	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
 
-	// build_staking_data_more will build a new block base on sndb.Current
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
 	endBlock(chain, t)
 
@@ -978,7 +1085,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	//skip empty block
 	skip_emptyBlock(chain, p.GetActiveBlock()-1)
 
-	// build_staking_data_more will build a new block base on sndb.Current
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
 	beginBlock(chain, t)
 	commit_sndb(chain)
@@ -998,7 +1105,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 
 func TestGovContract_ListProposal(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
@@ -1013,14 +1120,14 @@ func TestGovContract_ListProposal(t *testing.T) {
 }
 
 func TestGovContract_GetActiveVersion(t *testing.T) {
-	setup(t)
-	defer clear(t)
+	chain := setup(t)
+	defer clear(chain, t)
 	runGovContract(true, gc, buildGetActiveVersionInput(), t)
 }
 
 func TestGovContract_getAccuVerifiersCount(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
 	commit_sndb(chain)
@@ -1032,7 +1139,7 @@ func TestGovContract_getAccuVerifiersCount(t *testing.T) {
 
 func TestGovContract_getAccuVerifiersCount_wrongProposalID(t *testing.T) {
 	chain := setup(t)
-	defer clear(t)
+	defer clear(chain, t)
 
 	//submit a proposal and vote for it.
 	runGovContract(false, gc, buildSubmitVersionInput(), t)
@@ -1065,11 +1172,11 @@ func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing
 			expectedCode, expectedMsg := common.DecodeError(expectedError)
 			expected = expected || result.Code == expectedCode || strings.Contains(result.Ret, expectedMsg)
 		}
-		assert.True(t, true, expected)
-		t.Log("the expected result Msg:", result.Ret)
+		assert.True(t, true)
+		t.Log("the expected errCode:", result.Code, "errMsg:", expectedErrors)
 	} else {
-		assert.Equal(t, common.OkCode, result.Code, "error return！！！")
-		t.Log("the expected result:", result)
+		assert.Equal(t, common.OkCode, result.Code)
+		t.Log("the expected resultCode:", result.Code)
 	}
 }
 

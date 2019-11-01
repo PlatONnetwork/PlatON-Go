@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
@@ -15,6 +17,7 @@ type Chain struct {
 	//	blockm   map[common.Hash]*types.Block
 	//	receiptm map[common.Hash][]*types.Receipt
 	StateDB *MockStateDB
+	SnapDB  snapshotdb.DB
 	h       []*types.Header
 }
 
@@ -63,6 +66,7 @@ func NewChain() *Chain {
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
 	c.StateDB = db
+	c.SnapDB = snapshotdb.Instance()
 	return c
 }
 
