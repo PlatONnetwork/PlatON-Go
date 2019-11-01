@@ -14,7 +14,7 @@ The requirements to build PlatON-Go are:
 - [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
 > The 'cmake' and 'gcc&g++' are usually included in Ubuntu18.04
 
-In addition, the following lib needs to be installed manually
+In addition, the following libraries needs to be installed manually
 
 ```
 sudo apt install libgmp-dev libssl-dev
