@@ -43,3 +43,11 @@ def test_hash_continuous(global_test_env):
         parent_hash = HexBytes(block.get("parentHash")).hex()
         assert block_hash == parent_hash, "父区块哈希值错误"
         block_hash = HexBytes(block.get("hash")).hex()
+
+
+@allure.title("测试platon文件的版本号")
+@pytest.mark.P3
+def test_platon_versions(global_test_env):
+    node = global_test_env.get_rand_node()
+    cmd_list = node.run_ssh("{} version".format(node.remote_bin_file))
+    assert global_test_env.version in cmd_list[1], "版本号不正确"
