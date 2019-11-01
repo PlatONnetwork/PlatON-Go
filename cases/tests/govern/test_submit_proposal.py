@@ -69,3 +69,10 @@ def test_TP_UN_001(submit_text):
                                 transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('存在处于投票期文本提案，再次发起文本提案结果为{}'.format(result))
     assert result.get('Code') == 0
+
+def test_VP_SU_001_VP_UN_001(submit_version):
+    pip_obj = submit_version
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
+                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('有处于投票期的升级提案，再次发起升级提案结果为{}'.format(result))
+    assert result.get('Code') == 302012
