@@ -46,3 +46,11 @@ def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
     result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.chain_version, 1,
                                    pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
     assert result.get("Code") == 302011
+
+def test_VP_WA_001(no_version_proposal):
+    pip_obj_tmp = no_version_proposal
+    address, _ = pip_obj_tmp.economic.account.generate_account(pip_obj_tmp.node.web3, 10**18 * 10000000)
+    result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version5, 1,
+                                       address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+    log.info('发起升级提案结果为{}'.format(result))
+    assert result.get('Code') == 302021
