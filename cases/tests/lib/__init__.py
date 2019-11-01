@@ -7,3 +7,4 @@ from .staking import Staking
 from .duplicate_sign import DuplicateSign
 from .restricting import Restricting
 from .utils import *
+from .client import Client
