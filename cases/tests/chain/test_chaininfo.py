@@ -28,3 +28,18 @@ def test_block_info_synchronize(global_test_env):
     for node in nodes:
         assert block_info == node.eth.getBlock(block_number), "不同节点的相同块高信息不一致,区块号：{}".format(
             block_number)
+
+
+@allure.title("区块连续性，验证hash")
+def test_hash_continuous(global_test_env):
+    """
+    测试区块的连续性，验证一定数量的区块，区块哈希必须是连续的
+    """
+    global_test_env.check_block(100, 2)
+    node = global_test_env.get_rand_node()
+    block_hash = HexBytes(node.eth.getBlock(1).get("hash")).hex()
+    for i in range(2, 100):
+        block = node.eth.getBlock(i)
+        parent_hash = HexBytes(block.get("parentHash")).hex()
+        assert block_hash == parent_hash, "父区块哈希值错误"
+        block_hash = HexBytes(block.get("hash")).hex()
