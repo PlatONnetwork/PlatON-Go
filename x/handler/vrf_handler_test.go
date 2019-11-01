@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -46,6 +48,9 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	defer func() {
 		vh.db.Clear()
 	}()
+
+	gov.InitGenesisGovernParam(vh.db)
+
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
 	hash := common.ZeroHash

@@ -1433,6 +1433,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
+
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return

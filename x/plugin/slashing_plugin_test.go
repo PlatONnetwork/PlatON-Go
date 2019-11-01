@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
@@ -33,6 +35,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	StakingInstance()
 	RestrictingInstance()
 	chain := mock.NewChain()
+	gov.InitGenesisGovernParam(snapshotdb.Instance())
 	return si, chain.StateDB
 }
 
@@ -250,6 +253,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
+
 	startNumber := xutil.ConsensusSize()
 	startNumber += xutil.ConsensusSize() - xcom.ElectionDistance() - 2
 	pri, phash := buildBlock(t, int(startNumber), stateDB)
