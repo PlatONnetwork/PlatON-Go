@@ -56,7 +56,6 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	blockNumber := head.Number.Uint64()
 
-
 	thisYear := xutil.CalculateYear(blockNumber)
 	var lastYear uint32
 	if thisYear != 0 {
@@ -68,7 +67,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		rmp.currentYear = thisYear
 	}
 	stakingReward := new(big.Int).Set(rmp.stakingReward)
-	newBlockReward := new(big.Int).Set(rmp.newBlockReward)
+	packageReward := new(big.Int).Set(rmp.newBlockReward)
 
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
@@ -82,7 +81,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	if xutil.IsYearEnd(blockNumber) {
 		rmp.increaseIssuance(thisYear, lastYear, state)
 	}
-
 
 	return nil
 }

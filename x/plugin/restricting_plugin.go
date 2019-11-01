@@ -221,7 +221,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	if err != nil {
 		return err
 	}
-	rp.log.Debug("Call PledgeLockFunds begin", "account", account, "amount", amount, "old info", info)
+	rp.log.Debug("Call PledgeLockFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
 
 	if amount.Cmp(common.Big0) < 0 {
 		return restricting.ErrPledgeLockFundsAmountLessThanZero
@@ -243,7 +243,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
 	rp.transferAmount(state, vm.RestrictingContractAddr, vm.StakingContractAddr, amount)
 
-	rp.log.Debug("Call PledgeLockFunds finished", "RestrictingContractBalance", state.GetBalance(vm.RestrictingContractAddr), "StakingContractBalance", state.GetBalance(vm.StakingContractAddr), "new info", info)
+	rp.log.Debug("Call PledgeLockFunds finished", "RestrictingContractBalance", state.GetBalance(vm.RestrictingContractAddr), "StakingContractBalance", state.GetBalance(vm.StakingContractAddr), "new info", restrictInfo)
 	return nil
 }
 
@@ -259,7 +259,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	if err != nil {
 		return err
 	}
-	rp.log.Debug("Call ReturnLockFunds begin", "account", account, "amount", amount, "info", info)
+	rp.log.Debug("Call ReturnLockFunds begin", "account", account, "amount", amount, "info", restrictInfo)
 
 	if restrictInfo.StakingAmount.Cmp(amount) < 0 {
 		return restricting.ErrStakingAmountInvalid
@@ -286,14 +286,14 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	} else {
 		rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
 	}
-	rp.log.Debug("Call ReturnLockFunds finished", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "info", info)
+	rp.log.Debug("Call ReturnLockFunds finished", "RCContractBalance", state.GetBalance(vm.RestrictingContractAddr), "info", restrictInfo)
 	return nil
 }
 
 // SlashingNotify modify Debt of restricting account
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	restrictingKey, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
+	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return err
 	}
