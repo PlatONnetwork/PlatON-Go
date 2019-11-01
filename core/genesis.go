@@ -27,6 +27,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -292,6 +294,12 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	}
 	log.Debug("genesisIssuance", "amount", genesisIssuance)
 
+	// Initialized Govern Parameters
+	if err := gov.InitGenesisGovernParam(snapDB); err != nil {
+		log.Error("Failed to init govern parameter in snapshotdb", "err", err)
+		panic("Failed to init govern parameter in snapshotdb")
+	}
+
 	// Store genesis version into governance data
 	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
@@ -332,6 +340,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	if err := snapDB.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
 	}
+
 	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
 	return block
 }

@@ -125,7 +125,7 @@ type worker struct {
 	chain        *core.BlockChain
 
 	gasFloor uint64
-	gasCeil  uint64
+	//gasCeil  uint64
 
 	// Subscriptions
 	mux          *event.TypeMux
@@ -181,17 +181,17 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
+func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor /*, gasCeil*/ uint64, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
-		config:             config,
-		miningConfig:       miningConfig,
-		engine:             engine,
-		eth:                eth,
-		mux:                mux,
-		chain:              eth.BlockChain(),
-		gasFloor:           gasFloor,
-		gasCeil:            gasCeil,
+		config:       config,
+		miningConfig: miningConfig,
+		engine:       engine,
+		eth:          eth,
+		mux:          mux,
+		chain:        eth.BlockChain(),
+		gasFloor:     gasFloor,
+		//gasCeil:            gasCeil,
 		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
@@ -1038,7 +1038,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+		GasLimit:   core.CalcGasLimit(parent, w.gasFloor /*, w.gasCeil*/),
 		//Extra:      w.makeExtraData(),
 		Time: big.NewInt(timestamp),
 	}
@@ -1193,12 +1193,6 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	//	return nil
 	//}
 
-	/*// TODO test
-	for _, r := range w.current.receipts {
-		rbyte, _ := json.Marshal(r.Logs)
-		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}*/
-
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
@@ -1206,16 +1200,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		*receipts[i] = *l
 	}
 
-	/*// todo test
-	root := w.current.state.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))*/
 	s := w.current.state.Copy()
-	/*// todo test
-	root = s.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
-	*/
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
@@ -1223,12 +1208,6 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			w.current.header.Number.Uint64(), "err", err)
 		return err
 	}
-
-	/*// TODO test
-	for _, r := range receipts {
-		rbyte, _ := json.Marshal(r.Logs)
-		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}*/
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {

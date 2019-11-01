@@ -19,7 +19,6 @@ package xutil
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -47,14 +46,6 @@ func IsWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
 }
 
-func CheckStakeThreshold(stake *big.Int) bool {
-	return stake.Cmp(xcom.StakeThreshold()) >= 0
-}
-
-func CheckMinimumThreshold(balance *big.Int) bool {
-	return balance.Cmp(xcom.MinimumThreshold()) >= 0
-}
-
 // eg. 65536 => 1.0.0
 func ProgramVersion2Str(programVersion uint32) string {
 	if programVersion == 0 {
@@ -74,13 +65,13 @@ func ProgramVersion2Str(programVersion uint32) string {
 
 // ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
-	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
+	return xcom.BlocksWillCreate() * xcom.MaxConsensusVals()
 }
 
 // EpochSize returns how many consensus rounds per epoch.
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
-	em := xcom.ExpectedMinutes()
+	em := xcom.MaxEpochMinutes()
 	i := xcom.Interval()
 
 	epochSize := em * 60 / (i * consensusSize)
@@ -97,6 +88,19 @@ func EpochsPerYear() uint64 {
 // CalcBlocksEachEpoch return how many blocks per epoch
 func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
+}
+
+// CalcBlocksEachEpoch returns the epoch duration in seconds
+func CalcEpochDuration() uint64 {
+	return CalcBlocksEachEpoch() * xcom.Interval()
+}
+
+func CalcConsensusRounds(seconds uint64) uint64 {
+	return seconds / (xcom.Interval() * ConsensusSize())
+}
+
+func CalcEpochRounds(seconds uint64) uint64 {
+	return seconds / CalcEpochDuration()
 }
 
 // calculate returns how many blocks per year.
@@ -196,13 +200,19 @@ func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
 	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
 }
 
-// active-block = the begin of a consensus period, so, It's possible that active-block is the begin block of a settlement epoch
+func CalEndVotingBlockForParamProposal(blockNumber uint64, endVotingEpochRounds uint64) uint64 {
+	blocksPerEpoach := CalcBlocksEachEpoch()
+	return blockNumber + blocksPerEpoach - blockNumber%blocksPerEpoach + endVotingEpochRounds*blocksPerEpoach
+}
+
+// active-block = the begin of a consensus period, so, it is possible that active-block also is the begin of a epoch.
 func CalActiveBlock(endVotingBlock uint64) uint64 {
-	return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
+	//return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
+	return endVotingBlock + xcom.ElectionDistance() + 1
 }
 
 func IsSpecialBlock(blockNumber uint64) bool {
-	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) || IsBeginOfEpoch(blockNumber) || IsBeginOfConsensus(blockNumber) {
+	if IsElection(blockNumber) || IsEndOfEpoch(blockNumber) || IsYearEnd(blockNumber) {
 		return true
 	}
 	return false

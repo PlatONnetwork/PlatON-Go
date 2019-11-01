@@ -238,6 +238,10 @@ func (pe PublicKeyHex) String() string {
 	return hex.EncodeToString(pe[:])
 }
 
+func (pe PublicKeyHex) Bytes() []byte {
+	return pe[:]
+}
+
 // MarshalText implements the encoding.TextMarshaler interface.
 func (pe PublicKeyHex) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(pe[:])), nil
@@ -257,6 +261,20 @@ func (pe *PublicKeyHex) UnmarshalText(text []byte) error {
 
 	*pe = p
 	return nil
+}
+
+func (pe *PublicKeyHex) ParseBlsPubKey() (*PublicKey, error) {
+	pubKeyByte, err := pe.MarshalText()
+	if nil != err {
+		return nil, err
+	}
+
+	var blsPk PublicKey
+	if err := blsPk.UnmarshalText(pubKeyByte); nil != err {
+
+		return nil, err
+	}
+	return &blsPk, nil
 }
 
 func (pub *PublicKey) getQ() (p *C.blsPublicKey) {

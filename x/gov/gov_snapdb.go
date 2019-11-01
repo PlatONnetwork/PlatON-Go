@@ -1,6 +1,8 @@
 package gov
 
 import (
+	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -48,7 +50,7 @@ func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
 	bytes, err := get(blockHash, KeyPreActiveProposal())
 
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return common.Hash{}, err
 	}
 
@@ -68,7 +70,7 @@ func getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
 
 func getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, error) {
 	bytes, err := get(blockHash, key)
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 	var idList []common.Hash
@@ -111,7 +113,7 @@ func getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 
 func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
 	nodes, err := getActiveNodeList(blockHash, proposalId)
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 
@@ -126,7 +128,7 @@ func addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId commo
 
 func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := get(blockHash, KeyActiveNodes(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 	var nodes []discover.NodeID
@@ -144,7 +146,7 @@ func deleteActiveNodeList(blockHash common.Hash, proposalId common.Hash) error {
 
 func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
 	var accuVerifiers []discover.NodeID
@@ -176,7 +178,7 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []dis
 
 func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := get(blockHash, KeyAccuVerifier(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
 
@@ -186,6 +188,105 @@ func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover
 			return nil, err
 		} else {
 			return verifiers, nil
+		}
+	}
+	return nil, nil
+}
+
+func addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash common.Hash) error {
+	itemList, err := listGovernParamItem("", blockHash)
+	if err != nil {
+		return nil
+	}
+	itemList = append(itemList, &ParamItem{module, name, desc})
+	if err := put(blockHash, keyPrefixParamItems, itemList); err != nil {
+		return err
+	}
+
+	if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
+		return err
+	}
+	return nil
+}
+
+func findGovernParamValue(module, name string, blockHash common.Hash) (*ParamValue, error) {
+	value, err := get(blockHash, KeyParamValue(module, name))
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, err
+	}
+
+	if len(value) > 0 {
+		var paramValue ParamValue
+		if err := rlp.DecodeBytes(value, &paramValue); err != nil {
+			return nil, err
+		} else {
+			return &paramValue, nil
+		}
+	}
+	return nil, nil
+}
+
+func updateGovernParamValue(module, name, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	value, err := get(blockHash, KeyParamValue(module, name))
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return err
+	}
+	if len(value) > 0 {
+		var paramValue ParamValue
+		if err := rlp.DecodeBytes(value, &paramValue); err != nil {
+			return err
+		}
+		paramValue.StaleValue = paramValue.Value
+		paramValue.Value = newValue
+		paramValue.ActiveBlock = activeBlock
+
+		if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("Not found the %s.%s Govern value", module, name)
+}
+
+func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
+	itemList, err := listGovernParamItem(module, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	var paraList []*GovernParam
+	for _, item := range itemList {
+		if value, err := findGovernParamValue(item.Module, item.Name, blockHash); err != nil {
+			return nil, err
+		} else {
+			param := &GovernParam{item, value, nil}
+			paraList = append(paraList, param)
+		}
+	}
+	return paraList, nil
+}
+
+func listGovernParamItem(module string, blockHash common.Hash) ([]*ParamItem, error) {
+	itemBytes, err := get(blockHash, KeyParamItems())
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return nil, err
+	}
+
+	if len(itemBytes) > 0 {
+		var itemList []*ParamItem
+		if err := rlp.DecodeBytes(itemBytes, &itemList); err != nil {
+			return nil, err
+		}
+		if len(module) == 0 {
+			return itemList, nil
+		} else {
+			idx := 0
+			for _, item := range itemList {
+				if item.Module == module {
+					itemList[idx] = item
+					idx++
+				}
+			}
+			return itemList[:idx], nil
 		}
 	}
 	return nil, nil

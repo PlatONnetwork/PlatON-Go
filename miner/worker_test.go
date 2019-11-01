@@ -131,7 +131,7 @@ func (b *testWorkerBackend) PostChainEvents(events []interface{}) {
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks)
 	backend.txPool.AddLocals(pendingTxs)
-	w := newWorker(chainConfig, miningConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit, nil, nil)
+	w := newWorker(chainConfig, miningConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit /*params.GenesisGasLimit,*/, nil, nil)
 	w.setEtherbase(testBankAddress)
 	return w, backend
 }

@@ -56,23 +56,23 @@ var customGenesisTests = []struct {
     },
     "EconomicModel":{
         "Common":{
-            "ExpectedMinutes":4,
-            "ValidatorCount":4,
+            "MaxEpochMinutes":4,
+            "MaxConsensusVals":4,
             "AdditionalCycleTime":16
         },
         "Staking":{
             "StakeThreshold":               1000000000000000000000000,
-            "MinimumThreshold":             10000000000000000000,
-            "EpochValidatorNum":            24,
+            "OperatingThreshold":             10000000000000000000,
+            "MaxValidators":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2
+            "UnStakeFreezeDuration":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "DuplicateSignHighSlashing": 100,
+           "SlashFractionDuplicateSign": 100,
            "DuplicateSignReportReward": 50,
-           "NumberOfBlockRewardForSlashing":20, 
-           "EvidenceValidEpoch":1
+           "SlashBlocksReward":20, 
+           "MaxEvidenceAge":1
         },
         "Gov": {
             "VersionProposalVote_DurationSeconds": 160,
@@ -147,23 +147,23 @@ var customGenesisTests = []struct {
     },
     "EconomicModel":{
         "Common":{
-            "ExpectedMinutes":4,
-            "ValidatorCount":4,
+            "MaxEpochMinutes":4,
+            "MaxConsensusVals":4,
             "AdditionalCycleTime":16
         },
         "Staking":{
             "StakeThreshold":               1000000000000000000000000,
-            "MinimumThreshold":             10000000000000000000,
-            "EpochValidatorNum":            24,
+            "OperatingThreshold":             10000000000000000000,
+            "MaxValidators":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2
+            "UnStakeFreezeDuration":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "DuplicateSignHighSlashing": 100,
+           "SlashFractionDuplicateSign": 100,
            "DuplicateSignReportReward": 50,
-           "NumberOfBlockRewardForSlashing":20, 
-           "EvidenceValidEpoch":1
+           "SlashBlocksReward":20, 
+           "MaxEvidenceAge":1
         },
         "Gov": {
             "VersionProposalVote_DurationSeconds": 160,
@@ -238,23 +238,23 @@ var customGenesisTests = []struct {
     },
     "EconomicModel":{
         "Common":{
-            "ExpectedMinutes":4,
-            "ValidatorCount":4,
+            "MaxEpochMinutes":4,
+            "MaxConsensusVals":4,
             "AdditionalCycleTime":16
         },
         "Staking":{
             "StakeThreshold":               1000000000000000000000000,
-            "MinimumThreshold":             10000000000000000000,
-            "EpochValidatorNum":            24,
+            "OperatingThreshold":             10000000000000000000,
+            "MaxValidators":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2
+            "UnStakeFreezeDuration":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "DuplicateSignHighSlashing": 100,
+           "SlashFractionDuplicateSign": 100,
            "DuplicateSignReportReward": 50,
-           "NumberOfBlockRewardForSlashing":20, 
-           "EvidenceValidEpoch":1
+           "SlashBlocksReward":20, 
+           "MaxEvidenceAge":1
         },
         "Gov": {
             "VersionProposalVote_DurationSeconds": 160,

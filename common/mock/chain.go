@@ -4,30 +4,39 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-type chain struct {
+type Chain struct {
 	Genesis *types.Block
 	//	chain    []common.Hash
 	//	headerm  map[common.Hash]*types.Header
 	//	blockm   map[common.Hash]*types.Block
 	//	receiptm map[common.Hash][]*types.Receipt
 	StateDB *MockStateDB
+	SnapDB  snapshotdb.DB
 	h       []*types.Header
 }
 
-func (c *chain) AddBlock() {
+func (c *Chain) AddBlock() {
 	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
 	c.h = append(c.h, header)
 }
 
-func (c *chain) CurrentHeader() *types.Header {
+func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
+	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
+	c.h = append(c.h, header)
+	c.StateDB.Prepare(txHash, c.CurrentHeader().Hash(), 1)
+}
+
+func (c *Chain) CurrentHeader() *types.Header {
 	return c.h[len(c.h)-1]
 }
 
-func (c *chain) CurrentForkHeader() *types.Header {
+func (c *Chain) CurrentForkHeader() *types.Header {
 	newhead := new(types.Header)
 	newhead.Number = c.h[len(c.h)-1].Number
 	newhead.ParentHash = c.h[len(c.h)-1].ParentHash
@@ -35,7 +44,7 @@ func (c *chain) CurrentForkHeader() *types.Header {
 	return newhead
 }
 
-func (c *chain) GetHeaderByHash(hash common.Hash) *types.Header {
+func (c *Chain) GetHeaderByHash(hash common.Hash) *types.Header {
 	for i := len(c.h) - 1; i >= 0; i-- {
 		if c.h[i].Hash() == hash {
 			return c.h[i]
@@ -44,8 +53,8 @@ func (c *chain) GetHeaderByHash(hash common.Hash) *types.Header {
 	return nil
 }
 
-func NewChain() *chain {
-	c := new(chain)
+func NewChain() *Chain {
+	c := new(Chain)
 	header := generateHeader(big.NewInt(0), common.ZeroHash)
 	block := new(types.Block).WithSeal(header)
 
@@ -57,6 +66,7 @@ func NewChain() *chain {
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
 	c.StateDB = db
+	c.SnapDB = snapshotdb.Instance()
 	return c
 }
 

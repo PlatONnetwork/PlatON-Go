@@ -1,10 +1,10 @@
 package staking
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -19,128 +19,98 @@ const (
 	#	  THE CANDIDATE  STATUS     #
 	######   ######   ######   ######
 	*/
-	Invalided     = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	LowRatio                  // 0010: The candidate was low package ratio AND no delete
-	NotEnough                 // 0100: The current candidate's von does not meet the minimum staking threshold
-	DuplicateSign             // 1000: The Duplicate package or Duplicate sign
-	LowRatioDel               // 0001,0000: The lowRatio AND must delete
-	Withdrew                  // 0010,0000: The Active withdrew
-	Valided       = 0         // 0000: The current candidate is in force
-	NotExist      = 1 << 31   // 1000,xxxx,... : The candidate is not exist
+	Invalided     CandidateStatus = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
+	LowRatio                                  // 0010: The candidate was low package ratio AND no delete
+	NotEnough                                 // 0100: The current candidate's von does not meet the minimum staking threshold
+	DuplicateSign                             // 1000: The Duplicate package or Duplicate sign
+	LowRatioDel                               // 0001,0000: The lowRatio AND must delete
+	Withdrew                                  // 0010,0000: The Active withdrew
+	Valided       = 0                         // 0000: The current candidate is in force
+	NotExist      = 1 << 31                   // 1000,xxxx,... : The candidate is not exist
 )
 
-const SWeightItem = 4
+type CandidateStatus uint32
 
-func Is_Valid(status uint32) bool {
-	return !Is_Invalid(status)
+func (status CandidateStatus) Is_Valid() bool {
+	return !status.Is_Invalid()
 }
 
-func Is_Invalid(status uint32) bool {
+func (status CandidateStatus) Is_Invalid() bool {
 	return status&Invalided == Invalided
 }
 
-func Is_PureInvalid(status uint32) bool {
+func (status CandidateStatus) Is_PureInvalid() bool {
 	return status&Invalided == status|Invalided
 }
 
-func Is_LowRatio(status uint32) bool {
+func (status CandidateStatus) Is_LowRatio() bool {
 	return status&LowRatio == LowRatio
 }
 
-func Is_PureLowRatio(status uint32) bool {
+func (status CandidateStatus) Is_PureLowRatio() bool {
 	return status&LowRatio == status|LowRatio
 }
 
-func Is_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_NotEnough() bool {
 	return status&NotEnough == NotEnough
 }
 
-func Is_PureNotEnough(status uint32) bool {
+func (status CandidateStatus) Is_PureNotEnough() bool {
 	return status&NotEnough == status|NotEnough
 }
 
-func Is_Invalid_LowRatio(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_LowRatio() bool {
 	return status&(Invalided|LowRatio) == (Invalided | LowRatio)
 }
 
-func Is_Invalid_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_NotEnough() bool {
 	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
 }
 
-func Is_Invalid_LowRatio_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_LowRatio_NotEnough() bool {
 	return status&(Invalided|LowRatio|NotEnough) == (Invalided | LowRatio | NotEnough)
 }
 
-func Is_LowRatio_NotEnough(status uint32) bool {
+func (status CandidateStatus) Is_LowRatio_NotEnough() bool {
 	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
 }
 
-func Is_DuplicateSign(status uint32) bool {
+func (status CandidateStatus) Is_DuplicateSign() bool {
 	return status&DuplicateSign == DuplicateSign
 }
 
-func Is_Invalid_DuplicateSign(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_DuplicateSign() bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
-func Is_LowRatioDel(status uint32) bool {
+func (status CandidateStatus) Is_LowRatioDel() bool {
 	return status&LowRatioDel == LowRatioDel
 }
 
-func Is_PureLowRatioDel(status uint32) bool {
+func (status CandidateStatus) Is_PureLowRatioDel() bool {
 	return status&LowRatioDel == status|LowRatioDel
 }
 
-func Is_Invalid_LowRatioDel(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_LowRatioDel() bool {
 	return status&(Invalided|LowRatioDel) == (Invalided | LowRatioDel)
 }
 
-func Is_Withdrew(status uint32) bool {
+func (status CandidateStatus) Is_Withdrew() bool {
 	return status&Withdrew == Withdrew
 }
 
-func Is_PureWithdrew(status uint32) bool {
+func (status CandidateStatus) Is_PureWithdrew() bool {
 	return status&Withdrew == status|Withdrew
 }
 
-func Is_Invalid_Withdrew(status uint32) bool {
+func (status CandidateStatus) Is_Invalid_Withdrew() bool {
 	return status&(Invalided|Withdrew) == (Invalided | Withdrew)
 }
 
 // The Candidate info
 type Candidate struct {
-	NodeId discover.NodeID
-	// bls public key
-	BlsPubKey bls.PublicKey
-	// The account used to initiate the staking
-	StakingAddress common.Address
-	// The account receive the block rewards and the staking rewards
-	BenefitAddress common.Address
-	// The tx index at the time of staking
-	StakingTxIndex uint32
-	// The version of the node program
-	// (Store Large Verson: the 2.1.x large version is 2.1.0)
-	ProgramVersion uint32
-	// The candidate status
-	// Reference `THE CANDIDATE  STATUS`
-	Status uint32
-	// The epoch number at staking or edit
-	StakingEpoch uint32
-	// Block height at the time of staking
-	StakingBlockNum uint64
-	// All vons of staking and delegated
-	Shares *big.Int
-	// The staking von  is circulating for effective epoch (in effect)
-	Released *big.Int
-	// The staking von  is circulating for hesitant epoch (in hesitation)
-	ReleasedHes *big.Int
-	// The staking von  is RestrictingPlan for effective epoch (in effect)
-	RestrictingPlan *big.Int
-	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
-	RestrictingPlanHes *big.Int
-
-	// Node desc
-	Description
+	*CandidateBase
+	*CandidateMutable
 }
 
 func (can *Candidate) String() string {
@@ -165,8 +135,8 @@ func (can *Candidate) String() string {
 		"Website": "%s",
 		"Details": "%s"
 	}`,
-		can.NodeId.String(),
-		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
 		can.StakingTxIndex,
@@ -185,15 +155,208 @@ func (can *Candidate) String() string {
 		can.Details)
 }
 
+func (can *Candidate) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *Candidate) IsEmpty() bool {
+	return nil == can
+}
+
+type CandidateBase struct {
+	NodeId discover.NodeID
+	// bls public key
+	BlsPubKey bls.PublicKeyHex
+	// The account used to initiate the staking
+	StakingAddress common.Address
+	// The account receive the block rewards and the staking rewards
+	BenefitAddress common.Address
+	// The tx index at the time of staking
+	StakingTxIndex uint32
+	// The version of the node program
+	// (Store Large Verson: the 2.1.x large version is 2.1.0)
+	ProgramVersion uint32
+	// Block height at the time of staking
+	StakingBlockNum uint64
+	// Node desc
+	Description
+}
+
+func (can *CandidateBase) String() string {
+	return fmt.Sprintf(`
+	{
+		"NodeId": "%s", 
+		"BlsPubKey": "%s", 
+		"StakingAddress": "%s", 
+		"BenefitAddress": "%s", 
+		"StakingTxIndex": %d, 
+		"ProgramVersion": %d,  
+		"StakingBlockNum": %d,
+		"ExternalId": "%s",
+		"NodeName": "%s",
+		"Website": "%s",
+		"Details": "%s"
+	}`,
+		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
+		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
+		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
+		can.StakingTxIndex,
+		can.ProgramVersion,
+		can.StakingBlockNum,
+		can.ExternalId,
+		can.NodeName,
+		can.Website,
+		can.Details)
+}
+
+func (can *CandidateBase) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *CandidateBase) IsEmpty() bool {
+	return nil == can
+}
+
+type CandidateMutable struct {
+	// The candidate status
+	// Reference `THE CANDIDATE  STATUS`
+	Status CandidateStatus
+	// The epoch number at staking or edit
+	StakingEpoch uint32
+	// All vons of staking and delegated
+	Shares *big.Int
+	// The staking von  is circulating for effective epoch (in effect)
+	Released *big.Int
+	// The staking von  is circulating for hesitant epoch (in hesitation)
+	ReleasedHes *big.Int
+	// The staking von  is RestrictingPlan for effective epoch (in effect)
+	RestrictingPlan *big.Int
+	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *big.Int
+}
+
+func (can *CandidateMutable) String() string {
+	return fmt.Sprintf(`
+	{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,}`,
+		can.Status,
+		can.StakingEpoch,
+		can.Shares,
+		can.Released,
+		can.ReleasedHes,
+		can.RestrictingPlan,
+		can.RestrictingPlanHes)
+}
+
+func (can *CandidateMutable) CleanLowRatioStatus() {
+	can.Status &^= LowRatio
+}
+
+func (can *CandidateMutable) CleanShares() {
+	can.Shares = new(big.Int).SetInt64(0)
+}
+
+func (can *CandidateMutable) AddShares(amount *big.Int) {
+	can.Shares = new(big.Int).Add(can.Shares, amount)
+}
+
+func (can *CandidateMutable) SubShares(amount *big.Int) {
+	can.Shares = new(big.Int).Sub(can.Shares, amount)
+}
+
+func (can *CandidateMutable) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *CandidateMutable) IsEmpty() bool {
+	return nil == can
+}
+
+func (can *CandidateMutable) Is_Valid() bool {
+	return can.Status.Is_Valid()
+}
+
+func (can *CandidateMutable) Is_Invalid() bool {
+	return can.Status.Is_Invalid()
+}
+
+func (can *CandidateMutable) Is_PureInvalid() bool {
+	return can.Status.Is_PureInvalid()
+}
+
+func (can *CandidateMutable) Is_LowRatio() bool {
+	return can.Status.Is_LowRatio()
+}
+
+func (can *CandidateMutable) Is_PureLowRatio() bool {
+	return can.Status.Is_PureLowRatio()
+}
+
+func (can *CandidateMutable) Is_NotEnough() bool {
+	return can.Status.Is_NotEnough()
+}
+
+func (can *CandidateMutable) Is_PureNotEnough() bool {
+	return can.Status.Is_PureNotEnough()
+}
+
+func (can *CandidateMutable) Is_Invalid_LowRatio() bool {
+	return can.Status.Is_Invalid_LowRatio()
+}
+
+func (can *CandidateMutable) Is_Invalid_NotEnough() bool {
+	return can.Status.Is_Invalid_NotEnough()
+}
+
+func (can *CandidateMutable) Is_Invalid_LowRatio_NotEnough() bool {
+	return can.Status.Is_Invalid_LowRatio_NotEnough()
+}
+
+func (can *CandidateMutable) Is_LowRatio_NotEnough() bool {
+	return can.Status.Is_LowRatio_NotEnough()
+}
+
+func (can *CandidateMutable) Is_DuplicateSign() bool {
+	return can.Status.Is_DuplicateSign()
+}
+
+func (can *CandidateMutable) Is_Invalid_DuplicateSign() bool {
+	return can.Status.Is_Invalid_DuplicateSign()
+}
+
+func (can *CandidateMutable) Is_LowRatioDel() bool {
+	return can.Status.Is_LowRatioDel()
+}
+
+func (can *CandidateMutable) Is_PureLowRatioDel() bool {
+	return can.Status.Is_PureLowRatioDel()
+}
+
+func (can *CandidateMutable) Is_Invalid_LowRatioDel() bool {
+	return can.Status.Is_Invalid_LowRatioDel()
+}
+
+func (can *CandidateMutable) Is_Withdrew() bool {
+	return can.Status.Is_Withdrew()
+}
+
+func (can *CandidateMutable) Is_PureWithdrew() bool {
+	return can.Status.Is_PureWithdrew()
+}
+
+func (can *CandidateMutable) Is_Invalid_Withdrew() bool {
+	return can.Status.Is_Invalid_Withdrew()
+}
+
 // Display amount field using 0x hex
 type CandidateHex struct {
 	NodeId             discover.NodeID
-	BlsPubKey          bls.PublicKey
+	BlsPubKey          bls.PublicKeyHex
 	StakingAddress     common.Address
 	BenefitAddress     common.Address
 	StakingTxIndex     uint32
 	ProgramVersion     uint32
-	Status             uint32
+	Status             CandidateStatus
 	StakingEpoch       uint32
 	StakingBlockNum    uint64
 	Shares             *hexutil.Big
@@ -226,8 +389,8 @@ func (can *CandidateHex) String() string {
 		"Website": "%s",
 		"Details": "%s"
 	}`,
-		can.NodeId.String(),
-		fmt.Sprintf("%x", can.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", can.NodeId.Bytes()),
+		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", can.BenefitAddress.Bytes()),
 		can.StakingTxIndex,
@@ -244,6 +407,14 @@ func (can *CandidateHex) String() string {
 		can.NodeName,
 		can.Website,
 		can.Details)
+}
+
+func (can *CandidateHex) IsNotEmpty() bool {
+	return !can.IsEmpty()
+}
+
+func (can *CandidateHex) IsEmpty() bool {
+	return nil == can
 }
 
 //// EncodeRLP implements rlp.Encoder
@@ -298,77 +469,76 @@ func (desc *Description) CheckLength() error {
 type CandidateQueue []*Candidate
 type CandidateHexQueue []*CandidateHex
 
+func (queue CandidateHexQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue CandidateHexQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
+
+type CandidateBaseQueue []*CandidateBase
+
+func (queue CandidateBaseQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue CandidateBaseQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
+
 // the Validator info
 // They are Simplified Candidate
 // They are consensus nodes and Epoch nodes snapshot
-type Validator struct {
+/*type Validator struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
 	// bls public key
-	BlsPubKey bls.PublicKey
+	BlsPubKey bls.PublicKeyHex
 	// The weight snapshot
 	// NOTE:
 	// converted from the weight snapshot of Candidate, they array order is:
 	//
 	// programVersion, candidate.shares, stakingBlocknum, stakingTxindex
 	//
-	// They origin type is: uint32, *big.int, uint64, uint32
+	// They origin type is: uint32, *big.Int, uint64, uint32
 	StakingWeight [SWeightItem]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
+}*/
+type Validator struct {
+	ProgramVersion  uint32
+	StakingTxIndex  uint32
+	ValidatorTerm   uint32 // Validator's term in the consensus round
+	StakingBlockNum uint64
+	NodeAddress     common.Address
+	NodeId          discover.NodeID
+	BlsPubKey       bls.PublicKeyHex
+	Shares          *big.Int
 }
 
 func (val *Validator) String() string {
 	return fmt.Sprintf(`
-	{
-		"NodeId": "%s", 
-		"NodeAddress": "%s",
-		"BlsPubKey": "%s", 
-		"StakingWeight": %s, 
-		"ValidatorTerm": %d
-	}`,
+	{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
 		val.NodeId.String(),
 		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
-		fmt.Sprintf("%x", val.BlsPubKey.Serialize()),
-		fmt.Sprintf(`[%s,%s,%s,%s]`, val.StakingWeight[0], val.StakingWeight[1], val.StakingWeight[2], val.StakingWeight[3]),
+		fmt.Sprintf("%x", val.BlsPubKey.Bytes()),
+		val.ProgramVersion,
+		val.Shares,
+		val.StakingBlockNum,
+		val.StakingTxIndex,
 		val.ValidatorTerm)
 }
 
-func (val *Validator) GetProgramVersion() (uint32, error) {
-	version := val.StakingWeight[0]
-	v, err := strconv.Atoi(version)
-	if nil != err {
-		return 0, err
-	}
-	return uint32(v), nil
-}
-func (val *Validator) GetShares() (*big.Int, error) {
-	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
-	if !ok {
-		return nil, errors.New("parse bigInt failed from validator's shares")
-	}
-	return shares, nil
-}
-
-func (val *Validator) GetStakingBlockNumber() (uint64, error) {
-	stakingBlockNumber := val.StakingWeight[2]
-	num, err := strconv.ParseUint(stakingBlockNumber, 10, 64)
-	if nil != err {
-		return 0, err
-	}
-	return uint64(num), nil
-}
-
-func (val *Validator) GetStakingTxIndex() (uint32, error) {
-	txIndex := val.StakingWeight[3]
-	index, err := strconv.Atoi(txIndex)
-	if nil != err {
-		return 0, err
-	}
-	return uint32(index), nil
-}
-
 type ValidatorQueue []*Validator
+
+func (queue ValidatorQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue ValidatorQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
 
 type CandidateMap map[discover.NodeID]*Candidate
 
@@ -436,12 +606,10 @@ func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
 func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 
 	compareTxIndexFunc := func(l, r *Validator) int {
-		leftTxIndex, _ := l.GetStakingTxIndex()
-		rightTxIndex, _ := r.GetStakingTxIndex()
 		switch {
-		case leftTxIndex > rightTxIndex:
+		case l.StakingTxIndex > r.StakingTxIndex:
 			return -1
-		case leftTxIndex < rightTxIndex:
+		case l.StakingTxIndex < r.StakingTxIndex:
 			return 1
 		default:
 			return 0
@@ -449,12 +617,11 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareBlockNumberFunc := func(l, r *Validator) int {
-		leftNum, _ := l.GetStakingBlockNumber()
-		rightNum, _ := r.GetStakingBlockNumber()
+
 		switch {
-		case leftNum > rightNum:
+		case l.StakingBlockNum > r.StakingBlockNum:
 			return -1
-		case leftNum < rightNum:
+		case l.StakingBlockNum < r.StakingBlockNum:
 			return 1
 		default:
 			return compareTxIndexFunc(l, r)
@@ -462,13 +629,11 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareSharesFunc := func(l, r *Validator) int {
-		leftShares, _ := l.GetShares()
-		rightShares, _ := r.GetShares()
 
 		switch {
-		case leftShares.Cmp(rightShares) < 0:
+		case l.Shares.Cmp(r.Shares) < 0:
 			return -1
-		case leftShares.Cmp(rightShares) > 0:
+		case l.Shares.Cmp(r.Shares) > 0:
 			return 1
 		default:
 			return compareBlockNumberFunc(l, r)
@@ -483,13 +648,14 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	} else if !leftOk && rightOk {
 		return 1
 	} else {
-		leftVersion, _ := left.GetProgramVersion()
-		rightVersion, _ := right.GetProgramVersion()
+
+		lversion := xutil.CalcVersion(left.ProgramVersion)
+		rversion := xutil.CalcVersion(right.ProgramVersion)
 
 		switch {
-		case leftVersion < rightVersion:
+		case lversion < rversion:
 			return -1
-		case leftVersion > rightVersion:
+		case lversion > rversion:
 			return 1
 		default:
 			return compareSharesFunc(left, right)
@@ -528,12 +694,11 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
-		leftTxIndex, _ := l.GetStakingTxIndex()
-		rightTxIndex, _ := r.GetStakingTxIndex()
+
 		switch {
-		case leftTxIndex > rightTxIndex:
+		case l.StakingTxIndex > r.StakingTxIndex:
 			return 1
-		case leftTxIndex < rightTxIndex:
+		case l.StakingTxIndex < r.StakingTxIndex:
 			return -1
 		default:
 			return 0
@@ -542,12 +707,10 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare BlockNumber
 	compareBlockNumberFunc := func(l, r *Validator) int {
-		leftNum, _ := l.GetStakingBlockNumber()
-		rightNum, _ := r.GetStakingBlockNumber()
 		switch {
-		case leftNum > rightNum:
+		case l.StakingBlockNum > r.StakingBlockNum:
 			return 1
-		case leftNum < rightNum:
+		case l.StakingBlockNum < r.StakingBlockNum:
 			return -1
 		default:
 			return compareTxIndexFunc(l, r)
@@ -556,13 +719,11 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare Shares
 	compareSharesFunc := func(l, r *Validator) int {
-		leftShares, _ := l.GetShares()
-		rightShares, _ := r.GetShares()
 
 		switch {
-		case leftShares.Cmp(rightShares) < 0:
+		case l.Shares.Cmp(r.Shares) < 0:
 			return 1
-		case leftShares.Cmp(rightShares) > 0:
+		case l.Shares.Cmp(r.Shares) > 0:
 			return -1
 		default:
 			return compareBlockNumberFunc(l, r)
@@ -582,8 +743,8 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareVersionFunc := func(l, r *Validator) int {
-		lversion, _ := l.GetProgramVersion()
-		rversion, _ := r.GetProgramVersion()
+		lversion := xutil.CalcVersion(l.ProgramVersion)
+		rversion := xutil.CalcVersion(r.ProgramVersion)
 		switch {
 		case lversion > rversion:
 			return -1
@@ -615,31 +776,31 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 		// compare slash
 		switch {
-		case Is_DuplicateSign(lCan.Status) && !Is_DuplicateSign(rCan.Status):
+		case lCan.Is_DuplicateSign() && !rCan.Is_DuplicateSign():
 			return 1
-		case !Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+		case !lCan.Is_DuplicateSign() && rCan.Is_DuplicateSign():
 			return -1
-		case Is_DuplicateSign(lCan.Status) && Is_DuplicateSign(rCan.Status):
+		case lCan.Is_DuplicateSign() && rCan.Is_DuplicateSign():
 			// compare Shares
 			return compareSharesFunc(left, right)
 		default:
 			// compare low ratio delete
 			// compare low ratio
 			switch {
-			case Is_LowRatioDel(lCan.Status) && !Is_LowRatioDel(rCan.Status):
+			case lCan.Is_LowRatioDel() && !rCan.Is_LowRatioDel():
 				return 1
-			case !Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
+			case !lCan.Is_LowRatioDel() && rCan.Is_LowRatioDel():
 				return -1
-			case Is_LowRatioDel(lCan.Status) && Is_LowRatioDel(rCan.Status):
+			case lCan.Is_LowRatioDel() && rCan.Is_LowRatioDel():
 				// compare Shares
 				return compareSharesFunc(left, right)
 			default:
 				switch {
-				case Is_LowRatio(lCan.Status) && !Is_LowRatio(rCan.Status):
+				case lCan.Is_LowRatio() && !rCan.Is_LowRatio():
 					return 1
-				case !Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				case !lCan.Is_LowRatio() && rCan.Is_LowRatio():
 					return -1
-				case Is_LowRatio(lCan.Status) && Is_LowRatio(rCan.Status):
+				case lCan.Is_LowRatio() && rCan.Is_LowRatio():
 					// compare Shares
 					return compareSharesFunc(left, right)
 				default:
@@ -667,12 +828,11 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 
 	// 5. TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
-		leftTxIndex, _ := l.GetStakingTxIndex()
-		rightTxIndex, _ := r.GetStakingTxIndex()
+
 		switch {
-		case leftTxIndex > rightTxIndex:
+		case l.StakingTxIndex > r.StakingTxIndex:
 			return -1
-		case leftTxIndex < rightTxIndex:
+		case l.StakingTxIndex < r.StakingTxIndex:
 			return 1
 		default:
 			return 0
@@ -681,32 +841,16 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 
 	// 4. BlockNumber
 	compareBlockNumberFunc := func(l, r *Validator) int {
-		leftNum, _ := l.GetStakingBlockNumber()
-		rightNum, _ := r.GetStakingBlockNumber()
+
 		switch {
-		case leftNum > rightNum:
+		case l.StakingBlockNum > r.StakingBlockNum:
 			return -1
-		case leftNum < rightNum:
+		case l.StakingBlockNum < r.StakingBlockNum:
 			return 1
 		default:
 			return compareTxIndexFunc(l, r)
 		}
 	}
-
-	//// 3. Shares
-	//compareSharesFunc := func(l, r *Validator) int {
-	//	leftShares, _ := l.GetShares()
-	//	rightShares, _ := r.GetShares()
-	//
-	//	switch {
-	//	case leftShares.Cmp(rightShares) < 0:
-	//		return -1
-	//	case leftShares.Cmp(rightShares) > 0:
-	//		return 1
-	//	default:
-	//		return compareBlockNumberFunc(l, r)
-	//	}
-	//}
 
 	// 2. Term
 	compareTermFunc := func(l, r *Validator) int {
@@ -722,8 +866,8 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 	}
 
 	// 1. ProgramVersion
-	lVersion, _ := left.GetProgramVersion()
-	rVersion, _ := right.GetProgramVersion()
+	lVersion := xutil.CalcVersion(left.ProgramVersion)
+	rVersion := xutil.CalcVersion(right.ProgramVersion)
 	if lVersion < rVersion {
 		return -1
 	} else if lVersion > rVersion {
@@ -743,11 +887,15 @@ type ValidatorArray struct {
 	Arr ValidatorQueue
 }
 
+func (v ValidatorArray) String() string {
+	return fmt.Sprintf(`{"Start": %d, "End": %d, "Arr": %+v}`, v.Start, v.End, v.Arr)
+}
+
 type ValidatorEx struct {
 	//NodeAddress common.Address
 	NodeId discover.NodeID
 	// bls public key
-	BlsPubKey bls.PublicKey
+	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
@@ -788,7 +936,7 @@ func (vex *ValidatorEx) String() string {
 	}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
-		fmt.Sprintf("%x", vex.BlsPubKey.Serialize()),
+		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BenefitAddress.Bytes()),
 		vex.StakingTxIndex,
@@ -802,7 +950,15 @@ func (vex *ValidatorEx) String() string {
 		vex.ValidatorTerm)
 }
 
-type ValidatorExQueue = []*ValidatorEx
+type ValidatorExQueue []*ValidatorEx
+
+func (queue ValidatorExQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue ValidatorExQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
 
 // the Delegate information
 type Delegation struct {
@@ -834,6 +990,14 @@ func (del *Delegation) String() string {
 		del.RestrictingPlanHes)
 }
 
+func (del *Delegation) IsNotEmpty() bool {
+	return !del.IsEmpty()
+}
+
+func (del *Delegation) IsEmpty() bool {
+	return nil == del
+}
+
 type DelegationHex struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint32
@@ -861,6 +1025,14 @@ func (delHex *DelegationHex) String() string {
 		delHex.ReleasedHes,
 		delHex.RestrictingPlan,
 		delHex.RestrictingPlanHes)
+}
+
+func (del *DelegationHex) IsNotEmpty() bool {
+	return !del.IsEmpty()
+}
+
+func (del *DelegationHex) IsEmpty() bool {
+	return nil == del
 }
 
 type DelegationEx struct {
@@ -892,6 +1064,14 @@ func (dex *DelegationEx) String() string {
 		dex.RestrictingPlanHes)
 }
 
+func (dex *DelegationEx) IsNotEmpty() bool {
+	return !dex.IsEmpty()
+}
+
+func (dex *DelegationEx) IsEmpty() bool {
+	return nil == dex
+}
+
 type DelegateRelated struct {
 	Addr            common.Address
 	NodeId          discover.NodeID
@@ -910,7 +1090,23 @@ func (dr *DelegateRelated) String() string {
 		dr.StakingBlockNum)
 }
 
-type DelRelatedQueue = []*DelegateRelated
+func (dr *DelegateRelated) IsNotEmpty() bool {
+	return !dr.IsEmpty()
+}
+
+func (dr *DelegateRelated) IsEmpty() bool {
+	return nil == dr
+}
+
+type DelRelatedQueue []*DelegateRelated
+
+func (queue DelRelatedQueue) IsNotEmpty() bool {
+	return !queue.IsEmpty()
+}
+
+func (queue DelRelatedQueue) IsEmpty() bool {
+	return len(queue) == 0
+}
 
 type UnStakeItem struct {
 	// this is the nodeAddress
@@ -927,6 +1123,10 @@ type UnStakeItem struct {
 type ValArrIndex struct {
 	Start uint64
 	End   uint64
+}
+
+func (vindex *ValArrIndex) String() string {
+	return fmt.Sprintf(`{"Start": %d, "End": %d}`, vindex.Start, vindex.End)
 }
 
 type ValArrIndexQueue []*ValArrIndex
@@ -947,7 +1147,7 @@ type SlashNodeItem struct {
 	// the amount of von with slashed
 	Amount *big.Int
 	// slash type
-	SlashType int
+	SlashType CandidateStatus
 	// the benefit adrr who will receive the slash amount of von
 	BenefitAddr common.Address
 }

@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -46,10 +48,13 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	defer func() {
 		vh.db.Clear()
 	}()
+
+	gov.InitGenesisGovernParam(vh.db)
+
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
 	hash := common.ZeroHash
-	for i := 0; i < int(xcom.EpochValidatorNum())+10; i++ {
+	for i := 0; i < int(xcom.MaxValidators())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Fatal(err)
 		}
@@ -70,7 +75,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	if value, err := vh.Load(phash); nil != err {
 		t.Fatal(err)
 	} else {
-		assert.Equal(t, len(value), int(xcom.EpochValidatorNum()))
+		assert.Equal(t, len(value), int(xcom.MaxValidators()))
 	}
 }
 

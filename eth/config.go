@@ -54,7 +54,7 @@ var DefaultConfig = Config{
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
 	MinerGasFloor: 4000 * 21000 * 1.2,
-	MinerGasCeil:  4000 * 21000 * 1.2,
+	//MinerGasCeil:  4000 * 21000 * 1.2,
 	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
 
@@ -125,10 +125,10 @@ type Config struct {
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`
 	MinerGasFloor  uint64
-	MinerGasCeil   uint64
-	MinerGasPrice  *big.Int
-	MinerRecommit  time.Duration
-	MinerNoverify  bool
+	//MinerGasCeil   uint64
+	MinerGasPrice *big.Int
+	MinerRecommit time.Duration
+	MinerNoverify bool
 	// minning conig
 	MiningLogAtDepth       uint          // miningLogAtDepth is the number of confirmations before logging successful mining.
 	TxChanSize             int           // txChanSize is the size of channel listening to NewTxsEvent.The number is referenced from the size of tx pool.

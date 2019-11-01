@@ -101,7 +101,8 @@ const (
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
 	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion
-	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitParam
+	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitCancel
+	SubmitParamProposalGas   uint64 = 500000 // Gas needed for submitParam
 	VoteGas                  uint64 = 2000   // Gas needed for vote
 	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
 
@@ -122,4 +123,5 @@ var (
 	SubmitTextProposalGasPrice    = big.NewInt(1500000 * 1000000000) // Min gas price for submit a text proposal in Von
 	SubmitVersionProposalGasPrice = big.NewInt(2100000 * 1000000000) // Min gas price for submit a version proposal in Von
 	SubmitCancelProposalGasPrice  = big.NewInt(3000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
+	SubmitParamProposalGasPrice   = big.NewInt(2000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
 )

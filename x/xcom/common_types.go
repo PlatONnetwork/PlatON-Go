@@ -28,7 +28,6 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
 
-	// todo: new func for abi of contract.
 	GetAbiHash(common.Address) common.Hash
 	GetAbi(common.Address) []byte
 	SetAbi(common.Address, []byte)
@@ -37,7 +36,6 @@ type StateDB interface {
 	SubRefund(uint64)
 	GetRefund() uint64
 
-	// todo: hash -> bytes
 	GetCommittedState(common.Address, []byte) []byte
 	//GetState(common.Address, common.Hash) common.Hash
 	//SetState(common.Address, common.Hash, common.Hash)
@@ -69,71 +67,60 @@ type StateDB interface {
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
-// inner contract event data
 type Result struct {
-	Code   uint32
-	Data   string
-	ErrMsg string
+	Code uint32
+	Ret  string
 }
 
-func SuccessResult(data string) []byte {
-	return BuildResult(data, common.NoErr)
-}
-
-func FailResult(data string, err *common.BizError) []byte {
-	return BuildResult(data, err)
-}
-
-func BuildResult(data string, err *common.BizError) []byte {
-	res := Result{err.Code, data, err.Msg}
+func OkResult(data string) []byte {
+	res := &Result{common.NoErr.Code, data}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
-func NewResult(data string, err *common.BizError) []byte {
-	if err == nil {
-		err = common.NoErr
-	}
-	res := &Result{err.Code, data, err.Msg}
+func FailResult(err *common.BizError) []byte {
+	res := &Result{err.Code, err.Msg}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
-var (
-	OkResultByte, _ = json.Marshal(&Result{common.NoErr.Code, "", common.NoErr.Msg})
-)
+//func OkReceipt() []byte {
+//	res := Result{common.NoErr.Code, common.NoErr.Msg}
+//	bs, _ := json.Marshal(res)
+//	return bs
+//}
+//
+//func FailedReceipt(err *common.BizError) []byte {
+//	res := Result{err.Code, err.Msg}
+//	bs, _ := json.Marshal(res)
+//	return bs
+//}
+//
+//var (
+//	OkReceiptByte = OkReceipt()
+//)
 
-func NewSuccessResult(data string) []byte {
-	res := &Result{common.NoErr.Code, data, common.NoErr.Msg}
+func NewOkResult(data string) []byte {
+	res := &Result{common.NoErr.Code, data}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
-func NewFailResultByBiz(err *common.BizError) []byte {
-	res := &Result{err.Code, "", err.Msg}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-func NewFailResult(err error) []byte {
+func NewFailedResult(err error) []byte {
 	code, message := common.DecodeError(err)
-	res := &Result{code, "", message}
+	res := &Result{code, message}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
-	logdata := make([][]byte, 0)
-	logdata = append(logdata, []byte(data))
 
 	buf := new(bytes.Buffer)
-	if err := rlp.Encode(buf, logdata); nil != err {
+	if err := rlp.Encode(buf, [][]byte{[]byte(data)}); nil != err {
 		log.Error("Cannot RlpEncode the log data, data", "data", data)
 		panic("Cannot RlpEncode the log data")
 	}
-
-	//encoded := common.MustRlpEncode(logdata)
 
 	state.AddLog(&types.Log{
 		Address:     contractAddr,

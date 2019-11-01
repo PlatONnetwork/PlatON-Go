@@ -547,7 +547,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 	if rs := len(tester.ownReceipts); rs != receipts {
 		t.Fatalf("synchronised receipts mismatch: have %v, want %v", rs, receipts)
 	}
-	//todo test ppos
+	// test ppos
 	if tester.downloader.mode == FastSync {
 		baseNum, err := tester.snapshotdb.BaseNum()
 		if err != nil {

@@ -47,4 +47,8 @@ var (
 	NotifyStakingDeclaredVersionError = common.NewBizError(302029, "notify staking declared version error")
 
 	TallyResultNotFound = common.NewBizError(302030, "tally result not found")
+
+	UnsupportedGovernParam   = common.NewBizError(302031, "unsupported govern parameter")
+	VotingParamProposalExist = common.NewBizError(302032, "another param proposal at voting stage")
+	GovernParamValueError    = common.NewBizError(302033, "govern parameter value error")
 )

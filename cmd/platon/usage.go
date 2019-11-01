@@ -175,7 +175,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.MinerGasPriceFlag,
 			utils.MinerGasTargetFlag,
-			utils.MinerGasLimitFlag,
+			//utils.MinerGasLimitFlag,
 			//	utils.MinerExtraDataFlag,
 		},
 	},

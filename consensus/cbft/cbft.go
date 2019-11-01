@@ -879,6 +879,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 	}
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
+	fmt.Println("errddddd ", err)
 	if err != nil {
 		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash())
 		return errors.New("failed to executed block")

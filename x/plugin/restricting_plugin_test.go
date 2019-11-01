@@ -75,7 +75,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		if _, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB); err != errAccountNotFound {
+		if _, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB); err != restricting.ErrAccountNotFound {
 			t.Error("account must not found")
 			return
 		}
@@ -110,37 +110,37 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		x := []testtmp{
 			{
 				input:  make([]restricting.RestrictingPlan, 0),
-				expect: errCountRestrictPlansInvalid,
+				expect: restricting.ErrCountRestrictPlansInvalid,
 				des:    "0 plan",
 			},
 			{
 				input:  nil,
-				expect: errCountRestrictPlansInvalid,
+				expect: restricting.ErrCountRestrictPlansInvalid,
 				des:    "nil plan",
 			},
 			{
 				input:  []restricting.RestrictingPlan{{0, big.NewInt(1e15)}},
-				expect: errParamEpochInvalid,
+				expect: restricting.ErrParamEpochInvalid,
 				des:    "epoch is zero",
 			},
 			{
 				input:  []restricting.RestrictingPlan{{1, big.NewInt(0)}},
-				expect: errCreatePlanAmountLessThanZero,
+				expect: restricting.ErrCreatePlanAmountLessThanZero,
 				des:    "amount is 0",
 			},
 			{
 				input:  largePlans,
-				expect: errCountRestrictPlansInvalid,
-				des:    fmt.Sprintf("must less than %d", restrictTxPlanSize),
+				expect: restricting.ErrCountRestrictPlansInvalid,
+				des:    fmt.Sprintf("must less than %d", restricting.RestrictTxPlanSize),
 			},
 			{
 				input:  largeMountPlans,
-				expect: errBalanceNotEnough,
+				expect: restricting.ErrBalanceNotEnough,
 				des:    "amount not enough",
 			},
 			{
 				input:  notEnough,
-				expect: errLockedAmountTooLess,
+				expect: restricting.ErrLockedAmountTooLess,
 				des:    "amount too small",
 			},
 		}
@@ -341,8 +341,8 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 		chain := mock.NewChain()
 		notFoundAccount := common.HexToAddress("0x11")
 		_, err := RestrictingInstance().GetRestrictingInfo(notFoundAccount, chain.StateDB)
-		if err != errAccountNotFound {
-			t.Errorf("restricting account not exist ,want err %v,have err %v", errAccountNotFound, err)
+		if err != restricting.ErrAccountNotFound {
+			t.Errorf("restricting account not exist ,want err %v,have err %v", restricting.ErrAccountNotFound, err)
 		}
 	})
 

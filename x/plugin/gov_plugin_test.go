@@ -102,7 +102,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 		ProposalType:    gov.Version,
 		PIPID:           "versionIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds(),
+		EndVotingRounds: xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()),
 		Proposer:        nodeIdArr[0],
 		NewVersion:      promoteVersion,
 	}
@@ -134,7 +134,7 @@ func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
 		ProposalType:    gov.Cancel,
 		PIPID:           "CancelPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds() - 1,
+		EndVotingRounds: xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()) - 1,
 		Proposer:        nodeIdArr[0],
 		TobeCanceled:    tobeCanceled,
 	}
@@ -379,7 +379,7 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 func TestGovPlugin_SubmitVersion_PIPID_empty(t *testing.T) {
 	defer setup(t)()
 
-	vp := buildVersionProposal(txHashArr[0], "", xcom.VersionProposalVote_ConsensusRounds(), uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
 		if err == gov.PIPIDEmpty {
@@ -395,7 +395,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 
 	t.Log("CurrentActiveVersion", "version", gov.GetCurrentActiveVersion(stateDB))
 
-	vp := buildVersionProposal(txHashArr[0], "pipID", xcom.VersionProposalVote_ConsensusRounds(), uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "pipID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
@@ -410,7 +410,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 		t.Log("ListPIPID", "p", p)
 	}
 
-	vp2 := buildVersionProposal(txHashArr[1], "pipID", xcom.VersionProposalVote_ConsensusRounds(), uint32(1<<16|3<<8|0))
+	vp2 := buildVersionProposal(txHashArr[1], "pipID", xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|3<<8|0))
 
 	err = gov.Submit(sender, vp2, lastBlockHash, lastBlockNumber, stk, stateDB)
 	if err != nil {
@@ -430,7 +430,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 		ProposalType:    gov.Version,
 		PIPID:           "versionPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds() + 1, //error
+		EndVotingRounds: xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()) + 1, //error
 		Proposer:        nodeIdArr[0],
 		NewVersion:      promoteVersion,
 	}
@@ -492,7 +492,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 		ProposalType:    gov.Version,
 		PIPID:           "versionPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds(),
+		EndVotingRounds: xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()),
 		Proposer:        nodeIdArr[0],
 		NewVersion:      newVersionErr, //error, less than activeVersion
 	}
@@ -561,7 +561,7 @@ func TestGovPlugin_SubmitCancel_invalidEndVotingRounds(t *testing.T) {
 		ProposalType:    gov.Cancel,
 		PIPID:           "CancelPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds(),
+		EndVotingRounds: xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()),
 		Proposer:        nodeIdArr[1],
 		TobeCanceled:    txHashArr[0],
 	}
@@ -587,7 +587,7 @@ func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 		ProposalType:    gov.Cancel,
 		PIPID:           "cancelPIPID",
 		SubmitBlock:     1,
-		EndVotingRounds: xcom.VersionProposalVote_ConsensusRounds() - 1,
+		EndVotingRounds: xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()) - 1,
 		Proposer:        nodeIdArr[0],
 		TobeCanceled:    txHashArr[0],
 	}
@@ -647,14 +647,14 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 		t.Fatal("vote err:", err)
 	}
 
-	votedValue, err := gov.ListVoteValue(txHashArr[0], stateDB)
+	votedValue, err := gov.ListVoteValue(txHashArr[0], lastBlockHash)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	} else {
 		t.Log("voted count:", len(votedValue))
 	}
 
-	votedMap, err := gov.GetVotedVerifierMap(txHashArr[0], stateDB)
+	votedMap, err := gov.GetVotedVerifierMap(txHashArr[0], lastBlockHash)
 	if err != nil {
 		t.Fatal("vote failed, cannot list voted verifiers", err)
 	} else {
@@ -859,7 +859,7 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 		t.Fatal("vote err:", err)
 	}
 
-	votedValue, err := gov.ListVoteValue(txHashArr[0], stateDB)
+	votedValue, err := gov.ListVoteValue(txHashArr[0], lastBlockHash)
 	if err != nil {
 		t.Fatal("vote err:", err)
 	} else {
@@ -993,7 +993,7 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	endVotingBlock := xutil.CalEndVotingBlock(1, xcom.VersionProposalVote_ConsensusRounds())
+	endVotingBlock := xutil.CalEndVotingBlock(1, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()))
 	//	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
 
 	buildBlockNoCommit(2)
@@ -1048,7 +1048,7 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	endVotingBlock := xutil.CalEndVotingBlock(1, xcom.VersionProposalVote_ConsensusRounds())
+	endVotingBlock := xutil.CalEndVotingBlock(1, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()))
 	//	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
 
 	buildBlockNoCommit(2)
@@ -1140,7 +1140,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction() //flush to LevelDB
 
-	endVotingBlock := xutil.CalEndVotingBlock(1, xcom.VersionProposalVote_ConsensusRounds())
+	endVotingBlock := xutil.CalEndVotingBlock(1, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds()))
 	actvieBlock := xutil.CalActiveBlock(endVotingBlock)
 
 	buildBlockNoCommit(2)

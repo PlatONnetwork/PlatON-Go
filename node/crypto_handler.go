@@ -63,7 +63,6 @@ func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, no
 	}
 	id := discover.PubkeyID(pubKey)
 
-	log.Debug("IsSignedByNodeID", "id", id, "nodeID", nodeID)
 	if id == nodeID {
 		return true
 	}
