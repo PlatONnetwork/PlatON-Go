@@ -54,3 +54,18 @@ def test_VP_WA_001(no_version_proposal):
                                        address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
     log.info('发起升级提案结果为{}'.format(result))
     assert result.get('Code') == 302021
+
+def test_TP_WA_001(client_verifier_obj):
+    pip_obj = client_verifier_obj
+    address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000000)
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
+                                       address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('发起升级提案结果为{}'.format(result))
+    assert result.get('Code') == 302021
+
+def test_TP_UN_001(submit_text):
+    pip_obj = submit_text
+    result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('存在处于投票期文本提案，再次发起文本提案结果为{}'.format(result))
+    assert result.get('Code') == 0
