@@ -399,7 +399,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	}
 
 	if verify, ok := ParamVerifierMap[pp.Module+"/"+pp.Name]; ok {
-		verify(pp.NewValue)
+		verify(submitBlock, blockHash, pp.NewValue)
 	} else {
 		return GovernParamValueError
 	}

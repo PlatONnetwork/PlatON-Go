@@ -94,7 +94,7 @@ var (
 		utils.MaxPendingPeersFlag,
 		utils.MinerGasTargetFlag,
 		utils.MinerLegacyGasTargetFlag,
-		utils.MinerGasLimitFlag,
+		//utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
 		utils.MinerLegacyGasPriceFlag,
 		//	utils.MinerExtraDataFlag,

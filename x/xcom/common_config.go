@@ -22,6 +22,19 @@ const (
 	GovernanceRule
 )
 
+const (
+	Zero                      = 0
+	Eighty                    = 80
+	Hundred                   = 100
+	TenThousand               = 10000
+	CeilBlocksReward          = 60101
+	CeilMaxValidators         = 201
+	CeilMaxConsensusVals      = 25
+	PositiveInfinity          = "+∞"
+	CeilUnStakeFreezeDuration = 28 * 4
+	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
+)
+
 var (
 
 	// 10 LAT
@@ -38,26 +51,27 @@ var (
 )
 
 type commonConfig struct {
-	ExpectedMinutes     uint64 // expected minutes every epoch
+	MaxEpochMinutes     uint64 // expected minutes every epoch
 	NodeBlockTimeWindow uint64 // Node block time window (uint: seconds)
 	PerRoundBlocks      uint64 // blocks each validator will create per consensus epoch
-	ValidatorCount      uint64 // The consensus validators count
+	MaxConsensusVals    uint64 // The consensus validators count
 	AdditionalCycleTime uint64 // Additional cycle time (uint: minutes)
 }
 
 type stakingConfig struct {
-	StakeThreshold     *big.Int // The Staking minimum threshold allowed
-	MinimumThreshold   *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
-	EpochValidatorNum  uint64   // The epoch (billing cycle) validators count
-	HesitateRatio      uint64   // Each hesitation period is a multiple of the epoch
-	UnStakeFreezeRatio uint64   // The freeze period of the withdrew Staking (unit is  epochs)
+	StakeThreshold        *big.Int // The Staking minimum threshold allowed
+	OperatingThreshold    *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
+	MaxValidators         uint64   // The epoch (billing cycle) validators count
+	HesitateRatio         uint64   // Each hesitation period is a multiple of the epoch
+	UnStakeFreezeDuration uint64   // The freeze period of the withdrew Staking (unit is  epochs)
 }
 
 type slashingConfig struct {
-	DuplicateSignHighSlashing      uint32 // Proportion of fines when double signing occurs
-	DuplicateSignReportReward      uint32 // The percentage of rewards for whistleblowers, calculated from the penalty
-	NumberOfBlockRewardForSlashing uint32 // the number of blockReward to slashing per round
-	EvidenceValidEpoch             uint32 // Validity period of evidence (unit is  epochs)
+	SlashFractionDuplicateSign uint32 // Proportion of fines when double signing occurs
+	DuplicateSignReportReward  uint32 // The percentage of rewards for whistleblowers, calculated from the penalty
+	MaxEvidenceAge             uint32 // Validity period of evidence (unit is  epochs)
+	SlashBlocksReward          uint32 // the number of blockReward to slashing per round
+
 }
 
 type governanceConfig struct {
@@ -135,24 +149,24 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultMainNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(360), // 6 hours
+				MaxEpochMinutes:     uint64(360), // 6 hours
 				NodeBlockTimeWindow: uint64(20),  // 20 seconds
 				PerRoundBlocks:      uint64(10),
-				ValidatorCount:      uint64(25),
+				MaxConsensusVals:    uint64(25),
 				AdditionalCycleTime: uint64(525600),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:     new(big.Int).Set(MillionLAT),
-				MinimumThreshold:   new(big.Int).Set(TenLAT),
-				EpochValidatorNum:  uint64(101),
-				HesitateRatio:      uint64(1),
-				UnStakeFreezeRatio: uint64(28), // freezing 28 epoch
+				StakeThreshold:        new(big.Int).Set(MillionLAT),
+				OperatingThreshold:    new(big.Int).Set(TenLAT),
+				MaxValidators:         uint64(101),
+				HesitateRatio:         uint64(1),
+				UnStakeFreezeDuration: uint64(28), // freezing 28 epoch
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(10),
-				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(0),
-				EvidenceValidEpoch:             uint32(27),
+				SlashFractionDuplicateSign: uint32(10),
+				DuplicateSignReportReward:  uint32(50),
+				MaxEvidenceAge:             uint32(27),
+				SlashBlocksReward:          uint32(0),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
@@ -182,24 +196,24 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(6),  // 6 minutes
+				MaxEpochMinutes:     uint64(6),  // 6 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
-				ValidatorCount:      uint64(4),
+				MaxConsensusVals:    uint64(4),
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:     new(big.Int).Set(MillionLAT),
-				MinimumThreshold:   new(big.Int).Set(TenLAT),
-				EpochValidatorNum:  uint64(24),
-				HesitateRatio:      uint64(1),
-				UnStakeFreezeRatio: uint64(2),
+				StakeThreshold:        new(big.Int).Set(MillionLAT),
+				OperatingThreshold:    new(big.Int).Set(TenLAT),
+				MaxValidators:         uint64(24),
+				HesitateRatio:         uint64(1),
+				UnStakeFreezeDuration: uint64(2),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(10),
-				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(0),
-				EvidenceValidEpoch:             uint32(1),
+				SlashFractionDuplicateSign: uint32(10),
+				DuplicateSignReportReward:  uint32(50),
+				MaxEvidenceAge:             uint32(1),
+				SlashBlocksReward:          uint32(0),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -230,24 +244,24 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is test net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				ExpectedMinutes:     uint64(3),  // 3 minutes
+				MaxEpochMinutes:     uint64(3),  // 3 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
-				ValidatorCount:      uint64(4),
+				MaxConsensusVals:    uint64(4),
 				AdditionalCycleTime: uint64(28),
 			},
 			Staking: stakingConfig{
-				StakeThreshold:     new(big.Int).Set(MillionLAT),
-				MinimumThreshold:   new(big.Int).Set(TenLAT),
-				EpochValidatorNum:  uint64(24),
-				HesitateRatio:      uint64(1),
-				UnStakeFreezeRatio: uint64(2),
+				StakeThreshold:        new(big.Int).Set(MillionLAT),
+				OperatingThreshold:    new(big.Int).Set(TenLAT),
+				MaxValidators:         uint64(24),
+				HesitateRatio:         uint64(1),
+				UnStakeFreezeDuration: uint64(2),
 			},
 			Slashing: slashingConfig{
-				DuplicateSignHighSlashing:      uint32(10),
-				DuplicateSignReportReward:      uint32(50),
-				NumberOfBlockRewardForSlashing: uint32(0),
-				EvidenceValidEpoch:             uint32(1),
+				SlashFractionDuplicateSign: uint32(10),
+				DuplicateSignReportReward:  uint32(50),
+				MaxEvidenceAge:             uint32(1),
+				SlashBlocksReward:          uint32(0),
 			},
 			Gov: governanceConfig{
 				VersionProposalVote_DurationSeconds: uint64(160),
@@ -278,17 +292,76 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	return ec
 }
 
+func CheckStakeThreshold(threshold *big.Int) error {
+
+	if threshold.Cmp(MillionLAT) < 0 {
+		return fmt.Errorf("The StakeThreshold must be [%d, %s) LAT", MillionLAT, PositiveInfinity)
+	}
+	return nil
+}
+
+func CheckOperatingThreshold(threshold *big.Int) error {
+	if threshold.Cmp(TenLAT) < 0 {
+		return fmt.Errorf("The OperatingThreshold must be [%d, %s) LAT", TenLAT, PositiveInfinity)
+	}
+	return nil
+}
+
+func CheckMaxValidators(num int) error {
+	if num < CeilMaxConsensusVals || num > CeilMaxValidators {
+		return fmt.Errorf("The MaxValidators must be [%d, %d]", CeilMaxConsensusVals, CeilMaxValidators)
+	}
+	return nil
+}
+
+func CheckUnStakeFreezeDuration(duration, maxEvidenceAge int) error {
+	if duration <= maxEvidenceAge || duration > CeilUnStakeFreezeDuration {
+		return fmt.Errorf("The UnStakeFreezeDuration must be (%d, %d]", maxEvidenceAge, CeilUnStakeFreezeDuration)
+	}
+
+	return nil
+}
+
+func CheckSlashFractionDuplicateSign(fraction int) error {
+	if fraction <= Zero || fraction > TenThousand {
+		return fmt.Errorf("SlashFractionDuplicateSign must be  (%d, %d]", Zero, TenThousand)
+	}
+	return nil
+}
+
+func CheckDuplicateSignReportReward(fraction int) error {
+	if fraction <= Zero || fraction > Eighty {
+		return fmt.Errorf("The DuplicateSignReportReward must be (%d, %d]", Zero, Eighty)
+	}
+	return nil
+}
+
+func CheckMaxEvidenceAge(age, unStakeFreezeDuration int) error {
+	if age <= Zero || age >= unStakeFreezeDuration {
+		return fmt.Errorf("The MaxEvidenceAge must be (%d, %d)", Zero, unStakeFreezeDuration)
+	}
+	return nil
+}
+
+func CheckSlashBlocksReward(rewards int) error {
+	if rewards < Zero || rewards >= CeilBlocksReward {
+		return fmt.Errorf("The SlashBlocksReward must be [%d, %d)", Zero, CeilBlocksReward)
+	}
+
+	return nil
+}
+
 func CheckEconomicModel() error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
 
 	// epoch duration of config
-	epochDuration := ec.Common.ExpectedMinutes * 60
+	epochDuration := ec.Common.MaxEpochMinutes * 60
 	// package perblock duration
 	blockDuration := ec.Common.NodeBlockTimeWindow / ec.Common.PerRoundBlocks
 	// round duration
-	roundDuration := ec.Common.ValidatorCount * ec.Common.PerRoundBlocks * blockDuration
+	roundDuration := ec.Common.MaxConsensusVals * ec.Common.PerRoundBlocks * blockDuration
 	// epoch Size, how many consensus round
 	epochSize := epochDuration / roundDuration
 	//real epoch duration
@@ -313,29 +386,25 @@ func CheckEconomicModel() error {
 	if additionalCycleSize < 4 {
 		return errors.New("The issuance period must be integer multiples of the settlement period and multiples must be greater than or equal to 4")
 	}
-	if ec.Staking.EpochValidatorNum < ec.Common.ValidatorCount {
-		return errors.New("The EpochValidatorNum must be greater than or equal to the ValidatorCount")
+
+	if err := CheckMaxValidators(int(ec.Staking.MaxValidators)); nil != err {
+		return err
 	}
 
-	if ec.Staking.MinimumThreshold.Cmp(TenLAT) < 0 {
-		return errors.New(fmt.Sprintf("The MinimumThreshold must be greater than or equal to %s von", TenLAT.String()))
-	}
-
-	if ec.Staking.StakeThreshold.Cmp(common.Big0) <= 0 {
-		return errors.New(fmt.Sprintf("The StakeThreshold must be greater than %s von", common.Big0.String()))
-	}
-
-	// the StakeThreshold must be less than geneStakeAmount
-	if ec.Staking.StakeThreshold.Cmp(GeneStakingAmount) > 0 {
-		return errors.New(fmt.Sprintf("The StakeThreshold must be less than or equal to %s von", GeneStakingAmount.String()))
+	if err := CheckOperatingThreshold(ec.Staking.OperatingThreshold); nil != err {
+		return err
 	}
 
 	if ec.Staking.HesitateRatio < 1 {
 		return errors.New("The HesitateRatio must be greater than or equal to 1")
 	}
 
-	if ec.Staking.UnStakeFreezeRatio < 1 {
-		return errors.New("The UnStakeFreezeRatio must be greater than or equal to 1")
+	if err := CheckStakeThreshold(ec.Staking.StakeThreshold); nil != err {
+		return err
+	}
+
+	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge)); nil != err {
+		return err
 	}
 
 	if ec.Reward.PlatONFoundationYear < 1 {
@@ -346,16 +415,20 @@ func CheckEconomicModel() error {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 
-	if ec.Slashing.DuplicateSignHighSlashing < 0 || ec.Slashing.DuplicateSignHighSlashing > 10000 {
-		return errors.New("DuplicateSignHighSlashing must be a floating point value between 0 and 10000")
+	if err := CheckSlashFractionDuplicateSign(int(ec.Slashing.SlashFractionDuplicateSign)); nil != err {
+		return err
 	}
 
-	if ec.Slashing.DuplicateSignReportReward < 0 || ec.Slashing.DuplicateSignReportReward > 100 {
-		return errors.New("The DuplicateSignReportReward must be greater than or equal to 0 and less than or equal to 100")
+	if err := CheckDuplicateSignReportReward(int(ec.Slashing.DuplicateSignReportReward)); nil != err {
+		return err
 	}
 
-	if uint64(ec.Slashing.EvidenceValidEpoch) >= ec.Staking.UnStakeFreezeRatio {
-		return errors.New("The EvidenceValidEpoch must be less than to the UnStakeFreezeRatio")
+	if err := CheckMaxEvidenceAge(int(ec.Slashing.MaxEvidenceAge), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
+		return err
+	}
+
+	if err := CheckSlashBlocksReward(int(ec.Slashing.SlashBlocksReward)); nil != err {
+		return err
 	}
 
 	return nil
@@ -364,8 +437,8 @@ func CheckEconomicModel() error {
 /******
  * Common configure
  ******/
-func ExpectedMinutes() uint64 {
-	return ec.Common.ExpectedMinutes
+func MaxEpochMinutes() uint64 {
+	return ec.Common.MaxEpochMinutes
 }
 
 // set the value by genesis block
@@ -386,8 +459,8 @@ func Interval() uint64 {
 func BlocksWillCreate() uint64 {
 	return ec.Common.PerRoundBlocks
 }
-func ConsValidatorNum() uint64 {
-	return ec.Common.ValidatorCount
+func MaxConsensusVals() uint64 {
+	return ec.Common.MaxConsensusVals
 }
 
 func AdditionalCycleTime() uint64 {
@@ -401,16 +474,16 @@ func StakeThreshold() *big.Int {
 	return ec.Staking.StakeThreshold
 }
 
-func MinimumThreshold() *big.Int {
-	return ec.Staking.MinimumThreshold
+func OperatingThreshold() *big.Int {
+	return ec.Staking.OperatingThreshold
 }
 
-func EpochValidatorNum() uint64 {
-	return ec.Staking.EpochValidatorNum
+func MaxValidators() uint64 {
+	return ec.Staking.MaxValidators
 }
 
 func ShiftValidatorNum() uint64 {
-	return (ec.Common.ValidatorCount - 1) / 3
+	return (ec.Common.MaxConsensusVals - 1) / 3
 }
 
 func HesitateRatio() uint64 {
@@ -422,27 +495,27 @@ func ElectionDistance() uint64 {
 	return 2 * ec.Common.PerRoundBlocks
 }
 
-func UnStakeFreezeRatio() uint64 {
-	return ec.Staking.UnStakeFreezeRatio
+func UnStakeFreezeDuration() uint64 {
+	return ec.Staking.UnStakeFreezeDuration
 }
 
 /******
  * Slashing config
  ******/
-func DuplicateSignHighSlash() uint32 {
-	return ec.Slashing.DuplicateSignHighSlashing
+func SlashFractionDuplicateSign() uint32 {
+	return ec.Slashing.SlashFractionDuplicateSign
 }
 
 func DuplicateSignReportReward() uint32 {
 	return ec.Slashing.DuplicateSignReportReward
 }
 
-func NumberOfBlockRewardForSlashing() uint32 {
-	return ec.Slashing.NumberOfBlockRewardForSlashing
+func MaxEvidenceAge() uint32 {
+	return ec.Slashing.MaxEvidenceAge
 }
 
-func EvidenceValidEpoch() uint32 {
-	return ec.Slashing.EvidenceValidEpoch
+func SlashBlocksReward() uint32 {
+	return ec.Slashing.SlashBlocksReward
 }
 
 /******
@@ -460,7 +533,7 @@ func PlatONFoundationYear() uint32 {
  * Governance config
  ******/
 /*func VersionProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
+	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
 }*/
 
 func VersionProposalVote_DurationSeconds() uint64 {
@@ -476,7 +549,7 @@ func VersionProposal_SupportRate() float64 {
 }
 
 /*func TextProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.ValidatorCount)
+	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
 }*/
 func TextProposalVote_DurationSeconds() uint64 {
 	return ec.Gov.TextProposalVote_DurationSeconds

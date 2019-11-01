@@ -111,14 +111,14 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					return err
 				}
 				totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
-				if xcom.NumberOfBlockRewardForSlashing() > 0 {
+				if xcom.SlashBlocksReward() > 0 {
 					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), state)
 					if slashAmount.Cmp(totalBalance) > 0 {
 						slashAmount = totalBalance
 					}
 				}
 				log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-					"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "NumberOfBlockRewardForSlashing", xcom.NumberOfBlockRewardForSlashing())
+					"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", xcom.SlashBlocksReward())
 
 				slashItem := &staking.SlashNodeItem{
 					NodeId:      nodeId,
@@ -250,7 +250,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	blocksOfEpoch := xutil.CalcBlocksEachEpoch()
 	invalidNum := evidenceEpoch * blocksOfEpoch
 	if invalidNum < blockNumber {
-		if validSize := blocksOfEpoch * uint64(xcom.EvidenceValidEpoch()); blockNumber-invalidNum > validSize {
+		if validSize := blocksOfEpoch * uint64(xcom.MaxEvidenceAge()); blockNumber-invalidNum > validSize {
 			log.Warn("Failed to Slash, Evidence time expired", "blockNumber", blockNumber,
 				"blockHash", blockHash.TerminalString(), "evidenceBlockNum", evidence.BlockNumber(),
 				"blocksOfEpoch", blocksOfEpoch, "the end blockNum of evidenceEpoch", invalidNum)
@@ -315,10 +315,10 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	}
 
 	totalBalance := calcCanTotalBalance(blockNumber, canMutable)
-	slashAmount := calcAmountByRate(totalBalance, uint64(xcom.DuplicateSignHighSlash()), TenThousandDenominator)
+	slashAmount := calcAmountByRate(totalBalance, uint64(xcom.SlashFractionDuplicateSign()), TenThousandDenominator)
 
 	log.Debug("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "rate", xcom.DuplicateSignHighSlash()/TenThousandDenominator,
+		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "rate", xcom.SlashFractionDuplicateSign()/TenThousandDenominator,
 		"slashAmount", slashAmount, "reporter", caller.Hex())
 
 	toCallerAmount := calcAmountByRate(slashAmount, uint64(xcom.DuplicateSignReportReward()), HundredDenominator)
@@ -425,6 +425,6 @@ func calcEndBlockSlashAmount(blockNumber uint64, state xcom.StateDB) *big.Int {
 		lastYear = thisYear - 1
 	}
 	_, newBlockReward := RewardMgrInstance().calculateExpectReward(thisYear, lastYear, state)
-	num := xcom.NumberOfBlockRewardForSlashing()
+	num := xcom.SlashBlocksReward()
 	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(uint64(num)))
 }

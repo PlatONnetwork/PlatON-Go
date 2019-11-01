@@ -998,7 +998,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	currOriginVersion := gov.GetVersionForStaking(state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.MaxValidators()))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1671,8 +1671,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	var vrfQueue staking.ValidatorQueue
 	var vrfLen int
-	if len(diffQueue) > int(xcom.ConsValidatorNum()) {
-		vrfLen = int(xcom.ConsValidatorNum())
+	if len(diffQueue) > int(xcom.MaxConsensusVals()) {
+		vrfLen = int(xcom.MaxConsensusVals())
 	} else {
 		vrfLen = len(diffQueue)
 	}
@@ -1691,7 +1691,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"has slash count", hasSlashLen, "withdrew and need remove count",
 		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
 		"total remove count", invalidLen, "remove map size", len(removeCans),
-		"current validators Size", len(curr.Arr), "ConsValidatorNum", xcom.ConsValidatorNum(),
+		"current validators Size", len(curr.Arr), "MaxConsensusVals", xcom.MaxConsensusVals(),
 		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
 		"vrfQueueLen", len(vrfQueue))
 
@@ -1745,13 +1745,13 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue) staking.Vali
 	remainLen := len(remainCurrQueue)
 	totalQueue := append(remainCurrQueue, vrfQueue...)
 
-	for remainLen > int(xcom.ConsValidatorNum()-xcom.ShiftValidatorNum()) && len(totalQueue) > int(xcom.ConsValidatorNum()) {
+	for remainLen > int(xcom.MaxConsensusVals()-xcom.ShiftValidatorNum()) && len(totalQueue) > int(xcom.MaxConsensusVals()) {
 		totalQueue = totalQueue[1:]
 		remainLen--
 	}
 
-	if len(totalQueue) > int(xcom.ConsValidatorNum()) {
-		totalQueue = totalQueue[:xcom.ConsValidatorNum()]
+	if len(totalQueue) > int(xcom.MaxConsensusVals()) {
+		totalQueue = totalQueue[:xcom.MaxConsensusVals()]
 	}
 
 	next := make(staking.ValidatorQueue, len(totalQueue))
@@ -2396,7 +2396,7 @@ func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byt
 func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
 		log.Error("Failed to probabilityElection", "validators Size", len(validatorList),
-			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum())
+			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "MaxValidators", xcom.MaxValidators())
 		return nil, staking.ErrWrongFuncParams
 	}
 	sumWeights := new(big.Int)
@@ -2422,10 +2422,10 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	}
 
 	// todo This is an empirical formula, and the follow-up will make a better determination.
-	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.ConsValidatorNum()) / sumWeightsFloat
+	p := float64(xcom.ShiftValidatorNum()) * float64(xcom.MaxConsensusVals()) / sumWeightsFloat
 
 	log.Debug("Call probabilityElection Basic parameter on Election", "validatorListSize", len(validatorList),
-		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen, "epochValidatorNum", xcom.EpochValidatorNum())
+		"p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", shiftLen, "epochValidatorNum", xcom.MaxValidators())
 
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
@@ -2989,7 +2989,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		maxEndVoteEpoch = xutil.CalculateEpoch(endVoteNum)
 	}
 
-	refundEpoch = xutil.CalculateEpoch(blockNumber) + xcom.UnStakeFreezeRatio()
+	refundEpoch = xutil.CalculateEpoch(blockNumber) + xcom.UnStakeFreezeDuration()
 
 	if maxEndVoteEpoch <= refundEpoch {
 		targetEpoch = refundEpoch
@@ -3012,7 +3012,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 func (sk *StakingPlugin) storeRoundValidatorAddrs(blockHash common.Hash, nextStart uint64, array staking.ValidatorQueue) error {
 	nextRound := xutil.CalculateRound(nextStart)
 	nextEpoch := xutil.CalculateEpoch(nextStart)
-	validEpochCount := uint64(xcom.EvidenceValidEpoch() + 1)
+	validEpochCount := uint64(xcom.MaxEvidenceAge() + 1)
 	validRoundCount := xutil.EpochSize() * validEpochCount
 
 	// Only store the address of last consensus rounds on `validEpochCount` epochs

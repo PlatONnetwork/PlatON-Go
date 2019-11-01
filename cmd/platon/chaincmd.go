@@ -269,7 +269,7 @@ func importChain(ctx *cli.Context) error {
 			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 
-		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor, gethConfig.Eth.MinerGasCeil, nil, blockChainCache)
+		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor /*gethConfig.Eth.MinerGasCeil,*/, nil, blockChainCache)
 		c.Start(chain, nil, nil, agency)
 		defer c.Close()
 		defer miner.Stop()

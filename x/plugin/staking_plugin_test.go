@@ -74,7 +74,7 @@ func watching(eventMux *event.TypeMux, t *testing.T) {
 func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
+	for i := 0; i < int(xcom.MaxValidators()); i++ {
 		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
 		time.Sleep(time.Microsecond * 10)
 	}
@@ -95,7 +95,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 	}
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
 
 	for j := 0; j < 1000; j++ {
 		var index int = j % 25
@@ -198,7 +198,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 			}
 		}
 
-		if j < int(xcom.EpochValidatorNum()) {
+		if j < int(xcom.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     canAddr,
 				NodeId:          canTmp.NodeId,
@@ -271,8 +271,8 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		return nil, err
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
-	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if nil != err {
 		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return nil, err
@@ -470,7 +470,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	currentNumber := big.NewInt(1)
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
 
 	for j := 0; j < 1000; j++ {
 		var index int = j % 25
@@ -566,7 +566,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			}
 		}
 
-		if j < int(xcom.EpochValidatorNum()) {
+		if j < int(xcom.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     canAddr,
 				NodeId:          canBase.NodeId,
@@ -640,8 +640,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
-	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
@@ -787,7 +787,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	currentNumber := big.NewInt(1)
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.EpochValidatorNum())
+	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
 
 	for j := 0; j < 1000; j++ {
 		var index int = j % 25
@@ -885,7 +885,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			}
 		}
 
-		if j < int(xcom.EpochValidatorNum()) {
+		if j < int(xcom.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     canAddr,
 				NodeId:          canBase.NodeId,
@@ -957,8 +957,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.ConsValidatorNum()])
-	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.ConsValidatorNum()])
+	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
@@ -1478,7 +1478,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.UnStakeFreezeRatio())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.UnStakeFreezeDuration())
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to HandleUnCandidateItem: %v", err)) {
 		return
@@ -2008,7 +2008,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
+		if uint64(count) == xcom.MaxValidators() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2194,7 +2194,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
+		if uint64(count) == xcom.MaxValidators() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2236,7 +2236,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		End:   xutil.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
+	new_validatorArr.Arr = queue[:int(xcom.MaxConsensusVals())]
 
 	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
@@ -2410,7 +2410,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum() {
+		if uint64(count) == xcom.MaxValidators() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -3319,7 +3319,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
+	for i := 0; i < int(xcom.MaxValidators()); i++ {
 
 		mrand.Seed(time.Now().UnixNano())
 		v1 := new(big.Int).SetInt64(time.Now().UnixNano())

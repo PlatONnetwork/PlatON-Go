@@ -31,7 +31,7 @@ type ActiveVersionValue struct {
 	ActiveBlock   uint64 `json:"ActiveBlock"`
 }
 
-type ParamVerifier func(value string) bool
+type ParamVerifier func(blockNumber uint64, blockHash common.Hash, value string) error
 
 type GovernParam struct {
 	ParamItem     *ParamItem
@@ -51,6 +51,6 @@ type ParamValue struct {
 	ActiveBlock uint64 `json:"ActiveBlock"`
 }
 
-var paramVerifier = func(value string) bool {
-	return true
+var paramVerifier = func(blockNumber uint64, blockHash common.Hash, value string) error {
+	return nil
 }

@@ -218,14 +218,14 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		"name", name,
 		"newValue", newValue)
 
-	if txHash == common.ZeroHash {
-		log.Warn("current txHash is empty!!")
-		return nil, nil
-	}
-
 	if !gc.Contract.UseGas(params.SubmitParamProposalGas) {
 		return nil, ErrOutOfGas
 	}
+
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+
 	p := &gov.ParamProposal{
 		PIPID:        pipID,
 		ProposalType: gov.Param,

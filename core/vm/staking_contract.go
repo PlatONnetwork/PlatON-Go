@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -407,7 +406,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if !xutil.CheckMinimumThreshold(amount) {
 		receipt := strconv.Itoa(int(staking.ErrIncreaseStakeVonTooLow.Code))
 		stkc.badLog(IncreaseStakingEvent, receipt,
-			fmt.Sprintf("increase staking threshold: %d, deposit: %d", xcom.MinimumThreshold(),
+			fmt.Sprintf("increase staking threshold: %d, deposit: %d", xcom.OperatingThreshold(),
 				amount), "increaseStaking")
 		return []byte(receipt), nil
 	}
@@ -545,8 +544,6 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
-	begin := time.Now()
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
@@ -568,7 +565,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if !xutil.CheckMinimumThreshold(amount) {
 		receipt := strconv.Itoa(int(staking.ErrDelegateVonTooLow.Code))
 		stkc.badLog(DelegateEvent, receipt,
-			fmt.Sprintf("delegate threshold: %d, deposit: %d", xcom.MinimumThreshold(),
+			fmt.Sprintf("delegate threshold: %d, deposit: %d", xcom.OperatingThreshold(),
 				amount), "delegate")
 		return []byte(receipt), nil
 	}
@@ -655,8 +652,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		}
 	}
 
-	log.Debug("Call delegate finished", "duration", time.Since(begin).Nanoseconds())
-
 	receipt := strconv.Itoa(int(common.NoErr.Code))
 	stkc.goodLog(DelegateEvent, receipt, "delegate")
 	return []byte(receipt), nil
@@ -685,7 +680,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	if !xutil.CheckMinimumThreshold(amount) {
 		receipt := strconv.Itoa(int(staking.ErrWithdrewDelegateVonTooLow.Code))
 		stkc.badLog(WithdrewDelegateEvent, receipt,
-			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", xcom.MinimumThreshold(),
+			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", xcom.OperatingThreshold(),
 				amount), "withdrewDelegate")
 		return []byte(receipt), nil
 	}

@@ -36,7 +36,7 @@ func CheckStakeThreshold(stake *big.Int) bool {
 }
 
 func CheckMinimumThreshold(balance *big.Int) bool {
-	return balance.Cmp(xcom.MinimumThreshold()) >= 0
+	return balance.Cmp(xcom.OperatingThreshold()) >= 0
 }
 
 // eg. 65536 => 1.0.0
@@ -58,13 +58,13 @@ func ProgramVersion2Str(programVersion uint32) string {
 
 // ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
-	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
+	return xcom.BlocksWillCreate() * xcom.MaxConsensusVals()
 }
 
 // EpochSize returns how many consensus rounds per epoch.
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
-	em := xcom.ExpectedMinutes()
+	em := xcom.MaxEpochMinutes()
 	i := xcom.Interval()
 
 	epochSize := em * 60 / (i * consensusSize)

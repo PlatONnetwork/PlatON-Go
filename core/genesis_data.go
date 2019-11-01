@@ -52,8 +52,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 	var length int
 
-	if int(xcom.ConsValidatorNum()) <= len(g.Config.Cbft.InitialNodes) {
-		length = int(xcom.ConsValidatorNum())
+	if int(xcom.MaxConsensusVals()) <= len(g.Config.Cbft.InitialNodes) {
+		length = int(xcom.MaxConsensusVals())
 	} else {
 		length = len(g.Config.Cbft.InitialNodes)
 	}

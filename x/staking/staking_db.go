@@ -467,18 +467,6 @@ func (db *StakingDB) DelDelegateStoreBySuffix(blockHash common.Hash, suffix []by
 	return db.del(blockHash, key)
 }
 
-func (db *StakingDB) DelUnDelegateCountStore(blockHash common.Hash, epoch uint64) error {
-	count_key := GetUnDelegateCountKey(epoch)
-
-	return db.del(blockHash, count_key)
-}
-
-func (db *StakingDB) DelUnDelegateItemStore(blockHash common.Hash, epoch, index uint64) error {
-	item_key := GetUnDelegateItemKey(epoch, index)
-
-	return db.del(blockHash, item_key)
-}
-
 // about epoch validates ...
 
 func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {

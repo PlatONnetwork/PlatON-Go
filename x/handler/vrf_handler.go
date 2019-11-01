@@ -115,8 +115,8 @@ func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 			copy(nonces, value)
 			log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
 				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "valueLength",
-				len(value), "EpochValidatorNum", xcom.EpochValidatorNum())
-			if uint64(len(nonces)) == xcom.EpochValidatorNum() {
+				len(value), "MaxValidators", xcom.MaxValidators())
+			if uint64(len(nonces)) == xcom.MaxValidators() {
 				nonces = nonces[1:]
 			}
 		}
@@ -136,7 +136,7 @@ func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 		}
 		log.Info("Storage previous nonce Success", "current blockNumber", currentBlockNumber.Uint64(),
 			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
-			"valueLength", len(nonces), "EpochValidatorNum", xcom.EpochValidatorNum(), "nonce", hex.EncodeToString(nonce),
+			"valueLength", len(nonces), "MaxValidators", xcom.MaxValidators(), "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil
