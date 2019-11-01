@@ -247,8 +247,6 @@ func newPlugins() {
 	plugin.SlashInstance()
 	plugin.RestrictingInstance()
 	plugin.RewardMgrInstance()
-
-	snapshotdb.Instance()
 }
 
 func newChain() (*mock.Chain, error) {
@@ -312,7 +310,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 
 func newContract(value *big.Int, sender common.Address) *Contract {
 	callerAddress := AccountRef(sender)
-	fmt.Println("newContract sender :", callerAddress.Address().Hex())
+	//fmt.Println("newContract sender :", callerAddress.Address().Hex())
 	contract := NewContract(callerAddress, callerAddress, value, uint64(initGas))
 	return contract
 }
@@ -516,15 +514,14 @@ func build_staking_data(genesisHash common.Hash) {
 }
 
 func build_staking_data_new(chain *mock.Chain) {
-
 	stakingDB := staking.NewStakingDB()
 	chain.AddBlock()
-	err := sndb.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash())
+	err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash())
 	if err != nil {
 		fmt.Println("newBlock, %", err)
 	}
 
-	fmt.Println(chain.CurrentHeader().Hash().Hex())
+	//fmt.Println(chain.CurrentHeader().Hash().Hex())
 	// MOCK
 
 	nodeId_A := nodeIdArr[0]
@@ -711,7 +708,7 @@ func build_staking_data_new(chain *mock.Chain) {
 		Arr:   queue,
 	}
 
-	fmt.Println(chain.CurrentHeader().Hash().Hex())
+	//fmt.Println(chain.CurrentHeader().Hash().Hex())
 
 	setVerifierList(chain.CurrentHeader().Hash(), epoch_Arr)
 	setRoundValList(chain.CurrentHeader().Hash(), pre_Arr)
@@ -724,7 +721,7 @@ func build_staking_data_new(chain *mock.Chain) {
 func build_staking_data_more(chain *mock.Chain) {
 	chain.AddBlock()
 	stakingDB := staking.NewStakingDB()
-	err := sndb.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash())
+	err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash())
 	if err != nil {
 		fmt.Println("build_staking_data_more error: ", err)
 	}
@@ -1042,20 +1039,4 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 	}
 
 	return nil
-}
-
-func buildBlockNoCommit(blockNum int) {
-
-	no := int64(blockNum)
-	header := types.Header{
-		Number: big.NewInt(no),
-	}
-	hash := header.Hash()
-
-	staking.NewStakingDB()
-	sndb.NewBlock(big.NewInt(int64(blockNum)), lastBlockHash, hash)
-
-	lastBlockHash = hash
-	lastBlockNumber = uint64(blockNum)
-	lastHeader = header
 }
