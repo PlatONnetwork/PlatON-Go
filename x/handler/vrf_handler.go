@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -124,7 +124,7 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
 
-	maxVlidatorsNum, err := xcom.GovernMaxValidators(blockNumber.Uint64(), blockHash)
+	maxVlidatorsNum, err := gov.GovernMaxValidators(blockNumber.Uint64(), blockHash)
 	if nil != err {
 		log.Error("Failed to Storage VRF nonce", "err", err)
 		return err

@@ -30,3 +30,20 @@ type ActiveVersionValue struct {
 	ActiveVersion uint32 `json:"ActiveVersion"`
 	ActiveBlock   uint64 `json:"ActiveBlock"`
 }
+type ParamItem struct {
+	Module string `json:"Module"`
+	Name   string `json:"Name"`
+	Desc   string `json:"Desc"`
+}
+
+type ParamValue struct {
+	StaleValue  string `json:"StaleValue"`
+	Value       string `json:"Value"`
+	ActiveBlock uint64 `json:"ActiveBlock"`
+}
+
+type GovernParam struct {
+	ParamItem     *ParamItem
+	ParamValue    *ParamValue
+	ParamVerifier ParamVerifier
+}

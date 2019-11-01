@@ -32,8 +32,8 @@ var (
 	versionSign common.VersionSign
 	chandler    *node.CryptoHandler
 
-	paramModule       = xcom.ModuleStaking
-	paramName         = xcom.KeyMaxValidators
+	paramModule       = gov.ModuleStaking
+	paramName         = gov.KeyMaxValidators
 	defaultProposalID = txHashArr[1]
 )
 
@@ -386,7 +386,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	value, err := xcom.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
@@ -430,7 +430,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 
 	//from the next to voting block, the parameter value will be the new value
 	skip_emptyBlock(chain, p.GetEndVotingBlock()+1)
-	value, err = xcom.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	value, err = gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {

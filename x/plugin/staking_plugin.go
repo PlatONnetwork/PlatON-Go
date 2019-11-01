@@ -998,7 +998,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	currOriginVersion := gov.GetVersionForStaking(state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
-	maxvalidators, err := xcom.GovernMaxValidators(blockNumber, blockHash)
+	maxvalidators, err := gov.GovernMaxValidators(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to ElectNextVerifierList: query govern params `maxvalidators` is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -2996,7 +2996,7 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		maxEndVoteEpoch = xutil.CalculateEpoch(endVoteNum)
 	}
 
-	duration, err := xcom.GovernUnStakeFreezeDuration(blockNumber, blockHash)
+	duration, err := gov.GovernUnStakeFreezeDuration(blockNumber, blockHash)
 	if nil != err {
 		return err
 	}
@@ -3025,7 +3025,7 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 	nextRound := xutil.CalculateRound(nextStart)
 	nextEpoch := xutil.CalculateEpoch(nextStart)
 
-	evidenceAge, err := xcom.GovernMaxEvidenceAge(blockNumber, blockHash)
+	evidenceAge, err := gov.GovernMaxEvidenceAge(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to storeRoundValidatorAddrs, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
@@ -3128,7 +3128,7 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 
 func CheckStakeThreshold(blockNumber uint64, blockHash common.Hash, stake *big.Int) (bool, *big.Int) {
 
-	threshold, err := xcom.GovernStakeThreshold(blockNumber, blockHash)
+	threshold, err := gov.GovernStakeThreshold(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to CheckStakeThreshold, query governParams is failed", "err", err)
 		return false, common.Big0
@@ -3139,7 +3139,7 @@ func CheckStakeThreshold(blockNumber uint64, blockHash common.Hash, stake *big.I
 
 func CheckOperatingThreshold(blockNumber uint64, blockHash common.Hash, balance *big.Int) (bool, *big.Int) {
 
-	threshold, err := xcom.GovernOperatingThreshold(blockNumber, blockHash)
+	threshold, err := gov.GovernOperatingThreshold(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to CheckOperatingThreshold, query governParams is failed", "err", err)
 		return false, common.Big0

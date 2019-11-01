@@ -19,7 +19,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -109,7 +109,7 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 
 	var gasCeil uint64
 
-	govGasCeil, err := xcom.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash)
+	govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash)
 	if nil != err {
 		log.Error("cannot find GasLimit from govern", "err", err)
 		gasCeil = uint64(params.GenesisGasLimit)

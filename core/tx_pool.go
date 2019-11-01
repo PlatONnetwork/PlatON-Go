@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -760,7 +760,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return fmt.Errorf("contract creation is not allowed")
 	}
 	current := pool.chain.CurrentBlock()
-	txSizeLimit, err := xcom.GovernMaxTxDataLimit(current.NumberU64(), current.Hash())
+	txSizeLimit, err := gov.GovernMaxTxDataLimit(current.NumberU64(), current.Hash())
 	if nil != err {
 		return ErrPlatONGovTxDataSize
 	}
