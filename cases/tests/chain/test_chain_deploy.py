@@ -75,3 +75,17 @@ def test_start_2f1_node_and_start_one(global_test_env):
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[num:num + 1], genesis_file=global_test_env.cfg.genesis_tmp)
     global_test_env.check_block(need_number=start + 10, multiple=2, node_list=global_test_env.consensus_node_list[0:num + 1])
 
+
+@allure.title("只启动2f个节点")
+@pytest.mark.P0
+def test_start_2f(global_test_env):
+    """
+    启动2f个节点
+    """
+    num = int(2 * global_test_env.max_byzantium)
+    log.info("部署{}个节点".format(num))
+    test_nodes = global_test_env.consensus_node_list[0:num]
+    global_test_env.deploy_nodes(test_nodes, genesis_file=global_test_env.cfg.genesis_tmp)
+    time.sleep(10)
+    block = max([node.block_number for node in test_nodes])
+    assert block == 0
