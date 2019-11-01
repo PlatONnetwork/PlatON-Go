@@ -4,6 +4,7 @@ from .config import StakingConfig
 from .economic import Economic
 import time
 
+
 class Staking:
     """
     Used to initiate a Staking transaction,
@@ -12,6 +13,7 @@ class Staking:
     >>>staking=Staking(env, node)
     >>>staking.ppos.getValidatorList()
     """
+
     def __init__(self, env: TestEnvironment, node: Node, cfg: StakingConfig):
         self.cfg = cfg
         self.node = node
