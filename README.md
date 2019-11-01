@@ -9,12 +9,12 @@ Most of peculiarities according the PlatON's [whitepaper](https://www.platon.net
 The requirements to build PlatON-Go are:
 
 - OS:Windows10/Ubuntu18.04
-- [Golang]:(https://golang.org/doc/install) version 1.11+
-- [cmake]:(https://cmake.org/) version 3.0+
-- [g++&gcc]:(http://gcc.gnu.org/) version 7.4.0+
+- [Golang](https://golang.org/doc/install) :version 1.11+
+- [cmake](https://cmake.org/) :version 3.0+
+- [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
 > The 'cmake' and 'gcc&g++' are usually included in Ubuntu18.04
 
-In addition, the following lib needs to be installed manually
+In addition, the following libraries needs to be installed manually
 
 ```
 sudo apt install libgmp-dev libssl-dev
@@ -108,6 +108,8 @@ Address: {566c274db7ac6d38da2b075b4ae41f4a5c481d21}
 | --nodiscover | Disables the peer discovery mechanism (manual peer addition) |
 | --nodekey | P2P node key file |
 | --cbft.blskey | BLS key file |
+
+Run the following command to launch a PlatON node connecting to the PlatON's mainnet:
 
 ```
 $ ./platon --identity "platon" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "db,platon,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey

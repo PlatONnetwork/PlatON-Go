@@ -1,0 +1,47 @@
+# CACHE
+.idea
+.vscode
+*.py[cod]
+*/__pycache__
+*.so
+*.egg
+*.egg-info
+.pytest_cache
+./deploy/node/travis_node.yml
+./deploy/tmp
+./deploy/platon
+./deploy/bin/platon
+deploy/tmp
+deploy/bin
+deploy/rely/bin/platon
+deploy/temp/
+deploy/bin/platon
+deploy/platon
+allure-report
+
+# VE
+venv
+
+# LOG
+*.log
+*/log
+log
+__debug__.py
+
+# OTHER
+report/*
+*/report
+*/.cache
+*/.hypothesis
+*cache
+cache*
+allure-report
+debug_run.py
+*/debug_run.py
+test.py
+handle_log.py
+bug_log
+tmp_log
+./deploy/global/
+/deploy/global/
+/deploy/bin/
