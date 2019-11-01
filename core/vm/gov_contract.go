@@ -411,7 +411,7 @@ func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) 
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	value, err := gov.GetGovernParamValue(module, name, blockNumber, blockHash)
+	value, err := xcom.GetGovernParamValue(module, name, blockNumber, blockHash)
 
 	return gc.callHandler("getGovernParamValue", value, err)
 }

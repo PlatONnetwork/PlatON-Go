@@ -104,9 +104,16 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 }
 
 func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, blockHash common.Hash, nonce []byte) error {
-	log.Debug("Storage previous nonce", "current blockNumber", blockNumber.Uint64(), "parentHash",
+	log.Debug("Storage previous nonce", "blockNumber", blockNumber.Uint64(), "parentHash",
 		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
+
+	maxVlidatorsNum, err := xcom.GovernMaxValidators(blockNumber.Uint64(), blockHash)
+	if nil != err {
+		log.Error("Failed to Storage VRF nonce", "err", err)
+		return err
+	}
+
 	if blockNumber.Cmp(common.Big1) > 0 {
 		if value, err := vh.Load(parentHash); nil != err {
 			return err
@@ -115,8 +122,8 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 			copy(nonces, value)
 			log.Debug("Storage previous nonce", "current blockNumber", blockNumber.Uint64(), "parentHash",
 				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "valueLength",
-				len(value), "MaxValidators", xcom.MaxValidators())
-			if uint64(len(nonces)) == xcom.MaxValidators() {
+				len(value), "MaxValidators", maxVlidatorsNum)
+			if uint64(len(nonces)) == maxVlidatorsNum {
 				nonces = nonces[1:]
 			}
 		}
@@ -136,7 +143,7 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 		}
 		log.Info("Storage previous nonce Success", "current blockNumber", blockNumber.Uint64(),
 			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()),
-			"valueLength", len(nonces), "MaxValidators", xcom.MaxValidators(), "nonce", hex.EncodeToString(nonce),
+			"valueLength", len(nonces), "MaxValidators", maxVlidatorsNum, "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil

@@ -476,45 +476,29 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	return nil
 }
 func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
-	paramValue := &ParamValue{"", initValue, activeBlockNumber}
-	return addGovernParam(module, name, desc, paramValue, currentBlockHash)
-}
-
-func GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
-	paramValue, err := findGovernParamValue(module, name, blockHash)
-	if err != nil {
-		return "", err
-	}
-	if paramValue == nil {
-		return "", GovernParamNotFound
-	} else {
-		if blockNumber >= paramValue.ActiveBlock {
-			return paramValue.Value, nil
-		} else {
-			return paramValue.StaleValue, nil
-		}
-	}
+	paramValue := &xcom.ParamValue{"", initValue, activeBlockNumber}
+	return xcom.AddGovernParam(module, name, desc, paramValue, currentBlockHash)
 }
 
 func UpdateGovernParamValue(module, name string, newValue string, activeBlock uint64, blockHash common.Hash) error {
-	return updateGovernParamValue(module, name, newValue, activeBlock, blockHash)
+	return xcom.UpdateGovernParamValue(module, name, newValue, activeBlock, blockHash)
 }
 
-func ListGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
-	return listGovernParam(module, blockHash)
+func ListGovernParam(module string, blockHash common.Hash) ([]*xcom.GovernParam, error) {
+	return xcom.ListGovernParam(module, blockHash)
 }
 
-func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, error) {
-	itemList, err := listGovernParamItem(module, blockHash)
+func FindGovernParam(module, name string, blockHash common.Hash) (*xcom.GovernParam, error) {
+	itemList, err := xcom.ListGovernParamItem(module, blockHash)
 	if err != nil {
 		return nil, err
 	}
 	for _, item := range itemList {
 		if item.Name == name {
-			if value, err := findGovernParamValue(module, name, blockHash); err != nil {
+			if value, err := xcom.FindGovernParamValue(module, name, blockHash); err != nil {
 				return nil, err
 			} else if value != nil {
-				param := &GovernParam{item, value, nil}
+				param := &xcom.GovernParam{item, value, nil}
 				return param, nil
 			}
 		}
@@ -540,7 +524,6 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 	for _, candidate := range candidateList {
 		if candidate.NodeId == nodeID {
 			if candidate.StakingAddress == from {
-				//log.Debug("tx sender is a candidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
 				return TxSenderDifferFromStaking

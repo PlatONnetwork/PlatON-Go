@@ -18,13 +18,12 @@ package core
 
 import (
 	"fmt"
-	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -108,14 +107,14 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 // the gas allowance.
 func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 
-	var govGasCeil uint64
-	govGasCeilStr, err := gov.GetGovernParamValue(gov.ModuleBlock, gov.MaxBlockGasLimit, parent.Number().Uint64()+1, common.ZeroHash)
+	var gasCeil uint64
+
+	govGasCeil, err := xcom.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash)
 	if nil != err {
 		log.Error("cannot find GasLimit from govern", "err", err)
-		govGasCeil = uint64(params.GenesisGasLimit)
+		gasCeil = uint64(params.GenesisGasLimit)
 	} else {
-		ceil, _ := strconv.Atoi(govGasCeilStr)
-		govGasCeil = uint64(ceil)
+		gasCeil = uint64(govGasCeil)
 	}
 
 	// contrib = (parentGasUsed * 3 / 2) / 256
@@ -141,10 +140,10 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 		if limit > gasFloor {
 			limit = gasFloor
 		}
-	} else if limit > govGasCeil {
+	} else if limit > gasCeil {
 		limit = parent.GasLimit() - decay
-		if limit < govGasCeil {
-			limit = govGasCeil
+		if limit < gasCeil {
+			limit = gasCeil
 		}
 	}
 	return limit

@@ -998,14 +998,14 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	currOriginVersion := gov.GetVersionForStaking(state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
-	maxvalidators, err := getMaxValidators(blockNumber, blockHash)
+	maxvalidators, err := xcom.GovernMaxValidators(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to ElectNextVerifierList: query govern params `maxvalidators` is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
 
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, maxvalidators)
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(maxvalidators))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1736,7 +1736,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 	}
 
-	if err := sk.storeRoundValidatorAddrs(blockHash, start, nextQueue); nil != err {
+	if err := sk.storeRoundValidatorAddrs(blockNumber, blockHash, start, nextQueue); nil != err {
 		log.Error("Failed to storeRoundValidatorAddrs on Election", "blockNumber", blockNumber,
 			"blockHash", blockHash.TerminalString(), "err", err)
 	}
@@ -2996,7 +2996,12 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 		maxEndVoteEpoch = xutil.CalculateEpoch(endVoteNum)
 	}
 
-	refundEpoch = xutil.CalculateEpoch(blockNumber) + xcom.UnStakeFreezeDuration()
+	duration, err := xcom.GovernUnStakeFreezeDuration(blockNumber, blockHash)
+	if nil != err {
+		return err
+	}
+
+	refundEpoch = xutil.CalculateEpoch(blockNumber) + duration
 
 	if maxEndVoteEpoch <= refundEpoch {
 		targetEpoch = refundEpoch
@@ -3016,10 +3021,18 @@ func (sk *StakingPlugin) addUnStakeItem(state xcom.StateDB, blockNumber uint64, 
 }
 
 // Record the address of the verification node for each consensus round within a certain block range.
-func (sk *StakingPlugin) storeRoundValidatorAddrs(blockHash common.Hash, nextStart uint64, array staking.ValidatorQueue) error {
+func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash common.Hash, nextStart uint64, array staking.ValidatorQueue) error {
 	nextRound := xutil.CalculateRound(nextStart)
 	nextEpoch := xutil.CalculateEpoch(nextStart)
-	validEpochCount := uint64(xcom.MaxEvidenceAge() + 1)
+
+	evidenceAge, err := xcom.GovernMaxEvidenceAge(blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to storeRoundValidatorAddrs, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"err", err)
+		return err
+	}
+
+	validEpochCount := uint64(evidenceAge + 1)
 	validRoundCount := xutil.EpochSize() * validEpochCount
 
 	// Only store the address of last consensus rounds on `validEpochCount` epochs
@@ -3115,15 +3128,10 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 
 func CheckStakeThreshold(blockNumber uint64, blockHash common.Hash, stake *big.Int) (bool, *big.Int) {
 
-	thresholdStr, err := gov.GetGovernParamValue(gov.ModuleStaking, gov.KeyStakeThreshold, blockNumber, blockHash)
+	threshold, err := xcom.GovernStakeThreshold(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to CheckStakeThreshold, query governParams is failed", "err", err)
 		return false, common.Big0
-	}
-
-	threshold, ok := new(big.Int).SetString(thresholdStr, 10)
-	if !ok {
-		return ok, common.Big0
 	}
 
 	return stake.Cmp(threshold) >= 0, threshold
@@ -3131,30 +3139,10 @@ func CheckStakeThreshold(blockNumber uint64, blockHash common.Hash, stake *big.I
 
 func CheckOperatingThreshold(blockNumber uint64, blockHash common.Hash, balance *big.Int) (bool, *big.Int) {
 
-	thresholdStr, err := gov.GetGovernParamValue(gov.ModuleStaking, gov.KeyOperatingThreshold, blockNumber, blockHash)
+	threshold, err := xcom.GovernOperatingThreshold(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to CheckOperatingThreshold, query governParams is failed", "err", err)
 		return false, common.Big0
 	}
-
-	threshold, ok := new(big.Int).SetString(thresholdStr, 10)
-	if !ok {
-		return ok, common.Big0
-	}
-
 	return balance.Cmp(threshold) >= 0, threshold
-}
-
-func getMaxValidators(blockNumber uint64, blockHash common.Hash) (int, error) {
-	maxvalidatorsStr, err := gov.GetGovernParamValue(gov.ModuleStaking, gov.MaxValidators, blockNumber, blockHash)
-	if nil != err {
-		return 0, err
-	}
-
-	maxvalidators, err := strconv.Atoi(maxvalidatorsStr)
-	if nil != err {
-		return 0, err
-	}
-
-	return maxvalidators, nil
 }

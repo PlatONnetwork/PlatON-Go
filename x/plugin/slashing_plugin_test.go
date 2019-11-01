@@ -36,7 +36,7 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	return si, chain.StateDB
 }
 
-func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
+func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
 	stakingDB := staking.NewStakingDB()
 
 	sender := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
@@ -236,7 +236,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.S
 	setVerifierList(blockHash, epochArr)
 	setRoundValList(blockHash, preArr)
 	setRoundValList(blockHash, curArr)
-	stk.storeRoundValidatorAddrs(blockHash, 1, queue)
+	stk.storeRoundValidatorAddrs(blockNumber, blockHash, 1, queue)
 	balance, ok := new(big.Int).SetString("9999999999999999999999999999999999999999999999999", 10)
 	if !ok {
 		panic("set balance fail")
@@ -260,7 +260,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	}
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	buildStakingData(common.ZeroHash, pri, blsKey, t, stateDB)
+	buildStakingData(0, common.ZeroHash, pri, blsKey, t, stateDB)
 
 	phash = common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
 	if err := snapshotdb.Instance().Flush(phash, blockNumber); err != nil {
@@ -349,7 +349,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
 	}
 	nodeBlsKey.SetLittleEndian(nodeBlsSkByte)
-	buildStakingData(common.ZeroHash, crypto.HexMustToECDSA("f976838ffad88eb7cb45217e0d74c71a1adcb03d550aea9c32df4cfd41e1e0ca"), nodeBlsKey, t, stateDB)
+	buildStakingData(0, common.ZeroHash, crypto.HexMustToECDSA("f976838ffad88eb7cb45217e0d74c71a1adcb03d550aea9c32df4cfd41e1e0ca"), nodeBlsKey, t, stateDB)
 	if err := snapshotdb.Instance().Flush(commitHash, blockNumber); nil != err {
 		t.Fatal(err)
 	}

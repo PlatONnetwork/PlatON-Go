@@ -95,10 +95,10 @@ func TestGovDB_addGovernParam(t *testing.T) {
 	blockHash, _ := newBlock(big.NewInt(1))
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := xcom.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
-	if paramList, err := listGovernParam("PPOS", blockHash); err != nil {
+	if paramList, err := xcom.listGovernParam("PPOS", blockHash); err != nil {
 		t.Fatalf("listGovernParam error, %s", err)
 	} else {
 		assert.Equal(t, 1, len(paramList))
@@ -114,10 +114,10 @@ func TestGovDB_findGovernParamValue(t *testing.T) {
 	blockHash, _ := newBlock(big.NewInt(1))
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := xcom.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
-	if value, err := findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
+	if value, err := xcom.findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
 		t.Fatalf("findGovernParamValue error, %s", err)
 	} else {
 		assert.Equal(t, "initValue", value.Value)
@@ -132,13 +132,13 @@ func TestGovDB_updateGovernParamValue(t *testing.T) {
 	blockHash, _ := newBlock(big.NewInt(1))
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := xcom.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
-	if err := updateGovernParamValue("PPOS", "testName1", "newValue", uint64(10000), blockHash); err != nil {
+	if err := xcom.updateGovernParamValue("PPOS", "testName1", "newValue", uint64(10000), blockHash); err != nil {
 		t.Fatalf("updateGovernParamValue error, %s", err)
 	} else {
-		if value, err := findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
+		if value, err := xcom.findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
 			t.Fatalf("findGovernParamValue error, %s", err)
 		} else {
 			assert.Equal(t, "newValue", value.Value)
@@ -157,7 +157,7 @@ func TestGovDB_SetProposal_GetProposal_param(t *testing.T) {
 	state.Prepare(txHash, blockHash, 0)
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := xcom.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
 
@@ -574,7 +574,7 @@ func TestGovDB_addAccuVerifiers(t *testing.T) {
 
 	blockHash, _ := newBlock(big.NewInt(1))
 
-	if err := addAccuVerifiers(blockHash, proposalID, NodeIDList); err != nil {
+	if err := xcom.addAccuVerifiers(blockHash, proposalID, NodeIDList); err != nil {
 		t.Fatalf("addAccuVerifiers error...%s", err)
 	} else {
 		if nodeList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
@@ -792,7 +792,7 @@ func TestGovDB_AddGovernParam(t *testing.T) {
 
 	blockHash, _ := newBlock(big.NewInt(1))
 
-	if err := addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
+	if err := xcom.addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	}
 }
@@ -801,11 +801,11 @@ func TestGovDB_FindGovernParamValue(t *testing.T) {
 	Init()
 	defer snapshotdb.Instance().Clear()
 	blockHash, _ := newBlock(big.NewInt(1))
-	if err := addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
+	if err := xcom.addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	}
 
-	if item, err := findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
+	if item, err := xcom.findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	} else if item == nil {
 		t.Logf("govern param not found")
