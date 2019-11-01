@@ -3,6 +3,8 @@ import allure
 from copy import copy
 import time
 from common.log import log
+from tests.lib import Genesis
+from dacite import from_dict
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -36,3 +38,24 @@ def test_no_init_no_join_chain(global_test_env):
     test_node.admin.addPeer(global_test_env.get_rand_node().enode)
     time.sleep(5)
     assert test_node.web3.net.peerCount == 0, "连接节点数有增加"
+
+
+@allure.title("测试部署单节点私链,同步单节点的区块")
+@pytest.mark.P0
+def test_build_one_node_privatechain(global_test_env):
+    test_node = copy(global_test_env.get_a_normal_node())
+    log.info("test node :{}".format(test_node.node_mark))
+    genesis_data = global_test_env.genesis_config
+    genesis = from_dict(data_class=Genesis, data=genesis_data)
+    genesis.config.cbft.initialNodes = [{"node": test_node.enode, "blsPubKey": test_node.blspubkey}]
+    file = test_node.local_node_tmp + "/genesis.json"
+    genesis.to_file(file)
+    test_node.deploy_me(file)
+    time.sleep(5)
+    assert test_node.block_number > 0, "区块高度没有增长"
+    join_node = copy(global_test_env.get_rand_node())
+    log.info("join node:{}".format(join_node.node_mark))
+    join_node.deploy_me(file)
+    join_node.admin.addPeer(test_node.enode)
+    time.sleep(5)
+    assert join_node.block_number > 0, "区块高度没有增长"
