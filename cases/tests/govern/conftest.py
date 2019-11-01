@@ -28,3 +28,14 @@ def submit_version(no_version_proposal):
     log.info('submit version result:'.format(result))
     assert result.get('Code') == 0
     return pip_obj
+
+@pytest.fixture()
+def submit_cancel(submit_version):
+    pip_obj = submit_version
+    propolsalinfo = pip_obj.get_effect_proposal_info_of_vote()
+    log.info('获取处于投票期的升级提案信息{}'.format(propolsalinfo))
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 4, propolsalinfo.get('ProposalID'),
+                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('发起取消提案结果为{}'.format(result))
+    assert result.get('Code') == 0
+    return pip_obj
