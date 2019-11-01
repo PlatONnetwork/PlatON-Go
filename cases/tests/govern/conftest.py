@@ -48,3 +48,23 @@ def submit_text(client_verifier_obj):
     log.info('submit text result:'.format(result))
     assert result.get('Code') == 0
     return pip_obj
+
+@pytest.fixture()
+def new_node_has_proposal(global_test_env, client_new_node_obj, client_verifier_obj, client_noconsensus_obj):
+    pip_obj = client_verifier_obj.pip
+    if pip_obj.is_exist_effective_proposal():
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('升级提案信息为{}'.format(proposalinfo))
+        if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number < 2 * pip_obj.economic.consensus_size:
+            global_test_env.deploy_all()
+            result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5,
+                                           pip_obj.node.staking_address,
+                                           transaction_cfg=pip_obj.cfg.transaction_cfg)
+            assert result.get('Code') == 0
+            return client_noconsensus_obj.pip
+        else:
+            return client_new_node_obj.pip
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5,
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    assert result.get('Code') == 0
+    return client_new_node_obj.pip
