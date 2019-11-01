@@ -21,7 +21,7 @@ def reset_env(global_test_env):
     global_test_env.deploy_all()
 
 
-@allure.title("不初始化启动节点和不同创世文件的节点互连")
+@allure.title("Node interconnects that do not initialize boot nodes and different creation files")
 @pytest.mark.P0
 def test_no_init_no_join_chain(global_test_env):
     global_test_env.deploy_all()
