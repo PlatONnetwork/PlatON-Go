@@ -364,3 +364,11 @@ class TestSubmitCancel():
                                               transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('endvoting_rounds:{}， cancel proposal result:{}'.format(endvoting_rounds+1, result))
         assert result.get('Code') == 302009
+
+    def test_CP_ID_001(self, no_version_proposal):
+        pip_obj = no_version_proposal
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1,
+                                                      '0x49b83cfc4b99462f7131d14d80c73b6657237753cd1e878e8d62dc2e9f574123',
+                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('cancel proposal result: {}'.format(result))
+        assert result.get('Code') == 302015
