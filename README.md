@@ -109,6 +109,8 @@ Address: {566c274db7ac6d38da2b075b4ae41f4a5c481d21}
 | --nodekey | P2P node key file |
 | --cbft.blskey | BLS key file |
 
+Run the following command to launch a PlatON node connecting to the PlatON's mainnet:
+
 ```
 $ ./platon --identity "platon" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "db,platon,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
 ```
