@@ -311,3 +311,14 @@ class TestSubmitCancel():
                                                     proposalinfo.get('ProposalID'),
                                                address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert result.get('Code') == 302022
+
+    @pytest.mark.P0
+    def test_CP_PR_002(self, candidate_has_proposal):
+        pip_obj = candidate_has_proposal
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('升级提案信息为{}'.format(proposalinfo))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1,
+                                                    proposalinfo.get('ProposalID'),
+                                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('候选人发起升级提案结果为{}'.format(result))
+        assert result.get('Code') == 302022
