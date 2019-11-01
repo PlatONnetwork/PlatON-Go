@@ -9,6 +9,16 @@ from common.log import log
 import math
 
 
+def decorator_sleep(func):
+    def wrap():
+        result = func()
+        if result is None:
+            time.sleep(5)
+            result = func()
+        return result
+    return wrap
+
+
 def proposal_list_effective(proposal_list, block_number):
     """
     判断填列表中，是否有提案在投票期内
