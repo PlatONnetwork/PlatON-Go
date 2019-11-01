@@ -297,3 +297,28 @@ def test_AL_IE_003(client_new_node_obj_list):
     assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
     consensus_node_pledge_award_assertion(client_new_node_obj_list[0], address)
 
+
+@pytest.mark.P1
+def test_AL_IE_004(client_new_node_obj_list):
+    """
+    锁仓账户创建质押节点且收益地址为激励池
+    :param client_new_node_obj_list:
+    :return:
+    """
+    log.info("节点id：{}".format(client_new_node_obj_list[1].node.node_id))
+    address, _ = client_new_node_obj_list[1].economic.account.generate_account(client_new_node_obj_list[1].node.web3,
+                                                                               client_new_node_obj_list[
+                                                                                   1].economic.create_staking_limit * 2)
+    log.info("质押账户地址: {}".format(address))
+    # 创建锁仓计划
+    staking_amount = client_new_node_obj_list[1].economic.create_staking_limit
+    log.info("质押金额：{}".format(staking_amount))
+    plan = [{'Epoch': 1, 'Amount': staking_amount}]
+    result = client_new_node_obj_list[1].restricting.createRestrictingPlan(address, plan, address)
+    assert result['Code'] == 0, "创建锁仓计划返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    # 锁仓金额申请质押节点
+    result = client_new_node_obj_list[1].staking.create_staking(1, EconomicConfig.INCENTIVEPOOL_ADDRESS, address)
+    log.info("质押结果: {}".format(result))
+    assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    consensus_node_pledge_award_assertion(client_new_node_obj_list[1], address)
+
