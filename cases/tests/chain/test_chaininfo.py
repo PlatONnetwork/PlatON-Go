@@ -87,3 +87,24 @@ def test_syncmode(global_test_env):
     global_test_env.check_block(200, 2)
     time.sleep(5)
     assert test_node.eth.blockNumber >= 200, "区块同步失败,当前块高{}".format(test_node.eth.blockNumber)
+
+
+@allure.title("测试区块同步")
+@pytest.mark.P0
+def test_deconsensus_block_synchronize(global_test_env):
+    """
+    非共识节点块高同步
+    :param global_test_env:
+    :return:
+    """
+    test_node = global_test_env.get_a_normal_node()
+    test_node.clean()
+    new_cfg = global_test_env.cfg
+    new_cfg.syncmode = "full"
+    test_node.cfg = new_cfg
+    test_node.deploy_me(global_test_env.cfg.genesis_tmp)
+    test_node.admin.addPeer(global_test_env.get_rand_node().enode)
+    time.sleep(5)
+    assert test_node.web3.net.peerCount > 0, "加入链失败"
+    global_test_env.check_block()
+    assert test_node.block_number > 0, "非共识节点同步区块失败，块高：{}".format(test_node.block_number)
