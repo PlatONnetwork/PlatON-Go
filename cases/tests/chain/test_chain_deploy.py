@@ -122,3 +122,19 @@ def test_start_2f_after_one(t, global_test_env):
     time.sleep(t)
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[num:num + 1], genesis_file=global_test_env.cfg.genesis_tmp)
     global_test_env.check_block(node_list=test_nodes, multiple=num)
+
+
+@allure.title("先启动2f个节点，间隔{t}秒后启动所有节点")
+@pytest.mark.P2
+@pytest.mark.parametrize('t', [50, 150])
+def test_start_2f_after_all(t, global_test_env):
+    """
+    先启动2f个节点，间隔一定时间之后再启动未启动的所有共识节点，查看出块情况
+    """
+    num = int(2 * global_test_env.max_byzantium)
+    log.info("先启动{}个节点".format(num))
+    global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
+    time.sleep(int(t))
+    log.info("在启动另外所有共识节点")
+    global_test_env.deploy_nodes(global_test_env.consensus_node_list[num:], genesis_file=global_test_env.cfg.genesis_tmp)
+    global_test_env.check_block(node_list=global_test_env.consensus_node_list, multiple=5)
