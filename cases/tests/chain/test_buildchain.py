@@ -61,7 +61,7 @@ def test_build_one_node_privatechain(global_test_env):
     assert join_node.block_number > 0, "block height has not increased"
 
 
-@allure.title("测试不同initnode创始文件之间节点互连")
+@allure.title("Test node interconnections between different initnode founding files")
 @pytest.mark.P0
 def test_init_diff_genesis_join_chain(global_test_env):
     global_test_env.deploy_all()
