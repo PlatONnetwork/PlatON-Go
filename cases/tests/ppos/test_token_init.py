@@ -222,3 +222,57 @@ def consensus_node_pledge_award_assertion(client_new_node_obj, address):
 
     assert incentive_pool_balance2 - incentive_pool_balance < client_new_node_obj.node.web3.toWei(1, 'ether'), "激励池余额：{} 有误".format(
         incentive_pool_balance2)
+ 
+
+def no_consensus_node_pledge_award_assertion(client_new_node_obj, benifit_address, from_address):
+    """
+    非内置节点质押奖励断言
+    :param client_new_node_obj:
+    :param benifit_address: 节点收益地址
+    :param from_address: 节点质押地址
+    :return:
+    """
+    CandidateInfo = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info("质押人节点信息：{}".format(CandidateInfo))
+    balance = client_new_node_obj.node.eth.getBalance(client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    log.info("地址：{} 的金额： {}".format(benifit_address, balance))
+
+    # 等待质押节点到锁定期
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    time.sleep(5)
+    VerifierList = client_new_node_obj.ppos.getVerifierList()
+    log.info("当前验证人列表：{}".format(VerifierList))
+    ValidatorList = client_new_node_obj.ppos.getValidatorList()
+    log.info("当前共识验证人列表：{}".format(ValidatorList))
+    block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(client_new_node_obj.node)
+    for i in range(4):
+        result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
+        log.info("当前节点是否在共识列表：{}".format(result))
+        if result:
+            # 等待一个共识轮
+            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+            # 申请退回质押
+            result = client_new_node_obj.staking.withdrew_staking(from_address)
+            log.info("退回质押结果: {}".format(result))
+            assert result['Code'] == 0, "申请退回质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+            incentive_pool_balance1 = client_new_node_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+            log.info("激励池余额：{}".format(incentive_pool_balance1))
+            # 等待当前结算结束
+            client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+            # 统计质押节点出块数
+            blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
+            balance1 = client_new_node_obj.node.eth.getBalance(
+                client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+            log.info("地址：{} 的金额： {}".format(benifit_address, balance1))
+
+            # 验证出块奖励
+            log.info("预计出块奖励：{}".format(Decimal(str(block_reward)) * Decimal(blocknumber)))
+            assert balance + (Decimal(str(block_reward)) * Decimal(
+                blocknumber)) - balance1 < client_new_node_obj.node.web3.toWei(1, 'ether'), "地址: {} 的金额: {} 有误".format(
+                benifit_address, balance1)
+            break
+        else:
+            # 等一个共识轮切换共识验证人
+            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+
+
