@@ -150,3 +150,21 @@ def test_IT_SD_002_003_011(global_test_env, code):
             assert return_info is not None, "用例失败"
         except Exception as e:
             log.info("用例成功，异常信息：{} ".format(str(e)))
+
+@pytest.mark.P2
+def test_IT_SD_007(global_test_env):
+    """
+    账户转账校验：本账户转本账户
+    :return:
+    """
+    node = global_test_env.get_rand_node()
+    value = node.web3.toWei(1000, 'ether')
+    address, _ = global_test_env.account.generate_account(node.web3, value)
+    balance = node.eth.getBalance(node.web3.toChecksumAddress(address))
+    log.info("转账之前账户余额： {}".format(balance))
+    result = global_test_env.account.sendTransaction(node.web3, '', address, address, node.eth.gasPrice, 21000, 100)
+    assert result is not None, "用例失败"
+    balance1 = node.eth.getBalance(node.web3.toChecksumAddress(address))
+    log.info("转账之后账户余额： {}".format(balance1))
+    log.info("手续费： {}".format(node.web3.platon.gasPrice * 21000))
+    assert balance == balance1 + node.web3.platon.gasPrice * 21000, "转账之后账户余额： {} 有误".format(balance1)
