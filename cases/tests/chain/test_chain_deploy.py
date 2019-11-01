@@ -182,3 +182,22 @@ def test_start_all_node_close_f_add_1_and_one(global_test_env):
     global_test_env.stop_nodes(test_nodes)
     global_test_env.start_nodes(test_nodes[global_test_env.max_byzantium:global_test_env.max_byzantium + 1], False)
     global_test_env.check_block(multiple=5, node_list=global_test_env.consensus_node_list[global_test_env.max_byzantium:])
+
+
+@allure.title("正常启动所有节点,等待出块一段时间后，关闭一个，并删除数据库，用fast模式启动")
+@pytest.mark.P0
+def test_start_all_node_close_f_add_1_and_fast_one(global_test_env):
+    """
+    用例id
+    正常启动所有节点,等待出块一段时间后，关闭一个，并删除数据库，用fast模式启动
+    """
+    global_test_env.deploy_all()
+    time.sleep(100)
+    test_node = copy(global_test_env.get_rand_node())
+    test_node.clean()
+    new_cfg = copy(global_test_env.cfg)
+    new_cfg.syncmode = "fast"
+    test_node.cfg = new_cfg
+    test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
+    time.sleep(10)
+    assert test_node.block_number > 10
