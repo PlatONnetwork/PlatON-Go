@@ -19,6 +19,8 @@ var (
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
 	keyPrefixPIPIDs            = []byte("PIPIDs")
+	keyPrefixParamItems        = []byte("ParamItems")
+	keyPrefixParamValue        = []byte("ParamValue")
 )
 
 func KeyProposal(proposalID common.Hash) []byte {
@@ -79,4 +81,14 @@ func KeyAccuVerifier(proposalID common.Hash) []byte {
 
 func KeyPIPIDs() []byte {
 	return keyPrefixPIPIDs
+}
+
+func KeyParamItems() []byte {
+	return keyPrefixParamItems
+}
+func KeyParamValue(module, name string) []byte {
+	return bytes.Join([][]byte{
+		keyPrefixParamValue,
+		[]byte(module + "/" + name),
+	}, KeyDelimiter)
 }

@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
 
 	"github.com/pkg/errors"
@@ -112,7 +114,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 			slashQueue := make(staking.SlashQueue, 0)
 
-			blockReward, err := xcom.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
+			blockReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
 			if nil != err {
 				log.Error("Failed to BeginBlock, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 				return err
@@ -272,7 +274,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	invalidNum := evidenceEpoch * blocksOfEpoch
 	if invalidNum < blockNumber {
 
-		evidenceAge, err := xcom.GovernMaxEvidenceAge(blockNumber, blockHash)
+		evidenceAge, err := gov.GovernMaxEvidenceAge(blockNumber, blockHash)
 		if nil != err {
 			log.Error("Failed to Slash, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"err", err)
@@ -343,14 +345,14 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		return slashing.ErrGetCandidate
 	}
 
-	fraction, err := xcom.GovernSlashFractionDuplicateSign(blockNumber, blockHash)
+	fraction, err := gov.GovernSlashFractionDuplicateSign(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to Slash, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
 		return err
 	}
 
-	rewardFraction, err := xcom.GovernDuplicateSignReportReward(blockNumber, blockHash)
+	rewardFraction, err := gov.GovernDuplicateSignReportReward(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to Slash, query Gov DuplicateSignReportReward is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
