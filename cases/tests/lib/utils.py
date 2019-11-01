@@ -21,7 +21,7 @@ def decorator_sleep(func):
 
 def proposal_list_effective(proposal_list, block_number):
     """
-    判断填列表中，是否有提案在投票期内
+    Determine if there is a proposal in the voting period
     :param proposal_list:
     :param block_number:
     :return:
@@ -34,7 +34,7 @@ def proposal_list_effective(proposal_list, block_number):
 
 def proposal_effective(proposal, block_number):
     """
-    判断提案是否在投票期
+    Determine if the proposal is in the voting period
     :param proposal:
     :param block_number:
     :return:
@@ -46,7 +46,7 @@ def proposal_effective(proposal, block_number):
 
 def upload_platon(node: Node, platon_bin):
     """
-    上传二进制文件到指定节点
+    Upload a binary file to the specified node
     :param node:
     :param platon_bin:
     :return:
@@ -59,7 +59,7 @@ def upload_platon(node: Node, platon_bin):
 
 def get_blockhash(node, blocknumber=None):
     """
-    根据块高获取块hash
+    Get block hash based on block height
     :param node:
     :param blocknumber:
     :return:
@@ -86,10 +86,10 @@ def bytes_to_int(value):
 
 def compare_two_dict(dict1, dict2, key_list=None):
     """
-    比较两个字典value
+    Compare two dictionary values
     :param dict1:
     :param dict2:
-    :param key_list: 比对字典key列表
+    :param key_list: Align dictionary key list
     :return:
     """
     if key_list is None:
@@ -113,8 +113,8 @@ def compare_two_dict(dict1, dict2, key_list=None):
 
 def get_no_pledge_node(node_list):
     """
-    获取未被质押的节点
-    :param node_list: 节点列表
+    Get nodes that are not pledged
+    :param node_list: Node list
     :return:
     """
     for node in node_list:
@@ -126,8 +126,8 @@ def get_no_pledge_node(node_list):
 
 def get_no_pledge_node_list(node_list):
     """
-    获取所有可以质押的节点
-    :param node_list: 节点列表
+    Get all the nodes that can be pledged
+    :param node_list: Node list
     :return:
     """
     no_pledge_node_list = []
@@ -140,8 +140,9 @@ def get_no_pledge_node_list(node_list):
 
 def get_pledge_list(func):
     """
-    查看指定节点ID列表
-    :param func: 查询方法，1、当前质押节点列表 2、当前共识节点列表 3、实时验证人列表
+    View the list of specified node IDs
+    :param func: Query method, 1. List of current pledge nodes 2,
+     the current consensus node list 3, real-time certifier list
     :return:
     """
     validator_info = func().get('Data')
@@ -156,9 +157,10 @@ def get_pledge_list(func):
 
 def check_node_in_list(nodeid, func):
     """
-    查看节点是否在指定列表中
-    :param nodeid: 节点id
-    :param func: 查询方法，1、当前质押节点列表 2、当前共识节点列表 3、实时验证人列表
+    Check if the node is in the specified list
+    :param nodeid: Node id
+    :param func: Query method, 1. List of current pledge nodes 2,
+     the current consensus node list 3, real-time certifier list
     :return:
     """
     data_dict = func()
@@ -170,9 +172,9 @@ def check_node_in_list(nodeid, func):
 
 def get_param_by_dict(data, *args):
     """
-    根据json数据查询参数值
-    :param data: j字典
-    :param args: 键
+    Query parameter values​based on json data
+    :param data: dictionary
+    :param args: Key
     :return:
     """
     i = 0
@@ -181,15 +183,15 @@ def get_param_by_dict(data, *args):
             data = data.get(key)
             i = i + 1
             if isinstance(data, dict) and i > len(args):
-                raise Exception("输入的参数有误。")
+                raise Exception("The parameters entered are incorrect.")
         return data
 
-    raise Exception("数据格式错误")
+    raise Exception("Data format error")
 
 
 def update_param_by_dict(data, key1, key2, key3, value):
     """
-    修改json参数
+    Modify the json parameter
     :param data:
     :param key1:
     :param key2:
@@ -203,30 +205,31 @@ def update_param_by_dict(data, key1, key2, key3, value):
         else:
             data[key1][key2][key3] = value
         return data
-    raise Exception("数据格式错误")
+    raise Exception("Data format error")
 
 
 def wait_block_number(node, block, interval=1):
     """
-    等待到指定块高
-    :param node: 节点
-    :param block: 块高
-    :param interval: 出块间隔，默认为1s
+    Waiting until the specified block height
+    :param node: Node
+    :param block: Block height
+    :param interval: Block interval, default is 1s
     :return:
     """
     current_block = node.block_number
     timeout = int((block - current_block) * interval * 1.5) + int(time.time())
     while int(time.time()) < timeout:
-        log.info('当前块高为{}，等待至{}'.format(node.block_number, block))
+        log.info('The current block height is {}, waiting until {}'.format(node.block_number, block))
         if node.block_number > block:
             return
         time.sleep(1)
-    raise Exception("无法正常出块,当前块高为:{},目标块高为:{}".format(node.block_number, block))
+    raise Exception("Unable to pop out the block normally, the "
+                    "current block height is: {}, the target block height is: {}".format(node.block_number, block))
 
 
 def get_validator_term(node):
     """
-    获取任期最大的nodeID
+    Get the nodeID with the highest term
     """
     msg = node.ppos.getValidatorList()
     term = []
@@ -241,7 +244,7 @@ def get_validator_term(node):
 
 def get_max_staking_tx_index(node):
     """
-    获取最大的交易索引的nodeID
+    Get the nodeID of the largest transaction index
     """
     msg = node.ppos.getValidatorList()
     staking_tx_index_list = []
@@ -256,7 +259,7 @@ def get_max_staking_tx_index(node):
 
 def random_string(length=10):
     """
-    随机生成指定长度的字母与数字的字符串
+    Randomly generate a string of letters and numbers of a specified length
     :param length:
     :return:
     """
@@ -270,24 +273,24 @@ def random_string(length=10):
 
 
 def get_pip_obj(nodeid, pip_obj_list):
-    '''
-    根据节点id获取pip对象
+    """
+    Get the pip object according to the node id
     :param nodeid:
-    :param node_obj_list:
+    :param pip_obj_list:
     :return:
-    '''
+    """
     for pip_obj in pip_obj_list:
         if nodeid == pip_obj.node.node_id:
             return pip_obj
 
 
 def get_pip_obj_list(nodeid_list, pip_obj_list):
-    '''
-    根据节点id列表获取pip对象列表
-    :param node_id_list:
-    :param node_list:
+    """
+    Get a list of pip objects based on the node id list
+    :param nodeid_list:
+    :param pip_obj_list:
     :return:
-    '''
+    """
     new_pip_obj_list = []
     for nodeid in nodeid_list:
         new_pip_obj_list.append(get_pip_obj(nodeid, pip_obj_list))
@@ -295,24 +298,24 @@ def get_pip_obj_list(nodeid_list, pip_obj_list):
 
 
 def get_client_obj(nodeid, client_obj_list):
-    '''
-    根据节点id获取client对象
+    """
+    Get the client object according to the node id
     :param nodeid:
-    :param node_obj_list:
+    :param client_obj_list:
     :return:
-    '''
+    """
     for client_obj in client_obj_list:
         if nodeid == client_obj.node.node_id:
             return client_obj
 
 
 def get_client_obj_list(nodeid_list, client_obj_list):
-    '''
-    根据节点id列表获取client对象列表
-    :param node_id_list:
-    :param node_list:
+    """
+    Get the client object list according to the node id list
+    :param nodeid_list:
+    :param client_obj_list:
     :return:
-    '''
+    """
     new_client_obj_list = []
     for nodeid in nodeid_list:
         new_client_obj_list.append(get_client_obj(nodeid, client_obj_list))
