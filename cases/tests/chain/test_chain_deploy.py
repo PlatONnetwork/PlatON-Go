@@ -20,37 +20,34 @@ def reset_env(global_test_env):
     global_test_env.deploy_all()
 
 
-@allure.title("正常启动所有节点")
+@allure.title("start all nodes normally")
 @pytest.mark.P0
 def test_start_all_node(global_test_env):
     """
-    用例id：50
-    用于测试启动所有共识节点后，检查出块情况
+    Used to test the start of all consensus nodes, check out the block situation
     """
-    log.info("部署{}节点".format(len(global_test_env.consensus_node_config_list)))
+    log.info("Deploy {} node".format(len(global_test_env.consensus_node_config_list)))
     global_test_env.deploy_all()
     global_test_env.check_block()
 
 
-@allure.title("启动共识节点2f+1开始出块")
+@allure.title("Start consensus node 2f+1 starts to block")
 @pytest.mark.P0
 def test_start_mini_node(global_test_env):
     """
-    用例id:51
-    测试启动共识节点达到最低共识节点数量时，开始出块
+    When the test start consensus node reaches the minimum consensus node number, it starts to pop out.
     """
     num = int(2 * global_test_env.max_byzantium + 1)
-    log.info("部署{}个节点".format(num))
+    log.info("Deploy {} nodes".format(num))
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
     global_test_env.check_block(multiple=num, node_list=global_test_env.consensus_node_list[0:num])
 
 
-@allure.title("正常启动所有节点,逐渐关闭f个")
+@allure.title("Start all nodes normally, and gradually close f")
 @pytest.mark.P0
 def test_start_all_node_close_f(global_test_env):
     """
-    用例id：52
-    启动n个节点后，逐渐关闭f个，那么关闭节点的窗口期不出块
+    After starting n nodes, gradually close f, then the window of the closed node does not come out.
     """
     global_test_env.deploy_all()
     global_test_env.check_block()
@@ -60,14 +57,14 @@ def test_start_all_node_close_f(global_test_env):
                                 node_list=global_test_env.get_all_nodes()[global_test_env.max_byzantium:])
 
 
-@allure.title("正常启动2f+1个节点,50秒后在启动一个")
+@allure.title("Start 2f+1 nodes normally, start one after 50 seconds")
 @pytest.mark.P2
 def test_start_2f1_node_and_start_one(global_test_env):
     """
-    先启动2f+1个，50秒后在启动一个
+    Start 2f+1 first, start one after 50 seconds
     """
     num = int(2 * global_test_env.max_byzantium + 1)
-    log.info("部署{}个节点".format(num))
+    log.info("Deploy {} nodes".format(num))
     test_nodes = global_test_env.consensus_node_list[0:num]
     global_test_env.deploy_nodes(node_list=test_nodes, genesis_file=global_test_env.cfg.genesis_tmp)
     time.sleep(50)
@@ -76,14 +73,14 @@ def test_start_2f1_node_and_start_one(global_test_env):
     global_test_env.check_block(need_number=start + 10, multiple=2, node_list=global_test_env.consensus_node_list[0:num + 1])
 
 
-@allure.title("只启动2f个节点")
+@allure.title("Only start 2f nodes")
 @pytest.mark.P0
 def test_start_2f(global_test_env):
     """
-    启动2f个节点
+    Start 2f nodes
     """
     num = int(2 * global_test_env.max_byzantium)
-    log.info("部署{}个节点".format(num))
+    log.info("Deploy {} nodes".format(num))
     test_nodes = global_test_env.consensus_node_list[0:num]
     global_test_env.deploy_nodes(test_nodes, genesis_file=global_test_env.cfg.genesis_tmp)
     time.sleep(10)
@@ -91,11 +88,11 @@ def test_start_2f(global_test_env):
     assert block == 0
 
 
-@allure.title("正常启动所有节点,逐渐关闭f+1个")
+@allure.title("Start all nodes normally and gradually close f+1")
 @pytest.mark.P0
 def test_start_all_node_close_f_add_1(global_test_env):
     """
-    启动所有节点后，逐渐关闭f+1个，那么关闭后将不会出块
+    After starting all nodes, gradually close f+1, then it will not be blocked after closing.
     """
     global_test_env.deploy_all()
     test_nodes = global_test_env.consensus_node_list[:global_test_env.max_byzantium + 1]
@@ -108,15 +105,15 @@ def test_start_all_node_close_f_add_1(global_test_env):
     assert start == end
 
 
-@allure.title("先启动2f个节点，间隔{t}秒后再启动一个")
+@allure.title("Start 2f nodes first, then start one after {t} seconds")
 @pytest.mark.P2
 @pytest.mark.parametrize('t', [50, 150])
 def test_start_2f_after_one(t, global_test_env):
     """
-    先启动2f个节点，间隔一定时间之后再启动一个节点，查看出块情况
+    Start 2f nodes first, then start a node after a certain interval to see the block situation.
     """
     num = int(2 * global_test_env.max_byzantium)
-    log.info("先启动{}个节点".format(num))
+    log.info("Start {} nodes first".format(num))
     test_nodes = global_test_env.consensus_node_list[0:num + 1]
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
     time.sleep(t)
@@ -124,30 +121,28 @@ def test_start_2f_after_one(t, global_test_env):
     global_test_env.check_block(node_list=test_nodes, multiple=num)
 
 
-@allure.title("先启动2f个节点，间隔{t}秒后启动所有节点")
+@allure.title("Start 2f nodes first, start all nodes after {t} seconds")
 @pytest.mark.P2
 @pytest.mark.parametrize('t', [50, 150])
 def test_start_2f_after_all(t, global_test_env):
     """
-    先启动2f个节点，间隔一定时间之后再启动未启动的所有共识节点，查看出块情况
+    Start 2f nodes first, and then start all the consensus nodes that are not
+    started after a certain interval, and check the block status.
     """
     num = int(2 * global_test_env.max_byzantium)
-    log.info("先启动{}个节点".format(num))
+    log.info("Start {} nodes first".format(num))
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
     time.sleep(int(t))
-    log.info("在启动另外所有共识节点")
+    log.info("Start all other consensus nodes")
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[num:], genesis_file=global_test_env.cfg.genesis_tmp)
     global_test_env.check_block(node_list=global_test_env.consensus_node_list, multiple=5)
 
 
-@allure.title("先启动2f个节点，30秒内不停重启另外节点")
+@allure.title("Start 2f nodes first, and restart other nodes within 30 seconds")
 @pytest.mark.P2
 def test_up2f_after_other(global_test_env):
-    """
-    用例id:61,62
-    """
     num = int(2 * global_test_env.max_byzantium)
-    log.info("先启动{}个节点".format(num))
+    log.info("Start {} nodes first".format(num))
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
     i = 0
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[num:], genesis_file=global_test_env.cfg.genesis_tmp)
@@ -157,12 +152,12 @@ def test_up2f_after_other(global_test_env):
     global_test_env.check_block(node_list=global_test_env.consensus_node_list)
 
 
-@allure.title("正常启动所有节点,逐渐关闭f+1个,再逐步启动所有")
+@allure.title("Start all nodes normally, gradually close f+1, and then start all gradually")
 @pytest.mark.P0
 def test_start_all_node_close_f_add_1_and_all(global_test_env):
     """
-    用例id
-    启动所有节点后，逐渐关闭f+1个，那么关闭后将不会出块,等待重启后出块
+    After starting all nodes, gradually close f+1, then there will
+    be no block after closing, waiting for the block to be restarted.
     """
     global_test_env.deploy_all()
     test_nodes = global_test_env.consensus_node_list[0:global_test_env.max_byzantium + 1]
@@ -171,11 +166,12 @@ def test_start_all_node_close_f_add_1_and_all(global_test_env):
     global_test_env.check_block(need_number=20, multiple=2)
 
 
-@allure.title("正常启动所有节点,逐渐关闭f+1个,再逐步启动一个")
+@allure.title("Start all nodes normally, gradually close f+1, and then start one step by step.")
 @pytest.mark.P0
 def test_start_all_node_close_f_add_1_and_one(global_test_env):
     """
-    启动所有节点后，逐渐关闭f+1个，那么关闭后将不会出块,等待重启后出块
+    After starting all nodes, gradually close f+1, then there will be no
+     block after closing, waiting for the block to be restarted.
     """
     global_test_env.deploy_all()
     test_nodes = global_test_env.consensus_node_list[0:global_test_env.max_byzantium + 1]
@@ -184,12 +180,11 @@ def test_start_all_node_close_f_add_1_and_one(global_test_env):
     global_test_env.check_block(multiple=5, node_list=global_test_env.consensus_node_list[global_test_env.max_byzantium:])
 
 
-@allure.title("正常启动所有节点,等待出块一段时间后，关闭一个，并删除数据库，用fast模式启动")
+@allure.title("Start all nodes normally, wait for a block of time, close one, and delete the database, start with fast mode")
 @pytest.mark.P0
 def test_start_all_node_close_f_add_1_and_fast_one(global_test_env):
     """
-    用例id
-    正常启动所有节点,等待出块一段时间后，关闭一个，并删除数据库，用fast模式启动
+    Start all nodes normally, wait for a block of time, close one, and delete the database, start with fast mode
     """
     global_test_env.deploy_all()
     time.sleep(100)
