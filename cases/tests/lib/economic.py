@@ -84,7 +84,7 @@ class Economic:
         print('block_proportion',block_proportion)
         staking_proportion = str(1 - new_block_rate / 100)
         print('staking_proportion',staking_proportion)
-        block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(annualcycle)))
+        block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(annual_size)))
         print('block_reward',block_reward)
         staking_reward = int(
             Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(annualcycle)) / Decimal(str(verifier_num)))
