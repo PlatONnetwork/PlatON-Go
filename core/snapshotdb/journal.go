@@ -104,9 +104,8 @@ func (s *snapshotDB) writeBlockToJournalAsynchronous(block *blockData) {
 			return
 		}
 		if err := s.saveCurrentToBaseDB(CurrentHighestBlock, &current{
-			HighestNum:  block.Number,
+			HighestNum:  new(big.Int).Set(block.Number),
 			HighestHash: block.BlockHash,
-			BaseNum:     s.current.BaseNum,
 		}); err != nil {
 			logger.Error("asynchronous update current highest fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
 			s.dbError = err

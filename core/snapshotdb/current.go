@@ -19,13 +19,15 @@ const (
 
 func (s *snapshotDB) saveCurrentToBaseDB(t string, c *current) error {
 	batch := new(leveldb.Batch)
-	height, base := c.ToByte()
 	switch t {
 	case CurrentHighestBlock:
+		height := c.EncodeHighest()
 		batch.Put([]byte(CurrentHighestBlock), height)
 	case CurrentBaseNum:
+		base := c.EncodeBase()
 		batch.Put([]byte(CurrentBaseNum), base)
 	default:
+		height, base := c.EncodeHighest(), c.EncodeBase()
 		batch.Put([]byte(CurrentHighestBlock), height)
 		batch.Put([]byte(CurrentBaseNum), base)
 	}
@@ -71,8 +73,16 @@ func (s *snapshotDB) loadCurrent() error {
 	c.BaseNum = cb.Num
 	c.HighestHash = ch.Hash
 	c.HighestNum = ch.Num
+
+	if c.BaseNum.Cmp(c.HighestNum) > 0 {
+		return fmt.Errorf("base num %v can't be greater than highest Num %v", c.BaseNum, c.HighestNum)
+	}
 	if blockchain != nil {
 		currentHead := blockchain.CurrentHeader()
+		if c.BaseNum.Cmp(currentHead.Number) > 0 {
+			return fmt.Errorf("base num %v can't be greater than currentHead Number %v", c.BaseNum, currentHead.Number)
+		}
+
 		if c.HighestNum.Cmp(currentHead.Number) > 0 {
 			c.HighestNum = currentHead.Number
 			c.HighestHash = currentHead.Hash()
@@ -103,14 +113,18 @@ type CurrentBase struct {
 	Num *big.Int `rlp:"nil"`
 }
 
-func (c *current) ToByte() ([]byte, []byte) {
+func (c *current) EncodeHighest() []byte {
 	highest, err := rlp.EncodeToBytes(CurrentHighest{c.HighestNum, c.HighestHash})
 	if err != nil {
 		panic(err)
 	}
+	return highest
+}
+
+func (c *current) EncodeBase() []byte {
 	base, err := rlp.EncodeToBytes(CurrentBase{c.BaseNum})
 	if err != nil {
 		panic(err)
 	}
-	return highest, base
+	return base
 }

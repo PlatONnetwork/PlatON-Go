@@ -26,9 +26,11 @@ import (
 )
 
 const (
-	kvLIMIT          = 2000
-	JournalRemain    = 200
-	UnBlockNeedClean = 200
+	kvLIMIT                = 2000
+	JournalRemain          = 200
+	UnBlockNeedClean       = 200
+	MaxBlockCompaction     = 10
+	MaxBlockCompactionSync = 100
 )
 
 //DB the main snapshotdb interface
@@ -247,7 +249,6 @@ func initDB() error {
 		dbInstance = new(snapshotDB)
 	}
 	copyDB(db, dbInstance)
-	//	dbInstance.writeCurrentLoop()
 	if err := dbInstance.cornStart(); err != nil {
 		return err
 	}
@@ -369,7 +370,7 @@ func (s *snapshotDB) Del(hash common.Hash, key []byte) error {
 // case kv<2000,block... <9
 // case kv<2000,block...=9
 func (s *snapshotDB) Compaction() error {
-	if len(s.committed) == 0 {
+	if len(s.committed) <= MaxBlockCompaction {
 		return nil
 	}
 	commitNum := s.findToWrite()
@@ -384,9 +385,7 @@ func (s *snapshotDB) Compaction() error {
 	s.committed = s.committed[commitNum:]
 	s.commitLock.Unlock()
 	if err := s.saveCurrentToBaseDB(CurrentBaseNum, &current{
-		HighestNum:  nil,
-		HighestHash: common.Hash{},
-		BaseNum:     new(big.Int).Set(s.current.BaseNum),
+		BaseNum: new(big.Int).Set(s.current.BaseNum),
 	}); err != nil {
 		logger.Error("save base to current fail", "err", err)
 		return err
@@ -439,10 +438,10 @@ func (s *snapshotDB) findToWrite() int {
 		commitNum int
 	)
 	if len(s.committed) > 200 {
-		commitNum = 100
+		commitNum = MaxBlockCompactionSync
 	} else {
 		for i := 0; i < len(s.committed); i++ {
-			if i < 10 {
+			if i < MaxBlockCompaction {
 				if kvsize > kvLIMIT {
 					commitNum = i - 1
 					break
@@ -716,7 +715,6 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 		if err := s.saveCurrentToBaseDB(CurrentHighestBlock, &current{
 			HighestNum:  block.Number,
 			HighestHash: block.BlockHash,
-			BaseNum:     s.current.BaseNum,
 		}); err != nil {
 			return err
 		}
