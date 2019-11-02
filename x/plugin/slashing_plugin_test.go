@@ -533,7 +533,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Report outdated evidence, expected failure
-	err = si.Slash(abnormalEvidence, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.MaxEvidenceAge())*2).Uint64(), stateDB, anotherSender)
+	err = si.Slash(normalEvidence, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.MaxEvidenceAge())*3).Uint64(), stateDB, anotherSender)
 	assert.NotNil(t, err)
 
 	normalEvidence2, err := si.DecodeEvidence(1, normalData2)
