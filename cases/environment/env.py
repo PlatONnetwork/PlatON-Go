@@ -3,7 +3,6 @@ import os
 import time
 import random
 import shutil
-import socket
 import tarfile
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 import copy
@@ -18,7 +17,7 @@ from common.log import log
 from environment.account import Account
 from environment.config import TestConfig
 from conf.settings import DEFAULT_CONF_TMP_DIR
-from typing import Iterable
+from typing import List
 
 
 def check_file_exists(*args):
@@ -70,11 +69,11 @@ class TestEnvironment:
         self.account = Account(self.cfg.account_file, self.genesis_config["config"]["chainId"])
 
     @property
-    def consensus_node_list(self) -> Iterable[Node]:
+    def consensus_node_list(self) -> List[Node]:
         return self.__consensus_node_list
 
     @property
-    def normal_node_list(self) -> Iterable[Node]:
+    def normal_node_list(self) -> List[Node]:
         return self.__normal_node_list
 
     @property
@@ -162,7 +161,7 @@ class TestEnvironment:
             yaml.dump(new_env_data, f, Dumper=yaml.RoundTripDumper)
         return env_id
 
-    def get_init_nodes(self) -> list:
+    def get_init_nodes(self) -> List[dict]:
         """
         Get the list of init nodes
         :return: list
@@ -182,7 +181,7 @@ class TestEnvironment:
             static_node_list.append(node.enode)
         return static_node_list
 
-    def get_all_nodes(self) -> list:
+    def get_all_nodes(self) -> List[Node]:
         """
         Get all node objects
         :return: Node object
@@ -307,7 +306,7 @@ class TestEnvironment:
 
         return self.executor(close, self.get_all_nodes())
 
-    def start_nodes(self, node_list: Iterable[Node], init_chain=True):
+    def start_nodes(self, node_list: List[Node], init_chain=True):
         """
         Boot node
         :param node_list:
@@ -318,11 +317,11 @@ class TestEnvironment:
 
         return self.executor(start, node_list, init_chain)
 
-    def deploy_nodes(self, node_list: Iterable[Node], genesis_file):
+    def deploy_nodes(self, node_list: List[Node], genesis_file):
         """
         Deployment node
-        Choose whether to empty the environment depending on whether initialization is required
-        Upload all node files
+                Choose whether to empty the environment depending on whether initialization is required
+                Upload all node files
         :param node_list:
         :param genesis_file:
         """
@@ -333,7 +332,7 @@ class TestEnvironment:
         self.put_file_nodes(node_list, genesis_file)
         return self.start_nodes(node_list, self.cfg.init_chain)
 
-    def put_file_nodes(self, node_list: Iterable[Node], genesis_file):
+    def put_file_nodes(self, node_list: List[Node], genesis_file):
         """
         Upload all files
         :param node_list:
@@ -344,7 +343,7 @@ class TestEnvironment:
 
         return self.executor(prepare, node_list)
 
-    def stop_nodes(self, node_list: Iterable[Node]):
+    def stop_nodes(self, node_list: List[Node]):
         """
         Close node
         :param node_list:
@@ -354,7 +353,7 @@ class TestEnvironment:
 
         return self.executor(stop, node_list)
 
-    def reset_nodes(self, node_list: Iterable[Node]):
+    def reset_nodes(self, node_list: List[Node]):
         """
         Restart node
         :param node_list:
@@ -364,7 +363,7 @@ class TestEnvironment:
 
         return self.executor(restart, node_list)
 
-    def clean_nodes(self, node_list: Iterable[Node]):
+    def clean_nodes(self, node_list: List[Node]):
         """
         Close the node and delete the node data
         :param node_list:
@@ -375,7 +374,7 @@ class TestEnvironment:
 
         return self.executor(clean, node_list)
 
-    def clean_db_nodes(self, node_list: Iterable[Node]):
+    def clean_db_nodes(self, node_list: List[Node]):
         """
         Close the node and clear the node database
         :param node_list:
@@ -439,7 +438,7 @@ class TestEnvironment:
 
         return self.executor(install, self.server_list)
 
-    def __parse_servers(self) -> Iterable[Server]:
+    def __parse_servers(self) -> List[Server]:
         """
         Instantiate all servers
         """
@@ -467,7 +466,7 @@ class TestEnvironment:
             server_list.append(do.result())
         return server_list
 
-    def block_numbers(self, node_list: Iterable[Node] = None) -> dict:
+    def block_numbers(self, node_list: List[Node] = None) -> dict:
         """
         Get the block height of the incoming node
         :param node_list:
@@ -479,7 +478,7 @@ class TestEnvironment:
             result[node.node_mark] = node.block_number
         return result
 
-    def check_block(self, need_number=10, multiple=3, node_list: Iterable[Node] = None):
+    def check_block(self, need_number=10, multiple=3, node_list: List[Node] = None):
         """
         Verify the highest block in the current chain
         :param need_number:
@@ -503,7 +502,7 @@ class TestEnvironment:
         """
         return self.backup_logs(self.get_all_nodes(), case_name)
 
-    def backup_logs(self, node_list: Iterable[Node], case_name):
+    def backup_logs(self, node_list: List[Node], case_name):
         """
         Backup log
         :param node_list:
