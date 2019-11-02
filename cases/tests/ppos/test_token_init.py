@@ -327,50 +327,6 @@ def test_AL_IE_004(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_AL_BI_004(client_consensus_obj, reset_environment):
-    """
-    初始验证人退出后重新质押进来
-    :param client_consensus_obj:
-    :return:
-    """
-    client_consensus_obj.economic.env.deploy_all()
-    developer_foundation_balance = client_consensus_obj.node.eth.getBalance(
-        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
-    log.info("incentive_pool_balance: {}".format(developer_foundation_balance))
-    staking_balance = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
-    log.info("staking_balance: {}".format(staking_balance))
-    log.info("nodeid: {}".format(client_consensus_obj.node.node_id))
-    # 内置节点退回质押
-    result = client_consensus_obj.staking.withdrew_staking(
-        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
-    assert result['Code'] == 0, "申请退回质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
-
-    # 等待退出质押
-    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, 1)
-    # 查看账户金额变化
-    developer_foundation_balance1 = client_consensus_obj.node.eth.getBalance(
-        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
-    log.info("incentive_pool_balance1: {}".format(developer_foundation_balance1))
-    staking_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
-    log.info("staking_balance1: {}".format(staking_balance1))
-    # 断言账户金额变化
-    assert developer_foundation_balance + EconomicConfig.DEVELOPER_STAKING_AMOUNT - developer_foundation_balance1 < client_consensus_obj.node.web3.toWei(
-        1, 'ether'), "error: developer_foundation_balance1: {}".format(developer_foundation_balance1)
-    assert staking_balance1 == staking_balance - EconomicConfig.DEVELOPER_STAKING_AMOUNT, "error: staking_balance1: {}".format(
-        staking_balance1)
-
-    # create account
-    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
-                                                                        client_consensus_obj.economic.create_staking_limit * 2)
-    address1, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3, 0)
-    # 节点重新质押
-    result = client_consensus_obj.staking.create_staking(0, address1, address)
-    assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
-    # 质押奖励和出块奖励断言
-    no_consensus_node_pledge_award_assertion(client_consensus_obj, address1, address)
-
-
-@pytest.mark.P1
 def test_AL_BI_001(client_consensus_obj):
     """
     出块手续费奖励（内置验证人）
@@ -446,17 +402,59 @@ def test_AL_BI_003(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_AL_NBI_001_to_003(client_new_node_obj):
+def test_AL_BI_004(client_consensus_obj, reset_environment):
     """
-    AL_NBI_001:非内置验证人Staking奖励（犹豫期）
-    AL_NBI_002:非内置验证人出块奖励（犹豫期）
-    AL_NBI_003:非内置验证人区块手续费奖励（犹豫期）
+    初始验证人退出后重新质押进来
+    :param client_consensus_obj:
+    :return:
+    """
+    client_consensus_obj.economic.env.deploy_all()
+    developer_foundation_balance = client_consensus_obj.node.eth.getBalance(
+        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+    log.info("incentive_pool_balance: {}".format(developer_foundation_balance))
+    staking_balance = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    log.info("staking_balance: {}".format(staking_balance))
+    log.info("nodeid: {}".format(client_consensus_obj.node.node_id))
+    # 内置节点退回质押
+    result = client_consensus_obj.staking.withdrew_staking(
+        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+    assert result['Code'] == 0, "申请退回质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+
+    # 等待退出质押
+    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, 1)
+    # 查看账户金额变化
+    developer_foundation_balance1 = client_consensus_obj.node.eth.getBalance(
+        client_consensus_obj.node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+    log.info("incentive_pool_balance1: {}".format(developer_foundation_balance1))
+    staking_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
+    log.info("staking_balance1: {}".format(staking_balance1))
+    # 断言账户金额变化
+    assert developer_foundation_balance + EconomicConfig.DEVELOPER_STAKING_AMOUNT - developer_foundation_balance1 < client_consensus_obj.node.web3.toWei(
+        1, 'ether'), "error: developer_foundation_balance1: {}".format(developer_foundation_balance1)
+    assert staking_balance1 == staking_balance - EconomicConfig.DEVELOPER_STAKING_AMOUNT, "error: staking_balance1: {}".format(
+        staking_balance1)
+
+    # create account
+    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
+                                                                        client_consensus_obj.economic.create_staking_limit * 2)
+    address1, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3, 0)
+    # 节点重新质押
+    result = client_consensus_obj.staking.create_staking(0, address1, address)
+    assert result['Code'] == 0, "申请质押返回的状态：{}, {}".format(result['Code'], result['ErrMsg'])
+    # 质押奖励和出块奖励断言
+    no_consensus_node_pledge_award_assertion(client_consensus_obj, address1, address)
+
+
+def create_pledge_node(client_new_node_obj, multiple=1):
+    """
+    create pledge node return benifit balance
     :param client_new_node_obj:
+    :param multiple:
     :return:
     """
     # create account
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       client_new_node_obj.economic.create_staking_limit * 2)
+                                                                       client_new_node_obj.economic.create_staking_limit * multiple)
     benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
     # create staking
     result = client_new_node_obj.staking.create_staking(0, benifit_address, address)
@@ -466,19 +464,56 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
     benifit_balance = client_new_node_obj.node.eth.getBalance(
         client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
     log.info("benifit_balance: {}".format(benifit_balance))
+    return benifit_balance, address, benifit_address
+
+
+def query_benifit_reward(client_new_node_obj, benifit_address, address):
+    """
+    withdrew pledge return benifit balance and Number of blocks
+    :param client_new_node_obj:
+    :param benifit_address:
+    :param address:
+    :return:
+    """
+    # withdrew of pledge
+    result = client_new_node_obj.staking.withdrew_staking(address)
+    assert result['Code'] == 0, "application pledge withdrew status：{}, ErrMsg:{}".format(result['Code'],
+                                                                                          result['ErrMsg'])
+    # wait settlement block
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    # count the number of blocks
+    blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
+    log.info("blocknumber: {}".format(blocknumber))
+    # query account amount again
+    benifit_balance1 = client_new_node_obj.node.eth.getBalance(
+        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    log.info("benifit_balance: {}".format(benifit_balance1))
+    return benifit_balance1, blocknumber
+
+
+@pytest.mark.P1
+def test_AL_NBI_001_to_003(client_new_node_obj):
+    """
+    AL_NBI_001:非内置验证人Staking奖励（犹豫期）
+    AL_NBI_002:非内置验证人出块奖励（犹豫期）
+    AL_NBI_003:非内置验证人区块手续费奖励（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    # create pledge node
+    benifit_balance, address, benifit_address = create_pledge_node(client_new_node_obj)
     # wait consensus block
     client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
     # query account amount again
     benifit_balance1 = client_new_node_obj.node.eth.getBalance(
         client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
     log.info("benifit_balance: {}".format(benifit_balance1))
-
-    assert benifit_balance1 == benifit_balance, "error: benifit_balance: {}".format(
+    assert benifit_balance1 == benifit_balance, "error:benifit_balance: {}".format(
         benifit_balance1)
 
 
 @pytest.mark.P1
-def test_AL_NBI_004(new_genesis_env):
+def test_AL_NBI_004(new_genesis_env, client_new_node_obj):
     """
     AL_NBI_004:非内置验证人Staking奖励（候选人）
     AL_NBI_005:非内置验证人出块奖励（候选人）
@@ -486,31 +521,20 @@ def test_AL_NBI_004(new_genesis_env):
     :param new_genesis_env:
     :return:
     """
+    # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.EconomicModel.Staking.EpochValidatorNum = 4
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
-    client_new_node = client_new_node_obj(new_genesis_env, client_consensus_obj, client_list_obj)
-    # create account
-    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
-                                                                   client_new_node.economic.create_staking_limit)
-    benifit_address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3, 0)
-    # create staking
-    result = client_new_node.staking.create_staking(0, benifit_address, address)
-    assert result['Code'] == 0, "application pledge return status：{}, ErrMsg:{}".format(result['Code'],
-                                                                                        result['ErrMsg'])
-    # query account amount
-    benifit_balance = client_new_node.node.eth.getBalance(
-        client_new_node.node.web3.toChecksumAddress(benifit_address))
-    log.info("benifit_balance: {}".format(benifit_balance))
+    # create pledge node
+    benifit_balance, address, benifit_address = create_pledge_node(client_new_node_obj)
     # wait settlement block
-    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, 1)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, 1)
     # query account amount again
-    benifit_balance1 = client_new_node.node.eth.getBalance(
-        client_new_node.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance1 = client_new_node_obj.node.eth.getBalance(
+        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
     log.info("benifit_balance: {}".format(benifit_balance1))
-
     assert benifit_balance1 == benifit_balance, "error: benifit_balance: {}".format(
         benifit_balance1)
 
@@ -524,18 +548,8 @@ def test_AL_NBI_007_to_009(client_new_node_obj):
     :param client_new_node_obj:
     :return:
     """
-    # create account
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       client_new_node_obj.economic.create_staking_limit * 2)
-    benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
-    # create staking
-    result = client_new_node_obj.staking.create_staking(0, benifit_address, address)
-    assert result['Code'] == 0, "application pledge return status：{}, ErrMsg:{}".format(result['Code'],
-                                                                                        result['ErrMsg'])
-    # query account amount
-    benifit_balance = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
-    log.info("benifit_balance: {}".format(benifit_balance))
+    # create pledge node
+    benifit_balance, address, benifit_address = create_pledge_node(client_new_node_obj, 2)
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     # query block_reward
@@ -546,21 +560,11 @@ def test_AL_NBI_007_to_009(client_new_node_obj):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
         log.info("当前节点是否在共识列表：{}".format(result))
         if not result:
-            # withdrew of pledge
-            result = client_new_node_obj.staking.withdrew_staking(address)
-            assert result['Code'] == 0, "application pledge withdrew status：{}, ErrMsg:{}".format(result['Code'],
-                                                                                                  result['ErrMsg'])
-            # wait settlement block
-            client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-            # count the number of blocks
-            blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
-            log.info("blocknumber: {}".format(blocknumber))
-            # query account amount again
-            benifit_balance1 = client_new_node_obj.node.eth.getBalance(
-                client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
-            log.info("benifit_balance: {}".format(benifit_balance1))
-            assert benifit_balance + staking_reward - benifit_balance1 < client_new_node_obj.node.web3.toWei(1,
-                                                                                                             'ether'), "error:benifit_balance: {}".format(
+            # query benifit reward
+            benifit_balance1, blocknumber = query_benifit_reward(client_new_node_obj, benifit_address, address)
+            assert benifit_balance + staking_reward + blocknumber * Decimal(
+                str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1,
+                                                                                            'ether'), "error:benifit_balance: {}".format(
                 benifit_balance1)
             break
         else:
@@ -577,4 +581,40 @@ def test_AL_NBI_010_to_012(client_new_node_obj):
     :param client_new_node_obj:
     :return:
     """
+    # create pledge node
+    benifit_balance, address, benifit_address = create_pledge_node(client_new_node_obj, 2)
+    # wait settlement block
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    # query block_reward
+    block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(
+        client_new_node_obj.node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    for i in range(4):
+        result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList())
+        log.info("当前节点是否在共识列表：{}".format(result))
+        if result:
+            # query benifit reward
+            benifit_balance1, blocknumber = query_benifit_reward(client_new_node_obj, benifit_address, address)
+            assert benifit_balance + staking_reward + blocknumber * Decimal(
+                str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1, 'ether'), "error:benifit_balance: {}".format(
+                benifit_balance1)
+            break
+        else:
+            # wait consensus block
+            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+
+
+@pytest.mark.P1
+def test_AL_NBI_013(client_new_node_obj):
+    """
+    修改节点质押收益地址查看收益变更
+    :param client_new_node_obj:
+    :return:
+    """
+    # create pledge node
+    benifit_balance, address, benifit_address = create_pledge_node(client_new_node_obj, 2)
+    # create account
+    benifit_address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
+    # change benifit address
+    client_new_node_obj.staking.edit_candidate(address, benifit_address1)
 
