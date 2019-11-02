@@ -6,7 +6,9 @@ from hexbytes import HexBytes
 from environment.node import Node
 # from pip import *
 from common.log import log
-import math
+from typing import Iterable
+from .client import Client
+from .pip import Pip
 
 
 def decorator_sleep(func):
@@ -111,7 +113,7 @@ def compare_two_dict(dict1, dict2, key_list=None):
     return flag
 
 
-def get_no_pledge_node(node_list):
+def get_no_pledge_node(node_list) -> Node:
     """
     Get nodes that are not pledged
     :param node_list: Node list
@@ -124,7 +126,7 @@ def get_no_pledge_node(node_list):
     return None
 
 
-def get_no_pledge_node_list(node_list):
+def get_no_pledge_node_list(node_list:Iterable[Node]) -> Iterable[Node]:
     """
     Get all the nodes that can be pledged
     :param node_list: Node list
@@ -138,7 +140,7 @@ def get_no_pledge_node_list(node_list):
     return no_pledge_node_list
 
 
-def get_pledge_list(func):
+def get_pledge_list(func) -> list:
     """
     View the list of specified node IDs
     :param func: Query method, 1. List of current pledge nodes 2,
@@ -155,7 +157,7 @@ def get_pledge_list(func):
     return validator_list
 
 
-def check_node_in_list(nodeid, func):
+def check_node_in_list(nodeid, func) -> bool:
     """
     Check if the node is in the specified list
     :param nodeid: Node id
@@ -257,7 +259,7 @@ def get_max_staking_tx_index(node):
     return term_nodeid_dict[max_staking_tx_index]
 
 
-def random_string(length=10):
+def random_string(length=10) -> str:
     """
     Randomly generate a string of letters and numbers of a specified length
     :param length:
@@ -272,7 +274,7 @@ def random_string(length=10):
     )
 
 
-def get_pip_obj(nodeid, pip_obj_list):
+def get_pip_obj(nodeid, pip_obj_list) -> Pip:
     """
     Get the pip object according to the node id
     :param nodeid:
@@ -284,7 +286,7 @@ def get_pip_obj(nodeid, pip_obj_list):
             return pip_obj
 
 
-def get_pip_obj_list(nodeid_list, pip_obj_list):
+def get_pip_obj_list(nodeid_list, pip_obj_list) -> Iterable[Pip]:
     """
     Get a list of pip objects based on the node id list
     :param nodeid_list:
@@ -297,7 +299,7 @@ def get_pip_obj_list(nodeid_list, pip_obj_list):
     return new_pip_obj_list
 
 
-def get_client_obj(nodeid, client_obj_list):
+def get_client_obj(nodeid, client_obj_list) -> Client:
     """
     Get the client object according to the node id
     :param nodeid:
@@ -309,7 +311,7 @@ def get_client_obj(nodeid, client_obj_list):
             return client_obj
 
 
-def get_client_obj_list(nodeid_list, client_obj_list):
+def get_client_obj_list(nodeid_list, client_obj_list) -> Iterable[Client]:
     """
     Get the client object list according to the node id list
     :param nodeid_list:
