@@ -38,7 +38,7 @@ func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block
 //implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
-	log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
+	//log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
 	if !xutil.IsBeginOfConsensus(blockNumber) {
 		return nil
@@ -69,9 +69,9 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	versionProposal, isVersionProposal := preActiveVersionProposal.(*gov.VersionProposal)
 
 	if isVersionProposal {
-		log.Debug("found pre-active version proposal", "proposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash, "activeBlockNumber", versionProposal.GetActiveBlock())
+		//log.Debug("found pre-active version proposal", "proposalID", preActiveVersionProposalID, "blockNumber", blockNumber, "blockHash", blockHash, "activeBlockNumber", versionProposal.GetActiveBlock())
 		if blockNumber == versionProposal.GetActiveBlock() {
-			log.Debug("it's time to active the pre-active version proposal")
+			//log.Debug("it's time to active the pre-active version proposal")
 			tallyResult, err := gov.GetTallyResult(preActiveVersionProposalID, state)
 			if err != nil || tallyResult == nil {
 				log.Error("find pre-active version proposal tally result failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveVersionProposalID", preActiveVersionProposalID)
@@ -99,7 +99,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Error("save active version to stateDB failed.", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 				return err
 			}
-			log.Debug("version proposal active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
+			log.Info("version proposal is active.", "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}
 	return nil
@@ -108,7 +108,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 //implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
-	log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
+	//log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
 	//text/version/cancel proposal's end voting block is ElectionBlock
 	//param proposal's end voting block is end of Epoch
@@ -127,15 +127,15 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return err
 	}
 	if len(votingProposalIDs) == 0 {
-		log.Debug("there's no voting proposal", "blockNumber", blockNumber, "blockHash", blockHash)
+		//log.Debug("there's no voting proposal", "blockNumber", blockNumber, "blockHash", blockHash)
 		return nil
 	}
 
 	//iterate each voting proposal, to check if current block is proposal's end-voting block.
 	for _, votingProposalID := range votingProposalIDs {
-		log.Debug("iterate each voting proposal", "proposalID", votingProposalID)
+		//log.Debug("iterate each voting proposal", "proposalID", votingProposalID)
 		votingProposal, err := gov.GetExistProposal(votingProposalID, state)
-		log.Debug("find voting proposal", "votingProposal", votingProposal)
+		//log.Debug("find voting proposal", "votingProposal", votingProposal)
 		if nil != err {
 			return err
 		}
@@ -210,7 +210,7 @@ func accuVerifiersAtBeginOfSettlement(blockHash common.Hash, blockNumber uint64)
 // tally a version proposal
 func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 	proposalID := proposal.ProposalID
-	log.Debug("proposal tally", "proposalID", proposal.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
+	//log.Debug("proposal tally", "proposalID", proposal.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
 
 	verifierList, err := gov.ListAccuVerifier(blockHash, proposalID)
 	if err != nil {
@@ -229,7 +229,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	status := gov.Failed
 	supportRate := float64(yeas) / float64(verifiersCnt)
 
-	log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposal_SupportRate()))
+	//log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposal_SupportRate()))
 
 	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
 		status = gov.PreActive
@@ -249,7 +249,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			log.Error("list active node failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
 		}
-		log.Debug("call stk.ProposalPassedNotify", "proposalID", proposalID, "activeList", activeList)
+		//log.Debug("call stk.ProposalPassedNotify", "proposalID", proposalID, "activeList", activeList)
 		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion); err != nil {
 			log.Error("call stk.ProposalPassedNotify failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "activeList", activeList)
 			return err
@@ -284,7 +284,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 		return err
 	}
 
-	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
+	log.Info("version proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return nil
 }
 
@@ -294,6 +294,7 @@ func tallyText(proposalID common.Hash, blockHash common.Hash, blockNumber uint64
 
 func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
 	if pass, err := tally(gov.Cancel, cp.ProposalID, blockHash, blockNumber, state); err != nil {
+		log.Info("canceled a proposal failed", "proposalID", cp.TobeCanceled, "tobeCanceledProposalID", cp.TobeCanceled)
 		return false, err
 	} else if pass {
 		if proposal, err := gov.GetExistProposal(cp.TobeCanceled, state); err != nil {
@@ -356,7 +357,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 				return false, err
 			}
 
-			log.Debug("successfully canceled a proposal", "proposalID", cp.TobeCanceled, "tallyResult", tallyResult)
+			log.Info("canceled a proposal success", "proposalID", cp.TobeCanceled, "tallyResult", tallyResult)
 		}
 	}
 	return true, nil
@@ -374,7 +375,7 @@ func tallyParam(pp *gov.ParamProposal, blockHash common.Hash, blockNumber uint64
 }
 
 func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
-	log.Debug("proposal tally", "proposalID", proposalID, "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
+	//log.Debug("proposal tally", "proposalID", proposalID, "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
 
 	verifierList, err := gov.ListAccuVerifier(blockHash, proposalID)
 	if err != nil {
@@ -395,21 +396,21 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 
 	switch proposalType {
 	case gov.Text:
-		log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposal_SupportRate()))
+		//log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposal_SupportRate()))
 		if voteRate > Decimal(xcom.TextProposal_VoteRate()) && supportRate >= Decimal(xcom.TextProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Cancel:
-		log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposal_SupportRate()))
+		//log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposal_SupportRate()))
 		if voteRate > Decimal(xcom.CancelProposal_VoteRate()) && supportRate >= Decimal(xcom.CancelProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Param:
-		log.Debug("param proposal", "voteRate", voteRate, "required", xcom.ParamProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.ParamProposal_SupportRate()))
+		//log.Debug("param proposal", "voteRate", voteRate, "required", xcom.ParamProposal_VoteRate(), "supportRate", supportRate, "required", Decimal(xcom.ParamProposal_SupportRate()))
 		if voteRate > Decimal(xcom.ParamProposal_VoteRate()) && supportRate >= Decimal(xcom.ParamProposal_SupportRate()) {
 			status = gov.Pass
 		} else {
