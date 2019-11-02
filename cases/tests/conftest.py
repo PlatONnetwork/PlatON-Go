@@ -86,6 +86,7 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
     verifier_list = get_pledge_list(client_consensus_obj.ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
+    nodeid = ""
     for nodeobj in global_test_env.consensus_node_list:
         if nodeobj.node_id in verifier_list:
             nodeid = nodeobj.node_id
