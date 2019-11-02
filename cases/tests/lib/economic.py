@@ -72,16 +72,23 @@ class Economic:
         :return:
         """
         new_block_rate = self.genesis.EconomicModel.Reward.NewBlockRate
+        print('new_block_rate',new_block_rate)
         annualcycle, annual_size, current_end_block = self.get_annual_switchpoint(node)
+        print(annualcycle,annual_size,current_end_block)
         if verifier_num is None:
             verifier_list = node.ppos.getVerifierList()
             verifier_num = len(verifier_list['Data'])
         amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, 0)
+        print('amount',amount)
         block_proportion = str(new_block_rate / 100)
+        print('block_proportion',block_proportion)
         staking_proportion = str(1 - new_block_rate / 100)
+        print('staking_proportion',staking_proportion)
         block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(annualcycle)))
+        print('block_reward',block_reward)
         staking_reward = int(
             Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(annualcycle)) / Decimal(str(verifier_num)))
+        print('staking_reward',staking_reward)
         return block_reward, staking_reward
 
     def get_settlement_switchpoint(self, node: Node, number=0):
@@ -153,3 +160,7 @@ class Economic:
         current_block = node.eth.blockNumber
         current_end_block = math.ceil(current_block / self.consensus_size) * self.consensus_size + block_number
         return current_end_block
+
+if __name__ == '__main__':
+    a = Economic()
+    a.get_current_year_reward()
