@@ -1,5 +1,6 @@
 from common.log import log
-from tests.lib.utils import upload_platon, get_client_obj_list, get_pledge_list, assert_code
+from tests.lib.utils import upload_platon, get_pledge_list, assert_code
+from tests.lib.client import get_client_obj_list
 import pytest
 import time
 
@@ -29,7 +30,8 @@ def proposal_pipobj_list(global_test_env, client_verifier_obj, client_list_obj):
     if pip_obj.is_exist_effective_proposal():
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
         log.info('proprosalinfo : {}'.format(proposalinfo))
-        if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > 2 * pip_obj.economic.consensus_size:
+        if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > 2 * pip_obj.economic.consensus_size \
+                and proposalinfo.get('NewVersion') == pip_obj.cfg.version5:
             verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
             log.info('verifierlist{}'.format(verifier_list))
             client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
@@ -37,6 +39,33 @@ def proposal_pipobj_list(global_test_env, client_verifier_obj, client_list_obj):
         else:
             global_test_env.deploy_all()
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time_ns()), pip_obj.cfg.version5, 10,
+                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('version proposal result :{}'.format(result))
+    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    log.info('verifierlist{}'.format(verifier_list))
+    client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
+    return [client_obj.pip for client_obj in client_obj_list]
+
+@pytest.fixture()
+def big_version_proposal_pipobj_list(global_test_env, client_verifier_obj, client_list_obj):
+    '''
+    get verifier Client object list
+    :param global_test_env:
+    :return:
+    '''
+    pip_obj = client_verifier_obj.pip
+    if pip_obj.is_exist_effective_proposal():
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('proprosalinfo : {}'.format(proposalinfo))
+        if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > 2 * pip_obj.economic.consensus_size \
+                and proposalinfo.get('NewVersion') == pip_obj.cfg.version8:
+            verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+            log.info('verifierlist{}'.format(verifier_list))
+            client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
+            return [client_obj.pip for client_obj in client_obj_list]
+        else:
+            global_test_env.deploy_all()
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time_ns()), pip_obj.cfg.version8, 10,
                                    pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
@@ -53,7 +82,7 @@ def replace_version_declare(pip_obj, platon_bin, versiontag):
     log.info('assert the version of the node is {}'.format(versiontag))
     result = pip_obj.declareVersion(pip_obj.node.node_id, pip_obj.node.staking_address,
                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('the version of the node equal the version of the chain, declareversion result: {}'.format(result))
+    log.info('declareversion {} result: {}'.format(pip_obj.node.program_version, result))
     return result
 
 def wrong_verisonsign_declare(pip_obj, pip_obj_test):
@@ -63,11 +92,15 @@ def wrong_verisonsign_declare(pip_obj, pip_obj_test):
     log.info('wrong program version sign, declareVersion result : {}'.format(result))
     return result
 
-def wrong_verison_declare(pip_obj, version):
+def wrong_verison_declare(pip_obj, version=None):
+    if not version:
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        version = proposalinfo.get('NewVersion')
+        log.info('The new version of the proposal: {}'.format(version))
     result = pip_obj.declareVersion(pip_obj.node.node_id, pip_obj.node.staking_address,
                                     program_version=version,
                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('wrong program version, declareVersion result : {}'.format(result))
+    log.info('wrong program version, declareVersion: {} result : {}'.format(version, result))
     return result
 
 def test_DE_DE_001(client_verifier_obj):
@@ -146,8 +179,8 @@ class TestNoProposalVE():
         assert_code(result, 302024)
 
 class TestHasProposalVE():
-    def test_DE_VE_8(self, proposal_pipobj_list):
-        pip_obj = proposal_pipobj_list[0].pip
+    def test_DE_VE_008(self, proposal_pipobj_list):
+        pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
         assert_code(result, 0)
 
@@ -155,4 +188,49 @@ class TestHasProposalVE():
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
+        assert_code(result, 302024)
+
+    def test_DE_VE_010(self, proposal_pipobj_list):
+        pip_obj = proposal_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, proposal_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
+        assert_code(result, 302024)
+
+    def test_DE_VE_014(self, big_version_proposal_pipobj_list):
+        pip_obj = big_version_proposal_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, big_version_proposal_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
+        assert_code(result, 302024)
+
+    def test_DE_VE_025(self, big_version_proposal_pipobj_list):
+        pip_obj = big_version_proposal_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, big_version_proposal_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
         assert_code(result, 302024)

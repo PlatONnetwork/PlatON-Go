@@ -270,3 +270,12 @@ def random_string(length=10) -> str:
             string.digits
         ) for _ in range(length)
     )
+
+def assert_code(result, code):
+    '''
+    assert the ErrorCode
+    :param result:
+    :param code:
+    :return:
+    '''
+    assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result.get("Code"))
