@@ -322,3 +322,6 @@ def get_client_obj_list(nodeid_list, client_obj_list: List[Client]) -> List[Clie
     for nodeid in nodeid_list:
         new_client_obj_list.append(get_client_obj(nodeid, client_obj_list))
     return new_client_obj_list
+
+def assert_code(result, code):
+    assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result.get("Code"))

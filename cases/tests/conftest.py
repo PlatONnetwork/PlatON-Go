@@ -2,7 +2,7 @@ import pytest
 from tests.lib import StakingConfig
 from common.log import log
 from tests.lib.client import Client
-from tests.lib.utils import get_pledge_list, get_client_obj, get_staking_address
+from tests.lib.utils import get_pledge_list, get_client_obj
 
 
 @pytest.fixture()
@@ -96,7 +96,6 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
     client_obj = get_client_obj(nodeid, client_list_obj)
     return client_obj
 
-
 @pytest.fixture()
 def client_new_node_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
@@ -124,7 +123,6 @@ def client_new_node_obj_list(global_test_env, client_noc_list_obj):
     global_test_env.deploy_all()
     return client_noc_list_obj
 
-
 @pytest.fixture()
 def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
@@ -132,7 +130,7 @@ def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj)
     :param global_test_env:
     :return:
     '''
-    address = get_staking_address(client_consensus_obj.node)
+    address = client_consensus_obj.node.staking_address
     if not client_consensus_obj.staking.get_candidate_list_not_verifier():
         log.info('不存在候选节点，需要对节点进行质押')
         candidate_list = get_pledge_list(client_consensus_obj.node.ppos.getCandidateList)

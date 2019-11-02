@@ -31,7 +31,7 @@
         "Slashing": {
             "DuplicateSignHighSlashing": 10,
             "DuplicateSignReportReward": 50,
-            "NumberOfBlockRewardForSlashing": 21,
+            "NumberOfBlockRewardForSlashing": 10,
             "EvidenceValidEpoch": 0
         },
         "Gov": {

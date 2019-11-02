@@ -55,7 +55,7 @@ def global_test_env(request):
         download.download_platon(plant_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
     # env.deploy_all()
-    env.prepare_all()
+    # env.prepare_all()
     yield env
 
     if allure_dir:
