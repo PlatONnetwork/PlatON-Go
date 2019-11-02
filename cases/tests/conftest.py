@@ -1,8 +1,8 @@
 import pytest
 from tests.lib import StakingConfig
 from common.log import log
-from tests.lib.client import Client
-from tests.lib.utils import get_pledge_list, get_client_obj
+from tests.lib.client import Client, get_client_obj
+from tests.lib.utils import get_pledge_list
 
 
 @pytest.fixture()

@@ -2,7 +2,7 @@ import pytest
 from common.log import log
 from copy import copy
 import time
-from tests.lib import get_client_obj
+from tests.lib.client import get_client_obj
 
 @pytest.fixture(scope="class")
 def pip_env(global_test_env):

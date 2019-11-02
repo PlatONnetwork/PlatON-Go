@@ -7,8 +7,6 @@ from environment.node import Node
 # from pip import *
 from common.log import log
 from typing import List
-from .client import Client
-from .pip import Pip
 
 
 def decorator_sleep(func):
@@ -272,56 +270,3 @@ def random_string(length=10) -> str:
             string.digits
         ) for _ in range(length)
     )
-
-
-def get_pip_obj(nodeid, pip_obj_list: List[Pip]) -> Pip:
-    """
-    Get the pip object according to the node id
-    :param nodeid:
-    :param pip_obj_list:
-    :return:
-    """
-    for pip_obj in pip_obj_list:
-        if nodeid == pip_obj.node.node_id:
-            return pip_obj
-
-
-def get_pip_obj_list(nodeid_list, pip_obj_list: List[Pip]) -> List[Pip]:
-    """
-    Get a list of pip objects based on the node id list
-    :param nodeid_list:
-    :param pip_obj_list:
-    :return:
-    """
-    new_pip_obj_list = []
-    for nodeid in nodeid_list:
-        new_pip_obj_list.append(get_pip_obj(nodeid, pip_obj_list))
-    return new_pip_obj_list
-
-
-def get_client_obj(nodeid, client_obj_list: List[Client]) -> Client:
-    """
-    Get the client object according to the node id
-    :param nodeid:
-    :param client_obj_list:
-    :return:
-    """
-    for client_obj in client_obj_list:
-        if nodeid == client_obj.node.node_id:
-            return client_obj
-
-
-def get_client_obj_list(nodeid_list, client_obj_list: List[Client]) -> List[Client]:
-    """
-    Get the client object list according to the node id list
-    :param nodeid_list:
-    :param client_obj_list:
-    :return:
-    """
-    new_client_obj_list = []
-    for nodeid in nodeid_list:
-        new_client_obj_list.append(get_client_obj(nodeid, client_obj_list))
-    return new_client_obj_list
-
-def assert_code(result, code):
-    assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result.get("Code"))
