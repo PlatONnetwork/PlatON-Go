@@ -325,7 +325,7 @@ def test_AL_IE_004(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_AL_BI_004(client_consensus_obj):
+def test_AL_BI_004(client_consensus_obj, reset_environment):
     """
     初始验证人退出后重新质押进来
     :param client_consensus_obj:
@@ -379,7 +379,6 @@ def test_AL_BI_001(client_consensus_obj):
     log.info("incentive_pool_balance: {}".format(incentive_pool_balance))
     # create account
     address1, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3, 100)
-
     # query incentive account
     incentive_pool_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive_pool_balance: {}".format(incentive_pool_balance1))
@@ -397,7 +396,8 @@ def test_AL_BI_002(client_new_node_obj_list):
     incentive_pool_balance = client_new_node_obj_list[0].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive_pool_balance: {}".format(incentive_pool_balance))
     # query block_reward
-    block_reward, staking_reward = client_new_node_obj_list[0].economic.get_current_year_reward(client_new_node_obj_list[0].node)
+    block_reward, staking_reward = client_new_node_obj_list[0].economic.get_current_year_reward(
+        client_new_node_obj_list[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # stop node
     client_new_node_obj_list[0].node.stop()
@@ -409,9 +409,59 @@ def test_AL_BI_002(client_new_node_obj_list):
     incentive_pool_balance1 = client_new_node_obj_list[0].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive_pool_balance: {}".format(incentive_pool_balance1))
 
-    assert incentive_pool_balance1 == incentive_pool_balance + punish_reward, "error: incentive_pool_balance: {}".format(incentive_pool_balance1)
+    assert incentive_pool_balance1 == incentive_pool_balance + punish_reward, "error: incentive_pool_balance: {}".format(
+        incentive_pool_balance1)
 
 
+@pytest.mark.P1
+def test_AL_BI_003(client_consensus_obj):
+    """
+    初始内置账户没有基金会Staking奖励和出块奖励
+    :param client_consensus_obj:
+    :return:
+    """
+    # query incentive account
+    incentive_pool_balance = client_consensus_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("incentive_pool_balance: {}".format(incentive_pool_balance))
+
+    # wait settlement block
+    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node)
+
+    # query incentive account again
+    incentive_pool_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    log.info("incentive_pool_balance: {}".format(incentive_pool_balance1))
+
+    assert incentive_pool_balance1 == incentive_pool_balance, "error: incentive account: {}".format(
+        incentive_pool_balance1)
 
 
+@pytest.mark.P1
+def test_AL_NBI_001_to_003(client_new_node_obj):
+    """
+    AL_NBI_001:非内置验证人Staking奖励（犹豫期）
+    AL_NBI_002:非内置验证人出块奖励（犹豫期）
+    AL_NBI_003:非内置验证人区块手续费奖励（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    # create account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit * 2)
+    benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
+    # create staking
+    result = client_new_node_obj.staking.create_staking(0, benifit_address, address)
+    assert result['Code'] == 0, "application pledge return status：{}, ErrMsg:{}".format(result['Code'],
+                                                                                        result['ErrMsg'])
+    # query account amount
+    benifit_balance = client_new_node_obj.node.eth.getBalance(
+        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    log.info("benifit_balance: {}".format(benifit_balance))
+    # wait consensus block
+    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+    # query account amount again
+    benifit_balance1 = client_new_node_obj.node.eth.getBalance(
+        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    log.info("benifit_balance: {}".format(benifit_balance1))
 
+    assert benifit_balance1 == benifit_balance, "error: benifit_balance: {}".format(
+        benifit_balance1)

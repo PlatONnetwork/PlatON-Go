@@ -147,3 +147,10 @@ def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj)
     if not node_id_list:
         raise Exception('获取候选人失败')
     return get_client_obj(node_id_list[0], client_list_obj)
+
+
+@pytest.fixture()
+def reset_environment(global_test_env):
+    log.info("case execution completed")
+    yield
+    global_test_env.deploy_all()
