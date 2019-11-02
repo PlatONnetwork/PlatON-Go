@@ -1,8 +1,23 @@
 import pytest
+from copy import copy
 from tests.lib import StakingConfig
 from common.log import log
 from tests.lib.client import Client, get_client_obj
 from tests.lib.utils import get_pledge_list
+
+
+@pytest.fixture()
+def global_running_env(global_test_env):
+    cfg = global_test_env.cfg
+    genesis = global_test_env.genesis_config
+    backup_cfg = copy(cfg)
+    id_cfg = id(cfg)
+    if not global_test_env.running:
+        global_test_env.deploy_all()
+    yield global_test_env
+    if id_cfg != id(global_test_env.cfg) or id(genesis) != id(global_test_env.genesis_config):
+        global_test_env.set_cfg(backup_cfg)
+        global_test_env.deploy_all()
 
 
 @pytest.fixture()
