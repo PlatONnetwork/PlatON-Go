@@ -1,3 +1,5 @@
+from copy import copy
+
 import pytest
 from copy import copy
 from tests.lib import StakingConfig
@@ -111,6 +113,7 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
     client_obj = get_client_obj(nodeid, client_list_obj)
     return client_obj
 
+
 @pytest.fixture()
 def client_new_node_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
@@ -137,6 +140,7 @@ def client_new_node_obj_list(global_test_env, client_noc_list_obj):
     '''
     global_test_env.deploy_all()
     return client_noc_list_obj
+
 
 @pytest.fixture()
 def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj):
@@ -168,4 +172,13 @@ def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj)
 def reset_environment(global_test_env):
     log.info("case execution completed")
     yield
+    global_test_env.deploy_all()
+
+
+@pytest.fixture
+def new_genesis_env(global_test_env):
+    cfg = copy(global_test_env.cfg)
+    yield global_test_env
+    log.info("reset deploy.................")
+    global_test_env.set_cfg(cfg)
     global_test_env.deploy_all()
