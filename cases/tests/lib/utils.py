@@ -6,7 +6,7 @@ from hexbytes import HexBytes
 from environment.node import Node
 # from pip import *
 from common.log import log
-from typing import Iterable
+from typing import List
 from .client import Client
 from .pip import Pip
 
@@ -126,7 +126,7 @@ def get_no_pledge_node(node_list) -> Node:
     return None
 
 
-def get_no_pledge_node_list(node_list:Iterable[Node]) -> Iterable[Node]:
+def get_no_pledge_node_list(node_list: List[Node]) -> List[Node]:
     """
     Get all the nodes that can be pledged
     :param node_list: Node list
@@ -274,7 +274,7 @@ def random_string(length=10) -> str:
     )
 
 
-def get_pip_obj(nodeid, pip_obj_list) -> Pip:
+def get_pip_obj(nodeid, pip_obj_list: List[Pip]) -> Pip:
     """
     Get the pip object according to the node id
     :param nodeid:
@@ -286,7 +286,7 @@ def get_pip_obj(nodeid, pip_obj_list) -> Pip:
             return pip_obj
 
 
-def get_pip_obj_list(nodeid_list, pip_obj_list) -> Iterable[Pip]:
+def get_pip_obj_list(nodeid_list, pip_obj_list: List[Pip]) -> List[Pip]:
     """
     Get a list of pip objects based on the node id list
     :param nodeid_list:
@@ -299,7 +299,7 @@ def get_pip_obj_list(nodeid_list, pip_obj_list) -> Iterable[Pip]:
     return new_pip_obj_list
 
 
-def get_client_obj(nodeid, client_obj_list) -> Client:
+def get_client_obj(nodeid, client_obj_list: List[Client]) -> Client:
     """
     Get the client object according to the node id
     :param nodeid:
@@ -311,7 +311,7 @@ def get_client_obj(nodeid, client_obj_list) -> Client:
             return client_obj
 
 
-def get_client_obj_list(nodeid_list, client_obj_list) -> Iterable[Client]:
+def get_client_obj_list(nodeid_list, client_obj_list: List[Client]) -> List[Client]:
     """
     Get the client object list according to the node id list
     :param nodeid_list:
