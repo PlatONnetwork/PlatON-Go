@@ -226,7 +226,7 @@ class Pip:
         :return:
         """
         result = self.pip.getActiveVersion()
-        return result.get('Data')
+        return int(result.get('Data'))
 
     def get_version_small_version(self, flag=3):
         """
