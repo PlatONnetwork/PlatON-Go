@@ -115,20 +115,20 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
 
 
 @pytest.fixture()
-def client_new_node_obj(global_test_env, client_consensus_obj, client_list_obj):
+def client_new_node_obj(client_noconsensus_obj, client_list_obj, client_noc_list_obj):
     '''
-    获取单个新节点Client对象
+    获取单个未被质押节点Client对象
     :param global_test_env:
     :return:
     '''
-    candidate_list = get_pledge_list(client_consensus_obj.ppos.getCandidateList)
+    candidate_list = get_pledge_list(client_noconsensus_obj.ppos.getCandidateList)
     log.info('candidatelist{}'.format(candidate_list))
-    for noconsensus_node_obj in global_test_env.normal_node_list:
-        if noconsensus_node_obj.node_id not in candidate_list:
-            return get_client_obj(noconsensus_node_obj.node_id, client_list_obj)
+    for noconsensus_node_obj in client_noc_list_obj:
+        if noconsensus_node_obj.node.node_id not in candidate_list:
+            return noconsensus_node_obj
     log.info('非共识节点已全部质押，重新启链')
-    global_test_env.deploy_all()
-    return get_client_obj(global_test_env.get_a_normal_node().node_id, client_list_obj)
+    client_noconsensus_obj.economic.env.deploy_all()
+    return client_noconsensus_obj
 
 
 @pytest.fixture()
