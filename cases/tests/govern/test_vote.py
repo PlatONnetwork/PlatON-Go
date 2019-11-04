@@ -23,6 +23,19 @@ def voting_proposal_ve_pipobj(global_test_env, client_verifier_obj):
     return pip_obj
 
 
+def test_V0_VO_001_V0_RE_001(voting_proposal_ve_pipobj):
+    pip_obj = voting_proposal_ve_pipobj
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+    log.info('Get version proposalinfo {}'.format(proposalinfo))
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('vote result: {}'.format(result))
+    assert_code(result, 0)
+
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('vote duplicated result: {}'.format(result))
+    assert_code(result, 302027)
 
 
 
