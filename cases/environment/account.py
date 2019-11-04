@@ -163,6 +163,15 @@ class Account:
             "prikey": prikey,
         }
         self.accounts[address] = account
+        # todo delete debug
+
+        def debug():
+            from conf.settings import BASE_DIR
+            from ruamel import yaml
+            accounts = list(self.accounts.values())
+            with open(os.path.join(BASE_DIR, "deploy/tmp/accounts.yml"), mode="w", encoding="UTF-8") as f:
+                yaml.dump(accounts, f, Dumper=yaml.RoundTripDumper)
+        debug()
         return address, prikey
 
     def find_pri_key(self, address):
