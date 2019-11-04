@@ -58,6 +58,13 @@
 		"EndVotingRounds":5,
 		"NewVersion":65792
 	},
+	"P2002":{
+		"Verifier": "1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
+		"PIPID": "PIPID_1",
+		"Module":"Staking",
+		"Name":"MaxValidators",
+		"NewValue":"30"
+	},
 	"P2005":{
 		"Verifier": "1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
 		"PIPID": "PIPID_1",
@@ -90,6 +97,17 @@
 	},
 	"P2101":{
 		"ProposalID": "0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e"
+	},
+	"P2104":{
+		"Module": "Staking",
+		"Name": "MaxValidators"
+	},
+	"P2105":{
+		"ProposalID": "0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e",
+		"BlockHash": "0x12c171900f010b17e969702efa044d077e86808212c171900f010b17e969702e"
+	},
+	"P2106":{
+		"Module": "Staking"
 	},
 	"P3000":{
 		"Data":"0x12c171900f010b17e969702efa044d077e868082"
