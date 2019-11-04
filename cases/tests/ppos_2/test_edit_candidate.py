@@ -196,7 +196,7 @@ def test_MPI_062(client_new_node_obj, get_generate_account):
     assert result.get('Code') == 301102
 
 
-def test_MPI_063_064(client_new_node_obj, get_generate_account):
+# def test_MPI_063_064(client_new_node_obj, get_generate_account):
     """
     Lock period exit pledge, modify node information
     After the lockout pledge is complete, the node information shall be modified
