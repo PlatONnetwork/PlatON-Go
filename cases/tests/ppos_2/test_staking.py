@@ -49,7 +49,7 @@ def test_IV_006_007_008(client_consensus_obj, get_generate_account):
     log.info(result)
     assert result.get('Code') == 0
     log.info("进入下2个周期")
-    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, number=2)
+    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, number=1)
     result = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
     log.info(result)
     assert result.get('Code') == 301204, "预期验证人已退出"

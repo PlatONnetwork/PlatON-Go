@@ -2,6 +2,7 @@
 
 from tests.lib.utils import *
 import pytest
+import allure
 
 
 def test_MPI_052_053(client_new_node_obj, get_generate_account):
@@ -41,9 +42,9 @@ def test_MPI_054(client_new_node_obj, get_generate_account, greater_than_staking
     result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
     assert result.get('Code') == 0
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=1)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     log.info("Next consensus cycle")
-    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node, number=1)
+    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
     validator_list = get_pledge_list(client_new_node_obj.ppos.getValidatorList)
     log.info(validator_list)
     assert client_new_node_obj.node.node_id in validator_list
@@ -132,7 +133,7 @@ def test_MPI_059(client_new_node_obj, get_generate_account):
     log.info(address1)
     result = client_new_node_obj.staking.create_staking(0, address1, address1)
     assert result.get('Code') == 0
-    address2 ="0x111111111111111111111111111111"
+    address2 = "0x111111111111111111111111111111"
     status = 0
     try:
         result = client_new_node_obj.staking.edit_candidate(address1, address2)
@@ -178,6 +179,56 @@ def test_MPI_061(client_new_node_obj):
     assert status == 1
 
 
+def test_MPI_062(client_new_node_obj, get_generate_account):
+    """
+    During the hesitation period, withdraw pledge and modify node information
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, pri_key = get_generate_account
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert result.get('Code') == 0
+    result = client_new_node_obj.staking.withdrew_staking(address)
+    log.info(result)
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301102
+
+
+def test_MPI_063_064(client_new_node_obj, get_generate_account):
+    """
+    Lock period exit pledge, modify node information
+    After the lockout pledge is complete, the node information shall be modified
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, pri_key = get_generate_account
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert result.get('Code') == 0
+    log.info("Next settlement period")
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info(msg)
+    assert msg["Data"] != ""
+    result = client_new_node_obj.staking.withdrew_staking(address)
+    assert result.get('Code') == 0
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301103
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    assert msg["Data"] == ""
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301103
 
 
 
+
+
+
+
+if __name__ == '__main__':
+    pytest.main(['-s', 'test_edit_candidate.py::test_'])

@@ -256,13 +256,13 @@ def test_AS_050_051(client_new_node_obj, get_generate_account,client_consensus_o
     client_new_node_obj.node.stop()
     node = client_consensus_obj.node
     log.info("The next two periods")
-    client_new_node_obj.economic.wait_settlement_blocknum(node,number=2)
+    client_new_node_obj.economic.wait_settlement_blocknum(node,number=1)
     log.info("Restart the node")
     client_new_node_obj.node.start()
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(node, number=1)
+    client_new_node_obj.economic.wait_settlement_blocknum(node)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
 
