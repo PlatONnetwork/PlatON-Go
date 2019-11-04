@@ -70,7 +70,159 @@ def test_MPI_055(client_consensus_obj, get_generate_account):
     assert msg["Data"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
 
+def test_MPI_056_057(client_new_node_obj, get_generate_account):
+    """
+    The beneficiary address of the non-initial verifier is changed to the incentive pool address
+    and then to the ordinary address
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, _ = get_generate_account
+    INCENTIVEPOOL_ADDRESS = client_new_node_obj.economic.cfg.INCENTIVEPOOL_ADDRESS
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert result.get('Code') == 0
+    log.info("Change to excitation pool address")
+    result = client_new_node_obj.staking.edit_candidate(address, INCENTIVEPOOL_ADDRESS)
+    log.info(result)
+    assert result.get('Code') == 0
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info(msg)
+    assert msg["Data"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 0
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info(msg)
+    assert msg["Data"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
+
+
+def test_MPI_058(client_new_node_obj, client_noconsensus_obj, get_generate_account):
+    """
+    Edit wallet address as legal
+    :param client_new_node_obj:
+    :param client_noconsensus_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address1, _ = get_generate_account
+    log.info(address1)
+    result = client_new_node_obj.staking.create_staking(0, address1, address1)
+    assert result.get('Code') == 0
+    account = client_noconsensus_obj.economic.account
+    node = client_noconsensus_obj.node
+    address2, _ = account.generate_account(node.web3, 10 ** 18 * 20000000)
+    result = client_new_node_obj.staking.edit_candidate(address1, address2)
+    log.info(address2)
+    log.info(result)
+    assert result.get('Code') == 0
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info(msg)
+    assert client_new_node_obj.node.web3.toChecksumAddress(msg["Data"]["BenefitAddress"]) == address2
+
+
+def test_MPI_059(client_new_node_obj, get_generate_account):
+    """
+    It is illegal to edit wallet addresses
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address1, _ = get_generate_account
+    log.info(address1)
+    result = client_new_node_obj.staking.create_staking(0, address1, address1)
+    assert result.get('Code') == 0
+    address2 = "0x111111111111111111111111111111"
+    status = 0
+    try:
+        result = client_new_node_obj.staking.edit_candidate(address1, address2)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+def test_MPI_060(client_new_node_obj, get_generate_account):
+    """
+    Insufficient gas to initiate modification node
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, _ = get_generate_account
+    cfg = {"gas": 1}
+    status = 0
+    try:
+        result = client_new_node_obj.staking.edit_candidate(address, address, transaction_cfg=cfg)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+def test_MPI_061(client_new_node_obj):
+    """
+    Insufficient balance to initiate the modification node
+    :param client_new_node_obj:
+    :return:
+    """
+    account = client_new_node_obj.economic.account
+    node = client_new_node_obj.node
+    address, _ = account.generate_account(node.web3, 10)
+    status = 0
+    try:
+        result = client_new_node_obj.staking.edit_candidate(address, address)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+def test_MPI_062(client_new_node_obj, get_generate_account):
+    """
+    During the hesitation period, withdraw pledge and modify node information
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, pri_key = get_generate_account
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert result.get('Code') == 0
+    result = client_new_node_obj.staking.withdrew_staking(address)
+    log.info(result)
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301102
+
+
+def test_MPI_063_064(client_new_node_obj, get_generate_account):
+    """
+    Lock period exit pledge, modify node information
+    After the lockout pledge is complete, the node information shall be modified
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, pri_key = get_generate_account
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert result.get('Code') == 0
+    log.info("Next settlement period")
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    log.info(msg)
+    assert msg["Data"] != ""
+    result = client_new_node_obj.staking.withdrew_staking(address)
+    assert result.get('Code') == 0
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301103
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    assert msg["Data"] == ""
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301103
 
 
 
