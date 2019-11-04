@@ -107,6 +107,15 @@ type Ppos_2001 struct {
 	EndVotingRounds uint64
 }
 
+// submitParam
+type Ppos_2002 struct {
+	Verifier discover.NodeID
+	PIPID    string
+	Module   string
+	Name     string
+	NewValue string
+}
+
 // submitCancel
 type Ppos_2005 struct {
 	Verifier        discover.NodeID
@@ -157,8 +166,21 @@ type Ppos_2102 struct {
 type Ppos_2103 struct {
 }
 
-// getProgramVersion
+// getGovernParamValue
 type Ppos_2104 struct {
+	Module string
+	Name   string
+}
+
+// getAccuVerifiersCount
+type Ppos_2105 struct {
+	ProposalID common.Hash
+	BlockHash  common.Hash
+}
+
+// listGovernParam
+type Ppos_2106 struct {
+	Module string
 }
 
 // ReportDuplicateSign
@@ -196,6 +218,7 @@ type decDataConfig struct {
 	P1105  Ppos_1105
 	P2000  Ppos_2000
 	P2001  Ppos_2001
+	P2002  Ppos_2002
 	P2005  Ppos_2005
 	P2003  Ppos_2003
 	P20031 []Ppos_20031
@@ -205,6 +228,8 @@ type decDataConfig struct {
 	P2102  Ppos_2102
 	P2103  Ppos_2103
 	P2104  Ppos_2104
+	P2105  Ppos_2105
+	P2106  Ppos_2106
 	P3000  Ppos_3000
 	P3001  Ppos_3001
 	P4000  Ppos_4000
@@ -355,6 +380,20 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, newVersion)
 			params = append(params, endVotingRounds)
 		}
+	case 2002:
+		{
+			verifier, _ := rlp.EncodeToBytes(cfg.P2002.Verifier)
+			pipID, _ := rlp.EncodeToBytes(cfg.P2002.PIPID)
+			module, _ := rlp.EncodeToBytes(cfg.P2002.Module)
+			name, _ := rlp.EncodeToBytes(cfg.P2002.Name)
+			newValue, _ := rlp.EncodeToBytes(cfg.P2002.NewValue)
+
+			params = append(params, verifier)
+			params = append(params, pipID)
+			params = append(params, module)
+			params = append(params, name)
+			params = append(params, newValue)
+		}
 	case 2005:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2005.Verifier)
@@ -430,6 +469,24 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2102:
 	case 2103:
 	case 2104:
+		{
+			module, _ := rlp.EncodeToBytes(cfg.P2104.Module)
+			name, _ := rlp.EncodeToBytes(cfg.P2104.Name)
+			params = append(params, module)
+			params = append(params, name)
+		}
+	case 2105:
+		{
+			proposalID, _ := rlp.EncodeToBytes(cfg.P2105.ProposalID.Bytes())
+			blockHash, _ := rlp.EncodeToBytes(cfg.P2105.BlockHash.Bytes())
+			params = append(params, proposalID)
+			params = append(params, blockHash)
+		}
+	case 2106:
+		{
+			module, _ := rlp.EncodeToBytes(cfg.P2106.Module)
+			params = append(params, module)
+		}
 	case 3000:
 		{
 			data, _ := rlp.EncodeToBytes(cfg.P3000.Data)
