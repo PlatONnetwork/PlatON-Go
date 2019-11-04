@@ -52,7 +52,7 @@ var (
 	// The prefix key of the number of blocks packed in the recording node
 	packAmountPrefix = []byte("nodePackAmount")
 	once             sync.Once
-	slsh             *SlashingPlugin
+	slash            *SlashingPlugin
 )
 
 type SlashingPlugin struct {
@@ -64,11 +64,11 @@ type SlashingPlugin struct {
 func SlashInstance() *SlashingPlugin {
 	once.Do(func() {
 		log.Info("Init Slashing plugin ...")
-		slsh = &SlashingPlugin{
+		slash = &SlashingPlugin{
 			db: snapshotdb.Instance(),
 		}
 	})
-	return slsh
+	return slash
 }
 
 func (sp *SlashingPlugin) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
@@ -320,6 +320,19 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		return slashing.ErrNodeIdMismatch
 	}
 
+	pk, err := canBase.NodeId.Pubkey()
+	if nil != err {
+		log.Error("slashing failed candidate nodeId parse fail", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"nodeId", canBase.NodeId.TerminalString(), "type", evidence.Type(), "err", err)
+		return slashing.ErrDuplicateSignVerify
+	}
+	addr := crypto.PubkeyToAddress(*pk)
+	if addr != evidence.Address() {
+		log.Error("slashing failed Mismatch addr", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "candidateNodeId", canBase.NodeId.TerminalString(),
+			"candidateAddr", addr.Hex(), "evidenceAddr", evidence.Address().Hex(), "type", evidence.Type())
+		return slashing.ErrAddrMismatch
+	}
+
 	blsKey, _ := canBase.BlsPubKey.ParseBlsPubKey()
 	if !bytes.Equal(blsKey.Serialize(), evidence.BlsPubKey().Serialize()) {
 		log.Error("Failed to Slash, Mismatch blsPubKey", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -362,8 +375,8 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	totalBalance := calcCanTotalBalance(blockNumber, canMutable)
 	slashAmount := calcAmountByRate(totalBalance, uint64(fraction), TenThousandDenominator)
 
-	log.Debug("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "rate", fraction/TenThousandDenominator,
+	log.Info("Call SlashCandidates on executeSlash", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+		"nodeId", canBase.NodeId.TerminalString(), "totalBalance", totalBalance, "fraction", fraction, "rewardFraction", rewardFraction,
 		"slashAmount", slashAmount, "reporter", caller.Hex())
 
 	toCallerAmount := calcAmountByRate(slashAmount, uint64(rewardFraction), HundredDenominator)

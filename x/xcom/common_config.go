@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package xcom
 
 import (
@@ -186,9 +202,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFoundationYear: 10,
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x55bfd49472fd41211545b01713a9c3a97af78b05"),
+				PlatONFundAccount: common.HexToAddress("0x72188da050f4B3dD9a991b209221DBFE0A0fdC42"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"),
+				CDFAccount:        common.HexToAddress("0x8BAb06a9706F7613188d4Fb6310b1E5117dfd914"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}

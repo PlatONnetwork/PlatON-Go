@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bytes"
 	"encoding/hex"
 	"math/big"
 	"strconv"
@@ -59,9 +58,6 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 	blockHash := sc.Evm.BlockHash
 	from := sc.Contract.CallerAddress
 
-	//log.Debug("Call ReportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-	//	"TxHash", txHash.Hex(), "from", from.Hex())
-
 	if !sc.Contract.UseGas(params.ReportDuplicateSignGas) {
 		return nil, ErrOutOfGas
 	}
@@ -73,11 +69,12 @@ func (sc *SlashingContract) ReportDuplicateSign(dupType uint8, data string) ([]b
 		return nil, nil
 	}
 
+	log.Info("Call ReportDuplicateSign", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"TxHash", txHash.Hex(), "from", from.Hex())
 	evidence, err := sc.Plugin.DecodeEvidence(consensus.EvidenceType(dupType), data)
 	if nil != err {
 		return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, common.InvalidParameter.Wrap(err.Error())), nil
 	}
-
 	if err := sc.Plugin.Slash(evidence, blockHash, blockNumber.Uint64(), sc.Evm.StateDB, from); nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return sc.buildReceipt(ReportDuplicateSignEvent, "ReportDuplicateSign", false, bizErr), nil
@@ -97,7 +94,7 @@ func (sc *SlashingContract) CheckDuplicateSign(dupType uint8, addr common.Addres
 	if nil != err {
 		return sc.buildResult("CheckDuplicateSign", data, false, common.InternalError.Wrap(err.Error())), nil
 	}
-	if bytes.Equal(txHash, common.ZeroHash.Bytes()) {
+	if len(txHash) > 0 {
 		data = hexutil.Encode(txHash)
 	}
 	return sc.buildResult("CheckDuplicateSign", data, true, nil), nil

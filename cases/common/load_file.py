@@ -8,6 +8,7 @@ class LoadFile(object):
     """
     Convert json or yaml files to python dictionary or list dictionary
     """
+
     def __init__(self, file):
         if file.split('.')[-1] != 'yaml' and file.split('.')[-1] != 'json' and file.split('.')[-1] != 'yml':
             raise Exception("the file format must be yaml or json")

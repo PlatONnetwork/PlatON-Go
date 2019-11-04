@@ -55,10 +55,10 @@ def connect_linux(ip, username='root', password='Juzhen123!', port=22):
 def connect_linux_pem(ip, username, pem_path):
     """
     使用秘钥连接linux服务器
-    :param ip: 
-    :param username: 
-    :param pem_path: 
-    :return: 
+    :param ip:
+    :param username:
+    :param pem_path:
+    :return:
     """
     key = paramiko.RSAKey.from_private_key_file(pem_path)
     ssh = paramiko.SSHClient()
