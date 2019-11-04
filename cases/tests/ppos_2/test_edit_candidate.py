@@ -181,10 +181,10 @@ def test_MPI_061(client_new_node_obj):
 
 def test_MPI_062(client_new_node_obj, get_generate_account):
     """
-    # During the hesitation period, withdraw pledge and modify node information
-    # :param client_new_node_obj:
-    # :param get_generate_account:
-    # :return:
+    During the hesitation period, withdraw pledge and modify node information
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
     """
     address, pri_key = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
