@@ -100,14 +100,9 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed UnStakeFreezeDuration is failed: %v", err)
 				}
 
-				ageStr, err := GetGovernParamValue(ModuleSlashing, KeyMaxEvidenceAge, blockNumber, blockHash)
-				if nil != err {
-					return err
-				}
+				age, _ := GovernMaxEvidenceAge(blockNumber, blockHash)
 
-				age, _ := strconv.Atoi(ageStr)
-
-				if err := xcom.CheckUnStakeFreezeDuration(num, age); nil != err {
+				if err := xcom.CheckUnStakeFreezeDuration(num, int(age)); nil != err {
 					return err
 				}
 
@@ -166,14 +161,9 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxEvidenceAge is failed: %v", err)
 				}
 
-				durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
-				if nil != err {
-					return err
-				}
+				duration, _ := GovernUnStakeFreezeDuration(blockNumber, blockHash)
 
-				duration, _ := strconv.Atoi(durationStr)
-
-				if err := xcom.CheckMaxEvidenceAge(age, duration); nil != err {
+				if err := xcom.CheckMaxEvidenceAge(age, int(duration)); nil != err {
 					return err
 				}
 
@@ -225,24 +215,24 @@ func initParam() []*GovernParam {
 		/**
 		About TxPool module
 		*/
-		{
-			ParamItem:  &ParamItem{ModuleTxPool, KeyMaxTxDataLimit, fmt.Sprintf("maximum data length per transaction, range：(%d, %d]", xcom.Zero, CeilTxSize)},
-			ParamValue: &ParamValue{"", strconv.Itoa(GenesisTxSize), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
-
-				txSize, err := strconv.Atoi(value)
-				if nil != err {
-					return fmt.Errorf("Parsed MaxTxDataLimit is failed: %v", err)
-				}
-
-				// (0, 10MB]
-				if txSize > CeilTxSize {
-					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, CeilTxSize))
-				}
-
-				return nil
-			},
-		},
+		//{
+		//	ParamItem:  &ParamItem{ModuleTxPool, KeyMaxTxDataLimit, fmt.Sprintf("maximum data length per transaction, range：(%d, %d]", xcom.Zero, CeilTxSize)},
+		//	ParamValue: &ParamValue{"", strconv.Itoa(GenesisTxSize), 0},
+		//	ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+		//
+		//		txSize, err := strconv.Atoi(value)
+		//		if nil != err {
+		//			return fmt.Errorf("Parsed MaxTxDataLimit is failed: %v", err)
+		//		}
+		//
+		//		// (0, 10MB]
+		//		if txSize > CeilTxSize {
+		//			return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, CeilTxSize))
+		//		}
+		//
+		//		return nil
+		//	},
+		//},
 	}
 }
 
