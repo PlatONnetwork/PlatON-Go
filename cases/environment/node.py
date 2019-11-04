@@ -389,7 +389,7 @@ class Node:
             fp.write("command=" + cmd + "\n")
             if go_fail_point:
                 fp.write("environment={}\n".format(go_fail_point))
-            supervisor_default_conf = "numprocs=1\n" + "autostart=false\n" + "startsecs=3\n" + "startretries=3\n" + \
+            supervisor_default_conf = "numprocs=1\n" + "autostart=false\n" + "startsecs=1\n" + "startretries=3\n" + \
                                       "autorestart=unexpected\n" + "exitcode=0\n" + "stopsignal=TERM\n" + \
                                       "stopwaitsecs=10\n" + "redirect_stderr=true\n" + \
                                       "stdout_logfile_maxbytes=200MB\n" + "stdout_logfile_backups=20\n"
