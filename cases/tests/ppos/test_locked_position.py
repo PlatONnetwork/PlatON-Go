@@ -34,4 +34,80 @@ def test_LS_FV_001(client_consensus_obj):
         print("a", type(release_plans_list[i]))
         print("b", EconomicConfig.release_info[i])
         assert release_plans_list[i] == EconomicConfig.release_info[
-            i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i]['blockNumber'], release_plans_list[i]['amount'])
+            i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
+            'blockNumber'], release_plans_list[i]['amount'])
+
+
+def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit * multiple)
+    benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                               client_new_node_obj.node.web3.toWei(1000,
+                                                                                                                   'ether'))
+    plan = [{'Epoch': epoch, 'Amount': client_new_node_obj.node.web3.toWei(amount, 'ether')}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(benifit_address, plan, address)
+    log.info("restricting plan information: {}".format(result))
+    return result, address, benifit_address
+
+
+@pytest.mark.P1
+@pytest.mark.parametrize('epoch, amount', [(0, 100), (1, 0)])
+def test_LS_PV_001_1(client_new_node_obj, epoch, amount):
+    """
+    锁仓参数的有效性验证:
+                    number 1, amount 0.1
+                    number 0, amount 100
+                    number 1, amount 0
+    :param client_new_node_obj:
+    :return:
+    """
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
+    assert_code(result, 304001)
+
+
+@pytest.mark.P1
+@pytest.mark.parametrize('epoch, amount', [(1, 0.1), (0.1, 10)])
+def test_LS_PV_001_2(client_new_node_obj, epoch, amount):
+    """
+    锁仓参数的有效性验证:
+                    number 1, amount 0.1
+                    number 0.1, amount 10
+
+    :param client_new_node_obj:
+    :return:
+    """
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
+    assert_code(result, 304003)
+
+
+@pytest.mark.P1
+def test_LS_PV_001_3(client_new_node_obj):
+    """
+    锁仓参数的有效性验证:
+                    None,
+                    ""
+
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit)
+    plan = [{'Epoch': 1, 'Amount': None}]
+    try:
+        result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+        assert_code(result, 304011)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit)
+    plan = [{'Epoch': 1, 'Amount': ""}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 304011)
+
+
+
+
