@@ -161,68 +161,68 @@ def test_MPI_060(client_new_node_obj, get_generate_account):
     assert status == 1
 
 
-def test_MPI_061(client_new_node_obj):
-    """
-    Insufficient balance to initiate the modification node
-    :param client_new_node_obj:
-    :return:
-    """
-    account = client_new_node_obj.economic.account
-    node = client_new_node_obj.node
-    address, _ = account.generate_account(node.web3, 10)
-    status = 0
-    try:
-        result = client_new_node_obj.staking.edit_candidate(address, address)
-        log.info(result)
-    except:
-        status = 1
-    assert status == 1
-
-
-def test_MPI_062(client_new_node_obj, get_generate_account):
-    """
-    During the hesitation period, withdraw pledge and modify node information
-    :param client_new_node_obj:
-    :param get_generate_account:
-    :return:
-    """
-    address, pri_key = get_generate_account
-    result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert result.get('Code') == 0
-    result = client_new_node_obj.staking.withdrew_staking(address)
-    log.info(result)
-    result = client_new_node_obj.staking.edit_candidate(address, address)
-    log.info(result)
-    assert result.get('Code') == 301102
-
-
-def test_MPI_063_064(client_new_node_obj, get_generate_account):
-    """
-    Lock period exit pledge, modify node information
-    After the lockout pledge is complete, the node information shall be modified
-    :param client_new_node_obj:
-    :param get_generate_account:
-    :return:
-    """
-    address, pri_key = get_generate_account
-    result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert result.get('Code') == 0
-    log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    log.info(msg)
-    assert msg["Data"] != ""
-    result = client_new_node_obj.staking.withdrew_staking(address)
-    assert result.get('Code') == 0
-    result = client_new_node_obj.staking.edit_candidate(address, address)
-    log.info(result)
-    assert result.get('Code') == 301103
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    assert msg["Data"] == ""
-    result = client_new_node_obj.staking.edit_candidate(address, address)
-    log.info(result)
-    assert result.get('Code') == 301103
+# def test_MPI_061(client_new_node_obj):
+#     """
+#     Insufficient balance to initiate the modification node
+#     :param client_new_node_obj:
+#     :return:
+#     """
+#     account = client_new_node_obj.economic.account
+#     node = client_new_node_obj.node
+#     address, _ = account.generate_account(node.web3, 10)
+#     status = 0
+#     try:
+#         result = client_new_node_obj.staking.edit_candidate(address, address)
+#         log.info(result)
+#     except:
+#         status = 1
+#     assert status == 1
+#
+#
+# def test_MPI_062(client_new_node_obj, get_generate_account):
+#     """
+#     During the hesitation period, withdraw pledge and modify node information
+#     :param client_new_node_obj:
+#     :param get_generate_account:
+#     :return:
+#     """
+#     address, pri_key = get_generate_account
+#     result = client_new_node_obj.staking.create_staking(0, address, address)
+#     assert result.get('Code') == 0
+#     result = client_new_node_obj.staking.withdrew_staking(address)
+#     log.info(result)
+#     result = client_new_node_obj.staking.edit_candidate(address, address)
+#     log.info(result)
+#     assert result.get('Code') == 301102
+#
+#
+# def test_MPI_063_064(client_new_node_obj, get_generate_account):
+#     """
+#     Lock period exit pledge, modify node information
+#     After the lockout pledge is complete, the node information shall be modified
+#     :param client_new_node_obj:
+#     :param get_generate_account:
+#     :return:
+#     """
+#     address, pri_key = get_generate_account
+#     result = client_new_node_obj.staking.create_staking(0, address, address)
+#     assert result.get('Code') == 0
+#     log.info("Next settlement period")
+#     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+#     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+#     log.info(msg)
+#     assert msg["Data"] != ""
+#     result = client_new_node_obj.staking.withdrew_staking(address)
+#     assert result.get('Code') == 0
+#     result = client_new_node_obj.staking.edit_candidate(address, address)
+#     log.info(result)
+#     assert result.get('Code') == 301103
+#     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+#     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+#     assert msg["Data"] == ""
+#     result = client_new_node_obj.staking.edit_candidate(address, address)
+#     log.info(result)
+#     assert result.get('Code') == 301103
 
 
 
