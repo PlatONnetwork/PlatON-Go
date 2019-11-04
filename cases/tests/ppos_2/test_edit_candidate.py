@@ -197,13 +197,7 @@ def test_MPI_062(client_new_node_obj, get_generate_account):
 
 
 def test_MPI_063_064(client_new_node_obj, get_generate_account):
-    """
-    Lock period exit pledge, modify node information
-    After the lockout pledge is complete, the node information shall be modified
-    :param client_new_node_obj:
-    :param get_generate_account:
-    :return:
-    """
+
     address, pri_key = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert result.get('Code') == 0
