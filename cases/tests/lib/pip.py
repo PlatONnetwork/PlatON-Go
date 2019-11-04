@@ -5,7 +5,7 @@ from .economic import Economic
 from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, int16_to_bytes, bytes_to_int
 import json
 from typing import List
-from common.log import log
+import time
 
 
 class Pip:
@@ -432,6 +432,9 @@ class Pip:
         """
         candidate_list = self.node.ppos.getCandidateList().get('Data')
         verifier_list = self.node.ppos.getVerifierList().get('Data')
+        if not verifier_list:
+            time.sleep(10)
+            verifier_list = self.node.ppos.getVerifierList().get('Data')
         candidate_no_verify_list = []
         verifier_node_list = [node_info.get("NodeId") for node_info in verifier_list]
         for node_info in candidate_list:

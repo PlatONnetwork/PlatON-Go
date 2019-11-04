@@ -131,6 +131,7 @@ def client_new_node_obj(client_noconsensus_obj, client_list_obj, client_noc_list
     return client_noconsensus_obj
 
 
+
 @pytest.fixture()
 def client_new_node_obj_list(global_test_env, client_noc_list_obj):
     '''

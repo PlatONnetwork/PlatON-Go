@@ -1,14 +1,17 @@
 from common.log import log
 from tests.lib.utils import upload_platon, assert_code
+from tests.lib.client import get_client_obj
 import pytest
 
 def replace_version_declare(pip_obj, platon_bin, versiontag):
     upload_platon(pip_obj.node, platon_bin)
-    log.info('Replace the platon of the node {}'.format(versiontag))
+    log.info('Replace the platon of the node {} version{}'.format(pip_obj.node.node_id, versiontag))
     pip_obj.node.restart()
     log.info('Restart the node{}'.format(pip_obj.node.node_id))
     assert pip_obj.node.program_version == versiontag
     log.info('assert the version of the node is {}'.format(versiontag))
+    log.info("staking: {}".format(pip_obj.node.staking_address))
+    log.info("account:{}".format(pip_obj.economic.account.accounts))
     result = pip_obj.declareVersion(pip_obj.node.node_id, pip_obj.node.staking_address,
                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('declareversion {} result: {}'.format(pip_obj.node.program_version, result))
@@ -391,6 +394,156 @@ class TestVotingProposlaVotedVE():
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
 
+    def test_DE_VE_035(self, bv_proposal_voted_pipobj_list):
+        pip_obj = bv_proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, bv_proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_037(self, proposal_voted_pipobj_list):
+        pip_obj = proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_039(self, proposal_voted_pipobj_list):
+        pip_obj = proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version4)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_041(self, proposal_voted_pipobj_list):
+        pip_obj = proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version5)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_043(self, proposal_voted_pipobj_list):
+        pip_obj = proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version5)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_045(self, proposal_voted_pipobj_list):
+        pip_obj = proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version5)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_047(self, bv_proposal_voted_pipobj_list):
+        pip_obj = bv_proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, bv_proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version5)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_049(self, bv_proposal_voted_pipobj_list):
+        pip_obj = bv_proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, bv_proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version8)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_051(self, bv_proposal_voted_pipobj_list):
+        pip_obj = bv_proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, bv_proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version8)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_053(self, bv_proposal_voted_pipobj_list):
+        pip_obj = bv_proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, bv_proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version8)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_VE_055(self, bv_proposal_voted_pipobj_list):
+        pip_obj = bv_proposal_voted_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, bv_proposal_voted_pipobj_list[1])
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
 
 class TestPreactiveProposalVE():
     def test_DE_VE_056(self, preactive_proposal_pipobj_list):
@@ -605,4 +758,91 @@ class TestPreactiveProposalVE():
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
 
+class TestNoProposalCA:
+    def test_DE_CA_001(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
+        assert_code(result, 0)
 
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_CA_002(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+
+    def test_DE_CA_004(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+
+    def test_DE_CA_005(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN5, pip_obj.cfg.version5)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_CA_006(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
+
+    def test_DE_CA_007(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version2)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version3)
+        assert_code(result, 302024)
+
+    def test_DE_CA_008(self, noproposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = noproposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
+        assert_code(result, 302028)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        assert_code(result, 302024)
