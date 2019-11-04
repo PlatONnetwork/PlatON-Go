@@ -230,5 +230,3 @@ def test_MPI_063_064(client_new_node_obj, get_generate_account):
 
 
 
-if __name__ == '__main__':
-    pytest.main(['-s', 'test_edit_candidate.py::test_'])
