@@ -481,7 +481,7 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj):
+def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environment):
     """
     AL_NBI_004:非内置验证人Staking奖励（候选人）
     AL_NBI_005:非内置验证人出块奖励（候选人）
@@ -810,3 +810,21 @@ def test_AL_NBI_017(client_new_node_obj):
             # wait consensus block
             client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
 
+
+@pytest.mark.P1
+def test_AL_NBI_019(new_genesis_env, client_new_node_obj, reset_environment):
+    """
+    调整质押和出块奖励比例
+    :param client_new_node_obj:
+    :return:
+    """
+    # Change configuration parameters
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.EconomicModel.Reward.NewBlockRate = 60
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+    # create pledge node
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.2)
+    # assert benifit reward
+    assert_benifit_reward(client_new_node_obj, benifit_address, address)
