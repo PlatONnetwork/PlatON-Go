@@ -220,7 +220,7 @@ def test_MPI_063_064(client_new_node_obj, get_generate_account):
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     assert msg["Data"] == ""
-    # result = client_new_node_obj.staking.edit_candidate(address, address)
+    result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
     assert result.get('Code') == 301103
 
