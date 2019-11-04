@@ -18,6 +18,7 @@ def staking_obj(global_test_env):
     node = global_test_env.get_rand_node()
     return Staking(global_test_env, node, cfg)
 
+
 @pytest.mark.P0
 def test_IT_IA_002_to_007(new_genesis_env):
     """
@@ -50,25 +51,29 @@ def test_IT_IA_002_to_007(new_genesis_env):
     new_genesis_env.deploy_all(new_file)
 
     # Verify the amount of each built-in account
-    foundation_louckup = node.eth.getBalance(Web3.toChecksumAddress(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS))
-    log.info('Initial lock up contract address： {} amount：{}'.format(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS, foundation_louckup))
-    incentive_pool = node.eth.getBalance(Web3.toChecksumAddress(EconomicConfig.INCENTIVEPOOL_ADDRESS))
+    foundation_louckup = node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS)
+    log.info('Initial lock up contract address： {} amount：{}'.format(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,
+                                                                     foundation_louckup))
+    incentive_pool = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info('Incentive pool address：{} amount：{}'.format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool))
-    staking = node.eth.getBalance(Web3.toChecksumAddress(EconomicConfig.STAKING_ADDRESS))
+    staking = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
     log.info('Address of pledge contract：{} amount：{}'.format(EconomicConfig.STAKING_ADDRESS, staking))
-    foundation = node.eth.getBalance(Web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
+    foundation = node.eth.getBalance(EconomicConfig.FOUNDATION_ADDRESS)
     log.info('PlatON Foundation address：{} amount：{}'.format(EconomicConfig.FOUNDATION_ADDRESS, foundation))
-    remain = node.eth.getBalance(Web3.toChecksumAddress(EconomicConfig.REMAIN_ACCOUNT_ADDRESS))
+    remain = node.eth.getBalance(EconomicConfig.REMAIN_ACCOUNT_ADDRESS)
     log.info('Remaining total account address：{} amount：{}'.format(EconomicConfig.REMAIN_ACCOUNT_ADDRESS, remain))
-    develop = node.eth.getBalance(Web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
-    log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS, develop))
+    develop = node.eth.getBalance(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS)
+    log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
+                                                                          develop))
     reality_total = foundation_louckup + incentive_pool + staking + foundation + remain + develop
     log.info("Total issuance of Chuangshi block：{}".format(reality_total))
     log.info("--------------Dividing line---------------")
     assert foundation == 0, "ErrMsg:Initial amount of foundation {}".format(foundation)
-    assert foundation_louckup == 259096239000000000000000000, "ErrMsg:Initial lock up amount of foundation {}".format(foundation_louckup)
+    assert foundation_louckup == 259096239000000000000000000, "ErrMsg:Initial lock up amount of foundation {}".format(
+        foundation_louckup)
     assert staking == default_pledge_amount, "ErrMsg:Amount of initial pledge account: {}".format(staking)
-    assert incentive_pool == 262215742000000000000000000, "ErrMsg:Initial amount of incentive pool {}".format(incentive_pool)
+    assert incentive_pool == 262215742000000000000000000, "ErrMsg:Initial amount of incentive pool {}".format(
+        incentive_pool)
     assert remain == int(surplus_amount), "ErrMsg:Initial amount of remaining total account {}".format(remain)
     assert develop == 0, "ErrMsg:Community developer foundation account amount {}".format(develop)
     assert reality_total == EconomicConfig.TOKEN_TOTAL, "ErrMsg:Initialize release value {}".format(reality_total)
@@ -88,7 +93,7 @@ def test_IT_SD_004_to_006(client_consensus_obj, value):
     """
     value = client_consensus_obj.node.web3.toWei(value, 'ether')
     address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3, value)
-    balance = client_consensus_obj.node.eth.getBalance(client_consensus_obj.node.web3.toChecksumAddress(address))
+    balance = client_consensus_obj.node.eth.getBalance(address)
     log.info("transaction address：{},account：{}".format(address, balance))
     assert balance == value, "ErrMsg:Transfer amount {}".format(balance)
 
@@ -108,9 +113,8 @@ def test_IT_SD_002_003(global_test_env, value):
     # Account balance insufficient transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        result = global_test_env.account.sendTransaction(node.web3, '', node.web3.toChecksumAddress(address),
-                                                         node.web3.toChecksumAddress(address1),
-                                                         node.web3.platon.gasPrice, 21000, value)
+        result = global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice,
+                                                         21000, value)
         assert result is None, "ErrMsg:Transfer result {}".format(result)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
@@ -128,8 +132,8 @@ def test_IT_SD_011(global_test_env):
     # Insufficient gas fee for transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        result = global_test_env.account.sendTransaction(node.web3, '', node.web3.toChecksumAddress(address),
-                                                         node.web3.toChecksumAddress(address1),
+        result = global_test_env.account.sendTransaction(node.web3, '', address,
+                                                         address1,
                                                          node.web3.platon.gasPrice, 2100, 500)
         assert result is None, "ErrMsg:Transfer result {}".format(result)
     except Exception as e:
@@ -145,14 +149,15 @@ def test_IT_SD_007(global_test_env):
     node = global_test_env.get_rand_node()
     value = node.web3.toWei(1000, 'ether')
     address, _ = global_test_env.account.generate_account(node.web3, value)
-    balance = node.eth.getBalance(node.web3.toChecksumAddress(address))
+    balance = node.eth.getBalance(address)
     log.info("Account balance before transfer：{}".format(balance))
     result = global_test_env.account.sendTransaction(node.web3, '', address, address, node.eth.gasPrice, 21000, 100)
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
-    balance1 = node.eth.getBalance(node.web3.toChecksumAddress(address))
+    balance1 = node.eth.getBalance(address)
     log.info("Account balance after transfer： {}".format(balance1))
     log.info("Transaction fee： {}".format(node.web3.platon.gasPrice * 21000))
-    assert balance == balance1 + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(balance1)
+    assert balance == balance1 + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
+        balance1)
 
 
 @pytest.mark.P0
@@ -171,7 +176,9 @@ def test_IT_SD_008(global_test_env):
     balance1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("Account balance after transfer： {}".format(balance1))
     log.info("Transaction fee： {}".format(node.web3.platon.gasPrice * 21000))
-    assert balance1 == balance + node.web3.toWei(100, 'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(balance1)
+    assert balance1 == balance + node.web3.toWei(100,
+                                                 'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
+        balance1)
 
 
 def consensus_node_pledge_award_assertion(client_new_node_obj, address):
@@ -202,8 +209,10 @@ def consensus_node_pledge_award_assertion(client_new_node_obj, address):
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     # view incentive pool amonut
     incentive_pool_balance2 = client_new_node_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
-    log.info("incentive pool address：{} amount：{}".format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool_balance2))
-    assert incentive_pool_balance2 - incentive_pool_balance < client_new_node_obj.node.web3.toWei(1, 'ether'), "ErrMsg:Balance of incentive pool：{}".format(
+    log.info(
+        "incentive pool address：{} amount：{}".format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool_balance2))
+    assert incentive_pool_balance2 - incentive_pool_balance < client_new_node_obj.node.web3.toWei(1,
+                                                                                                  'ether'), "ErrMsg:Balance of incentive pool：{}".format(
         incentive_pool_balance2)
 
 
@@ -244,8 +253,7 @@ def no_consensus_node_pledge_award_assertion(client_new_node_obj, benifit_addres
             # Count the number of blocks out of pledge node
             blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
             log.info("blocknumber: {}".format(blocknumber))
-            balance1 = client_new_node_obj.node.eth.getBalance(
-                client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+            balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
             log.info("benifit address：{} amount：{}".format(benifit_address, balance1))
 
             # Verify block rewards
@@ -315,7 +323,8 @@ def test_AL_BI_001(client_consensus_obj):
     # view incentive account
     incentive_pool_balance1 = client_consensus_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive_pool_balance: {}".format(incentive_pool_balance1))
-    assert incentive_pool_balance1 == incentive_pool_balance + 21000 * client_consensus_obj.node.eth.gasPrice, "ErrMsg:incentive_pool balance: {}".format(incentive_pool_balance1)
+    assert incentive_pool_balance1 == incentive_pool_balance + 21000 * client_consensus_obj.node.eth.gasPrice, "ErrMsg:incentive_pool balance: {}".format(
+        incentive_pool_balance1)
 
 
 @pytest.mark.P1
@@ -427,13 +436,19 @@ def create_pledge_node(client_new_node_obj, multiple=2):
     :param multiple:
     :return:
     """
+    log.info("Transfer accounts: {}".format(client_new_node_obj.economic.create_staking_limit * multiple))
+    account_balance = client_new_node_obj.node.eth.getBalance(
+        client_new_node_obj.economic.account.account_with_money['address'])
+    log.info("address: {} accounts: {}".format(client_new_node_obj.economic.account.account_with_money['address'],
+                                               account_balance))
     # create account
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                        client_new_node_obj.economic.create_staking_limit * multiple)
 
     log.info("address: {} ,amount: {}".format(address, client_new_node_obj.node.eth.getBalance(address)))
     benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
-    log.info("address: {} ,amount: {}".format(benifit_address, client_new_node_obj.node.eth.getBalance(benifit_address)))
+    log.info(
+        "address: {} ,amount: {}".format(benifit_address, client_new_node_obj.node.eth.getBalance(benifit_address)))
     # create staking
     result = client_new_node_obj.staking.create_staking(0, benifit_address, address)
     assert_code(result, 0)
@@ -452,14 +467,12 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
     # create pledge node
     address, benifit_address = create_pledge_node(client_new_node_obj)
     # view account amount
-    benifit_balance = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
     # wait consensus block
     client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
     # view account amount again
-    benifit_balance1 = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance1))
     assert benifit_balance1 == benifit_balance, "ErrMsg:benifit_balance: {}".format(
         benifit_balance1)
@@ -483,14 +496,12 @@ def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj):
     # create pledge node
     address, benifit_address = create_pledge_node(client_new_node_obj)
     # view account amount
-    benifit_balance = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, 1)
     # view account amount again
-    benifit_balance1 = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance1))
     assert benifit_balance1 == benifit_balance, "ErrMsg: benifit_balance: {}".format(
         benifit_balance1)
@@ -527,8 +538,7 @@ def test_AL_NBI_007_to_009(client_new_node_obj):
     # create pledge node
     address, benifit_address = create_pledge_node(client_new_node_obj)
     # view account amount
-    benifit_balance = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -543,11 +553,11 @@ def test_AL_NBI_007_to_009(client_new_node_obj):
             # view benifit reward
             blocknumber = view_benifit_reward(client_new_node_obj, address)
             # view account amount again
-            benifit_balance1 = client_new_node_obj.node.eth.getBalance(
-                client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+            benifit_balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
             log.info("benifit_balance: {}".format(benifit_balance1))
             assert benifit_balance + staking_reward + blocknumber * Decimal(
-                str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1, 'ether'), "ErrMsg:benifit_balance: {}".format(
+                str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1,
+                                                                                            'ether'), "ErrMsg:benifit_balance: {}".format(
                 benifit_balance1)
             break
         else:
@@ -564,8 +574,7 @@ def assert_benifit_reward(client_new_node_obj, benifit_address, address):
     :return:
     """
     # view account amount
-    benifit_balance = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+    benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -580,11 +589,11 @@ def assert_benifit_reward(client_new_node_obj, benifit_address, address):
             # view benifit reward
             blocknumber = view_benifit_reward(client_new_node_obj, address)
             # view account amount again
-            benifit_balance1 = client_new_node_obj.node.eth.getBalance(
-                client_new_node_obj.node.web3.toChecksumAddress(benifit_address))
+            benifit_balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
             log.info("benifit_balance: {}".format(benifit_balance1))
             assert benifit_balance + staking_reward + blocknumber * Decimal(
-                str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1, 'ether'), "ErrMsg:benifit_balance: {}".format(
+                str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1,
+                                                                                            'ether'), "ErrMsg:benifit_balance: {}".format(
                 benifit_balance1)
             break
         else:
@@ -626,8 +635,7 @@ def test_AL_NBI_013(client_new_node_obj):
 
 
 def query_ccount_amount(client_new_node_obj, address):
-    balance = client_new_node_obj.node.eth.getBalance(
-        client_new_node_obj.node.web3.toChecksumAddress(address))
+    balance = client_new_node_obj.node.eth.getBalance(address)
     log.info("balance: {}".format(balance))
     return balance
 
@@ -672,18 +680,39 @@ def test_AL_NBI_014(client_new_node_obj):
             benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
             # view benifit_address1 amount
             benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address1)
-            assert benifit_balance + benifit_balance1 == int(Decimal(str(block_reward)) * blocknumber) + staking_reward, "ErrMsg:benifit_balance + benifit_balance1: {}".format(
+            assert benifit_balance + benifit_balance1 == int(Decimal(str(
+                block_reward)) * blocknumber) + staking_reward, "ErrMsg:benifit_balance + benifit_balance1: {}".format(
                 benifit_balance + benifit_balance1)
 
 
+@pytest.mark.P1
+def test_AL_NBI_015(client_new_node_obj):
+    """
+    退回质押金并处于锁定期
+    :param client_new_node_obj:
+    :return:
+    """
+    # create pledge node
+    address, benifit_address = create_pledge_node(client_new_node_obj)
+    # view account amount
+    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
+    # wait settlement block
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    for i in range(4):
+        result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # withdrew of pledge
+            result = client_new_node_obj.staking.withdrew_staking(address)
+            assert_code(result, 0)
+            for i in range(40):
+                client_new_node_obj.economic.account.sendTransaction(client_new_node_obj.node.web3, '',
+                                                                     client_new_node_obj.economic.account.account_with_money[
+                                                                         'address'], address,
+                                                                     client_new_node_obj.node.web3.platon.gasPrice,
+                                                                     21000, 100)
+                time.sleep(1)
+            # view account amount again
+            benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address)
 
-
-
-
-
-
-
-
-
-
-
+            assert benifit_balance1 > benifit_balance, "ErrMsg: {} > {}".format(benifit_balance1, benifit_balance)
