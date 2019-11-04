@@ -128,7 +128,7 @@ def client_new_node_obj(global_test_env, client_consensus_obj, client_list_obj):
             return get_client_obj(noconsensus_node_obj.node_id, client_list_obj)
     log.info('非共识节点已全部质押，重新启链')
     global_test_env.deploy_all()
-    return get_client_obj(global_test_env.get_a_normal_node.node_id, client_list_obj)
+    return get_client_obj(global_test_env.get_a_normal_node().node_id, client_list_obj)
 
 
 @pytest.fixture()

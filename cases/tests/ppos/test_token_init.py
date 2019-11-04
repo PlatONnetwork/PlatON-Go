@@ -5,11 +5,12 @@ import allure
 
 from dacite import from_dict
 
-from common.key import get_pub_key
+from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code
+from tests.lib.duplicate_sign import DuplicateSign
 
 
 @pytest.fixture(scope="function")
@@ -511,7 +512,6 @@ def view_benifit_reward(client_new_node_obj, address):
     """
     withdrew pledge return benifit balance and Number of blocks
     :param client_new_node_obj:
-    :param benifit_address:
     :param address:
     :return:
     """
@@ -649,8 +649,6 @@ def test_AL_NBI_014(client_new_node_obj):
     """
     # create pledge node
     address, benifit_address = create_pledge_node(client_new_node_obj)
-    # create account
-    benifit_address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     # view block_reward
@@ -671,6 +669,8 @@ def test_AL_NBI_014(client_new_node_obj):
                 time.sleep(3)
                 if nodeid == client_new_node_obj.node.node_id:
                     break
+            # create account
+            benifit_address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
             # change benifit address
             result = client_new_node_obj.staking.edit_candidate(address, benifit_address1)
             assert_code(result, 0)
@@ -694,10 +694,10 @@ def test_AL_NBI_015(client_new_node_obj):
     """
     # create pledge node
     address, benifit_address = create_pledge_node(client_new_node_obj)
-    # view account amount
-    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    # view account amount
+    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
     for i in range(4):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -705,6 +705,7 @@ def test_AL_NBI_015(client_new_node_obj):
             # withdrew of pledge
             result = client_new_node_obj.staking.withdrew_staking(address)
             assert_code(result, 0)
+            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
             for i in range(40):
                 client_new_node_obj.economic.account.sendTransaction(client_new_node_obj.node.web3, '',
                                                                      client_new_node_obj.economic.account.account_with_money[
@@ -714,5 +715,56 @@ def test_AL_NBI_015(client_new_node_obj):
                 time.sleep(1)
             # view account amount again
             benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address)
-
             assert benifit_balance1 > benifit_balance, "ErrMsg: {} > {}".format(benifit_balance1, benifit_balance)
+            break
+        else:
+            # wait consensus block
+            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+
+
+@pytest.mark.P2
+def test_AL_NBI_016(client_new_node_obj):
+    """
+    被双签处罚槛剔除验证人列表
+    :param client_new_node_obj:
+    :return:
+    """
+    # create pledge node
+    address, benifit_address = create_pledge_node(client_new_node_obj)
+    # wait settlement block
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    # view block_reward
+    block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(
+        client_new_node_obj.node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # view account amount
+    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
+    # create account
+    report_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 1000)
+    for i in range(4):
+        result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # view Current block
+            current_block = client_new_node_obj.node.eth.blockNumber
+            log.info("Current block: {}".format(current_block))
+            # Report prepareblock signature
+            report_information = mock_duplicate_sign(1, client_new_node_obj.node.nodekey, client_new_node_obj.node.blsprikey, current_block)
+            log.info("Report information: {}".format(report_information))
+            result = client_new_node_obj.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            assert_code(result, 0)
+            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+            # wait settlement block
+            client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+            # view account amount again
+            benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address)
+            # count the number of blocks
+            blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
+            log.info("blocknumber: {}".format(blocknumber))
+            assert benifit_balance1 == benifit_balance + int(Decimal(str(block_reward)) * blocknumber), "ErrMsg:benifit_balance1：{}".format(benifit_balance1)
+            break
+        else:
+            # wait consensus block
+            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+
+

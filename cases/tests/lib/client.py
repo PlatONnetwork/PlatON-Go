@@ -6,7 +6,9 @@ from .restricting import Restricting
 from .delegate import Delegate
 from .staking import Staking
 from .pip import Pip
+from .duplicate_sign import DuplicateSign
 from typing import List
+
 
 
 class Client:
@@ -25,6 +27,7 @@ class Client:
         self.restricting = Restricting(env, node)
         self.delegate = Delegate(env, node)
         self.pip = Pip(env, node)
+        self.duplicatesign = DuplicateSign(env, node)
 
     @property
     def ppos(self):
