@@ -15,10 +15,11 @@ def staking_b(global_test_env):
 
 class TestStep:
     def test_staking_a(self, staking_a):
-        assert True
+        print("failed")
+        assert False
 
     def test_staking_b(self, staking_b):
         assert True
 
     def test_staking_a_b(self, staking_a, staking_b):
-        assert False
+        assert True
