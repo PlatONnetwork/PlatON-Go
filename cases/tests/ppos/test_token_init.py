@@ -9,8 +9,7 @@ from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
-from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code
-from tests.lib.duplicate_sign import DuplicateSign
+from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount
 
 
 @pytest.fixture(scope="function")
@@ -21,7 +20,7 @@ def staking_obj(global_test_env):
 
 
 @pytest.mark.P0
-def test_IT_IA_002_to_007(new_genesis_env):
+def test_IT_IA_002_to_007(new_genesis_env, reset_environment):
     """
     IT_IA_002:链初始化-查看token发行总量账户初始值
     IT_IA_003:链初始化-查看platON基金会账户初始值
@@ -59,11 +58,11 @@ def test_IT_IA_002_to_007(new_genesis_env):
     log.info('Incentive pool address：{} amount：{}'.format(EconomicConfig.INCENTIVEPOOL_ADDRESS, incentive_pool))
     staking = node.eth.getBalance(EconomicConfig.STAKING_ADDRESS)
     log.info('Address of pledge contract：{} amount：{}'.format(EconomicConfig.STAKING_ADDRESS, staking))
-    foundation = node.eth.getBalance(EconomicConfig.FOUNDATION_ADDRESS)
+    foundation = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
     log.info('PlatON Foundation address：{} amount：{}'.format(EconomicConfig.FOUNDATION_ADDRESS, foundation))
-    remain = node.eth.getBalance(EconomicConfig.REMAIN_ACCOUNT_ADDRESS)
+    remain = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.REMAIN_ACCOUNT_ADDRESS))
     log.info('Remaining total account address：{} amount：{}'.format(EconomicConfig.REMAIN_ACCOUNT_ADDRESS, remain))
-    develop = node.eth.getBalance(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS)
+    develop = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
     log.info('Community developer foundation address：{} amount：{}'.format(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
                                                                           develop))
     reality_total = foundation_louckup + incentive_pool + staking + foundation + remain + develop
@@ -430,10 +429,11 @@ def test_AL_BI_004(client_consensus_obj, reset_environment):
     no_consensus_node_pledge_award_assertion(client_consensus_obj, address1, address)
 
 
-def create_pledge_node(client_new_node_obj, multiple=2):
+def create_pledge_node(client_new_node_obj, base, multiple=2):
     """
     create pledge node return benifit balance
     :param client_new_node_obj:
+    :param base:
     :param multiple:
     :return:
     """
@@ -448,11 +448,12 @@ def create_pledge_node(client_new_node_obj, multiple=2):
 
     log.info("address: {} ,amount: {}".format(address, client_new_node_obj.node.eth.getBalance(address)))
     benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
-    log.info(
-        "address: {} ,amount: {}".format(benifit_address, client_new_node_obj.node.eth.getBalance(benifit_address)))
+    log.info("address: {} ,amount: {}".format(benifit_address, client_new_node_obj.node.eth.getBalance(benifit_address)))
     # create staking
-    result = client_new_node_obj.staking.create_staking(0, benifit_address, address)
+    staking_amount = von_amount(client_new_node_obj.economic.create_staking_limit, base)
+    result = client_new_node_obj.staking.create_staking(0, benifit_address, address, amount=staking_amount)
     assert_code(result, 0)
+    log.info("Pledge node information: {}".format(client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)))
     return address, benifit_address
 
 
@@ -466,7 +467,7 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1)
     # view account amount
     benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
@@ -495,7 +496,7 @@ def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1)
     # view account amount
     benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
@@ -536,7 +537,7 @@ def test_AL_NBI_007_to_009(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.1)
     # view account amount
     benifit_balance = client_new_node_obj.node.eth.getBalance(benifit_address)
     log.info("benifit_balance: {}".format(benifit_balance))
@@ -611,7 +612,7 @@ def test_AL_NBI_010_to_012(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.2)
     # assert benifit reward
     assert_benifit_reward(client_new_node_obj, benifit_address, address)
 
@@ -624,7 +625,7 @@ def test_AL_NBI_013(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.3)
     # create account
     benifit_address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 0)
     # change benifit address
@@ -648,13 +649,15 @@ def test_AL_NBI_014(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.4)
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     # view block_reward
     block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(
         client_new_node_obj.node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # view benifit_address amount again
+    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
     # change benifit address
     for i in range(4):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
@@ -676,8 +679,7 @@ def test_AL_NBI_014(client_new_node_obj):
             assert_code(result, 0)
             # view benifit reward
             blocknumber = view_benifit_reward(client_new_node_obj, address)
-            # view benifit_address amount again
-            benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
+
             # view benifit_address1 amount
             benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address1)
             assert benifit_balance + benifit_balance1 == int(Decimal(str(
@@ -693,7 +695,7 @@ def test_AL_NBI_015(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.5)
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     # view account amount
@@ -730,9 +732,10 @@ def test_AL_NBI_016(client_new_node_obj):
     :return:
     """
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj)
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.6)
     # wait settlement block
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
     # view block_reward
     block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(
         client_new_node_obj.node)
@@ -740,7 +743,7 @@ def test_AL_NBI_016(client_new_node_obj):
     # view account amount
     benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
     # create account
-    report_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, 1000)
+    report_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, client_new_node_obj.node.web3.toWei(1000, 'ether'))
     for i in range(4):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -767,4 +770,43 @@ def test_AL_NBI_016(client_new_node_obj):
             # wait consensus block
             client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
 
+
+@pytest.mark.P2
+def test_AL_NBI_017(client_new_node_obj):
+    """
+    0出块率剔除验证人列表
+    :param client_new_node_obj:
+    :return:
+    """
+    # create pledge node
+    address, benifit_address = create_pledge_node(client_new_node_obj, 1.6)
+    # wait settlement block
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+    # view block_reward
+    block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(
+        client_new_node_obj.node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # view account amount
+    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
+    for i in range(4):
+        result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # stop node
+            client_new_node_obj.node.stop()
+            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+            # wait settlement block
+            client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+            # view account amount again
+            benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address)
+            # count the number of blocks
+            blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
+            log.info("blocknumber: {}".format(blocknumber))
+            assert benifit_balance1 == benifit_balance + int(
+                Decimal(str(block_reward)) * blocknumber), "ErrMsg:benifit_balance1：{}".format(benifit_balance1)
+            break
+        else:
+            # wait consensus block
+            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
 

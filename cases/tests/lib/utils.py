@@ -2,6 +2,8 @@
 import time
 import random
 import string
+from decimal import Decimal
+
 from hexbytes import HexBytes
 from environment.node import Node
 # from pip import *
@@ -279,3 +281,13 @@ def assert_code(result, code):
     :return:
     '''
     assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result.get("Code"))
+
+
+def von_amount(amonut, base):
+    """
+    Get von amount
+    :param amonut:
+    :param base:
+    :return:
+    """
+    return int(Decimal(str(amonut)) * Decimal(str(base)))
