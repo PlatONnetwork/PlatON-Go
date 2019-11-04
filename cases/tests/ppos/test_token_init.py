@@ -772,47 +772,48 @@ def test_AL_NBI_016(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_AL_NBI_017(client_new_node_obj):
+def test_AL_NBI_017(client_new_node_obj_list):
     """
     0出块率剔除验证人列表
     :param client_new_node_obj:
     :return:
     """
+    client_new_node_obj_list[0].economic.env.deploy_all()
     # create pledge node
-    address, benifit_address = create_pledge_node(client_new_node_obj, 1.6)
+    address, benifit_address = create_pledge_node(client_new_node_obj_list[0], 1.6)
     # wait settlement block
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+    client_new_node_obj_list[0].economic.wait_settlement_blocknum(client_new_node_obj_list[0].node)
+    log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj_list[0].ppos.getVerifierList()))
     # view block_reward
-    block_reward, staking_reward = client_new_node_obj.economic.get_current_year_reward(
-        client_new_node_obj.node)
+    block_reward, staking_reward = client_new_node_obj_list[0].economic.get_current_year_reward(
+        client_new_node_obj_list[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # view account amount
-    benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
+    benifit_balance = query_ccount_amount(client_new_node_obj_list[0], benifit_address)
     for i in range(4):
-        result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
+        result = check_node_in_list(client_new_node_obj_list[0].node.node_id, client_new_node_obj_list[0].ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
         if result:
             # stop node
-            client_new_node_obj.node.stop()
-            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+            client_new_node_obj_list[0].node.stop()
+            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj_list[1].ppos.getVerifierList()))
             # wait settlement block
-            client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+            client_new_node_obj_list[1].economic.wait_settlement_blocknum(client_new_node_obj_list[1].node)
             # view account amount again
-            benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address)
+            benifit_balance1 = query_ccount_amount(client_new_node_obj_list[1], benifit_address)
             # count the number of blocks
-            blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
+            blocknumber = client_new_node_obj_list[1].economic.get_block_count_number(client_new_node_obj_list[1].node, 5)
             log.info("blocknumber: {}".format(blocknumber))
             assert benifit_balance1 == benifit_balance + int(
                 Decimal(str(block_reward)) * blocknumber), "ErrMsg:benifit_balance1：{}".format(benifit_balance1)
             break
         else:
             # wait consensus block
-            client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+            client_new_node_obj_list[0].economic.wait_consensus_blocknum(client_new_node_obj_list[0].node)
 
 
 @pytest.mark.P1
-def test_AL_NBI_019(new_genesis_env, client_new_node_obj, reset_environment):
+def test_AL_NBI_018(new_genesis_env, client_new_node_obj, reset_environment):
     """
     调整质押和出块奖励比例
     :param client_new_node_obj:
