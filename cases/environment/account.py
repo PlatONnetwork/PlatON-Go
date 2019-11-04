@@ -28,7 +28,7 @@ class Account:
         """
         self.accounts = {}
         self.raw_accounts = LoadFile(accountFile).get_data()
-        log.info(self.raw_accounts)
+        # log.info(self.raw_accounts)
         self.chain_id = chainId
         self.account_with_money = self.raw_accounts[0]
         self.reset()
