@@ -225,24 +225,24 @@ func initParam() []*GovernParam {
 		/**
 		About TxPool module
 		*/
-		{
-			ParamItem:  &ParamItem{ModuleTxPool, KeyMaxTxDataLimit, fmt.Sprintf("maximum data length per transaction, range：(%d, %d]", xcom.Zero, CeilTxSize)},
-			ParamValue: &ParamValue{"", strconv.Itoa(GenesisTxSize), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
-
-				txSize, err := strconv.Atoi(value)
-				if nil != err {
-					return fmt.Errorf("Parsed MaxTxDataLimit is failed: %v", err)
-				}
-
-				// (0, 10MB]
-				if txSize > CeilTxSize {
-					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, CeilTxSize))
-				}
-
-				return nil
-			},
-		},
+		//{
+		//	ParamItem:  &ParamItem{ModuleTxPool, KeyMaxTxDataLimit, fmt.Sprintf("maximum data length per transaction, range：(%d, %d]", xcom.Zero, CeilTxSize)},
+		//	ParamValue: &ParamValue{"", strconv.Itoa(GenesisTxSize), 0},
+		//	ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+		//
+		//		txSize, err := strconv.Atoi(value)
+		//		if nil != err {
+		//			return fmt.Errorf("Parsed MaxTxDataLimit is failed: %v", err)
+		//		}
+		//
+		//		// (0, 10MB]
+		//		if txSize > CeilTxSize {
+		//			return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, CeilTxSize))
+		//		}
+		//
+		//		return nil
+		//	},
+		//},
 	}
 }
 
