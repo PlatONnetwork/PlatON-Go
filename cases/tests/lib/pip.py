@@ -68,9 +68,27 @@ class Pip:
         pri_key = self.economic.account.find_pri_key(from_address)
         return self.pip.submitVersion(verifier, pip_id, new_version, end_voting_rounds, pri_key, transaction_cfg)
 
-    def submitParam(self, verifier, url, end_voting_block, param_name, current_value, new_value, from_address, transaction_cfg=None):
+    def submitParam(self, verifier, pip_id, module, name, new_value, from_address, transaction_cfg=None):
+        """
+        Submit an param proposal
+        :param verifier: The certified submitting the proposal
+        :param pip_id: PIPID
+        :param module: parameter module
+        :param name: parameter name
+        :param new_value: New parameter value
+        :param from_address: address for transaction
+        :param transaction_cfg: Transaction basic configuration
+             type: dict
+             example:cfg = {
+                 "gas":100000000,
+                 "gasPrice":2000000000000,
+                 "nonce":1,
+             }
+        :return: if is need analyze return transaction result dict
+               if is not need analyze return transaction hash
+        """
         pri_key = self.economic.account.find_pri_key(from_address)
-        return self.pip.submitParam(verifier, url, end_voting_block, param_name, current_value, new_value, pri_key, transaction_cfg)
+        return self.pip.submitParam(verifier, pip_id, module, name, new_value, pri_key, transaction_cfg)
 
     def submitCancel(self, verifier, pip_id, end_voting_rounds, tobe_canceled_proposal_id, from_address, transaction_cfg=None):
         """
