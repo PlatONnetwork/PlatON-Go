@@ -47,7 +47,7 @@ class Economic:
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
         # 冻结结算周期
-        self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeRatio
+        self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeDuration
 
     @property
     def account(self):
