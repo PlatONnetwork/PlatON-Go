@@ -144,5 +144,18 @@ def test_LS_PV_001_5(client_new_node_obj):
     assert_code(result, 304011)
 
 
+@pytest.mark.P1
+def test_LS_PV_003(client_new_node_obj):
+    """
+    正常创建锁仓计划
+    :param client_new_node_obj:
+    :return:
+    """
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 1000)
+    assert_code(result, 0)
+    restricting_info = client_new_node_obj.ppos.getRestrictingInfo(benifit_address)
+    assert_code(restricting_info, 0)
+    assert restricting_info['Data']['balance'] == client_new_node_obj.node.web3.toWei(1000, 'ether')
+
 
 
