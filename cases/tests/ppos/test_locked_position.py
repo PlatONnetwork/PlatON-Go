@@ -188,6 +188,21 @@ def test_LS_PV_008(client_new_node_obj):
     assert_code(result, 304011)
 
 
+@pytest.mark.P2
+def test_LS_PV_010(client_new_node_obj):
+    """
+    创建锁仓计划-锁仓金额中文、特殊字符字符测试
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, client_new_node_obj.economic.create_staking_limit)
+    plan = [{'Epoch': 1, 'Amount': '测试 @！'}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 304004)
+
+
+
 @pytest.mark.P1
 def test_LS_RV_001(client_new_node_obj):
     """
