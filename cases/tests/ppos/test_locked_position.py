@@ -189,7 +189,7 @@ def test_LS_PV_008(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_LS_PV_010(client_new_node_obj):
+def test_LS_PV_009(client_new_node_obj):
     """
     创建锁仓计划-锁仓金额中文、特殊字符字符测试
     :param client_new_node_obj:
@@ -200,7 +200,6 @@ def test_LS_PV_010(client_new_node_obj):
     plan = [{'Epoch': 1, 'Amount': '测试 @！'}]
     result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 304004)
-
 
 
 @pytest.mark.P1
@@ -219,4 +218,24 @@ def test_LS_RV_001(client_new_node_obj):
     assert_code(result, 304004)
 
 
+@pytest.mark.P1
+@pytest.mark.parametrize('balace1, balace2', [(0, 0), (300, 300), (500, 500), (500, 600)])
+def test_LS_RV_002(client_new_node_obj,balace1, balace2):
+    """
+    创建锁仓计划-多个释放锁定期合计金额大于账户金额
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,client_new_node_obj.node.web3.toWei(1000, 'ether'))
+    louk_up_balace1 = client_new_node_obj.node.web3.toWei(balace1, 'ether')
+    louk_up_balace2 = client_new_node_obj.node.web3.toWei(balace2, 'ether')
+    plan = [{'Epoch': 1, 'Amount': louk_up_balace1}, {'Epoch': 2, 'Amount': louk_up_balace2}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    if 0 < balace1 + balace2 < 1000:
+        assert_code(result, 0)
+    elif 1000 <= balace1 + balace2:
+        assert_code(result, 304004)
+    else:
+        assert_code(result, 304011)
 
