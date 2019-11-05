@@ -622,34 +622,6 @@ type Proof struct {
 	C, R SecretKey
 }
 
-// Match only 128 hex char length proof
-type ProofHex [64]byte
-
-func (pfe ProofHex) String() string {
-	return hex.EncodeToString(pfe[:])
-}
-
-// MarshalText implements the encoding.TextMarshaler interface.
-func (pfe ProofHex) MarshalText() ([]byte, error) {
-	return []byte(hex.EncodeToString(pfe[:])), nil
-}
-
-// UnmarshalText implements the encoding.TextUnmarshaler interface.
-func (pfe *ProofHex) UnmarshalText(text []byte) error {
-
-	var p ProofHex
-	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
-	if err != nil {
-		return err
-	} else if len(b) != len(p) {
-		return fmt.Errorf("wrong length, want %d hex chars", len(p)*2)
-	}
-	copy(p[:], b)
-
-	*pfe = p
-	return nil
-}
-
 // Serialize --
 func (pf *Proof) Serialize() []byte {
 	return append(pf.C.Serialize(), (pf.R.Serialize())...)
