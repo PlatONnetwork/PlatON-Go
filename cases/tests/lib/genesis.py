@@ -33,7 +33,7 @@ class Staking:
     OperatingThreshold: int
     MaxValidators: int
     HesitateRatio: int
-    UnStakeFreezeRatio: int
+    UnStakeFreezeDuration: int
 
 
 @dataclass
