@@ -112,7 +112,7 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 	govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash)
 	if nil != err {
 		log.Error("cannot find GasLimit from govern", "err", err)
-		gasCeil = uint64(params.GenesisGasLimit)
+		gasCeil = uint64(params.DefaultMinerGasFloor) // 100800000
 	} else {
 		gasCeil = uint64(govGasCeil)
 	}
@@ -146,5 +146,6 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 			limit = gasCeil
 		}
 	}
+	log.Info("Call CalcGasLimit", "blockNumber", parent.Number().Uint64()+1, "gasFloor", gasFloor, "gasCeil", gasCeil, "limit", limit)
 	return limit
 }
