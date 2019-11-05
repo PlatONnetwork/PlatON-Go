@@ -39,10 +39,11 @@ def pytest_addoption(parser):
     parser.addoption("--installSupervisor", action="store_true", default=False, dest="installSuperVisor", help="installSupervisor: default do not install supervisor service")
 
 
-# py.test 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_2.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure" --reruns 3
+# py.test 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_2.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
+# --reruns 3
 @pytest.fixture(scope="session", autouse=False)
 def global_test_env(request):
-    log.info("global_test_env>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    log.info("start global_test_env>>>>>>>>>>>>>>")
     tmp_dir = request.config.getoption("--tmpDir")
     node_file = request.config.getoption("--nodeFile")
     account_file = request.config.getoption("--accountFile")
@@ -54,8 +55,8 @@ def global_test_env(request):
     if plant_url:
         download.download_platon(plant_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
-    env.deploy_all()
-    # env.prepare_all()
+    # env.deploy_all()
+    env.prepare_all()
     yield env
 
     if allure_dir:
@@ -82,17 +83,21 @@ def pytest_runtest_makereport(item, call):
                     log_url = os.path.join(item.funcargs["global_test_env"].cfg.bug_log, log_name)
                 else:
                     log_url = "http://{}:8080/job/PlatON/job/run/{}/artifact/logs/{}".format(socket.gethostbyname(socket.gethostname()), job, log_name)
-                allure.attach('{}'.format(log_url), 'Node log', allure.attachment_type.URI_LIST)
+                allure.attach('{}'.format(log_url), 'env log', allure.attachment_type.URI_LIST)
             except Exception as e:
                 log.info("exception:{}".format(e))
             # Record block number
             try:
                 if item.funcargs["global_test_env"].running:
-                    log.error("node blocks:{}".format(item.funcargs["global_test_env"].block_numbers()))
+                    env_status = "node blocks:{}".format(item.funcargs["global_test_env"].block_numbers())
+
                 else:
-                    log.error("node runnings:{}".format(["{}:{}".format(node.node_mark, node.running) for node in
-                                                         item.funcargs["global_test_env"].get_all_nodes()]))
+                    env_status = "node runnings:{}".format(["{}:{}".format(node.node_mark, node.running) for node in
+                                                            item.funcargs["global_test_env"].get_all_nodes()])
+                log.info(env_status)
+                allure.attach(env_status, "env status", allure.attachment_type.TEXT)
             except Exception as e:
                 log.info("get block exception:{}".format(e))
         else:
             log.error("This case does not use global_test_env")
+
