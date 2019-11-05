@@ -47,7 +47,6 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
                                                                                                                    'ether'))
     plan = [{'Epoch': epoch, 'Amount': client_new_node_obj.node.web3.toWei(amount, 'ether')}]
     result = client_new_node_obj.restricting.createRestrictingPlan(benifit_address, plan, address)
-    log.info("restricting plan information: {}".format(result))
     return result, address, benifit_address
 
 
@@ -104,7 +103,7 @@ def test_LS_PV_004_1(client_new_node_obj, epoch, amount):
     """
     try:
         result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
-        assert_code(result, 304003)
+        assert_code(result, 0)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
 
@@ -132,7 +131,7 @@ def test_LS_PV_004_2(client_new_node_obj, epoch, amount):
 @pytest.mark.P1
 def test_LS_PV_005(client_new_node_obj):
     """
-    锁仓参数的有效性验证
+    锁仓参数的有效性验证:epoch 0, amount 10
     :param client_new_node_obj:
     :return:
     """
@@ -176,16 +175,33 @@ def test_LS_PV_007(client_new_node_obj):
     result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 304002)
 
+
 @pytest.mark.P1
 def test_LS_PV_008(client_new_node_obj):
     """
-    锁仓参数的有效性验证
+    锁仓参数的有效性验证:epoch 1, amount 0
     :param client_new_node_obj:
     :return:
     """
+    # create restricting plan
     result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 0)
     assert_code(result, 304011)
 
+
+@pytest.mark.P1
+def test_LS_RV_001(client_new_node_obj):
+    """
+    创建锁仓计划-单个释放锁定期金额大于账户金额
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    account_balance = client_new_node_obj.node.web3.toWei(1000, 'ether')
+    Lock_in_amount = client_new_node_obj.node.web3.toWei(1001, 'ether')
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,client_new_node_obj.node.web3.toWei(account_balance, 'ether'))
+    plan = [{'Epoch': 1, 'Amount': client_new_node_obj.node.web3.toWei(Lock_in_amount, 'ether')}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 304004)
 
 
 
