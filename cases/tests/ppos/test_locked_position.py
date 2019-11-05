@@ -52,37 +52,72 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('epoch, amount', [(0, 100), (1, 0)])
-def test_LS_PV_001_1(client_new_node_obj, epoch, amount):
+def test_LS_PV_001_1(client_new_node_obj):
     """
     锁仓参数的有效性验证:
-                    number 1, amount 0.1
                     number 0, amount 100
-                    number 1, amount 0
+                    number 0.1, amount 10
     :param client_new_node_obj:
     :return:
     """
-    result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, 0, 10)
     assert_code(result, 304001)
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('epoch, amount', [(1, 0.1), (0.1, 10)])
+@pytest.mark.parametrize('epoch, amount', [(0.1, 10), (1, 0.1)])
 def test_LS_PV_001_2(client_new_node_obj, epoch, amount):
     """
     锁仓参数的有效性验证:
                     number 1, amount 0.1
-                    number 0.1, amount 10
-
+                    number 1, amount 0
     :param client_new_node_obj:
     :return:
     """
-    result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
-    assert_code(result, 304003)
+    try:
+        result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
+        assert_code(result, 304003)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
 
 
 @pytest.mark.P1
 def test_LS_PV_001_3(client_new_node_obj):
+    """
+    锁仓参数的有效性验证:
+                    number 1, amount 0.1
+                    number 1, amount 0
+    :param client_new_node_obj:
+    :return:
+    """
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 0)
+    assert_code(result, 304011)
+
+
+@pytest.mark.parametrize('epoch, amount', [(-1, 10), (1, -1)])
+@pytest.mark.P1
+def test_LS_PV_001_4(client_new_node_obj, epoch, amount):
+    """
+    锁仓参数的有效性验证:
+                    None,
+                    ""
+
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit)
+    plan = [{'Epoch': epoch, 'Amount': amount}]
+    try:
+        result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+        assert_code(result, 304011)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_PV_001_5(client_new_node_obj):
     """
     锁仓参数的有效性验证:
                     None,
