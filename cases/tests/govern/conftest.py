@@ -25,8 +25,7 @@ def version_proposal_vote(pip_obj, vote_option=None):
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), vote_option,
                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('The node {} vote result {}'.format(pip_obj.node.node_id, result))
-    assert_code(result, 0)
-
+    return result
 
 @pytest.fixture(scope="class")
 def pip_env(global_test_env):
@@ -198,41 +197,218 @@ def proposal_pipobj_list(global_test_env, client_verifier_obj, client_list_obj):
     client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
     return [client_obj.pip for client_obj in client_obj_list]
 
-def proposal_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj):
+@pytest.fixture()
+def proposal_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj, client_verifier_obj):
     '''
     There is voting stage proposal, get candidate list pip object
     :param global_test_env:
     :return:
     '''
     pip_obj = client_list_obj[0].pip
-    if pip_obj.chain_version != pip_obj.cfg.version0:
-        log.info('The chain has been upgraded,restart!')
+    if pip_obj.chain_version != pip_obj.cfg.version0 or (pip_obj.is_exist_effective_proposal
+                                                         and not pip_obj.get_effect_proposal_info_of_vote):
+        log.info('The chain has been upgraded or there is preactive proposal,restart!')
         global_test_env.deploy_all()
-    if pip_obj.is_exist_effective_proposal:
-        if pip_obj.is_exist_effective_proposal_for_vote():
+    nodeid_list = pip_obj.get_candidate_list_not_verifier()
+    if nodeid_list:
+        if pip_obj.get_effect_proposal_info_of_vote():
             proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
             log.info('get version proposalinfo : {}'.format(proposalinfo))
-            if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size * 2:
-                return pip_obj
+            if proposalinfo.get('NewVersion') == pip_obj.cfg.version8:
+                global_test_env.deploy_all()
+            else:
+                if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size:
+                    client_ca_obj_list = get_client_obj_list(nodeid_list, client_list_obj)
+                    return [client_obj.pip for client_obj in client_ca_obj_list]
 
-    if client_list_obj[0].pip.is_exist_effective_proposal() or client_list_obj[0].pip.chain_version != \
-            client_list_obj[0].pip.cfg.version0:
-        log.info('There is effective proposal, Restart the chain')
-        global_test_env.deploy_all()
+    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    log.info('candidate_list{}'.format(candidate_list))
+    for client_obj in client_noc_list_obj:
+        if client_obj.node.node_id not in candidate_list:
+            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
+            result = client_obj.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    result = client_verifier_obj.pip.submitVersion(client_verifier_obj.pip.node.node_id, str(time.time()),
+                                                   client_verifier_obj.pip.cfg.version5,
+                                          10, client_verifier_obj.pip.node.staking_address,
+                                          transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+    log.info('Submit version proposal result {}'.format(result))
+    assert_code(result, 0)
     nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
-    log.info('candidate not verifier list {}'.format(nodeid_list))
     if not nodeid_list:
-        candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
-        log.info('candidate_list{}'.format(candidate_list))
-        for client_obj in client_noc_list_obj:
-            if client_obj.node.node_id not in candidate_list:
-                address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
-                result = client_obj.staking.create_staking(0, address, address)
-                log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
-        client_obj.economic.wait_settlement_blocknum(client_obj.node)
-        nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
-        if not nodeid_list:
-            raise Exception('get candidate not verifier failed')
+        raise Exception('get candidate not verifier failed')
+    client_ca_list = get_client_obj_list(nodeid_list, client_list_obj)
+    return [client_ca_obj.pip for client_ca_obj in client_ca_list]
+
+@pytest.fixture()
+def bv_proposal_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj, client_verifier_obj):
+    '''
+    There is voting stage proposal, get candidate list pip object
+    :param global_test_env:
+    :return:
+    '''
+    pip_obj = client_list_obj[0].pip
+    if pip_obj.chain_version != pip_obj.cfg.version0 or (pip_obj.is_exist_effective_proposal
+                                                         and not pip_obj.get_effect_proposal_info_of_vote):
+        log.info('The chain has been upgraded or there is preactive proposal,restart!')
+        global_test_env.deploy_all()
+    nodeid_list = pip_obj.get_candidate_list_not_verifier()
+    if nodeid_list:
+        if pip_obj.get_effect_proposal_info_of_vote():
+            proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+            log.info('get version proposalinfo : {}'.format(proposalinfo))
+            if proposalinfo.get('NewVersion') == pip_obj.cfg.version5:
+                global_test_env.deploy_all()
+            else:
+                if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size:
+                    client_ca_obj_list = get_client_obj_list(nodeid_list, client_list_obj)
+                    return [client_obj.pip for client_obj in client_ca_obj_list]
+
+    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    log.info('candidate_list{}'.format(candidate_list))
+    for client_obj in client_noc_list_obj:
+        if client_obj.node.node_id not in candidate_list:
+            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
+            result = client_obj.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    result = client_verifier_obj.pip.submitVersion(client_verifier_obj.pip.node.node_id, str(time.time()),
+                                                   client_verifier_obj.pip.cfg.version8,
+                                          10, client_verifier_obj.pip.node.staking_address,
+                                          transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+    log.info('Submit version proposal result {}'.format(result))
+    assert_code(result, 0)
+    nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
+    if not nodeid_list:
+        raise Exception('get candidate not verifier failed')
+    client_ca_list = get_client_obj_list(nodeid_list, client_list_obj)
+    return [client_ca_obj.pip for client_ca_obj in client_ca_list]
+
+@pytest.fixture()
+def proposal_voted_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj, client_verifier_obj):
+    '''
+    There is voting stage proposal, get candidate list pip object
+    :param global_test_env:
+    :return:
+    '''
+    pip_obj = client_list_obj[0].pip
+    if pip_obj.chain_version != pip_obj.cfg.version0 or (pip_obj.is_exist_effective_proposal
+                                                         and not pip_obj.get_effect_proposal_info_of_vote):
+        log.info('The chain has been upgraded or there is preactive proposal,restart!')
+        global_test_env.deploy_all()
+    nodeid_list = pip_obj.get_candidate_list_not_verifier()
+    if nodeid_list:
+        if pip_obj.get_effect_proposal_info_of_vote():
+            proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+            log.info('get version proposalinfo : {}'.format(proposalinfo))
+            if proposalinfo.get('NewVersion') == pip_obj.cfg.version8:
+                global_test_env.deploy_all()
+            else:
+                if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size:
+                    client_ca_obj_list = get_client_obj_list(nodeid_list, client_list_obj)
+                    return [client_obj.pip for client_obj in client_ca_obj_list]
+
+    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    log.info('candidate_list{}'.format(candidate_list))
+    for client_obj in client_noc_list_obj:
+        if client_obj.node.node_id not in candidate_list:
+            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
+            result = client_obj.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    result = client_verifier_obj.pip.submitVersion(client_verifier_obj.pip.node.node_id, str(time.time()),
+                                                   client_verifier_obj.pip.cfg.version5,
+                                          10, client_verifier_obj.pip.node.staking_address,
+                                          transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+    log.info('Submit version proposal result {}'.format(result))
+    assert_code(result, 0)
+    nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
+    if not nodeid_list:
+        raise Exception('get candidate not verifier failed')
+    client_ca_list = get_client_obj_list(nodeid_list, client_list_obj)
+    return [client_ca_obj.pip for client_ca_obj in client_ca_list]
+
+@pytest.fixture()
+def bv_proposal_voted_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj, client_verifier_obj):
+    '''
+    There is voting stage proposal, get candidate list pip object
+    :param global_test_env:
+    :return:
+    '''
+    pip_obj = client_list_obj[0].pip
+    if pip_obj.chain_version != pip_obj.cfg.version0 or (pip_obj.is_exist_effective_proposal
+                                                         and not pip_obj.get_effect_proposal_info_of_vote):
+        log.info('The chain has been upgraded or there is preactive proposal,restart!')
+        global_test_env.deploy_all()
+    nodeid_list = pip_obj.get_candidate_list_not_verifier()
+    if nodeid_list:
+        if pip_obj.get_effect_proposal_info_of_vote():
+            proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+            log.info('get version proposalinfo : {}'.format(proposalinfo))
+            if proposalinfo.get('NewVersion') == pip_obj.cfg.version5:
+                global_test_env.deploy_all()
+            else:
+                if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size:
+                    client_ca_obj_list = get_client_obj_list(nodeid_list, client_list_obj)
+                    return [client_obj.pip for client_obj in client_ca_obj_list]
+
+    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    log.info('candidate_list{}'.format(candidate_list))
+    for client_obj in client_noc_list_obj:
+        if client_obj.node.node_id not in candidate_list:
+            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
+            result = client_obj.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    result = client_verifier_obj.pip.submitVersion(client_verifier_obj.pip.node.node_id, str(time.time()),
+                                                   client_verifier_obj.pip.cfg.version8,
+                                          10, client_verifier_obj.pip.node.staking_address,
+                                          transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+    log.info('Submit version proposal result {}'.format(result))
+    assert_code(result, 0)
+    nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
+    if not nodeid_list:
+        raise Exception('get candidate not verifier failed')
+    client_ca_list = get_client_obj_list(nodeid_list, client_list_obj)
+    return [client_ca_obj.pip for client_ca_obj in client_ca_list]
+
+@pytest.fixture()
+def preactive_proposal_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj, client_verifier_obj):
+    '''
+    There is voting stage proposal, get candidate list pip object
+    :param global_test_env:
+    :return:
+    '''
+    pip_obj = client_list_obj[0].pip
+    if pip_obj.chain_version != pip_obj.cfg.version0 or (pip_obj.is_exist_effective_proposal
+                                                         and not pip_obj.get_effect_proposal_info_of_vote):
+        log.info('The chain has been upgraded or there is preactive proposal,restart!')
+        global_test_env.deploy_all()
+    nodeid_list = pip_obj.get_candidate_list_not_verifier()
+    if nodeid_list:
+        if pip_obj.get_effect_proposal_info_of_vote():
+            proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+            log.info('get version proposalinfo : {}'.format(proposalinfo))
+            if proposalinfo.get('NewVersion') == pip_obj.cfg.version8:
+                global_test_env.deploy_all()
+            else:
+                if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size:
+                    client_ca_obj_list = get_client_obj_list(nodeid_list, client_list_obj)
+                    return [client_obj.pip for client_obj in client_ca_obj_list]
+
+    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    log.info('candidate_list{}'.format(candidate_list))
+    for client_obj in client_noc_list_obj:
+        if client_obj.node.node_id not in candidate_list:
+            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
+            result = client_obj.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    result = client_verifier_obj.pip.submitVersion(client_verifier_obj.pip.node.node_id, str(time.time()),
+                                                   client_verifier_obj.pip.cfg.version5,
+                                          10, client_verifier_obj.pip.node.staking_address,
+                                          transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+    log.info('Submit version proposal result {}'.format(result))
+    assert_code(result, 0)
+    nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
+    if not nodeid_list:
+        raise Exception('get candidate not verifier failed')
     client_ca_list = get_client_obj_list(nodeid_list, client_list_obj)
     return [client_ca_obj.pip for client_ca_obj in client_ca_list]
 
@@ -277,10 +453,11 @@ def proposal_voted_pipobj_list(global_test_env, client_verifier_obj, client_list
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time_ns()), pip_obj.cfg.version5, 10,
                                    pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
+    assert_code(result, 0)
     verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
-    version_proposal_vote(client_obj_list[0].pip)
+    result = version_proposal_vote(client_obj_list[0].pip)
     assert_code(result, 0)
     return [client_obj.pip for client_obj in client_obj_list]
 
@@ -299,7 +476,8 @@ def bv_proposal_voted_pipobj_list(global_test_env, client_verifier_obj, client_l
     verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
-    version_proposal_vote(client_obj_list[0].pip)
+    result = version_proposal_vote(client_obj_list[0].pip)
+    assert_code(result, 0)
     return [client_obj.pip for client_obj in client_obj_list]
 
 @pytest.fixture()
@@ -319,7 +497,8 @@ def preactive_proposal_pipobj_list(global_test_env, client_list_obj):
     proposalinfo = pip_list_obj[0].get_effect_proposal_info_of_vote()
     log.info('Version proposalinfo: {}'.format(proposalinfo))
     for pip_obj in pip_list_obj:
-        version_proposal_vote(pip_obj)
+        result = version_proposal_vote(pip_obj)
+        assert_code(result, 0)
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
     assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4
     return pip_list_obj
@@ -342,7 +521,8 @@ def preactive_bv_proposal_pipobj_list(global_test_env, client_list_obj):
     proposalinfo = pip_list_obj[0].get_effect_proposal_info_of_vote()
     log.info('Version proposalinfo: {}'.format(proposalinfo))
     for pip_obj in pip_list_obj:
-        version_proposal_vote(pip_obj)
+        result = version_proposal_vote(pip_obj)
+        assert_code(result, 0)
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
     assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4
     return pip_list_obj
