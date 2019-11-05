@@ -26,11 +26,11 @@ class Economic:
         self.additional_cycle_time = self.genesis.EconomicModel.Common.AdditionalCycleTime
 
         # Number of verification
-        self.validator_count = self.genesis.EconomicModel.Common.ValidatorCount
+        self.validator_count = self.genesis.EconomicModel.Common.MaxConsensusVals
 
         # Billing related
         # Billing cycle
-        self.expected_minutes = self.genesis.EconomicModel.Common.ExpectedMinutes
+        self.expected_minutes = self.genesis.EconomicModel.Common.MaxEpochMinutes
         # Consensus rounds
         self.consensus_wheel = (self.expected_minutes * 60) // (
                     self.interval * self.per_round_blocks * self.validator_count)
@@ -43,7 +43,7 @@ class Economic:
         # Minimum deposit amount
         self.create_staking_limit = self.genesis.EconomicModel.Staking.StakeThreshold
         # Minimum holding amount
-        self.add_staking_limit = self.genesis.EconomicModel.Staking.MinimumThreshold
+        self.add_staking_limit = self.genesis.EconomicModel.Staking.OperatingThreshold
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
         # 冻结结算周期
