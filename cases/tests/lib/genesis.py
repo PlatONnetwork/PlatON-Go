@@ -22,29 +22,26 @@ class Config:
 
 @dataclass
 class Common:
-    ExpectedMinutes: int
-    ValidatorCount: int
+    MaxEpochMinutes: int
+    MaxConsensusVals: int
     AdditionalCycleTime: int
 
 
 @dataclass
 class Staking:
     StakeThreshold: int
-    MinimumThreshold: int
-    EpochValidatorNum: int
+    OperatingThreshold: int
+    MaxValidators: int
     HesitateRatio: int
-    EffectiveRatio: int
     UnStakeFreezeRatio: int
-    PassiveUnDelegateFreezeRatio: int
-    ActiveUnDelegateFreezeRatio: int
 
 
 @dataclass
 class Slashing:
-    DuplicateSignHighSlashing: int
+    SlashFractionDuplicateSign: int
     DuplicateSignReportReward: int
-    NumberOfBlockRewardForSlashing: int
-    EvidenceValidEpoch: int
+    SlashBlocksReward: int
+    MaxEvidenceAge: int
 
 
 @dataclass
