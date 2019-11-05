@@ -52,11 +52,9 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
 
 
 @pytest.mark.P1
-def test_LS_PV_001_1(client_new_node_obj):
+def test_LS_PV_005(client_new_node_obj):
     """
-    锁仓参数的有效性验证:
-                    number 0, amount 100
-                    number 0.1, amount 10
+    锁仓参数的有效性验证
     :param client_new_node_obj:
     :return:
     """
@@ -81,22 +79,9 @@ def test_LS_PV_001_2(client_new_node_obj, epoch, amount):
         log.info("Use case success, exception information：{} ".format(str(e)))
 
 
-@pytest.mark.P1
-def test_LS_PV_001_3(client_new_node_obj):
-    """
-    锁仓参数的有效性验证:
-                    number 1, amount 0.1
-                    number 1, amount 0
-    :param client_new_node_obj:
-    :return:
-    """
-    result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 0)
-    assert_code(result, 304011)
-
-
 @pytest.mark.parametrize('epoch, amount', [(-1, 10), (1, -1)])
 @pytest.mark.P1
-def test_LS_PV_001_4(client_new_node_obj, epoch, amount):
+def test_LS_PV_004(client_new_node_obj, epoch, amount):
     """
     锁仓参数的有效性验证:
                     None,
@@ -156,6 +141,20 @@ def test_LS_PV_003(client_new_node_obj):
     restricting_info = client_new_node_obj.ppos.getRestrictingInfo(benifit_address)
     assert_code(restricting_info, 0)
     assert restricting_info['Data']['balance'] == client_new_node_obj.node.web3.toWei(1000, 'ether')
+
+
+@pytest.mark.P1
+def test_LS_PV_008(client_new_node_obj):
+    """
+    锁仓参数的有效性验证:
+                    number 1, amount 0.1
+                    number 1, amount 0
+    :param client_new_node_obj:
+    :return:
+    """
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 0)
+    assert_code(result, 304011)
+
 
 
 
