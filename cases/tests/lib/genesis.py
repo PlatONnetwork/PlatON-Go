@@ -47,13 +47,15 @@ class Slashing:
 @dataclass
 class Gov:
     VersionProposalVote_DurationSeconds: int
-    VersionProposalActive_ConsensusRounds: int
     VersionProposal_SupportRate: float
     TextProposalVote_DurationSeconds: int
     TextProposal_VoteRate: float
     TextProposal_SupportRate: float
     CancelProposal_VoteRate: float
     CancelProposal_SupportRate: float
+    ParamProposalVote_DurationSeconds: int
+    ParamProposal_VoteRate: float
+    ParamProposal_SupportRate: float
 
 
 @dataclass

@@ -32,13 +32,15 @@
     },
     "Gov": {
       "VersionProposalVote_DurationSeconds": 160,
-      "VersionProposalActive_ConsensusRounds": 5,
       "VersionProposal_SupportRate": 0.667,
       "TextProposalVote_DurationSeconds": 160,
       "TextProposal_VoteRate": 0.5,
       "TextProposal_SupportRate": 0.667,
       "CancelProposal_VoteRate": 0.50,
-      "CancelProposal_SupportRate": 0.667
+      "CancelProposal_SupportRate": 0.667,
+      "ParamProposalVote_DurationSeconds": 160,
+      "ParamProposal_VoteRate": 0.50,
+      "ParamProposal_SupportRate": 0.667
     },
     "Reward": {
       "NewBlockRate": 50,
