@@ -906,3 +906,15 @@ class TestNoProposalCA:
 
         result = wrong_verison_declare(pip_obj)
         assert_code(result, 302024)
+
+    def test_DE_CA_034(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
+        pip_obj = bv_proposal_ca_pipobj_list[0]
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
+        assert_code(result, 0)
+
+        result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj)
+        assert_code(result, 302024)
