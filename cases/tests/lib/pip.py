@@ -4,7 +4,8 @@ from .config import PipConfig
 from .economic import Economic
 from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, int16_to_bytes, bytes_to_int
 import json
-from common.log import log
+from typing import List
+import time
 
 
 class Pip:
@@ -225,7 +226,7 @@ class Pip:
         :return:
         """
         result = self.pip.getActiveVersion()
-        return result.get('Data')
+        return int(result.get('Data'))
 
     def get_version_small_version(self, flag=3):
         """
@@ -431,6 +432,9 @@ class Pip:
         """
         candidate_list = self.node.ppos.getCandidateList().get('Data')
         verifier_list = self.node.ppos.getVerifierList().get('Data')
+        if not verifier_list:
+            time.sleep(10)
+            verifier_list = self.node.ppos.getVerifierList().get('Data')
         candidate_no_verify_list = []
         verifier_node_list = [node_info.get("NodeId") for node_info in verifier_list]
         for node_info in candidate_list:
@@ -442,3 +446,28 @@ class Pip:
     def get_version(self, version=None):
         # todo implement
         pass
+
+
+def get_pip_obj(nodeid, pip_obj_list: List[Pip]) -> Pip:
+    """
+    Get the pip object according to the node id
+    :param nodeid:
+    :param pip_obj_list:
+    :return:
+    """
+    for pip_obj in pip_obj_list:
+        if nodeid == pip_obj.node.node_id:
+            return pip_obj
+
+
+def get_pip_obj_list(nodeid_list, pip_obj_list: List[Pip]) -> List[Pip]:
+    """
+    Get a list of pip objects based on the node id list
+    :param nodeid_list:
+    :param pip_obj_list:
+    :return:
+    """
+    new_pip_obj_list = []
+    for nodeid in nodeid_list:
+        new_pip_obj_list.append(get_pip_obj(nodeid, pip_obj_list))
+    return new_pip_obj_list
