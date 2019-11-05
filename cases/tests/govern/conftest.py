@@ -37,9 +37,20 @@ def pip_env(global_test_env):
 @pytest.fixture()
 def no_version_proposal(global_test_env, client_verifier_obj):
     pip_obj = client_verifier_obj.pip
-    if pip_obj.is_exist_effective_proposal() or pip_obj.chain_version != pip_obj.cfg.version0:
+    if pip_obj.is_exist_effective_proposal() or pip_obj.chain_version != pip_obj.cfg.version0 \
+            or pip_obj.is_exist_effective_proposal(pip_obj.cfg.param_proposal):
         log.info('There is effective proposal,restart the chain')
         global_test_env.deploy_all()
+    return pip_obj
+
+@pytest.fixture()
+def submit_version(no_version_proposal):
+    pip_obj = no_version_proposal
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 10,
+                                   pip_obj.node.staking_address,
+                                   transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('submit version result:'.format(result))
+    assert_code(result, 0)
     return pip_obj
 
 @pytest.fixture()
