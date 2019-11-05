@@ -463,7 +463,7 @@ func (gc *GovContract) callHandler(funcName string, resultValue interface{}, err
 	jsonByte, e := json.Marshal(resultValue)
 	if nil != e {
 		log.Error("call GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
-			"txHash", gc.Evm.StateDB.TxHash(), "err", err)
+			"txHash", gc.Evm.StateDB.TxHash(), "err", e)
 		resultBytes := xcom.NewFailedResult(e)
 		return resultBytes, nil
 	} else {
