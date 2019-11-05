@@ -15,3 +15,4 @@ allure-pytest==2.8.6
 allure-python-commons==2.8.6
 ruamel.yaml==0.15.91
 pytest-repeat==0.8.0
+pytest-rerunfailures==7.0

@@ -38,8 +38,8 @@ def pytest_addoption(parser):
     parser.addoption("--installDependency", action="store_true", default=False, dest="installDependency", help="installDependency: default do not install dependencies")
     parser.addoption("--installSupervisor", action="store_true", default=False, dest="installSuperVisor", help="installSupervisor: default do not install supervisor service")
 
-# py.test test_start.py -s --concmode=asyncnet --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
-# py.test 'tests/chain/test_chain_deploy.py' --nodeFile "deploy/node/test_chaininfo.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure" -s -v
+
+# py.test 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_2.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure" --reruns 3
 @pytest.fixture(scope="session", autouse=False)
 def global_test_env(request):
     log.info("global_test_env>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
@@ -54,8 +54,8 @@ def global_test_env(request):
     if plant_url:
         download.download_platon(plant_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
-    # env.deploy_all()
-    env.prepare_all()
+    env.deploy_all()
+    # env.prepare_all()
     yield env
 
     if allure_dir:
@@ -72,9 +72,10 @@ def pytest_runtest_makereport(item, call):
     rep = outcome.get_result()
     # we only look at actual failing test calls, not setup/teardown
     if rep.when == "call" and not rep.passed:
-        # download log in here
-        try:
-            if 'global_test_env' in item.fixturenames:
+
+        if 'global_test_env' in item.fixturenames:
+            # download log in here
+            try:
                 log_name = item.funcargs["global_test_env"].backup_all_logs(item.name)
                 job = item.funcargs["request"].config.getoption("--job")
                 if job is None:
@@ -82,8 +83,16 @@ def pytest_runtest_makereport(item, call):
                 else:
                     log_url = "http://{}:8080/job/PlatON/job/run/{}/artifact/logs/{}".format(socket.gethostbyname(socket.gethostname()), job, log_name)
                 allure.attach('{}'.format(log_url), 'Node log', allure.attachment_type.URI_LIST)
-                log.error("node blocks:{}".format(item.funcargs["global_test_env"].block_numbers()))
-        except Exception as e:
-            log.info("exception:{}".format(e))
-        # todo
-        # allure.attach('http://www.implement.me.com', 'Node log', allure.attachment_type.URI_LIST)
+            except Exception as e:
+                log.info("exception:{}".format(e))
+            # Record block number
+            try:
+                if item.funcargs["global_test_env"].running:
+                    log.error("node blocks:{}".format(item.funcargs["global_test_env"].block_numbers()))
+                else:
+                    log.error("node runnings:{}".format(["{}:{}".format(node.node_mark, node.running) for node in
+                                                         item.funcargs["global_test_env"].get_all_nodes()]))
+            except Exception as e:
+                log.info("get block exception:{}".format(e))
+        else:
+            log.error("This case does not use global_test_env")
