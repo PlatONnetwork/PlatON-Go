@@ -41,16 +41,18 @@ def test_PIP_PVF_001(client_con_list_obj, reset_environment):
     """
     # Initialize environment
     client_con_list_obj[0].economic.env.deploy_all()
+    time.sleep(3)
     # view Consensus Amount of pledge
     candidate_info1 = client_con_list_obj[0].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view block_reward
+    log.info("block: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', 0, 1)
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', 0, False)
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
@@ -113,3 +115,13 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
     assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
         pledge_amount2)
+
+
+@pytest.mark.P1
+def test_PIP_PVF_004(client_con_list_obj, reset_environment):
+    """
+
+    :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """

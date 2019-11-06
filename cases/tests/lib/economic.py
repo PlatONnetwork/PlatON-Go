@@ -81,7 +81,7 @@ class Economic:
         annualcycle, annual_size, current_end_block = self.get_annual_switchpoint(node)
         if verifier_num is None:
             verifier_list = node.ppos.getVerifierList()
-            verifier_num = len(verifier_list['Data'])
+            verifier_num = len(verifier_list['Ret'])
         print('verifier_num', verifier_num)
         amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, 0)
         block_proportion = str(new_block_rate / 100)

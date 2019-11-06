@@ -219,7 +219,7 @@ def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=Tr
                                          client_obj.node.staking_address, transaction_cfg=client_obj.pip.cfg.transaction_cfg)
             log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
-    if not effectiveflag:
+    if effectiveflag:
         assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 2
         log.info("blockNumber {}, the {} has become {}".format(proposalinfo.get('EndVotingBlock'), name, newvalue))
     else:
