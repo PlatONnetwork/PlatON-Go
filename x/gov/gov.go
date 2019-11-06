@@ -575,7 +575,7 @@ func GetGovernParamValue(module, name string, blockNumber uint64, blockHash comm
 		return "", err
 	}
 	if paramValue == nil {
-		return "", common.InternalError
+		return "", UnsupportedGovernParam
 	} else {
 		if blockNumber >= paramValue.ActiveBlock {
 			return paramValue.Value, nil
