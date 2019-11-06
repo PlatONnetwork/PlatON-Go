@@ -20,7 +20,7 @@
     "Staking": {
       "StakeThreshold": 1000000000000000000000000,
       "OperatingThreshold": 10000000000000000000,
-      "MaxValidators": 25,
+      "MaxValidators": 30,
       "HesitateRatio": 1,
       "UnStakeFreezeDuration": 2
     },
@@ -61,7 +61,7 @@
     "1000000000000000000000000000000000000003": {
       "balance": "200000000000000000000000000"
     },
-    "0xf66CB3C7f28D058AE3C6eD9493C6A9e2a7d7786d": {
+    "0x2e95e3ce0a54951eb9a99152a6d5827872dfb4fd": {
       "balance": "9718188019000000000000000000"
     }
   },
