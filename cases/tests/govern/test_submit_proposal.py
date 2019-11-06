@@ -2,7 +2,7 @@ from common.log import log
 from dacite import from_dict
 from tests.lib import Genesis
 import pytest
-from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number
+from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code
 from tests.lib.client import get_client_obj
 import time, math
 
@@ -12,7 +12,7 @@ def test_VP_SU_001(submit_version):
     log.info('获取升级提案信息为{}'.format(proposalinfo))
     endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 5
                                      ) * pip_obj.economic.consensus_size - 20
-    log.info('计算投票截止块高为{},接口返回投票截止块高{}'.format(endvotingblock_count,
+    log.info('Calculated endvoting block{},interface returned endvoting block{}'.format(endvotingblock_count,
                                                proposalinfo.get('EndVotingBlock')))
     assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
     assert int(endvotingblock_count) + 21 == proposalinfo.get('ActiveBlock')
@@ -20,15 +20,34 @@ def test_VP_SU_001(submit_version):
 @pytest.mark.P0
 def test_CP_SU_001_CP_UN_001(submit_cancel):
     pip_obj = submit_cancel
-    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(4)
-    log.info('获取取消提案信息为{}'.format(proposalinfo))
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+    log.info('cancel proposalinfo : {}'.format(proposalinfo))
     endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 4
                                      ) * pip_obj.economic.consensus_size - 20
-    log.info('计算投票截止块高为{},接口返回投票截止块高{}'.format(endvotingblock_count,
+    log.info('Calculated endvoting block{},interface returned endvoting block{}'.format(endvotingblock_count,
                                                proposalinfo.get('EndVotingBlock')))
     assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
-    pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Submit cancel proposal result : {}'.format(result))
+    assert_code(result, 302014)
+
+@pytest.mark.P0
+def test_PP_SU_001(submit_param):
+    pip_obj = submit_param
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    log.info('param proposalinfo : {}'.format(proposalinfo))
+    endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.settlement_size +
+                                     pip_obj.economic.pp_vote_settlement_wheel
+                                     ) * pip_obj.economic.settlement_size
+    log.info('Calculated endvoting block{},interface returned endvoting block{}'.format(endvotingblock_count,
+                                               proposalinfo.get('EndVotingBlock')))
+    assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', 0,
+                                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('There is voting param ,submit param proposal result : {}'.format(result))
+    assert_code(result, 302014)
+
 
 def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
     pip_obj_tmp = no_version_proposal

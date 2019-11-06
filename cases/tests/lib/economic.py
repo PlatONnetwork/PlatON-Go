@@ -46,8 +46,13 @@ class Economic:
         self.add_staking_limit = self.genesis.EconomicModel.Staking.OperatingThreshold
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
-        # 冻结结算周期
+        # unstaking freeze duration
         self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeDuration
+        #ParamProposalVote_DurationSeconds
+        self.pp_vote_settlement_wheel = self.genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds // (
+                (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
+        )
+
 
     @property
     def account(self):

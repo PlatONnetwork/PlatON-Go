@@ -6,6 +6,7 @@ from tests.lib import StakingConfig
 from common.log import log
 from tests.lib.client import Client, get_client_obj
 from tests.lib.utils import get_pledge_list
+import time
 
 
 @pytest.fixture()
@@ -182,3 +183,21 @@ def new_genesis_env(global_test_env):
     log.info("reset deploy.................")
     global_test_env.set_cfg(cfg)
     global_test_env.deploy_all()
+
+def param_proposal(pip_obj, module, name, newvalue, effectiveflag=None, number=0):
+    '''
+    Number represents which settlement to take effect; defaul 0
+    :param pip_obj:
+    :param module:
+    :param name:
+    :param newvalue:
+    :param effectiveflag:
+    :param number:
+    :return:
+    '''
+    if pip_obj.is_exist_effective_proposal_for_vote(pip_obj.cfg.param_proposal) or \
+            pip_obj.is_exist_effective_proposal_for_vote(pip_obj.cfg.version_proposal):
+        raise Exception('There is effective param proposal or version proposal')
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), module, name, newvalue, pip_obj.node.staking_address,
+                        transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('')
