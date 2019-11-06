@@ -45,6 +45,7 @@ const (
 	TenThousand               = 10000
 	CeilBlocksReward          = 60101
 	CeilMaxValidators         = 201
+	FloorMaxConsensusVals     = 4
 	CeilMaxConsensusVals      = 25
 	PositiveInfinity          = "+∞"
 	CeilUnStakeFreezeDuration = 28 * 4
@@ -324,8 +325,8 @@ func CheckOperatingThreshold(threshold *big.Int) error {
 }
 
 func CheckMaxValidators(num int) error {
-	if num < CeilMaxConsensusVals || num > CeilMaxValidators {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxValidators must be [%d, %d]", CeilMaxConsensusVals, CeilMaxValidators))
+	if num < int(ec.Common.MaxConsensusVals) || num > CeilMaxValidators {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxValidators must be [%d, %d]", int(ec.Common.MaxConsensusVals), CeilMaxValidators))
 	}
 	return nil
 }
@@ -403,6 +404,10 @@ func CheckEconomicModel() error {
 		return errors.New("The issuance period must be integer multiples of the settlement period and multiples must be greater than or equal to 4")
 	}
 
+	if ec.Common.MaxConsensusVals < FloorMaxConsensusVals || ec.Common.MaxConsensusVals > CeilMaxConsensusVals {
+		return fmt.Errorf("The consensus validator num must be [%d, %d]", FloorMaxConsensusVals, CeilMaxConsensusVals)
+	}
+
 	if err := CheckMaxValidators(int(ec.Staking.MaxValidators)); nil != err {
 		return err
 	}
@@ -411,12 +416,12 @@ func CheckEconomicModel() error {
 		return err
 	}
 
-	if ec.Staking.HesitateRatio < 1 {
-		return errors.New("The HesitateRatio must be greater than or equal to 1")
-	}
-
 	if err := CheckStakeThreshold(ec.Staking.StakeThreshold); nil != err {
 		return err
+	}
+
+	if ec.Staking.HesitateRatio < 1 {
+		return errors.New("The HesitateRatio must be greater than or equal to 1")
 	}
 
 	if err := CheckUnStakeFreezeDuration(int(ec.Staking.UnStakeFreezeDuration), int(ec.Slashing.MaxEvidenceAge)); nil != err {
