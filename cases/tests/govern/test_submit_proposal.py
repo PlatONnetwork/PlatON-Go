@@ -49,9 +49,6 @@ def test_PP_SU_001(submit_param):
     log.info('There is voting param ,submit param proposal result : {}'.format(result))
     assert_code(result, 302014)
 
-def test_1(client_verifier_obj):
-    param_governance_verify(client_verifier_obj, 'Slashing', 'SlashBlocksReward', '0', 1)
-
 def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
     pip_obj_tmp = no_version_proposal
     result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version1, 1,
