@@ -439,7 +439,7 @@ class TestPP():
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '60100',
                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
-        assert_code(result, 3)
+        assert_code(result, 0)
 
     def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, client_list_obj):
         pip_obj = no_vp_proposal

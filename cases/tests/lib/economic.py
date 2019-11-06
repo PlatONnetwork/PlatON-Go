@@ -53,7 +53,7 @@ class Economic:
                 (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
         )
         #slash blocks reward
-        self.slash_blocks_reward = self.genesis.EconomicModel.Staking.SlashBlocksReward
+        self.slash_blocks_reward = self.genesis.EconomicModel.Slashing.SlashBlocksReward
 
 
     @property
