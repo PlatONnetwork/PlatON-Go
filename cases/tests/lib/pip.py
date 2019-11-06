@@ -179,7 +179,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -192,7 +192,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        resultinfo = result.get('Data')
+        resultinfo = result.get('Ret')
         resultinfo = json.loads(resultinfo)
         if not resultinfo:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -205,7 +205,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -218,7 +218,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -231,7 +231,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -244,7 +244,7 @@ class Pip:
         :return:
         """
         result = self.pip.getActiveVersion()
-        return int(result.get('Data'))
+        return int(result.get('Ret'))
 
     def get_version_small_version(self, flag=3):
         """
@@ -270,7 +270,7 @@ class Pip:
             blocknumber = self.node.block_number
         blockhash = get_blockhash(self.node, blocknumber)
         result = self.pip.getAccuVerifiersCount(proposal_id, blockhash)
-        voteinfo = result.get('Data')
+        voteinfo = result.get('Ret')
         vote_result = eval(voteinfo)
         return vote_result
 
@@ -280,7 +280,7 @@ class Pip:
         :param proposal_id:
         :return:
         """
-        result = self.pip.getTallyResult(proposal_id).get('Data')
+        result = self.pip.getTallyResult(proposal_id).get('Ret')
         result = json.loads(result)
         if not result:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -293,7 +293,7 @@ class Pip:
         Get pre-valid proposal information on the chain
         :return:
         """
-        result = self.pip.listProposal().get('Data')
+        result = self.pip.listProposal().get('Ret')
         result = json.loads(result)
         for pid_list in result:
             if pid_list.get('ProposalType') == 2:
@@ -318,8 +318,7 @@ class Pip:
         if not self.is_exist_effective_proposal_for_vote(self.cfg.param_proposal) and proposaltype == self.cfg.param_proposal:
             return None
 
-        result = self.pip.listProposal().get('Data')
-        proposal_info = json.loads(result)
+        proposal_info = self.pip.listProposal().get('Ret')
 
         proposal_list_text = []
         proposal_list_version = []
@@ -360,10 +359,9 @@ class Pip:
         Get a list of proposals
         :return:
         """
-        proposal_info_list = self.pip.listProposal().get('Data')
-        proposal_info_list = json.loads(proposal_info_list)
+        proposal_info_list = self.pip.listProposal().get('Ret')
         version_proposal_list, text_proposal_list, cancel_proposal_list, param_proposal_list = [], [], [], []
-        if proposal_info_list:
+        if proposal_info_list != 'null':
             for proposal_info in proposal_info_list:
                 if proposal_info.get('ProposalType') == self.cfg.version_proposal:
                     version_proposal_list.append(proposal_info)
@@ -437,11 +435,11 @@ class Pip:
         获取当前结算周期非验证人的候选人列表
         :return:
         """
-        candidate_list = self.node.ppos.getCandidateList().get('Data')
-        verifier_list = self.node.ppos.getVerifierList().get('Data')
+        candidate_list = self.node.ppos.getCandidateList().get('Ret')
+        verifier_list = self.node.ppos.getVerifierList().get('Ret')
         if not verifier_list:
             time.sleep(10)
-            verifier_list = self.node.ppos.getVerifierList().get('Data')
+            verifier_list = self.node.ppos.getVerifierList().get('Ret')
         candidate_no_verify_list = []
         verifier_node_list = [node_info.get("NodeId") for node_info in verifier_list]
         for node_info in candidate_list:
