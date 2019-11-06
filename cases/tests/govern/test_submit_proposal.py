@@ -33,23 +33,23 @@ def test_CP_SU_001_CP_UN_001(submit_cancel):
     assert_code(result, 302014)
 
 @pytest.mark.P0
-def test_PP_SU_001(submit_param):
+def test_PP_SU_001_PP_UN_001(submit_param):
     pip_obj = submit_param
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
     endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.settlement_size +
                                      pip_obj.economic.pp_vote_settlement_wheel
                                      ) * pip_obj.economic.settlement_size
-    log.info('Calculated endvoting block{},interface returned endvoting block{}'.format(endvotingblock_count,
+    log.info('Calculated endvoting block {},interface returned endvoting block {}'.format(endvotingblock_count,
                                                proposalinfo.get('EndVotingBlock')))
     assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
-    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', 0,
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '0',
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('There is voting param ,submit param proposal result : {}'.format(result))
-    assert_code(result, 302014)
+    log.info('There is a voting param proposal,submit param proposal result : {}'.format(result))
+    assert_code(result, 302032)
 
-def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
-    pip_obj_tmp = no_version_proposal
+def test_VP_VE_001_to_VP_VE_004(no_vp_proposal):
+    pip_obj_tmp = no_vp_proposal
     result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version1, 1,
                                        pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
     assert result.get("Code") == 302011
@@ -66,8 +66,8 @@ def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
                                    pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
     assert result.get("Code") == 302011
 
-def test_VP_WA_001(no_version_proposal):
-    pip_obj_tmp = no_version_proposal
+def test_VP_WA_001(no_vp_proposal):
+    pip_obj_tmp = no_vp_proposal
     address, _ = pip_obj_tmp.economic.account.generate_account(pip_obj_tmp.node.web3, 10**18 * 10000000)
     result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version5, 1,
                                        address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
@@ -384,10 +384,14 @@ class TestSubmitCancel():
         log.info('endvoting_rounds:{}， cancel proposal result:{}'.format(endvoting_rounds+1, result))
         assert result.get('Code') == 302009
 
-    def test_CP_ID_001(self, no_version_proposal):
-        pip_obj = no_version_proposal
+    def test_CP_ID_001(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1,
                                                       '0x49b83cfc4b99462f7131d14d80c73b6657237753cd1e878e8d62dc2e9f574123',
                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('cancel proposal result: {}'.format(result))
         assert result.get('Code') == 302015
+
+class TestPPMaxEvidenceAge():
+    def test_PP_SU_003(self, no_vp_proposal):
+

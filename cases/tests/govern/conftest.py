@@ -35,7 +35,7 @@ def pip_env(global_test_env):
     # global_test_env.deploy_all()
 
 @pytest.fixture()
-def no_version_proposal(global_test_env, client_verifier_obj):
+def no_vp_proposal(global_test_env, client_verifier_obj):
     pip_obj = client_verifier_obj.pip
     if pip_obj.is_exist_effective_proposal() or pip_obj.chain_version != pip_obj.cfg.version0 \
             or pip_obj.is_exist_effective_proposal(pip_obj.cfg.param_proposal):
@@ -44,8 +44,8 @@ def no_version_proposal(global_test_env, client_verifier_obj):
     return pip_obj
 
 @pytest.fixture()
-def submit_version(no_version_proposal):
-    pip_obj = no_version_proposal
+def submit_version(no_vp_proposal):
+    pip_obj = no_vp_proposal
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 10,
                                    pip_obj.node.staking_address,
                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -54,8 +54,8 @@ def submit_version(no_version_proposal):
     return pip_obj
 
 @pytest.fixture()
-def submit_param(no_version_proposal):
-    pip_obj = no_version_proposal
+def submit_param(no_vp_proposal):
+    pip_obj = no_vp_proposal
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '1',
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result:'.format(result))

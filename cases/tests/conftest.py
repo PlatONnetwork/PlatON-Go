@@ -182,7 +182,7 @@ def new_genesis_env(global_test_env):
     global_test_env.set_cfg(cfg)
     global_test_env.deploy_all()
 
-def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=None):
+def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=True):
     '''
     effectiveflag indicates whether it takes effect
     :param pip_obj:
@@ -211,7 +211,7 @@ def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=No
     verifier_list = get_pledge_list(client_obj.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
     client_verifier_obj_list = get_client_obj_list(verifier_list, client_obj_list)
-    if not effectiveflag:
+    if effectiveflag:
         for client_obj in client_verifier_obj_list:
             result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo.get('ProposalID'),
                                          client_obj.pip.cfg.vote_option_yeas,
