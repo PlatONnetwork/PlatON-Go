@@ -173,6 +173,7 @@ func main() {
 			gov.UnsupportedGovernParam.Code:            gov.UnsupportedGovernParam.Msg,
 			gov.VotingParamProposalExist.Code:          gov.VotingParamProposalExist.Msg,
 			gov.GovernParamValueError.Code:             gov.GovernParamValueError.Msg,
+			gov.ParamProposalIsSameValue.Code:          gov.ParamProposalIsSameValue.Msg,
 		}
 
 		codeStr := string(args[0])
