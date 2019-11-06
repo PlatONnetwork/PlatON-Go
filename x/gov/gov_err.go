@@ -36,5 +36,5 @@ var (
 	UnsupportedGovernParam            = common.NewBizError(302031, "unsupported govern parameter")
 	VotingParamProposalExist          = common.NewBizError(302032, "another param proposal at voting stage")
 	GovernParamValueError             = common.NewBizError(302033, "govern parameter value error")
-	ParamProposalIsSameValue          = common.NewBizError(302033, "the new value of the parameter proposal is the same as the old value")
+	ParamProposalIsSameValue          = common.NewBizError(302034, "the new value of the parameter proposal is the same as the old value")
 )
