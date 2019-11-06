@@ -1,3 +1,4 @@
+import time
 from copy import copy
 
 import pytest
