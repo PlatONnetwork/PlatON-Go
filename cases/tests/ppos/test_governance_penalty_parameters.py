@@ -11,7 +11,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 
-from tests.conftest import param_governance_verify
+from tests.conftest import param_governance_verify, param_governance_verify_before_endblock
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, get_governable_parameter_value
 
 
@@ -89,7 +89,7 @@ def test_PIP_PVF_002(client_con_list_obj, reset_environment):
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
+    End_voting_block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
