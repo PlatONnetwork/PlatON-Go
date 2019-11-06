@@ -147,10 +147,10 @@ def get_pledge_list(func) -> list:
      the current consensus node list 3, real-time certifier list
     :return:
     """
-    validator_info = func().get('Data')
+    validator_info = func().get('Ret')
     if not validator_info:
         time.sleep(10)
-        validator_info = func().get('Data')
+        validator_info = func().get('Ret')
     validator_list = []
     for info in validator_info:
         validator_list.append(info.get('NodeId'))
@@ -166,7 +166,7 @@ def check_node_in_list(nodeid, func) -> bool:
     :return:
     """
     data_dict = func()
-    for data in data_dict["Data"]:
+    for data in data_dict["Ret"]:
         if data["NodeId"] == nodeid:
             return True
     return False
@@ -236,7 +236,7 @@ def get_validator_term(node):
     msg = node.ppos.getValidatorList()
     term = []
     nodeid = []
-    for i in msg["Data"]:
+    for i in msg["Ret"]:
         term.append(i["ValidatorTerm"])
         nodeid.append(i["NodeId"])
     max_term = (max(term))
@@ -251,7 +251,7 @@ def get_max_staking_tx_index(node):
     msg = node.ppos.getValidatorList()
     staking_tx_index_list = []
     nodeid = []
-    for i in msg["Data"]:
+    for i in msg["Ret"]:
         staking_tx_index_list.append(i["StakingTxIndex"])
         nodeid.append(i["NodeId"])
     max_staking_tx_index = (max(staking_tx_index_list))
