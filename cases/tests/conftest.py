@@ -173,6 +173,7 @@ def reset_environment(global_test_env):
     log.info("case execution completed")
     yield
     global_test_env.deploy_all()
+    time.sleep(3)
 
 
 @pytest.fixture

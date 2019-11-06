@@ -19,21 +19,34 @@ def pledge_punishment(client_con_list_obj):
     """
     :return:
     """
+    log.info("Current block height: {}".format(client_con_list_obj[1].node.eth.blockNumber))
     # stop node
     client_con_list_obj[0].node.stop()
     # Waiting for a settlement round
-    client_con_list_obj[1].economic.wait_consensus_blocknum(client_con_list_obj[1].node)
+    client_con_list_obj[1].economic.wait_consensus_blocknum(client_con_list_obj[1].node, 1)
+    log.info("Current block height: {}".format(client_con_list_obj[1].node.eth.blockNumber))
     # view verifier list
     verifier_list = client_con_list_obj[1].ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
     candidate_info = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
-    assert_code(candidate_info, 0)
     log.info("Pledge node information： {}".format(candidate_info))
     return candidate_info
 
 
+def Information_before_governance(client_obj):
+    # view Consensus Amount of pledge
+    candidate_info1 = client_obj.ppos.getCandidateInfo(client_obj.node.node_id)
+    pledge_amount1 = candidate_info1['Ret']['Released']
+    # view block_reward
+    log.info("block: {}".format(client_obj.node.eth.blockNumber))
+    block_reward, staking_reward = client_obj.economic.get_current_year_reward(
+        client_obj.node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    slash_blocks = get_governable_parameter_value(client_obj, 'SlashBlocksReward')
+
+
 @pytest.mark.P1
-def test_PIP_PVF_001(client_con_list_obj, reset_environment):
+def test_PIP_PVF_001(client_con_list_obj):
     """
     治理修改低出块率扣除验证人自有质押金比例投票失败
     :param client_con_list_obj:
@@ -52,7 +65,7 @@ def test_PIP_PVF_001(client_con_list_obj, reset_environment):
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', 0, False)
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0', False)
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
@@ -76,7 +89,7 @@ def test_PIP_PVF_002(client_con_list_obj, reset_environment):
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', 0)
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
@@ -103,12 +116,12 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
     # Get governable parameters
     slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', 0)
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
     # wait settlement block
     client_con_list_obj[1].economic.get_settlement_switchpoint(1)
     # Get governable parameters
     slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
-    assert slash_blocks1 != slash_blocks2,"ErrMsg:Change parameters {}".format(slash_blocks2)
+    assert slash_blocks1 != slash_blocks2, "ErrMsg:Change parameters {}".format(slash_blocks2)
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
@@ -125,3 +138,24 @@ def test_PIP_PVF_004(client_con_list_obj, reset_environment):
     :param reset_environment:
     :return:
     """
+    # view Consensus Amount of pledge
+    candidate_info1 = client_con_list_obj[0].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
+    pledge_amount1 = candidate_info1['Ret']['Released']
+    # view block_reward
+    block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
+        client_con_list_obj[0].node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # Get governable parameters
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    # create Parametric proposal
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
+    # wait settlement block
+    client_con_list_obj[1].economic.get_settlement_switchpoint(1)
+    # Get governable parameters
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    assert slash_blocks1 != slash_blocks2, "ErrMsg:Change parameters {}".format(slash_blocks2)
+    # Verify changed parameters
+    candidate_info2 = pledge_punishment(client_con_list_obj)
+    pledge_amount2 = candidate_info2['Ret']['Released']
+    assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(
+        pledge_amount2)
