@@ -21,6 +21,12 @@ def decorator_sleep(func):
     return wrap
 
 
+def find_proposal(proposal_list, block_number):
+    for proposal in proposal_list:
+        if proposal_effective(proposal, block_number):
+            return proposal
+
+
 def proposal_list_effective(proposal_list, block_number):
     """
     Determine if there is a proposal in the voting period

@@ -2,7 +2,7 @@ from environment.env import TestEnvironment
 from environment.node import Node
 from .config import PipConfig
 from .economic import Economic
-from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, int16_to_bytes, bytes_to_int
+from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, find_proposal
 import json
 from typing import List
 import time
@@ -337,27 +337,23 @@ class Pip:
 
             elif pid_list.get('ProposalType') == self.cfg.param_proposal:
                 proposal_list_param.append(pid_list)
-            # Current block height
-            block_number = self.node.eth.blockNumber
-            if proposaltype == self.cfg.text_proposal:
-                for i in range(len(proposal_list_text)):
-                    if proposal_list_text[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_text[i]
+            else:
+                raise Exception("Unknown proposal type")
+        # Current block height
+        block_number = self.node.eth.blockNumber
+        if proposaltype == self.cfg.text_proposal:
+            return find_proposal(proposal_list_text, block_number)
 
-            elif proposaltype == self.cfg.version_proposal:
-                for i in range(len(proposal_list_version)):
-                    if proposal_list_version[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_version[i]
+        elif proposaltype == self.cfg.version_proposal:
+            return find_proposal(proposal_list_version, block_number)
 
-            elif proposaltype == self.cfg.cancel_proposal:
-                for i in range(len(proposal_list_cancel)):
-                    if proposal_list_cancel[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_cancel[i]
+        elif proposaltype == self.cfg.cancel_proposal:
+            return find_proposal(proposal_list_cancel, block_number)
 
-            elif proposaltype == self.cfg.param_proposal:
-                for i in range(len(proposal_list_param)):
-                    if proposal_list_param[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_param[i]
+        elif proposaltype == self.cfg.param_proposal:
+            return find_proposal(proposal_list_param, block_number)
+        else:
+            raise Exception("listProposal interface gets the wrong proposal type")
 
     def get_proposal_info_list(self):
         """
@@ -401,16 +397,13 @@ class Pip:
                         return True
 
         elif proposal_type == self.cfg.text_proposal:
-            if proposal_list_effective(text_proposal_list, block_number):
-                return True
+            return proposal_list_effective(text_proposal_list, block_number)
 
         elif proposal_type == self.cfg.cancel_proposal:
-            if proposal_list_effective(cancel_proposal_list, block_number):
-                return True
+            return proposal_list_effective(cancel_proposal_list, block_number)
 
         elif proposal_type == self.cfg.param_proposal:
-            if proposal_list_effective(param_proposal_list, block_number):
-                return True
+            return proposal_list_effective(param_proposal_list, block_number)
         else:
             raise Exception("Incoming type error")
         return False
@@ -426,22 +419,18 @@ class Pip:
         version_proposal_list, text_proposal_list, cancel_proposal_list, param_proposal_list = self.get_proposal_info_list()
         block_number = self.node.eth.blockNumber
         if proposal_type == self.cfg.version_proposal:
-            if proposal_list_effective(version_proposal_list, block_number):
-                return True
+            return proposal_list_effective(version_proposal_list, block_number)
 
         elif proposal_type == self.cfg.text_proposal:
-            if proposal_list_effective(text_proposal_list, block_number):
-                return True
+            return proposal_list_effective(text_proposal_list, block_number)
 
         elif proposal_type == self.cfg.cancel_proposal:
-            if proposal_list_effective(cancel_proposal_list, block_number):
-                return True
+            return proposal_list_effective(cancel_proposal_list, block_number)
+
         elif proposal_type == self.cfg.param_proposal:
-            if proposal_list_effective(param_proposal_list, block_number):
-                return True
+            return proposal_list_effective(param_proposal_list, block_number)
         else:
             raise Exception("Incoming type error")
-        return False
 
     def get_candidate_list_not_verifier(self):
         """
