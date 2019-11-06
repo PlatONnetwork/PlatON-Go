@@ -2,7 +2,7 @@ from common.log import log
 from dacite import from_dict
 from tests.lib import Genesis
 import pytest
-from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code
+from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_governable_parameter_value
 from tests.lib.client import get_client_obj
 import time, math
 
@@ -392,6 +392,106 @@ class TestSubmitCancel():
         log.info('cancel proposal result: {}'.format(result))
         assert result.get('Code') == 302015
 
-class TestPPMaxEvidenceAge():
-    def test_PP_SU_003(self, no_vp_proposal):
+class TestPP():
+    def test_PP_SU_002(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '1.1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '-1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '60101',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', 1,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '1000000',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
+                                     pip_obj.economic.slash_blocks_reward,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '60100',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+    def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', '1.1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', '-1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', 1,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge',
+                                     str(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge',
+                                     str(pip_obj.economic.unstaking_freeze_ratio),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        if int(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')) != 1:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', '1',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_004(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge',
+                                     str(pip_obj.economic.unstaking_freeze_ratio - 1),
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
 

@@ -225,3 +225,41 @@ def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=Tr
     else:
         assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 3
         log.info("{} retains the original value".format(name))
+
+
+def param_governance_verify_before_endblock(client_obj, module, name, newvalue, effectiveflag=True):
+    '''
+    effectiveflag indicates whether it takes effect
+    :param pip_obj:
+    :param module:
+    :param name:
+    :param newvalue:
+    :param effectiveflag:
+    :param number:
+    :return:
+    '''
+    if isinstance(client_obj, Client):
+        pip_obj = client_obj.pip
+    if pip_obj.is_exist_effective_proposal_for_vote(pip_obj.cfg.param_proposal) or \
+            pip_obj.is_exist_effective_proposal_for_vote(pip_obj.cfg.version_proposal):
+        raise Exception('There is effective param proposal or version proposal')
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), module, name, newvalue, pip_obj.node.staking_address,
+                                 transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('submit param proposal result : {}'.format(result))
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    log.info('param proposalinfo : {}'.format(proposalinfo))
+    client_obj_list = []
+    for node_obj in pip_obj.economic.env.get_all_nodes():
+        client_obj_list.append(Client(pip_obj.economic.env, node_obj,
+                                      StakingConfig("externalId", "nodeName", "website", "details")))
+    client_obj = get_client_obj(pip_obj.node.node_id, client_obj_list)
+    verifier_list = get_pledge_list(client_obj.ppos.getVerifierList)
+    log.info('verifierlist : {}'.format(verifier_list))
+    client_verifier_obj_list = get_client_obj_list(verifier_list, client_obj_list)
+    if effectiveflag:
+        for client_obj in client_verifier_obj_list:
+            result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo.get('ProposalID'),
+                                         client_obj.pip.cfg.vote_option_yeas,
+                                         client_obj.node.staking_address, transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+            log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
+    log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))

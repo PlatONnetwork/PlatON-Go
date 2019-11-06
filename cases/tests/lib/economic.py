@@ -52,6 +52,8 @@ class Economic:
         self.pp_vote_settlement_wheel = self.genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds // (
                 (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
         )
+        #slash blocks reward
+        self.slash_blocks_reward = self.genesis.EconomicModel.Staking.SlashBlocksReward
 
 
     @property
