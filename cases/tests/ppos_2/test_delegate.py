@@ -15,3 +15,8 @@ def test_DI_001(client_new_node_obj, get_generate_account):
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert result.get('Code') == 0
 
+
+
+
+
+

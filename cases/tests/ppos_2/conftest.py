@@ -35,6 +35,6 @@ def greater_than_staking_amount(global_test_env):
     """
     node = global_test_env.get_rand_node()
     msg = node.ppos.getVerifierList()
-    info_dict = msg["Data"]
+    info_dict = msg["Ret"]
     amount_list = [info["Shares"] for info in info_dict]
     return max(amount_list) + 10 ** 18 * 100000
