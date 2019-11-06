@@ -236,7 +236,7 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
     :param newvalue:
     :param effectiveflag:
     :param number:
-    :return:
+    :return: the EndVotingBlock of the param proposal
     '''
     if isinstance(client_obj, Client):
         pip_obj = client_obj.pip
@@ -263,3 +263,4 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
                                          client_obj.node.staking_address, transaction_cfg=client_obj.pip.cfg.transaction_cfg)
             log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
+    return proposalinfo.get('EndVotingBlock')
