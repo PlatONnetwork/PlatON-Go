@@ -416,6 +416,8 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return err
 	} else if param == nil {
 		return UnsupportedGovernParam
+	} else if param.ParamValue.Value == pp.NewValue {
+		return ParamProposalIsSameValue
 	}
 
 	if exist, err := FindVotingProposal(blockHash, state, Param, Version); err != nil {

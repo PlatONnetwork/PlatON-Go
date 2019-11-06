@@ -45,5 +45,5 @@ type ParamValue struct {
 type GovernParam struct {
 	ParamItem     *ParamItem
 	ParamValue    *ParamValue
-	ParamVerifier ParamVerifier
+	ParamVerifier ParamVerifier `json:"-"`
 }
