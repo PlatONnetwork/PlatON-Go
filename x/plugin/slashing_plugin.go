@@ -136,7 +136,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 				totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
 				if blockReward > 0 {
-					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), uint64(blockReward), state)
+					slashAmount = calcEndBlockSlashAmount(header.Number.Uint64(), uint64(blockReward), state)
 					if slashAmount.Cmp(totalBalance) > 0 {
 						slashAmount = totalBalance
 					}
