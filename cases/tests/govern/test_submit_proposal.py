@@ -2,10 +2,9 @@ from common.log import log
 from dacite import from_dict
 from tests.lib import Genesis
 import pytest
-from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_blockhash
+from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code
 from tests.lib.client import get_client_obj
 import time, math
-from tests.conftest import param_governance_verify
 
 def test_VP_SU_001(submit_version):
     pip_obj = submit_version
