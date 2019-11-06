@@ -26,7 +26,7 @@ def test_LS_FV_001(client_consensus_obj):
     log.info("Lock in contract amount: {}".format(lock_up_amount))
     # view Lockup plan
     result = client_consensus_obj.ppos.getRestrictingInfo(EconomicConfig.INCENTIVEPOOL_ADDRESS)
-    release_plans_list = result['Data']['plans']
+    release_plans_list = result['Ret']['plans']
     assert_code(result, 0)
     log.info("Lockup plan information: {}".format(result))
     # assert louck up amount
@@ -88,7 +88,7 @@ def test_LS_PV_003(client_new_node_obj):
     assert_code(result, 0)
     restricting_info = client_new_node_obj.ppos.getRestrictingInfo(benifit_address)
     assert_code(restricting_info, 0)
-    assert restricting_info['Data']['balance'] == client_new_node_obj.node.web3.toWei(1000, 'ether')
+    assert restricting_info['Ret']['balance'] == client_new_node_obj.node.web3.toWei(1000, 'ether')
 
 
 @pytest.mark.P1
@@ -280,15 +280,15 @@ def test_LS_RV_003(client_new_node_obj):
     # create restricting plan
     restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
     # assert restricting plan
-    assert restricting_info['Data']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
-        restricting_info['Data']['balance'])
-    assert restricting_info['Data']['plans'][0][
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
                'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
         client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
-        restricting_info['Data']['plans'][0]['blockNumber'])
-    assert restricting_info['Data']['plans'][0][
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
                'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][0]['amount'])
+        restricting_info['Ret']['plans'][0]['amount'])
 
 
 @pytest.mark.P1
@@ -307,18 +307,18 @@ def test_LS_RV_004(client_new_node_obj):
     # create restricting plan
     restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
     # assert restricting plan
-    assert restricting_info['Data']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
-        restricting_info['Data']['balance'])
-    assert restricting_info['Data']['plans'][0][
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
                'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
         client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
-        restricting_info['Data']['plans'][0]['blockNumber'])
-    assert restricting_info['Data']['plans'][0][
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
                'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][0]['amount'])
-    assert restricting_info['Data']['plans'][1][
+        restricting_info['Ret']['plans'][0]['amount'])
+    assert restricting_info['Ret']['plans'][1][
                'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][1]['amount'])
+        restricting_info['Ret']['plans'][1]['amount'])
 
 
 @pytest.mark.P1
@@ -340,15 +340,15 @@ def test_LS_RV_005(client_new_node_obj):
     # create restricting plan
     restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
     # assert restricting plan
-    assert restricting_info['Data']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
-        restricting_info['Data']['balance'])
-    assert restricting_info['Data']['plans'][0][
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
                'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
         client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
-        restricting_info['Data']['plans'][0]['blockNumber'])
-    assert restricting_info['Data']['plans'][0][
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
                'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][0]['amount'])
+        restricting_info['Ret']['plans'][0]['amount'])
 
 
 @pytest.mark.P1
@@ -374,18 +374,18 @@ def test_LS_RV_006(client_new_node_obj):
     # create restricting plan2
     restricting_info = create_restricting_platn(client_new_node_obj, plan, address1, address2)
     # assert restricting plan1
-    assert restricting_info['Data']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
-        restricting_info['Data']['balance'])
-    assert restricting_info['Data']['plans'][0][
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
                'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
         client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
-        restricting_info['Data']['plans'][0]['blockNumber'])
-    assert restricting_info['Data']['plans'][0][
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
                'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][0]['amount'])
-    assert restricting_info['Data']['plans'][1][
+        restricting_info['Ret']['plans'][0]['amount'])
+    assert restricting_info['Ret']['plans'][1][
                'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][1]['amount'])
+        restricting_info['Ret']['plans'][1]['amount'])
 
 
 @pytest.mark.P1
@@ -412,19 +412,19 @@ def test_LS_RV_007(client_new_node_obj):
     # create restricting plan2
     restricting_info = create_restricting_platn(client_new_node_obj, plan2, address1, address2)
     # assert restricting plan1
-    assert restricting_info['Data']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
-        restricting_info['Data']['balance'])
-    assert restricting_info['Data']['plans'][0][
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
                'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
         client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
-        restricting_info['Data']['plans'][0]['blockNumber'])
-    assert restricting_info['Data']['plans'][0][
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
                'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][0]['amount'])
-    assert restricting_info['Data']['plans'][1][
+        restricting_info['Ret']['plans'][0]['amount'])
+    assert restricting_info['Ret']['plans'][1][
                'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][1]['amount'])
-    assert restricting_info['Data']['plans'][2][
+        restricting_info['Ret']['plans'][1]['amount'])
+    assert restricting_info['Ret']['plans'][2][
                'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
-        restricting_info['Data']['plans'][2]['amount'])
+        restricting_info['Ret']['plans'][2]['amount'])
 

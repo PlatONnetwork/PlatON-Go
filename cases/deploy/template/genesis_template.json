@@ -13,22 +13,22 @@
   },
   "EconomicModel": {
     "Common": {
-      "MaxEpochMinutes": 4,
+      "MaxEpochMinutes": 3,
       "MaxConsensusVals": 4,
       "AdditionalCycleTime": 28
     },
     "Staking": {
       "StakeThreshold": 1000000000000000000000000,
       "OperatingThreshold": 10000000000000000000,
-      "MaxValidators": 30,
+      "MaxValidators": 5,
       "HesitateRatio": 1,
-      "UnStakeFreezeDuration": 2
+      "UnStakeFreezeDuration": 1
     },
     "Slashing": {
       "SlashFractionDuplicateSign": 100,
       "DuplicateSignReportReward": 50,
       "SlashBlocksReward": 20,
-      "MaxEvidenceAge": 1
+      "MaxEvidenceAge": 0
     },
     "Gov": {
       "VersionProposalVote_DurationSeconds": 160,
