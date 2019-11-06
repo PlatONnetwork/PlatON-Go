@@ -656,18 +656,18 @@ if __name__ == "__main__":
     # new_cfg.syncmode = "fast"
     # print(env.cfg.syncmode)
     log.info("测试部署")
-    # env.deploy_all()
-    node = env.get_consensus_node_by_index(0)
-    print(node.node_mark)
-    address, prikey = env.account.generate_account(node.web3, 10**18*100000000000)
-    transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
-    # print(node.pip.submitParam(node.node_id, "ddd", "Slashing", "SlashBlockReward", "1000", prikey, transaction_cfg))
-    print(node.pip.getGovernParamValue("Slashing", "SlashBlockReward", address))
-    print(node.pip.listGovernParam("Staking"))
-    from tests.lib.genesis import Genesis
-    from dacite import from_dict
-    genesis = from_dict(data_class=Genesis, data=env.genesis_config)
-    print(genesis.EconomicModel.Slashing.MaxEvidenceAge)
+    env.deploy_all()
+    # node = env.get_consensus_node_by_index(0)
+    # print(node.node_mark)
+    # address, prikey = env.account.generate_account(node.web3, 10**18*100000000000)
+    # transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
+    # # print(node.pip.submitParam(node.node_id, "ddd", "Slashing", "SlashBlockReward", "1000", prikey, transaction_cfg))
+    # print(node.pip.getGovernParamValue("Slashing", "SlashBlockReward", address))
+    # print(node.pip.listGovernParam("Staking"))
+    # from tests.lib.genesis import Genesis
+    # from dacite import from_dict
+    # genesis = from_dict(data_class=Genesis, data=env.genesis_config)
+    # print(genesis.EconomicModel.Slashing.MaxEvidenceAge)
     # env.account.generate_account(env.get_a_normal_node().web3, 0)
     # log.info("account:{}".format(env.account.accounts))
     # env.deploy_all()
