@@ -36,14 +36,19 @@ class PipConfig:
     version5 = 2049
     version6 = 2057
     version7 = 2304
-    verison8 = 591617
+    version8 = 591617
     version9 = 526081
+    version0 = 1793
     transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
 
 
 class EconomicConfig:
+    # Year zero lock_pu release amount
     RELEASE_ZERO = 62215742.48691650
+    # Year zero Initial issue
     TOKEN_TOTAL = 10250000000000000000000000000
+    # Built in node Amount of pledge
+    DEVELOPER_STAKING_AMOUNT = 1500000000000000000000000
     # PlatON Foundation Address
     FOUNDATION_ADDRESS = "0x493301712671ada506ba6ca7891f436d29185821"
     # Lock account account address

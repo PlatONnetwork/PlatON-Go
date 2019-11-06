@@ -46,8 +46,8 @@ const (
 )
 
 const (
-	GenesisTxSize = 1024 * 1024        //  1 MB
-	CeilTxSize    = GenesisTxSize * 10 // 10 MB
+//GenesisTxSize = 1024 * 1024        //  1 MB
+//CeilTxSize    = GenesisTxSize * 10 // 10 MB
 
 )
 
@@ -575,7 +575,7 @@ func GetGovernParamValue(module, name string, blockNumber uint64, blockHash comm
 		return "", err
 	}
 	if paramValue == nil {
-		return "", common.InternalError
+		return "", UnsupportedGovernParam
 	} else {
 		if blockNumber >= paramValue.ActiveBlock {
 			return paramValue.Value, nil
@@ -722,17 +722,17 @@ func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, err
 	return gasLimit, nil
 }
 
-func GovernMaxTxDataLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
-	sizeStr, err := GetGovernParamValue(ModuleTxPool, KeyMaxTxDataLimit, blockNumber, blockHash)
-	if nil != err {
-		log.Error("Failed to GovernMaxTxDataLimit, query governParams is failed", "err", err)
-		return 0, err
-	}
-
-	size, err := strconv.Atoi(sizeStr)
-	if nil != err {
-		return 0, err
-	}
-
-	return size, nil
-}
+//func GovernMaxTxDataLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
+//	sizeStr, err := GetGovernParamValue(ModuleTxPool, KeyMaxTxDataLimit, blockNumber, blockHash)
+//	if nil != err {
+//		log.Error("Failed to GovernMaxTxDataLimit, query governParams is failed", "err", err)
+//		return 0, err
+//	}
+//
+//	size, err := strconv.Atoi(sizeStr)
+//	if nil != err {
+//		return 0, err
+//	}
+//
+//	return size, nil
+//}

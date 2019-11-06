@@ -26,8 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -86,7 +84,7 @@ var (
 	ErrPlatONTxDataInvalid = errors.New("the tx data is invalid")
 
 	// the txSizeLimit of PlatON govern param found failed
-	ErrPlatONGovTxDataSize = errors.New("not found the govern txData size")
+	//ErrPlatONGovTxDataSize = errors.New("not found the govern txData size")
 )
 
 var (
@@ -759,15 +757,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.To() == nil {
 		return fmt.Errorf("contract creation is not allowed")
 	}
-	current := pool.chain.CurrentBlock()
-	txSizeLimit, err := gov.GovernMaxTxDataLimit(current.NumberU64(), current.Hash())
-	if nil != err {
-		return ErrPlatONGovTxDataSize
-	}
 
-	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	// 32kb -> 1m
-	if tx.Size() > common.StorageSize(txSizeLimit) {
+	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks
+	if tx.Size() > 1024*1024 {
 		return ErrOversizedData
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded

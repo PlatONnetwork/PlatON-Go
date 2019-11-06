@@ -252,6 +252,23 @@ func buildGetAccuVerifiersCountInput(proposalID, blockHash common.Hash) []byte {
 	return common.MustRlpEncode(input)
 }
 
+func buildListGovernParam(module string) []byte {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2106))) // func type code
+	input = append(input, common.MustRlpEncode(module))
+	return common.MustRlpEncode(input)
+}
+
+func buildGetGovernParamValueInput(module, name string) []byte {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2104)))
+	input = append(input, common.MustRlpEncode(module))
+	input = append(input, common.MustRlpEncode(name))
+	return common.MustRlpEncode(input)
+}
+
 func setup(t *testing.T) *mock.Chain {
 	t.Log("setup()......")
 	//to turn on log's debug level
@@ -325,12 +342,23 @@ func TestGovContract_SubmitText_PIPID_empty(t *testing.T) {
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], ""), t, gov.PIPIDEmpty)
 }
 
-func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
+func TestGovContract_SubmitText_ProposalID_exist(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
 
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid33"), t, gov.ProposalIDExist)
+}
+
+func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t, gov.PIPIDExist)
 }
 
@@ -339,6 +367,30 @@ func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
 	defer clear(chain, t)
 
 	runGovContract(false, gc, buildSubmitText(discover.ZeroNodeID, "pipid1"), t, gov.ProposerEmpty)
+}
+
+func TestGovContract_ListGovernParam(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	runGovContract(true, gc, buildListGovernParam("Staking"), t)
+}
+
+func TestGovContract_ListGovernParam_all(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	runGovContract(true, gc, buildListGovernParam(""), t)
+}
+
+func TestGovContract_GetGovernParamValue(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	runGovContract(true, gc, buildGetGovernParamValueInput("Staking", "StakeThreshold"), t)
+}
+
+func TestGovContract_GetGovernParamValue_NotFound(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	runGovContract(true, gc, buildGetGovernParamValueInput("Staking", "StakeThreshold_Err"), t, gov.UnsupportedGovernParam)
 }
 
 func TestGovContract_SubmitParam(t *testing.T) {
@@ -1172,7 +1224,7 @@ func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing
 			expectedCode, expectedMsg := common.DecodeError(expectedError)
 			expected = expected || result.Code == expectedCode || strings.Contains(result.Ret, expectedMsg)
 		}
-		assert.True(t, true)
+		assert.True(t, expected)
 		t.Log("the expected errCode:", result.Code, "errMsg:", expectedErrors)
 	} else {
 		assert.Equal(t, common.OkCode, result.Code)

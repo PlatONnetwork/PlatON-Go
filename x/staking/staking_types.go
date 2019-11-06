@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package staking
 
 import (
@@ -115,26 +131,7 @@ type Candidate struct {
 
 func (can *Candidate) String() string {
 	return fmt.Sprintf(`
-	{
-		"NodeId": "%s", 
-		"BlsPubKey": "%s", 
-		"StakingAddress": "%s", 
-		"BenefitAddress": "%s", 
-		"StakingTxIndex": %d, 
-		"ProgramVersion": %d, 
-		"Status": %d, 
-		"StakingEpoch": %d, 
-		"StakingBlockNum": %d,
-		"Shares": %d,
-		"Released": %d,
-		"ReleasedHes": %d,
-		"RestrictingPlan": %d,
-		"RestrictingPlanHes": %d,
-		"ExternalId": "%s",
-		"NodeName": "%s",
-		"Website": "%s",
-		"Details": "%s"
-	}`,
+	{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -184,19 +181,7 @@ type CandidateBase struct {
 
 func (can *CandidateBase) String() string {
 	return fmt.Sprintf(`
-	{
-		"NodeId": "%s", 
-		"BlsPubKey": "%s", 
-		"StakingAddress": "%s", 
-		"BenefitAddress": "%s", 
-		"StakingTxIndex": %d, 
-		"ProgramVersion": %d,  
-		"StakingBlockNum": %d,
-		"ExternalId": "%s",
-		"NodeName": "%s",
-		"Website": "%s",
-		"Details": "%s"
-	}`,
+	{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -238,7 +223,7 @@ type CandidateMutable struct {
 
 func (can *CandidateMutable) String() string {
 	return fmt.Sprintf(`
-	{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,}`,
+	{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
@@ -369,26 +354,7 @@ type CandidateHex struct {
 
 func (can *CandidateHex) String() string {
 	return fmt.Sprintf(`
-	{
-		"NodeId": "%s", 
-		"BlsPubKey": "%s", 
-		"StakingAddress": "%s", 
-		"BenefitAddress": "%s", 
-		"StakingTxIndex": %d, 
-		"ProgramVersion": %d, 
-		"Status": %d, 
-		"StakingEpoch": %d, 
-		"StakingBlockNum": %d,
-		"Shares": "%s",
-		"Released": "%s",
-		"ReleasedHes": "%s",
-		"RestrictingPlan": "%s",
-		"RestrictingPlanHes": "%s",
-		"ExternalId": "%s",
-		"NodeName": "%s",
-		"Website": "%s",
-		"Details": "%s"
-	}`,
+	{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -918,22 +884,7 @@ type ValidatorEx struct {
 
 func (vex *ValidatorEx) String() string {
 	return fmt.Sprintf(`
-	{
-		"NodeId": "%s", 
-		"NodeAddress": "%s",
-		"BlsPubKey": "%s", 
-		"StakingAddress": "%s", 
-		"BenefitAddress": "%s", 
-		"StakingTxIndex": %d, 
-		"ProgramVersion": %d,
-		"StakingBlockNum": %d,
-		"Shares": "%s",
-		"ExternalId": "%s",
-		"NodeName": "%s",
-		"Website": "%s",
-		"Details": "%s",
-		"ValidatorTerm": %d
-	}`,
+	{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
@@ -976,13 +927,7 @@ type Delegation struct {
 
 func (del *Delegation) String() string {
 	return fmt.Sprintf(`
-	{
-		"DelegateEpoch": "%d", 
-		"Released": "%d", 
-		"ReleasedHes": %d, 
-		"RestrictingPlan": %d,
-		"RestrictingPlanHes": %d
-	}`,
+	{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
@@ -1013,13 +958,7 @@ type DelegationHex struct {
 
 func (delHex *DelegationHex) String() string {
 	return fmt.Sprintf(`
-	{
-		"DelegateEpoch": "%d", 
-		"Released": "%s", 
-		"ReleasedHes": %s, 
-		"RestrictingPlan": %s,
-		"RestrictingPlanHes": %s
-	}`,
+	{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s}`,
 		delHex.DelegateEpoch,
 		delHex.Released,
 		delHex.ReleasedHes,
@@ -1044,16 +983,7 @@ type DelegationEx struct {
 
 func (dex *DelegationEx) String() string {
 	return fmt.Sprintf(`
-	{
-		"Addr": "%s", 
-		"NodeId": "%s",
-		"StakingBlockNum": "%d", 
-		"DelegateEpoch": "%d", 
-		"Released": "%s", 
-		"ReleasedHes": %s, 
-		"RestrictingPlan": %s,
-		"RestrictingPlanHes": %s
-	}`,
+	{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
 		dex.StakingBlockNum,
@@ -1080,11 +1010,7 @@ type DelegateRelated struct {
 
 func (dr *DelegateRelated) String() string {
 	return fmt.Sprintf(`
-	{
-		"Addr": "%s", 
-		"NodeId": "%s",
-		"StakingBlockNum": "%d"
-	}`,
+	{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d"}`,
 		dr.Addr.String(),
 		fmt.Sprintf("%x", dr.NodeId.Bytes()),
 		dr.StakingBlockNum)
