@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import time
 import random
 import string
@@ -297,3 +298,15 @@ def von_amount(amonut, base):
     """
     return int(Decimal(str(amonut)) * Decimal(str(base)))
 
+
+def get_governable_parameter_value(client_con_list_obj, parameter):
+    """
+    Get governable parameter value
+    :return:
+    """
+    # Get governable parameters
+    slashing_param = client_con_list_obj[0].pip.pip.listGovernParam('Slashing')
+    parameter_information = json.loads(slashing_param['Ret'])
+    for i in parameter_information:
+        if i['ParamItem']['Name'] == parameter:
+            return i['ParamValue']['Value']
