@@ -73,7 +73,7 @@ def get_blockhash(node, blocknumber=None):
     :return:
     """
     if not blocknumber:
-        blocknumber = node.blockNumber
+        blocknumber = node.block_number
     blockinfo = node.eth.getBlock(blocknumber)
     blockhash = blockinfo.get('hash')
     blockhash = HexBytes(blockhash).hex()
@@ -154,7 +154,7 @@ def get_pledge_list(func) -> list:
     :return:
     """
     validator_info = func().get('Ret')
-    if not validator_info:
+    if validator_info == "Getting verifierList is failed:The validator is not exist":
         time.sleep(10)
         validator_info = func().get('Ret')
     validator_list = []
@@ -286,7 +286,7 @@ def assert_code(result, code):
     :param code:
     :return:
     '''
-    assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result.get("Code"))
+    assert result == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
 
 
 def von_amount(amonut, base):

@@ -2,9 +2,10 @@ from common.log import log
 from dacite import from_dict
 from tests.lib import Genesis
 import pytest
-from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code
+from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_blockhash
 from tests.lib.client import get_client_obj
 import time, math
+from tests.conftest import param_governance_verify
 
 def test_VP_SU_001(submit_version):
     pip_obj = submit_version
@@ -48,6 +49,8 @@ def test_PP_SU_001(submit_param):
     log.info('There is voting param ,submit param proposal result : {}'.format(result))
     assert_code(result, 302014)
 
+def test_1(client_verifier_obj):
+    param_governance_verify(client_verifier_obj, 'Slashing', 'SlashBlocksReward', '0', 1)
 
 def test_VP_VE_001_to_VP_VE_004(no_version_proposal):
     pip_obj_tmp = no_version_proposal

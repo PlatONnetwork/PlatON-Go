@@ -319,7 +319,7 @@ class Pip:
             return None
 
         proposal_info = self.pip.listProposal().get('Ret')
-
+        proposal_info = json.loads(proposal_info)
         proposal_list_text = []
         proposal_list_version = []
         proposal_list_param = []
@@ -362,6 +362,7 @@ class Pip:
         proposal_info_list = self.pip.listProposal().get('Ret')
         version_proposal_list, text_proposal_list, cancel_proposal_list, param_proposal_list = [], [], [], []
         if proposal_info_list != 'null':
+            proposal_info_list = json.loads(proposal_info_list)
             for proposal_info in proposal_info_list:
                 if proposal_info.get('ProposalType') == self.cfg.version_proposal:
                     version_proposal_list.append(proposal_info)

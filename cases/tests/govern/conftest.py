@@ -56,7 +56,7 @@ def submit_version(no_version_proposal):
 @pytest.fixture()
 def submit_param(no_version_proposal):
     pip_obj = no_version_proposal
-    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'SlashBlocksReward', '1',
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '1',
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result:'.format(result))
     assert_code(result, 0)
