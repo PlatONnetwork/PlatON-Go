@@ -271,11 +271,14 @@ def test_PIP_PVF_006(new_genesis_env, client_con_list_obj, reset_environment):
     assert slash_blocks2 == slash_blocks1, "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, client_con_list_obj[0].node.web3.toWei(1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
-    log.info("Current block: {}".format(current_block))
+    effective_block = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node,2)
+    if effective_block < 41:
+        log.info("Current block: {}".format(client_con_list_obj[0].node.eth.blockNumber))
+        effective_block = 41
+    log.info("Effective block height: {}".format(effective_block))
     # Report prepareblock signature
     report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey, client_con_list_obj[0].node.blsprikey,
-                                             current_block)
+                                             effective_block)
     log.info("Report information: {}".format(report_information))
     result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
@@ -299,23 +302,74 @@ def test_PIP_PVF_007(new_genesis_env, client_con_list_obj, reset_environment):
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
     slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    assert slash_blocks1 == '1', "ErrMsg:Parameter value before treatment {}".format(slash_blocks1)
     # create Parametric proposal
     param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '1')
     # view Parameter value before treatment again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
     assert slash_blocks2 == slash_blocks1, "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
-    log.info("Current block: {}".format(current_block))
+    effective_block = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node, 2)
+    if effective_block < 41:
+        log.info("Current block: {}".format(client_con_list_obj[0].node.eth.blockNumber))
+        effective_block = 41
+    log.info("Effective block height: {}".format(effective_block))
     # Report prepareblock signature
     report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
                                              client_con_list_obj[0].node.blsprikey,
-                                             current_block)
+                                             effective_block)
     log.info("Report information: {}".format(report_information))
     result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
 
+
+@pytest.mark.P1
+def test_PIP_PVF_008(new_genesis_env, client_con_list_obj, reset_environment):
+    """
+    治理修改区块双签-证据有效期处于已生效期
+    :param new_genesis_env:
+    :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """
+    # Change configuration parameters
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.EconomicModel.Staking.UnStakeFreezeDuration = 3
+    genesis.EconomicModel.Slashing.MaxEvidenceAge = 2
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+    # view Parameter value before treatment
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    assert slash_blocks1 == '2', "ErrMsg:Parameter value before treatment {}".format(slash_blocks1)
+    # create Parametric proposal
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '1')
+    # view Parameter value before treatment again
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    assert slash_blocks2 == '1', "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
+    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
+                                                                                 client_con_list_obj[0].node.web3.toWei(
+                                                                                     1000, 'ether'))
+    # Verify changed parameters
+    effective_block1 = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node, int(slash_blocks1))
+    effective_block2 = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node, int(slash_blocks2))
+    log.info("Effective1 block height: {}".format(effective_block1))
+    log.info("Effective2 block height: {}".format(effective_block1))
+    # Report1 prepareblock signature
+    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
+                                             client_con_list_obj[0].node.blsprikey,
+                                             effective_block1)
+    log.info("Report information: {}".format(report_information))
+    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 303003)
+    # Report2 prepareblock signature
+    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
+                                             client_con_list_obj[0].node.blsprikey,
+                                             effective_block2)
+    log.info("Report information: {}".format(report_information))
+    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
 

@@ -116,7 +116,7 @@ class Economic:
         """
         block_num = self.settlement_size * (number + 1)
         current_end_block = self.get_settlement_switchpoint(node)
-        history_block = current_end_block - block_num
+        history_block = current_end_block - block_num + 1
         return history_block
 
     def wait_settlement_blocknum(self, node: Node, number=0):
