@@ -165,6 +165,21 @@ class Economic:
         current_end_block = math.ceil(current_block / self.consensus_size) * self.consensus_size + block_number
         return current_end_block
 
+    def get_report_reward(self, amount, penalty_ratio=None, proportion_ratio=None):
+        """
+        Gain income from double sign whistleblower and incentive pool
+        :param node:
+        :return:
+        """
+        if penalty_ratio is None:
+            penalty_ratio = self.genesis.EconomicModel.Slashing.SlashFractionDuplicateSign
+        if proportion_ratio is None:
+            proportion_ratio = self.genesis.EconomicModel.Slashing.DuplicateSignReportReward
+        penalty_reward = int(Decimal(str(amount)) * Decimal(str(penalty_ratio / 10000)))
+        proportion_reward = int(Decimal(str(penalty_reward)) * Decimal(str(proportion_ratio / 100)))
+        incentive_pool_reward = penalty_reward - proportion_reward
+        return proportion_reward, incentive_pool_reward
+
 
 if __name__ == '__main__':
     a = Economic()

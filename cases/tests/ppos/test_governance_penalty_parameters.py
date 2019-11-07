@@ -455,3 +455,39 @@ def test_PIP_PVF_010(new_genesis_env, client_con_list_obj, reset_environment):
     assert_code(result, 303003)
 
 
+@pytest.mark.P1
+def test_PIP_PVF_011(client_con_list_obj, reset_environment):
+    """
+    治理修改区块双签-最高处罚比例投票失败
+    :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """
+    candidate_info1 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
+    pledge_amount1 = candidate_info1['Ret']['Released']
+    # view Parameter value before treatment
+    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    # create Parametric proposal
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign', '1000', False)
+    # view Parameter value before treatment again
+    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    assert penalty_ratio1 == penalty_ratio2, "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
+    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
+                                                                                 client_con_list_obj[0].node.web3.toWei(
+                                                                                     1000, 'ether'))
+    # Verify changed parameters
+    current_block = client_con_list_obj[0].node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    # Report1 prepareblock signature
+    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
+                                             client_con_list_obj[0].node.blsprikey,
+                                             current_block)
+    log.info("Report information: {}".format(report_information))
+    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
+    # view Pledge amount after punishment
+    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(pledge_amount1)
+    log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
+    candidate_info2 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
+    pledge_amount2 = candidate_info2['Ret']['Released']
+    assert pledge_amount2 == pledge_amount1 - proportion_reward + incentive_pool_reward, "ErrMsg:Pledge amount {}".format(pledge_amount2)
