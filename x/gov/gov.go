@@ -330,7 +330,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 		return err
 	}
 
-	xcom.PrintObject("checkVerifier", verifierList)
+	//xcom.PrintObject("checkVerifier", verifierList)
 
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
