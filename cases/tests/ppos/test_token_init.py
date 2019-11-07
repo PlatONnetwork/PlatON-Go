@@ -353,7 +353,7 @@ def test_AL_BI_002(client_con_list_obj, reset_environment):
     verifier_list = client_con_list_obj[1].ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
     genesis = from_dict(data_class=Genesis, data=client_con_list_obj[1].economic.env.genesis_config)
-    punish_reward = genesis.EconomicModel.Slashing.NumberOfBlockRewardForSlashing
+    punish_reward = genesis.EconomicModel.Slashing.SlashBlocksReward
 
     # view incentive account again
     incentive_pool_balance1 = client_con_list_obj[1].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
@@ -775,7 +775,7 @@ def test_AL_NBI_016(client_new_node_obj):
 def test_AL_NBI_017(client_new_node_obj_list):
     """
     0出块率剔除验证人列表
-    :param client_new_node_obj:
+    :param client_new_node_obj_list:
     :return:
     """
     client_new_node_obj_list[0].economic.env.deploy_all()
