@@ -193,7 +193,7 @@ def test_PIP_PVF_004(client_con_list_obj, client_new_node_obj_list, reset_enviro
 
 
 @pytest.mark.P1
-def test_PIP_PVF_005(client_con_list_obj, client_noc_list_obj, reset_environment):
+def test_PIP_PVF_005(client_con_list_obj, client_new_node_obj_list, reset_environment):
     """
     治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数60100-锁仓金额质押
     :param client_con_list_obj:
@@ -212,8 +212,7 @@ def test_PIP_PVF_005(client_con_list_obj, client_noc_list_obj, reset_environment
     slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
-    # wait settlement block
-    client_con_list_obj[1].economic.get_settlement_switchpoint(1)
+    log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters
     slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
     assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
@@ -221,23 +220,23 @@ def test_PIP_PVF_005(client_con_list_obj, client_noc_list_obj, reset_environment
     address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                           client_con_list_obj[
                                                                               0].economic.create_staking_limit * 2)
-    address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, client_con_list_obj[0].node.web3.toWei(1000, 'ether'))
+    address1, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, client_con_list_obj[0].node.web3.toWei(1000, 'ether'))
     # Create restricting plan
-    plan = [{'Epoch': 1, 'Amount': client_noc_list_obj[0].economic.create_staking_limit}]
-    result = client_noc_list_obj[0].restricting.createRestrictingPlan(address, plan, address)
+    plan = [{'Epoch': 1, 'Amount': client_new_node_obj_list[0].economic.create_staking_limit}]
+    result = client_new_node_obj_list[0].restricting.createRestrictingPlan(address1, plan, address)
     assert_code(result, 0)
     # create staking
-    result = client_noc_list_obj[0].staking.create_staking(0, address, address)
+    result = client_new_node_obj_list[0].staking.create_staking(1, address1, address1)
     assert_code(result, 0)
     # wait settlement block
-    client_noc_list_obj[0].economic.wait_settlement_blocknum(client_noc_list_obj[0].node)
+    client_new_node_obj_list[0].economic.wait_settlement_blocknum(client_new_node_obj_list[0].node)
     for i in range(4):
         result = check_node_in_list(client_con_list_obj[0].node.node_id, client_con_list_obj[0].ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
         if not result:
             # Verify changed parameters
-            candidate_info2 = pledge_punishment(client_noc_list_obj)
-            pledge_amount2 = candidate_info2['Ret']['Released']
+            candidate_info2 = pledge_punishment(client_new_node_obj_list)
+            pledge_amount2 = candidate_info2['Ret']['RestrictingPlan']
             punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
             if punishment_amonut < pledge_amount1:
                 assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
@@ -248,3 +247,35 @@ def test_PIP_PVF_005(client_con_list_obj, client_noc_list_obj, reset_environment
             # wait consensus block
             client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
 
+
+@pytest.mark.P1
+def test_PIP_PVF_006(new_genesis_env, client_con_list_obj, reset_environment):
+    """
+    治理修改区块双签-证据有效期投票失败
+    :param client_con_list_obj:
+    :return:
+    """
+    # Change configuration parameters
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.EconomicModel.Staking.UnStakeFreezeDuration = 3
+    genesis.EconomicModel.Slashing.MaxEvidenceAge = 2
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+    # view Parameter value before treatment
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    # create Parametric proposal
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '0', False)
+    # view Parameter value before treatment again
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    assert slash_blocks2 == slash_blocks1, "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
+    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, client_con_list_obj[0].node.web3.toWei(1000, 'ether'))
+    # Verify changed parameters
+    current_block = client_con_list_obj[0].node.eth.blockNumber
+    log.info("Current block: {}".format(current_block))
+    # Report prepareblock signature
+    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey, client_con_list_obj[0].node.blsprikey,
+                                             current_block)
+    log.info("Report information: {}".format(report_information))
+    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)

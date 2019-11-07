@@ -20,7 +20,7 @@
     "Staking": {
       "StakeThreshold": 1000000000000000000000000,
       "OperatingThreshold": 10000000000000000000,
-      "MaxValidators": 30,
+      "MaxValidators": 5,
       "HesitateRatio": 1,
       "UnStakeFreezeDuration": 2
     },
