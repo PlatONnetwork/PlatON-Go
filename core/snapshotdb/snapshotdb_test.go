@@ -5,57 +5,49 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 func TestCommitZeroBlock(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), generatekv(1)); err != nil {
+	ch := newTestchain(dbpath)
+	defer ch.clear()
+	if err := ch.insert(true, generatekv(1), newBlockCommited); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestSnapshotDB_NewBlockRepate(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	ch.addBlock()
-
-	if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
+	if err := ch.db.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
 		t.Error(err)
 	}
-
-	if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, ch.CurrentHeader().Hash()); err != nil {
+	if err := ch.db.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, ch.CurrentHeader().Hash()); err != nil {
 		t.Error(err)
 	}
-
-	if err := dbInstance.Commit(ch.CurrentHeader().Hash()); err != nil {
+	if err := ch.db.Commit(ch.CurrentHeader().Hash()); err != nil {
 		t.Error(err)
 	}
 	t.Run("can't new ZeroHash block  for block num is same", func(t *testing.T) {
-		if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err == nil {
+		if err := ch.db.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err == nil {
 			t.Error("can't new block for uncommint exist")
 		}
 	})
 
 	t.Run("can new ZeroHash block  for block num is diffent", func(t *testing.T) {
 		ch.addBlock()
-		if err := dbInstance.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
+		if err := ch.db.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
 			t.Error(err)
 		}
 	})
@@ -63,18 +55,18 @@ func TestSnapshotDB_NewBlockRepate(t *testing.T) {
 }
 
 func TestSnapshotDB_NewBlock(t *testing.T) {
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		p = generateHash("parentHash")
 		c = generateHash("currentHash")
 	)
 	t.Run("new recognized block", func(t *testing.T) {
-		err := dbInstance.NewBlock(big.NewInt(30), p, c)
+		err := ch.db.NewBlock(big.NewInt(30), p, c)
 		if err != nil {
 			t.Error(err)
 		}
-		bd, ok := dbInstance.unCommit.blocks[c]
+		bd, ok := ch.db.unCommit.blocks[c]
 		if !ok {
 			t.Fatal("must find recognized")
 		}
@@ -89,11 +81,11 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 		}
 	})
 	t.Run("new unrecognized block", func(t *testing.T) {
-		err := dbInstance.NewBlock(big.NewInt(30), p, common.ZeroHash)
+		err := ch.db.NewBlock(big.NewInt(30), p, common.ZeroHash)
 		if err != nil {
 			t.Error(err)
 		}
-		bd := dbInstance.unCommit.blocks[dbInstance.getUnRecognizedHash()]
+		bd := ch.db.unCommit.blocks[dbInstance.getUnRecognizedHash()]
 		if bd.ParentHash != p {
 			t.Fatal("parentHash must same:", bd.ParentHash, p)
 		}
@@ -104,130 +96,112 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 }
 
 func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
-	var (
-		arr = [][]kv{generatekv(10), generatekv(10)}
-	)
+	ch := newTestchain(dbpath)
+	defer ch.clear()
+	var arr = [][]kv{generatekv(10), generatekv(10)}
 	//recognized(unRecognized not in the chain)
 	ch.addBlock()
-	if err := newBlockRecognizedDirect(ch.CurrentHeader(), arr[0]); err != nil {
+	if err := ch.insert(true, arr[0], newBlockRecognizedDirect); err != nil {
 		t.Error(err)
 	}
 	//unRecognized
-
-	if err := newBlockUnRecognized(ch.CurrentHeader(), arr[1]); err != nil {
+	if err := ch.insert(true, arr[1], newBlockUnRecognized); err != nil {
 		t.Error(err)
 	}
 
-	for _, a := range arr {
+	for i, a := range arr {
 		for _, kv := range a {
-			val, err := dbInstance.Get(common.ZeroHash, kv.key)
+			val, err := ch.db.Get(common.ZeroHash, kv.key)
 			if err != nil {
 				t.Error(err)
 			}
 			if bytes.Compare(kv.value, val) != 0 {
-				t.Error("must find key")
+				t.Error("must find key", i)
 			}
 		}
 	}
 }
 
 func TestSnapshotDB_Get_after_del(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		arr            = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
 		recongizedHash common.Hash
 	)
-	{
-		//baseDB
-		ch.addBlock()
-		if err := newBlockBaseDB(ch.CurrentHeader(), arr[0]); err != nil {
-			t.Error(err)
-			return
-		}
-		//commit
-		ch.addBlock()
-		if err := newBlockCommited(ch.CurrentHeader(), arr[1]); err != nil {
-			t.Error(err)
-			return
-		}
 
-		//recognized
-		ch.addBlock()
-		if err := newBlockRecognizedDirect(ch.CurrentHeader(), arr[2]); err != nil {
-			t.Error(err)
-			return
-		}
-		recongizedHash = ch.CurrentHeader().Hash()
-
-		//unRecognized
-		if err := newBlockUnRecognized(ch.CurrentHeader(), arr[3]); err != nil {
-			t.Error(err)
-		}
-
-		t.Run("delete commit", func(t *testing.T) {
-			key := arr[1][0].key
-			if err := dbInstance.Del(recongizedHash, key); err != nil {
-				t.Error(err)
-				return
-			}
-			_, err := dbInstance.Get(recongizedHash, key)
-			if err != ErrNotFound {
-				t.Error(err)
-				return
-			}
-			if err := dbInstance.Commit(recongizedHash); err != nil {
-				t.Error(err)
-				return
-			}
-			_, err = dbInstance.Get(common.ZeroHash, key)
-			if err != ErrNotFound {
-				t.Error(err)
-				return
-			}
-		})
+	//baseDB
+	if err := ch.insert(true, arr[0], newBlockBaseDB); err != nil {
+		t.Error(err)
+		return
 	}
+	//commit
+	if err := ch.insert(true, arr[1], newBlockCommited); err != nil {
+		t.Error(err)
+		return
+	}
+
+	//recognized
+	if err := ch.insert(true, arr[2], newBlockRecognizedDirect); err != nil {
+		t.Error(err)
+		return
+	}
+	recongizedHash = ch.CurrentHeader().Hash()
+
+	//unRecognized
+	if err := ch.insert(false, arr[3], newBlockUnRecognized); err != nil {
+		t.Error(err)
+	}
+
+	t.Run("delete commit", func(t *testing.T) {
+		key := arr[1][0].key
+		if err := ch.db.Del(recongizedHash, key); err != nil {
+			t.Error(err)
+			return
+		}
+		_, err := ch.db.Get(recongizedHash, key)
+		if err != ErrNotFound {
+			t.Error(err)
+			return
+		}
+		if err := ch.db.Commit(recongizedHash); err != nil {
+			t.Error(err)
+			return
+		}
+		_, err = ch.db.Get(common.ZeroHash, key)
+		if err != ErrNotFound {
+			t.Error(err)
+			return
+		}
+	})
 }
 
 func TestSnapshotDB_Get(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		arr = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
 	)
 	{
 		//baseDB
-		ch.addBlock()
-		if err := newBlockBaseDB(ch.CurrentHeader(), arr[0]); err != nil {
+		if err := ch.insert(true, arr[0], newBlockBaseDB); err != nil {
 			t.Error(err)
 		}
 		//commit
-		ch.addBlock()
-		if err := newBlockCommited(ch.CurrentHeader(), arr[1]); err != nil {
+		if err := ch.insert(true, arr[1], newBlockCommited); err != nil {
 			t.Error(err)
 		}
-
 		//recognized
-		ch.addBlock()
-		if err := newBlockRecognizedDirect(ch.CurrentHeader(), arr[2]); err != nil {
+		if err := ch.insert(true, arr[2], newBlockRecognizedDirect); err != nil {
 			t.Error(err)
 		}
-
 		//recognized(unRecognized not in the chain)
-		if err := newBlockRecognizedDirect(ch.currentForkHeader(), arr[4]); err != nil {
+		if err := ch.insert(true, arr[4], newBlockRecognizedDirect); err != nil {
 			t.Error(err)
 		}
 
 		//unRecognized
-		if err := newBlockUnRecognized(ch.CurrentHeader(), arr[3]); err != nil {
+		if err := ch.insert(false, arr[3], newBlockUnRecognized); err != nil {
 			t.Error(err)
 		}
 
@@ -237,7 +211,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 		t.Run("must find all in the chain", func(t *testing.T) {
 			for _, a := range arr[0:3] {
 				for _, kv := range a {
-					val, err := dbInstance.Get(common.ZeroHash, kv.key)
+					val, err := ch.db.Get(common.ZeroHash, kv.key)
 					if err != nil {
 						t.Error(err)
 					}
@@ -248,14 +222,14 @@ func TestSnapshotDB_Get(t *testing.T) {
 			}
 		})
 		t.Run("must not find key not exist", func(t *testing.T) {
-			_, err := dbInstance.Get(common.ZeroHash, []byte("e"))
+			_, err := ch.db.Get(common.ZeroHash, []byte("e"))
 			if err == nil {
 				t.Error(err)
 			}
 		})
 		t.Run("not in the chain,must not find ", func(t *testing.T) {
 			for _, kv := range arr[4] {
-				_, err := dbInstance.Get(common.ZeroHash, kv.key)
+				_, err := ch.db.Get(common.ZeroHash, kv.key)
 				if err != ErrNotFound {
 					t.Error("must not find")
 				}
@@ -267,7 +241,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 		t.Run("must find all in the chain", func(t *testing.T) {
 			for _, a := range arr[0:2] {
 				for _, kv := range a {
-					val, err := dbInstance.Get(generateHash(fmt.Sprint(3)), kv.key)
+					val, err := ch.db.Get(generateHash(fmt.Sprint(3)), kv.key)
 					if err != nil {
 						t.Error(err)
 					}
@@ -280,7 +254,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 		t.Run("must not find", func(t *testing.T) {
 			for _, a := range arr[3:4] {
 				for _, kv := range a {
-					_, err := dbInstance.Get(generateHash(fmt.Sprint(3)), kv.key)
+					_, err := ch.db.Get(generateHash(fmt.Sprint(3)), kv.key)
 					if err == nil {
 						t.Error(err)
 					}
@@ -296,7 +270,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 		t.Run("must find all in the chain", func(t *testing.T) {
 			for _, a := range arr[0:1] {
 				for _, kv := range a {
-					val, err := dbInstance.Get(generateHash(fmt.Sprint(2)), kv.key)
+					val, err := ch.db.Get(generateHash(fmt.Sprint(2)), kv.key)
 					if err != nil {
 						t.Error(err)
 					}
@@ -311,7 +285,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 	t.Run("baseDB", func(t *testing.T) {
 		t.Run("must find all in the chain", func(t *testing.T) {
 			for _, kv := range arr[0] {
-				val, err := dbInstance.Get(generateHash(fmt.Sprint(1)), kv.key)
+				val, err := ch.db.Get(generateHash(fmt.Sprint(1)), kv.key)
 				if err != nil {
 					t.Error(err)
 				}
@@ -325,29 +299,25 @@ func TestSnapshotDB_Get(t *testing.T) {
 }
 
 func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		baseDBkv  = kv{key: []byte("a"), value: []byte("a")}
 		commit1KV = kv{key: []byte("b"), value: []byte("b")}
 		commit2KV = kv{key: []byte("b"), value: []byte("c")}
 	)
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), []kv{baseDBkv}); err != nil {
+	if err := ch.insert(true, []kv{baseDBkv}, newBlockBaseDB); err != nil {
 		t.Error(err)
 		return
 	}
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), []kv{commit1KV}); err != nil {
+	if err := ch.insert(true, []kv{commit1KV}, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
 
 	t.Run("should get", func(t *testing.T) {
 		for _, key := range []kv{commit1KV, baseDBkv} {
-			val, err := dbInstance.GetFromCommittedBlock(key.key)
+			val, err := ch.db.GetFromCommittedBlock(key.key)
 			if err != nil {
 				t.Error(err)
 			}
@@ -357,12 +327,11 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 		}
 	})
 	t.Run("should change", func(t *testing.T) {
-		ch.addBlock()
-		if err := newBlockCommited(ch.CurrentHeader(), []kv{commit2KV}); err != nil {
+		if err := ch.insert(true, []kv{commit2KV}, newBlockCommited); err != nil {
 			t.Error(err)
 			return
 		}
-		val, err := dbInstance.GetFromCommittedBlock(commit2KV.key)
+		val, err := ch.db.GetFromCommittedBlock(commit2KV.key)
 		if err != nil {
 			t.Error(err)
 		}
@@ -371,7 +340,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 		}
 	})
 	t.Run("not find from any path", func(t *testing.T) {
-		_, err := dbInstance.GetFromCommittedBlock([]byte("ccccc"))
+		_, err := ch.db.GetFromCommittedBlock([]byte("ccccc"))
 		if err != ErrNotFound {
 			t.Error(err)
 		}
@@ -379,62 +348,60 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 }
 
 func TestSnapshotDB_Del(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		arr                                               = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
 		recognizedHash, recognizedByFlushHash, commitHash common.Hash
 	)
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), []kv{kv{key: arr[3], value: arr[3]}}); err != nil {
+	if err := ch.insert(true, []kv{kv{key: arr[3], value: arr[3]}}, newBlockBaseDB); err != nil {
 		t.Error(err)
 		return
 	}
-	ch.addBlock()
+	if err := ch.insert(true, []kv{kv{key: arr[2], value: arr[2]}}, newBlockCommited); err != nil {
+		t.Error(err)
+		return
+	}
 	commitHash = ch.CurrentHeader().Hash()
-	if err := newBlockCommited(ch.CurrentHeader(), []kv{kv{key: arr[2], value: arr[2]}}); err != nil {
+
+	if err := ch.insert(true, []kv{kv{key: arr[1], value: arr[1]}}, newBlockRecognizedDirect); err != nil {
+		t.Error(err)
+		return
+	}
+	recognizedHash = ch.CurrentHeader().Hash()
+
+	forkHeader := ch.currentForkHeader()
+	recognizedByFlushHash = forkHeader.Hash()
+	if err := newBlockRecognizedByFlush(ch.db, []kv{kv{key: arr[4], value: arr[4]}}, forkHeader); err != nil {
 		t.Error(err)
 		return
 	}
 
-	ch.addBlock()
-	recognizedHash = ch.CurrentHeader().Hash()
-	if err := newBlockRecognizedDirect(ch.CurrentHeader(), []kv{kv{key: arr[1], value: arr[1]}}); err != nil {
-		t.Error(err)
-		return
-	}
-	recognizedByFlushHash = generateHash("aaaaaa")
-	if err := newBlockRecognizedByFlush(recognizedByFlushHash, ch.CurrentHeader(), []kv{kv{key: arr[4], value: arr[4]}}); err != nil {
-		t.Error(err)
-		return
-	}
-	if err := newBlockUnRecognized(ch.CurrentHeader(), []kv{kv{key: arr[0], value: arr[0]}}); err != nil {
+	if err := newBlockUnRecognized(ch.db, []kv{kv{key: arr[0], value: arr[0]}}, ch.CurrentHeader()); err != nil {
 		t.Error(err)
 		return
 	}
 	t.Run("delete unrecognized", func(t *testing.T) {
-		err := dbInstance.Del(common.ZeroHash, arr[0])
+		err := ch.db.Del(common.ZeroHash, arr[0])
 		if err != nil {
 			t.Error("err must be nil", err)
 		}
 	})
 	t.Run("delete recognized", func(t *testing.T) {
-		err := dbInstance.Del(recognizedHash, arr[1])
+		err := ch.db.Del(recognizedHash, arr[1])
 		if err != nil {
 			t.Error("err must be nil", err)
 		}
 	})
 
 	t.Run("can't delete readonly", func(t *testing.T) {
-		err := dbInstance.Del(recognizedByFlushHash, arr[4])
+		err := ch.db.Del(recognizedByFlushHash, arr[4])
 		if err == nil {
 			t.Error("err must not nil", err)
 		}
 	})
 	t.Run("can't delete commit", func(t *testing.T) {
-		err := dbInstance.Del(commitHash, arr[2])
+		err := ch.db.Del(commitHash, arr[2])
 		if err == nil {
 			t.Error("err must not nil", err)
 		}
@@ -442,12 +409,8 @@ func TestSnapshotDB_Del(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking10(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
-
-	t.Log("test ranking order")
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 
 	a, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c387869d4e4fbefffff000000000000025000000000")
 	b, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c3de43133125effffff000000000000000000000001")
@@ -463,12 +426,11 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 	base = append(base, kv{e, []byte{1}})
 	base = append(base, kv{f, []byte{1}})
 
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), base); err != nil {
+	if err := ch.insert(true, base, newBlockBaseDB); err != nil {
 		t.Error(err)
 	}
 
-	itr := dbInstance.Ranking(ch.CurrentHeader().Hash(), f[0:10], 5)
+	itr := ch.db.Ranking(ch.CurrentHeader().Hash(), f[0:10], 5)
 	var i int
 	for itr.Next() {
 		if bytes.Compare(itr.Key(), base[i].key) != 0 {
@@ -477,11 +439,10 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 		i++
 	}
 
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), kvs{kv{a, []byte{1}}}); err != nil {
+	if err := ch.insert(true, kvs{kv{a, []byte{1}}}, newBlockCommited); err != nil {
 		t.Error(err)
 	}
-	itr = dbInstance.Ranking(ch.CurrentHeader().Hash(), f[0:10], 4)
+	itr = ch.db.Ranking(ch.CurrentHeader().Hash(), f[0:10], 4)
 	i = 0
 	for itr.Next() {
 		if i == 0 {
@@ -497,13 +458,12 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 	}
 
 	for i := 0; i < 12; i++ {
-		ch.addBlock()
-		if err := newBlockCommited(ch.CurrentHeader(), kvs{kv{[]byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))}}); err != nil {
+		if err := ch.insert(true, kvs{kv{[]byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))}}, newBlockCommited); err != nil {
 			t.Error(err)
 		}
 	}
 
-	itr = dbInstance.Ranking(ch.CurrentHeader().Hash(), f[0:10], 5)
+	itr = ch.db.Ranking(ch.CurrentHeader().Hash(), f[0:10], 5)
 	i = 0
 	for itr.Next() {
 		if i == 0 {
@@ -521,29 +481,26 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking2(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 
-	ch.addBlock()
-	commitHash := ch.CurrentHeader().Hash()
 	commitDBkv := generatekvWithPrefix(30, "ab")
-	if err := newBlockCommited(ch.CurrentHeader(), commitDBkv); err != nil {
+	if err := ch.insert(true, commitDBkv, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
+	commitHash := ch.CurrentHeader().Hash()
 
-	ch.addBlock()
-	commitHash1 := ch.CurrentHeader().Hash()
 	commitDBkv1 := generatekvWithPrefix(40, "ac")
-	if err := newBlockCommited(ch.CurrentHeader(), commitDBkv1); err != nil {
+	if err := ch.insert(true, commitDBkv1, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
+	commitHash1 := ch.CurrentHeader().Hash()
+
 	t.Run("ranking kv should compare", func(t *testing.T) {
 		f := func(hash common.Hash, prefix string, arr []kvs, num int) error {
-			itr := dbInstance.Ranking(hash, []byte(prefix), num)
+			itr := ch.db.Ranking(hash, []byte(prefix), num)
 			for _, kvs := range arr {
 				for _, kv := range kvs {
 					if !itr.Next() {
@@ -582,7 +539,7 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 			{0, 30, "if input num is 0,should return total"},
 		}
 		f := func(prefix string, num int) int {
-			itr := dbInstance.Ranking(commitHash, []byte(prefix), num)
+			itr := ch.db.Ranking(commitHash, []byte(prefix), num)
 			var i int
 			for itr.Next() {
 				i++
@@ -600,17 +557,14 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking4(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	generatekvs := generatekvWithPrefix(1000, "aaa")
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), generatekvs); err != nil {
+	if err := ch.insert(true, generatekvs, newBlockBaseDB); err != nil {
 		t.Error(err)
 	}
 	f := func(hash common.Hash, prefix string, num int) kvs {
-		itr := dbInstance.Ranking(hash, []byte(prefix), num)
+		itr := ch.db.Ranking(hash, []byte(prefix), num)
 		err := itr.Error()
 		if err != nil {
 			t.Fatal(err)
@@ -633,29 +587,23 @@ func TestSnapshotDB_Ranking4(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking5(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
-	ch.addBlock()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	generatekvs := generatekvWithPrefix(4, "aaa")
-	if err := newBlockBaseDB(ch.CurrentHeader(), generatekvs); err != nil {
+	if err := ch.insert(true, generatekvs, newBlockBaseDB); err != nil {
 		t.Error(err)
 	}
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), kvs{kv{generatekvs[0].key, nil}}); err != nil {
+	if err := ch.insert(true, kvs{kv{generatekvs[0].key, nil}}, newBlockCommited); err != nil {
 		t.Error(err)
 	}
 
 	for i := 3; i < 11; i++ {
-		generatekvs := generatekvWithPrefix(1, "bbb")
-		ch.addBlock()
-		if err := newBlockCommited(ch.CurrentHeader(), generatekvs); err != nil {
+		if err := ch.insert(true, generatekvWithPrefix(1, "bbb"), newBlockCommited); err != nil {
 			t.Error(err)
 		}
 	}
 
-	itr := dbInstance.Ranking(ch.CurrentHeader().Hash(), []byte("aaa"), 20)
+	itr := ch.db.Ranking(ch.CurrentHeader().Hash(), []byte("aaa"), 20)
 	err := itr.Error()
 	if err != nil {
 		t.Fatal(err)
@@ -713,56 +661,55 @@ func TestSnapshotDB_Ranking5(t *testing.T) {
 //}
 
 func TestSnapshotDB_Ranking3(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 
 	generatekvs := generatekvWithPrefix(1000, "aaa")
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), generatekvs[0:150]); err != nil {
+	if err := ch.insert(true, generatekvs[0:150], newBlockBaseDB); err != nil {
 		t.Error(err)
 		return
 	}
 
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), generatekvs[150:200]); err != nil {
+	if err := ch.insert(true, generatekvs[150:200], newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
 
-	ch.addBlock()
-	if err := newBlockRecognizedDirect(ch.CurrentHeader(), generatekvs[200:400]); err != nil {
+	if err := ch.insert(true, generatekvs[200:400], newBlockRecognizedDirect); err != nil {
 		t.Error(err)
 		return
 	}
 
-	ch.addBlock()
-	if err := newBlockRecognizedDirect(ch.CurrentHeader(), generatekvs[400:700]); err != nil {
+	if err := ch.insert(true, generatekvs[400:700], newBlockRecognizedDirect); err != nil {
 		t.Error(err)
 		return
 	}
 
-	ch.addBlock()
-	recognizedHash3 := ch.CurrentHeader().Hash()
-	if err := newBlockRecognizedDirect(ch.CurrentHeader(), nil); err != nil {
-		t.Error(err)
-		return
-	}
-	for i := 0; i < 50; i++ {
-		if err := dbInstance.Del(recognizedHash3, generatekvs[i].key); err != nil {
-			t.Error(err)
-			return
+	insertBlockWithDel := func(db *snapshotDB, kvs kvs, header *types.Header) error {
+		if err := db.NewBlock(header.Number, header.ParentHash, header.Hash()); err != nil {
+			return err
 		}
+		logger.Debug("insertBlockWithDel", "hash", header.Hash())
+		for i := 0; i < 50; i++ {
+			if err := db.Del(header.Hash(), generatekvs[i].key); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
-	if err := newBlockUnRecognized(ch.CurrentHeader(), generatekvs[700:]); err != nil {
+	if err := ch.insert(true, nil, insertBlockWithDel); err != nil {
+		t.Error(err)
+		return
+	}
+
+	if err := ch.insert(true, generatekvs[700:], newBlockUnRecognized); err != nil {
 		t.Error(err)
 		return
 	}
 
 	f := func(hash common.Hash, prefix string, num int) kvs {
-		itr := dbInstance.Ranking(hash, []byte(prefix), num)
+		itr := ch.db.Ranking(hash, []byte(prefix), num)
 		o := make(kvs, 0)
 		for itr.Next() {
 			o = append(o, kv{itr.Key(), itr.Value()})
@@ -777,20 +724,15 @@ func TestSnapshotDB_Ranking3(t *testing.T) {
 }
 
 func TestSnapshotDB_WalkBaseDB(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
-	var (
-		prefix = util.BytesPrefix([]byte("a"))
-	)
+	ch := newTestchain(dbpath)
+	defer ch.clear()
+	var prefix = util.BytesPrefix([]byte("a"))
+
 	kvsWithA := generatekvWithPrefix(100, "a")
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), kvsWithA); err != nil {
+	if err := ch.insert(true, kvsWithA, newBlockBaseDB); err != nil {
 		t.Error(err)
 	}
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), generatekvWithPrefix(100, "b")); err != nil {
+	if err := ch.insert(true, generatekvWithPrefix(100, "b"), newBlockBaseDB); err != nil {
 		t.Error(err)
 	}
 	t.Run("kv should compare", func(t *testing.T) {
@@ -810,7 +752,7 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 			}
 			return nil
 		}
-		if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
+		if err := ch.db.WalkBaseDB(prefix, f); err != nil {
 			t.Error(err)
 		}
 		sort.Sort(kvGetFromWalk)
@@ -820,10 +762,10 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	})
 
 	t.Run("walk base db when compaction,should lock", func(t *testing.T) {
-		dbInstance.snapshotLockC = snapshotLock
+		ch.db.snapshotLockC = snapshotLock
 		go func() {
 			time.Sleep(time.Millisecond * 500)
-			dbInstance.snapshotLockC = snapshotUnLock
+			ch.db.snapshotLockC = snapshotUnLock
 		}()
 		f2 := func(num *big.Int, iter iterator.Iterator) error {
 			return nil
@@ -832,7 +774,7 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
 			go func() {
-				if err := dbInstance.WalkBaseDB(prefix, f2); err != nil {
+				if err := ch.db.WalkBaseDB(prefix, f2); err != nil {
 					t.Error(err)
 				}
 				wg.Done()
@@ -842,42 +784,38 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	})
 }
 
-func TestSnapshotDB_Clear(t *testing.T) {
-
-}
-
 func TestSnapshotDB_GetLastKVHash(t *testing.T) {
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		arr            = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
 		recognizedHash = generateHash("recognizedHash")
 		commitHash     = generateHash("commitHash")
 	)
 	{
-		dbInstance.NewBlock(big.NewInt(10), recognizedHash, common.ZeroHash)
-		dbInstance.Put(common.ZeroHash, arr[0], arr[0])
-		dbInstance.Put(common.ZeroHash, arr[1], arr[1])
+		ch.db.NewBlock(big.NewInt(10), recognizedHash, common.ZeroHash)
+		ch.db.Put(common.ZeroHash, arr[0], arr[0])
+		ch.db.Put(common.ZeroHash, arr[1], arr[1])
 	}
 	{
-		dbInstance.NewBlock(big.NewInt(10), commitHash, recognizedHash)
-		dbInstance.Put(recognizedHash, arr[2], arr[2])
-		dbInstance.Put(recognizedHash, arr[3], arr[3])
+		ch.db.NewBlock(big.NewInt(10), commitHash, recognizedHash)
+		ch.db.Put(recognizedHash, arr[2], arr[2])
+		ch.db.Put(recognizedHash, arr[3], arr[3])
 	}
 	t.Run("get from unRecognized", func(t *testing.T) {
 		var lastkvhash common.Hash
-		kvhash := dbInstance.GetLastKVHash(common.ZeroHash)
-		lastkvhash = dbInstance.generateKVHash(arr[0], arr[0], lastkvhash)
-		lastkvhash = dbInstance.generateKVHash(arr[1], arr[1], lastkvhash)
+		kvhash := ch.db.GetLastKVHash(common.ZeroHash)
+		lastkvhash = ch.db.generateKVHash(arr[0], arr[0], lastkvhash)
+		lastkvhash = ch.db.generateKVHash(arr[1], arr[1], lastkvhash)
 		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
 			t.Error("kv hash must same", lastkvhash, kvhash)
 		}
 	})
 	t.Run("get from recognized", func(t *testing.T) {
 		var lastkvhash common.Hash
-		kvhash := dbInstance.GetLastKVHash(recognizedHash)
-		lastkvhash = dbInstance.generateKVHash(arr[2], arr[2], lastkvhash)
-		lastkvhash = dbInstance.generateKVHash(arr[3], arr[3], lastkvhash)
+		kvhash := ch.db.GetLastKVHash(recognizedHash)
+		lastkvhash = ch.db.generateKVHash(arr[2], arr[2], lastkvhash)
+		lastkvhash = ch.db.generateKVHash(arr[3], arr[3], lastkvhash)
 		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
 			t.Error("kv hash must same", lastkvhash, kvhash)
 		}
@@ -885,28 +823,25 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 }
 
 func TestSnapshotDB_BaseNum(t *testing.T) {
-	initDB()
-	defer dbInstance.Clear()
-	_, err := dbInstance.BaseNum()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
+	_, err := ch.db.BaseNum()
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestSnapshotDB_Compaction_del(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	baseDBkv := generatekv(10)
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), baseDBkv); err != nil {
+	if err := ch.insert(true, baseDBkv, newBlockBaseDB); err != nil {
 		t.Error(err)
 		return
 	}
 	delkey := baseDBkv[0].key
 	delVal := baseDBkv[0].value
-	v, err := dbInstance.GetBaseDB(delkey)
+	v, err := ch.db.GetBaseDB(delkey)
 	if err != nil {
 		t.Error(err)
 		return
@@ -916,23 +851,20 @@ func TestSnapshotDB_Compaction_del(t *testing.T) {
 		return
 	}
 
-	ch.addBlock()
-	if err := newBlockBaseDB(ch.CurrentHeader(), kvs{kv{delkey, nil}}); err != nil {
+	if err := ch.insert(true, kvs{kv{delkey, nil}}, newBlockBaseDB); err != nil {
 		t.Error(err)
 	}
 
-	_, err = dbInstance.GetBaseDB(delkey)
+	_, err = ch.db.GetBaseDB(delkey)
 	if err != ErrNotFound {
 		t.Error(err)
 		return
 	}
 }
 
-func TestSnapshotDB_Compaction(t *testing.T) {
-	ch := new(testchain)
-	blockchain = ch
-	initDB()
-	defer dbInstance.Clear()
+func TestSnapshotDB_Compaction222222(t *testing.T) {
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	var (
 		kvs1 = generatekv(3000)
 		kvs2 = generatekv(100)
@@ -940,52 +872,49 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		kvs4 = generatekv(1798)
 	)
 	t.Run("0 commit block with Compaction", func(t *testing.T) {
-		err := dbInstance.Compaction()
+		err := ch.db.Compaction()
 		if err != nil {
 			t.Error(err)
 		}
 	})
 
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), kvs1); err != nil {
+	if err := ch.insert(true, kvs1, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), kvs2); err != nil {
+	if err := ch.insert(true, kvs2, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), kvs3); err != nil {
+	if err := ch.insert(true, kvs3, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
-	ch.addBlock()
-	if err := newBlockCommited(ch.CurrentHeader(), kvs4); err != nil {
+
+	if err := ch.insert(true, kvs4, newBlockCommited); err != nil {
 		t.Error(err)
 		return
 	}
 	for i := 5; i < 16; i++ {
-		ch.addBlock()
-		if err := newBlockCommited(ch.CurrentHeader(), generatekv(20)); err != nil {
+		if err := ch.insert(true, generatekv(20), newBlockCommited); err != nil {
 			t.Error(err)
 			return
 		}
 	}
+	ch.db.journalSync.Wait()
 	t.Run("a block kv>2000,commit 1", func(t *testing.T) {
-		err := dbInstance.Compaction()
+		err := ch.db.Compaction()
 		if err != nil {
 			t.Error(err)
 		}
-		if dbInstance.current.BaseNum.Int64() != 1 {
-			t.Error("must be 1", dbInstance.current.BaseNum)
+		if ch.db.current.base.Num.Int64() != 1 {
+			t.Error("must be 1", dbInstance.current.base.Num)
 		}
-		if len(dbInstance.committed) != 14 {
-			t.Error("must be 14:", len(dbInstance.committed))
+		if len(ch.db.committed) != 14 {
+			t.Error("must be 14:", len(ch.db.committed))
 		}
 		for _, kv := range kvs1 {
-			v, err := dbInstance.baseDB.Get(kv.key, nil)
+			v, err := ch.db.baseDB.Get(kv.key, nil)
 			if err != nil {
 				t.Error(err)
 			}
@@ -995,19 +924,19 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 	})
 	t.Run("kv<2000,block<10,commit 2,3,4", func(t *testing.T) {
-		err := dbInstance.Compaction()
+		err := ch.db.Compaction()
 		if err != nil {
 			t.Error(err)
 		}
-		if dbInstance.current.BaseNum.Int64() != 4 {
-			t.Error("must be 4", dbInstance.current.BaseNum)
+		if ch.db.current.base.Num.Int64() != 4 {
+			t.Error("must be 4", ch.db.current.base.Num)
 		}
-		if len(dbInstance.committed) != 11 {
-			t.Error("must be 11:", len(dbInstance.committed))
+		if len(ch.db.committed) != 11 {
+			t.Error("must be 11:", len(ch.db.committed))
 		}
 		for _, kvs := range [][]kv{kvs2, kvs3, kvs4} {
 			for _, kv := range kvs {
-				v, err := dbInstance.baseDB.Get(kv.key, nil)
+				v, err := ch.db.baseDB.Get(kv.key, nil)
 				if err != nil {
 					t.Error(err)
 				}
@@ -1018,28 +947,23 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 	})
 	t.Run("kv<2000,block=10,commit 5-15", func(t *testing.T) {
-		err := dbInstance.Compaction()
+		err := ch.db.Compaction()
 		if err != nil {
 			t.Error(err)
 		}
-		if dbInstance.current.BaseNum.Int64() != 14 {
-			t.Error("must be 14", dbInstance.current.BaseNum)
+		if ch.db.current.base.Num.Int64() != 14 {
+			t.Error("must be 14", ch.db.current.base.Num)
 		}
-		if len(dbInstance.committed) != 1 {
-			t.Error("must be 1:", len(dbInstance.committed))
+		if len(ch.db.committed) != 1 {
+			t.Error("must be 1:", len(ch.db.committed))
 		}
 	})
 }
 
 func TestFlush(t *testing.T) {
-	initDB()
-	db := dbInstance
-	defer func() {
-		err := db.Clear()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
+
 	parentHash := generateHash("a")
 	blockNumber := big.NewInt(20)
 	data := [][2]string{
@@ -1047,19 +971,19 @@ func TestFlush(t *testing.T) {
 		[2]string{"b", "4421ffwef"},
 		[2]string{"C", "2wgewbrw2"},
 	}
-	if err := db.NewBlock(blockNumber, parentHash, common.ZeroHash); err != nil {
+	if err := ch.db.NewBlock(blockNumber, parentHash, common.ZeroHash); err != nil {
 		t.Fatal(err)
 	}
 	for _, value := range data {
-		if err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := ch.db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 	}
 	currentHash := generateHash("b")
-	if err := db.Flush(currentHash, blockNumber); err != nil {
+	if err := ch.db.Flush(currentHash, blockNumber); err != nil {
 		t.Fatal(err)
 	}
-	recognized, ok := db.unCommit.blocks[currentHash]
+	recognized, ok := ch.db.unCommit.blocks[currentHash]
 	if !ok {
 		t.Fatal("[SnapshotDB] recognized hash should be find")
 	}
@@ -1075,86 +999,11 @@ func TestFlush(t *testing.T) {
 			t.Fatal("[SnapshotDB] should equal")
 		}
 	}
-	db.journalSync.Wait()
-
-	fd := fileDesc{Type: TypeJournal, Num: recognized.Number.Uint64(), BlockHash: recognized.BlockHash}
-	read, err := db.storage.Open(fd)
-	if err != nil {
-		t.Fatal("[SnapshotDB]should open storage", err)
-	}
-	defer read.Close()
-	if err != nil {
-		panic(err)
-	}
-	r := journal.NewReader(read, nil, true, true)
-	rr, err := r.Next()
-	if err != nil {
-		t.Fatal("next", err)
-	}
-	var header journalHeader
-	if err := decode(rr, &header); err != nil {
-		t.Fatal(err)
-	}
-	if header.ParentHash.String() != parentHash.String() {
-		t.Fatal("header ParentHash should same")
-	}
-	if header.BlockNumber.Int64() != recognized.Number.Int64() {
-		t.Fatal("header BlockNumber should same")
-	}
-
-	var m, n kvs
-	for {
-		reader, err := r.Next()
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				t.Fatal(err)
-			}
-		}
-		var body journalData
-		if err := decode(reader, &body); err != nil {
-			t.Fatal(err)
-		}
-		m = append(m, kv{key: body.Key, value: body.Value})
-	}
-
-	for _, value := range data {
-		n = append(n, kv{key: []byte(value[0]), value: []byte(value[1])})
-	}
-	sort.Sort(m)
-	sort.Sort(n)
-	if err := m.compareWithkvs(n); err != nil {
-		t.Error(err)
-	}
-	if _, ok := db.unCommit.blocks[db.getUnRecognizedHash()]; ok {
-		t.Fatal("unRecognized must be nil")
-	}
-
-	if err := db.NewBlock(blockNumber.Add(blockNumber, big.NewInt(1)), parentHash, common.ZeroHash); err != nil {
-		t.Fatal(err)
-	}
-	for _, value := range data {
-		if err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// can't write to flushed block
-	if err := db.Put(currentHash, []byte("cccccccccc"), []byte("mmmmmmmmmmmm")); err == nil {
-		t.Fatal("[SnapshotDB] can't update the block after flush")
-	}
 }
 
 func TestCommit(t *testing.T) {
-	initDB()
-	db := dbInstance
-	defer func() {
-		err := db.Clear()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	ch := newTestchain(dbpath)
+	defer ch.clear()
 	currentHash := generateHash("currentHash")
 	parentHash := generateHash("parentHash")
 	blockNumber := big.NewInt(1)
@@ -1163,34 +1012,34 @@ func TestCommit(t *testing.T) {
 		[2]string{"b", "4421ffwef"},
 		[2]string{"C", "2wgewbrw2"},
 	}
-	if err := db.NewBlock(blockNumber, parentHash, currentHash); err != nil {
+	if err := ch.db.NewBlock(blockNumber, parentHash, currentHash); err != nil {
 		t.Fatal(err)
 	}
 	for _, value := range data {
-		if err := db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := ch.db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := db.Commit(currentHash); err != nil {
+	if err := ch.db.Commit(currentHash); err != nil {
 		t.Fatal("commit fail:", err)
 	}
-	if db.current.HighestNum.Cmp(blockNumber) != 0 {
-		t.Fatalf("current HighestNum must be :%v,but is %v", blockNumber.Int64(), db.current.HighestNum.Int64())
+	if ch.db.current.highest.Num.Cmp(blockNumber) != 0 {
+		t.Fatalf("current HighestNum must be :%v,but is %v", blockNumber.Int64(), ch.db.current.highest.Num.Int64())
 	}
-	if db.committed[0].readOnly != true {
+	if ch.db.committed[0].readOnly != true {
 		t.Fatal("read only must be true")
 	}
-	if db.committed[0].BlockHash.String() != currentHash.String() {
-		t.Fatal("BlockHash not cmp:", db.committed[0].BlockHash.String(), currentHash.String())
+	if ch.db.committed[0].BlockHash.String() != currentHash.String() {
+		t.Fatal("BlockHash not cmp:", ch.db.committed[0].BlockHash.String(), currentHash.String())
 	}
-	if db.committed[0].ParentHash.String() != parentHash.String() {
-		t.Fatal("ParentHash not cmp", db.committed[0].ParentHash.String(), parentHash.String())
+	if ch.db.committed[0].ParentHash.String() != parentHash.String() {
+		t.Fatal("ParentHash not cmp", ch.db.committed[0].ParentHash.String(), parentHash.String())
 	}
-	if db.committed[0].Number.Cmp(blockNumber) != 0 {
-		t.Fatal("block number not cmp", db.committed[0].Number, blockNumber)
+	if ch.db.committed[0].Number.Cmp(blockNumber) != 0 {
+		t.Fatal("block number not cmp", ch.db.committed[0].Number, blockNumber)
 	}
 	for _, value := range data {
-		v, err := db.committed[0].data.Get([]byte(value[0]))
+		v, err := ch.db.committed[0].data.Get([]byte(value[0]))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1198,7 +1047,7 @@ func TestCommit(t *testing.T) {
 			t.Fatal("[SnapshotDB] should equal")
 		}
 	}
-	if _, ok := db.unCommit.blocks[currentHash]; ok {
+	if _, ok := ch.db.unCommit.blocks[currentHash]; ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
 
