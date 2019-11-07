@@ -52,11 +52,12 @@ class Account:
         #     return account
         return random.choice(list(self.accounts.values()))
 
-    def sendTransaction(self, connect, data, from_address, to_address, gasPrice, gas, value):
+    def sendTransaction(self, connect, data, from_address, to_address, gasPrice, gas, value, check_address=True):
         platon = Eth(connect)
 
         account = self.accounts[from_address]
-        tmp_to_address = Web3.toChecksumAddress(to_address)
+        if check_address:
+            to_address = Web3.toChecksumAddress(to_address)
         tmp_from_address = Web3.toChecksumAddress(from_address)
         nonce = platon.getTransactionCount(tmp_from_address)
 
@@ -64,7 +65,7 @@ class Account:
         #     nonce = account['nonce']
 
         transaction_dict = {
-            "to": tmp_to_address,
+            "to": to_address,
             "gasPrice": gasPrice,
             "gas": gas,
             "nonce": nonce,
@@ -74,17 +75,17 @@ class Account:
             'from': tmp_from_address,
         }
 
-        log.info("account['prikey']:::::::{}".format(account['prikey']))
+        log.debug("account['prikey']:::::::{}".format(account['prikey']))
 
         signedTransactionDict = platon.account.signTransaction(
             transaction_dict, account['prikey']
         )
 
-        log.info("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
+        log.debug("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
 
         data = signedTransactionDict.rawTransaction
         result = HexBytes(platon.sendRawTransaction(data)).hex()
-        log.info("result:::::::{}".format(result))
+        log.debug("result:::::::{}".format(result))
         res = platon.waitForTransactionReceipt(result)
         account['nonce'] = nonce + 1
         self.accounts[from_address] = account
@@ -94,7 +95,7 @@ class Account:
     def generate_account_in_node(self, node, passwd, balance=0):
         personal = Personal(node.web3)
         address = personal.newAccount(passwd)
-        log.info(address)
+        log.debug(address)
         if balance > 0:
             self.sendTransaction(node.web3, '', self.account_with_money['address'], address, node.eth.gasPrice, 40000, balance)
         account = {
@@ -154,7 +155,7 @@ class Account:
         address = privatekey.public_key.to_address()
         address = Web3.toChecksumAddress(address)
         prikey = privatekey.to_hex()[2:]
-        if balance > 0:
+        if balance != 0:
             self.sendTransaction(web3, '', self.account_with_money['address'], address, web3.platon.gasPrice, 21000, balance)
         account = {
             "address": address,
