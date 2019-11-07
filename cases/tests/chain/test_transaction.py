@@ -26,7 +26,7 @@ def test_singed_transaction(global_running_env):
 
 
 @pytest.mark.P0
-def test_singed_transaction(global_running_env):
+def test_new_account_singed_transaction(global_running_env):
     """
     After the new account has a balance, transfer it to another account.
     """
@@ -42,7 +42,7 @@ def test_singed_transaction(global_running_env):
 
 @pytest.mark.P1
 @pytest.mark.parametrize("node_type", ["consensus", "normal"])
-def test_consensus_unlock_sendtransaction(global_running_env, node_type):
+def test_unlock_sendtransaction(global_running_env, node_type):
     """
     Node unlock transfer
     """
@@ -61,7 +61,7 @@ def test_consensus_unlock_sendtransaction(global_running_env, node_type):
 
 
 @pytest.mark.P1
-def test_money_minus_transaction(global_running_env):
+def test_money_negative_transaction(global_running_env):
     """
     The transfer amount is negative
     """
@@ -76,7 +76,7 @@ def test_money_minus_transaction(global_running_env):
 
 @pytest.mark.P2
 @pytest.mark.parametrize("balance", [0, 100])
-def test_balance_empty_transaction(global_running_env, balance):
+def test_balance_insufficient_transaction(global_running_env, balance):
     """
     Balance is 0 transfer
     Insufficient balance transfer
@@ -96,7 +96,7 @@ def test_balance_empty_transaction(global_running_env, balance):
 @pytest.mark.P2
 def test_gas_to_low(global_running_env):
     """
-    gas太低
+    Gas is too low
     """
     node = global_running_env.get_rand_node()
     account = global_running_env.account
@@ -111,7 +111,7 @@ def test_gas_to_low(global_running_env):
 
 
 @pytest.mark.P3
-def test_wallet_not_local(global_running_env):
+def test_wallet_non_local(global_running_env):
     """
     Transfer to a non-local wallet
     """
@@ -125,7 +125,7 @@ def test_wallet_not_local(global_running_env):
 @pytest.mark.parametrize("to_address", ["", "abcdefghigk"])
 def test_to_account_abnormal(global_running_env, to_address):
     """
-    to address abnormal
+    To address abnormal
     """
     node = global_running_env.get_rand_node()
     account = global_running_env.account
