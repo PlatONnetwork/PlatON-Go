@@ -654,5 +654,51 @@ def test_PIP_PVF_015(client_con_list_obj, reset_environment):
     # view Pledge amount again
     candidate_info2 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount2 = candidate_info2['Ret']['Released']
-    assert pledge_amount2 == 0, "ErrMsg:Pledge amount {}".format(
+    assert pledge_amount2 == pledge_amount1 - proportion_reward - incentive_pool_reward, "ErrMsg:Pledge amount {}".format(
         pledge_amount2)
+
+
+@pytest.mark.P1
+def test_PIP_PVF_016(client_con_list_obj, reset_environment):
+    """
+    治理修改区块双签-举报奖励比例投票失败
+    :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """
+    # create report account
+    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
+                                                                                 client_con_list_obj[0].node.web3.toWei(
+                                                                                     1000, 'ether'))
+    # view report amount
+    report_amount1 = client_con_list_obj[0].node.eth.getBalance(report_address)
+    # view Incentive pool account
+    incentive_pool_account1 = client_con_list_obj[0].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    # view Parameter value before treatment
+    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    # create Parametric proposal
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward', '60', False)
+    # view Parameter value after treatment
+    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    assert report_reward1 == report_reward2, "ErrMsg:Parameter value after treatment {}".format(report_reward2)
+
+    # Verify changed parameters
+    current_block = client_con_list_obj[0].node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    # Report1 prepareblock signature
+    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
+                                             client_con_list_obj[0].node.blsprikey,
+                                             current_block)
+    log.info("Report information: {}".format(report_information))
+    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
+    # view Pledge amount after punishment
+    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(pledge_amount1)
+    log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
+    # view report amount
+    report_amount2 = client_con_list_obj[0].node.eth.getBalance(report_address)
+    # view Incentive pool account
+    incentive_pool_account2 = client_con_list_obj[0].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+    # asster amount reward
+    assert report_amount2 == report_amount1 + proportion_reward, "ErrMsg:report amount {}".format(report_amount2)
+    assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward, "ErrMsg:Incentive pool account {}".format(incentive_pool_account2)
