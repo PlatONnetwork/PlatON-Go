@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from dacite import from_dict
-from .utils import wait_block_number
+from .utils import wait_block_number, get_pledge_list
 from environment.node import Node
 from .genesis import Genesis
 from common.key import get_pub_key
@@ -82,8 +82,8 @@ class Economic:
         new_block_rate = self.genesis.EconomicModel.Reward.NewBlockRate
         annualcycle, annual_size, current_end_block = self.get_annual_switchpoint(node)
         if verifier_num is None:
-            verifier_list = node.ppos.getVerifierList()
-            verifier_num = len(verifier_list['Ret'])
+            verifier_list = get_pledge_list(node.ppos.getVerifierList)
+            verifier_num = len(verifier_list)
         print('verifier_num', verifier_num)
         amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, 0)
         block_proportion = str(new_block_rate / 100)

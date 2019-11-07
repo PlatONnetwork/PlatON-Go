@@ -297,7 +297,7 @@ def test_AL_IE_004(client_new_node_obj_list):
                                                                                client_new_node_obj_list[
                                                                                    1].economic.create_staking_limit * 2)
     log.info("staking address: {}".format(address))
-    # Create lock plan
+    # Create restricting plan
     staking_amount = client_new_node_obj_list[1].economic.create_staking_limit
     log.info("staking amonut：{}".format(staking_amount))
     plan = [{'Epoch': 1, 'Amount': staking_amount}]

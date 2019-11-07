@@ -142,10 +142,62 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_PIP_PVF_004(client_con_list_obj, client_noc_list_obj, reset_environment):
+def test_PIP_PVF_004(client_con_list_obj, client_new_node_obj_list, reset_environment):
     """
 
     :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """
+    # view Consensus Amount of pledge
+    candidate_info1 = client_con_list_obj[0].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
+    pledge_amount1 = candidate_info1['Ret']['Released']
+    # view block_reward
+    block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
+        client_con_list_obj[0].node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # Get governable parameters
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    # create Parametric proposal
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
+    log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
+    # Get governable parameters
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
+    # create account
+    address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
+                                                                          client_con_list_obj[
+                                                                              0].economic.create_staking_limit * 2)
+    # create staking
+    result = client_new_node_obj_list[0].staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    # wait settlement block
+    log.info(client_new_node_obj_list[0].node)
+    client_new_node_obj_list[0].economic.wait_settlement_blocknum(client_new_node_obj_list[0].node)
+    for i in range(4):
+        result = check_node_in_list(client_con_list_obj[0].node.node_id, client_con_list_obj[0].ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if not result:
+            # Verify changed parameters
+            candidate_info2 = pledge_punishment(client_new_node_obj_list)
+            pledge_amount2 = candidate_info2['Ret']['Released']
+            punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
+            if punishment_amonut < pledge_amount1:
+                assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+                    pledge_amount2)
+            else:
+                assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+        else:
+            # wait consensus block
+            client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+
+
+@pytest.mark.P1
+def test_PIP_PVF_005(client_con_list_obj, client_noc_list_obj, reset_environment):
+    """
+    治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数60100-锁仓金额质押
+    :param client_con_list_obj:
+    :param client_noc_list_obj:
     :param reset_environment:
     :return:
     """
@@ -169,17 +221,30 @@ def test_PIP_PVF_004(client_con_list_obj, client_noc_list_obj, reset_environment
     address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                           client_con_list_obj[
                                                                               0].economic.create_staking_limit * 2)
+    address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, client_con_list_obj[0].node.web3.toWei(1000, 'ether'))
+    # Create restricting plan
+    plan = [{'Epoch': 1, 'Amount': client_noc_list_obj[0].economic.create_staking_limit}]
+    result = client_noc_list_obj[0].restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 0)
     # create staking
     result = client_noc_list_obj[0].staking.create_staking(0, address, address)
     assert_code(result, 0)
     # wait settlement block
-    client_noc_list_obj[0].economic.wait_settlement_blocknum(client_noc_list_obj[0].node, 1)
-    # Verify changed parameters
-    candidate_info2 = pledge_punishment(client_noc_list_obj)
-    pledge_amount2 = candidate_info2['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    client_noc_list_obj[0].economic.wait_settlement_blocknum(client_noc_list_obj[0].node)
+    for i in range(4):
+        result = check_node_in_list(client_con_list_obj[0].node.node_id, client_con_list_obj[0].ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if not result:
+            # Verify changed parameters
+            candidate_info2 = pledge_punishment(client_noc_list_obj)
+            pledge_amount2 = candidate_info2['Ret']['Released']
+            punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
+            if punishment_amonut < pledge_amount1:
+                assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+                    pledge_amount2)
+            else:
+                assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+        else:
+            # wait consensus block
+            client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+
