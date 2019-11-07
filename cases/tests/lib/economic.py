@@ -26,11 +26,11 @@ class Economic:
         self.additional_cycle_time = self.genesis.EconomicModel.Common.AdditionalCycleTime
 
         # Number of verification
-        self.validator_count = self.genesis.EconomicModel.Common.ValidatorCount
+        self.validator_count = self.genesis.EconomicModel.Common.MaxConsensusVals
 
         # Billing related
         # Billing cycle
-        self.expected_minutes = self.genesis.EconomicModel.Common.ExpectedMinutes
+        self.expected_minutes = self.genesis.EconomicModel.Common.MaxEpochMinutes
         # Consensus rounds
         self.consensus_wheel = (self.expected_minutes * 60) // (
                     self.interval * self.per_round_blocks * self.validator_count)
@@ -43,11 +43,18 @@ class Economic:
         # Minimum deposit amount
         self.create_staking_limit = self.genesis.EconomicModel.Staking.StakeThreshold
         # Minimum holding amount
-        self.add_staking_limit = self.genesis.EconomicModel.Staking.MinimumThreshold
+        self.add_staking_limit = self.genesis.EconomicModel.Staking.OperatingThreshold
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
-        # 冻结结算周期
-        self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeRatio
+        # unstaking freeze duration
+        self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeDuration
+        #ParamProposalVote_DurationSeconds
+        self.pp_vote_settlement_wheel = self.genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds // (
+                (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
+        )
+        #slash blocks reward
+        self.slash_blocks_reward = self.genesis.EconomicModel.Slashing.SlashBlocksReward
+
 
     @property
     def account(self):
@@ -76,7 +83,7 @@ class Economic:
         annualcycle, annual_size, current_end_block = self.get_annual_switchpoint(node)
         if verifier_num is None:
             verifier_list = node.ppos.getVerifierList()
-            verifier_num = len(verifier_list['Data'])
+            verifier_num = len(verifier_list['Ret'])
         print('verifier_num', verifier_num)
         amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, 0)
         block_proportion = str(new_block_rate / 100)

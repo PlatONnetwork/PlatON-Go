@@ -22,41 +22,40 @@ class Config:
 
 @dataclass
 class Common:
-    ExpectedMinutes: int
-    ValidatorCount: int
+    MaxEpochMinutes: int
+    MaxConsensusVals: int
     AdditionalCycleTime: int
 
 
 @dataclass
 class Staking:
     StakeThreshold: int
-    MinimumThreshold: int
-    EpochValidatorNum: int
+    OperatingThreshold: int
+    MaxValidators: int
     HesitateRatio: int
-    EffectiveRatio: int
-    UnStakeFreezeRatio: int
-    PassiveUnDelegateFreezeRatio: int
-    ActiveUnDelegateFreezeRatio: int
+    UnStakeFreezeDuration: int
 
 
 @dataclass
 class Slashing:
-    DuplicateSignHighSlashing: int
+    SlashFractionDuplicateSign: int
     DuplicateSignReportReward: int
-    NumberOfBlockRewardForSlashing: int
-    EvidenceValidEpoch: int
+    SlashBlocksReward: int
+    MaxEvidenceAge: int
 
 
 @dataclass
 class Gov:
     VersionProposalVote_DurationSeconds: int
-    VersionProposalActive_ConsensusRounds: int
     VersionProposal_SupportRate: float
     TextProposalVote_DurationSeconds: int
     TextProposal_VoteRate: float
     TextProposal_SupportRate: float
     CancelProposal_VoteRate: float
     CancelProposal_SupportRate: float
+    ParamProposalVote_DurationSeconds: int
+    ParamProposal_VoteRate: float
+    ParamProposal_SupportRate: float
 
 
 @dataclass

@@ -26,7 +26,7 @@ def test_LS_FV_001(client_consensus_obj):
     log.info("Lock in contract amount: {}".format(lock_up_amount))
     # view Lockup plan
     result = client_consensus_obj.ppos.getRestrictingInfo(EconomicConfig.INCENTIVEPOOL_ADDRESS)
-    release_plans_list = result['Data']['plans']
+    release_plans_list = result['Ret']['plans']
     assert_code(result, 0)
     log.info("Lockup plan information: {}".format(result))
     # assert louck up amount
@@ -47,7 +47,6 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
                                                                                                                    'ether'))
     plan = [{'Epoch': epoch, 'Amount': client_new_node_obj.node.web3.toWei(amount, 'ether')}]
     result = client_new_node_obj.restricting.createRestrictingPlan(benifit_address, plan, address)
-    log.info("restricting plan information: {}".format(result))
     return result, address, benifit_address
 
 
@@ -89,7 +88,7 @@ def test_LS_PV_003(client_new_node_obj):
     assert_code(result, 0)
     restricting_info = client_new_node_obj.ppos.getRestrictingInfo(benifit_address)
     assert_code(restricting_info, 0)
-    assert restricting_info['Data']['balance'] == client_new_node_obj.node.web3.toWei(1000, 'ether')
+    assert restricting_info['Ret']['balance'] == client_new_node_obj.node.web3.toWei(1000, 'ether')
 
 
 @pytest.mark.P1
@@ -104,7 +103,7 @@ def test_LS_PV_004_1(client_new_node_obj, epoch, amount):
     """
     try:
         result, address, benifit_address = create_restrictingplan(client_new_node_obj, epoch, amount)
-        assert_code(result, 304003)
+        assert_code(result, 0)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
 
@@ -132,7 +131,7 @@ def test_LS_PV_004_2(client_new_node_obj, epoch, amount):
 @pytest.mark.P1
 def test_LS_PV_005(client_new_node_obj):
     """
-    锁仓参数的有效性验证
+    锁仓参数的有效性验证:epoch 0, amount 10
     :param client_new_node_obj:
     :return:
     """
@@ -141,10 +140,10 @@ def test_LS_PV_005(client_new_node_obj):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('number', [0, 36, 37])
+@pytest.mark.parametrize('number', [1, 5, 36])
 def test_LS_PV_006(client_new_node_obj, number):
     """
-    创建锁仓计划-1<= 释放计划个数N <=36
+    创建锁仓计划1<= 释放计划个数N <=36
     :param client_new_node_obj:
     :return:
     """
@@ -156,22 +155,276 @@ def test_LS_PV_006(client_new_node_obj, number):
         plan.append({'Epoch': i + 1, 'Amount': client_new_node_obj.node.web3.toWei(10, 'ether')})
     log.info("Create lock plan parameters：{}".format(plan))
     result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
-    if 0 < number <= 36:
-        assert_code(result, 0)
-    else:
-        assert_code(result, 304002)
+    assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_LS_PV_007(client_new_node_obj):
+    """
+    创建锁仓计划-释放计划的锁定期个数 > 36
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit)
+    plan = []
+    for i in range(37):
+        plan.append({'Epoch': i + 1, 'Amount': client_new_node_obj.node.web3.toWei(10, 'ether')})
+    log.info("Create lock plan parameters：{}".format(plan))
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 304002)
 
 
 @pytest.mark.P1
 def test_LS_PV_008(client_new_node_obj):
     """
-    锁仓参数的有效性验证
+    锁仓参数的有效性验证:epoch 1, amount 0
     :param client_new_node_obj:
     :return:
     """
+    # create restricting plan
     result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 0)
     assert_code(result, 304011)
 
 
+@pytest.mark.P2
+def test_LS_PV_009(client_new_node_obj):
+    """
+    创建锁仓计划-锁仓金额中文、特殊字符字符测试
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.economic.create_staking_limit)
+    plan = [{'Epoch': 1, 'Amount': '测试 @！'}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 304004)
 
+
+@pytest.mark.P1
+def test_LS_RV_001(client_new_node_obj):
+    """
+    创建锁仓计划-单个释放锁定期金额大于账户金额
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    account_balance = client_new_node_obj.node.web3.toWei(1000, 'ether')
+    Lock_in_amount = client_new_node_obj.node.web3.toWei(1001, 'ether')
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.node.web3.toWei(
+                                                                           account_balance, 'ether'))
+    plan = [{'Epoch': 1, 'Amount': client_new_node_obj.node.web3.toWei(Lock_in_amount, 'ether')}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 304004)
+
+
+@pytest.mark.P1
+@pytest.mark.parametrize('balace1, balace2', [(0, 0), (300, 300), (500, 500), (500, 600)])
+def test_LS_RV_002(client_new_node_obj, balace1, balace2):
+    """
+    创建锁仓计划-多个释放锁定期合计金额大于账户金额
+    :param client_new_node_obj:
+    :return:
+    """
+    # create restricting plan
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.node.web3.toWei(1000,
+                                                                                                           'ether'))
+    louk_up_balace1 = client_new_node_obj.node.web3.toWei(balace1, 'ether')
+    louk_up_balace2 = client_new_node_obj.node.web3.toWei(balace2, 'ether')
+    plan = [{'Epoch': 1, 'Amount': louk_up_balace1}, {'Epoch': 2, 'Amount': louk_up_balace2}]
+    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    if 0 < balace1 + balace2 < 1000:
+        assert_code(result, 0)
+    elif 1000 <= balace1 + balace2:
+        assert_code(result, 304004)
+    else:
+        assert_code(result, 304011)
+
+
+def create_restricting_platn(client_new_node_obj, plan, benifit_address, address):
+    """
+    create restricting plan
+    :param client_new_node_obj:
+    :param plan:
+    :param benifit_address:
+    :param address:
+    :return:
+    """
+    # create restricting
+    result = client_new_node_obj.restricting.createRestrictingPlan(benifit_address, plan, address)
+    assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client_new_node_obj.ppos.getRestrictingInfo(benifit_address)
+    log.info("Restricting information: {}".format(restricting_info))
+    assert_code(restricting_info, 0)
+    return restricting_info
+
+
+@pytest.mark.P1
+def test_LS_RV_003(client_new_node_obj):
+    """
+    创建锁仓计划-锁仓计划里两个锁仓计划的解锁期相同
+    :param client_new_node_obj:
+    :return:
+    """
+    # create account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.node.web3.toWei(1000,
+                                                                                                           'ether'))
+    louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
+    plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 1, 'Amount': louk_up_balace}]
+    # create restricting plan
+    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    # assert restricting plan
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
+               'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
+        client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][0]['amount'])
+
+
+@pytest.mark.P1
+def test_LS_RV_004(client_new_node_obj):
+    """
+    创建锁仓计划-新建锁仓计划里两个锁仓计划的解锁期不同
+    :param client_new_node_obj:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.node.web3.toWei(1000,
+                                                                                                           'ether'))
+
+    louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
+    plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
+    # create restricting plan
+    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    # assert restricting plan
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
+               'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
+        client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][0]['amount'])
+    assert restricting_info['Ret']['plans'][1][
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][1]['amount'])
+
+
+@pytest.mark.P1
+def test_LS_RV_005(client_new_node_obj):
+    """
+    创建锁仓计划-创建不同锁仓计划里2个相同解锁期
+    :param client_new_node_obj:
+    :return:
+    """
+    # create account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       client_new_node_obj.node.web3.toWei(1000,
+                                                                                                           'ether'))
+
+    louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
+    plan = [{'Epoch': 1, 'Amount': louk_up_balace}]
+    # create restricting plan
+    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    # create restricting plan
+    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    # assert restricting plan
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
+               'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
+        client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][0]['amount'])
+
+
+@pytest.mark.P1
+def test_LS_RV_006(client_new_node_obj):
+    """
+    创建锁仓计划-不同个账户创建不同锁仓计划里有相同解锁期
+    :param client_new_node_obj:
+    :return:
+    """
+    # create account1
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        client_new_node_obj.node.web3.toWei(1000,
+                                                                                                            'ether'))
+    # create account2
+    address2, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        client_new_node_obj.node.web3.toWei(1000,
+                                                                                                            'ether'))
+
+    louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
+    plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
+    # create restricting plan1
+    restricting_info = create_restricting_platn(client_new_node_obj, plan, address1, address1)
+    # create restricting plan2
+    restricting_info = create_restricting_platn(client_new_node_obj, plan, address1, address2)
+    # assert restricting plan1
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
+               'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
+        client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][0]['amount'])
+    assert restricting_info['Ret']['plans'][1][
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][1]['amount'])
+
+
+@pytest.mark.P1
+def test_LS_RV_007(client_new_node_obj):
+    """
+    创建锁仓计划-不同账户创建不同锁仓计划里有不相同解锁期
+    :param client_new_node_obj:
+    :return:
+    """
+    # create account1
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        client_new_node_obj.node.web3.toWei(1000,
+                                                                                                            'ether'))
+    # create account2
+    address2, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        client_new_node_obj.node.web3.toWei(1000,
+                                                                                                            'ether'))
+
+    louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
+    plan1 = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
+    plan2 = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 3, 'Amount': louk_up_balace}]
+    # create restricting plan1
+    restricting_info = create_restricting_platn(client_new_node_obj, plan1, address1, address1)
+    # create restricting plan2
+    restricting_info = create_restricting_platn(client_new_node_obj, plan2, address1, address2)
+    # assert restricting plan1
+    assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
+        restricting_info['Ret']['balance'])
+    assert restricting_info['Ret']['plans'][0][
+               'blockNumber'] == client_new_node_obj.economic.get_settlement_switchpoint(
+        client_new_node_obj.node), "ErrMsg:Restricting blockNumber {}".format(
+        restricting_info['Ret']['plans'][0]['blockNumber'])
+    assert restricting_info['Ret']['plans'][0][
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][0]['amount'])
+    assert restricting_info['Ret']['plans'][1][
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][1]['amount'])
+    assert restricting_info['Ret']['plans'][2][
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+        restricting_info['Ret']['plans'][2]['amount'])
 

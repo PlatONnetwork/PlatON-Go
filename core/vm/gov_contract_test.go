@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	//"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -272,7 +271,7 @@ func buildGetGovernParamValueInput(module, name string) []byte {
 func setup(t *testing.T) *mock.Chain {
 	t.Log("setup()......")
 	//to turn on log's debug level
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*GovContract)

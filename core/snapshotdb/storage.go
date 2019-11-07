@@ -107,4 +107,8 @@ type storage interface {
 
 	// Path return path of the storage
 	Path() string
+
+	// Log logs a string. This is used for logging.
+	// An implementation may write to a file, stdout or simply do nothing.
+	Log(str string)
 }
