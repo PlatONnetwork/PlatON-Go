@@ -140,6 +140,18 @@ func (fs *fileStorage) Rename(oldfd, newfd fileDesc) error {
 	return rename(filepath.Join(fs.path, oldfd.String()), filepath.Join(fs.path, newfd.String()))
 }
 
+func (fs *fileStorage) Log(str string) {
+	if !fs.readOnly {
+		t := time.Now()
+		fs.mu.Lock()
+		defer fs.mu.Unlock()
+		if fs.open < 0 {
+			return
+		}
+		fs.doLog(t, str)
+	}
+}
+
 func (fs *fileStorage) log(str string) {
 	if !fs.readOnly {
 		fs.doLog(time.Now(), str)

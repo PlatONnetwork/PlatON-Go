@@ -72,7 +72,10 @@ func openDBBench(b *testing.B) *dbBench {
 			b.Fatal("cannot remove old db: ", err)
 		}
 	}
-	if err := initDB(); err != nil {
+	if dbInstance == nil {
+		dbInstance = new(snapshotDB)
+	}
+	if err := initDB(dbpath, dbInstance); err != nil {
 		b.Fatal("init db fail", err)
 	}
 	return &dbBench{
