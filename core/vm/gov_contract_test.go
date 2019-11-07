@@ -434,6 +434,30 @@ func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
 	runGovContract(false, gc, buildSubmitVersionInput(), t, gov.VotingParamProposalExist)
 }
 
+func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Errorf("%s", err)
+	} else {
+		assert.Equal(t, "25", value)
+	}
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	//runGovContract(false, gc, buildSubmitTextInput(), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, txHashArr[1])
+	commit_sndb(chain)
+
+	runGovContract(false, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+
+}
+
 func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -453,6 +477,8 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	prepair_sndb(chain, txHashArr[2])
 	allVote(chain, t, txHashArr[1])
 	commit_sndb(chain)
+
+	runGovContract(false, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
