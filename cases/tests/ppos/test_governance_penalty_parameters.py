@@ -12,7 +12,8 @@ from client_sdk_python import Web3
 from decimal import Decimal
 
 from tests.conftest import param_governance_verify, param_governance_verify_before_endblock
-from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, get_governable_parameter_value
+from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
+    get_governable_parameter_value
 
 
 def pledge_punishment(client_con_list_obj):
@@ -23,7 +24,7 @@ def pledge_punishment(client_con_list_obj):
     # stop node
     client_con_list_obj[0].node.stop()
     # Waiting for a settlement round
-    client_con_list_obj[1].economic.wait_consensus_blocknum(client_con_list_obj[1].node, 1)
+    client_con_list_obj[1].economic.wait_consensus_blocknum(client_con_list_obj[1].node, 2)
     log.info("Current block height: {}".format(client_con_list_obj[1].node.eth.blockNumber))
     # view verifier list
     verifier_list = client_con_list_obj[1].ppos.getVerifierList()
@@ -46,7 +47,7 @@ def Information_before_governance(client_obj):
 
 
 @pytest.mark.P1
-def test_PIP_PVF_001(client_con_list_obj):
+def test_PIP_PVF_001(client_con_list_obj, reset_environment):
     """
     治理修改低出块率扣除验证人自有质押金比例投票失败
     :param client_con_list_obj:
@@ -63,14 +64,18 @@ def test_PIP_PVF_001(client_con_list_obj):
     block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0', False)
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    if punishment_amonut < pledge_amount1:
+        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+            pledge_amount2)
+    else:
+        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
 
 
 @pytest.mark.P1
@@ -87,15 +92,19 @@ def test_PIP_PVF_002(client_con_list_obj, reset_environment):
     block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
     # create Parametric proposal
-    End_voting_block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
+    End_voting_block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward',
+                                                               '0')
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-        pledge_amount2)
+    if punishment_amonut < pledge_amount1:
+        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+            pledge_amount2)
+    else:
+        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
 
 
 @pytest.mark.P1
@@ -114,24 +123,26 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
-    # wait settlement block
-    client_con_list_obj[1].economic.get_settlement_switchpoint(1)
+    log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
-    assert slash_blocks1 != slash_blocks2, "ErrMsg:Change parameters {}".format(slash_blocks2)
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    assert slash_blocks2 == '0', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-        pledge_amount2)
+    if punishment_amonut < pledge_amount1:
+        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+            pledge_amount2)
+    else:
+        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_004(client_con_list_obj, reset_environment):
+def test_PIP_PVF_004(client_con_list_obj, client_noc_list_obj, reset_environment):
     """
 
     :param client_con_list_obj:
@@ -146,16 +157,29 @@ def test_PIP_PVF_004(client_con_list_obj, reset_environment):
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
     # wait settlement block
     client_con_list_obj[1].economic.get_settlement_switchpoint(1)
     # Get governable parameters
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
-    assert slash_blocks1 != slash_blocks2, "ErrMsg:Change parameters {}".format(slash_blocks2)
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
+    # create account
+    address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
+                                                                          client_con_list_obj[
+                                                                              0].economic.create_staking_limit * 2)
+    # create staking
+    result = client_noc_list_obj[0].staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    # wait settlement block
+    client_noc_list_obj[0].economic.wait_settlement_blocknum(client_noc_list_obj[0].node, 1)
     # Verify changed parameters
-    candidate_info2 = pledge_punishment(client_con_list_obj)
+    candidate_info2 = pledge_punishment(client_noc_list_obj)
     pledge_amount2 = candidate_info2['Ret']['Released']
-    assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(
-        pledge_amount2)
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks2)))
+    if punishment_amonut < pledge_amount1:
+        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+            pledge_amount2)
+    else:
+        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
