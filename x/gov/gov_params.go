@@ -204,9 +204,9 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
 				}
 
-				// (0, +∞)
-				if gasLimit <= 0 {
-					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %s)", xcom.Zero, xcom.PositiveInfinity))
+				// (21000*200, +∞)
+				if gasLimit <= int(params.TxGas*200) {
+					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %s)", int(params.TxGas*200), xcom.PositiveInfinity))
 				}
 
 				return nil
