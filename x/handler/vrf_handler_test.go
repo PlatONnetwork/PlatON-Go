@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -34,7 +36,11 @@ import (
 )
 
 func initHandler() *ecdsa.PrivateKey {
-	NewVrfHandler(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"))
+	vh = &VrfHandler{
+		db:           snapshotdb.Instance(),
+		genesisNonce: hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+	}
+	//	NewVrfHandler(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"))
 	pri, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
