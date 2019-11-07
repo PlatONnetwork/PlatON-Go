@@ -22,12 +22,6 @@ type journalData struct {
 	Key, Value []byte
 }
 
-//
-//const (
-//	journalHeaderFromUnRecognized = "unRecognized"
-//	journalHeaderFromRecognized   = "recognized"
-//)
-
 type journalHeader struct {
 	ParentHash  common.Hash
 	BlockNumber *big.Int `rlp:"nil"`
@@ -94,23 +88,35 @@ func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error
 	return s.storage.Remove(fd)
 }
 
-func (s *snapshotDB) writeBlockToJournalAsynchronous(block *blockData) {
-	s.journalSync.Add(1)
-	go func(block *blockData) {
-		defer s.journalSync.Done()
-		if err := s.writeJournal(block); err != nil {
-			logger.Error("asynchronous write Journal fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
-			s.dbError = err
+func (s *snapshotDB) loopWriteJournal() {
+	for {
+		select {
+		case block := <-s.journalBlockData:
+			if err := s.writeJournal(block); err != nil {
+				logger.Error("asynchronous write Journal fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
+				s.dbError = err
+				s.journalSync.Done()
+				continue
+			}
+			nc := newCurrent(block.Number, nil, block.BlockHash)
+			if err := nc.saveCurrentToBaseDB(CurrentHighestBlock, s.baseDB, false); err != nil {
+				logger.Error("asynchronous update current highest fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
+				s.dbError = err
+				s.journalSync.Done()
+				continue
+			}
+			s.journalSync.Done()
+		case <-s.journalWriteExitCh:
+			logger.Info("loopWriteJournal exist")
+			close(s.journalBlockData)
 			return
 		}
-		if err := s.saveCurrentToBaseDB(CurrentHighestBlock, &current{
-			HighestNum:  new(big.Int).Set(block.Number),
-			HighestHash: block.BlockHash,
-		}); err != nil {
-			logger.Error("asynchronous update current highest fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
-			s.dbError = err
-		}
-	}(block)
+	}
+}
+
+func (s *snapshotDB) writeBlockToJournalAsynchronous(block *blockData) {
+	s.journalSync.Add(1)
+	s.journalBlockData <- block
 }
 
 func (s *snapshotDB) writeJournal(block *blockData) error {
