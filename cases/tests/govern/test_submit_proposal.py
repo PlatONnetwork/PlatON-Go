@@ -32,8 +32,41 @@ def test_CP_SU_001_CP_UN_001(submit_cancel):
     log.info('Submit cancel proposal result : {}'.format(result))
     assert_code(result, 302014)
 
+class TestsubmitCP():
+    def test_CP_SU_002_CP_SU_003(self, submit_param):
+        pip_obj = submit_param
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('param proposalinfo : {}'.format(proposalinfo))
+        endvotingrounds_count = (proposalinfo.get('EndVotingBlock') -
+                                 math.ceil(pip_obj.node.block_number/pip_obj.economic.consensus_size) *
+                                 pip_obj.economic.consensus_size) / pip_obj.economic.consensus_size
+        log.info('caculated endvoting rounds is {}'.format(endvotingrounds_count))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), endvotingrounds_count + 1, proposalinfo.get('ProposalID'),
+                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
+        assert_code(result, 302010)
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), endvotingrounds_count, proposalinfo.get('ProposalID'),
+                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+
+    def test_CP_SU_002_CP_UN_002(self, submit_cancel_param):
+        pip_obj = submit_cancel_param
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('cancel proposalinfo : {}'.format(proposalinfo))
+        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 3
+                                         ) * pip_obj.economic.consensus_size - 20
+        log.info('Calculated endvoting block{},interface returned endvoting block{}'.format(endvotingblock_count,
+                                                   proposalinfo.get('EndVotingBlock')))
+        assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
+                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
+        assert_code(result, 302014)
+
 @pytest.mark.P0
-def test_PP_SU_001_PP_UN_001(submit_param):
+def test_PP_SU_001_PP_UN_001_VP_UN_003(submit_param):
     pip_obj = submit_param
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
@@ -46,6 +79,11 @@ def test_PP_SU_001_PP_UN_001(submit_param):
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '0',
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('There is a voting param proposal,submit param proposal result : {}'.format(result))
+    assert_code(result, 302032)
+
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
+                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('There is a voting param proposal,submit version proposal result : {}'.format(result))
     assert_code(result, 302032)
 
 def test_VP_VE_001_to_VP_VE_004(no_vp_proposal):
@@ -96,38 +134,26 @@ def test_VP_SU_001_VP_UN_001(submit_version):
     log.info('有处于投票期的升级提案，再次发起升级提案结果为{}'.format(result))
     assert result.get('Code') == 302012
 
-def test_VP_UN_002_CP_ID_002(submit_version, client_list_obj):
-    pip_obj = submit_version
-    proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
-    log.info('获取升级提案信息为{}'.format(proposalinfo))
-    verifier_list = get_pledge_list(pip_obj.node.ppos.getVerifierList)
-    log.info('verifier_list:{}'.format(verifier_list))
-    for nodeid in verifier_list:
-        pip_obj_tmp = get_client_obj(nodeid, client_list_obj).pip
-        log.info('节点id为{}'.format(pip_obj_tmp.node.node_id))
-        log.info('替换节点{}版本'.format(pip_obj_tmp.node.node_id))
-        upload_platon(pip_obj_tmp.node, pip_obj.cfg.PLATON_NEW_BIN)
-        log.info('进行节点重启')
-        pip_obj_tmp.node.restart()
-        result = pip_obj_tmp.vote(pip_obj_tmp.node.node_id, proposalinfo.get("ProposalID"), pip_obj_tmp.cfg.vote_option_yeas,
-                                  pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
-        log.info('节点{}升级提案投票结果为{}'.format(pip_obj_tmp.node.node_id, result))
-        assert result.get('Code') == 0
-    wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
-    status = pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID'))
-    log.info('投票截止快高，升级提案状态为{}'.format(status))
-    assert status == 4
+def test_VP_UN_002_CP_ID_002_VP_UN_002(preactive_proposal_pipobj_list):
+    pip_obj = preactive_proposal_pipobj_list[0]
+    proposalinfo = pip_obj.get_effect_proposal_info_of_preactive()
+    log.info('Get preactive proposal info: {}'.format(proposalinfo))
 
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
                                    pip_obj.node.staking_address,
                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('链上存在预生效的升级提案，再次发起升级提案结果为{}'.format(result))
-    assert result.get('Code') == 302013
+    log.info('There is preactive version proposal, submit version proposal result : {}'.format(result))
+    assert_code(result, 302013)
 
     result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('there is preactive version proposal, submit cancel proposal result: {}'.format(result))
-    assert result.get('Code') == 302017
+    assert_code(result, 302017)
+
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
+                                 '84', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('there is preactive version proposal, submit cancel param proposal result: {}'.format(result))
+    assert_code(result, 302017)
 
 class TestEndVotingRounds():
     def test_VP_CR_001_VP_CR_002_VP_CR_007_TP_TE_002(self, pip_env, client_verifier_obj):
@@ -393,8 +419,9 @@ class TestSubmitCancel():
         assert result.get('Code') == 302015
 
 class TestPP():
-    def test_PP_SU_002(self, no_vp_proposal):
+    def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, client_list_obj):
         pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -426,23 +453,26 @@ class TestPP():
         assert_code(result, 3)
 
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
-                                     pip_obj.economic.slash_blocks_reward,
+                                     str(get_governable_parameter_value(client_obj, 'SlashBlocksReward')),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302033)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '0',
-                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Submit param proposal result : {}'.format(result))
-        assert_code(result, 3)
+        if pip_obj.economic.slash_blocks_reward != 0:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '0',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '60100',
-                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Submit param proposal result : {}'.format(result))
-        assert_code(result, 0)
+        if pip_obj.economic.slash_blocks_reward != 60100:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '60100',
+                                         pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
 
     def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, client_list_obj):
         pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge', '',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -468,7 +498,6 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge',
                                      str(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -476,7 +505,7 @@ class TestPP():
         assert_code(result, 302033)
 
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'MaxEvidenceAge',
-                                     str(pip_obj.economic.unstaking_freeze_ratio),
+                                     str(get_governable_parameter_value(client_obj, 'UnStakeFreezeDuration')),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -493,5 +522,520 @@ class TestPP():
                                      str(pip_obj.economic.unstaking_freeze_ratio - 1),
                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    def test_PP_SU_005_PP_SU_006(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', '1.1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', '-1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', 1,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign',
+                                     '10001', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign',
+                                     str(get_governable_parameter_value(client_obj, 'SlashFractionDuplicateSign')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        if int(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')) != 1:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', '1',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+        if int(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')) != 10000:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashFractionDuplicateSign', '10000',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_007_PP_SU_008(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward', '1.1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward', '-1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward', 1,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward',
+                                     '81', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward',
+                                     str(get_governable_parameter_value(client_obj, 'DuplicateSignReportReward')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        if int(get_governable_parameter_value(client_obj, 'DuplicateSignReportReward')) != 1:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward', '1',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+        if int(get_governable_parameter_value(client_obj, 'DuplicateSignReportReward')) != 80:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'DuplicateSignReportReward',
+                                         '80', pip_obj.node.staking_address,
+                                         transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_009_PP_SU_010(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold', '100000.1',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold', '-10**18 * 1000000',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold', 10**18 * 1000000,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold',
+                                     '10**18 * 1000000 - 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold',
+                                     str(get_governable_parameter_value(client_obj, 'StakeThreshold')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        if int(get_governable_parameter_value(client_obj, 'StakeThreshold')) != 10**18 * 1000000:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold', '10**18 * 1000000',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_010(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'StakeThreshold',
+                                     '10000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    def test_PP_SU_011_PP_SU_012(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold', '10**18 * 10 + 0.5',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold', '-10**18 * 10',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold', 1,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold',
+                                     '9', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold',
+                                     str(get_governable_parameter_value(client_obj, 'OperatingThreshold')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        if int(get_governable_parameter_value(client_obj, 'OperatingThreshold')) != 10**18 * 10:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold', '10**18 * 10',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_012(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'OperatingThreshold',
+                                     '10000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    def test_PP_SU_013_PP_SU_014(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration', '10.5',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration', '-100',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration', 11,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration',
+                                     '113', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration',
+                                     str(get_governable_parameter_value(client_obj, 'UnStakeFreezeDuration')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration',
+                                     str(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        if int(get_governable_parameter_value(client_obj, 'UnStakeFreezeDuration')) != 112:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration', '112',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+        if int(get_governable_parameter_value(client_obj, 'UnStakeFreezeDuration')) != str(
+                int(get_governable_parameter_value(client_obj, 'MaxEvidenceAge'))-1):
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'UnStakeFreezeDuration',
+                                         str(int(get_governable_parameter_value(client_obj, 'MaxEvidenceAge')) - 1),
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+
+    def test_PP_SU_015_PP_SU_016(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '30.5',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '-100',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', 25,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators',
+                                     '24', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators',
+                                     '202', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators',
+                                     str(get_governable_parameter_value(client_obj, 'MaxValidators')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        if int(get_governable_parameter_value(client_obj, 'MaxValidators')) != 25:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '25',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+        if int(get_governable_parameter_value(client_obj, 'MaxValidators')) != 201:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '201',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_016(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        if int(get_governable_parameter_value(client_obj, 'MaxValidators')) != 201:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Staking', 'MaxValidators', '201',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_017_PP_SU_018(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit', '',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit', '21000*200 + 0.5',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit', '-21000*200',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit', '0',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit', 21000*200,
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit',
+                                     '21000*200 - 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit',
+                                     str(get_governable_parameter_value(client_obj, 'MaxBlockGasLimit')),
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        if int(get_governable_parameter_value(client_obj, 'MaxBlockGasLimit')) != 21000*200:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit', '21000*200',
+                                pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+            log.info('Submit param proposal result : {}'.format(result))
+            assert_code(result, 0)
+
+    def test_PP_SU_018(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'MaxBlockGasLimit',
+                                     '10000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    def test_PP_SU_019(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', '', '1',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Block', 'UnStakeFreezeDuration', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'slashBlocksReward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'Slash BlocksReward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocks./,.Reward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+
+    def test_PP_SU_020(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), '', 'SlashBlocksReward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'SlashBlocksReward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'SLashing', 'slashBlocksReward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing123', 'Slash BlocksReward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'S lashing', 'SlashBlocks./,.Reward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'S.,.lashing', 'SlashBlocks./,.Reward', '100',
+                                     pip_obj.node.staking_address,
+                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 302033)
+
+
+class TestSubmitPPAbnormal():
+    @pytest.mark.P0
+    def test_PP_UN_002(self, submit_version):
+        pip_obj = submit_version
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '99',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('There is voting version proposal, submit a param proposal : {}'.format(result))
+        assert_code(result, 302012)
+
+    @pytest.mark.P0
+    def test_PP_PR_002(self, client_new_node_obj):
+        pip_obj = client_new_node_obj.pip
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '88',
+                                     address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('new node submit param proposal result : {}'.format(result))
+        assert result.get('Code') == 302022
+
+    @pytest.mark.P0
+    def test_PP_PR_001(self, client_candidate_obj):
+        pip_obj = client_candidate_obj
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '87',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('candidate submit param proposal result :{}'.format(result))
+        assert result.get('Code') == 302022
+
+    @pytest.mark.P2
+    def test_PP_PR_003_PP_PR_004(self, no_vp_proposal, client_list_obj):
+        pip_obj = no_vp_proposal
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        address = pip_obj.node.staking_address
+        result = client_obj.staking.withdrew_staking(address)
+        log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
+        assert_code(result, 0)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
+                                     '86', address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('node exiting，param proposal result: {}'.format(result))
+        assert_code(result, 302020)
+
+        client_obj.economic.wait_settlement_blocknum(client_obj.node,
+                                                     number=client_obj.economic.unstaking_freeze_ratio)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
+                                     '86', address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('exited node，cancel proposal result: {}'.format(result))
+        assert_code(result, 302022)
+
+    def test_PP_WA_001(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '87',
+                                     address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('candidate submit param proposal result :{}'.format(result))
+        assert result.get('Code') == 302021
 

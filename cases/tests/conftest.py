@@ -6,7 +6,7 @@ from copy import copy
 from tests.lib import StakingConfig
 from common.log import log
 from tests.lib.client import Client, get_client_obj, get_client_obj_list
-from tests.lib.utils import get_pledge_list, wait_block_number
+from tests.lib.utils import get_pledge_list, wait_block_number, assert_code
 
 @pytest.fixture()
 def global_running_env(global_test_env):
@@ -181,7 +181,7 @@ def new_genesis_env(global_test_env):
     yield global_test_env
     log.info("reset deploy.................")
     global_test_env.set_cfg(cfg)
-    global_test_env.deploy_all()
+    # global_test_env.deploy_all()
 
 def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=True):
     '''
@@ -202,6 +202,7 @@ def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=Tr
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), module, name, newvalue, pip_obj.node.staking_address,
                                  transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
+    assert_code(result, 0)
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
     client_obj_list = []
@@ -246,6 +247,7 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), module, name, newvalue, pip_obj.node.staking_address,
                                  transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
+    assert_code(result, 0)
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
     client_obj_list = []

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
-import time
+import time, math
 import random
 import string
 from decimal import Decimal
@@ -226,6 +226,9 @@ def wait_block_number(node, block, interval=1):
     """
     current_block = node.block_number
     timeout = int((block - current_block) * interval * 1.5) + int(time.time())
+    if node.block_number >= block:
+        log.info('current block {} is greater than block {}'.format(node.block_number, block))
+        return
     while int(time.time()) < timeout:
         log.info('The current block height is {}, waiting until {}'.format(node.block_number, block))
         if node.block_number > block:
@@ -286,7 +289,10 @@ def assert_code(result, code):
     :param code:
     :return:
     '''
-    assert result == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
+    if isinstance(result, int):
+        assert result == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
+    else:
+        assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
 
 
 def von_amount(amonut, base):
@@ -305,9 +311,11 @@ def get_governable_parameter_value(client_obj, parameter):
     :return:
     """
     # Get governable parameters
-    slashing_param = client_obj.pip.pip.listGovernParam('Slashing')
-    parameter_information = json.loads(slashing_param['Ret'])
+    govern_param = client_obj.pip.pip.listGovernParam()
+    parameter_information = json.loads(govern_param['Ret'])
     for i in parameter_information:
         if i['ParamItem']['Name'] == parameter:
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))
             return i['ParamValue']['Value']
+
+
