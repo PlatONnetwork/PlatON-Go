@@ -409,6 +409,8 @@ func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) 
 	log.Debug("call getGovernParamValue of GovContract",
 		"from", from.Hex(),
 		"txHash", txHash,
+		"module", module,
+		"name", name,
 		"blockNumber", blockNumber)
 
 	value, err := gov.GetGovernParamValue(module, name, blockNumber, blockHash)
@@ -425,6 +427,7 @@ func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
 	log.Debug("call listGovernParam of GovContract",
 		"from", from.Hex(),
 		"txHash", txHash,
+		"module", module,
 		"blockNumber", blockNumber)
 
 	paramList, err := gov.ListGovernParam(module, blockHash)

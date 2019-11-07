@@ -291,7 +291,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	sdb := snapshotdb.Instance()
-	ch := sdb.GetCurrent().HighestNum.Uint64()
+	ch := sdb.GetCurrent().GetHighest(false).Num.Uint64()
 	blockChanHegiht := blockChainCache.CurrentHeader().Number.Uint64()
 	if ch < blockChanHegiht {
 		for i := ch + 1; i <= blockChanHegiht; i++ {

@@ -20,7 +20,7 @@ def test_AS_031_032_39(client_new_node_obj, get_generate_account):
     log.info(result)
     staking_amount = client_new_node_obj.economic.create_staking_limit
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
-    assert result["Data"]["Shares"] == staking_amount + add_staking_amount
+    assert result["Ret"]["Shares"] == staking_amount + add_staking_amount
 
 
 def test_AS_033(client_new_node_obj, get_generate_account):
@@ -126,9 +126,9 @@ def test_AS_041_042_043_044(client_new_node_obj, get_generate_account):
     log.info(result)
     staking_amount = client_new_node_obj.economic.create_staking_limit
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
-    assert result["Data"]["Shares"] == staking_amount + add_staking_amount
-    assert result["Data"]["Released"] == staking_amount
-    assert result["Data"]["ReleasedHes"] == add_staking_amount
+    assert result["Ret"]["Shares"] == staking_amount + add_staking_amount
+    assert result["Ret"]["Released"] == staking_amount
+    assert result["Ret"]["ReleasedHes"] == add_staking_amount
     fig = {"gas": 1}
     status = 0
     try:

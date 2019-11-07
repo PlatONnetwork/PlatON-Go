@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"io"
 	"math/big"
+	"math/rand"
+	"sort"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -38,6 +41,43 @@ func generateHash(n string) common.Hash {
 	var buf bytes.Buffer
 	buf.Write([]byte(n))
 	return rlpHash(buf.Bytes())
+}
+
+func randomString2(s string) []byte {
+	b := new(bytes.Buffer)
+	if s != "" {
+		b.Write([]byte(s))
+	}
+	for i := 0; i < 8; i++ {
+		b.WriteByte(' ' + byte(rand.Uint64()))
+	}
+	return b.Bytes()
+}
+
+func generatekv(n int) kvs {
+	rand.Seed(time.Now().UnixNano())
+	kvs := make(kvs, n)
+	for i := 0; i < n; i++ {
+		kvs[i] = kv{
+			key:   randomString2(""),
+			value: randomString2(""),
+		}
+	}
+	sort.Sort(kvs)
+	return kvs
+}
+
+func generatekvWithPrefix(n int, p string) kvs {
+	rand.Seed(time.Now().UnixNano())
+	kvs := make(kvs, n)
+	for i := 0; i < n; i++ {
+		kvs[i] = kv{
+			key:   randomString2(p),
+			value: randomString2(p),
+		}
+	}
+	sort.Sort(kvs)
+	return kvs
 }
 
 type kv struct {

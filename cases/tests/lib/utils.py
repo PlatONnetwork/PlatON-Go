@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import time
 import random
 import string
@@ -6,7 +7,6 @@ from decimal import Decimal
 
 from hexbytes import HexBytes
 from environment.node import Node
-# from pip import *
 from common.log import log
 from typing import List
 
@@ -19,6 +19,12 @@ def decorator_sleep(func):
             result = func()
         return result
     return wrap
+
+
+def find_proposal(proposal_list, block_number):
+    for proposal in proposal_list:
+        if proposal_effective(proposal, block_number):
+            return proposal
 
 
 def proposal_list_effective(proposal_list, block_number):
@@ -67,7 +73,7 @@ def get_blockhash(node, blocknumber=None):
     :return:
     """
     if not blocknumber:
-        blocknumber = node.blockNumber
+        blocknumber = node.block_number
     blockinfo = node.eth.getBlock(blocknumber)
     blockhash = blockinfo.get('hash')
     blockhash = HexBytes(blockhash).hex()
@@ -147,10 +153,10 @@ def get_pledge_list(func) -> list:
      the current consensus node list 3, real-time certifier list
     :return:
     """
-    validator_info = func().get('Data')
-    if not validator_info:
+    validator_info = func().get('Ret')
+    if validator_info == "Getting verifierList is failed:The validator is not exist":
         time.sleep(10)
-        validator_info = func().get('Data')
+        validator_info = func().get('Ret')
     validator_list = []
     for info in validator_info:
         validator_list.append(info.get('NodeId'))
@@ -166,7 +172,7 @@ def check_node_in_list(nodeid, func) -> bool:
     :return:
     """
     data_dict = func()
-    for data in data_dict["Data"]:
+    for data in data_dict["Ret"]:
         if data["NodeId"] == nodeid:
             return True
     return False
@@ -236,7 +242,7 @@ def get_validator_term(node):
     msg = node.ppos.getValidatorList()
     term = []
     nodeid = []
-    for i in msg["Data"]:
+    for i in msg["Ret"]:
         term.append(i["ValidatorTerm"])
         nodeid.append(i["NodeId"])
     max_term = (max(term))
@@ -251,7 +257,7 @@ def get_max_staking_tx_index(node):
     msg = node.ppos.getValidatorList()
     staking_tx_index_list = []
     nodeid = []
-    for i in msg["Data"]:
+    for i in msg["Ret"]:
         staking_tx_index_list.append(i["StakingTxIndex"])
         nodeid.append(i["NodeId"])
     max_staking_tx_index = (max(staking_tx_index_list))
@@ -280,7 +286,7 @@ def assert_code(result, code):
     :param code:
     :return:
     '''
-    assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result.get("Code"))
+    assert result == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
 
 
 def von_amount(amonut, base):
@@ -291,3 +297,17 @@ def von_amount(amonut, base):
     :return:
     """
     return int(Decimal(str(amonut)) * Decimal(str(base)))
+
+
+def get_governable_parameter_value(client_obj, parameter):
+    """
+    Get governable parameter value
+    :return:
+    """
+    # Get governable parameters
+    slashing_param = client_obj.pip.pip.listGovernParam('Slashing')
+    parameter_information = json.loads(slashing_param['Ret'])
+    for i in parameter_information:
+        if i['ParamItem']['Name'] == parameter:
+            log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))
+            return i['ParamValue']['Value']

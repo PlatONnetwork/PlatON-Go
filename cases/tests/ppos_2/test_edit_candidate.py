@@ -24,10 +24,10 @@ def test_MPI_052_053(client_new_node_obj, get_generate_account):
     assert result.get('Code') == 0
     result = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     log.info(result)
-    assert result["Data"]["ExternalId"] == external_id
-    assert result["Data"]["NodeName"] == node_name
-    assert result["Data"]["Website"] == website
-    assert result["Data"]["Details"] == details
+    assert result["Ret"]["ExternalId"] == external_id
+    assert result["Ret"]["NodeName"] == node_name
+    assert result["Ret"]["Website"] == website
+    assert result["Ret"]["Details"] == details
 
 
 def test_MPI_054(client_new_node_obj, get_generate_account, greater_than_staking_amount):
@@ -67,7 +67,7 @@ def test_MPI_055(client_consensus_obj, get_generate_account):
     log.info(result)
     msg = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
     log.info(msg)
-    assert msg["Data"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
+    assert msg["Ret"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
 
 def test_MPI_056_057(client_new_node_obj, get_generate_account):
@@ -88,14 +88,14 @@ def test_MPI_056_057(client_new_node_obj, get_generate_account):
     assert result.get('Code') == 0
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     log.info(msg)
-    assert msg["Data"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
+    assert msg["Ret"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
     assert result.get('Code') == 0
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     log.info(msg)
-    assert msg["Data"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
+    assert msg["Ret"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
 
 def test_MPI_058(client_new_node_obj, client_noconsensus_obj, get_generate_account):
@@ -119,7 +119,7 @@ def test_MPI_058(client_new_node_obj, client_noconsensus_obj, get_generate_accou
     assert result.get('Code') == 0
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     log.info(msg)
-    assert client_new_node_obj.node.web3.toChecksumAddress(msg["Data"]["BenefitAddress"]) == address2
+    assert client_new_node_obj.node.web3.toChecksumAddress(msg["Ret"]["BenefitAddress"]) == address2
 
 
 def test_MPI_059(client_new_node_obj, get_generate_account):
@@ -209,22 +209,73 @@ def test_MPI_063_064(client_new_node_obj, get_generate_account):
     assert result.get('Code') == 0
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    log.info(msg)
-    assert msg["Data"] != ""
+    log.info("The lock shall be depledged at regular intervals")
     result = client_new_node_obj.staking.withdrew_staking(address)
     assert result.get('Code') == 0
-    result = client_new_node_obj.staking.edit_candidate(address, address)
-    log.info(result)
-    assert result.get('Code') == 301103
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    assert msg["Data"] == ""
+    log.info(msg)
+    assert msg["Ret"] != ""
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
     assert result.get('Code') == 301103
+    log.info("Next two settlement period")
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=1)
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id, )
+    log.info(msg)
+    assert msg["Ret"] == ""
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301102
 
 
+def test_MPI_065(client_new_node_obj, get_generate_account):
+    """
+    Non-verifier, modify node information
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    external_id = "ID1"
+    node_name = "LIDA"
+    website = "WEBSITE"
+    details = "talent"
+    illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
+                     "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
+    address, pri_key = get_generate_account
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert result.get('Code') == 0
+    result = client_new_node_obj.ppos.editCandidate(address, illegal_nodeID, external_id,
+                                                    node_name, website, details, pri_key)
+    log.info(result)
+    assert result.get('Code') == 301102
+
+
+def test_MPI_066_067(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
+    """
+    Candidates whose commissions have been penalized are still frozen
+    A candidate whose mandate has expired after a freeze period
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, _ = get_generate_account
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+    assert result.get('Code') == 0
+    log.info("Close one node")
+    client_new_node_obj.node.stop()
+    node = client_consensus_obj.node
+    log.info("The next two periods")
+    client_new_node_obj.economic.wait_settlement_blocknum(node, number=1)
+    log.info("Restart the node")
+    client_new_node_obj.node.start()
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301103
+    log.info("Next settlement period")
+    client_new_node_obj.economic.wait_settlement_blocknum(node)
+    result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert result.get('Code') == 301102
 
 
 

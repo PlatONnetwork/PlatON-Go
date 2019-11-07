@@ -530,6 +530,6 @@ class Node:
         staking wallet address
         """
         result = self.ppos.getCandidateInfo(self.node_id)
-        candidate_info = result.get('Data', {})
+        candidate_info = result.get('Ret', {})
         address = candidate_info.get('StakingAddress')
         return self.web3.toChecksumAddress(address)

@@ -70,8 +70,8 @@ func (s *snapshotDB) recover() error {
 		return err
 	}
 	sortFds(fds)
-	baseNum := s.current.BaseNum.Uint64()
-	highestNum := s.current.HighestNum.Uint64()
+	baseNum := s.current.GetBase(false).Num.Uint64()
+	highestNum := s.current.GetHighest(false).Num.Uint64()
 	//read Journal
 	if len(fds) == 0 {
 		if baseNum != highestNum {
@@ -177,23 +177,18 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 
 func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	s.unCommit.Lock()
-	//defer s.unCommit.Unlock()
+	defer s.unCommit.Unlock()
 	block, ok := s.unCommit.blocks[hash]
 	if !ok {
-		s.unCommit.Unlock()
 		return fmt.Errorf("not find the block by hash:%v", hash.String())
 	}
 	if block.readOnly {
-		s.unCommit.Unlock()
 		return errors.New("can't put read only block")
 	}
 
 	block.kvHash = s.generateKVHash(key, value, block.kvHash)
-
 	if err := block.data.Put(key, value); err != nil {
-		s.unCommit.Unlock()
 		return err
 	}
-	s.unCommit.Unlock()
 	return nil
 }

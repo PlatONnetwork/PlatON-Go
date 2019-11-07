@@ -353,7 +353,7 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	var proposalIdsPre common.Hash
 
 	snapdbTest := snapshotdb.Instance()
-	defer snapshotdb.Instance().Clear()
+	//	defer snapshotdb.Instance().Clear()
 	//create block
 	blockHash, _ := newBlock(big.NewInt(1))
 

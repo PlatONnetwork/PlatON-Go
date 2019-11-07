@@ -7,7 +7,7 @@ def test_IV_001_002_010(global_test_env, client_consensus_obj):
     node_info = client_consensus_obj.ppos.getValidatorList()
     log.info(node_info)
     nodeid_list = []
-    for node in node_info.get("Data"):
+    for node in node_info.get("Ret"):
         nodeid_list.append(node.get("NodeId"))
         StakingAddress = node.get("StakingAddress")
         log.info(StakingAddress)
