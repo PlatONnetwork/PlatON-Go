@@ -44,19 +44,19 @@ consensus:
   nodekey: b7b1cfefcc890c7a8dd2e0eeac637004be11f2abc6bec764bcc1819b0c96773b
   url: http://192.168.10.224:6789
 noconsensus:
-- host: 192.168.10.225
+- host: 192.168.10.222
   username: platon
   password: Platon123!
   sshport: 22
-  port: 16789
-  rpcport: 6789
+  port: 16790
+  rpcport: 6790
   blspubkey: bf21edeb2040936e3294b00bc1171d6f6f422bd6da1cf291f8884a15c5a5b68c2fb43ca6b9168f049dc1579bf07029037e4efc508d43bc7e36268a80e2f71c675302c0e23b3dbdd4e125830899cc44b323c492788fe56e12eac570a08f9c8f08
   blsprikey: efeb00965cff23db63aca7ce8c5e0ac3dbe362c92e2ece63efb0b7f7eebca73d
   fail_point: github.com/PlatONnetwork/PlatON-Go/consensus/cbft/low-block-rate=return("6,0,0ee7ad2655ad3e00095414bf10406fed2c19d5b3aa514b95321bbe3c6caebd7b190683d77c874da302555c4dc4978f45b16bd62eb370b62c84544ba971b39bdd")
   id: 0ee7ad2655ad3e00095414bf10406fed2c19d5b3aa514b95321bbe3c6caebd7b190683d77c874da302555c4dc4978f45b16bd62eb370b62c84544ba971b39bdd
   nodekey: fa71985331b2cc5694a239fba7d76ffd8d42ebf3cc301e440fc5d2f73a7488e4
   url: http://192.168.10.225:6789
-- host: 192.168.10.226
+- host: 192.168.10.223
   username: platon
   password: Platon123!
   sshport: 22
@@ -67,12 +67,12 @@ noconsensus:
   id: 2d25f7686573602334589ac2e606a3743d34fcae0c7d34c6eadc01dbecd21f349d93ec227b2c43a5f61eab7fff1e0382e8a9f61a2cce9cf8eb0730a697a98159
   nodekey: 6b2499b88a88181a1a7591555b2b5f01c07a55629040a25a0ed692577615c0ee
   url: http://192.168.10.226:6790
-- host: 192.168.10.227
+- host: 192.168.10.224
   username: platon
   password: Platon123!
   sshport: 22
-  port: 16789
-  rpcport: 6789
+  port: 16790
+  rpcport: 6790
   fail_point: github.com/PlatONnetwork/PlatON-Go/consensus/cbft/duplicate-evidence=return("423c94bf3965e31ed5f2deab22e0a4e3a565686486cc7b4be352504fa373a4ca1ceb58e79f53f78a7cf32ca336907670eeded51e820abd4bb26b1e401dafe863")
   blspubkey: 0f86e671d706e7cbfe3e53375be684eb1d6ccd5eedd7e1384b70ab01a88158f2dbdb978ae2a27a59ca6f4a68564aeb08d49661400997a3fe57a11e4eb8a48d5ab3fe6dd27ec22d11b622a28df0fc537df722c6f7ae582b5ef79b887976d9ca09
   blsprikey: 4b858c2f80b6c19c1f60740b13a821e9a9450625c1afce3cbca0c8bf27c6f82b
