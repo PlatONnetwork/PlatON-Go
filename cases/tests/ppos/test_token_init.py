@@ -20,7 +20,7 @@ def staking_obj(global_test_env):
 
 
 @pytest.mark.P0
-def test_IT_IA_002_to_007(new_genesis_env, reset_environment):
+def test_IT_IA_002_to_007(new_genesis_env):
     """
     IT_IA_002:链初始化-查看token发行总量账户初始值
     IT_IA_003:链初始化-查看platON基金会账户初始值

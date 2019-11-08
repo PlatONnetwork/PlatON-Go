@@ -136,7 +136,6 @@ class Economic:
         annual_cycle = (self.additional_cycle_time * 60) // self.settlement_size
         annualsize = annual_cycle * self.settlement_size
         current_block = node.eth.blockNumber
-        print('current_block', current_block)
         current_end_block = math.ceil(current_block / annualsize) * annualsize
         return annual_cycle, annualsize, current_end_block
 
