@@ -342,7 +342,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
 				if err != nil {
 					return VerifierInfoNotFound
-				} else if candidate.Is_Invalid() {
+				} else if candidate.IsInvalid() {
 					return VerifierStatusInvalid
 				}
 				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)

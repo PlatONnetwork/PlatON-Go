@@ -893,7 +893,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		}
 	}
 
-	if can.IsNotEmpty() && stakingBlockNum == can.StakingBlockNum && can.Is_Valid() {
+	if can.IsNotEmpty() && stakingBlockNum == can.StakingBlockNum && can.IsValid() {
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: Delete candidate old power is failed", "blockNumber",
 				blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(),
@@ -1454,7 +1454,7 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 		can = c
 	}
 
-	if can.IsEmpty() || can.Is_Invalid() {
+	if can.IsEmpty() || can.IsInvalid() {
 		return false, nil
 	}
 	return true, nil
@@ -1558,9 +1558,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	// eg. (lowRatio and must delete) OR (lowRatio and balance no enough) OR duplicateSign
 	//
 	checkHaveSlash := func(status staking.CandidateStatus) bool {
-		return status.Is_Invalid_LowRatioDel() ||
-			status.Is_Invalid_LowRatio_NotEnough() ||
-			status.Is_Invalid_DuplicateSign()
+		return status.IsInvalidLowRatioDel() ||
+			status.IsInvalidLowRatioNotEnough() ||
+			status.IsInvalidDuplicateSign()
 	}
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
@@ -1583,13 +1583,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Collecting candidate information that active withdrawal
-		if can.Is_Invalid_Withdrew() && !isSlash {
+		if can.IsInvalidWithdrew() && !isSlash {
 			withdrewCans[v.NodeId] = can
 			withdrewQueue = append(withdrewQueue, v.NodeId)
 		}
 
 		// valid AND lowRatio status, that candidate need to clean the lowRatio status
-		if can.Is_Valid() && can.Is_LowRatio() {
+		if can.IsValid() && can.IsLowRatio() {
 			lowRatioValidAddrs = append(lowRatioValidAddrs, canAddr)
 			lowRatioValidMap[canAddr] = can
 		}
@@ -1810,9 +1810,9 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	// check slash type is right
 	slashTypeIsWrong := func() bool {
-		return !slashItem.SlashType.Is_LowRatio() &&
-			!slashItem.SlashType.Is_LowRatioDel() &&
-			!slashItem.SlashType.Is_DuplicateSign()
+		return !slashItem.SlashType.IsLowRatio() &&
+			!slashItem.SlashType.IsLowRatioDel() &&
+			!slashItem.SlashType.IsDuplicateSign()
 	}
 	if slashTypeIsWrong() {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "blockNumber", blockNumber,
@@ -1887,10 +1887,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	}
 
 	sharesHaveBeenClean := func() bool {
-		return (can.Is_Invalid_LowRatio_NotEnough() ||
-			can.Is_Invalid_LowRatioDel() ||
-			can.Is_Invalid_DuplicateSign() ||
-			can.Is_Invalid_Withdrew())
+		return (can.IsInvalidLowRatioNotEnough() ||
+			can.IsInvalidLowRatioDel() ||
+			can.IsInvalidDuplicateSign() ||
+			can.IsInvalidWithdrew())
 	}
 
 	// If the shares is zero, don't need to sub shares
@@ -1915,7 +1915,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
 		"needRemove", needRemove, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
-	if needInvalid && can.Is_Valid() {
+	if needInvalid && can.IsValid() {
 
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
 			state.AddBalance(can.StakingAddress, can.ReleasedHes)
@@ -1956,7 +1956,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			return needRemove, err
 		}
 
-	} else if !needInvalid && can.Is_Valid() {
+	} else if !needInvalid && can.IsValid() {
 
 		// update the candidate power, If do not need to delete power (the candidate status still be valid)
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -2067,7 +2067,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 
 		state.SubBalance(vm.StakingContractAddr, canBalance)
 
-		if slashType.Is_DuplicateSign() {
+		if slashType.IsDuplicateSign() {
 			state.AddBalance(benefitAddr, canBalance)
 		} else {
 			state.AddBalance(vm.RewardManagerPoolAddr, canBalance)
@@ -2085,7 +2085,7 @@ func slashBalanceFn(slashAmount, canBalance *big.Int, isNotify bool,
 
 	} else {
 		state.SubBalance(vm.StakingContractAddr, slashAmount)
-		if slashType.Is_DuplicateSign() {
+		if slashType.IsDuplicateSign() {
 			state.AddBalance(benefitAddr, slashAmount)
 		} else {
 			state.AddBalance(vm.RewardManagerPoolAddr, slashAmount)

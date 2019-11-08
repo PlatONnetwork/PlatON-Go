@@ -54,7 +54,7 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
 	Config        *params.ChainConfig `json:"config"`
-	EconomicModel *xcom.EconomicModel `json:"EconomicModel"`
+	EconomicModel *xcom.EconomicModel `json:"economicModel"`
 	Nonce         []byte              `json:"nonce"`
 	Timestamp     uint64              `json:"timestamp"`
 	ExtraData     []byte              `json:"extraData"`
@@ -328,6 +328,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
+
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
@@ -400,7 +401,7 @@ func DefaultGenesisBlock() *Genesis {
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
 		Timestamp: 0,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  3150000000,
+		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
@@ -425,7 +426,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Config:    params.TestnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  0x99947b760,
+		GasLimit:  params.GenesisGasLimit,
 		Timestamp: 1546300800000,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
@@ -443,8 +444,9 @@ func DefaultGrapeGenesisBlock() *Genesis {
 		Config:    params.GrapeChainConfig,
 		Timestamp: 1492009146,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  3150000000,
-		Alloc:     decodePrealloc(testnetAllocData),
+		//GasLimit:  3150000000,
+		GasLimit: params.GenesisGasLimit,
+		Alloc:    decodePrealloc(testnetAllocData),
 	}
 }
 

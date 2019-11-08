@@ -47,79 +47,79 @@ const (
 
 type CandidateStatus uint32
 
-func (status CandidateStatus) Is_Valid() bool {
-	return !status.Is_Invalid()
+func (status CandidateStatus) IsValid() bool {
+	return !status.IsInvalid()
 }
 
-func (status CandidateStatus) Is_Invalid() bool {
+func (status CandidateStatus) IsInvalid() bool {
 	return status&Invalided == Invalided
 }
 
-func (status CandidateStatus) Is_PureInvalid() bool {
+func (status CandidateStatus) IsPureInvalid() bool {
 	return status&Invalided == status|Invalided
 }
 
-func (status CandidateStatus) Is_LowRatio() bool {
+func (status CandidateStatus) IsLowRatio() bool {
 	return status&LowRatio == LowRatio
 }
 
-func (status CandidateStatus) Is_PureLowRatio() bool {
+func (status CandidateStatus) IsPureLowRatio() bool {
 	return status&LowRatio == status|LowRatio
 }
 
-func (status CandidateStatus) Is_NotEnough() bool {
+func (status CandidateStatus) IsNotEnough() bool {
 	return status&NotEnough == NotEnough
 }
 
-func (status CandidateStatus) Is_PureNotEnough() bool {
+func (status CandidateStatus) IsPureNotEnough() bool {
 	return status&NotEnough == status|NotEnough
 }
 
-func (status CandidateStatus) Is_Invalid_LowRatio() bool {
+func (status CandidateStatus) IsInvalidLowRatio() bool {
 	return status&(Invalided|LowRatio) == (Invalided | LowRatio)
 }
 
-func (status CandidateStatus) Is_Invalid_NotEnough() bool {
+func (status CandidateStatus) IsInvalidNotEnough() bool {
 	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
 }
 
-func (status CandidateStatus) Is_Invalid_LowRatio_NotEnough() bool {
+func (status CandidateStatus) IsInvalidLowRatioNotEnough() bool {
 	return status&(Invalided|LowRatio|NotEnough) == (Invalided | LowRatio | NotEnough)
 }
 
-func (status CandidateStatus) Is_LowRatio_NotEnough() bool {
+func (status CandidateStatus) IsLowRatioNotEnough() bool {
 	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
 }
 
-func (status CandidateStatus) Is_DuplicateSign() bool {
+func (status CandidateStatus) IsDuplicateSign() bool {
 	return status&DuplicateSign == DuplicateSign
 }
 
-func (status CandidateStatus) Is_Invalid_DuplicateSign() bool {
+func (status CandidateStatus) IsInvalidDuplicateSign() bool {
 	return status&(DuplicateSign|Invalided) == (DuplicateSign | Invalided)
 }
 
-func (status CandidateStatus) Is_LowRatioDel() bool {
+func (status CandidateStatus) IsLowRatioDel() bool {
 	return status&LowRatioDel == LowRatioDel
 }
 
-func (status CandidateStatus) Is_PureLowRatioDel() bool {
+func (status CandidateStatus) IsPureLowRatioDel() bool {
 	return status&LowRatioDel == status|LowRatioDel
 }
 
-func (status CandidateStatus) Is_Invalid_LowRatioDel() bool {
+func (status CandidateStatus) IsInvalidLowRatioDel() bool {
 	return status&(Invalided|LowRatioDel) == (Invalided | LowRatioDel)
 }
 
-func (status CandidateStatus) Is_Withdrew() bool {
+func (status CandidateStatus) IsWithdrew() bool {
 	return status&Withdrew == Withdrew
 }
 
-func (status CandidateStatus) Is_PureWithdrew() bool {
+func (status CandidateStatus) IsPureWithdrew() bool {
 	return status&Withdrew == status|Withdrew
 }
 
-func (status CandidateStatus) Is_Invalid_Withdrew() bool {
+func (status CandidateStatus) IsInvalidWithdrew() bool {
 	return status&(Invalided|Withdrew) == (Invalided | Withdrew)
 }
 
@@ -130,8 +130,7 @@ type Candidate struct {
 }
 
 func (can *Candidate) String() string {
-	return fmt.Sprintf(`
-	{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -180,8 +179,7 @@ type CandidateBase struct {
 }
 
 func (can *CandidateBase) String() string {
-	return fmt.Sprintf(`
-	{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -222,8 +220,7 @@ type CandidateMutable struct {
 }
 
 func (can *CandidateMutable) String() string {
-	return fmt.Sprintf(`
-	{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
+	return fmt.Sprintf(`{"Status": %d,"StakingEpoch": %d,"Shares": %d,"Released": %d,"ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
 		can.Status,
 		can.StakingEpoch,
 		can.Shares,
@@ -257,80 +254,80 @@ func (can *CandidateMutable) IsEmpty() bool {
 	return nil == can
 }
 
-func (can *CandidateMutable) Is_Valid() bool {
-	return can.Status.Is_Valid()
+func (can *CandidateMutable) IsValid() bool {
+	return can.Status.IsValid()
 }
 
-func (can *CandidateMutable) Is_Invalid() bool {
-	return can.Status.Is_Invalid()
+func (can *CandidateMutable) IsInvalid() bool {
+	return can.Status.IsInvalid()
 }
 
-func (can *CandidateMutable) Is_PureInvalid() bool {
-	return can.Status.Is_PureInvalid()
+func (can *CandidateMutable) IsPureInvalid() bool {
+	return can.Status.IsPureInvalid()
 }
 
-func (can *CandidateMutable) Is_LowRatio() bool {
-	return can.Status.Is_LowRatio()
+func (can *CandidateMutable) IsLowRatio() bool {
+	return can.Status.IsLowRatio()
 }
 
-func (can *CandidateMutable) Is_PureLowRatio() bool {
-	return can.Status.Is_PureLowRatio()
+func (can *CandidateMutable) IsPureLowRatio() bool {
+	return can.Status.IsPureLowRatio()
 }
 
-func (can *CandidateMutable) Is_NotEnough() bool {
-	return can.Status.Is_NotEnough()
+func (can *CandidateMutable) IsNotEnough() bool {
+	return can.Status.IsNotEnough()
 }
 
-func (can *CandidateMutable) Is_PureNotEnough() bool {
-	return can.Status.Is_PureNotEnough()
+func (can *CandidateMutable) IsPureNotEnough() bool {
+	return can.Status.IsPureNotEnough()
 }
 
-func (can *CandidateMutable) Is_Invalid_LowRatio() bool {
-	return can.Status.Is_Invalid_LowRatio()
+func (can *CandidateMutable) IsInvalidLowRatio() bool {
+	return can.Status.IsInvalidLowRatio()
 }
 
-func (can *CandidateMutable) Is_Invalid_NotEnough() bool {
-	return can.Status.Is_Invalid_NotEnough()
+func (can *CandidateMutable) IsInvalidNotEnough() bool {
+	return can.Status.IsInvalidNotEnough()
 }
 
-func (can *CandidateMutable) Is_Invalid_LowRatio_NotEnough() bool {
-	return can.Status.Is_Invalid_LowRatio_NotEnough()
+func (can *CandidateMutable) IsInvalidLowRatioNotEnough() bool {
+	return can.Status.IsInvalidLowRatioNotEnough()
 }
 
-func (can *CandidateMutable) Is_LowRatio_NotEnough() bool {
-	return can.Status.Is_LowRatio_NotEnough()
+func (can *CandidateMutable) IsLowRatioNotEnough() bool {
+	return can.Status.IsLowRatioNotEnough()
 }
 
-func (can *CandidateMutable) Is_DuplicateSign() bool {
-	return can.Status.Is_DuplicateSign()
+func (can *CandidateMutable) IsDuplicateSign() bool {
+	return can.Status.IsDuplicateSign()
 }
 
-func (can *CandidateMutable) Is_Invalid_DuplicateSign() bool {
-	return can.Status.Is_Invalid_DuplicateSign()
+func (can *CandidateMutable) IsInvalidDuplicateSign() bool {
+	return can.Status.IsInvalidDuplicateSign()
 }
 
-func (can *CandidateMutable) Is_LowRatioDel() bool {
-	return can.Status.Is_LowRatioDel()
+func (can *CandidateMutable) IsLowRatioDel() bool {
+	return can.Status.IsLowRatioDel()
 }
 
-func (can *CandidateMutable) Is_PureLowRatioDel() bool {
-	return can.Status.Is_PureLowRatioDel()
+func (can *CandidateMutable) IsPureLowRatioDel() bool {
+	return can.Status.IsPureLowRatioDel()
 }
 
-func (can *CandidateMutable) Is_Invalid_LowRatioDel() bool {
-	return can.Status.Is_Invalid_LowRatioDel()
+func (can *CandidateMutable) IsInvalidLowRatioDel() bool {
+	return can.Status.IsInvalidLowRatioDel()
 }
 
-func (can *CandidateMutable) Is_Withdrew() bool {
-	return can.Status.Is_Withdrew()
+func (can *CandidateMutable) IsWithdrew() bool {
+	return can.Status.IsWithdrew()
 }
 
-func (can *CandidateMutable) Is_PureWithdrew() bool {
-	return can.Status.Is_PureWithdrew()
+func (can *CandidateMutable) IsPureWithdrew() bool {
+	return can.Status.IsPureWithdrew()
 }
 
-func (can *CandidateMutable) Is_Invalid_Withdrew() bool {
-	return can.Status.Is_Invalid_Withdrew()
+func (can *CandidateMutable) IsInvalidWithdrew() bool {
+	return can.Status.IsInvalidWithdrew()
 }
 
 // Display amount field using 0x hex
@@ -353,8 +350,7 @@ type CandidateHex struct {
 }
 
 func (can *CandidateHex) String() string {
-	return fmt.Sprintf(`
-	{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
+	return fmt.Sprintf(`{"NodeId": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"Status": %d,"StakingEpoch": %d,"StakingBlockNum": %d,"Shares": "%s","Released": "%s","ReleasedHes": "%s","RestrictingPlan": "%s","RestrictingPlanHes": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s"}`,
 		fmt.Sprintf("%x", can.NodeId.Bytes()),
 		fmt.Sprintf("%x", can.BlsPubKey.Bytes()),
 		fmt.Sprintf("%x", can.StakingAddress.Bytes()),
@@ -484,8 +480,7 @@ type Validator struct {
 }
 
 func (val *Validator) String() string {
-	return fmt.Sprintf(`
-	{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
+	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","ProgramVersion": %d,"Shares": %d,"StakingBlockNum": %d,"StakingTxIndex": %d,"ValidatorTerm": %d}`,
 		val.NodeId.String(),
 		fmt.Sprintf("%x", val.NodeAddress.Bytes()),
 		fmt.Sprintf("%x", val.BlsPubKey.Bytes()),
@@ -742,31 +737,31 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 		// compare slash
 		switch {
-		case lCan.Is_DuplicateSign() && !rCan.Is_DuplicateSign():
+		case lCan.IsDuplicateSign() && !rCan.IsDuplicateSign():
 			return 1
-		case !lCan.Is_DuplicateSign() && rCan.Is_DuplicateSign():
+		case !lCan.IsDuplicateSign() && rCan.IsDuplicateSign():
 			return -1
-		case lCan.Is_DuplicateSign() && rCan.Is_DuplicateSign():
+		case lCan.IsDuplicateSign() && rCan.IsDuplicateSign():
 			// compare Shares
 			return compareSharesFunc(left, right)
 		default:
 			// compare low ratio delete
 			// compare low ratio
 			switch {
-			case lCan.Is_LowRatioDel() && !rCan.Is_LowRatioDel():
+			case lCan.IsLowRatioDel() && !rCan.IsLowRatioDel():
 				return 1
-			case !lCan.Is_LowRatioDel() && rCan.Is_LowRatioDel():
+			case !lCan.IsLowRatioDel() && rCan.IsLowRatioDel():
 				return -1
-			case lCan.Is_LowRatioDel() && rCan.Is_LowRatioDel():
+			case lCan.IsLowRatioDel() && rCan.IsLowRatioDel():
 				// compare Shares
 				return compareSharesFunc(left, right)
 			default:
 				switch {
-				case lCan.Is_LowRatio() && !rCan.Is_LowRatio():
+				case lCan.IsLowRatio() && !rCan.IsLowRatio():
 					return 1
-				case !lCan.Is_LowRatio() && rCan.Is_LowRatio():
+				case !lCan.IsLowRatio() && rCan.IsLowRatio():
 					return -1
-				case lCan.Is_LowRatio() && rCan.Is_LowRatio():
+				case lCan.IsLowRatio() && rCan.IsLowRatio():
 					// compare Shares
 					return compareSharesFunc(left, right)
 				default:
@@ -883,8 +878,7 @@ type ValidatorEx struct {
 }
 
 func (vex *ValidatorEx) String() string {
-	return fmt.Sprintf(`
-	{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d}`,
+	return fmt.Sprintf(`{"NodeId": "%s","NodeAddress": "%s","BlsPubKey": "%s","StakingAddress": "%s","BenefitAddress": "%s","StakingTxIndex": %d,"ProgramVersion": %d,"StakingBlockNum": %d,"Shares": "%s","ExternalId": "%s","NodeName": "%s","Website": "%s","Details": "%s","ValidatorTerm": %d}`,
 		vex.NodeId.String(),
 		fmt.Sprintf("%x", vex.StakingAddress.Bytes()),
 		fmt.Sprintf("%x", vex.BlsPubKey.Bytes()),
@@ -926,8 +920,7 @@ type Delegation struct {
 }
 
 func (del *Delegation) String() string {
-	return fmt.Sprintf(`
-	{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%d","ReleasedHes": %d,"RestrictingPlan": %d,"RestrictingPlanHes": %d}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
@@ -957,8 +950,7 @@ type DelegationHex struct {
 }
 
 func (delHex *DelegationHex) String() string {
-	return fmt.Sprintf(`
-	{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s}`,
 		delHex.DelegateEpoch,
 		delHex.Released,
 		delHex.ReleasedHes,
@@ -982,8 +974,7 @@ type DelegationEx struct {
 }
 
 func (dex *DelegationEx) String() string {
-	return fmt.Sprintf(`
-	{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s}`,
+	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
 		dex.StakingBlockNum,
@@ -1009,8 +1000,7 @@ type DelegateRelated struct {
 }
 
 func (dr *DelegateRelated) String() string {
-	return fmt.Sprintf(`
-	{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d"}`,
+	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d"}`,
 		dr.Addr.String(),
 		fmt.Sprintf("%x", dr.NodeId.Bytes()),
 		dr.StakingBlockNum)

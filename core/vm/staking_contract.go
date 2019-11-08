@@ -326,7 +326,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		return []byte(receipt), nil
 	}
 
-	if canOld.Is_Invalid() {
+	if canOld.IsInvalid() {
 		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
 		stkc.badLog(EditorCandidateEvent, receipt,
 			fmt.Sprintf("can status is: %d", canOld.Status), "editCandidate")
@@ -430,7 +430,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return []byte(receipt), nil
 	}
 
-	if canOld.Is_Invalid() {
+	if canOld.IsInvalid() {
 		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
 		stkc.badLog(IncreaseStakingEvent, receipt,
 			fmt.Sprintf("can status is: %d", canOld.Status), "increaseStaking")
@@ -505,7 +505,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 		return []byte(receipt), nil
 	}
 
-	if canOld.Is_Invalid() {
+	if canOld.IsInvalid() {
 		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
 		stkc.badLog(WithdrewCandidateEvent, receipt,
 			fmt.Sprintf("can status is: %d", canOld.Status), "withdrewStaking")
@@ -600,7 +600,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return []byte(receipt), nil
 	}
 
-	if canMutable.Is_Invalid() {
+	if canMutable.IsInvalid() {
 		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
 		stkc.badLog(DelegateEvent, receipt,
 			fmt.Sprintf("can status is: %d", canMutable.Status), "delegate")
