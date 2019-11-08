@@ -279,10 +279,12 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 		return err
 	}
 
-	if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
+	// for now, do not remove these data.
+	// If really want to remove these data, please confirmed with PlatON Explorer Project
+	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
 		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
 		return err
-	}
+	}*/
 
 	log.Info("version proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return nil
@@ -435,10 +437,12 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 		return false, err
 	}
 
-	if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
+	// for now, do not remove these data.
+	// If really want to remove these data, please confirmed with PlatON Explorer Project
+	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {
 		log.Error("clear vote value failed", "proposalID", proposalID, "blockHash", blockHash, "err", err)
 		return false, err
-	}
+	}*/
 
 	log.Debug("proposal tally result", "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return status == gov.Pass, nil
