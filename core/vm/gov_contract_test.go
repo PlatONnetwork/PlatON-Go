@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -439,10 +440,14 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	defer clear(chain, t)
 
 	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+
+	//println("value:", value)
+	//println("xcom.MaxValidators():", xcom.MaxValidators())
+
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
-		assert.Equal(t, "25", value)
+		assert.Equal(t, strconv.Itoa(int(xcom.MaxValidators())), value)
 	}
 
 	//submit a proposal and vote for it.
@@ -454,7 +459,7 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	allVote(chain, t, txHashArr[1])
 	commit_sndb(chain)
 
-	runGovContract(false, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
 }
 
@@ -478,7 +483,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	allVote(chain, t, txHashArr[1])
 	commit_sndb(chain)
 
-	runGovContract(false, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
