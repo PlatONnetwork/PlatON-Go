@@ -7,7 +7,8 @@ from common.key import mock_duplicate_sign
 from common.log import log
 from decimal import Decimal
 from tests.conftest import param_governance_verify, param_governance_verify_before_endblock
-from tests.lib import EconomicConfig, Genesis, check_node_in_list, assert_code, get_governable_parameter_value
+from tests.lib import EconomicConfig, Genesis, check_node_in_list, assert_code, get_governable_parameter_value, \
+    wait_block_number
 
 
 def pledge_punishment(client_con_list_obj):
@@ -823,12 +824,34 @@ def test_PIP_MG_001(client_con_list_obj, reset_environment):
     # new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     # genesis.to_file(new_file)
     # new_genesis_env.deploy_all(new_file)
-    client_con_list_obj[0].economic.env.deploy_all()
+    # client_con_list_obj[0].economic.env.deploy_all()
+
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001', False)
+    block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001', False)
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
+    # wait block
+    wait_block_number(client_con_list_obj[0].node, block)
     assert max_gas_limit2 == max_gas_limit1, "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)
+
+
+@pytest.mark.P1
+def test_PIP_MG_002(client_con_list_obj, reset_environment):
+    """
+    治理修改默认每个区块的最大Gas 处于未生效期
+    :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """
+    # view Parameter value before treatment
+    max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
+    # create Parametric proposal
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001')
+    # view Parameter value after treatment
+    max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
+
+    assert max_gas_limit2 == max_gas_limit1, "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)
+
 
