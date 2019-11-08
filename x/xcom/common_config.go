@@ -111,8 +111,8 @@ type rewardConfig struct {
 
 type innerAccount struct {
 	// Account of PlatONFoundation
-	PlatONFundAccount common.Address `json:"platONFundAccount"`
-	PlatONFundBalance *big.Int       `json:"platONFundBalance"`
+	PlatONFundAccount common.Address `json:"platonFundAccount"`
+	PlatONFundBalance *big.Int       `json:"platonFundBalance"`
 	// Account of CommunityDeveloperFoundation
 	CDFAccount common.Address `json:"cdfAccount"`
 	CDFBalance *big.Int       `json:"cdfBalance"`
