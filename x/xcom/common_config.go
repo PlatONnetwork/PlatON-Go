@@ -260,7 +260,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is test net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				MaxEpochMinutes:     uint64(3),  // 3 minutes
+				MaxEpochMinutes:     uint64(4),  // 3 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
 				MaxConsensusVals:    uint64(4),
