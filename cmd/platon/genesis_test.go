@@ -75,14 +75,14 @@ var customGenesisTests = []struct {
            "MaxEvidenceAge":1
         },
         "Gov": {
-            "VersionProposalVote_DurationSeconds": 160,
+            "VersionProposalVoteDurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_DurationSeconds": 160,
-            "TextProposal_VoteRate": 0.5,
-            "TextProposal_SupportRate": 0.667,          
-            "CancelProposal_VoteRate": 0.50,
-            "CancelProposal_SupportRate": 0.667
+            "VersionProposalSupportRate": 0.667,
+            "TextProposalVoteDurationSeconds": 160,
+            "TextProposalVoteRate": 0.5,
+            "TextProposalSupportRate": 0.667,          
+            "CancelProposalVoteRate": 0.50,
+            "CancelProposalSupportRate": 0.667
         },
         "Reward":{
             "NewBlockRate": 50,
@@ -166,14 +166,14 @@ var customGenesisTests = []struct {
            "MaxEvidenceAge":1
         },
         "Gov": {
-            "VersionProposalVote_DurationSeconds": 160,
+            "VersionProposalVoteDurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_DurationSeconds": 160,
-            "TextProposal_VoteRate": 0.5,
-            "TextProposal_SupportRate": 0.667,          
-            "CancelProposal_VoteRate": 0.50,
-            "CancelProposal_SupportRate": 0.667
+            "VersionProposalSupportRate": 0.667,
+            "TextProposalVoteDurationSeconds": 160,
+            "TextProposalVoteRate": 0.5,
+            "TextProposalSupportRate": 0.667,          
+            "CancelProposalVoteRate": 0.50,
+            "CancelProposalSupportRate": 0.667
         },
         "Reward":{
             "NewBlockRate": 50,
@@ -257,14 +257,14 @@ var customGenesisTests = []struct {
            "MaxEvidenceAge":1
         },
         "Gov": {
-            "VersionProposalVote_DurationSeconds": 160,
+            "VersionProposalVoteDurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_DurationSeconds": 160,
-            "TextProposal_VoteRate": 0.5,
-            "TextProposal_SupportRate": 0.667,          
-            "CancelProposal_VoteRate": 0.50,
-            "CancelProposal_SupportRate": 0.667
+            "VersionProposalSupportRate": 0.667,
+            "TextProposalVoteDurationSeconds": 160,
+            "TextProposalVoteRate": 0.5,
+            "TextProposalSupportRate": 0.667,          
+            "CancelProposalVoteRate": 0.50,
+            "CancelProposalSupportRate": 0.667
         },
         "Reward":{
             "NewBlockRate": 50,
