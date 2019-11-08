@@ -55,7 +55,7 @@ noconsensus:
   fail_point: github.com/PlatONnetwork/PlatON-Go/consensus/cbft/low-block-rate=return("6,0,0ee7ad2655ad3e00095414bf10406fed2c19d5b3aa514b95321bbe3c6caebd7b190683d77c874da302555c4dc4978f45b16bd62eb370b62c84544ba971b39bdd")
   id: 0ee7ad2655ad3e00095414bf10406fed2c19d5b3aa514b95321bbe3c6caebd7b190683d77c874da302555c4dc4978f45b16bd62eb370b62c84544ba971b39bdd
   nodekey: fa71985331b2cc5694a239fba7d76ffd8d42ebf3cc301e440fc5d2f73a7488e4
-  url: http://192.168.10.225:6789
+  url: http://192.168.10.222:6790
 - host: 192.168.10.223
   username: platon
   password: Platon123!
@@ -66,7 +66,7 @@ noconsensus:
   blsprikey: e7ec80183cae28e5c22288340786f78485d356b1aa3cf81aeeb9ad1795295c5f
   id: 2d25f7686573602334589ac2e606a3743d34fcae0c7d34c6eadc01dbecd21f349d93ec227b2c43a5f61eab7fff1e0382e8a9f61a2cce9cf8eb0730a697a98159
   nodekey: 6b2499b88a88181a1a7591555b2b5f01c07a55629040a25a0ed692577615c0ee
-  url: http://192.168.10.226:6790
+  url: http://192.168.10.223:6790
 - host: 192.168.10.224
   username: platon
   password: Platon123!
@@ -78,4 +78,4 @@ noconsensus:
   blsprikey: 4b858c2f80b6c19c1f60740b13a821e9a9450625c1afce3cbca0c8bf27c6f82b
   id: 423c94bf3965e31ed5f2deab22e0a4e3a565686486cc7b4be352504fa373a4ca1ceb58e79f53f78a7cf32ca336907670eeded51e820abd4bb26b1e401dafe863
   nodekey: 89d9a24db4f730652137dc3b464e675d05bed1e2e4ac5ea8053b84e3648a6ebf
-  url: http://192.168.10.227:6789
+  url: http://192.168.10.224:6790

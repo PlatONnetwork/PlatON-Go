@@ -5,6 +5,8 @@ import pytest
 import allure
 
 from dacite import from_dict
+from hexbytes import HexBytes
+from web3.eth import Eth
 
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
@@ -64,7 +66,7 @@ def test_PIP_PVF_001(client_con_list_obj, reset_environment):
     block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0', False)
     # Verify changed parameters
@@ -92,7 +94,7 @@ def test_PIP_PVF_002(client_con_list_obj, reset_environment):
     block_reward, staking_reward = client_con_list_obj[0].economic.get_current_year_reward(
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
     End_voting_block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward',
                                                                '0')
@@ -123,12 +125,12 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
     log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     assert slash_blocks2 == '0', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # Verify changed parameters
     candidate_info2 = pledge_punishment(client_con_list_obj)
@@ -157,12 +159,12 @@ def test_PIP_PVF_004(client_con_list_obj, client_new_node_obj_list, reset_enviro
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
     log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # create account
     address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
@@ -209,12 +211,12 @@ def test_PIP_PVF_005(client_con_list_obj, client_new_node_obj_list, reset_enviro
         client_con_list_obj[0].node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
     log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
     assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # create account
     address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
@@ -263,11 +265,11 @@ def test_PIP_PVF_006(new_genesis_env, client_con_list_obj, reset_environment):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '1', False)
     # view Parameter value before treatment again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks2 == slash_blocks1, "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, client_con_list_obj[0].node.web3.toWei(1000, 'ether'))
     # Verify changed parameters
@@ -301,12 +303,12 @@ def test_PIP_PVF_007(new_genesis_env, client_con_list_obj, reset_environment):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks1 == '1', "ErrMsg:Parameter value before treatment {}".format(slash_blocks1)
     # create Parametric proposal
     param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '1')
     # view Parameter value before treatment again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks2 == slash_blocks1, "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -343,12 +345,12 @@ def test_PIP_PVF_008(new_genesis_env, client_con_list_obj, reset_environment):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks1 == '2', "ErrMsg:Parameter value before treatment {}".format(slash_blocks1)
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '1')
     # view Parameter value before treatment again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks2 == '1', "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -382,12 +384,12 @@ def test_PIP_PVF_009(new_genesis_env, client_con_list_obj, reset_environment):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks1 == '1', "ErrMsg:Parameter value before treatment {}".format(slash_blocks1)
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '2')
     # view Parameter value before treatment again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks2 == '2', "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -432,12 +434,12 @@ def test_PIP_PVF_010(new_genesis_env, client_con_list_obj, reset_environment):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
-    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks1 == '2', "ErrMsg:Parameter value before treatment {}".format(slash_blocks1)
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge', '1')
     # view Parameter value before treatment again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'MaxEvidenceAge')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxEvidenceAge')
     assert slash_blocks2 == '1', "ErrMsg:Parameter value after treatment {}".format(slash_blocks2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -467,11 +469,11 @@ def test_PIP_PVF_011(client_con_list_obj, reset_environment):
     candidate_info1 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign', '1000', False)
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     assert penalty_ratio1 == penalty_ratio2, "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -507,11 +509,11 @@ def test_PIP_PVF_012(client_con_list_obj, reset_environment):
     candidate_info1 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     # create Parametric proposal
     param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign', '1000')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     assert penalty_ratio1 == penalty_ratio2, "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -547,11 +549,11 @@ def test_PIP_PVF_013(client_con_list_obj, reset_environment):
     candidate_info1 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign', '1000')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     assert penalty_ratio2 == '1000', "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -588,11 +590,11 @@ def test_PIP_PVF_014(client_con_list_obj, reset_environment):
     candidate_info1 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign', '10000')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     assert penalty_ratio2 == '10000', "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -629,11 +631,11 @@ def test_PIP_PVF_015(client_con_list_obj, reset_environment):
     candidate_info1 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio1 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign', '1')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'SlashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashFractionDuplicateSign')
     assert penalty_ratio2 == '1', "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
                                                                                  client_con_list_obj[0].node.web3.toWei(
@@ -678,11 +680,11 @@ def test_PIP_PVF_016(client_con_list_obj, reset_environment):
     # view Incentive pool account
     incentive_pool_account1 = client_con_list_obj[0].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     # view Parameter value before treatment
-    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     # create Parametric proposal
     param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward', '60', False)
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     assert report_reward1 == report_reward2, "ErrMsg:Parameter value after treatment {}".format(report_reward2)
 
     # Verify changed parameters
@@ -724,11 +726,11 @@ def test_PIP_PVF_017(client_con_list_obj, reset_environment):
                                                                                  client_con_list_obj[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # view Parameter value before treatment
-    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     # create Parametric proposal
     param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward', '60')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     assert report_reward1 == report_reward2, "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # view report amount
     report_amount1 = client_con_list_obj[0].node.eth.getBalance(report_address)
@@ -773,11 +775,11 @@ def test_PIP_PVF_018(client_con_list_obj, reset_environment):
                                                                                  client_con_list_obj[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # view Parameter value before treatment
-    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward', '60')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     assert report_reward2 == '60', "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # view report amount
     report_amount1 = client_con_list_obj[0].node.eth.getBalance(report_address)
@@ -822,11 +824,11 @@ def test_PIP_PVF_019(client_con_list_obj, reset_environment):
                                                                                  client_con_list_obj[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # view Parameter value before treatment
-    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward', '80')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     assert report_reward2 == '80', "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # view report amount
     report_amount1 = client_con_list_obj[0].node.eth.getBalance(report_address)
@@ -875,11 +877,11 @@ def test_PIP_PVF_020(client_con_list_obj, reset_environment):
                                                                                  client_con_list_obj[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # view Parameter value before treatment
-    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward1 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     # create Parametric proposal
     param_governance_verify(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward', '1')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'Slashing', 'DuplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'DuplicateSignReportReward')
     assert report_reward2 == '1', "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # view report amount
     report_amount1 = client_con_list_obj[0].node.eth.getBalance(report_address)
@@ -910,3 +912,80 @@ def test_PIP_PVF_020(client_con_list_obj, reset_environment):
     assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
             report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
+
+
+def transaction(client_obj, nonce, from_address, to_address, value):
+    account = client_obj.economic.account.accounts[from_address]
+    tmp_to_address = Web3.toChecksumAddress(to_address)
+    tmp_from_address = Web3.toChecksumAddress(from_address)
+
+    transaction_dict = {
+        "to": tmp_to_address,
+        "gasPrice": client_obj.node.eth.gasPrice,
+        "gas": 21000,
+        "nonce": nonce,
+        "data": "",
+        "chainId": client_obj.node.chain_id,
+        "value": value,
+        'from': tmp_from_address,
+    }
+    signedTransactionDict = client_obj.node.eth.account.signTransaction(
+        transaction_dict, account['prikey']
+    )
+
+    data = signedTransactionDict.rawTransaction
+    result = HexBytes(client_obj.node.eth.sendRawTransaction(data)).hex()
+
+
+@pytest.mark.P1
+def test_PIP_MG_001(client_con_list_obj):
+    """
+    治理修改默认每个区块的最大Gas 投票失败
+    :param client_con_list_obj:
+    :param reset_environment:
+    :return:
+    """
+    # # Change configuration parameters
+    # genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    # genesis.config.cbft.period = 50000
+    # genesis.EconomicModel.Common.MaxEpochMinutes = 14
+    # genesis.EconomicModel.Common.AdditionalCycleTime = 55
+    # new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    # genesis.to_file(new_file)
+    # new_genesis_env.deploy_all(new_file)
+    client_con_list_obj[0].economic.env.deploy_all()
+    # view Parameter value before treatment
+    max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
+    # create Parametric proposal
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001', False)
+    # view Parameter value after treatment
+    max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
+    assert max_gas_limit2 == max_gas_limit1, "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)
+    nonce = client_con_list_obj[0].node.eth.getTransactionCount(client_con_list_obj[0].economic.env.account.account_with_money['address'])
+    from_address = client_con_list_obj[0].economic.env.account.account_with_money['address']
+    to_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, 0)
+    for i in range(0, 200):
+        # Transfer transaction
+        transaction(client_con_list_obj[0], nonce, from_address, to_address, 10)
+        nonce = nonce + 1
+    time.sleep(15)
+    end_block = client_con_list_obj[0].node.block_number
+    max_tx = {"block_num": 0, "tx_num": 0}
+    for i in range(1, end_block + 1):
+        tx_num = client_con_list_obj[0].node.eth.getBlockTransactionCount(i)
+        if tx_num > max_tx["tx_num"]:
+            max_tx = {"block_num": i, "tx_num": tx_num}
+    block_info = client_con_list_obj[0].node.eth.getBlock(max_tx["block_num"])
+    print(max_tx['tx_num'])
+    print(block_info['gasLimit'])
+    print(block_info['gasUsed'])
+    print("block_info", block_info)
+
+
+def test_sss(client_con_list_obj):
+    client_con_list_obj[0].economic.env.deploy_all()
+    time.sleep(1)
+    annual_cycle, annualsize, current_end_block = client_con_list_obj[0].economic.get_annual_switchpoint(client_con_list_obj[0].node)
+    log.info("annual_cycle: {}".format(annual_cycle))
+    log.info("annualsize: {}".format(annualsize))
+    log.info("current_end_block: {}".format(current_end_block))
