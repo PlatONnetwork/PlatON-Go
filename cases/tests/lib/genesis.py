@@ -22,70 +22,70 @@ class Config:
 
 @dataclass
 class Common:
-    MaxEpochMinutes: int
-    MaxConsensusVals: int
-    AdditionalCycleTime: int
+    maxEpochMinutes: int
+    maxConsensusVals: int
+    additionalCycleTime: int
 
 
 @dataclass
 class Staking:
-    StakeThreshold: int
-    OperatingThreshold: int
-    MaxValidators: int
-    HesitateRatio: int
-    UnStakeFreezeDuration: int
+    stakeThreshold: int
+    operatingThreshold: int
+    maxValidators: int
+    hesitateRatio: int
+    unStakeFreezeDuration: int
 
 
 @dataclass
 class Slashing:
-    SlashFractionDuplicateSign: int
-    DuplicateSignReportReward: int
-    SlashBlocksReward: int
-    MaxEvidenceAge: int
+    slashFractionDuplicateSign: int
+    duplicateSignReportReward: int
+    slashBlocksReward: int
+    maxEvidenceAge: int
 
 
 @dataclass
 class Gov:
-    VersionProposalVote_DurationSeconds: int
-    VersionProposal_SupportRate: float
-    TextProposalVote_DurationSeconds: int
-    TextProposal_VoteRate: float
-    TextProposal_SupportRate: float
-    CancelProposal_VoteRate: float
-    CancelProposal_SupportRate: float
-    ParamProposalVote_DurationSeconds: int
-    ParamProposal_VoteRate: float
-    ParamProposal_SupportRate: float
+    versionProposalVoteDurationSeconds: int
+    versionProposalSupportRate: float
+    textProposalVoteDurationSeconds: int
+    textProposalVoteRate: float
+    textProposalSupportRate: float
+    cancelProposalVoteRate: float
+    cancelProposalSupportRate: float
+    paramProposalVoteDurationSeconds: int
+    paramProposalVoteRate: float
+    paramProposalSupportRate: float
 
 
 @dataclass
 class Reward:
-    NewBlockRate: int
-    PlatONFoundationYear: int
+    newBlockRate: int
+    platONFoundationYear: int
 
 
 @dataclass
 class InnerAcc:
-    PlatONFundAccount: str
-    PlatONFundBalance: int
-    CDFAccount: str
-    CDFBalance: int
+    platonFundAccount: str
+    platonFundBalance: int
+    cdfAccount: str
+    cdfBalance: int
 
 
 @dataclass
 class EconomicModel:
-    Common: Common
-    Staking: Staking
-    Slashing: Slashing
-    Gov: Gov
-    Reward: Reward
-    InnerAcc: InnerAcc
+    common: Common
+    staking: Staking
+    slashing: Slashing
+    gov: Gov
+    reward: Reward
+    innerAcc: InnerAcc
 
 
 @dataclass
 class Genesis:
     config: Config
-    EconomicModel: EconomicModel
+    economicModel: EconomicModel
     nonce: str
     timestamp: str
     extraData: str
@@ -100,13 +100,13 @@ class Genesis:
         data = copy(self.__dict__)
         data["config"] = copy(self.config.__dict__)
         data["config"]["cbft"] = copy(self.config.cbft.__dict__)
-        data["EconomicModel"] = copy(self.EconomicModel.__dict__)
-        data["EconomicModel"]["Common"] = copy(self.EconomicModel.Common.__dict__)
-        data["EconomicModel"]["Staking"] = copy(self.EconomicModel.Staking.__dict__)
-        data["EconomicModel"]["Slashing"] = copy(self.EconomicModel.Slashing.__dict__)
-        data["EconomicModel"]["Gov"] = copy(self.EconomicModel.Gov.__dict__)
-        data["EconomicModel"]["Reward"] = copy(self.EconomicModel.Reward.__dict__)
-        data["EconomicModel"]["InnerAcc"] = copy(self.EconomicModel.InnerAcc.__dict__)
+        data["economicModel"] = copy(self.economicModel.__dict__)
+        data["economicModel"]["common"] = copy(self.economicModel.common.__dict__)
+        data["economicModel"]["staking"] = copy(self.economicModel.staking.__dict__)
+        data["economicModel"]["slashing"] = copy(self.economicModel.slashing.__dict__)
+        data["economicModel"]["gov"] = copy(self.economicModel.gov.__dict__)
+        data["economicModel"]["reward"] = copy(self.economicModel.reward.__dict__)
+        data["economicModel"]["innerAcc"] = copy(self.economicModel.innerAcc.__dict__)
         return data
 
     def to_file(self, file):

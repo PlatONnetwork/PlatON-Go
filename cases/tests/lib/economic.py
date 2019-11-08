@@ -23,14 +23,14 @@ class Economic:
         self.interval = int((self.genesis.config.cbft.period / self.per_round_blocks) / 1000)
 
         # Length of additional issuance cycle
-        self.additional_cycle_time = self.genesis.EconomicModel.Common.AdditionalCycleTime
+        self.additional_cycle_time = self.genesis.economicModel.common.additionalCycleTime
 
         # Number of verification
-        self.validator_count = self.genesis.EconomicModel.Common.MaxConsensusVals
+        self.validator_count = self.genesis.economicModel.common.maxConsensusVals
 
         # Billing related
         # Billing cycle
-        self.expected_minutes = self.genesis.EconomicModel.Common.MaxEpochMinutes
+        self.expected_minutes = self.genesis.economicModel.common.maxEpochMinutes
         # Consensus rounds
         self.consensus_wheel = (self.expected_minutes * 60) // (
                     self.interval * self.per_round_blocks * self.validator_count)
@@ -41,19 +41,19 @@ class Economic:
 
         # Minimum amount limit
         # Minimum deposit amount
-        self.create_staking_limit = self.genesis.EconomicModel.Staking.StakeThreshold
+        self.create_staking_limit = self.genesis.economicModel.staking.stakeThreshold
         # Minimum holding amount
-        self.add_staking_limit = self.genesis.EconomicModel.Staking.OperatingThreshold
+        self.add_staking_limit = self.genesis.economicModel.staking.operatingThreshold
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
         # unstaking freeze duration
-        self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeDuration
+        self.unstaking_freeze_ratio = self.genesis.economicModel.staking.unStakeFreezeDuration
         #ParamProposalVote_DurationSeconds
-        self.pp_vote_settlement_wheel = self.genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds // (
+        self.pp_vote_settlement_wheel = self.genesis.economicModel.gov.paramProposalVoteDurationSeconds // (
                 (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
         )
         #slash blocks reward
-        self.slash_blocks_reward = self.genesis.EconomicModel.Slashing.SlashBlocksReward
+        self.slash_blocks_reward = self.genesis.economicModel.slashing.slashBlocksReward
 
 
     @property
@@ -79,7 +79,7 @@ class Economic:
         Get the first year of the block reward, pledge reward
         :return:
         """
-        new_block_rate = self.genesis.EconomicModel.Reward.NewBlockRate
+        new_block_rate = self.genesis.economicModel.reward.newBlockRate
         annualcycle, annual_size, current_end_block = self.get_annual_switchpoint(node)
         if verifier_num is None:
             verifier_list = get_pledge_list(node.ppos.getVerifierList)
@@ -173,9 +173,9 @@ class Economic:
         :return:
         """
         if penalty_ratio is None:
-            penalty_ratio = self.genesis.EconomicModel.Slashing.SlashFractionDuplicateSign
+            penalty_ratio = self.genesis.economicModel.slashing.slashFractionDuplicateSign
         if proportion_ratio is None:
-            proportion_ratio = self.genesis.EconomicModel.Slashing.DuplicateSignReportReward
+            proportion_ratio = self.genesis.economicModel.slashing.duplicateSignReportReward
         penalty_reward = int(Decimal(str(amount)) * Decimal(str(penalty_ratio / 10000)))
         proportion_reward = int(Decimal(str(penalty_reward)) * Decimal(str(proportion_ratio / 100)))
         incentive_pool_reward = penalty_reward - proportion_reward
