@@ -1739,6 +1739,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	if err := sk.storeRoundValidatorAddrs(blockNumber, blockHash, start, nextQueue); nil != err {
 		log.Error("Failed to storeRoundValidatorAddrs on Election", "blockNumber", blockNumber,
 			"blockHash", blockHash.TerminalString(), "err", err)
+		return err
 	}
 
 	log.Debug("Call Election Next validators", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(),
@@ -3038,13 +3039,34 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 	// Only store the address of last consensus rounds on `validEpochCount` epochs
 	if nextEpoch > validEpochCount {
 		invalidRound := nextRound - validRoundCount
-		key := staking.GetRoundValAddrArrKey(invalidRound)
-		if err := sk.db.DelRoundValidatorAddrs(blockHash, key); nil != err {
-			log.Error("Failed to DelRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextStart", nextStart,
-				"nextRound", nextRound, "nextEpoch", nextEpoch, "validEpochCount", validEpochCount, "validRoundCount", validRoundCount, "invalidRound", invalidRound, "key", hex.EncodeToString(key), "err", err)
-			return err
+
+		boundary, er := sk.db.GetRoundAddrBoundary(blockHash)
+		if snapshotdb.NonDbNotFoundErr(er) {
+			return er
 		}
-		log.Debug("delete RoundValidatorAddrs success", "blockHash", blockHash.TerminalString(), "nextStart", nextStart, "invalidRound", invalidRound)
+		if boundary == 0 && (invalidRound-1) >= 0 {
+			boundary = invalidRound - 1
+		}
+
+		// Clean all outside the boundarys of previous valAddrs
+		var count int
+		for invalidRound > boundary {
+			key := staking.GetRoundValAddrArrKey(invalidRound)
+			if err := sk.db.DelRoundValidatorAddrs(blockHash, key); nil != err {
+				log.Error("Failed to DelRoundValidatorAddrs", "blockHash", blockHash.TerminalString(), "nextStart", nextStart,
+					"nextRound", nextRound, "nextEpoch", nextEpoch, "validEpochCount", validEpochCount, "validRoundCount", validRoundCount, "invalidRound", invalidRound, "key", hex.EncodeToString(key), "err", err)
+				return err
+			}
+
+			if count == 0 {
+				if err := sk.db.SetRoundAddrBoundary(blockHash, nextRound-validRoundCount); nil != err {
+					return err
+				}
+			}
+			count++
+			invalidRound--
+		}
+
 	}
 	newKey := staking.GetRoundValAddrArrKey(nextRound)
 	newValue := make([]common.Address, 0, len(array))
