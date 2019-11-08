@@ -649,7 +649,7 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
 
 if __name__ == "__main__":
     from tests.lib import get_no_pledge_node, get_no_pledge_node_list, get_pledge_list, check_node_in_list
-    node_filename = abspath("deploy/node/25_cbft.yml")
+    node_filename = abspath("deploy/node/debug_4_2.yml")
     env = create_env(node_file=node_filename)
     # print(os.path.getctime(env.cfg.platon_bin_file))
     # new_cfg = copy.copy(env.cfg)
@@ -657,10 +657,21 @@ if __name__ == "__main__":
     # print(env.cfg.syncmode)
     log.info("测试部署")
     env.deploy_all()
-    env.account.generate_account(env.get_a_normal_node().web3, 0)
-    log.info("account:{}".format(env.account.accounts))
-    env.deploy_all()
-    log.info("account:{}".format(env.account.accounts))
+    # node = env.get_consensus_node_by_index(0)
+    # print(node.node_mark)
+    # address, prikey = env.account.generate_account(node.web3, 10**18*100000000000)
+    # transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
+    # # print(node.pip.submitParam(node.node_id, "ddd", "Slashing", "SlashBlockReward", "1000", prikey, transaction_cfg))
+    # print(node.pip.getGovernParamValue("Slashing", "SlashBlockReward", address))
+    # print(node.pip.listGovernParam("Staking"))
+    # from tests.lib.genesis import Genesis
+    # from dacite import from_dict
+    # genesis = from_dict(data_class=Genesis, data=env.genesis_config)
+    # print(genesis.EconomicModel.Slashing.MaxEvidenceAge)
+    # env.account.generate_account(env.get_a_normal_node().web3, 0)
+    # log.info("account:{}".format(env.account.accounts))
+    # env.deploy_all()
+    # log.info("account:{}".format(env.account.accounts))
     # node = env.get_rand_node()
     # print(node.node_id)
     # print(env.normal_node_list[1].node_id)
@@ -714,4 +725,4 @@ if __name__ == "__main__":
     # time.sleep(60)
     # d = env.block_numbers()
     # print(d)
-    env.shutdown()
+    # env.shutdown()

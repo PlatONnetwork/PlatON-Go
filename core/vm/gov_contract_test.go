@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	//"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -273,7 +272,7 @@ func buildGetGovernParamValueInput(module, name string) []byte {
 func setup(t *testing.T) *mock.Chain {
 	t.Log("setup()......")
 	//to turn on log's debug level
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*GovContract)
@@ -440,14 +439,10 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	defer clear(chain, t)
 
 	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
-
-	//println("value:", value)
-	//println("xcom.MaxValidators():", xcom.MaxValidators())
-
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
-		assert.Equal(t, strconv.Itoa(int(xcom.MaxValidators())), value)
+		assert.Equal(t, "25", value)
 	}
 
 	//submit a proposal and vote for it.
@@ -459,7 +454,7 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	allVote(chain, t, txHashArr[1])
 	commit_sndb(chain)
 
-	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+	runGovContract(false, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
 }
 
@@ -483,7 +478,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	allVote(chain, t, txHashArr[1])
 	commit_sndb(chain)
 
-	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+	runGovContract(false, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {

@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -195,7 +196,7 @@ func initParam() []*GovernParam {
 		*/
 		{
 			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：(%d, %s)", xcom.Zero, xcom.PositiveInfinity)},
-			ParamValue: &ParamValue{"", strconv.Itoa(int(params.GenesisGasLimit)), 0},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DefaultMinerGasFloor)), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
 				gasLimit, err := strconv.Atoi(value)
@@ -203,9 +204,9 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
 				}
 
-				// (0, +∞)
-				if gasLimit <= 0 {
-					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %s)", xcom.Zero, xcom.PositiveInfinity))
+				// (21000*200, +∞)
+				if gasLimit <= int(params.TxGas*200) {
+					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %s)", int(params.TxGas*200), xcom.PositiveInfinity))
 				}
 
 				return nil

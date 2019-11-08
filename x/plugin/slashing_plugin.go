@@ -136,7 +136,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 				totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
 				if blockReward > 0 {
-					slashAmount := calcEndBlockSlashAmount(header.Number.Uint64(), uint64(blockReward), state)
+					slashAmount = calcSlashBlockRewards(header.Number.Uint64(), uint64(blockReward), state)
 					if slashAmount.Cmp(totalBalance) > 0 {
 						slashAmount = totalBalance
 					}
@@ -476,7 +476,7 @@ func calcAmountByRate(balance *big.Int, numerator, denominator uint64) *big.Int 
 	return new(big.Int).SetInt64(0)
 }
 
-func calcEndBlockSlashAmount(blockNumber, blockReward uint64, state xcom.StateDB) *big.Int {
+func calcSlashBlockRewards(blockNumber, blockReward uint64, state xcom.StateDB) *big.Int {
 	thisYear := xutil.CalculateYear(blockNumber)
 	var lastYear uint32
 	if thisYear != 0 {

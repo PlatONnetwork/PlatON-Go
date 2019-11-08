@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -36,7 +38,8 @@ type Ppos_1000 struct {
 	Amount             *big.Int
 	ProgramVersion     uint32
 	ProgramVersionSign common.VersionSign
-	BlsPubKey          string
+	BlsPubKey          bls.PublicKeyHex
+	BlsProof           bls.SchnorrProofHex
 }
 
 // editorCandidate
@@ -278,6 +281,8 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
 			programVersionSign, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersionSign)
 			blsPubKey, _ := rlp.EncodeToBytes(cfg.P1000.BlsPubKey)
+			blsProof, _ := rlp.EncodeToBytes(cfg.P1000.BlsProof)
+
 			params = append(params, typ)
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
@@ -289,6 +294,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, programVersion)
 			params = append(params, programVersionSign)
 			params = append(params, blsPubKey)
+			params = append(params, blsProof)
 		}
 	case 1001:
 		{
@@ -298,6 +304,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1001.NodeName)
 			website, _ := rlp.EncodeToBytes(cfg.P1001.Website)
 			details, _ := rlp.EncodeToBytes(cfg.P1001.Details)
+
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
 			params = append(params, externalId)
@@ -310,6 +317,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1002.NodeId)
 			typ, _ := rlp.EncodeToBytes(cfg.P1002.Typ)
 			amount, _ := rlp.EncodeToBytes(cfg.P1002.Amount)
+
 			params = append(params, nodeId)
 			params = append(params, typ)
 			params = append(params, amount)
@@ -324,6 +332,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			typ, _ := rlp.EncodeToBytes(cfg.P1004.Typ)
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1004.NodeId)
 			amount, _ := rlp.EncodeToBytes(cfg.P1004.Amount)
+
 			params = append(params, typ)
 			params = append(params, nodeId)
 			params = append(params, amount)
@@ -333,6 +342,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			stakingBlockNum, _ := rlp.EncodeToBytes(cfg.P1005.StakingBlockNum)
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1005.NodeId)
 			amount, _ := rlp.EncodeToBytes(cfg.P1005.Amount)
+
 			params = append(params, stakingBlockNum)
 			params = append(params, nodeId)
 			params = append(params, amount)

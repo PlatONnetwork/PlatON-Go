@@ -2,7 +2,7 @@ from environment.env import TestEnvironment
 from environment.node import Node
 from .config import PipConfig
 from .economic import Economic
-from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, int16_to_bytes, bytes_to_int
+from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, find_proposal
 import json
 from typing import List
 import time
@@ -68,9 +68,27 @@ class Pip:
         pri_key = self.economic.account.find_pri_key(from_address)
         return self.pip.submitVersion(verifier, pip_id, new_version, end_voting_rounds, pri_key, transaction_cfg)
 
-    def submitParam(self, verifier, url, end_voting_block, param_name, current_value, new_value, from_address, transaction_cfg=None):
+    def submitParam(self, verifier, pip_id, module, name, new_value, from_address, transaction_cfg=None):
+        """
+        Submit an param proposal
+        :param verifier: The certified submitting the proposal
+        :param pip_id: PIPID
+        :param module: parameter module
+        :param name: parameter name
+        :param new_value: New parameter value
+        :param from_address: address for transaction
+        :param transaction_cfg: Transaction basic configuration
+             type: dict
+             example:cfg = {
+                 "gas":100000000,
+                 "gasPrice":2000000000000,
+                 "nonce":1,
+             }
+        :return: if is need analyze return transaction result dict
+               if is not need analyze return transaction hash
+        """
         pri_key = self.economic.account.find_pri_key(from_address)
-        return self.pip.submitParam(verifier, url, end_voting_block, param_name, current_value, new_value, pri_key, transaction_cfg)
+        return self.pip.submitParam(verifier, pip_id, module, name, new_value, pri_key, transaction_cfg)
 
     def submitCancel(self, verifier, pip_id, end_voting_rounds, tobe_canceled_proposal_id, from_address, transaction_cfg=None):
         """
@@ -161,7 +179,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -174,7 +192,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        resultinfo = result.get('Data')
+        resultinfo = result.get('Ret')
         resultinfo = json.loads(resultinfo)
         if not resultinfo:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -187,7 +205,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -200,7 +218,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -213,7 +231,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id)
-        data = result.get('Data')
+        data = result.get('Ret')
         data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -226,7 +244,7 @@ class Pip:
         :return:
         """
         result = self.pip.getActiveVersion()
-        return int(result.get('Data'))
+        return int(result.get('Ret'))
 
     def get_version_small_version(self, flag=3):
         """
@@ -252,7 +270,7 @@ class Pip:
             blocknumber = self.node.block_number
         blockhash = get_blockhash(self.node, blocknumber)
         result = self.pip.getAccuVerifiersCount(proposal_id, blockhash)
-        voteinfo = result.get('Data')
+        voteinfo = result.get('Ret')
         vote_result = eval(voteinfo)
         return vote_result
 
@@ -262,7 +280,7 @@ class Pip:
         :param proposal_id:
         :return:
         """
-        result = self.pip.getTallyResult(proposal_id).get('Data')
+        result = self.pip.getTallyResult(proposal_id).get('Ret')
         result = json.loads(result)
         if not result:
             raise Exception('Failed to query proposal result based on given proposal id')
@@ -275,7 +293,7 @@ class Pip:
         Get pre-valid proposal information on the chain
         :return:
         """
-        result = self.pip.listProposal().get('Data')
+        result = self.pip.listProposal().get('Ret')
         result = json.loads(result)
         for pid_list in result:
             if pid_list.get('ProposalType') == 2:
@@ -300,9 +318,8 @@ class Pip:
         if not self.is_exist_effective_proposal_for_vote(self.cfg.param_proposal) and proposaltype == self.cfg.param_proposal:
             return None
 
-        result = self.pip.listProposal().get('Data')
-        proposal_info = json.loads(result)
-
+        proposal_info = self.pip.listProposal().get('Ret')
+        proposal_info = json.loads(proposal_info)
         proposal_list_text = []
         proposal_list_version = []
         proposal_list_param = []
@@ -319,37 +336,33 @@ class Pip:
 
             elif pid_list.get('ProposalType') == self.cfg.param_proposal:
                 proposal_list_param.append(pid_list)
-            # Current block height
-            block_number = self.node.eth.blockNumber
-            if proposaltype == self.cfg.text_proposal:
-                for i in range(len(proposal_list_text)):
-                    if proposal_list_text[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_text[i]
+            else:
+                raise Exception("Unknown proposal type")
+        # Current block height
+        block_number = self.node.eth.blockNumber
+        if proposaltype == self.cfg.text_proposal:
+            return find_proposal(proposal_list_text, block_number)
 
-            elif proposaltype == self.cfg.version_proposal:
-                for i in range(len(proposal_list_version)):
-                    if proposal_list_version[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_version[i]
+        elif proposaltype == self.cfg.version_proposal:
+            return find_proposal(proposal_list_version, block_number)
 
-            elif proposaltype == self.cfg.cancel_proposal:
-                for i in range(len(proposal_list_cancel)):
-                    if proposal_list_cancel[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_cancel[i]
+        elif proposaltype == self.cfg.cancel_proposal:
+            return find_proposal(proposal_list_cancel, block_number)
 
-            elif proposaltype == self.cfg.param_proposal:
-                for i in range(len(proposal_list_param)):
-                    if proposal_list_param[i].get('EndVotingBlock') > block_number:
-                        return proposal_list_param[i]
+        elif proposaltype == self.cfg.param_proposal:
+            return find_proposal(proposal_list_param, block_number)
+        else:
+            raise Exception("listProposal interface gets the wrong proposal type")
 
     def get_proposal_info_list(self):
         """
         Get a list of proposals
         :return:
         """
-        proposal_info_list = self.pip.listProposal().get('Data')
-        proposal_info_list = json.loads(proposal_info_list)
+        proposal_info_list = self.pip.listProposal().get('Ret')
         version_proposal_list, text_proposal_list, cancel_proposal_list, param_proposal_list = [], [], [], []
-        if proposal_info_list:
+        if proposal_info_list != 'null':
+            proposal_info_list = json.loads(proposal_info_list)
             for proposal_info in proposal_info_list:
                 if proposal_info.get('ProposalType') == self.cfg.version_proposal:
                     version_proposal_list.append(proposal_info)
@@ -383,16 +396,13 @@ class Pip:
                         return True
 
         elif proposal_type == self.cfg.text_proposal:
-            if proposal_list_effective(text_proposal_list, block_number):
-                return True
+            return proposal_list_effective(text_proposal_list, block_number)
 
         elif proposal_type == self.cfg.cancel_proposal:
-            if proposal_list_effective(cancel_proposal_list, block_number):
-                return True
+            return proposal_list_effective(cancel_proposal_list, block_number)
 
         elif proposal_type == self.cfg.param_proposal:
-            if proposal_list_effective(param_proposal_list, block_number):
-                return True
+            return proposal_list_effective(param_proposal_list, block_number)
         else:
             raise Exception("Incoming type error")
         return False
@@ -408,33 +418,29 @@ class Pip:
         version_proposal_list, text_proposal_list, cancel_proposal_list, param_proposal_list = self.get_proposal_info_list()
         block_number = self.node.eth.blockNumber
         if proposal_type == self.cfg.version_proposal:
-            if proposal_list_effective(version_proposal_list, block_number):
-                return True
+            return proposal_list_effective(version_proposal_list, block_number)
 
         elif proposal_type == self.cfg.text_proposal:
-            if proposal_list_effective(text_proposal_list, block_number):
-                return True
+            return proposal_list_effective(text_proposal_list, block_number)
 
         elif proposal_type == self.cfg.cancel_proposal:
-            if proposal_list_effective(cancel_proposal_list, block_number):
-                return True
+            return proposal_list_effective(cancel_proposal_list, block_number)
+
         elif proposal_type == self.cfg.param_proposal:
-            if proposal_list_effective(param_proposal_list, block_number):
-                return True
+            return proposal_list_effective(param_proposal_list, block_number)
         else:
             raise Exception("Incoming type error")
-        return False
 
     def get_candidate_list_not_verifier(self):
         """
         获取当前结算周期非验证人的候选人列表
         :return:
         """
-        candidate_list = self.node.ppos.getCandidateList().get('Data')
-        verifier_list = self.node.ppos.getVerifierList().get('Data')
+        candidate_list = self.node.ppos.getCandidateList().get('Ret')
+        verifier_list = self.node.ppos.getVerifierList().get('Ret')
         if not verifier_list:
             time.sleep(10)
-            verifier_list = self.node.ppos.getVerifierList().get('Data')
+            verifier_list = self.node.ppos.getVerifierList().get('Ret')
         candidate_no_verify_list = []
         verifier_node_list = [node_info.get("NodeId") for node_info in verifier_list]
         for node_info in candidate_list:
