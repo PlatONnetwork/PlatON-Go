@@ -128,6 +128,7 @@ def client_new_node_obj(client_noconsensus_obj, client_list_obj, client_noc_list
             return noconsensus_node_obj
     log.info('非共识节点已全部质押，重新启链')
     client_noconsensus_obj.economic.env.deploy_all()
+    log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
     return client_noconsensus_obj
 
 
