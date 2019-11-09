@@ -892,3 +892,29 @@ def test_LS_PV_005(client_new_node_obj):
     staking_amount = von_amount(economic.create_staking_limit, 0.8)
     result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
     assert_code(result, 301100)
+
+
+@pytest.mark.P2
+def test_LS_PV_006(client_new_node_obj):
+    """
+    创建计划质押-锁仓账户余额为0的情况下申请质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, 0)
+    # create Restricting Plan
+    amount = economic.create_staking_limit
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    try:
+        # create staking
+        result = client.staking.create_staking(1, address2, address2)
+        assert_code(result, 304005)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
