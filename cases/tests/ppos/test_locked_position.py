@@ -702,12 +702,32 @@ def test_LS_RV_015(client_new_node_obj):
     :return:
     """
     client = client_new_node_obj
-    economic = client.economic
-    node = client.node
     address3 = test_LS_RV_014(client)
     # create staking
     result = client.staking.create_staking(1, address3, address3)
     assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_LS_RV_016(client_new_node_obj):
+    """
+    使用多人锁仓金额委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address3 = test_LS_RV_014(client)
+    # create account
+    address4, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create staking
+    result = client.staking.create_staking(1, address4, address4)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address3, amount=economic.create_staking_limit)
+    assert_code(result, 0)
+
 
 
 
