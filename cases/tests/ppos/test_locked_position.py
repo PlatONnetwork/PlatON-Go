@@ -923,7 +923,7 @@ def test_LS_PV_006(client_new_node_obj):
 @pytest.mark.P1
 def test_LS_PV_007(client_new_node_obj_list):
     """
-    创建计划退回质押-锁仓计划退回质押金额>锁仓质押金额
+    创建计划退回质押-退回质押金额>锁仓质押金额
     :param client_new_node_obj_list:
     :return:
     """
@@ -951,11 +951,6 @@ def test_LS_PV_007(client_new_node_obj_list):
     # withdrew staking
     result = client2.staking.withdrew_staking(address2)
     assert_code(result, 0)
-    # view Restricting plan
-    restricting_info = client2.ppos.getRestrictingInfo(address2)
-    assert_code(restricting_info, 0)
-    info = restricting_info['Ret']
-    assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
 
 
 @pytest.mark.P1
@@ -975,4 +970,45 @@ def test_LS_PV_008(client_new_node_obj):
     assert_code(result, 0)
 
 
+@pytest.mark.P1
+def test_LS_PV_009(client_new_node_obj_list):
+    """
+    创建计划退回质押-欠释放金额<回退金额
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = von_amount(economic.create_staking_limit, 2)
+    address1, address2 = create_lock_release_amount(client1, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client1.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client1.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    # wait settlement block
+    economic.wait_settlement_blocknum(node)
+    # view restricting info
+    restricting_info = client1.ppos.getRestrictingInfo(address2)
+    info = restricting_info['Ret']
+    assert info['dept'] == economic.create_staking_limit, "rrMsg: restricting debt amount {}".format(info['debt'])
+    # create Free amount staking
+    result = client2.staking.create_staking(0, address2, address2)
+    assert_code(result, 0)
+    # withdrew staking
+    result = client2.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # view Restricting plan
+    restricting_info = client2.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
 
