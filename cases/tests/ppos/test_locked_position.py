@@ -581,7 +581,7 @@ def test_LS_RV_011(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_LS_RV_012(client_new_node_obj_list):
+def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     """
     创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划
     :param client_new_node_obj_list:
@@ -680,14 +680,14 @@ def test_LS_RV_014(client_new_node_obj):
     address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     address3, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # create Restricting Plan1
-    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
     result = client.restricting.createRestrictingPlan(address3, plan, address1)
     assert_code(result, 0)
-    restricting_info = client.ppos.getRestrictingInfo(address2)
+    restricting_info = client.ppos.getRestrictingInfo(address3)
     assert_code(restricting_info, 0)
     # create Restricting Plan1
-    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
-    result = client.restricting.createRestrictingPlan(address3, plan, address1)
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(address3, plan, address2)
     assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address3)
     assert_code(restricting_info, 0)
@@ -723,7 +723,7 @@ def test_LS_RV_016(client_new_node_obj):
     # create account
     address4, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create staking
-    result = client.staking.create_staking(1, address4, address4)
+    result = client.staking.create_staking(0, address4, address4)
     assert_code(result, 0)
     # Application for Commission
     result = client.delegate.delegate(1, address3, amount=economic.create_staking_limit)
@@ -738,10 +738,38 @@ def test_LS_RV_017(client_new_node_obj):
     :return:
     """
     client = client_new_node_obj
-    economic = client.economic
-    node = client.node
-    address3 = test_LS_RV_015
+    address3 = test_LS_RV_015(client)
     # Apply for additional pledge
     result = client.staking.increase_staking(1, address3)
     assert_code(result, 0)
 
+
+@pytest.mark.P2
+def test_LS_RV_018(client_new_node_obj_list, reset_environment):
+    """
+    验证人非正常状态下创建锁仓计划（节点退出创建锁仓）
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create staking
+    result = client1.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Waiting settlement block
+    client1.economic.wait_settlement_blocknum(client1.node)
+    # stop node
+    client1.node.stop()
+    # Waiting 2 consensus block
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    result = client2.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
