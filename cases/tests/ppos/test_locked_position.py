@@ -918,3 +918,43 @@ def test_LS_PV_006(client_new_node_obj):
         assert_code(result, 304005)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_PV_007(client_new_node_obj_list):
+    """
+    创建计划退回质押-锁仓计划退回质押金额>锁仓质押金额
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 3)
+    amount2 = client1.node.web3.toWei(1000, 'ether')
+    address1, address2 = create_lock_release_amount(client1, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client1.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client1.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    # create Free amount staking
+    result = client2.staking.create_staking(0, address2, address2)
+    assert_code(result, 0)
+    # withdrew staking
+    result = client2.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # view Restricting plan
+    restricting_info = client2.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
+
+
+
