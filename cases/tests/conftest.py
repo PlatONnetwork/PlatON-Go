@@ -43,16 +43,16 @@ def client_list_obj(global_test_env, staking_cfg):
 
 
 @pytest.fixture()
-def client_con_list_obj(global_test_env, staking_cfg):
+def client_con_list_obj(global_running_env, staking_cfg):
     '''
     获取共识Client对象列表
     :param global_test_env:
     :return:
     '''
     client_con_list_obj = []
-    consensus_node_obj_list = global_test_env.consensus_node_list
+    consensus_node_obj_list = global_running_env.consensus_node_list
     for node_obj in consensus_node_obj_list:
-        client_con_list_obj.append(Client(global_test_env, node_obj, staking_cfg))
+        client_con_list_obj.append(Client(global_running_env, node_obj, staking_cfg))
     return client_con_list_obj
 
 
