@@ -201,7 +201,7 @@ class TestVoteCancelParam():
         assert_code(result, 302022)
 
 class TestVoteParam():
-    def test_PP_VO_001_PP_VO_008_PP_VO_015_PP_VO_017(self, submit_param):
+    def test_PP_VO_002_PP_VO_008_PP_VO_015_PP_VO_017(self, submit_param):
         pip_obj = submit_param
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
@@ -250,7 +250,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(submit_param):
     log.info('Interface getTallyResult result is {}'.format(result))
     assert_code(result, 0)
 
-def test_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
+def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
     pip_obj = submit_cancel_param
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
     log.info('cancel proposal info {}'.format(proposalinfo))

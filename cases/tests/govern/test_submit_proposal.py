@@ -5,6 +5,7 @@ import pytest
 from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_governable_parameter_value
 from tests.lib.client import get_client_obj
 import time, math
+from tests.govern.test_voting_statistics import submitcpandvote
 
 def test_VP_SU_001(submit_version):
     pip_obj = submit_version
@@ -1038,4 +1039,147 @@ class TestSubmitPPAbnormal():
                                      address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('candidate submit param proposal result :{}'.format(result))
         assert result.get('Code') == 302021
+
+class TestSubmitPPAgain():
+    def test_VP_TI_001_002_CP_PI_003_VP_PIP_004(self, new_genesis_env, client_con_list_obj):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        submitcpandvote(client_con_list_obj[:3], 1, 1, 1)
+        pip_obj = client_con_list_obj[0].pip
+        proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Param proposal information : {}'.format(proposalinfo_param))
+        proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Cancel proposal information : {}'.format(proposalinfo_cancel))
+        wait_block_number(pip_obj.node, proposalinfo_cancel.get('EndVotingBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')), 2)
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo_param.get('ProposalID')), 6)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '998',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Param proposal information : {}'.format(proposalinfo_param))
+        wait_block_number(pip_obj.node, proposalinfo_param.get('EndVotingBlock'))
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, proposalinfo_param.get('PIPID'), 'Slashing', 'SlashBlocksReward',
+                                     '998', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit param proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, proposalinfo_param.get('PIPID'), pip_obj.cfg.version5,
+                                       1, pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit version proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '998',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+
+class TestPIPVerify():
+    def test_VP_PIP_001_to_004_TP_PI_001_to_004_CP_PI_001_to_004_CP_PI_001_to_004(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        pip_id_text = str(time.time())
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_text, pip_obj.node.staking_address,
+                           transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id_text, pip_obj.cfg.version5, 1, pip_obj.node.staking_address,
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit version proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_text, pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit text proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id_text, 'Slashing', 'SlashBlocksReward', '889',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit param proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Differ PIPID, submit version proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
+        log.info('Version proposal information : {}'.format(proposalinfo_version))
+        pip_id_version = proposalinfo_version.get('PIPID')
+
+        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id_text, 1, proposalinfo_version.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit cancel proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id_version, 1, proposalinfo_version.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit cancel proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Differ PIPID, submit cancel proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+        proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Version proposal information : {}'.format(proposalinfo_cancel))
+        pip_id_cancel = proposalinfo_cancel.get('PIPID')
+
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_version, pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit text proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_cancel, pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit text proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        wait_block_number(pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
+        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id_version, pip_obj.cfg.version5, 2,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit version proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id_cancel, pip_obj.cfg.version5, 2,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit version proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id_cancel, 'Slashing', 'SlashBlocksReward', '889',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit param proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '889',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Differ PIPID, submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+        proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Param proposal information : {}'.format(proposalinfo_param))
+        pip_id_param = proposalinfo_param.get('PIPID')
+
+        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id_param, 1, proposalinfo_param.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit cancel proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_param, pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Same PIPID, submit text proposal result : {}'.format(result))
+        assert_code(result, 302008)
+
+
+
+
+
+
 
