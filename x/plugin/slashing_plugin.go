@@ -158,9 +158,11 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			// If there is no record of the node,
 			// it means that there is no block,
 			// then the penalty is directly
-			if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
-				log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-				return err
+			if len(slashQueue) != 0 {
+				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
+					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+					return err
+				}
 			}
 
 		}
