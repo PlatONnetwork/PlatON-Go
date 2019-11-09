@@ -615,6 +615,7 @@ def test_LS_RV_012(client_new_node_obj_list):
     log.info("Current settlement cycle verifier list: {}".format(verifier_list))
     # Amount of penalty
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("punishment_amonut: {}".format(punishment_amonut))
     # view Restricting Plan
     restricting_info = client2.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
@@ -633,3 +634,34 @@ def test_LS_RV_012(client_new_node_obj_list):
     assert_code(restricting_info3, 0)
     info = restricting_info3['Ret']
     assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
+
+
+@pytest.mark.P1
+def test_LS_RV_013(client_new_node_obj):
+    """
+    同个账号锁仓给多个人
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address2, _ = economic.account.generate_account(node.web3, 0)
+    address3, _ = economic.account.generate_account(node.web3, 0)
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    result = client.restricting.createRestrictingPlan(address3, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+
+
+
