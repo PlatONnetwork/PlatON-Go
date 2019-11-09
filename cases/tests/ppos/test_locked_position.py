@@ -676,9 +676,9 @@ def test_LS_RV_014(client_new_node_obj):
     economic = client.economic
     node = client.node
     # create account
-    address1, _ = economic.account.generate_account(node.web3, 1000)
-    address2, _ = economic.account.generate_account(node.web3, 1000)
-    address3, _ = economic.account.generate_account(node.web3, 0)
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address3, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # create Restricting Plan1
     plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
     result = client.restricting.createRestrictingPlan(address3, plan, address1)
@@ -691,6 +691,23 @@ def test_LS_RV_014(client_new_node_obj):
     assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address3)
     assert_code(restricting_info, 0)
+    return address3
+
+
+@pytest.mark.P1
+def test_LS_RV_015(client_new_node_obj):
+    """
+    使用多人锁仓金额质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address3 = test_LS_RV_014(client)
+    # create staking
+    result = client.staking.create_staking(1, address3, address3)
+    assert_code(result, 0)
 
 
 
