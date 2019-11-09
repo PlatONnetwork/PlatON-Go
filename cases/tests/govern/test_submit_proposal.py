@@ -419,6 +419,7 @@ class TestSubmitCancel():
         log.info('cancel proposal result: {}'.format(result))
         assert result.get('Code') == 302015
 
+
 class TestPP():
     def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, client_list_obj):
         pip_obj = no_vp_proposal
@@ -1176,6 +1177,7 @@ class TestPIPVerify():
                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Same PIPID, submit text proposal result : {}'.format(result))
         assert_code(result, 302008)
+
 
 
 
