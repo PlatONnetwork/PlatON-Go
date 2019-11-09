@@ -857,3 +857,22 @@ def test_LS_PV_003(client_new_node_obj):
         assert_code(result, 304008)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_PV_004(client_new_node_obj):
+    """
+    创建计划质押-锁仓计划质押金额=0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account restricting plan
+    address2 = create_account_restricting_plan(client, economic, node)
+    # create staking
+    result = client.staking.create_staking(1, address2, address2, amount=0)
+    assert_code(result, 304007)
+
+
