@@ -623,7 +623,8 @@ def test_LS_RV_012(client_new_node_obj_list):
     info = restricting_info['Ret']
     if punishment_amonut > pledge_amount:
         assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
-    assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    else:
+        assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
     # create Restricting Plan again
     plan = [{'Epoch': 1, 'Amount': von_amount(economic.create_staking_limit, 2)}]
     result = client2.restricting.createRestrictingPlan(address2, plan, address1)
@@ -660,7 +661,35 @@ def test_LS_RV_013(client_new_node_obj):
     plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
     result = client.restricting.createRestrictingPlan(address3, plan, address1)
     assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address3)
+    assert_code(restricting_info, 0)
+
+
+@pytest.mark.P1
+def test_LS_RV_014(client_new_node_obj):
+    """
+    同个账号被多个人锁仓
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, 1000)
+    address2, _ = economic.account.generate_account(node.web3, 1000)
+    address3, _ = economic.account.generate_account(node.web3, 0)
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    result = client.restricting.createRestrictingPlan(address3, plan, address1)
+    assert_code(result, 0)
     restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    result = client.restricting.createRestrictingPlan(address3, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address3)
     assert_code(restricting_info, 0)
 
 
