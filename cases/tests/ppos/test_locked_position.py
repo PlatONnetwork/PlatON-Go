@@ -934,8 +934,8 @@ def test_LS_PV_007(client_new_node_obj_list):
     economic = client1.economic
     node = client1.node
     # create account
-    amount1 = von_amount(economic.create_staking_limit, 3)
-    amount2 = client1.node.web3.toWei(1000, 'ether')
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = von_amount(economic.create_staking_limit, 2)
     address1, address2 = create_lock_release_amount(client1, amount1, amount2)
     # create Restricting Plan
     plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
@@ -944,6 +944,7 @@ def test_LS_PV_007(client_new_node_obj_list):
     # create Restricting amount staking
     result = client1.staking.create_staking(1, address2, address2)
     assert_code(result, 0)
+    time.sleep(3)
     # create Free amount staking
     result = client2.staking.create_staking(0, address2, address2)
     assert_code(result, 0)
@@ -955,6 +956,23 @@ def test_LS_PV_007(client_new_node_obj_list):
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
     assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
+
+
+@pytest.mark.P1
+def test_LS_PV_008(client_new_node_obj):
+    """
+    创建计划退回质押-欠释放金额=回退金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan and staking
+    address1, address2 = create_restricting_plan_and_staking(client, economic, node)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
 
 
 
