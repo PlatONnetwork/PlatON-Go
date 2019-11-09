@@ -546,13 +546,17 @@ def create_restricting_plan_and_entrust(client, node, economic):
     log.info("restricting info: {}".format(restricting_info))
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(
+    assert info['Pledge'] == economic.delegate_limit, 'ErrMsg: restricting Pledge amount {}'.format(
         info['Pledge'])
     # wait settlement block
     economic.wait_settlement_blocknum(node)
     log.info("current block: {}".format(node.block_number))
+    # view Restricting Plan
+    restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
-    assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.delegate_limit, 'ErrMsg: restricting debt amount {}'.format(
         info['debt'])
     return address1, address2
 
@@ -773,3 +777,39 @@ def test_LS_RV_018(client_new_node_obj_list, reset_environment):
     plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
     result = client2.restricting.createRestrictingPlan(address1, plan, address1)
     assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_LS_PV_001(client_new_node_obj):
+    """
+    锁仓账户质押正常节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # view restricting info
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting info: {}".format(restricting_info))
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    # create staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    # view restricting info
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting info: {}".format(restricting_info))
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+
+
