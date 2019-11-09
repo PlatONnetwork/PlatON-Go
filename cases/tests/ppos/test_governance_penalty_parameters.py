@@ -201,8 +201,8 @@ def test_PIP_PVF_005(client_con_list_obj, client_new_node_obj_list, reset_enviro
 def adjust_initial_parameters(new_genesis_env):
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.EconomicModel.Staking.UnStakeFreezeDuration = 3
-    genesis.EconomicModel.Slashing.MaxEvidenceAge = 2
+    genesis.economicModel.staking.unStakeFreezeDuration = 3
+    genesis.economicModel.slashing.maxEvidenceAge = 2
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -328,8 +328,8 @@ def test_PIP_PVF_009(new_genesis_env, client_con_list_obj):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.EconomicModel.Staking.UnStakeFreezeDuration = 3
-    genesis.EconomicModel.Slashing.MaxEvidenceAge = 1
+    genesis.economicModel.staking.unStakeFreezeDuration = 3
+    genesis.economicModel.slashing.maxEvidenceAge = 1
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
