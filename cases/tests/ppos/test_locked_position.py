@@ -792,7 +792,7 @@ def test_LS_PV_001(client_new_node_obj):
     # create account
     address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # create Restricting Plan1
+    # create Restricting Plan
     plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
@@ -811,5 +811,23 @@ def test_LS_PV_001(client_new_node_obj):
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
     assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+
+
+@pytest.mark.P1
+def test_LS_PV_002(client_new_node_obj):
+    """
+    创建计划质押-未找到锁仓信息
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 304005)
 
 
