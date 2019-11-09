@@ -1787,17 +1787,20 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		}
 	}
 
-	// remove the validator from epoch verifierList
-	if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIdMap); nil != err {
-		return err
+	if len(invalidNodeIdMap) != 0 {
+		// remove the validator from epoch verifierList
+		if err := sk.removeFromVerifiers(blockNumber, blockHash, invalidNodeIdMap); nil != err {
+			return err
+		}
+
+		// notify gov to do somethings
+		if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIdMap, state); nil != err {
+			log.Error("Failed to SlashCandidates: call NotifyPunishedVerifiers of gov is failed", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIdMap), "err", err)
+			return err
+		}
 	}
 
-	// notify gov to do somethings
-	if err := gov.NotifyPunishedVerifiers(blockHash, invalidNodeIdMap, state); nil != err {
-		log.Error("Failed to SlashCandidates: call NotifyPunishedVerifiers of gov is failed", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "invalidNodeId Size", len(invalidNodeIdMap), "err", err)
-		return err
-	}
 	return nil
 }
 
