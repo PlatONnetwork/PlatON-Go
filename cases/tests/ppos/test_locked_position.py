@@ -706,6 +706,7 @@ def test_LS_RV_015(client_new_node_obj):
     # create staking
     result = client.staking.create_staking(1, address3, address3)
     assert_code(result, 0)
+    return address3
 
 
 @pytest.mark.P1
@@ -729,5 +730,18 @@ def test_LS_RV_016(client_new_node_obj):
     assert_code(result, 0)
 
 
-
+@pytest.mark.P1
+def test_LS_RV_017(client_new_node_obj):
+    """
+    使用多人锁仓金额增持
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address3 = test_LS_RV_015
+    # Apply for additional pledge
+    result = client.staking.increase_staking(1, address3)
+    assert_code(result, 0)
 
