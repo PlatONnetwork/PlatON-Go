@@ -479,7 +479,7 @@ func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	return h.hash(t.root, db, true)
 }
 func (t *Trie) DeepCopyTrie() *Trie {
-	var cpyRoot node
+	cpyRoot := t.root
 	switch n := t.root.(type) {
 	case *shortNode:
 		cpyRoot = n.copy()
@@ -502,8 +502,14 @@ func (t *Trie) copyNode(n node) {
 	switch n := n.(type) {
 	case *shortNode:
 		if _, ok := n.Val.(valueNode); !ok {
-			if hash, dirty := n.cache(); hash != nil && !dirty {
-				n.Val = hash
+			if _, dirty := n.cache(); !dirty {
+				if hash, _ := n.cache(); hash != nil {
+					empty := common.Hash{}
+					if bytes.Equal(hash, empty.Bytes()) {
+						panic("empty")
+					}
+					n.Val = hash
+				}
 			} else {
 				switch child := n.Val.(type) {
 				case *shortNode:
@@ -516,12 +522,18 @@ func (t *Trie) copyNode(n node) {
 		}
 
 	case *fullNode:
-		for i := 0; i < 16; i++ {
+		for i := 0; i < len(n.Children); i++ {
 			if n.Children[i] != nil {
 				if _, ok := n.Children[i].(valueNode); !ok {
 
-					if hash, dirty := n.Children[i].cache(); hash != nil && !dirty {
-						n.Children[i] = hash
+					if _, dirty := n.Children[i].cache(); !dirty {
+						if hash, _ := n.Children[i].cache(); hash != nil {
+							empty := common.Hash{}
+							if bytes.Equal(hash, empty.Bytes()) {
+								panic("empty")
+							}
+							n.Children[i] = hash
+						}
 					} else {
 						switch child := n.Children[i].(type) {
 						case *shortNode:
