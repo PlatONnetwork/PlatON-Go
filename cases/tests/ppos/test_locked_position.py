@@ -1012,3 +1012,52 @@ def test_LS_PV_009(client_new_node_obj_list):
     info = restricting_info['Ret']
     assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
 
+
+@pytest.mark.P1
+def test_LS_PV_010(client_new_node_obj):
+    """
+    创建计划退回质押-锁仓账户余额不足的情况下申请退回质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = node.web3.toWei(0.000009, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    log.info("address amount: {}".format(node.eth.getBalance(address2)))
+    try:
+        # withdrew staking
+        result = client.staking.withdrew_staking(address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_PV_011(client_new_node_obj):
+    """
+    锁仓账户退回质押金中，申请质押节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan and staking
+    address1, address2 = create_restricting_plan_and_staking(client, economic, node)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 301115)
