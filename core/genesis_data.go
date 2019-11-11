@@ -273,20 +273,20 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 
 	account := vm.RewardManagerPoolAddr
 	var (
-		zeroEpoch  = new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-		oneEpoch   = new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18))
-		twoEpoch   = new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18))
-		threeEpoch = new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18))
-		fourEpoch  = new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18))
-		fiveEpoch  = new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18))
-		sixEpoch   = new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18))
-		sevenEpoch = new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18))
-		eightEpoch = new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18))
+		zeroYear  = new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
+		oneYear   = new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18))
+		twoYear   = new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18))
+		threeYear = new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18))
+		fourYear  = new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18))
+		fiveYear  = new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18))
+		sixYear   = new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18))
+		sevenYear = new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18))
+		eightYear = new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18))
 	)
 
-	statedb.SubBalance(xcom.CDFAccount(), zeroEpoch)
-	statedb.AddBalance(account, zeroEpoch)
-	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
+	statedb.SubBalance(xcom.CDFAccount(), zeroYear)
+	statedb.AddBalance(account, zeroYear)
+	needRelease := []*big.Int{oneYear, twoYear, threeYear, fourYear, fiveYear, sixYear, sevenYear, eightYear}
 
 	restrictingPlans := make([]restricting.RestrictingPlan, 0)
 	OneYearEpochs := xutil.EpochsPerYear()

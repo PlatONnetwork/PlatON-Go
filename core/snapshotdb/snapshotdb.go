@@ -149,8 +149,8 @@ func SetDBPathWithNode(path string) {
 	logger.Info("set path", "path", dbpath)
 }
 
-func SetDBBlockChain(n Chain) {
-	blockchain = n
+func SetDBBlockChain(c Chain) {
+	blockchain = c
 	logger.Info("set blockchain")
 }
 

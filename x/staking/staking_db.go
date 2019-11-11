@@ -738,3 +738,15 @@ func (db *StakingDB) LoadRoundValidatorAddrs(blockHash common.Hash, key []byte) 
 	}
 	return value, nil
 }
+
+func (db *StakingDB) SetRoundAddrBoundary(blockHash common.Hash, round uint64) error {
+	return db.put(blockHash, GetRoundAddrBoundaryKey(), common.Uint64ToBytes(round))
+}
+
+func (db *StakingDB) GetRoundAddrBoundary(blockHash common.Hash) (uint64, error) {
+	round, err := db.get(blockHash, GetRoundAddrBoundaryKey())
+	if nil != err {
+		return 0, err
+	}
+	return common.BytesToUint64(round), nil
+}

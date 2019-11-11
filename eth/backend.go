@@ -226,6 +226,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon remove consensusCache
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+
+	currentBlock := eth.blockchain.CurrentBlock()
+	currentNumber := currentBlock.NumberU64()
+	currentHash := currentBlock.Hash()
+	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash)
+	if nil != err {
+		log.Error("Failed to query gasCeil from snapshotdb", "err", err)
+		return nil, err
+	}
+	if config.MinerGasFloor > uint64(gasCeil) {
+		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.MinerGasFloor, "gasCeil", gasCeil)
+		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.MinerGasFloor, gasCeil)
+	}
+
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
 		config.MinerGasFloor /*config.MinerGasCeil,*/, eth.isLocalBlock, blockChainCache)
 

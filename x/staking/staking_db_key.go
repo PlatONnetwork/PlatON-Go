@@ -29,35 +29,37 @@ import (
 )
 
 const (
-	CanBasePrefixStr         = "CanBase"
-	CanMutablePrefixStr      = "CanMut"
-	CanPowerPrefixStr        = "Power"
-	UnStakeCountKeyStr       = "UnStakeCount"
-	UnStakeItemKeyStr        = "UnStakeItem"
-	DelegatePrefixStr        = "Del"
-	EpochIndexKeyStr         = "EpochIndex"
-	EpochValArrPrefixStr     = "EpochValArr"
-	RoundIndexKeyStr         = "RoundIndex"
-	RoundValArrPrefixStr     = "RoundValArr"
-	AccountStakeRcPrefixStr  = "AccStakeRc"
-	PPOSHASHStr              = "PPOSHASH"
-	RoundValAddrArrPrefixStr = "RoundValAddrArr"
+	CanBasePrefixStr           = "CanBase"
+	CanMutablePrefixStr        = "CanMut"
+	CanPowerPrefixStr          = "Power"
+	UnStakeCountKeyStr         = "UnStakeCount"
+	UnStakeItemKeyStr          = "UnStakeItem"
+	DelegatePrefixStr          = "Del"
+	EpochIndexKeyStr           = "EpochIndex"
+	EpochValArrPrefixStr       = "EpochValArr"
+	RoundIndexKeyStr           = "RoundIndex"
+	RoundValArrPrefixStr       = "RoundValArr"
+	AccountStakeRcPrefixStr    = "AccStakeRc"
+	PPOSHASHStr                = "PPOSHASH"
+	RoundValAddrArrPrefixStr   = "RoundValAddrArr"
+	RoundAddrBoundaryPrefixStr = "RoundAddrBoundary"
 )
 
 var (
-	CanBaseKeyPrefix      = []byte(CanBasePrefixStr)
-	CanMutableKeyPrefix   = []byte(CanMutablePrefixStr)
-	CanPowerKeyPrefix     = []byte(CanPowerPrefixStr)
-	UnStakeCountKey       = []byte(UnStakeCountKeyStr)
-	UnStakeItemKey        = []byte(UnStakeItemKeyStr)
-	DelegateKeyPrefix     = []byte(DelegatePrefixStr)
-	EpochIndexKey         = []byte(EpochIndexKeyStr)
-	EpochValArrPrefix     = []byte(EpochValArrPrefixStr)
-	RoundIndexKey         = []byte(RoundIndexKeyStr)
-	RoundValArrPrefix     = []byte(RoundValArrPrefixStr)
-	AccountStakeRcPrefix  = []byte(AccountStakeRcPrefixStr)
-	PPOSHASHKey           = []byte(PPOSHASHStr)
-	RoundValAddrArrPrefix = []byte(RoundValAddrArrPrefixStr)
+	CanBaseKeyPrefix        = []byte(CanBasePrefixStr)
+	CanMutableKeyPrefix     = []byte(CanMutablePrefixStr)
+	CanPowerKeyPrefix       = []byte(CanPowerPrefixStr)
+	UnStakeCountKey         = []byte(UnStakeCountKeyStr)
+	UnStakeItemKey          = []byte(UnStakeItemKeyStr)
+	DelegateKeyPrefix       = []byte(DelegatePrefixStr)
+	EpochIndexKey           = []byte(EpochIndexKeyStr)
+	EpochValArrPrefix       = []byte(EpochValArrPrefixStr)
+	RoundIndexKey           = []byte(RoundIndexKeyStr)
+	RoundValArrPrefix       = []byte(RoundValArrPrefixStr)
+	AccountStakeRcPrefix    = []byte(AccountStakeRcPrefixStr)
+	PPOSHASHKey             = []byte(PPOSHASHStr)
+	RoundValAddrArrPrefix   = []byte(RoundValAddrArrPrefixStr)
+	RoundAddrBoundaryPrefix = []byte(RoundAddrBoundaryPrefixStr)
 
 	b104Len = len(math.MaxBig104.Bytes())
 )
@@ -235,4 +237,8 @@ func GetPPOSHASHKey() []byte {
 
 func GetRoundValAddrArrKey(round uint64) []byte {
 	return append(RoundValAddrArrPrefix, common.Uint64ToBytes(round)...)
+}
+
+func GetRoundAddrBoundaryKey() []byte {
+	return RoundAddrBoundaryPrefix
 }

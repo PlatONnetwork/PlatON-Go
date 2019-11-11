@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from dacite import from_dict
-from .utils import wait_block_number
+from .utils import wait_block_number, get_pledge_list
 from environment.node import Node
 from .genesis import Genesis
 from common.key import get_pub_key
@@ -23,14 +23,14 @@ class Economic:
         self.interval = int((self.genesis.config.cbft.period / self.per_round_blocks) / 1000)
 
         # Length of additional issuance cycle
-        self.additional_cycle_time = self.genesis.EconomicModel.Common.AdditionalCycleTime
+        self.additional_cycle_time = self.genesis.economicModel.common.additionalCycleTime
 
         # Number of verification
-        self.validator_count = self.genesis.EconomicModel.Common.MaxConsensusVals
+        self.validator_count = self.genesis.economicModel.common.maxConsensusVals
 
         # Billing related
         # Billing cycle
-        self.expected_minutes = self.genesis.EconomicModel.Common.MaxEpochMinutes
+        self.expected_minutes = self.genesis.economicModel.common.maxEpochMinutes
         # Consensus rounds
         self.consensus_wheel = (self.expected_minutes * 60) // (
                     self.interval * self.per_round_blocks * self.validator_count)
@@ -41,19 +41,19 @@ class Economic:
 
         # Minimum amount limit
         # Minimum deposit amount
-        self.create_staking_limit = self.genesis.EconomicModel.Staking.StakeThreshold
+        self.create_staking_limit = self.genesis.economicModel.staking.stakeThreshold
         # Minimum holding amount
-        self.add_staking_limit = self.genesis.EconomicModel.Staking.OperatingThreshold
+        self.add_staking_limit = self.genesis.economicModel.staking.operatingThreshold
         # Minimum commission amount
         self.delegate_limit = self.add_staking_limit
         # unstaking freeze duration
-        self.unstaking_freeze_ratio = self.genesis.EconomicModel.Staking.UnStakeFreezeDuration
+        self.unstaking_freeze_ratio = self.genesis.economicModel.staking.unStakeFreezeDuration
         #ParamProposalVote_DurationSeconds
-        self.pp_vote_settlement_wheel = self.genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds // (
+        self.pp_vote_settlement_wheel = self.genesis.economicModel.gov.paramProposalVoteDurationSeconds // (
                 (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
         )
         #slash blocks reward
-        self.slash_blocks_reward = self.genesis.EconomicModel.Slashing.SlashBlocksReward
+        self.slash_blocks_reward = self.genesis.economicModel.slashing.slashBlocksReward
 
 
     @property
@@ -79,11 +79,11 @@ class Economic:
         Get the first year of the block reward, pledge reward
         :return:
         """
-        new_block_rate = self.genesis.EconomicModel.Reward.NewBlockRate
+        new_block_rate = self.genesis.economicModel.reward.newBlockRate
         annualcycle, annual_size, current_end_block = self.get_annual_switchpoint(node)
         if verifier_num is None:
-            verifier_list = node.ppos.getVerifierList()
-            verifier_num = len(verifier_list['Ret'])
+            verifier_list = get_pledge_list(node.ppos.getVerifierList)
+            verifier_num = len(verifier_list)
         print('verifier_num', verifier_num)
         amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, 0)
         block_proportion = str(new_block_rate / 100)
@@ -116,7 +116,7 @@ class Economic:
         """
         block_num = self.settlement_size * (number + 1)
         current_end_block = self.get_settlement_switchpoint(node)
-        history_block = current_end_block - block_num
+        history_block = current_end_block - block_num + 1
         return history_block
 
     def wait_settlement_blocknum(self, node: Node, number=0):
@@ -133,7 +133,7 @@ class Economic:
         """
         Get the number of annual settlement cycles
         """
-        annual_cycle = (self.additional_cycle_time * 60) // (self.settlement_size * self.interval)
+        annual_cycle = (self.additional_cycle_time * 60) // self.settlement_size
         annualsize = annual_cycle * self.settlement_size
         current_block = node.eth.blockNumber
         current_end_block = math.ceil(current_block / annualsize) * annualsize
@@ -164,6 +164,21 @@ class Economic:
         current_block = node.eth.blockNumber
         current_end_block = math.ceil(current_block / self.consensus_size) * self.consensus_size + block_number
         return current_end_block
+
+    def get_report_reward(self, amount, penalty_ratio=None, proportion_ratio=None):
+        """
+        Gain income from double sign whistleblower and incentive pool
+        :param node:
+        :return:
+        """
+        if penalty_ratio is None:
+            penalty_ratio = self.genesis.economicModel.slashing.slashFractionDuplicateSign
+        if proportion_ratio is None:
+            proportion_ratio = self.genesis.economicModel.slashing.duplicateSignReportReward
+        penalty_reward = int(Decimal(str(amount)) * Decimal(str(penalty_ratio / 10000)))
+        proportion_reward = int(Decimal(str(penalty_reward)) * Decimal(str(proportion_ratio / 100)))
+        incentive_pool_reward = penalty_reward - proportion_reward
+        return proportion_reward, incentive_pool_reward
 
 
 if __name__ == '__main__':

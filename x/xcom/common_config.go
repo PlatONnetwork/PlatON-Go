@@ -68,65 +68,64 @@ var (
 )
 
 type commonConfig struct {
-	MaxEpochMinutes     uint64 // expected minutes every epoch
-	NodeBlockTimeWindow uint64 // Node block time window (uint: seconds)
-	PerRoundBlocks      uint64 // blocks each validator will create per consensus epoch
-	MaxConsensusVals    uint64 // The consensus validators count
-	AdditionalCycleTime uint64 // Additional cycle time (uint: minutes)
+	MaxEpochMinutes     uint64 `json:"maxEpochMinutes"`     // expected minutes every epoch
+	NodeBlockTimeWindow uint64 `json:"nodeBlockTimeWindow"` // Node block time window (uint: seconds)
+	PerRoundBlocks      uint64 `json:"perRoundBlocks"`      // blocks each validator will create per consensus epoch
+	MaxConsensusVals    uint64 `json:"maxConsensusVals"`    // The consensus validators count
+	AdditionalCycleTime uint64 `json:"additionalCycleTime"` // Additional cycle time (uint: minutes)
 }
 
 type stakingConfig struct {
-	StakeThreshold        *big.Int // The Staking minimum threshold allowed
-	OperatingThreshold    *big.Int // The (incr, decr) delegate or incr staking minimum threshold allowed
-	MaxValidators         uint64   // The epoch (billing cycle) validators count
-	HesitateRatio         uint64   // Each hesitation period is a multiple of the epoch
-	UnStakeFreezeDuration uint64   // The freeze period of the withdrew Staking (unit is  epochs)
+	StakeThreshold        *big.Int `json:"stakeThreshold"`        // The Staking minimum threshold allowed
+	OperatingThreshold    *big.Int `json:"operatingThreshold"`    // The (incr, decr) delegate or incr staking minimum threshold allowed
+	MaxValidators         uint64   `json:"maxValidators"`         // The epoch (billing cycle) validators count
+	HesitateRatio         uint64   `json:"hesitateRatio"`         // Each hesitation period is a multiple of the epoch
+	UnStakeFreezeDuration uint64   `json:"unStakeFreezeDuration"` // The freeze period of the withdrew Staking (unit is  epochs)
 }
 
 type slashingConfig struct {
-	SlashFractionDuplicateSign uint32 // Proportion of fines when double signing occurs
-	DuplicateSignReportReward  uint32 // The percentage of rewards for whistleblowers, calculated from the penalty
-	MaxEvidenceAge             uint32 // Validity period of evidence (unit is  epochs)
-	SlashBlocksReward          uint32 // the number of blockReward to slashing per round
+	SlashFractionDuplicateSign uint32 `json:"slashFractionDuplicateSign"` // Proportion of fines when double signing occurs
+	DuplicateSignReportReward  uint32 `json:"duplicateSignReportReward"`  // The percentage of rewards for whistleblowers, calculated from the penalty
+	MaxEvidenceAge             uint32 `json:"maxEvidenceAge"`             // Validity period of evidence (unit is  epochs)
+	SlashBlocksReward          uint32 `json:"slashBlocksReward"`          // the number of blockReward to slashing per round
 
 }
 
 type governanceConfig struct {
-	VersionProposalVote_DurationSeconds uint64 // voting duration, it will count into Consensus-Round.
-	//VersionProposalActive_ConsensusRounds uint64  // default Consensus-Round counts for version proposal's active duration.
-	VersionProposal_SupportRate       float64 // the version proposal will pass if the support rate exceeds this value.
-	TextProposalVote_DurationSeconds  uint64  // voting duration, it will count into Consensus-Round.
-	TextProposal_VoteRate             float64 // the text proposal will pass if the vote rate exceeds this value.
-	TextProposal_SupportRate          float64 // the text proposal will pass if the vote support reaches this value.
-	CancelProposal_VoteRate           float64 // the cancel proposal will pass if the vote rate exceeds this value.
-	CancelProposal_SupportRate        float64 // the cancel proposal will pass if the vote support reaches this value.
-	ParamProposalVote_DurationSeconds uint64  // voting duration, it will count into Epoch Round.
-	ParamProposal_VoteRate            float64 // the param proposal will pass if the vote rate exceeds this value.
-	ParamProposal_SupportRate         float64 // the param proposal will pass if the vote support reaches this value.
+	VersionProposalVoteDurationSeconds uint64  `json:"versionProposalVoteDurationSeconds"` // voting duration, it will count into Consensus-Round.
+	VersionProposalSupportRate         float64 `json:"versionProposalSupportRate"`         // the version proposal will pass if the support rate exceeds this value.
+	TextProposalVoteDurationSeconds    uint64  `json:"textProposalVoteDurationSeconds"`    // voting duration, it will count into Consensus-Round.
+	TextProposalVoteRate               float64 `json:"textProposalVoteRate"`               // the text proposal will pass if the vote rate exceeds this value.
+	TextProposalSupportRate            float64 `json:"textProposalSupportRate"`            // the text proposal will pass if the vote support reaches this value.
+	CancelProposalVoteRate             float64 `json:"cancelProposalVoteRate"`             // the cancel proposal will pass if the vote rate exceeds this value.
+	CancelProposalSupportRate          float64 `json:"cancelProposalSupportRate"`          // the cancel proposal will pass if the vote support reaches this value.
+	ParamProposalVoteDurationSeconds   uint64  `json:"paramProposalVoteDurationSeconds"`   // voting duration, it will count into Epoch Round.
+	ParamProposalVoteRate              float64 `json:"paramProposalVoteRate"`              // the param proposal will pass if the vote rate exceeds this value.
+	ParamProposalSupportRate           float64 `json:"paramProposalSupportRate"`           // the param proposal will pass if the vote support reaches this value.
 }
 
 type rewardConfig struct {
-	NewBlockRate         uint64 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear uint32 // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	NewBlockRate         uint64 `json:"newBlockRate"`         // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
+	PlatONFoundationYear uint32 `json:"platonFoundationYear"` // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 }
 
 type innerAccount struct {
 	// Account of PlatONFoundation
-	PlatONFundAccount common.Address
-	PlatONFundBalance *big.Int
+	PlatONFundAccount common.Address `json:"platonFundAccount"`
+	PlatONFundBalance *big.Int       `json:"platonFundBalance"`
 	// Account of CommunityDeveloperFoundation
-	CDFAccount common.Address
-	CDFBalance *big.Int
+	CDFAccount common.Address `json:"cdfAccount"`
+	CDFBalance *big.Int       `json:"cdfBalance"`
 }
 
 // total
 type EconomicModel struct {
-	Common   commonConfig
-	Staking  stakingConfig
-	Slashing slashingConfig
-	Gov      governanceConfig
-	Reward   rewardConfig
-	InnerAcc innerAccount
+	Common   commonConfig     `json:"common"`
+	Staking  stakingConfig    `json:"staking"`
+	Slashing slashingConfig   `json:"slashing"`
+	Gov      governanceConfig `json:"gov"`
+	Reward   rewardConfig     `json:"reward"`
+	InnerAcc innerAccount     `json:"innerAcc"`
 }
 
 var (
@@ -186,17 +185,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
+				VersionProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
 				//VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposal_SupportRate:       float64(0.667),
-				TextProposalVote_DurationSeconds:  uint64(14 * 24 * 3600),
-				TextProposal_VoteRate:             float64(0.50),
-				TextProposal_SupportRate:          float64(0.667),
-				CancelProposal_VoteRate:           float64(0.50),
-				CancelProposal_SupportRate:        float64(0.667),
-				ParamProposalVote_DurationSeconds: uint64(14 * 24 * 3600),
-				ParamProposal_VoteRate:            float64(0.50),
-				ParamProposal_SupportRate:         float64(0.667),
+				VersionProposalSupportRate:       float64(0.667),
+				TextProposalVoteDurationSeconds:  uint64(14 * 24 * 3600),
+				TextProposalVoteRate:             float64(0.50),
+				TextProposalSupportRate:          float64(0.667),
+				CancelProposalVoteRate:           float64(0.50),
+				CancelProposalSupportRate:        float64(0.667),
+				ParamProposalVoteDurationSeconds: uint64(14 * 24 * 3600),
+				ParamProposalVoteRate:            float64(0.50),
+				ParamProposalSupportRate:         float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -233,17 +232,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(160),
+				VersionProposalVoteDurationSeconds: uint64(160),
 				//VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposal_SupportRate:       float64(0.667),
-				TextProposalVote_DurationSeconds:  uint64(160),
-				TextProposal_VoteRate:             float64(0.50),
-				TextProposal_SupportRate:          float64(0.667),
-				CancelProposal_VoteRate:           float64(0.50),
-				CancelProposal_SupportRate:        float64(0.667),
-				ParamProposalVote_DurationSeconds: uint64(160),
-				ParamProposal_VoteRate:            float64(0.50),
-				ParamProposal_SupportRate:         float64(0.667),
+				VersionProposalSupportRate:       float64(0.667),
+				TextProposalVoteDurationSeconds:  uint64(160),
+				TextProposalVoteRate:             float64(0.50),
+				TextProposalSupportRate:          float64(0.667),
+				CancelProposalVoteRate:           float64(0.50),
+				CancelProposalSupportRate:        float64(0.667),
+				ParamProposalVoteDurationSeconds: uint64(160),
+				ParamProposalVoteRate:            float64(0.50),
+				ParamProposalSupportRate:         float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -261,7 +260,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is test net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				MaxEpochMinutes:     uint64(3),  // 3 minutes
+				MaxEpochMinutes:     uint64(4),  // 3 minutes
 				NodeBlockTimeWindow: uint64(10), // 10 seconds
 				PerRoundBlocks:      uint64(10),
 				MaxConsensusVals:    uint64(4),
@@ -281,17 +280,17 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashBlocksReward:          uint32(0),
 			},
 			Gov: governanceConfig{
-				VersionProposalVote_DurationSeconds: uint64(160),
+				VersionProposalVoteDurationSeconds: uint64(160),
 				//VersionProposalActive_ConsensusRounds: uint64(5),
-				VersionProposal_SupportRate:       float64(0.667),
-				TextProposalVote_DurationSeconds:  uint64(160),
-				TextProposal_VoteRate:             float64(0.50),
-				TextProposal_SupportRate:          float64(0.667),
-				CancelProposal_VoteRate:           float64(0.50),
-				CancelProposal_SupportRate:        float64(0.667),
-				ParamProposalVote_DurationSeconds: uint64(160),
-				ParamProposal_VoteRate:            float64(0.50),
-				ParamProposal_SupportRate:         float64(0.667),
+				VersionProposalSupportRate:       float64(0.667),
+				TextProposalVoteDurationSeconds:  uint64(160),
+				TextProposalVoteRate:             float64(0.50),
+				TextProposalSupportRate:          float64(0.667),
+				CancelProposalVoteRate:           float64(0.50),
+				CancelProposalSupportRate:        float64(0.667),
+				ParamProposalVoteDurationSeconds: uint64(160),
+				ParamProposalVoteRate:            float64(0.50),
+				ParamProposalSupportRate:         float64(0.667),
 			},
 			Reward: rewardConfig{
 				NewBlockRate:         50,
@@ -384,7 +383,7 @@ func CheckEconomicModel() error {
 	//real epoch duration
 	realEpochDuration := epochSize * roundDuration
 
-	log.Info("Call CheckEconomicModel: check epoch and consensus round", "config epoch duration", fmt.Sprintf("%d s", epochDuration),
+	log.Info("Call CheckEconomicModel: check epoch and consensus round,", "config epoch duration", fmt.Sprintf("%d s", epochDuration),
 		"perblock duration", fmt.Sprintf("%d s", blockDuration), "round duration", fmt.Sprintf("%d s", roundDuration),
 		"real epoch duration", fmt.Sprintf("%d s", realEpochDuration), "consensus count of epoch", epochSize)
 
@@ -397,7 +396,7 @@ func CheckEconomicModel() error {
 	// realAdditionalCycleDuration
 	realAdditionalCycleDuration := additionalCycleSize * realEpochDuration / 60
 
-	log.Info("Call CheckEconomicModel: additional cycle and epoch", "config additional cycle duration", fmt.Sprintf("%d min", ec.Common.AdditionalCycleTime),
+	log.Info("Call CheckEconomicModel: additional cycle and epoch,", "config additional cycle duration", fmt.Sprintf("%d min", ec.Common.AdditionalCycleTime),
 		"real additional cycle duration", fmt.Sprintf("%d min", realAdditionalCycleDuration), "epoch count of additional cycle", additionalCycleSize)
 
 	if additionalCycleSize < 4 {
@@ -554,11 +553,11 @@ func PlatONFoundationYear() uint32 {
  * Governance config
  ******/
 /*func VersionProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.VersionProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
+	return ec.Gov.VersionProposalVoteDurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
 }*/
 
 func VersionProposalVote_DurationSeconds() uint64 {
-	return ec.Gov.VersionProposalVote_DurationSeconds
+	return ec.Gov.VersionProposalVoteDurationSeconds
 }
 
 /*func VersionProposalActive_ConsensusRounds() uint64 {
@@ -566,41 +565,41 @@ func VersionProposalVote_DurationSeconds() uint64 {
 }*/
 
 func VersionProposal_SupportRate() float64 {
-	return ec.Gov.VersionProposal_SupportRate
+	return ec.Gov.VersionProposalSupportRate
 }
 
 /*func TextProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.TextProposalVote_DurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
+	return ec.Gov.TextProposalVoteDurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
 }*/
 func TextProposalVote_DurationSeconds() uint64 {
-	return ec.Gov.TextProposalVote_DurationSeconds
+	return ec.Gov.TextProposalVoteDurationSeconds
 }
 func TextProposal_VoteRate() float64 {
-	return ec.Gov.TextProposal_VoteRate
+	return ec.Gov.TextProposalVoteRate
 }
 
 func TextProposal_SupportRate() float64 {
-	return ec.Gov.TextProposal_SupportRate
+	return ec.Gov.TextProposalSupportRate
 }
 
 func CancelProposal_VoteRate() float64 {
-	return ec.Gov.CancelProposal_VoteRate
+	return ec.Gov.CancelProposalVoteRate
 }
 
 func CancelProposal_SupportRate() float64 {
-	return ec.Gov.CancelProposal_SupportRate
+	return ec.Gov.CancelProposalSupportRate
 }
 
 func ParamProposalVote_DurationSeconds() uint64 {
-	return ec.Gov.ParamProposalVote_DurationSeconds
+	return ec.Gov.ParamProposalVoteDurationSeconds
 }
 
 func ParamProposal_VoteRate() float64 {
-	return ec.Gov.ParamProposal_VoteRate
+	return ec.Gov.ParamProposalVoteRate
 }
 
 func ParamProposal_SupportRate() float64 {
-	return ec.Gov.ParamProposal_SupportRate
+	return ec.Gov.ParamProposalSupportRate
 }
 
 /******

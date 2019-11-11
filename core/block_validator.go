@@ -112,9 +112,13 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 	govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash)
 	if nil != err {
 		log.Error("cannot find GasLimit from govern", "err", err)
-		gasCeil = uint64(params.DefaultMinerGasFloor) // 100800000
+		gasCeil = uint64(params.DefaultMinerGasFloor)
 	} else {
 		gasCeil = uint64(govGasCeil)
+	}
+
+	if gasFloor > gasCeil {
+		gasFloor = gasCeil
 	}
 
 	// contrib = (parentGasUsed * 3 / 2) / 256
@@ -131,9 +135,9 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 		from parentGasLimit * (2/3) parentGasUsed is.
 	*/
 	limit := parent.GasLimit() - decay + contrib
-	if limit < params.MinGasLimit {
+	/*if limit < params.MinGasLimit {
 		limit = params.MinGasLimit
-	}
+	}*/
 	// If we're outside our allowed gas range, we try to hone towards them
 	if limit < gasFloor {
 		limit = parent.GasLimit() + decay
@@ -146,6 +150,6 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 			limit = gasCeil
 		}
 	}
-	log.Info("Call CalcGasLimit", "blockNumber", parent.Number().Uint64()+1, "gasFloor", gasFloor, "gasCeil", gasCeil, "limit", limit)
+	log.Info("Call CalcGasLimit", "blockNumber", parent.Number().Uint64()+1, "gasFloor", gasFloor, "gasCeil", gasCeil, "parentLimit", parent.GasLimit(), "limit", limit)
 	return limit
 }

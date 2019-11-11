@@ -239,7 +239,8 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 	setVerifierList(blockHash, epochArr)
 	setRoundValList(blockHash, preArr)
 	setRoundValList(blockHash, curArr)
-	stk.storeRoundValidatorAddrs(blockNumber, blockHash, 1, queue)
+	err := stk.storeRoundValidatorAddrs(blockNumber, blockHash, 1, queue)
+	assert.Nil(t, err, fmt.Sprintf("Failed to storeRoundValidatorAddrs, err: %v", err))
 	balance, ok := new(big.Int).SetString("9999999999999999999999999999999999999999999999999", 10)
 	if !ok {
 		panic("set balance fail")
