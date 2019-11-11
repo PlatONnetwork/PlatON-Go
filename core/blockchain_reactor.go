@@ -181,15 +181,11 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 		return
 	}
 
-	//nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	nodeIdAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to SetWorkerCoinBase: parse current nodeId is failed", "err", err)
 		panic(fmt.Sprintf("parse current nodeId is failed: %s", err.Error()))
 	}
-
-	log.Info("Call SetWorkerCoinBase on blockchain_reactor", "blockNumber", header.Number,
-		"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex())
 
 	if plu, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
 		stake := plu.(*plugin.StakingPlugin)
@@ -235,7 +231,6 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		if nil != err {
 			return err
 		}
-		//log.Debug("BeginBlock verifyVrf", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(sealHash), "nodeId", discover.PubkeyID(pk).String())
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
 		}
