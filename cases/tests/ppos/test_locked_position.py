@@ -1145,7 +1145,26 @@ def test_LS_EV_001(client_new_node_obj):
         info['Pledge'])
 
 
-
+@pytest.mark.P1
+def test_LS_EV_002(client_new_node_obj):
+    """
+    创建计划委托-未找到锁仓信息
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = client.node.web3.toWei(1000, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 304005)
 
 
 
