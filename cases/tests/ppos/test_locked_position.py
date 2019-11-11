@@ -1120,6 +1120,9 @@ def create_free_pledge(client, economic):
     plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
+    # view Restricting Plan informtion
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("Restricting Plan informtion: {}".format(restricting_info))
     # create staking
     result = client.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
@@ -1434,7 +1437,7 @@ def test_LS_EV_014(client_new_node_obj_list, reset_environment):
 @pytest.mark.P2
 def test_LS_EV_015(client_new_node_obj):
     """
-    创建计划委托-锁仓账户余额不足的情况下申请委托
+    创建计划委托-锁仓账户余额为0的情况下申请委托
     :param client_new_node_obj:
     :return:
     """
@@ -1592,8 +1595,9 @@ def test_LS_EV_021(client_new_node_obj):
     assert info['debt'] == von_amount(economic.delegate_limit, 5), "rrMsg: restricting debt amount {}".format(
         info['debt'])
     # Application for Commission
-    delegate_amount = von_amount(economic.delegate_limit, 5)
-    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    delegate_amount2 = von_amount(economic.delegate_limit, 5)
+    print('delegate_amount2', delegate_amount2)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount2)
     assert_code(result, 0)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 10)
@@ -1603,3 +1607,39 @@ def test_LS_EV_021(client_new_node_obj):
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
     assert_code(restricting_info, 304005)
+
+
+@pytest.mark.P1
+def test_LS_EV_022(client_new_node_obj):
+    """
+    创建计划退回委托-锁仓账户余额不足的情况下申请退回委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = node.web3.toWei(0.000006, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 0)
+    try:
+        # get Pledge node information
+        candidate_info = client.ppos.getCandidateInfo(node.node_id)
+        info = candidate_info['Ret']
+        staking_blocknum = info['StakingBlockNum']
+        # withdrew delegate
+        result = client.delegate.withdrew_delegate(staking_blocknum, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
