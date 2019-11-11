@@ -1514,3 +1514,30 @@ def test_LS_EV_018(client_new_node_obj):
     assert_code(result, 301113)
 
 
+@pytest.mark.P1
+def test_LS_EV_019(client_new_node_obj):
+    """
+    创建计划退回委托-欠释放金额>赎回委托金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan informtion
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit, 10), "rrMsg: restricting debt amount {}".format(info['debt'])
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 5)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting plan informtion again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit, 10) - redemption_amount, "rrMsg: restricting debt amount {}".format(info['debt'])
