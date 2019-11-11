@@ -610,7 +610,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     slash_blocks = get_governable_parameter_value(client1, 'SlashBlocksReward')
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # stop node
-    client1.node.stop()
+    node.stop()
     # Waiting 2 consensus block
     client2.economic.wait_consensus_blocknum(client2.node, 2)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
@@ -1404,3 +1404,28 @@ def test_LS_EV_013(client_new_node_obj):
     log.info("restricting plan information: {}".format(restricting_info))
     info = restricting_info['Ret']
     assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+
+
+@pytest.mark.P2
+def test_LS_EV_014(client_new_node_obj_list, reset_environment):
+    """
+    锁仓账户委托节点状态异常验证人（节点已挂）
+    :param client_new_node_obj_list:
+    :param reset_environment:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create free pledge
+    address2 = create_free_pledge(client1, economic)
+    # stop pledge node
+    node.stop()
+    # Wait for the consensus round to end
+    client2.economic.wait_consensus_blocknum()
+    # Application for Commission
+    result = client2.delegate.delegate(1, address2, node_id=node.node_id)
+    assert_code(result, 0)
