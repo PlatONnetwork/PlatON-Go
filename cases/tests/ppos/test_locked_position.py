@@ -1227,7 +1227,7 @@ def test_LS_EV_006(client_new_node_obj):
     amount1 = von_amount(economic.create_staking_limit, 2)
     address1, address2 = create_lock_release_amount(client, amount1, 0)
     # create Restricting Plan
-    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
     assert_code(result, 0)
     # create staking
@@ -1239,3 +1239,23 @@ def test_LS_EV_006(client_new_node_obj):
         assert_code(result, 0)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_EV_007(client_new_node_obj):
+    """
+    创建计划委托-锁仓计划委托金额<0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    try:
+        # Application for Commission
+        delegate_amount = von_amount(economic.delegate_limit, 0.8)
+        result = client.delegate.delegate(1, address2, amount=delegate_amount)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
