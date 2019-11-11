@@ -1960,3 +1960,21 @@ def test_LS_CSV_009(client_new_node_obj):
     delegate_amount = von_amount(economic.delegate_limit, 5)
     result = client.staking.increase_staking(1, address2, amount=delegate_amount)
     assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_010(client_new_node_obj):
+    """
+    锁仓账户和释放账户不是同一个账号进行委托（委托金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address2 = restricting_plan_verification_delegate(client, economic, node)
+    # Additional pledge
+    delegate_amount = von_amount(economic.delegate_limit, 15)
+    result = client.staking.increase_staking(1, address2, amount=delegate_amount)
+    assert_code(result, 304013)
