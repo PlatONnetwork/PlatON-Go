@@ -1259,3 +1259,19 @@ def test_LS_EV_007(client_new_node_obj):
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
 
+
+@pytest.mark.P1
+def test_LS_EV_008(client_new_node_obj):
+    """
+    创建计划委托-锁仓计划委托金额=0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2, amount=0)
+    assert_code(result, 301105)
+
+
