@@ -31,6 +31,16 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
+type CallResultType byte
+
+const (
+	ResultTypeStruct    CallResultType = 0
+	ResultTypeSlice     CallResultType = 1
+	ResultTypeMap       CallResultType = 2
+	ResultTypeInterface CallResultType = 3
+	ResultTypeNonNil    CallResultType = 4
+)
+
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
 // requires a deterministic gas count based on the input size of the Run method of the
 // contract.
