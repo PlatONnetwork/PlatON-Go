@@ -1836,6 +1836,9 @@ def restricting_plan_verification_add_staking(client, economic, node):
     plan = [{'Epoch': 1, 'Amount': amount}]
     result = client.restricting.createRestrictingPlan(address1, plan, address1)
     assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
     return address1
 
 
@@ -1872,7 +1875,37 @@ def test_LS_CSV_006(client_new_node_obj):
     # Additional pledge
     increase_amount = von_amount(economic.delegate_limit, 15)
     result = client.staking.increase_staking(1, address1, amount=increase_amount)
-    assert_code(result, 301111)
+    assert_code(result, 304013)
 
 
+def restricting_plan_verification_add_staking2(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create Restricting Plan
+    amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    return address2
 
+
+@pytest.mark.P1
+def test_LS_CSV_007(client_new_node_obj):
+    """
+    锁仓账户和释放账户不同时进行质押（增持质押金额小于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address2 = restricting_plan_verification_add_staking(client, economic, node)
+    # Additional pledge
+    increase_amount = von_amount(economic.add_staking_limit, 5)
+    result = client.staking.increase_staking(1, address2, amount=increase_amount)
+    assert_code(result, 0)
