@@ -1374,5 +1374,33 @@ def test_LS_EV_012(client_new_node_obj):
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 0.8)
     result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
-    assert_code(result, 0)
+    assert_code(result, 301108)
 
+
+@pytest.mark.P1
+def test_LS_EV_013(client_new_node_obj):
+    """
+    锁仓赎回委托后剩余委托小于委托最低门槛
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 2)
+    # view restricting plan information
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan information: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['Pledge'] == von_amount(economic.delegate_limit, 2), 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 1.5)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting plan information again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan information: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
