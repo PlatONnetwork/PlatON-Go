@@ -1209,7 +1209,33 @@ def test_LS_EV_005(client_new_node_obj):
     address2 = create_free_pledge(client, economic)
     # Application for Commission
     delegate_amount = von_amount(economic.delegate_limit, 0.8)
-    result = client.delegate.delegate(1, address2,amount=delegate_amount)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
     assert_code(result, 301105)
 
 
+@pytest.mark.P1
+def test_LS_EV_006(client_new_node_obj):
+    """
+    有锁仓可用金额，但是账户余额为0的情况下申请委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    address1, address2 = create_lock_release_amount(client, amount1, 0)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    try:
+        # Application for Commission
+        result = client.delegate.delegate(1, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
