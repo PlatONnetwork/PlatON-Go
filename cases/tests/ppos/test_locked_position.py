@@ -1646,8 +1646,8 @@ def test_LS_EV_022(client_new_node_obj):
 
 def create_restricting_increase_staking(client, economic, node):
     # create account
-    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create Restricting Plan1
     add_staking_amount = von_amount(economic.add_staking_limit, 10)
     plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
@@ -1656,7 +1656,7 @@ def create_restricting_increase_staking(client, economic, node):
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
     # create staking
-    result = client.staking.create_staking(0, address1, address1)
+    result = client.staking.create_staking(0, address2, address2)
     assert_code(result, 0)
     return address2
 
@@ -1689,8 +1689,8 @@ def test_LS_IV_002(client_new_node_obj):
     node = client.node
     # create account
     address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    address2, _ = economic.account.generate_account(node.web3, 0)
-    # create Restricting Plan1
+    address2, _ = economic.account.generate_account(node.web3, economic.create_staking_limit + node.web3.toWei(0.000009,'ether'))
+    # create Restricting Plan
     add_staking_amount = von_amount(economic.add_staking_limit, 10)
     plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
     result = client.restricting.createRestrictingPlan(address2, plan, address1)
@@ -1706,6 +1706,31 @@ def test_LS_IV_002(client_new_node_obj):
         assert_code(result, 0)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_IV_003(client_new_node_obj_list, reset_environment):
+    """
+    锁仓账户增持状态异常验证人（节点已挂）
+    :param client_new_node_obj_list:
+    :param reset_environment:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # Create restricting plan and free pledge
+    address2 = create_restricting_increase_staking(client1, economic, node)
+    # stop pledge node
+    node.stop()
+    # Wait for the consensus round to end
+    client2.economic.wait_consensus_blocknum(client2.node)
+    # Create pledge of increasing holding
+    result = client2.staking.increase_staking(1, address2)
+    assert_code(result, 0)
 
 
 
