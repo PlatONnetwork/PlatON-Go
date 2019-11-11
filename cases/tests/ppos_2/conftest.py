@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
-from copy import copy
 
 
 
-@pytest.fixture()
-def new_env(global_test_env):
-    """Get a new global_test_env"""
-    cfg_copy = copy(global_test_env.cfg)
-    yield cfg_copy
-    global_test_env.set_cfg(cfg_copy)
-    # cfg_copy.deploy_all()
 
 
 @pytest.fixture()

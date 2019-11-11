@@ -20,7 +20,7 @@ def staking_obj(global_test_env):
 
 
 @pytest.mark.P0
-def test_IT_IA_002_to_007(new_genesis_env, reset_environment):
+def test_IT_IA_002_to_007(new_genesis_env):
     """
     IT_IA_002:链初始化-查看token发行总量账户初始值
     IT_IA_003:链初始化-查看platON基金会账户初始值
@@ -36,7 +36,7 @@ def test_IT_IA_002_to_007(new_genesis_env, reset_environment):
     node = new_genesis_env.get_rand_node()
     community_amount = default_pledge_amount + 259096239000000000000000000 + 62215742000000000000000000
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.EconomicModel.InnerAcc.CDFBalance = community_amount
+    genesis.economicModel.innerAcc.cdfBalance = community_amount
     surplus_amount = str(EconomicConfig.TOKEN_TOTAL - community_amount - 200000000000000000000000000)
     genesis.alloc = {
         "1000000000000000000000000000000000000003": {
@@ -297,7 +297,7 @@ def test_AL_IE_004(client_new_node_obj_list):
                                                                                client_new_node_obj_list[
                                                                                    1].economic.create_staking_limit * 2)
     log.info("staking address: {}".format(address))
-    # Create lock plan
+    # Create restricting plan
     staking_amount = client_new_node_obj_list[1].economic.create_staking_limit
     log.info("staking amonut：{}".format(staking_amount))
     plan = [{'Epoch': 1, 'Amount': staking_amount}]
@@ -353,7 +353,7 @@ def test_AL_BI_002(client_con_list_obj, reset_environment):
     verifier_list = client_con_list_obj[1].ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
     genesis = from_dict(data_class=Genesis, data=client_con_list_obj[1].economic.env.genesis_config)
-    punish_reward = genesis.EconomicModel.Slashing.SlashBlocksReward
+    punish_reward = genesis.economicModel.slashing.slashBlocksReward
 
     # view incentive account again
     incentive_pool_balance1 = client_con_list_obj[1].node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
@@ -491,7 +491,7 @@ def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environme
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.EconomicModel.Staking.EpochValidatorNum = 4
+    genesis.economicModel.staking.maxValidators = 4
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
@@ -821,7 +821,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node_obj, reset_environment):
     """
     # Change configuration parameters
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-    genesis.EconomicModel.Reward.NewBlockRate = 60
+    genesis.economicModel.reward.newBlockRate = 60
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)

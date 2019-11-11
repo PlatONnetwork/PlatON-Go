@@ -13,9 +13,9 @@ def test_AS_031_032_39(client_new_node_obj, get_generate_account):
     """
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert result.get('Code') == 0
+    assert assert_code(result,0)
     result = client_new_node_obj.staking.increase_staking(0, address)
-    assert result.get('Code') == 0
+    assert assert_code(result,0)
     result = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     log.info(result)
     staking_amount = client_new_node_obj.economic.create_staking_limit
@@ -33,7 +33,7 @@ def test_AS_033(client_new_node_obj, get_generate_account):
     address, _ = get_generate_account
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
-    assert result.get('Code') == 301102
+    assert_code(result,301102)
 
 
 def test_AS_034(client_new_node_obj, get_generate_account):
@@ -85,7 +85,7 @@ def test_AS_037(client_new_node_obj, get_generate_account):
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
     result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
     log.info(result)
-    assert result.get('Code') == 301104
+    assert_code(result,301102)
 
 
 def test_AS_038(client_new_node_obj, get_generate_account):
@@ -102,7 +102,7 @@ def test_AS_038(client_new_node_obj, get_generate_account):
     client_new_node_obj.staking.withdrew_staking(address)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
-    assert result.get('Code') == 301103
+    assert_code(result,301103)
 
 
 def test_AS_041_042_043_044(client_new_node_obj, get_generate_account):
@@ -121,7 +121,7 @@ def test_AS_041_042_043_044(client_new_node_obj, get_generate_account):
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     result = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     log.info(result)
     staking_amount = client_new_node_obj.economic.create_staking_limit
@@ -171,7 +171,7 @@ def test_AS_045(client_new_node_obj, get_generate_account):
     amount = node.eth.getBalance(address)
     log.info("Check your wallet balance{}".format(amount))
     result = client_new_node_obj.staking.increase_staking(0, address)
-    assert result.get('Code') == 302021
+    assert_code(result,301102)
     locked_info = client_new_node_obj.ppos.getRestrictingInfo(address)
     log.info(locked_info)
 
@@ -193,11 +193,11 @@ def test_AS_046(client_new_node_obj, get_generate_account):
     plan = [{'Epoch': 1, 'Amount': locked_amount}]
     result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
     log.info(result)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     value = 101
     result = client_new_node_obj.staking.increase_staking(0, address, amount=value)
     log.info(result)
-    assert result.get('Code') == 301104
+    assert_code(result,301102)
 
 
 def test_AS_047(client_new_node_obj, get_generate_account):
@@ -213,7 +213,7 @@ def test_AS_047(client_new_node_obj, get_generate_account):
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
     result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
     log.info(result)
-    assert result.get('Code') == 301104
+    assert_code(result,301102)
 
 
 def test_AS_048_049(client_new_node_obj, get_generate_account):
@@ -226,19 +226,19 @@ def test_AS_048_049(client_new_node_obj, get_generate_account):
     """
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.withdrew_staking(address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
-    assert result.get('Code') == 301103
+    assert_code(result,301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node,number=2)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
-    assert result.get('Code') == 301103
+    assert_code(result,301102)
 
 
 def test_AS_050_051(client_new_node_obj, get_generate_account,client_consensus_obj,greater_than_staking_amount):
@@ -251,7 +251,7 @@ def test_AS_050_051(client_new_node_obj, get_generate_account,client_consensus_o
     """
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address,amount=greater_than_staking_amount)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     log.info("Close one node")
     client_new_node_obj.node.stop()
     node = client_consensus_obj.node
@@ -269,7 +269,8 @@ def test_AS_050_051(client_new_node_obj, get_generate_account,client_consensus_o
 
 
 
-
+if __name__ == '__main__':
+    pytest.main('-q test_increase_staking.py::test_AS_048_049')
 
 
 

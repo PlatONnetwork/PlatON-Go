@@ -3,7 +3,7 @@ from common.log import log
 import time
 from tests.lib.utils import assert_code, wait_block_number, upload_platon
 from tests.lib.client import get_client_obj
-from tests.govern.conftest import version_proposal_vote
+from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, param_proposal_vote
 
 
 def text_proposal_vote(pip_obj):
@@ -12,6 +12,14 @@ def text_proposal_vote(pip_obj):
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Node {} vote text proposal result {}'.format(pip_obj.node.node_id, result))
+    return result
+
+def cancel_param_proposal_vote(pip_obj):
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+    log.info('proposalinfo: {}'.format(proposalinfo))
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Node {} vote cancel proposal result {}'.format(pip_obj.node.node_id, result))
     return result
 
 @pytest.fixture()
@@ -160,11 +168,102 @@ class TestVoteNodeExceptionTP():
         log.info('Exited node vote result {}'.format(result))
         assert_code(result, 302022)
 
+class TestVoteCancelParam():
+    def test_PP_VO_001_PP_VO_005_PP_VO_015_PP_VO_017(self, submit_cancel_param):
+        pip_obj = submit_cancel_param
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Cancel proposal info : {}'.format(proposalinfo))
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_Abstentions,
+                              address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Not staking address , node {}, vote cancel proposal result {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 302021)
+        result = cancel_param_proposal_vote(pip_obj)
+        assert_code(result, 0)
+        result = cancel_param_proposal_vote(pip_obj)
+        assert_code(result, 302027)
 
+    def test_PP_VO_009_PP_VO_010(self, submit_cancel_param, client_list_obj):
+        pip_obj = submit_cancel_param
+        address = pip_obj.node.staking_address
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = client_obj.staking.withdrew_staking(pip_obj.node.staking_address)
+        endblock = get_refund_to_account_block(pip_obj)
+        log.info('Node {} withdrew staking result {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 0)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Cancel proposal info : {}'.format(proposalinfo))
+        result = cancel_param_proposal_vote(pip_obj)
+        assert_code(result, 302020)
+        wait_block_number(pip_obj.node, endblock)
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_nays, address,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        assert_code(result, 302022)
 
+class TestVoteParam():
+    def test_PP_VO_002_PP_VO_008_PP_VO_015_PP_VO_017(self, submit_param):
+        pip_obj = submit_param
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('param proposal info : {}'.format(proposalinfo))
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_Abstentions,
+                              address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Not staking address , node {}, vote param proposal result {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 302021)
+        result = param_proposal_vote(pip_obj)
+        assert_code(result, 0)
+        result = param_proposal_vote(pip_obj)
+        assert_code(result, 302027)
 
+    def test_PP_VO_009_PP_VO_010(self, submit_param, client_list_obj):
+        pip_obj = submit_param
+        address = pip_obj.node.staking_address
+        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+        result = client_obj.staking.withdrew_staking(pip_obj.node.staking_address)
+        endblock = get_refund_to_account_block(pip_obj)
+        log.info('Node {} withdrew staking result {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 0)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Cancel proposal info : {}'.format(proposalinfo))
+        result = param_proposal_vote(pip_obj)
+        assert_code(result, 302020)
+        wait_block_number(pip_obj.node, endblock)
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_nays, address,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        assert_code(result, 302022)
 
+def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(submit_param):
+    pip_obj = submit_param
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    log.info('param proposal info {}'.format(proposalinfo))
+    wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock') - 5)
+    result = param_proposal_vote(pip_obj)
+    assert_code(result, 0)
+    result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
+    log.info('Interface getTallyResult result is {}'.format(result))
+    assert_code(result, 302030)
+    wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Node {} vote param proposal result : {]'.format(pip_obj.node.node_id, result))
+    result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
+    log.info('Interface getTallyResult result is {}'.format(result))
+    assert_code(result, 0)
 
-
-
-
+def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
+    pip_obj = submit_cancel_param
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+    log.info('cancel proposal info {}'.format(proposalinfo))
+    wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock') - 8)
+    result = cancel_param_proposal_vote(pip_obj)
+    assert_code(result, 0)
+    result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
+    log.info('Interface getTallyResult result is {}'.format(result))
+    assert_code(result, 302030)
+    wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Node {} vote cancel proposal result : {]'.format(pip_obj.node.node_id, result))
+    result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
+    log.info('Interface getTallyResult result is {}'.format(result))
+    assert_code(result, 0)

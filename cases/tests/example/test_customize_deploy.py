@@ -1,5 +1,4 @@
 import pytest
-import allure
 from dacite import from_dict
 from copy import copy
 from common.log import log
