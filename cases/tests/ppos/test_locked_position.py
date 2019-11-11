@@ -2071,6 +2071,11 @@ def test_LS_CSV_013(client_new_node_obj):
     # Application for return of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
+    # create Restricting Plan
+    amount = von_amount(economic.add_staking_limit, 5)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
     # Restricting amount Additional pledge
     result = client.staking.increase_staking(1, address1)
     assert_code(result, 301103)
@@ -2094,6 +2099,7 @@ def steps_of_returning_pledge(client, economic, node):
     assert_code(result, 0)
     # Waiting for the end of the 2 settlement period
     economic.wait_settlement_blocknum(node, 2)
+    log.info("Pledge node information: {}".format(client.ppos.getCandidateInfo(node.node_id)))
     return address1, address2
 
 
@@ -2114,6 +2120,8 @@ def test_LS_CSV_014(client_new_node_obj):
     plan = [{'Epoch': 1, 'Amount': amount}]
     result = client.restricting.createRestrictingPlan(address1, plan, address1)
     assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
     # create staking
     result = client.staking.create_staking(1, address1, address1)
     assert_code(result, 0)
@@ -2142,3 +2150,30 @@ def test_LS_CSV_015(client_new_node_obj):
     # Restricting amount Entrust node
     result = client.delegate.delegate(1, address2)
     assert_code(result, 301103)
+
+
+@pytest.mark.P2
+def test_LS_CSV_016(client_new_node_obj):
+    """
+    锁仓账户退回质押金后，重新申请增持质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # After returning the deposit
+    address1, address2 = steps_of_returning_pledge(client, economic, node)
+    # create Restricting Plan
+    amount = von_amount(economic.add_staking_limit, 5)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # Restricting amount Additional pledge
+    result = client.staking.increase_staking(1, address1)
+    assert_code(result, 301103)
+    # Free amount Additional pledge
+    result = client.staking.increase_staking(0, address1)
+    assert_code(result, 301103)
+
+
