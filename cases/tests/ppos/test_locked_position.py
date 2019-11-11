@@ -1830,14 +1830,14 @@ def test_LS_CSV_004(client_new_node_obj):
 
 def restricting_plan_verification_add_staking(client, economic, node):
     # create account
-    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
     # create Restricting Plan
-    amount = von_amount(economic.add_staking_limit, 10)
+    amount = von_amount(economic.create_staking_limit, 2)
     plan = [{'Epoch': 1, 'Amount': amount}]
     result = client.restricting.createRestrictingPlan(address1, plan, address1)
     assert_code(result, 0)
     # create staking
-    result = client.staking.create_staking(0, address1, address1)
+    result = client.staking.create_staking(1, address1, address1)
     assert_code(result, 0)
     return address1
 
@@ -1873,7 +1873,7 @@ def test_LS_CSV_006(client_new_node_obj):
     # create restricting plan staking
     address1 = restricting_plan_verification_add_staking(client, economic, node)
     # Additional pledge
-    increase_amount = von_amount(economic.delegate_limit, 15)
+    increase_amount = von_amount(economic.create_staking_limit, 2)
     result = client.staking.increase_staking(1, address1, amount=increase_amount)
     assert_code(result, 304013)
 
@@ -2048,7 +2048,32 @@ def test_LS_CSV_012(client_new_node_obj):
     assert_code(result, 0)
     # Free amount Additional pledge
     result = client.delegate.delegate(0, address2)
-    assert_code(result, 301107)
+    assert_code(result, 301103)
     # Restricting amount Additional pledge
     result = client.delegate.delegate(1, address2)
-    assert_code(result, 301107)
+    assert_code(result, 301103)
+
+
+@pytest.mark.P1
+def test_LS_CSV_013(client_new_node_obj):
+    """
+    锁仓账户退回质押金中，申请增持质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address1 = restricting_plan_verification_add_staking(client, economic, node)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    # Additional pledge
+    result = client.staking.increase_staking(1, address1)
+    assert_code(result, 301103)
+    # Additional pledge
+    result = client.staking.increase_staking(0, address1)
+    assert_code(result, 301103)
