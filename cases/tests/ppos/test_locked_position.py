@@ -1097,8 +1097,7 @@ def test_LS_PV_013(client_new_node_obj):
     # create account restricting plan
     address2 = create_account_restricting_plan(client, economic, node)
     # create staking
-    staking_amount = von_amount(economic.create_staking_limit)
-    result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
+    result = client.staking.create_staking(1, address2, address2)
     assert_code(result, 0)
     # wait settlement block
     economic.wait_settlement_blocknum(node)
@@ -1112,3 +1111,42 @@ def test_LS_PV_013(client_new_node_obj):
     log.info("restricting info: {}".format(restricting_info))
     info = restricting_info['Ret']
     assert info['Pledge'] == 0, "errMsg: restricting Pledge amount {}".format(info['Pledge'])
+
+
+@pytest.mark.P1
+def test_LS_EV_001(client_new_node_obj):
+    """
+    创建计划委托-委托正常节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = client.node.web3.toWei(1000, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 1)}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 0)
+    # view Restricting Plan
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting info: {}".format(restricting_info))
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == economic.delegate_limit, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
+
+
+
+
+
+
