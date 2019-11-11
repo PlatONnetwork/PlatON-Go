@@ -1106,11 +1106,10 @@ def test_LS_PV_013(client_new_node_obj):
     assert_code(result, 0)
     # wait settlement block
     economic.wait_settlement_blocknum(node, 2)
-    # view
+    # view restricting info
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
-    info = restricting_info['Ret']
-    assert info['Pledge'] == 0, "errMsg: restricting Pledge amount {}".format(info['Pledge'])
+    assert_code(restricting_info, 304005)
 
 
 @pytest.mark.P1
