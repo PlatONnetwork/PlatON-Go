@@ -763,18 +763,18 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-			delAddr, nodeId, stakingBlockNum), ResultTypeStruct,
+			delAddr, nodeId, stakingBlockNum), ResultTypeStructRef,
 			del, staking.ErrQueryDelegateInfo.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || del.IsEmpty() {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-			delAddr, nodeId, stakingBlockNum), ResultTypeStruct,
+			delAddr, nodeId, stakingBlockNum), ResultTypeStructRef,
 			del, staking.ErrQueryDelegateInfo.Wrap("Delegate info is not found")), nil
 	}
 
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-		delAddr, nodeId, stakingBlockNum), ResultTypeStruct,
+		delAddr, nodeId, stakingBlockNum), ResultTypeStructRef,
 		del, nil), nil
 }
 
@@ -786,19 +786,19 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-			nodeId), ResultTypeStruct, nil, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
+			nodeId), ResultTypeStructRef, nil, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
 	can, err := stkc.Plugin.GetCandidateCompactInfo(blockHash, blockNumber.Uint64(), canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-			nodeId), ResultTypeStruct, can, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
+			nodeId), ResultTypeStructRef, can, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || can.IsEmpty() {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-			nodeId), ResultTypeStruct, can, staking.ErrQueryCandidateInfo.Wrap("Candidate info is not found")), nil
+			nodeId), ResultTypeStructRef, can, staking.ErrQueryCandidateInfo.Wrap("Candidate info is not found")), nil
 	}
 
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-		nodeId), ResultTypeStruct, can, nil), nil
+		nodeId), ResultTypeStructRef, can, nil), nil
 }
