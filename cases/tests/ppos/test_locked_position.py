@@ -2046,10 +2046,10 @@ def test_LS_CSV_012(client_new_node_obj):
     plan = [{'Epoch': 1, 'Amount': amount}]
     result = client.restricting.createRestrictingPlan(address2, plan, address2)
     assert_code(result, 0)
-    # Free amount Additional pledge
+    # Free amount Entrust node
     result = client.delegate.delegate(0, address2)
     assert_code(result, 301103)
-    # Restricting amount Additional pledge
+    # Restricting amount Entrust node
     result = client.delegate.delegate(1, address2)
     assert_code(result, 301103)
 
@@ -2071,10 +2071,10 @@ def test_LS_CSV_013(client_new_node_obj):
     # Application for return of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
-    # Additional pledge
+    # Restricting amount Additional pledge
     result = client.staking.increase_staking(1, address1)
     assert_code(result, 301103)
-    # Additional pledge
+    # Free amount Additional pledge
     result = client.staking.increase_staking(0, address1)
     assert_code(result, 301103)
 
@@ -2092,6 +2092,8 @@ def steps_of_returning_pledge(client, economic, node):
     # Application for return of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
+    # Waiting for the end of the 2 settlement period
+    economic.wait_settlement_blocknum(node, 2)
     return address1, address2
 
 
@@ -2115,3 +2117,28 @@ def test_LS_CSV_014(client_new_node_obj):
     # create staking
     result = client.staking.create_staking(1, address1, address1)
     assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_015(client_new_node_obj):
+    """
+    锁仓账户退回质押金后，重新申请委托节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # After returning the deposit
+    address1, address2 = steps_of_returning_pledge(client, economic, node)
+    # create Restricting Plan
+    amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address2)
+    assert_code(result, 0)
+    # Free amount Entrust node
+    result = client.delegate.delegate(0, address2)
+    assert_code(result, 301103)
+    # Restricting amount Entrust node
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 301103)
