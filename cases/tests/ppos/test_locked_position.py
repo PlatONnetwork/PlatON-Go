@@ -2019,7 +2019,7 @@ def test_LS_CSV_011(client_new_node_obj):
     assert balance2 - balance1 > economic.create_staking_limit, "errMsg: Account address: {} balance: {}".format(address1, balance2)
 
 
-@pytest.mark.P1
+@pytest.mark.P2
 def test_LS_CSV_012(client_new_node_obj):
     """
     锁仓账户退回质押金中，申请委托节点
@@ -2054,7 +2054,7 @@ def test_LS_CSV_012(client_new_node_obj):
     assert_code(result, 301103)
 
 
-@pytest.mark.P1
+@pytest.mark.P2
 def test_LS_CSV_013(client_new_node_obj):
     """
     锁仓账户退回质押金中，申请增持质押
@@ -2077,3 +2077,41 @@ def test_LS_CSV_013(client_new_node_obj):
     # Additional pledge
     result = client.staking.increase_staking(0, address1)
     assert_code(result, 301103)
+
+
+def steps_of_returning_pledge(client, economic, node):
+    # create restricting plan staking
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # create account
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    return address1, address2
+
+
+@pytest.mark.P2
+def test_LS_CSV_014(client_new_node_obj):
+    """
+    锁仓账户退回质押金后，重新申请质押节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # After returning the deposit
+    address1, address2 = steps_of_returning_pledge(client, economic, node)
+    # create Restricting Plan
+    amount = economic.create_staking_limit
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
