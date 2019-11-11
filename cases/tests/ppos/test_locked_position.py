@@ -1857,4 +1857,22 @@ def test_LS_CSV_005(client_new_node_obj):
     assert_code(result, 0)
 
 
+@pytest.mark.P1
+def test_LS_CSV_006(client_new_node_obj):
+    """
+    锁仓账户和释放账户是同一个账户账户进行增持质押（质押金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address1 = restricting_plan_verification_add_staking(client, economic, node)
+    # Additional pledge
+    increase_amount = von_amount(economic.delegate_limit, 15)
+    result = client.staking.increase_staking(1, address1, amount=increase_amount)
+    assert_code(result, 301111)
+
+
 
