@@ -1197,4 +1197,19 @@ def test_LS_EV_004(client_new_node_obj):
     test_LS_EV_001(client)
 
 
+@pytest.mark.P1
+def test_LS_EV_005(client_new_node_obj):
+    """
+    锁仓账户委托金额小于最低委托金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    delegate_amount = von_amount(economic.delegate_limit, 0.8)
+    result = client.delegate.delegate(1, address2,amount=delegate_amount)
+    assert_code(result, 301105)
+
 
