@@ -1076,8 +1076,7 @@ def test_LS_PV_012(client_new_node_obj):
     # create account restricting plan
     address2 = create_account_restricting_plan(client, economic, node)
     # create staking
-    staking_amount = von_amount(economic.create_staking_limit)
-    result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
+    result = client.staking.create_staking(1, address2, address2)
     assert_code(result, 0)
     # withdrew staking
     result = client.staking.withdrew_staking(address2)
@@ -1350,13 +1349,30 @@ def test_LS_EV_011(client_new_node_obj):
     node = client.node
     # create delegation information
     address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 10)
     client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
-    # Waiting for the end of the settlement cycle
-    economic.wait_settlement_blocknum(node)
     # view restricting info again
     restricting_info = client.ppos.getRestrictingInfo(address2)
-    assert_code(restricting_info, 0)
-    info = restricting_info['Ret']
-    assert info['Pledge'] == delegate_amount - redemption_amount, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    assert_code(restricting_info, 304005)
+
+
+@pytest.mark.P1
+def test_LS_EV_012(client_new_node_obj):
+    """
+    锁仓赎回委托金额小于委托最低门槛
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 0.8)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+
