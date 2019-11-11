@@ -1459,7 +1459,7 @@ def test_LS_EV_015(client_new_node_obj):
         log.info("Use case success, exception information：{} ".format(str(e)))
 
 
-@pytest.mark.P2
+@pytest.mark.P1
 def test_LS_EV_016(client_new_node_obj):
     """
     创建计划退回委托-锁仓计划退回委托金额<0
@@ -1479,7 +1479,7 @@ def test_LS_EV_016(client_new_node_obj):
         log.info("Use case success, exception information：{} ".format(str(e)))
 
 
-@pytest.mark.P2
+@pytest.mark.P1
 def test_LS_EV_017(client_new_node_obj):
     """
     创建计划退回委托-锁仓计划退回委托金额=0
@@ -1494,5 +1494,23 @@ def test_LS_EV_017(client_new_node_obj):
     # withdrew delegate
     result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=0)
     assert_code(result, 301108)
+
+
+@pytest.mark.P1
+def test_LS_EV_018(client_new_node_obj):
+    """
+    创建计划退回委托-锁仓计划退回委托金额>锁仓委托金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 11)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 301113)
 
 
