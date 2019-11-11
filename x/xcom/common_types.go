@@ -85,7 +85,7 @@ type StateDB interface {
 
 type Result struct {
 	Code uint32
-	Ret  string
+	Ret  interface{}
 }
 
 func OkResult(data string) []byte {
@@ -116,7 +116,7 @@ func FailResult(err *common.BizError) []byte {
 //	OkReceiptByte = OkReceipt()
 //)
 
-func NewOkResult(data string) []byte {
+func NewOkResult(data interface{}) []byte {
 	res := &Result{common.NoErr.Code, data}
 	bs, _ := json.Marshal(res)
 	return bs
