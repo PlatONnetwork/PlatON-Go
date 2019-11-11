@@ -1,71 +1,72 @@
 {
-  "config": {
-    "chainId": 120,
-    "eip155Block": 3,
-    "cbft": {
-      "initialNodes": [
-      ],
-      "epoch": 1,
-      "amount": 10,
-      "validatorMode": "ppos",
-      "period": 10000
-    }
-  },
-  "EconomicModel": {
-    "Common": {
-      "MaxEpochMinutes": 3,
-      "MaxConsensusVals": 4,
-      "AdditionalCycleTime": 28
+    "config": {
+        "chainId": 120,
+        "eip155Block": 3,
+        "cbft": {
+            "initialNodes": [
+
+            ],
+            "epoch": 1,
+            "amount": 10,
+            "validatorMode": "ppos",
+            "period": 10000
+        }
     },
-    "Staking": {
-      "StakeThreshold": 1000000000000000000000000,
-      "OperatingThreshold": 10000000000000000000,
-      "MaxValidators": 30,
-      "HesitateRatio": 1,
-      "UnStakeFreezeDuration": 2
+    "economicModel": {
+        "common": {
+            "maxEpochMinutes": 3,
+            "maxConsensusVals": 4,
+            "additionalCycleTime": 28
+        },
+        "staking": {
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 5,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
+        },
+        "slashing": {
+            "slashFractionDuplicateSign": 100,
+            "duplicateSignReportReward": 50,
+            "slashBlocksReward": 20,
+            "maxEvidenceAge": 1
+        },
+        "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667
+        },
+        "reward": {
+            "newBlockRate": 50,
+            "platONFoundationYear": 10
+        },
+        "innerAcc": {
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0x54a7a3c6822eb222c53F76443772a60b0f9A8bab",
+            "cdfBalance": 431811981000000000000000000
+        }
     },
-    "Slashing": {
-      "SlashFractionDuplicateSign": 100,
-      "DuplicateSignReportReward": 50,
-      "SlashBlocksReward": 20,
-      "MaxEvidenceAge": 1
+    "nonce": "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "timestamp": "0x5bc94a8a",
+    "extraData": "0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "gasLimit": "4712388",
+    "alloc": {
+        "1000000000000000000000000000000000000003": {
+            "balance": "200000000000000000000000000"
+        },
+        "0x2e95e3ce0a54951eb9a99152a6d5827872dfb4fd": {
+            "balance": "9718188019000000000000000000"
+        }
     },
-    "Gov": {
-      "VersionProposalVote_DurationSeconds": 160,
-      "VersionProposal_SupportRate": 0.667,
-      "TextProposalVote_DurationSeconds": 160,
-      "TextProposal_VoteRate": 0.5,
-      "TextProposal_SupportRate": 0.667,
-      "CancelProposal_VoteRate": 0.50,
-      "CancelProposal_SupportRate": 0.667,
-      "ParamProposalVote_DurationSeconds": 160,
-      "ParamProposal_VoteRate": 0.50,
-      "ParamProposal_SupportRate": 0.667
-    },
-    "Reward": {
-      "NewBlockRate": 50,
-      "PlatONFoundationYear": 10
-    },
-    "InnerAcc": {
-      "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
-      "PlatONFundBalance": 0,
-      "CDFAccount": "0x54a7a3c6822eb222c53F76443772a60b0f9A8bab",
-      "CDFBalance": 431811981000000000000000000
-    }
-  },
-  "nonce": "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
-  "timestamp": "0x5bc94a8a",
-  "extraData": "0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-  "gasLimit": "0x99947b760",
-  "alloc": {
-    "1000000000000000000000000000000000000003": {
-      "balance": "200000000000000000000000000"
-    },
-    "0x2e95e3ce0a54951eb9a99152a6d5827872dfb4fd": {
-      "balance": "9718188019000000000000000000"
-    }
-  },
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    "number": "0x0",
+    "gasUsed": "0x0",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
