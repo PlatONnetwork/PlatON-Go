@@ -1275,19 +1275,10 @@ def test_LS_EV_008(client_new_node_obj):
     assert_code(result, 301105)
 
 
-@pytest.mark.P2
-def test_LS_EV_009(client_new_node_obj):
-    """
-    锁仓账户发起委托之后赎回部分委托验证（犹豫期）
-    :param client_new_node_obj:
-    :return:
-    """
-    client = client_new_node_obj
-    economic = client.economic
-    node = client.node
+def create_delegation_information(client, economic, node, base):
     address2 = create_free_pledge(client, economic)
     # Application for Commission
-    delegate_amount = von_amount(economic.delegate_limit, 10)
+    delegate_amount = von_amount(economic.delegate_limit, base)
     result = client.delegate.delegate(1, address2, amount=delegate_amount)
     assert_code(result, 0)
     # view restricting info
@@ -1299,9 +1290,24 @@ def test_LS_EV_009(client_new_node_obj):
     candidate_info = client.ppos.getCandidateInfo(node.node_id)
     info = candidate_info['Ret']
     staking_blocknum = info['StakingBlockNum']
+    return address2, delegate_amount, staking_blocknum
+
+
+@pytest.mark.P2
+def test_LS_EV_009(client_new_node_obj):
+    """
+    锁仓账户发起委托之后赎回部分委托验证（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 5)
-    client.delegate.withdrew_delegate(staking_blocknum,address2, amount=redemption_amount)
+    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
     # view restricting info again
     restricting_info = client.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)
@@ -1319,20 +1325,8 @@ def test_LS_EV_010(client_new_node_obj):
     client = client_new_node_obj
     economic = client.economic
     node = client.node
-    address2 = create_free_pledge(client, economic)
-    # Application for Commission
-    delegate_amount = von_amount(economic.delegate_limit, 10)
-    result = client.delegate.delegate(1, address2, amount=delegate_amount)
-    assert_code(result, 0)
-    # view restricting info
-    restricting_info = client.ppos.getRestrictingInfo(address2)
-    assert_code(restricting_info, 0)
-    info = restricting_info['Ret']
-    assert info['Pledge'] == delegate_amount, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
-    # get Pledge node information
-    candidate_info = client.ppos.getCandidateInfo(node.node_id)
-    info = candidate_info['Ret']
-    staking_blocknum = info['StakingBlockNum']
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 10)
     client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
@@ -1344,3 +1338,25 @@ def test_LS_EV_010(client_new_node_obj):
         info['Pledge'])
 
 
+@pytest.mark.P2
+def test_LS_EV_011(client_new_node_obj):
+    """
+    锁仓账户发起委托之后赎回委托验证（锁定期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 10)
+    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
+    # view restricting info again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == delegate_amount - redemption_amount, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
