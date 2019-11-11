@@ -1010,10 +1010,10 @@ def test_LS_PV_009(client_new_node_obj_list):
     restricting_info = client2.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == 0, "errMsg: restricting debt amount {}".format(info['debt'])
 
 
-@pytest.mark.P1
+@pytest.mark.P2
 def test_LS_PV_010(client_new_node_obj):
     """
     创建计划退回质押-锁仓账户余额不足的情况下申请退回质押
@@ -1043,7 +1043,7 @@ def test_LS_PV_010(client_new_node_obj):
         log.info("Use case success, exception information：{} ".format(str(e)))
 
 
-@pytest.mark.P1
+@pytest.mark.P2
 def test_LS_PV_011(client_new_node_obj):
     """
     锁仓账户退回质押金中，申请质押节点
@@ -1063,7 +1063,7 @@ def test_LS_PV_011(client_new_node_obj):
     assert_code(result, 301101)
 
 
-@pytest.mark.P1
+@pytest.mark.P2
 def test_LS_PV_012(client_new_node_obj):
     """
     锁仓账户申请完质押后又退回质押金（犹豫期）
@@ -1082,3 +1082,33 @@ def test_LS_PV_012(client_new_node_obj):
     # withdrew staking
     result = client.staking.withdrew_staking(address2)
     assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_LS_PV_013(client_new_node_obj):
+    """
+    锁仓账户申请完质押后又退回质押金（锁定期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account restricting plan
+    address2 = create_account_restricting_plan(client, economic, node)
+    # create staking
+    staking_amount = von_amount(economic.create_staking_limit)
+    result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
+    assert_code(result, 0)
+    # wait settlement block
+    economic.wait_settlement_blocknum(node)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # wait settlement block
+    economic.wait_settlement_blocknum(node, 2)
+    # view
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting info: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['Pledge'] == 0, "errMsg: restricting Pledge amount {}".format(info['Pledge'])
