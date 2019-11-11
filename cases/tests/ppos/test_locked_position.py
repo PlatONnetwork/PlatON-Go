@@ -1184,3 +1184,17 @@ def test_LS_EV_003(client_new_node_obj, client_consensus_obj):
     # Application for Commission
     result = client_consensus_obj.delegate.delegate(1, address2)
     assert_code(result, 301107)
+
+
+@pytest.mark.P1
+def test_LS_EV_004(client_new_node_obj):
+    """
+    锁仓账户委托非候选节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    test_LS_EV_001(client)
+
+
+
