@@ -1112,16 +1112,7 @@ def test_LS_PV_013(client_new_node_obj):
     assert_code(restricting_info, 304005)
 
 
-@pytest.mark.P1
-def test_LS_EV_001(client_new_node_obj):
-    """
-    创建计划委托-委托正常节点
-    :param client_new_node_obj:
-    :return:
-    """
-    client = client_new_node_obj
-    economic = client.economic
-    node = client.node
+def create_free_pledge(client, economic):
     # create account
     amount1 = von_amount(economic.create_staking_limit, 2)
     amount2 = client.node.web3.toWei(1000, 'ether')
@@ -1133,6 +1124,19 @@ def test_LS_EV_001(client_new_node_obj):
     # create staking
     result = client.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P1
+def test_LS_EV_001(client_new_node_obj):
+    """
+    创建计划委托-委托正常节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
     # Application for Commission
     result = client.delegate.delegate(1, address2)
     assert_code(result, 0)
@@ -1167,4 +1171,16 @@ def test_LS_EV_002(client_new_node_obj):
     assert_code(result, 304005)
 
 
-
+@pytest.mark.P1
+def test_LS_EV_003(client_new_node_obj, client_consensus_obj):
+    """
+    锁仓账户委托基金会节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    result = client_consensus_obj.delegate.delegate(1, address2)
+    assert_code(result, 301107)
