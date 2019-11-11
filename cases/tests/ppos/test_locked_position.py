@@ -1596,8 +1596,7 @@ def test_LS_EV_021(client_new_node_obj):
         info['debt'])
     # Application for Commission
     delegate_amount2 = von_amount(economic.delegate_limit, 5)
-    print('delegate_amount2', delegate_amount2)
-    result = client.delegate.delegate(1, address2, amount=delegate_amount2)
+    result = client.delegate.delegate(0, address2, amount=delegate_amount2)
     assert_code(result, 0)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 10)
@@ -1643,3 +1642,40 @@ def test_LS_EV_022(client_new_node_obj):
         assert_code(result, 0)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+def create_restricting_increase_staking(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    address2, _ = economic.account.generate_account(node.web3, 1000)
+    # create Restricting Plan1
+    staking_amount = von_amount(economic.create_staking_limit, 2)
+    plan = [{'Epoch': 1, 'Amount': staking_amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    # create staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P1
+def test_LS_IV_001(client_new_node_obj):
+    """
+    锁仓账户申请质押后用锁仓余额进行增持质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address2 = create_restricting_increase_staking(client, economic, node)
+    # Create pledge of increasing holding
+    result = client.staking.increase_staking(1, address2)
+    assert_code(result, 0)
+
+
+
+
