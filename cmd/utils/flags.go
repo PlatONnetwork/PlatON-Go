@@ -196,6 +196,10 @@ var (
 		Usage: "Dashboard metrics collection refresh rate",
 		Value: dashboard.DefaultConfig.Refresh,
 	}
+	TxPoolMakeTraction = cli.BoolFlag{
+		Name:  "txpool.MakeTraction",
+		Usage: "make a lot traction",
+	}
 	// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
 		Name:  "txpool.locals",
