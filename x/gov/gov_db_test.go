@@ -339,7 +339,7 @@ func TestGovDB_GetVotedVerifierMap(t *testing.T) {
 		t.Errorf("get proposal's voted verifier map error,%s", err)
 	} else {
 		if len(votedMap) != len(NodeIDList) {
-			t.Fatalf("list proposal error,expect %d,get %d", len(NodeIDList), len(voteValueList))
+			t.Fatalf("list proposal error,expect %d,get %d", len(NodeIDList), len(votedMap))
 		}
 	}
 }
