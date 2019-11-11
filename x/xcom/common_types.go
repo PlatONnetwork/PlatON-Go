@@ -101,22 +101,6 @@ func FailResult(err *common.BizError) []byte {
 	return bs
 }
 
-//func OkReceipt() []byte {
-//	res := Result{common.NoErr.Code, common.NoErr.Msg}
-//	bs, _ := json.Marshal(res)
-//	return bs
-//}
-//
-//func FailedReceipt(err *common.BizError) []byte {
-//	res := Result{err.Code, err.Msg}
-//	bs, _ := json.Marshal(res)
-//	return bs
-//}
-//
-//var (
-//	OkReceiptByte = OkReceipt()
-//)
-
 func NewOkResult(data interface{}) []byte {
 	res := &Result{common.NoErr.Code, data}
 	bs, _ := json.Marshal(res)

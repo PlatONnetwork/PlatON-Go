@@ -58,7 +58,7 @@ func runContractCall(contract *StakingContract, params [][]byte, title string, t
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r.Code)
-	t.Logf("%s the result: %s", title, r.Ret)
+	t.Logf("%s the result: %s", title, string(res))
 }
 
 // Custom func

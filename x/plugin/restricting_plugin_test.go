@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -36,15 +35,12 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		result, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
+		res, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
 		if err != nil {
 			t.Error(err)
 			return
 		}
-		var res restricting.Result
-		if err = json.Unmarshal(result, &res); err != nil {
-			t.Fatalf("failed to json decode result, result: %s", result)
-		}
+
 		if res.Balance.ToInt().Cmp(big.NewInt(5e18)) != 0 {
 			t.Errorf("balance not cmp")
 		}
@@ -363,16 +359,10 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			t.Error(err)
 		}
 
-		result, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
+		res, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
 		if err != nil {
 			t.Errorf("get restrictingInfo fail  error: %s", err.Error())
 		}
-
-		var res restricting.Result
-		if err = json.Unmarshal(result, &res); err != nil {
-			t.Fatalf("failed to json decode result, result: %s", result)
-		}
-
 		if res.Balance.ToInt().Cmp(total) != 0 {
 			t.Errorf("Balance num is not cmp,should %v have %v", total, res.Balance)
 		}

@@ -186,12 +186,12 @@ type Ppos_2106 struct {
 	Module string
 }
 
-// ReportDuplicateSign
+// reportDuplicateSign
 type Ppos_3000 struct {
 	Data string
 }
 
-// CheckDuplicateSign
+// checkDuplicateSign
 type Ppos_3001 struct {
 	Etype       uint32
 	Addr        common.Address

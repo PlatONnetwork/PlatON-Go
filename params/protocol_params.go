@@ -108,7 +108,7 @@ const (
 	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
 
 	SlashingGas              uint64 = 21000 // Gas needed for precompiled contract: slashingContract
-	ReportDuplicateSignGas   uint64 = 21000 // Gas needed for ReportDuplicateSign
+	ReportDuplicateSignGas   uint64 = 21000 // Gas needed for reportDuplicateSign
 	DuplicateEvidencesGas    uint64 = 21000 // When reporting, each duplicate sign of evidence requires gas to be consumed
 	RestrictingPlanGas       uint64 = 18000 // Gas needed for precompiled contract: restrictingPlanContract
 	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan

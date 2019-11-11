@@ -2,7 +2,6 @@ package vm
 
 import (
 	"math/big"
-	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 const (
@@ -435,48 +433,22 @@ func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
 }
 
 func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) ([]byte, error) {
-	var event = strconv.Itoa(int(fcode))
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receit := strconv.Itoa(int(bizErr.Code))
-			xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, receit)
-			log.Error("Execute GovContract failed.(Business error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
-				"txHash", gc.Evm.StateDB.TxHash(), "receipt", receit, "reason", bizErr.Msg)
-			return []byte(receit), nil
+			return txResultHandler(vm.GovContractAddr, gc.Evm, funcName+" of GovContract",
+				bizErr.Error(), int(fcode), int(bizErr.Code)), nil
 		} else {
 			log.Error("Execute GovContract failed.(System error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
 				"txHash", gc.Evm.StateDB.TxHash(), "err", err)
 			return nil, err
 		}
 	} else {
-		receipt := strconv.Itoa(int(common.NoErr.Code))
-		xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, receipt)
-		return []byte(receipt), nil
+		return txResultHandler(vm.GovContractAddr, gc.Evm, "",
+			"", int(fcode), int(common.NoErr.Code)), nil
 	}
 }
 
 func (gc *GovContract) callHandler(funcName string, resultValue interface{}, resultType CallResultType, err error) ([]byte, error) {
-	if nil != err {
-		log.Error("call GovContract failed", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
-			"txHash", gc.Evm.StateDB.TxHash(), "err", err)
-		resultBytes := xcom.NewFailedResult(err)
-		return resultBytes, nil
-	}
-
-	if xcom.IsNil(resultValue) {
-		if resultType == ResultTypeStruct {
-			resultValue = ""
-		} else if resultType == ResultTypeSlice {
-			resultValue = []string{}
-		} else if resultType == ResultTypeMap {
-			resultValue = make(map[string]string)
-		} else {
-			resultValue = ""
-		}
-	}
-
-	log.Debug("call GovContract success", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
-		"txHash", gc.Evm.StateDB.TxHash(), "returnValue", resultValue)
-	resultBytes := xcom.NewOkResult(resultValue)
-	return resultBytes, nil
+	return callResultHandler(gc.Evm, funcName+" of GovContract", resultType,
+		resultValue, err), nil
 }
