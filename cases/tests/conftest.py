@@ -125,6 +125,7 @@ def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
         msg = noconsensus_node_obj.ppos.getCandidateInfo(noconsensus_node_obj.node.node_id)
         log.info(msg)
         if msg["Code"] == 301204:
+            log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
             return noconsensus_node_obj
     log.info('非共识节点已全部质押，重新启链')
     client_noconsensus_obj.economic.env.deploy_all()

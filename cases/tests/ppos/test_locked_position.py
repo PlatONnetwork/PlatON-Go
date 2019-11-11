@@ -2177,3 +2177,56 @@ def test_LS_CSV_016(client_new_node_obj):
     assert_code(result, 301103)
 
 
+@pytest.mark.P2
+def test_UP_FV_001(client_new_node_obj):
+    """
+    只有一个锁仓期，到达释放期返回解锁金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # view Account balance
+    balance = node.eth.getBalance(address1)
+    log.info("Account balance: {}".format(balance))
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # view Account balance again
+    balance1 = node.eth.getBalance(address1)
+    log.info("Account balance: {}".format(balance1))
+    assert balance1 == balance + economic.create_staking_limit, "ErrMsg:Account balance: {}".format(balance1)
+
+
+@pytest.mark.P1
+def test_UP_FV_002(client_new_node_obj):
+    """
+    只有一个锁仓期，未达释放期返回解锁金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # view restricting plan index 0 amount
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    amount = restricting_info['Ret']['plan'][0]['amount']
+    # view Account balance
+    balance = node.eth.getBalance(address1)
+    log.info("Account balance: {}".format(balance))
+    # Waiting for the end of the settlement period
+    economic.wait_consensus_blocknum(node)
+    # view restricting plan index 0 amount again
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    amount1 = restricting_info['Ret']['plan'][0]['amount']
+    # view Account balance again
+    balance1 = node.eth.getBalance(address1)
+    log.info("Account balance: {}".format(balance1))
+    assert amount1 == amount, "ErrMsg:restricting index 0 amount: {}".format(amount1)
+    assert balance1 == balance, "ErrMsg:Account balance: {}".format(balance1)
+
+
