@@ -1425,7 +1425,37 @@ def test_LS_EV_014(client_new_node_obj_list, reset_environment):
     # stop pledge node
     node.stop()
     # Wait for the consensus round to end
-    client2.economic.wait_consensus_blocknum()
+    client2.economic.wait_consensus_blocknum(client2.node)
     # Application for Commission
     result = client2.delegate.delegate(1, address2, node_id=node.node_id)
     assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_EV_015(client_new_node_obj):
+    """
+    创建计划委托-锁仓账户余额不足的情况下申请委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    address1, address2 = create_lock_release_amount(client, amount1, 0)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    try:
+        # Application for Commission
+        result = client.delegate.delegate(1, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
