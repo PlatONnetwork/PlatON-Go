@@ -1958,7 +1958,7 @@ def test_LS_CSV_009(client_new_node_obj):
     address2 = restricting_plan_verification_delegate(client, economic, node)
     # Additional pledge
     delegate_amount = von_amount(economic.delegate_limit, 5)
-    result = client.staking.increase_staking(1, address2, amount=delegate_amount)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
     assert_code(result, 0)
 
 
@@ -1976,5 +1976,42 @@ def test_LS_CSV_010(client_new_node_obj):
     address2 = restricting_plan_verification_delegate(client, economic, node)
     # Additional pledge
     delegate_amount = von_amount(economic.delegate_limit, 15)
-    result = client.staking.increase_staking(1, address2, amount=delegate_amount)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
     assert_code(result, 304013)
+
+
+@pytest.mark.P2
+def test_LS_CSV_011(client_new_node_obj):
+    """
+    锁仓账号在犹豫期申请质押后，在锁定期申请增持后，在申请退回质押金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create Restricting Plan
+    amount = von_amount(economic.create_staking_limit, 2)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Additional pledge
+    result = client.staking.increase_staking(1, address1)
+    assert_code(result, 0)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    balance = node.eth.getBalance(address1)
+    log.info("Account address: {} balance: {}".format(address1, balance))
+    # Waiting for the end of the 2 settlement period
+    economic.wait_settlement_blocknum(node, 2)
+    balance1 = node.eth.getBalance(address1)
+    log.info("Account address: {} balance: {}".format(address1, balance1))
+    assert balance1 == balance + economic.create_staking_limit, "errMsg: Account address: {} balance: {}".format(address1, balance1)
