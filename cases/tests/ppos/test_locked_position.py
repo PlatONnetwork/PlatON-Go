@@ -1698,7 +1698,7 @@ def test_LS_IV_002(client_new_node_obj):
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
     # create staking
-    result = client.staking.create_staking(0, address1, address1)
+    result = client.staking.create_staking(0, address2, address2)
     assert_code(result, 0)
     try:
         # Create pledge of increasing holding
@@ -1729,8 +1729,39 @@ def test_LS_IV_003(client_new_node_obj_list, reset_environment):
     # Wait for the consensus round to end
     client2.economic.wait_consensus_blocknum(client2.node)
     # Create pledge of increasing holding
-    result = client2.staking.increase_staking(1, address2)
+    result = client2.staking.increase_staking(1, address2, node_id=node.node_id)
     assert_code(result, 0)
+
+
+def restricting_plan_verification_pledge(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create Restricting Plan
+    amount = economic.create_staking_limit
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    return address1
+
+
+@pytest.mark.P1
+def test_LS_CSV_001(client_new_node_obj):
+    """
+    创建计划质押-锁仓账户和释放账户是同一个账户账户进行质押（质押金额小于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # Create restricting plan
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # create staking
+    staking_amount = economic.create_staking_limit
+    result = client.staking.create_staking(0, address1, address1, amount=staking_amount)
+    assert_code(result, 0)
+
+
 
 
 
