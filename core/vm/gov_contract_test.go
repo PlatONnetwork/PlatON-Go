@@ -1040,7 +1040,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	}
 }
 
-func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
+func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
@@ -1073,8 +1073,27 @@ func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
 }
 
-/*
-func TestGovContract_SubmitText_NotPass_Same_PIPID(t *testing.T) {
+func TestGovContract_SubmitText_voting_PIPID_exist(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	commit_sndb(chain)
+
+	build_staking_data_more(chain)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	//submit another proposal
+	prepair_sndb(chain, txHashArr[3])
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
+}
+
+func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
@@ -1114,7 +1133,7 @@ func TestGovContract_SubmitText_NotPass_Same_PIPID(t *testing.T) {
 	}
 
 }
-*/
+
 func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
