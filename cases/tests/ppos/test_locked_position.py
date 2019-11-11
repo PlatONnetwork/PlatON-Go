@@ -1054,10 +1054,31 @@ def test_LS_PV_011(client_new_node_obj):
     economic = client.economic
     node = client.node
     # create restricting plan and staking
-    address1, address2 = create_restricting_plan_and_staking(client, economic, node)
+    address1, address2 = create_restricting_plan_and_staking(client, node, economic)
     # withdrew staking
     result = client.staking.withdrew_staking(address2)
     assert_code(result, 0)
     # create Restricting amount staking
     result = client.staking.create_staking(1, address2, address2)
-    assert_code(result, 301115)
+    assert_code(result, 301101)
+
+
+@pytest.mark.P1
+def test_LS_PV_012(client_new_node_obj):
+    """
+    锁仓账户申请完质押后又退回质押金（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account restricting plan
+    address2 = create_account_restricting_plan(client, economic, node)
+    # create staking
+    staking_amount = von_amount(economic.create_staking_limit)
+    result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
+    assert_code(result, 0)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
