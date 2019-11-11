@@ -26,9 +26,9 @@ func SetProposal(proposal Proposal, state xcom.StateDB) error {
 
 	value := append(bytes, byte(proposal.GetProposalType()))
 	state.SetState(vm.GovContractAddr, KeyProposal(proposal.GetProposalID()), value)
-	//return nil
+	return nil
 
-	return AddPIPID(proposal.GetPIPID(), state)
+	//return AddPIPID(proposal.GetPIPID(), state)
 }
 
 func GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {

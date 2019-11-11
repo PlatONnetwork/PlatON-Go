@@ -234,10 +234,10 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
 		status = gov.PreActive
 
-		/*if err := gov.AddPIPID(proposal.GetPIPID(), state); err != nil {
+		if err := gov.AddPIPID(proposal.GetPIPID(), state); err != nil {
 			log.Error("save passed PIPID failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
-		}*/
+		}
 
 		if err := gov.MoveVotingProposalIDToPreActive(blockHash, proposalID); err != nil {
 			log.Error("move version proposal ID to pre-active failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
@@ -442,12 +442,12 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 		return false, err
 	}
 
-	/*if status == gov.Pass {
+	if status == gov.Pass {
 		if err := gov.AddPIPID(pipID, state); err != nil {
 			log.Error("save passed PIPID failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return false, err
 		}
-	}*/
+	}
 	// for now, do not remove these data.
 	// If really want to remove these data, please confirmed with PlatON Explorer Project
 	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {

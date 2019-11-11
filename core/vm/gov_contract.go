@@ -312,7 +312,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	proposal, err := gov.GetExistProposal(proposalID, gc.Evm.StateDB)
 
-	return gc.callHandler("getProposal", proposal, ResultTypeStruct, err)
+	return gc.callHandler("getProposal", proposal, ResultTypeInterface, err)
 }
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
@@ -331,7 +331,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	if tallyResult == nil {
 		err = gov.TallyResultNotFound
 	}
-	return gc.callHandler("getTallyResult", tallyResult, ResultTypeStruct, err)
+	return gc.callHandler("getTallyResult", tallyResult, ResultTypeStructRef, err)
 }
 
 func (gc *GovContract) listProposal() ([]byte, error) {
@@ -443,12 +443,10 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 			return nil, err
 		}
 	} else {
-		return txResultHandler(vm.GovContractAddr, gc.Evm, "",
-			"", int(fcode), int(common.NoErr.Code)), nil
+		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), int(common.NoErr.Code)), nil
 	}
 }
 
 func (gc *GovContract) callHandler(funcName string, resultValue interface{}, resultType CallResultType, err error) ([]byte, error) {
-	return callResultHandler(gc.Evm, funcName+" of GovContract", resultType,
-		resultValue, err), nil
+	return callResultHandler(gc.Evm, funcName+" of GovContract", resultType, resultValue, err), nil
 }

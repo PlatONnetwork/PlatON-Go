@@ -1040,7 +1040,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	}
 }
 
-func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
+func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
@@ -1073,8 +1073,27 @@ func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
 }
 
-/*
-func TestGovContract_SubmitText_NotPass_Same_PIPID(t *testing.T) {
+func TestGovContract_SubmitText_voting_PIPID_exist(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	commit_sndb(chain)
+
+	build_staking_data_more(chain)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	//submit another proposal
+	prepair_sndb(chain, txHashArr[3])
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
+}
+
+func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
@@ -1114,7 +1133,7 @@ func TestGovContract_SubmitText_NotPass_Same_PIPID(t *testing.T) {
 	}
 
 }
-*/
+
 func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -1374,6 +1393,69 @@ func Test_ResetVoteOption(t *testing.T) {
 
 	v.VoteOption = gov.Yes
 	t.Log(v)
+}
+
+func logResult(t *testing.T, resultValue interface{}, resultType CallResultType) {
+	if xcom.IsNil(resultValue) {
+		if resultType == ResultTypeStructRef {
+			resultValue = ""
+		} else if resultType == ResultTypeSlice {
+			resultValue = []string{}
+		} else if resultType == ResultTypeMap {
+			resultValue = make(map[string]string)
+		} else if resultType == ResultTypeInterface {
+			resultValue = ""
+		} else {
+			resultValue = ""
+		}
+	}
+	resultBytes := xcom.NewOkResult(resultValue)
+
+	//resultBytes := xcom.NewOkResult2(resultValue)
+	t.Log("result  json：", string(resultBytes))
+}
+func Test_Json_Marshal_nil(t *testing.T) {
+	// slice
+	var vList []gov.GovernParam
+	logResult(t, vList, ResultTypeSlice)
+
+	vList = []gov.GovernParam{}
+	logResult(t, vList, ResultTypeSlice)
+
+	// struct
+	var vStruct gov.GovernParam
+	logResult(t, &vStruct, ResultTypeStructRef)
+
+	// struct refer
+	var vStructRef *gov.GovernParam
+	logResult(t, vStructRef, ResultTypeStructRef)
+
+	// map
+	var vMap map[string]gov.GovernParam
+	logResult(t, vMap, ResultTypeMap)
+
+	vMap = make(map[string]gov.GovernParam)
+	logResult(t, vMap, ResultTypeMap)
+
+	// string
+	var vString string
+	logResult(t, vString, ResultTypeNonNil)
+
+	var vUint32 uint32
+	logResult(t, vUint32, ResultTypeNonNil)
+
+	var vUintList []uint32
+	logResult(t, vUintList, ResultTypeSlice)
+
+	var vProposal gov.Proposal
+	logResult(t, vProposal, ResultTypeInterface)
+
+	var str string
+	str = "20"
+	//jsonByte, _ := json.Marshal(str)
+	resultBytes := xcom.NewOkResult(str)
+	t.Log("result string", string(resultBytes))
+
 }
 
 func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOption) {
