@@ -34,7 +34,7 @@ import (
 type CallResultType byte
 
 const (
-	ResultTypeStruct    CallResultType = 0
+	ResultTypeStructRef CallResultType = 0
 	ResultTypeSlice     CallResultType = 1
 	ResultTypeMap       CallResultType = 2
 	ResultTypeInterface CallResultType = 3

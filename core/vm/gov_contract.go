@@ -314,7 +314,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	proposal, err := gov.GetExistProposal(proposalID, gc.Evm.StateDB)
 
-	return gc.callHandler("getProposal", proposal, ResultTypeStruct, err)
+	return gc.callHandler("getProposal", proposal, ResultTypeInterface, err)
 }
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
@@ -333,7 +333,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	if tallyResult == nil {
 		err = gov.TallyResultNotFound
 	}
-	return gc.callHandler("getTallyResult", tallyResult, ResultTypeStruct, err)
+	return gc.callHandler("getTallyResult", tallyResult, ResultTypeStructRef, err)
 }
 
 func (gc *GovContract) listProposal() ([]byte, error) {
@@ -464,12 +464,14 @@ func (gc *GovContract) callHandler(funcName string, resultValue interface{}, res
 	}
 
 	if xcom.IsNil(resultValue) {
-		if resultType == ResultTypeStruct {
+		if resultType == ResultTypeStructRef {
 			resultValue = ""
 		} else if resultType == ResultTypeSlice {
 			resultValue = []string{}
 		} else if resultType == ResultTypeMap {
 			resultValue = make(map[string]string)
+		} else if resultType == ResultTypeInterface {
+			resultValue = ""
 		} else {
 			resultValue = ""
 		}

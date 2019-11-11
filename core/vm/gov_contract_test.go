@@ -1395,6 +1395,69 @@ func Test_ResetVoteOption(t *testing.T) {
 	t.Log(v)
 }
 
+func logResult(t *testing.T, resultValue interface{}, resultType CallResultType) {
+	if xcom.IsNil(resultValue) {
+		if resultType == ResultTypeStructRef {
+			resultValue = ""
+		} else if resultType == ResultTypeSlice {
+			resultValue = []string{}
+		} else if resultType == ResultTypeMap {
+			resultValue = make(map[string]string)
+		} else if resultType == ResultTypeInterface {
+			resultValue = ""
+		} else {
+			resultValue = ""
+		}
+	}
+	resultBytes := xcom.NewOkResult(resultValue)
+
+	//resultBytes := xcom.NewOkResult2(resultValue)
+	t.Log("result  json：", string(resultBytes))
+}
+func Test_Json_Marshal_nil(t *testing.T) {
+	// slice
+	var vList []gov.GovernParam
+	logResult(t, vList, ResultTypeSlice)
+
+	vList = []gov.GovernParam{}
+	logResult(t, vList, ResultTypeSlice)
+
+	// struct
+	var vStruct gov.GovernParam
+	logResult(t, &vStruct, ResultTypeStructRef)
+
+	// struct refer
+	var vStructRef *gov.GovernParam
+	logResult(t, vStructRef, ResultTypeStructRef)
+
+	// map
+	var vMap map[string]gov.GovernParam
+	logResult(t, vMap, ResultTypeMap)
+
+	vMap = make(map[string]gov.GovernParam)
+	logResult(t, vMap, ResultTypeMap)
+
+	// string
+	var vString string
+	logResult(t, vString, ResultTypeNonNil)
+
+	var vUint32 uint32
+	logResult(t, vUint32, ResultTypeNonNil)
+
+	var vUintList []uint32
+	logResult(t, vUintList, ResultTypeSlice)
+
+	var vProposal gov.Proposal
+	logResult(t, vProposal, ResultTypeInterface)
+
+	var str string
+	str = "20"
+	//jsonByte, _ := json.Marshal(str)
+	resultBytes := xcom.NewOkResult(str)
+	t.Log("result string", string(resultBytes))
+
+}
+
 func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOption) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
