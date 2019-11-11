@@ -628,7 +628,8 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     if punishment_amonut > pledge_amount:
         assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
     else:
-        assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+        assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(
+            info['Pledge'])
     # create Restricting Plan again
     plan = [{'Epoch': 1, 'Amount': von_amount(economic.create_staking_limit, 2)}]
     result = client2.restricting.createRestrictingPlan(address2, plan, address1)
@@ -818,7 +819,8 @@ def test_LS_PV_001(client_new_node_obj):
     log.info("restricting info: {}".format(restricting_info))
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
 
 
 @pytest.mark.P1
@@ -1314,7 +1316,8 @@ def test_LS_EV_009(client_new_node_obj):
     restricting_info = client.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['Pledge'] == delegate_amount - redemption_amount, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    assert info['Pledge'] == delegate_amount - redemption_amount, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
 
 
 @pytest.mark.P2
@@ -1534,7 +1537,8 @@ def test_LS_EV_019(client_new_node_obj):
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info['debt'] == von_amount(economic.delegate_limit, 10), "rrMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == von_amount(economic.delegate_limit, 10), "rrMsg: restricting debt amount {}".format(
+        info['debt'])
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 5)
     result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
@@ -1543,7 +1547,8 @@ def test_LS_EV_019(client_new_node_obj):
     restricting_info = client.ppos.getRestrictingInfo(address2)
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info['debt'] == von_amount(economic.delegate_limit, 10) - redemption_amount, "rrMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == von_amount(economic.delegate_limit,
+                                      10) - redemption_amount, "rrMsg: restricting debt amount {}".format(info['debt'])
 
 
 @pytest.mark.P1
@@ -1689,7 +1694,8 @@ def test_LS_IV_002(client_new_node_obj):
     node = client.node
     # create account
     address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    address2, _ = economic.account.generate_account(node.web3, economic.create_staking_limit + node.web3.toWei(0.000009,'ether'))
+    address2, _ = economic.account.generate_account(node.web3,
+                                                    economic.create_staking_limit + node.web3.toWei(0.000009, 'ether'))
     # create Restricting Plan
     add_staking_amount = von_amount(economic.add_staking_limit, 10)
     plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
@@ -2016,7 +2022,8 @@ def test_LS_CSV_011(client_new_node_obj):
     economic.wait_settlement_blocknum(node, 2)
     balance2 = node.eth.getBalance(address1)
     log.info("Account address: {} balance: {}".format(address1, balance2))
-    assert balance2 - balance1 > economic.create_staking_limit, "errMsg: Account address: {} balance: {}".format(address1, balance2)
+    assert balance2 - balance1 > economic.create_staking_limit, "errMsg: Account address: {} balance: {}".format(
+        address1, balance2)
 
 
 @pytest.mark.P2
@@ -2214,7 +2221,8 @@ def test_UP_FV_002(client_new_node_obj):
     address1 = restricting_plan_verification_pledge(client, economic, node)
     # view restricting plan index 0 amount
     restricting_info = client.ppos.getRestrictingInfo(address1)
-    amount = restricting_info['Ret']['plan'][0]['amount']
+    log.info("restricting plan information: {}".format(restricting_info))
+    amount = restricting_info['Ret']['plans'][0]['amount']
     # view Account balance
     balance = node.eth.getBalance(address1)
     log.info("Account balance: {}".format(balance))
@@ -2222,7 +2230,7 @@ def test_UP_FV_002(client_new_node_obj):
     economic.wait_consensus_blocknum(node)
     # view restricting plan index 0 amount again
     restricting_info = client.ppos.getRestrictingInfo(address1)
-    amount1 = restricting_info['Ret']['plan'][0]['amount']
+    amount1 = restricting_info['Ret']['plans'][0]['amount']
     # view Account balance again
     balance1 = node.eth.getBalance(address1)
     log.info("Account balance: {}".format(balance1))
@@ -2230,3 +2238,32 @@ def test_UP_FV_002(client_new_node_obj):
     assert balance1 == balance, "ErrMsg:Account balance: {}".format(balance1)
 
 
+@pytest.mark.P1
+def test_UP_FV_003(client_new_node_obj):
+    """
+    多个锁仓期，依次部分释放期返回解锁金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create Restricting Plan
+    amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}, {'Epoch': 2, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # view Restricting Plan again
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan information: {}".format(restricting_info))
+    assert len(restricting_info['Ret']['plans']) == 2, "ErrMsg:Planned releases: {}".format(
+        len(restricting_info['Ret']['plans']))
+    # Waiting for the end of the settlement period
+    economic.wait_consensus_blocknum(node)
+    # view Restricting Plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan information: {}".format(restricting_info))
+    assert len(restricting_info['Ret']['plans']) == 1, "ErrMsg:Planned releases: {}".format(
+        len(restricting_info['Ret']['plans']))
