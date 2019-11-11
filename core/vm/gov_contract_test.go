@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"strings"
 	"testing"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
@@ -350,17 +349,6 @@ func TestGovContract_SubmitText_ProposalID_exist(t *testing.T) {
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid33"), t, gov.ProposalIDExist)
 }
 
-func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
-	chain := setup(t)
-	defer clear(chain, t)
-
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
-	commit_sndb(chain)
-
-	prepair_sndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t, gov.PIPIDExist)
-}
-
 func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -383,13 +371,13 @@ func TestGovContract_ListGovernParam_all(t *testing.T) {
 func TestGovContract_GetGovernParamValue(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(true, gc, buildGetGovernParamValueInput("Staking", "StakeThreshold"), t)
+	runGovContract(true, gc, buildGetGovernParamValueInput("staking", "stakeThreshold"), t)
 }
 
 func TestGovContract_GetGovernParamValue_NotFound(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(true, gc, buildGetGovernParamValueInput("Staking", "StakeThreshold_Err"), t, gov.UnsupportedGovernParam)
+	runGovContract(true, gc, buildGetGovernParamValueInput("staking", "stakeThreshold_Err"), t, gov.UnsupportedGovernParam)
 }
 
 func TestGovContract_SubmitParam(t *testing.T) {
@@ -450,10 +438,56 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	allVote(chain, t, txHashArr[1])
+	allVote(chain, t, txHashArr[1], gov.Yes)
 	commit_sndb(chain)
 
 	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+
+}
+
+func TestGovContract_voteTwoProposal_punished(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	if err != nil {
+		t.Errorf("%s", err)
+	} else {
+		assert.Equal(t, "25", value)
+	}
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
+	//runGovContract(false, gc, buildSubmitTextInput(), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[3])
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "pipid2", 4, defaultProposalID), t)
+	//runGovContract(false, gc, buildSubmitTextInput(), t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[4])
+	allVote(chain, t, txHashArr[3], gov.Yes)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[5])
+	punished := make(map[discover.NodeID]struct{})
+	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+
+	// punish last one
+	lastOne := currentValidatorList[len(currentValidatorList)-1]
+	punished[lastOne] = struct{}{}
+
+	gov.NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punished, chain.StateDB)
+
+	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
+
+	runGovContract(true, gc, buildGetAccuVerifiersCountInput(txHashArr[3], chain.CurrentHeader().Hash()), t)
 
 }
 
@@ -474,7 +508,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	allVote(chain, t, txHashArr[1])
+	allVote(chain, t, txHashArr[1], gov.Yes)
 	commit_sndb(chain)
 
 	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
@@ -568,7 +602,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	allVote(chain, t, defaultProposalID)
+	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
 
 	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
@@ -978,7 +1012,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	allVote(chain, t, defaultProposalID)
+	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
@@ -991,10 +1025,10 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 
 	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
+	//tally vote
 	endBlock(chain, t)
 	commit_sndb(chain)
 
-	// vote option = 0, it's wrong
 	runGovContract(false, gc, buildVote(0, defaultProposalID, gov.No, promoteVersion, versionSign), t, gov.ProposalNotAtVoting)
 
 	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
@@ -1004,9 +1038,83 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	} else {
 		t.Fatal("cannot list ActiveNode")
 	}
-
 }
 
+func TestGovContract_SubmitText_PIPID_exist(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	commit_sndb(chain)
+
+	build_staking_data_more(chain)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+
+	//skip empty block
+	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+	//tally vote
+	endBlock(chain, t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[3])
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
+}
+
+/*
+func TestGovContract_SubmitText_NotPass_Same_PIPID(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+
+	//submit a proposal and vote for it.
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[1], "pipid1"), t)
+	commit_sndb(chain)
+
+	build_staking_data_more(chain)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.No)
+	commit_sndb(chain)
+
+	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+
+	//skip empty block
+	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+	//tally vote
+	endBlock(chain, t)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[3])
+	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t)
+
+	p, err = gov.GetProposal(txHashArr[3], chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	} else {
+		assert.Equal(t, nodeIdArr[2], p.GetProposer())
+	}
+
+}
+*/
 func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -1091,7 +1199,7 @@ func TestGovContract_TextProposal_pass(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	allVote(chain, t, txHashArr[1])
+	allVote(chain, t, txHashArr[1], gov.Yes)
 	commit_sndb(chain)
 
 	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
@@ -1129,7 +1237,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	commit_sndb(chain)
 
 	prepair_sndb(chain, txHashArr[2])
-	allVote(chain, t, defaultProposalID)
+	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
 
 	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
@@ -1246,14 +1354,14 @@ func runGovContract(callType bool, contract *GovContract, buf []byte, t *testing
 		assert.NotEqual(t, common.OkCode, result.Code)
 		var expected = false
 		for _, expectedError := range expectedErrors {
-			expectedCode, expectedMsg := common.DecodeError(expectedError)
-			expected = expected || result.Code == expectedCode || strings.Contains(result.Ret, expectedMsg)
+			expectedCode, _ := common.DecodeError(expectedError)
+			expected = expected || result.Code == expectedCode
 		}
 		assert.True(t, expected)
 		t.Log("the expected errCode:", result.Code, "errMsg:", expectedErrors)
 	} else {
 		assert.Equal(t, common.OkCode, result.Code)
-		t.Log("the expected resultCode:", result.Code)
+		t.Log("the expected resultCode:", result.Code, "resultData:", result.Ret)
 	}
 }
 
@@ -1268,7 +1376,7 @@ func Test_ResetVoteOption(t *testing.T) {
 	t.Log(v)
 }
 
-func allVote(chain *mock.Chain, t *testing.T, pid common.Hash) {
+func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOption) {
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 	voteCount := len(currentValidatorList)
@@ -1278,7 +1386,7 @@ func allVote(chain *mock.Chain, t *testing.T, pid common.Hash) {
 		vote := gov.VoteInfo{
 			ProposalID: pid,
 			VoteNodeID: nodeIdArr[i],
-			VoteOption: gov.Yes,
+			VoteOption: option,
 		}
 
 		chandler.SetPrivateKey(priKeyArr[i])
