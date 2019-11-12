@@ -2,7 +2,7 @@ import time
 import pytest
 import allure
 from dacite import from_dict
-from common.key import get_pub_key, mock_duplicate_sign
+from common.key import get_pub_key, mock_duplicate_sign, generate_key
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
@@ -604,3 +604,32 @@ def test_VP_PV_024(client_con_list_obj):
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
     assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_025(client_consensus_obj):
+    """
+    举报接口参数测试：举报人账户错误
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create nodekey
+    privatekey, _ = generate_key()
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node, 1)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    # Obtain evidence of violation
+    report_information = mock_duplicate_sign(1, privatekey, node.blsprikey, current_block)
+    log.info("Report information: {}".format(report_information))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 303004)
+
+
