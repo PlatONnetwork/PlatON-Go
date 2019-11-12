@@ -96,11 +96,11 @@ func (sc *SlashingContract) checkDuplicateSign(dupType uint8, addr common.Addres
 
 	if nil != err {
 		return callResultHandler(sc.Evm, fmt.Sprintf("checkDuplicateSign, duplicateSignBlockNum: %d, addr: %s, dupType: %d",
-			blockNumber, addr, dupType), ResultTypeNonNil, data, common.InternalError.Wrap(err.Error())), nil
+			blockNumber, addr, dupType), data, common.InternalError.Wrap(err.Error())), nil
 	}
 	if len(txHash) > 0 {
 		data = hexutil.Encode(txHash)
 	}
 	return callResultHandler(sc.Evm, fmt.Sprintf("checkDuplicateSign, duplicateSignBlockNum: %d, addr: %s, dupType: %d",
-		blockNumber, addr, dupType), ResultTypeNonNil, data, nil), nil
+		blockNumber, addr, dupType), data, nil), nil
 }

@@ -44,30 +44,18 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 	return []byte(receipt)
 }
 
-func callResultHandler(evm *EVM, title string, resultType CallResultType, resultValue interface{}, err error) []byte {
-
+func callResultHandler(evm *EVM, title string, resultValue interface{}, err error) []byte {
 	txHash := evm.StateDB.TxHash()
 	blockNumber := evm.BlockNumber.Uint64()
 
 	if nil != err {
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "the reason", err.Error())
-		resultBytes := xcom.NewFailedResult(err)
-		return resultBytes
+		return xcom.NewFailedResult(err)
 	}
 
 	if xcom.IsNil(resultValue) {
-		if resultType == ResultTypeStructRef {
-			resultValue = ""
-		} else if resultType == ResultTypeSlice {
-			resultValue = []string{}
-		} else if resultType == ResultTypeMap {
-			resultValue = make(map[string]string)
-		} else if resultType == ResultTypeInterface {
-			resultValue = ""
-		} else {
-			resultValue = ""
-		}
+		return xcom.NewFailedResult(common.NotFound)
 	}
 
 	log.Debug("Call "+title+" finished", "blockNumber", blockNumber,
