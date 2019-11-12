@@ -7,7 +7,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, Client
+    get_governable_parameter_value, Client, update_param_by_dict
 
 
 def penalty_proportion_and_income(client_obj):
@@ -135,7 +135,7 @@ def initial_report(global_test_env):
 
 
 class TestMultipleReports:
-
+    @pytest.mark.P1
     def test_VP_PV_004(self, initial_report):
         """
         举报双签-同一验证人同一块高不同类型
@@ -147,6 +147,7 @@ class TestMultipleReports:
         result = verification_duplicate_sign(client_con_list_obj[0], 2, 2, report_address, current_block)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_VP_PV_005(self, initial_report):
         """
         举报双签-同一验证人不同块高同一类型
@@ -155,9 +156,10 @@ class TestMultipleReports:
         """
         client_con_list_obj, economic, node, report_address, current_block = initial_report
         # duplicate sign
-        result = verification_duplicate_sign(client_con_list_obj[0], 1, 1, report_address, current_block-1)
+        result = verification_duplicate_sign(client_con_list_obj[0], 1, 1, report_address, current_block - 1)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_VP_PV_006(self, initial_report):
         """
         举报双签-同一验证人不同块高不同类型
@@ -169,6 +171,7 @@ class TestMultipleReports:
         result = verification_duplicate_sign(client_con_list_obj[0], 2, 2, report_address, current_block - 1)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_VP_PV_007(self, initial_report):
         """
         举报双签-不同验证人同一块高同一类型
@@ -182,6 +185,7 @@ class TestMultipleReports:
         result = verification_duplicate_sign(client_con_list_obj[1], 1, 1, report_address, current_block)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_VP_PV_008(self, initial_report):
         """
         举报双签-不同验证人同一块高不同类型
@@ -194,3 +198,49 @@ class TestMultipleReports:
         # duplicate sign
         result = verification_duplicate_sign(client_con_list_obj[1], 2, 2, report_address, current_block)
         assert_code(result, 0)
+
+    @pytest.mark.P1
+    def test_VP_PV_009(self, initial_report):
+        """
+        举报双签-不同验证人不同块高不同类型
+        :param initial_report:
+        :return:
+        """
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # create account
+        report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[1], 2, 2, report_address, current_block - 1)
+        assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_VP_PV_010(client_consensus_obj, reset_environment):
+    """
+    举报双签-双签证据epoch不一致
+    :param client_consensus_obj:
+    :param reset_environment:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node, 1)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    if current_block < 41:
+        current_block = 41
+    # Report1 prepareblock signature
+    report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block)
+    log.info("Report information: {}".format(report_information))
+    # Modification of evidence
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'epoch', None, 1)
+    log.info("Evidence information: {}".format(jsondata))
+
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
