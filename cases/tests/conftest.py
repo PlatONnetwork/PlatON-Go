@@ -19,7 +19,7 @@ def global_running_env(global_test_env):
     yield global_test_env
     if id_cfg != id(global_test_env.cfg) or id(genesis) != id(global_test_env.genesis_config):
         global_test_env.set_cfg(backup_cfg)
-        global_test_env.deploy_all()
+        # global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -125,6 +125,7 @@ def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
         msg = noconsensus_node_obj.ppos.getCandidateInfo(noconsensus_node_obj.node.node_id)
         log.info(msg)
         if msg["Code"] == 301204:
+            log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
             return noconsensus_node_obj
     log.info('非共识节点已全部质押，重新启链')
     client_noconsensus_obj.economic.env.deploy_all()
@@ -182,8 +183,8 @@ def new_genesis_env(global_test_env):
     cfg = copy(global_test_env.cfg)
     yield global_test_env
     log.info("reset deploy.................")
-    global_test_env.set_cfg(cfg)
-    global_test_env.deploy_all()
+    # global_test_env.set_cfg(cfg)
+    # global_test_env.deploy_all()
 
 def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=True):
     '''
@@ -268,3 +269,5 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
             log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
     return proposalinfo.get('EndVotingBlock')
+
+

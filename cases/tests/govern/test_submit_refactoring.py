@@ -11,8 +11,8 @@ def assert_code(result, code):
 
 def voting_round_deploy(pip_obj, pip_env, param):
     genesis = from_dict(data_class=Genesis, data=pip_env.genesis_config)
-    genesis.EconomicModel.Gov.VersionProposalVote_DurationSeconds = 2 * pip_obj.economic.consensus_size + param
-    genesis.EconomicModel.Gov.TextProposalVote_DurationSeconds = 5 * pip_obj.economic.consensus_size + param
+    genesis.economicModel.gov.versionProposalVote_DurationSeconds = 2 * pip_obj.economic.consensus_size + param
+    genesis.economicModel.gov.textProposalVote_DurationSeconds = 5 * pip_obj.economic.consensus_size + param
     pip_env.set_genesis(genesis.to_dict())
     pip_env.deploy_all()
 

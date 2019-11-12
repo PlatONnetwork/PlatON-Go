@@ -4,7 +4,8 @@ from dacite import from_dict
 from tests.lib import Genesis
 from common.key import mock_duplicate_sign
 from tests.govern.test_voting_statistics import submitppandvote
-import json, time
+import json, time, math
+import pytest
 
 class TestgetProposal():
     def test_GP_IF_001(self, submit_cancel_param):
@@ -31,10 +32,78 @@ class TestgetProposal():
         assert json.loads(result.get('Ret')).get('SubmitBlock') == proposalinfo.get('SubmitBlock')
         assert json.loads(result.get('Ret')).get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
+    def test_PR_IN_001_002(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        pip_id = str(time.time())
+        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id, pip_obj.cfg.version8, 3, pip_obj.node.staking_address,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit version proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
+        log.info('Get version proposal information : {}'.format(proposalinfo_version))
+        pip_id_cancel = str(time.time())
+        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id_cancel, 1, proposalinfo_version.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj .cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+        proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Get cancel proposal information : {}'.format(proposalinfo_cancel))
+
+        result_version = pip_obj.pip.getProposal(proposalinfo_version.get('ProposalID'))
+        log.info('Interface getProposal-version result : {}'.format(result_version))
+
+        result_cancel = pip_obj.pip.getProposal(proposalinfo_cancel.get('ProposalID'))
+        log.info('Interface getProposal-cancel result : {}'.format(result_cancel))
+
+        assert json.loads(result_version.get('Ret')).get('Proposer') == pip_obj.node.node_id
+        assert json.loads(result_version.get('Ret')).get('ProposalType') == pip_obj.cfg.version_proposal
+        assert json.loads(result_version.get('Ret')).get('PIPID') == pip_id
+        assert json.loads(result_version.get('Ret')).get('SubmitBlock') == proposalinfo_version.get('SubmitBlock')
+        caculated_endvotingblock = math.ceil(proposalinfo_version.get('SubmitBlock')/pip_obj.economic.consensus_size +
+                                             3)* pip_obj.economic.consensus_size - 20
+        assert json.loads(result_version.get('Ret')).get('EndVotingBlock') == caculated_endvotingblock
+
+        assert json.loads(result_cancel.get('Ret')).get('Proposer') == pip_obj.node.node_id
+        assert json.loads(result_cancel.get('Ret')).get('ProposalType') == pip_obj.cfg.cancel_proposal
+        assert json.loads(result_cancel.get('Ret')).get('PIPID') == pip_id_cancel
+        assert json.loads(result_cancel.get('Ret')).get('SubmitBlock') == proposalinfo_cancel.get('SubmitBlock')
+        caculated_endvotingblock = math.ceil(proposalinfo_cancel.get('SubmitBlock')/pip_obj.economic.consensus_size)* \
+                                   pip_obj.economic.consensus_size + 20
+        assert json.loads(result_cancel.get('Ret')).get('EndVotingBlock') == caculated_endvotingblock
+
+    def test_PR_IN_003(self, client_verifier_obj):
+        pip_obj = client_verifier_obj.pip
+        pip_id = str(time.time())
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id, pip_obj.node.staking_address,
+                           transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfo_text = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
+        log.info('Get text proposal information : {}'.format(proposalinfo_text))
+
+        result_text = pip_obj.pip.getProposal(proposalinfo_text.get('ProposalID'))
+        log.info('Interface getProposal-text result : {}'.format(result_text))
+
+        assert json.loads(result_text.get('Ret')).get('Proposer') == pip_obj.node.node_id
+        assert json.loads(result_text.get('Ret')).get('ProposalType') == pip_obj.cfg.text_proposal
+        assert json.loads(result_text.get('Ret')).get('PIPID') == pip_id
+        assert json.loads(result_text.get('Ret')).get('SubmitBlock') == proposalinfo_text.get('SubmitBlock')
+        log.info(pip_obj.economic.tp_vote_settlement_wheel)
+        caculated_endvotingblock = math.ceil(proposalinfo_text.get('SubmitBlock')/pip_obj.economic.consensus_size +
+                                             pip_obj.economic.tp_vote_settlement_wheel)* pip_obj.economic.consensus_size - 20
+        assert json.loads(result_text.get('Ret')).get('EndVotingBlock') == caculated_endvotingblock
+
+    def test_PR_IN_004(self, client_noconsensus_obj):
+        pip_obj = client_noconsensus_obj.pip
+        result = pip_obj.pip.getProposal('0xa89162be0bd0d081c50a5160f412c4926b3ae9ea96cf792935564357ddd11111')
+        log.info('Interface getProposal-version result : {}'.format(result))
+        assert_code(result, 302006)
+
 class TestgetTallyResult():
     def test_TR_IN_010(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds = 0
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
@@ -59,7 +128,7 @@ class TestgetTallyResult():
 
     def test_TR_IN_011_TR_IN_012(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds = 0
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
@@ -108,12 +177,12 @@ class TestgetTallyResult():
 class TestgetAccuVerifiersCount():
     def test_AC_IN_018_to_025(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.EconomicModel.Gov.ParamProposalVote_DurationSeconds = 0
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[-1].pip
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '999',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'slashBlocksReward', '999',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -267,3 +336,5 @@ class TestGetGovernParam():
 
 
         
+if __name__ == '__main__':
+    pytest.main(['./tests/govern/','-s', '-q', '--alluredir', './report/report'])

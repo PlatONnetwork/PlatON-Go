@@ -837,7 +837,7 @@ def test_PIP_MG_001(client_con_list_obj, reset_environment):
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
     # create Parametric proposal
-    block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001', False)
+    block = param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4712388', False)
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
     # wait block
@@ -856,7 +856,7 @@ def test_PIP_MG_002(client_con_list_obj, reset_environment):
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001')
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4712388')
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
 
@@ -874,7 +874,7 @@ def test_PIP_MG_003(client_con_list_obj, reset_environment):
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4200001')
+    param_governance_verify(client_con_list_obj[0], 'Block', 'MaxBlockGasLimit', '4712388')
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'MaxBlockGasLimit')
     assert max_gas_limit2 == '4200001', "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)

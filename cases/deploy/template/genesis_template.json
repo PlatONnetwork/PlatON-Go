@@ -32,7 +32,7 @@
             "maxEvidenceAge": 1
         },
         "gov": {
-            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalVoteDurationSeconds": 1600,
             "versionProposalSupportRate": 0.667,
             "textProposalVoteDurationSeconds": 160,
             "textProposalVoteRate": 0.5,
