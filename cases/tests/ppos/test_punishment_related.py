@@ -7,7 +7,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, Client, update_param_by_dict
+    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
 
 
 def penalty_proportion_and_income(client_obj):
@@ -292,4 +292,28 @@ def test_VP_PV_012(client_consensus_obj):
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
     assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_013(client_consensus_obj):
+    """
+    举报双签-双签证据block_number不一致
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Modification of evidence
+    evidence_parameter = get_param_by_dict(report_information, 'prepareB', 'blockHash', None)
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'blockHash', None, evidence_parameter)
+    log.info("Evidence information: {}".format(jsondata))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
 

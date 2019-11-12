@@ -193,6 +193,14 @@ def get_param_by_dict(data, *args):
             if isinstance(data, dict) and i > len(args):
                 raise Exception("The parameters entered are incorrect.")
         return data
+    elif isinstance(data, str):
+        data = json.loads(data)
+        for key in args:
+            data = data.get(key)
+            i = i + 1
+            if isinstance(data, dict) and i > len(args):
+                raise Exception("The parameters entered are incorrect.")
+        return data
 
     raise Exception("Data format error")
 
