@@ -21,6 +21,16 @@ def restricting_plan_validation_release(client, economic, node):
     return address1
 
 
+def restricting_plan_validation_staking(client, economic, node):
+    # create restricting plan
+    address1 = restricting_plan_validation_release(client, economic, node)
+    # create staking
+    staking_amount = economic.create_staking_limit
+    result = client.staking.create_staking(1, address1, address1, amount=staking_amount)
+    assert_code(result, 0)
+    return address1
+
+
 @pytest.mark.P2
 def test_UP_FV_001(client_new_node_obj):
     """
@@ -130,4 +140,34 @@ def test_UP_FV_004(client_new_node_obj):
     info = restricting_info['Ret']
     assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
         info['debt'])
+
+
+@pytest.mark.P1
+def test_UP_FV_005(client_new_node_obj):
+    """
+    到达释放期释放锁仓金额之后再申请退回质押金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan and staking
+    address1 = restricting_plan_validation_staking(client, economic, node)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node, 2)
+    # view restricting plan again
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    assert_code(restricting_info, 304005)
 
