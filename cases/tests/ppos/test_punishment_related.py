@@ -309,7 +309,7 @@ def test_VP_PV_013(client_consensus_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
-    evidence_parameter = get_param_by_dict(report_information, 'prepareB', 'blockHash', None)
+    evidence_parameter = get_param_by_dict(report_information, 'prepareB', 'blockHash')
     jsondata = update_param_by_dict(report_information, 'prepareA', 'blockHash', None, evidence_parameter)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
@@ -421,6 +421,29 @@ def test_VP_PV_018(client_con_list_obj):
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
     jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'blsPubKey', client_con_list_obj[1].node.blspubkey)
+    log.info("Evidence information: {}".format(jsondata))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_019(client_con_list_obj):
+    """
+    举报双签-signature一致举报双签
+    :param client_con_list_obj:
+    :return:
+    """
+    client = client_con_list_obj[0]
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Modification of evidence
+    evidence_parameter = get_param_by_dict(report_information, 'prepareB', 'signature')
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
