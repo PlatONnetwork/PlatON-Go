@@ -684,8 +684,34 @@ def test_VP_PV_027(client_new_node_obj):
             # Get current block height
             current_block = node.eth.blockNumber
             log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
             result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
             assert_code(result, 303009)
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
+
+
+@pytest.mark.P1
+def test_VP_PV_028(client_consensus_obj):
+    """
+    举报有效期之前的双签行为
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node, 1)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    # Obtain evidence of violation
+    report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, 41)
+    log.info("Report information: {}".format(report_information))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 303003)
