@@ -23,7 +23,7 @@ def penalty_proportion_and_income(client_obj):
 def verification_duplicate_sign(client_obj, evidence_type, reporting_type, report_address, report_block):
     if report_block < 41:
         report_block = 41
-    # Report1 prepareblock signature
+    # Obtain evidence of violation
     report_information = mock_duplicate_sign(evidence_type, client_obj.node.nodekey,
                                              client_obj.node.blsprikey,
                                              report_block)
@@ -222,7 +222,7 @@ def obtaining_evidence_information(economic, node):
     log.info("Current block height: {}".format(current_block))
     if current_block < 41:
         current_block = 41
-    # Report1 prepareblock signature
+    # Obtain evidence of violation
     report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block)
     log.info("Report information: {}".format(report_information))
     return report_information, current_block
@@ -443,6 +443,84 @@ def test_VP_PV_019(client_con_list_obj):
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
     evidence_parameter = get_param_by_dict(report_information, 'prepareB', 'signature')
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
+    log.info("Evidence information: {}".format(jsondata))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_020(client_con_list_obj):
+    """
+    举报双签-伪造合法signature情况下伪造epoch
+    :param client_con_list_obj:
+    :return:
+    """
+    client = client_con_list_obj[0]
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Obtain evidence of violation
+    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, epoch=1)
+    log.info("Report information: {}".format(report_information))
+    # Modification of evidence
+    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
+    log.info("Evidence information: {}".format(jsondata))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_020(client_con_list_obj):
+    """
+    举报双签-伪造合法signature情况下伪造epoch
+    :param client_con_list_obj:
+    :return:
+    """
+    client = client_con_list_obj[0]
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Obtain evidence of violation
+    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, epoch=1)
+    log.info("Report information: {}".format(report_information))
+    # Modification of evidence
+    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
+    log.info("Evidence information: {}".format(jsondata))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_021(client_con_list_obj):
+    """
+    举报双签-伪造合法signature情况下伪造viewNumber
+    :param client_con_list_obj:
+    :return:
+    """
+    client = client_con_list_obj[0]
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Obtain evidence of violation
+    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, viewNumber=1)
+    log.info("Report information: {}".format(report_information))
+    # Modification of evidence
+    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
     jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
