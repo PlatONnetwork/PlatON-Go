@@ -735,3 +735,6 @@ def test_VP_PV_028(client_consensus_obj):
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 303002)
+
+
+
