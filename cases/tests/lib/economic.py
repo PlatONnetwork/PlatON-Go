@@ -54,6 +54,9 @@ class Economic:
         )
         #slash blocks reward
         self.slash_blocks_reward = self.genesis.economicModel.slashing.slashBlocksReward
+        # text proposal vote duration senconds
+        self.tp_vote_settlement_wheel = self.genesis.economicModel.gov.textProposalVoteDurationSeconds // (
+                self.interval * self.per_round_blocks * self.validator_count)
 
 
     @property

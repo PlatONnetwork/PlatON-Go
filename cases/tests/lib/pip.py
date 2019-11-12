@@ -298,7 +298,7 @@ class Pip:
         for pid_list in result:
             if pid_list.get('ProposalType') == 2:
                 if self.get_status_of_proposal(pid_list.get('ProposalID')) == 4:
-                    return pid_list.get('ProposalID'), pid_list.get('NewVersion'), pid_list.get('ActiveBlock')
+                    return pid_list
         raise Exception('There is no pre-validation upgrade proposal')
 
     def get_effect_proposal_info_of_vote(self, proposaltype=cfg.version_proposal):

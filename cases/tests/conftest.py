@@ -19,7 +19,7 @@ def global_running_env(global_test_env):
     yield global_test_env
     if id_cfg != id(global_test_env.cfg) or id(genesis) != id(global_test_env.genesis_config):
         global_test_env.set_cfg(backup_cfg)
-        global_test_env.deploy_all()
+        # global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -183,8 +183,8 @@ def new_genesis_env(global_test_env):
     cfg = copy(global_test_env.cfg)
     yield global_test_env
     log.info("reset deploy.................")
-    global_test_env.set_cfg(cfg)
-    global_test_env.deploy_all()
+    # global_test_env.set_cfg(cfg)
+    # global_test_env.deploy_all()
 
 def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=True):
     '''
@@ -269,3 +269,5 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
             log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
     return proposalinfo.get('EndVotingBlock')
+
+
