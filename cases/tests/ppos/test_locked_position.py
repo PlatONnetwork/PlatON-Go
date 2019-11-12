@@ -1311,7 +1311,8 @@ def test_LS_EV_009(client_new_node_obj):
     address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
     # withdrew delegate
     redemption_amount = von_amount(economic.delegate_limit, 5)
-    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
     # view restricting info again
     restricting_info = client.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)

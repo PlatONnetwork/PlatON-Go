@@ -34,7 +34,7 @@ def restricting_plan_validation_staking(client, economic, node):
     address1 = restricting_plan_validation_release(client, economic, node)
     # create staking
     staking_amount = economic.create_staking_limit
-    result = client.staking.create_staking(address1, address1, amount=staking_amount)
+    result = client.staking.create_staking(1, address1, address1, amount=staking_amount)
     assert_code(result, 0)
     return address1
 
@@ -303,7 +303,8 @@ def test_UP_FV_008(client_new_node_obj):
     info = candidate_info['Ret']
     staking_blocknum = info['StakingBlockNum']
     # withdrew delegate
-    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=delegate_amount)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=delegate_amount)
+    assert_code(result, 0)
     # view restricting plan
     restricting_info = client.ppos.getRestrictingInfo(address1)
     assert_code(restricting_info, 304005)
@@ -639,14 +640,16 @@ def test_UP_FV_015(client_new_node_obj):
     # create Restricting Plan
     delegate_amount = von_amount(economic.create_staking_limit, 1)
     plan = [{'Epoch': 1, 'Amount': delegate_amount}]
-    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    result = client.restricting.createRestrictingPlan(address1, plan, address2)
     assert_code(result, 0)
     # view restricting plan
     restricting_info = client.ppos.getRestrictingInfo(address1)
     log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == 0, 'ErrMsg: restricting debt amount {}'.format(info['debt'])
 
 
-@pytest.mark.P2
+@pytest.mark.P1
 def test_UP_FV_016(client_new_node_obj):
     """
     自由资金质押，锁仓再增持
@@ -678,7 +681,7 @@ def test_UP_FV_016(client_new_node_obj):
     assert_code(result, 0)
 
 
-@pytest.mark.P2
+@pytest.mark.P1
 def test_UP_FV_017(client_new_node_obj):
     """
     锁仓账户质押，自由资金再增持
@@ -708,4 +711,50 @@ def test_UP_FV_017(client_new_node_obj):
     # Apply for additional pledge
     result = client.staking.increase_staking(0, address1)
     assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_UP_FV_018(client_new_node_obj):
+    """
+    账户自由金额和锁仓金额申请委托同一个验证人，再申请赎回
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = von_amount(economic.create_staking_limit, 1)
+    address1, address2 = create_account_amount(client, amount1, amount2)
+    # create Restricting Plan
+    delegate_amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': delegate_amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address2)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Lock in amount Application for delegate
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    assert_code(result, 0)
+    # Free amount Application for delegate
+    result = client.delegate.delegate(0, address2, amount=delegate_amount)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Access to pledge information
+    candidate_info = client.ppos.getCandidateInfo(node.node_id)
+    info = candidate_info['Ret']
+    staking_blocknum = info['StakingBlockNum']
+    # withdrew delegate
+    withdrew_amount = von_amount(economic.delegate_limit, 1.5)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=withdrew_amount)
+    assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit, 0.5), 'ErrMsg: restricting debt amount {}'.format(info['debt'])
+
 
