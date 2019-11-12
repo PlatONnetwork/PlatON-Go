@@ -757,3 +757,27 @@ def test_VP_PV_031(client_consensus_obj):
         assert_code(result, 0)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_VP_PR_001(client_consensus_obj, reset_environment):
+    """
+    重复举报-同一举报人
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node)
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 303001)
