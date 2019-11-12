@@ -241,12 +241,18 @@ def test_UP_FV_007(client_new_node_obj):
     plan = [{'Epoch': 1, 'Amount': delegate_amount}]
     result = client.restricting.createRestrictingPlan(address2, plan, address2)
     assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
     # create staking
     result = client.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
     # Application for Commission
     result = client.delegate.delegate(1, address2, amount=delegate_amount)
     assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
     # Waiting for the end of the settlement period
     economic.wait_settlement_blocknum(node)
     # view restricting plan
@@ -299,4 +305,47 @@ def test_UP_FV_008(client_new_node_obj):
     # view restricting plan
     restricting_info = client.ppos.getRestrictingInfo(address1)
     assert_code(restricting_info, 304005)
+
+
+@pytest.mark.P1
+def test_UP_FV_009(client_con_list_obj):
+    """
+    锁仓账号申请质押，验证人违规被扣除节点自有质押金k
+    :param client_con_list_obj:
+    :return:
+    """
+    client1 = client_con_list_obj[0]
+    client2 = client_con_list_obj[1]
+    economic = client1.economic
+    node = client1.node
+    # create restricting plan and staking
+    address1 = restricting_plan_validation_staking(client1, economic, node)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Obtain block bonus and pledge bonus
+    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
+    # Get penalty blocks
+    slash_blocks = get_governable_parameter_value(client1, 'SlashBlocksReward')
+    # view restricting plan
+    restricting_info = client1.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # stop node
+    client1.node.stop()
+    # Waiting for a settlement round
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # view verifier list
+    verifier_list = client2.ppos.getVerifierList()
+    log.info("verifier_list: {}".format(verifier_list))
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    # view restricting plan again
+    restricting_info = client1.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
 
