@@ -74,7 +74,8 @@ def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     incentive_pool_account2 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive pool account1 amount:{} ".format(incentive_pool_account2))
     # assert account reward
-    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1,'ether'), "ErrMsg:report amount {}".format(
+    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1,
+                                                                                 'ether'), "ErrMsg:report amount {}".format(
         report_amount2)
     assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
             report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
@@ -402,7 +403,8 @@ def test_VP_PV_016(client_consensus_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'address', economic.account.account_with_money['address'])
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'address',
+                                    economic.account.account_with_money['address'])
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
@@ -424,7 +426,8 @@ def test_VP_PV_017(client_con_list_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'nodeId', client_con_list_obj[1].node.node_id)
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'nodeId',
+                                    client_con_list_obj[1].node.node_id)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
@@ -446,7 +449,8 @@ def test_VP_PV_018(client_con_list_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'blsPubKey', client_con_list_obj[1].node.blspubkey)
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'blsPubKey',
+                                    client_con_list_obj[1].node.blspubkey)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
@@ -784,3 +788,51 @@ def test_VP_PV_031(client_consensus_obj):
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
 
+
+@pytest.mark.P1
+def test_VP_PR_003(client_new_node_obj):
+    """
+    举报被处罚退出状态中的验证人
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Application for return of pledge
+            result = client.staking.withdrew_staking(pledge_address)
+            assert_code(result, 0)
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            # Obtain penalty proportion and income
+            pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
+            # view Amount of penalty
+            proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                                  proportion_ratio)
+            # view Pledge node information
+            candidate_info = client.ppos.getCandidateInfo(node.node_id)
+            log.info("Pledge node information: {}".format(candidate_info))
+            info = candidate_info['Ret']
+            assert info['Released'] == pledge_amount1 - (
+                        proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
+                info['Released'])
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
