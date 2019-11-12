@@ -191,7 +191,8 @@ def test_UP_FV_006(client_new_node_obj):
     economic = client.economic
     node = client.node
     # create account1
-    address1, _ = client.economic.account.generate_account(client.node.web3, von_amount(economic.create_staking_limit, 2))
+    address1, _ = client.economic.account.generate_account(client.node.web3,
+                                                           von_amount(economic.create_staking_limit, 2))
     # create Restricting Plan
     amount1 = economic.create_staking_limit
     amount2 = von_amount(economic.add_staking_limit, 10)
@@ -210,7 +211,8 @@ def test_UP_FV_006(client_new_node_obj):
     info = restricting_info['Ret']
     assert info['debt'] == amount1 - amount2, 'ErrMsg: restricting debt amount {}'.format(
         info['debt'])
-    assert info['plans'][0]['amount'] == amount2, 'ErrMsg: restricting plans amount {}'.format(info['plans'][0]['amount'])
+    assert info['plans'][0]['amount'] == amount2, 'ErrMsg: restricting plans amount {}'.format(
+        info['plans'][0]['amount'])
     # Waiting for the end of the settlement period
     economic.wait_settlement_blocknum(node)
     # view restricting plan again
@@ -346,6 +348,54 @@ def test_UP_FV_009(client_con_list_obj):
     restricting_info = client1.ppos.getRestrictingInfo(address1)
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info['debt'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting debt amount {}'.format(
+    assert info[
+               'debt'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting debt amount {}'.format(
         info['debt'])
 
+
+@pytest.mark.P1
+def test_UP_FV_010(client_con_list_obj):
+    """
+    锁仓验证人违规被剔除验证人列表，申请质押节点
+    :param client_con_list_obj:
+    :return:
+    """
+    client1 = client_con_list_obj[0]
+    client2 = client_con_list_obj[1]
+    economic = client1.economic
+    node = client1.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 3)
+    amount2 = von_amount(economic.create_staking_limit, 1)
+    address1, report_address = create_account_amount(client1, amount1, amount2)
+    # create Restricting Plan
+    delegate_amount = von_amount(economic.create_staking_limit, 2)
+    plan = [{'Epoch': 1, 'Amount': delegate_amount}]
+    result = client1.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client1.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    #
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client1.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # view current block
+            current_block = node.eth.blockNumber
+            log.info("Current block: {}".format(current_block))
+            # Report prepareblock signature
+            report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block)
+            log.info("Report information: {}".format(report_information))
+            result = client1.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            assert_code(result, 0)
+            time.sleep(3)
+            # create staking
+            result = client1.staking.create_staking(1, address1, address1)
+            assert_code(result, 301103)
+            break
+        else:
+            # wait consensus block
+            client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
