@@ -633,3 +633,27 @@ def test_VP_PV_025(client_consensus_obj):
     assert_code(result, 303004)
 
 
+@pytest.mark.P1
+def test_VP_PV_026(client_con_list_obj):
+    """
+    链存在的id,blskey不匹配
+    :param client_con_list_obj:
+    :return:
+    """
+    client = client_con_list_obj[0]
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node, 1)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    # Obtain evidence of violation
+    report_information = mock_duplicate_sign(1, node.nodekey, client_con_list_obj[1].node.blsprikey, current_block)
+    log.info("Report information: {}".format(report_information))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 303007)
+
