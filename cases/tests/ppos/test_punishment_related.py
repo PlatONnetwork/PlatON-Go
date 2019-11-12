@@ -1118,11 +1118,6 @@ def test_VP_PVF_005(client_new_node_obj):
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
             assert result == True, "ErrMsg:Node current status {}".format(result)
-            # Wait for the settlement round to end
-            economic.wait_consensus_blocknum(node)
-            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
-            log.info("Current node in consensus list status：{}".format(result))
-            assert result == True, "ErrMsg:Node current status {}".format(result)
             break
         else:
             # wait consensus block
@@ -1160,13 +1155,47 @@ def test_VP_PVF_006(client_new_node_obj):
             assert_code(result, 0)
             # Application for return of pledge
             result = client.staking.withdrew_staking(pledge_address)
-            assert_code(result, 0)
-            # view Pledge node information
-            candidate_info = client.ppos.getCandidateInfo(node.node_id)
-            log.info("Pledge node information: {}".format(candidate_info))
+            assert_code(result, 301103)
             break
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
 
+
+@pytest.mark.p2
+def test_VP_PVF_007(client_new_node_obj):
+    """
+    节点被处罚后马上重新质押（双签）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            # create staking
+            result = client.staking.create_staking(0, pledge_address, pledge_address)
+            assert_code(result, 301101)
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
 
