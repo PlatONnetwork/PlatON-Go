@@ -213,6 +213,32 @@ class TestMultipleReports:
         result = verification_duplicate_sign(client_con_list_obj[1], 2, 2, report_address, current_block - 1)
         assert_code(result, 0)
 
+    @pytest.mark.P1
+    def test_VP_PR_001(self, initial_report):
+        """
+        重复举报-同一举报人
+        :param initial_report:
+        :return:
+        """
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[0], 1, 1, report_address, current_block)
+        assert_code(result, 303001)
+
+    @pytest.mark.P1
+    def test_VP_PR_002(self, initial_report):
+        """
+        重复举报 - 不同举报人
+        :param initial_report:
+        :return:
+        """
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # create account
+        report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[0], 1, 1, report_address2, current_block)
+        assert_code(result, 303001)
+
 
 def obtaining_evidence_information(economic, node):
     # Wait for the consensus round to end
@@ -758,26 +784,3 @@ def test_VP_PV_031(client_consensus_obj):
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
 
-
-@pytest.mark.P1
-def test_VP_PR_001(client_consensus_obj, reset_environment):
-    """
-    重复举报-同一举报人
-    :param client_consensus_obj:
-    :return:
-    """
-    client = client_consensus_obj
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-    assert_code(result, 0)
-    # Wait for the consensus round to end
-    economic.wait_consensus_blocknum(node)
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-    assert_code(result, 303001)
