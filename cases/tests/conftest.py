@@ -113,6 +113,16 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
     client_obj = get_client_obj(nodeid, client_list_obj)
     return client_obj
 
+@pytest.fixture()
+def client_verifier_obj_list(global_test_env, client_consensus_obj, client_list_obj):
+    '''
+    获取单个验证节点Client对象
+    :param global_test_env:
+    :return:
+    '''
+    verifier_list = get_pledge_list(client_consensus_obj.ppos.getVerifierList)
+    log.info('verifierlist{}'.format(verifier_list))
+    return get_client_obj_list(verifier_list, client_list_obj)
 
 @pytest.fixture()
 def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
@@ -161,7 +171,7 @@ def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj)
                 log.info('对节点{}进行质押操作'.format(normal_node_obj.node_id))
                 result = client_obj.staking.create_staking(0, address, address)
                 log.info('节点{}质押结果为{}'.format(normal_node_obj.node_id, result))
-                assert result.get('Code') == 0
+                assert_code(result, 0)
         client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node)
     node_id_list = client_consensus_obj.staking.get_candidate_list_not_verifier()
     log.info('候选非验证人列表为{}'.format(node_id_list))

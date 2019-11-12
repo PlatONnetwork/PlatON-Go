@@ -6,8 +6,21 @@ from tests.lib.utils import assert_code, wait_block_number, upload_platon
 from tests.lib.client import Client
 from tests.lib import Genesis
 from dacite import from_dict
-from tests.govern.conftest import param_proposal_vote
+from tests.govern.conftest import param_proposal_vote, version_proposal_vote
 
+def submitvpandvote(client_list_obj, *args):
+    pip_obj = client_list_obj[0].pip
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 2, pip_obj.node.staking_address,
+                                   transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Submit version proposal result : {}'.format(result))
+    assert_code(result, 0)
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+    log.info('Version proposal info {}'.format(proposalinfo))
+    for index in range(len(client_list_obj)):
+        pip_obj = client_list_obj[index].pip
+        log.info('{}'.format(args[index]))
+        result = version_proposal_vote(pip_obj, vote_option=pip_obj.cfg.vote_option_yeas)
+        assert_code(result, 0)
 
 def submitppandvote(client_list_obj, *args):
     pip_obj = client_list_obj[0].pip
@@ -45,18 +58,18 @@ def submitcppandvote(client_list_obj, *args):
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} vote cancel proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 0)
-    
+
 
 def submitcvpandvote(client_list_obj, *args):
     pip_obj = client_list_obj[0].pip
-    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 4,
+    result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3,
                                    pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
     log.info('Version proposal info {}'.format(proposalinfo_version))
 
-    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 2, proposalinfo_version.get('ProposalID'),
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)

@@ -86,7 +86,7 @@ def submit_cancel(submit_version):
     pip_obj = submit_version
     propolsalinfo = pip_obj.get_effect_proposal_info_of_vote()
     log.info('get voting version proposal info :{}'.format(propolsalinfo))
-    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 4, propolsalinfo.get('ProposalID'),
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 2, propolsalinfo.get('ProposalID'),
                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
@@ -97,7 +97,7 @@ def submit_cancel_param(submit_param):
     pip_obj = submit_param
     propolsalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('get voting param proposal info :{}'.format(propolsalinfo))
-    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 3, propolsalinfo.get('ProposalID'),
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 2, propolsalinfo.get('ProposalID'),
                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
@@ -138,6 +138,8 @@ def new_node_has_proposal(global_test_env, client_new_node_obj, client_verifier_
 def candidate_has_proposal(global_test_env, client_candidate_obj, client_verifier_obj, client_list_obj):
     pip_obj = client_verifier_obj.pip
     if pip_obj.chain_version != pip_obj.cfg.version0:
+        global_test_env.deploy_all()
+    if pip_obj.is_exist_effective_proposal_for_vote(pip_obj.cfg.param_proposal):
         global_test_env.deploy_all()
     if pip_obj.is_exist_effective_proposal():
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
@@ -324,7 +326,7 @@ def bv_proposal_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list
     return [client_ca_obj.pip for client_ca_obj in client_ca_list]
 
 @pytest.fixture()
-def proposal_voted_ca_pipobj_list(global_test_env, client_list_obj, client_noc_list_obj, client_verifier_obj):
+def proposal_voted_ca_pipobj_list(client_list_obj, client_noc_list_obj, client_verifier_obj):
     '''
     There is voting stage proposal, get candidate list pip object
     :param global_test_env:
@@ -332,21 +334,24 @@ def proposal_voted_ca_pipobj_list(global_test_env, client_list_obj, client_noc_l
     '''
     pip_obj = client_list_obj[0].pip
     if pip_obj.chain_version != pip_obj.cfg.version0 or (pip_obj.is_exist_effective_proposal
-                                                         and not pip_obj.get_effect_proposal_info_of_vote):
+                                                         and not pip_obj.get_effect_proposal_info_of_vote) or (
+        pip_obj.is_exist_effective_proposal_for_vote(pip_obj.cfg.param_proposal)
+    ):
         log.info('The chain has been upgraded or there is preactive proposal,restart!')
-        global_test_env.deploy_all()
+        pip_obj.economic.env.deploy_all()
     nodeid_list = pip_obj.get_candidate_list_not_verifier()
     if nodeid_list:
         if pip_obj.get_effect_proposal_info_of_vote():
             proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
             log.info('get version proposalinfo : {}'.format(proposalinfo))
             if proposalinfo.get('NewVersion') == pip_obj.cfg.version8:
-                global_test_env.deploy_all()
+                pip_obj.economic.env.deploy_all()
             else:
                 if proposalinfo.get('EndVotingBlock') - pip_obj.node.block_number > pip_obj.economic.consensus_size:
                     client_ca_obj_list = get_client_obj_list(nodeid_list, client_list_obj)
                     return [client_obj.pip for client_obj in client_ca_obj_list]
-
+                else:
+                    pip_obj.economic.env.deploy_all()
     candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
     for client_obj in client_noc_list_obj:

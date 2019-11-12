@@ -237,6 +237,19 @@ class Pip:
             raise Exception('Failed to query proposal result based on given proposal id')
         return data.get('abstentions')
 
+    def get_canceledby_of_proposal(self, proposal_id):
+        """
+        Obtain the number of abstentions during the entire voting period
+        :param proposal_id:
+        :return:
+        """
+        result = self.pip.getTallyResult(proposal_id)
+        data = result.get('Ret')
+        data = json.loads(data)
+        if not data:
+            raise Exception('Failed to query proposal result based on given proposal id')
+        return data.get('canceledBy')
+
     @property
     def chain_version(self):
         """

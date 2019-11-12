@@ -134,7 +134,7 @@ class Staking:
         Get the pledge wallet address
         """
         result = self.ppos.getCandidateInfo(self.node.node_id)
-        candidate_info = result.get('Data')
+        candidate_info = result.get('Ret')
         address = candidate_info.get('StakingAddress')
         return self.node.web3.toChecksumAddress(address)
 
@@ -142,11 +142,11 @@ class Staking:
         """
         Get a list of candidates for non-verifiers for the current billing cycle
         """
-        candidate_list = self.ppos.getCandidateList().get('Data')
-        verifier_list = self.ppos.getVerifierList().get('Data')
-        if not verifier_list:
+        candidate_list = self.ppos.getCandidateList().get('Ret')
+        verifier_list = self.ppos.getVerifierList().get('Ret')
+        if verifier_list == "Getting verifierList is failed:The validator is not exist":
             time.sleep(10)
-            verifier_list = self.ppos.getVerifierList().get('Data')
+            verifier_list = self.ppos.getVerifierList().get('Ret')
         candidate_no_verify_list = []
         verifier_node_list = [node_info.get("NodeId") for node_info in verifier_list]
         for node_info in candidate_list:
@@ -163,7 +163,7 @@ class Staking:
             node = self.node
         flag = int(flag)
         stakinginfo = node.ppos.getCandidateInfo(node.node_id)
-        staking_data = stakinginfo.get('Data')
+        staking_data = stakinginfo.get('Ret')
         shares = int(staking_data.get('Shares'))
         released = int(staking_data.get('Released'))
         restrictingplan = int(staking_data.get('RestrictingPlan'))
