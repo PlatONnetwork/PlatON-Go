@@ -939,10 +939,39 @@ def test_VP_PVF_001(client_consensus_obj):
     log.info("Report information: {}".format(report_information))
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
+    # Query and report violation records
+    evidence_parameter = get_param_by_dict(report_information, 'prepareA', 'validateNode', 'address')
+    result = client.ppos.checkDuplicateSign(1, evidence_parameter, current_block)
+    assert_code(result, 0)
+    assert result['Ret'] is not None, "ErrMsg:Query results {}".format(result['Ret'])
+
+
+@pytest.mark.P1
+def test_VP_PVF_001(client_consensus_obj):
+    """
+    查询已成功的举报
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node, 1)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    # Obtain evidence of violation
+    report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, 100000)
+    log.info("Report information: {}".format(report_information))
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
     # create account
     report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Query and report violation records
     evidence_parameter = get_param_by_dict(report_information, 'prepareA', 'validateNode', 'address')
     result = client.ppos.checkDuplicateSign(1, evidence_parameter, current_block)
     assert_code(result, 0)
-    assert result['Ret'] is not None, "ErrMsg:Query results {}".format(result['Ret'])
+    assert result['Ret'] == "", "ErrMsg:Query results {}".format(result['Ret'])
