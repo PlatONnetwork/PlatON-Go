@@ -1,11 +1,10 @@
 package network
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
