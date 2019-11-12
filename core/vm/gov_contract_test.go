@@ -359,7 +359,7 @@ func TestGovContract_SubmitText_Proposal_Empty(t *testing.T) {
 func TestGovContract_ListGovernParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(true, gc, buildListGovernParam("Staking"), t)
+	runGovContract(true, gc, buildListGovernParam(paramModule), t)
 }
 
 func TestGovContract_ListGovernParam_all(t *testing.T) {
@@ -371,13 +371,13 @@ func TestGovContract_ListGovernParam_all(t *testing.T) {
 func TestGovContract_GetGovernParamValue(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(true, gc, buildGetGovernParamValueInput("staking", "stakeThreshold"), t)
+	runGovContract(true, gc, buildGetGovernParamValueInput(paramModule, paramName), t)
 }
 
 func TestGovContract_GetGovernParamValue_NotFound(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(true, gc, buildGetGovernParamValueInput("staking", "stakeThreshold_Err"), t, gov.UnsupportedGovernParam)
+	runGovContract(true, gc, buildGetGovernParamValueInput(paramModule, "stakeThreshold_Err"), t, gov.UnsupportedGovernParam)
 }
 
 func TestGovContract_SubmitParam(t *testing.T) {
@@ -1395,60 +1395,51 @@ func Test_ResetVoteOption(t *testing.T) {
 	t.Log(v)
 }
 
-func logResult(t *testing.T, resultValue interface{}, resultType CallResultType) {
+func logResult(t *testing.T, resultValue interface{}) {
 	if xcom.IsNil(resultValue) {
-		if resultType == ResultTypeStructRef {
-			resultValue = ""
-		} else if resultType == ResultTypeSlice {
-			resultValue = []string{}
-		} else if resultType == ResultTypeMap {
-			resultValue = make(map[string]string)
-		} else if resultType == ResultTypeInterface {
-			resultValue = ""
-		} else {
-			resultValue = ""
-		}
+		resultBytes := xcom.NewFailedResult(common.NotFound)
+		t.Log("result  json：", string(resultBytes))
+	} else {
+		resultBytes := xcom.NewOkResult(resultValue)
+		t.Log("result  json：", string(resultBytes))
 	}
-	resultBytes := xcom.NewOkResult(resultValue)
 
-	//resultBytes := xcom.NewOkResult2(resultValue)
-	t.Log("result  json：", string(resultBytes))
 }
 func Test_Json_Marshal_nil(t *testing.T) {
 	// slice
 	var vList []gov.GovernParam
-	logResult(t, vList, ResultTypeSlice)
+	logResult(t, vList)
 
 	vList = []gov.GovernParam{}
-	logResult(t, vList, ResultTypeSlice)
+	logResult(t, vList)
 
 	// struct
 	var vStruct gov.GovernParam
-	logResult(t, &vStruct, ResultTypeStructRef)
+	logResult(t, &vStruct)
 
 	// struct refer
 	var vStructRef *gov.GovernParam
-	logResult(t, vStructRef, ResultTypeStructRef)
+	logResult(t, vStructRef)
 
 	// map
 	var vMap map[string]gov.GovernParam
-	logResult(t, vMap, ResultTypeMap)
+	logResult(t, vMap)
 
 	vMap = make(map[string]gov.GovernParam)
-	logResult(t, vMap, ResultTypeMap)
+	logResult(t, vMap)
 
 	// string
 	var vString string
-	logResult(t, vString, ResultTypeNonNil)
+	logResult(t, vString)
 
 	var vUint32 uint32
-	logResult(t, vUint32, ResultTypeNonNil)
+	logResult(t, vUint32)
 
 	var vUintList []uint32
-	logResult(t, vUintList, ResultTypeSlice)
+	logResult(t, vUintList)
 
 	var vProposal gov.Proposal
-	logResult(t, vProposal, ResultTypeInterface)
+	logResult(t, vProposal)
 
 	var str string
 	str = "20"

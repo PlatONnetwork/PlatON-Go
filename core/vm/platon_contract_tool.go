@@ -44,34 +44,42 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 	return []byte(receipt)
 }
 
-func callResultHandler(evm *EVM, title string, resultType CallResultType, resultValue interface{}, err error) []byte {
-
+func callResultHandler(evm *EVM, title string, resultValue interface{}, err error) []byte {
 	txHash := evm.StateDB.TxHash()
 	blockNumber := evm.BlockNumber.Uint64()
 
 	if nil != err {
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "the reason", err.Error())
-		resultBytes := xcom.NewFailedResult(err)
-		return resultBytes
+		return xcom.NewFailedResult(err)
 	}
 
-	if xcom.IsNil(resultValue) {
-		if resultType == ResultTypeStructRef {
-			resultValue = struct{}{}
-		} else if resultType == ResultTypeSlice {
-			resultValue = []string{}
-		} else if resultType == ResultTypeMap {
-			resultValue = make(map[string]string)
-		} else if resultType == ResultTypeInterface {
-			resultValue = ""
-		} else {
-			resultValue = ""
-		}
+	if IsBlank(resultValue) {
+		return xcom.NewFailedResult(common.NotFound)
 	}
 
 	log.Debug("Call "+title+" finished", "blockNumber", blockNumber,
 		"txHash", txHash, "result", resultValue)
 	resultBytes := xcom.NewOkResult(resultValue)
 	return resultBytes
+}
+
+func IsBlank(i interface{}) bool {
+	defer func() {
+		recover()
+	}()
+
+	typ := reflect.TypeOf(i)
+	val := reflect.ValueOf(i)
+	if typ == nil {
+		return true
+	} else {
+		if typ.Kind() == reflect.Slice {
+			return val.Len() == 0
+		}
+		if typ.Kind() == reflect.Map {
+			return val.Len() == 0
+		}
+	}
+	return val.IsNil()
 }
