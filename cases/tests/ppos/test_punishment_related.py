@@ -750,7 +750,7 @@ def test_VP_PV_028(client_consensus_obj):
 @pytest.mark.P1
 def test_VP_PV_028(client_consensus_obj):
     """
-    举报有效期之前的双签行为
+    举报有效期之后的双签行为
     :param client_consensus_obj:
     :return:
     """
@@ -950,9 +950,9 @@ def test_VP_PVF_001(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PVF_001(client_consensus_obj):
+def test_VP_PVF_002(client_consensus_obj):
     """
-    查询已成功的举报
+    查询未成功的举报记录
     :param client_consensus_obj:
     :return:
     """
@@ -970,7 +970,7 @@ def test_VP_PVF_001(client_consensus_obj):
     report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, 100000)
     log.info("Report information: {}".format(report_information))
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-    assert_code(result, 0)
+    assert_code(result, 303002)
     # create account
     report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Query and report violation records
@@ -981,7 +981,7 @@ def test_VP_PVF_001(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PVF_003(client_new_node_obj):
+def test_VP_PVF_003(client_new_node_obj, reset_environment):
     """
     被系统剔除出验证人与候选人名单，节点可继续完成轮的出块及验证工作
     :param client_new_node_obj:
@@ -1021,4 +1021,152 @@ def test_VP_PVF_003(client_new_node_obj):
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
+
+
+@pytest.mark.P1
+def test_VP_PVF_004(client_new_node_obj):
+    """
+    验证人在共识轮第230区块前被举报并被处罚
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    endtime = int(time.time()) + 120
+    while int(time.time()) < endtime:
+        time.sleep(1)
+        current_block = node.eth.blockNumber
+        log.info("current block: {}".format(current_block))
+        block = current_block % economic.consensus_size
+        log.info("block: {}".format(block))
+        log.info("Current block height: {}, block of current consensus round: {}".format(current_block, block))
+        if block < 20:
+            break
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+            log.info("Current node in consensus list status：{}".format(result))
+            assert result == True, "ErrMsg:Node current status {}".format(result)
+            # Wait for the settlement round to end
+            economic.wait_consensus_blocknum(node)
+            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+            log.info("Current node in consensus list status：{}".format(result))
+            assert result == False, "ErrMsg:Node current status {}".format(result)
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
+
+
+@pytest.mark.P1
+def test_VP_PVF_005(client_new_node_obj):
+    """
+    验证人在共识轮第230区块后举报并被处罚
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    endtime = int(time.time()) + 120
+    while int(time.time()) < endtime:
+        time.sleep(1)
+        current_block = node.eth.blockNumber
+        log.info("current block: {}".format(current_block))
+        block = current_block % economic.consensus_size
+        log.info("block: {}".format(block))
+        log.info("Current block height: {}, block of current consensus round: {}".format(current_block, block))
+        if block > 19:
+            break
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+            log.info("Current node in consensus list status：{}".format(result))
+            assert result == True, "ErrMsg:Node current status {}".format(result)
+            # Wait for the settlement round to end
+            economic.wait_consensus_blocknum(node)
+            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+            log.info("Current node in consensus list status：{}".format(result))
+            assert result == True, "ErrMsg:Node current status {}".format(result)
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
+
+
+@pytest.mark.P2
+def test_VP_PVF_006(client_new_node_obj):
+    """
+    移出PlatON验证人与候选人名单，验证人申请退回质押金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            # Application for return of pledge
+            result = client.staking.withdrew_staking(pledge_address)
+            assert_code(result, 0)
+            # view Pledge node information
+            candidate_info = client.ppos.getCandidateInfo(node.node_id)
+            log.info("Pledge node information: {}".format(candidate_info))
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
+
 
