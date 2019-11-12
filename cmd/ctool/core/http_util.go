@@ -43,7 +43,6 @@ func HttpPost(param JsonParam) (string, error) {
 	} else {
 		panic(fmt.Sprintf("http response status :%s", response.Status))
 	}
-	return "", err
 }
 
 func parseResponse(r string) *Response {

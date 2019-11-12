@@ -1,15 +1,16 @@
 package lru
 
 import (
+	"bytes"
+	"encoding/gob"
+	"path/filepath"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"bytes"
-	"encoding/gob"
 	"github.com/hashicorp/golang-lru/simplelru"
 	"github.com/syndtr/goleveldb/leveldb"
-	"path/filepath"
-	"sync"
 )
 
 var (
@@ -160,7 +161,7 @@ func (w *WasmLDBCache) Peek(key common.Address) (*WasmModule, bool) {
 				var module WasmModule
 				buffer := bytes.NewReader(value)
 				dec := gob.NewDecoder(buffer)
-				dec.Decode(module)
+				dec.Decode(&module)
 				return &module, true
 			}
 		}
