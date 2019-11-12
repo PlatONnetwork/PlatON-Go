@@ -182,3 +182,15 @@ class TestMultipleReports:
         result = verification_duplicate_sign(client_con_list_obj[1], 1, 1, report_address, current_block)
         assert_code(result, 0)
 
+    def test_VP_PV_008(self, initial_report):
+        """
+        举报双签-不同验证人同一块高不同类型
+        :param initial_report:
+        :return:
+        """
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # create account
+        report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[1], 2, 2, report_address, current_block)
+        assert_code(result, 0)
