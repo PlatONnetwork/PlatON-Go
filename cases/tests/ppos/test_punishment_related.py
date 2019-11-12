@@ -657,3 +657,35 @@ def test_VP_PV_026(client_con_list_obj):
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 303007)
 
+
+@pytest.mark.P1
+def test_VP_PV_027(client_new_node_obj):
+    """
+    举报候选人
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if not result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 303009)
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
