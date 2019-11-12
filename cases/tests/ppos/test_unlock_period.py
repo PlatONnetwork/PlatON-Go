@@ -171,3 +171,44 @@ def test_UP_FV_005(client_new_node_obj):
     restricting_info = client.ppos.getRestrictingInfo(address1)
     assert_code(restricting_info, 304005)
 
+
+@pytest.mark.P1
+def test_UP_FV_006(client_new_node_obj):
+    """
+    多个锁仓期，质押一部分锁仓金额再依次释放
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account1
+    address1, _ = client.economic.account.generate_account(client.node.web3, von_amount(economic.create_staking_limit, 2))
+    # create Restricting Plan
+    amount1 = economic.create_staking_limit
+    amount2 = von_amount(economic.add_staking_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount1}, {'Epoch': 2, 'Amount': amount2}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    staking_amount = economic.create_staking_limit
+    result = client.staking.create_staking(1, address1, address1, amount=staking_amount)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
+    assert info['plans'][0]['amount'] == amount2, 'ErrMsg: restricting plans amount {}'.format(info['plans'][0]['amount'])
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan again
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
+    assert info['plans'] is None, 'ErrMsg: restricting plans'.format(info['plans'])
