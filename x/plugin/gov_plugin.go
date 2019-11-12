@@ -143,7 +143,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			log.Debug("current block is end-voting block", "proposalID", votingProposal.GetProposalID(), "blockNumber", blockNumber)
 			//tally the results
 			if votingProposal.GetProposalType() == gov.Text && isElection {
-				_, err := tallyText(votingProposal.GetProposalID(), blockHash, blockNumber, state)
+				_, err := tallyText(votingProposal.(*gov.TextProposal), blockHash, blockNumber, state)
 				if err != nil {
 					return err
 				}
@@ -234,6 +234,11 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	if Decimal(supportRate) >= Decimal(xcom.VersionProposal_SupportRate()) {
 		status = gov.PreActive
 
+		if err := gov.AddPIPID(proposal.GetPIPID(), state); err != nil {
+			log.Error("save passed PIPID failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
+			return err
+		}
+
 		if err := gov.MoveVotingProposalIDToPreActive(blockHash, proposalID); err != nil {
 			log.Error("move version proposal ID to pre-active failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
 			return err
@@ -290,12 +295,12 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 	return nil
 }
 
-func tallyText(proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
-	return tally(gov.Text, proposalID, blockHash, blockNumber, state)
+func tallyText(tp *gov.TextProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+	return tally(gov.Text, tp.ProposalID, tp.PIPID, blockHash, blockNumber, state)
 }
 
 func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
-	if pass, err := tally(gov.Cancel, cp.ProposalID, blockHash, blockNumber, state); err != nil {
+	if pass, err := tally(gov.Cancel, cp.ProposalID, cp.PIPID, blockHash, blockNumber, state); err != nil {
 		log.Info("canceled a proposal failed", "proposalID", cp.TobeCanceled, "tobeCanceledProposalID", cp.TobeCanceled)
 		return false, err
 	} else if pass {
@@ -366,7 +371,7 @@ func tallyCancel(cp *gov.CancelProposal, blockHash common.Hash, blockNumber uint
 }
 
 func tallyParam(pp *gov.ParamProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
-	if pass, err := tally(gov.Param, pp.ProposalID, blockHash, blockNumber, state); err != nil {
+	if pass, err := tally(gov.Param, pp.ProposalID, pp.PIPID, blockHash, blockNumber, state); err != nil {
 		return false, err
 	} else if pass {
 		if err := gov.UpdateGovernParamValue(pp.Module, pp.Name, pp.NewValue, blockNumber+1, blockHash); err != nil {
@@ -376,7 +381,7 @@ func tallyParam(pp *gov.ParamProposal, blockHash common.Hash, blockNumber uint64
 	return true, nil
 }
 
-func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
+func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
 	//log.Debug("proposal tally", "proposalID", proposalID, "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
 
 	verifierList, err := gov.ListAccuVerifier(blockHash, proposalID)
@@ -437,6 +442,12 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, blockHash comm
 		return false, err
 	}
 
+	if status == gov.Pass {
+		if err := gov.AddPIPID(pipID, state); err != nil {
+			log.Error("save passed PIPID failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
+			return false, err
+		}
+	}
 	// for now, do not remove these data.
 	// If really want to remove these data, please confirmed with PlatON Explorer Project
 	/*if err := gov.ClearVoteValue(proposalID, blockHash); err != nil {

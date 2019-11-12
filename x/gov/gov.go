@@ -26,23 +26,23 @@ type Staking interface {
 }
 
 const (
-	ModuleStaking  = "Staking"
-	ModuleSlashing = "Slashing"
-	ModuleBlock    = "Block"
-	ModuleTxPool   = "TxPool"
+	ModuleStaking  = "staking"
+	ModuleSlashing = "slashing"
+	ModuleBlock    = "block"
+	ModuleTxPool   = "txPool"
 )
 
 const (
-	KeyStakeThreshold             = "StakeThreshold"
-	KeyOperatingThreshold         = "OperatingThreshold"
-	KeyMaxValidators              = "MaxValidators"
-	KeyUnStakeFreezeDuration      = "UnStakeFreezeDuration"
-	KeySlashFractionDuplicateSign = "SlashFractionDuplicateSign"
-	KeyDuplicateSignReportReward  = "DuplicateSignReportReward"
-	KeyMaxEvidenceAge             = "MaxEvidenceAge"
-	KeySlashBlocksReward          = "SlashBlocksReward"
-	KeyMaxBlockGasLimit           = "MaxBlockGasLimit"
-	KeyMaxTxDataLimit             = "MaxTxDataLimit"
+	KeyStakeThreshold             = "stakeThreshold"
+	KeyOperatingThreshold         = "operatingThreshold"
+	KeyMaxValidators              = "maxValidators"
+	KeyUnStakeFreezeDuration      = "unStakeFreezeDuration"
+	KeySlashFractionDuplicateSign = "slashFractionDuplicateSign"
+	KeyDuplicateSignReportReward  = "duplicateSignReportReward"
+	KeyMaxEvidenceAge             = "maxEvidenceAge"
+	KeySlashBlocksReward          = "slashBlocksReward"
+	KeyMaxBlockGasLimit           = "maxBlockGasLimit"
+	KeyMaxTxDataLimit             = "maxTxDataLimit"
 )
 
 const (

@@ -351,7 +351,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	var nodeBlsKey bls.SecretKey
 	nodeBlsSkByte, err := hex.DecodeString("72fc21a19510d93d726746602344f96bf181efdd8d6d95be1a2a2de59bd59501")
 	if nil != err {
-		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
+		t.Fatalf("reportDuplicateSign DecodeString byte data fail: %v", err)
 	}
 	nodeBlsKey.SetLittleEndian(nodeBlsSkByte)
 	buildStakingData(0, common.ZeroHash, crypto.HexMustToECDSA("f976838ffad88eb7cb45217e0d74c71a1adcb03d550aea9c32df4cfd41e1e0ca"), nodeBlsKey, t, stateDB)
@@ -473,7 +473,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	var stakingBlsKey bls.SecretKey
 	blsSkByte, err := hex.DecodeString("b36d4c3c3e8ee7fba3fbedcda4e0493e699cd95b68594093a8498c618680480a")
 	if nil != err {
-		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
+		t.Fatalf("reportDuplicateSign DecodeString byte data fail: %v", err)
 	}
 	stakingBlsKey.SetLittleEndian(blsSkByte)
 

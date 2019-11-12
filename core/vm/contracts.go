@@ -67,6 +67,24 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
+type rewardEmpty struct{}
+
+func (re *rewardEmpty) RequiredGas(input []byte) uint64 {
+	return 0
+}
+
+func (re *rewardEmpty) Run(input []byte) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (re *rewardEmpty) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
+	return nil
+}
+
+func (re *rewardEmpty) FnSigns() map[uint16]interface{} {
+	return map[uint16]interface{}{}
+}
+
 var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
@@ -74,6 +92,7 @@ var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.RestrictingContractAddr: &RestrictingContract{},
 	vm.SlashingContractAddr:    &SlashingContract{},
 	vm.GovContractAddr:         &GovContract{},
+	vm.RewardManagerPoolAddr:   &rewardEmpty{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.

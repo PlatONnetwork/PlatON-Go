@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -471,10 +470,10 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 	return nil
 }
 
-func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, state xcom.StateDB) (restricting.Result, error) {
+func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, state xcom.StateDB) (*restricting.Result, error) {
 	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
-		return restricting.Result{}, err
+		return nil, err
 	}
 
 	var (
@@ -496,20 +495,11 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 	result.Entry = plans
 	result.Pledge = (*hexutil.Big)(info.StakingAmount)
 	rp.log.Debug("Call releaseRestricting: query restricting result", "account", account, "result", result)
-	return result, nil
+	return &result, nil
 }
 
-func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) ([]byte, error) {
-	result, err := rp.getRestrictingInfoToReturn(account, state)
-	if err != nil {
-		return nil, err
-	}
-	bResult, err := json.Marshal(result)
-	if err != nil {
-		rp.log.Error("Failed to Marshal restricting result")
-		return []byte{}, err
-	}
-	return bResult, nil
+func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) (*restricting.Result, error) {
+	return rp.getRestrictingInfoToReturn(account, state)
 }
 
 // state DB operation
