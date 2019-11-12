@@ -552,7 +552,7 @@ def test_UP_FV_013(client_new_node_obj, reset_environment):
             time.sleep(3)
             # withdrew staking
             result = client1.staking.withdrew_staking(address1)
-            assert_code(result, 0)
+            assert_code(result, 301103)
             break
         else:
             # wait consensus block
@@ -606,11 +606,41 @@ def test_UP_FV_014(client_new_node_obj, reset_environment):
             info = candidate_info['Ret']
             staking_blocknum = info['StakingBlockNum']
             # withdrew delegate
-            client.delegate.withdrew_delegate(staking_blocknum, report_address, amount=delegate_amount)
-            # view restricting plan
-            restricting_info = client.ppos.getRestrictingInfo(address1)
-            assert_code(restricting_info, 0)
+            result = client.delegate.withdrew_delegate(staking_blocknum, report_address, amount=delegate_amount)
+            assert_code(result, 0)
             break
         else:
             # wait consensus block
-            client1.economic.wait_consensus_blocknum(node)
+            client.economic.wait_consensus_blocknum(node)
+
+
+@pytest.mark.P2
+def test_UP_FV_015(client_new_node_obj):
+    """
+    锁仓账户申请之后到达释放期，账户锁仓不足再新增新的锁仓计划
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan and staking
+    address1 = restricting_plan_validation_staking(client, economic, node)
+    # create account2
+    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == economic.create_staking_limit, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
+    # create Restricting Plan
+    delegate_amount = von_amount(economic.create_staking_limit, 1)
+    plan = [{'Epoch': 1, 'Amount': delegate_amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
