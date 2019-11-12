@@ -89,31 +89,49 @@ def initial_report(global_test_env):
     :return:
     """
     cfg = StakingConfig("11111", "faker", "www.baidu.com", "how much")
-    node_obj = global_test_env.get_a_normal_node()
-    client_new_node_obj = Client(global_test_env, node_obj, cfg)
-    client = client_new_node_obj
+    client_con_list_obj = []
+    consensus_node_obj_list = global_test_env.consensus_node_list
+    for node_obj in consensus_node_obj_list:
+        client_con_list_obj.append(Client(global_test_env, node_obj, cfg))
+    client = client_con_list_obj[0]
     economic = client.economic
     node = client.node
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Wait for the settlement round to end
-    economic.wait_settlement_blocknum(node)
-    for i in range(4):
-        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
-        if result:
-            # Get current block height
-            current_block = node.eth.blockNumber
-            log.info("Current block height: {}".format(current_block))
-            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
-            assert_code(result, 0)
-            yield client, economic, node, report_address, current_block
-            log.info("case execution completed")
-            global_test_env.deploy_all()
-            time.sleep(3)
-        else:
-            # wait consensus block
-            economic.wait_consensus_blocknum(node)
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node, 2)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+    assert_code(result, 0)
+    yield client_con_list_obj, economic, node, report_address, current_block
+    log.info("case execution completed")
+    global_test_env.deploy_all()
+    time.sleep(3)
+    # # create pledge address
+    # pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # # create staking
+    # result = client.staking.create_staking(0, pledge_address, pledge_address)
+    # assert_code(result, 0)
+    # # Wait for the settlement round to end
+    # economic.wait_settlement_blocknum(node)
+    # for i in range(4):
+    #     result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+    #     log.info("Current node in consensus list status：{}".format(result))
+    #     if result:
+    #         # Get current block height
+    #         current_block = node.eth.blockNumber
+    #         log.info("Current block height: {}".format(current_block))
+    #         result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+    #         assert_code(result, 0)
+    #         yield client, economic, node, report_address, current_block
+    #         log.info("case execution completed")
+    #         global_test_env.deploy_all()
+    #         time.sleep(3)
+    #     else:
+    #         # wait consensus block
+    #         economic.wait_consensus_blocknum(node)
 
 
 class TestMultipleReports:
@@ -124,8 +142,9 @@ class TestMultipleReports:
         :param initial_report:
         :return:
         """
-        client, economic, node, report_address, current_block = initial_report
-        result = verification_duplicate_sign(client, 2, 2, report_address, current_block)
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[0], 2, 2, report_address, current_block)
         assert_code(result, 0)
 
     def test_VP_PV_005(self, initial_report):
@@ -134,8 +153,9 @@ class TestMultipleReports:
         :param initial_report:
         :return:
         """
-        client, economic, node, report_address, current_block = initial_report
-        result = verification_duplicate_sign(client, 1, 1, report_address, current_block-1)
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[0], 1, 1, report_address, current_block-1)
         assert_code(result, 0)
 
     def test_VP_PV_006(self, initial_report):
@@ -144,8 +164,21 @@ class TestMultipleReports:
         :param initial_report:
         :return:
         """
-        client, economic, node, report_address, current_block = initial_report
-        result = verification_duplicate_sign(client, 2, 2, report_address, current_block - 1)
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[0], 2, 2, report_address, current_block - 1)
         assert_code(result, 0)
 
+    def test_VP_PV_007(self, initial_report):
+        """
+        举报双签-不同验证人同一块高同一类型
+        :param initial_report:
+        :return:
+        """
+        client_con_list_obj, economic, node, report_address, current_block = initial_report
+        # create account
+        report_address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+        # duplicate sign
+        result = verification_duplicate_sign(client_con_list_obj[1], 1, 1, report_address, current_block)
+        assert_code(result, 0)
 
