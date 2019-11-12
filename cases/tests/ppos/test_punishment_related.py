@@ -811,6 +811,11 @@ def test_VP_PR_003(client_new_node_obj):
     log.info("Pledge node information: {}".format(candidate_info))
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
+    # Obtain penalty proportion and income
+    pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
+    # view Amount of penalty
+    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                          proportion_ratio)
     for i in range(4):
         result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
@@ -824,11 +829,6 @@ def test_VP_PR_003(client_new_node_obj):
             # Report verifier Duplicate Sign
             result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
             assert_code(result, 0)
-            # Obtain penalty proportion and income
-            pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
-            # view Amount of penalty
-            proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
-                                                                                  proportion_ratio)
             # view Pledge node information
             candidate_info = client.ppos.getCandidateInfo(node.node_id)
             log.info("Pledge node information: {}".format(candidate_info))
@@ -838,6 +838,7 @@ def test_VP_PR_003(client_new_node_obj):
             assert info['Released'] == pledge_amount1 - (
                         proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
                 info['Released'])
+            break
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
@@ -877,6 +878,7 @@ def test_VP_PR_004(client_new_node_obj):
             # Report verifier Duplicate Sign
             result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
             assert_code(result, 303004)
+            break
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
@@ -912,6 +914,7 @@ def test_VP_PR_005(client_new_node_obj):
             # Report verifier Duplicate Sign
             result = verification_duplicate_sign(client, 1, 1, pledge_address, current_block)
             assert_code(result, 303010)
+            break
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
@@ -975,3 +978,47 @@ def test_VP_PVF_001(client_consensus_obj):
     result = client.ppos.checkDuplicateSign(1, evidence_parameter, current_block)
     assert_code(result, 0)
     assert result['Ret'] == "", "ErrMsg:Query results {}".format(result['Ret'])
+
+
+@pytest.mark.P1
+def test_VP_PVF_003(client_new_node_obj):
+    """
+    被系统剔除出验证人与候选人名单，节点可继续完成轮的出块及验证工作
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+            log.info("Current node in consensus list status：{}".format(result))
+            assert result == True, "ErrMsg:Node current status {}".format(result)
+            # Wait for the settlement round to end
+            economic.wait_consensus_blocknum(node, 2)
+            result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+            log.info("Current node in consensus list status：{}".format(result))
+            assert result == False, "ErrMsg:Node current status {}".format(result)
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
+
