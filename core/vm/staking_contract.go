@@ -682,16 +682,16 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
 
 	if snapshotdb.NonDbNotFoundErr(err) {
-		return callResultHandler(stkc.Evm, "getVerifierList", ResultTypeSlice,
+		return callResultHandler(stkc.Evm, "getVerifierList",
 			arr, staking.ErrGetVerifierList.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		return callResultHandler(stkc.Evm, "getVerifierList", ResultTypeSlice,
+		return callResultHandler(stkc.Evm, "getVerifierList",
 			arr, staking.ErrGetVerifierList.Wrap("VerifierList info is not found")), nil
 	}
 
-	return callResultHandler(stkc.Evm, "getVerifierList", ResultTypeSlice,
+	return callResultHandler(stkc.Evm, "getVerifierList",
 		arr, nil), nil
 }
 
@@ -703,16 +703,16 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 
-		return callResultHandler(stkc.Evm, "getValidatorList", ResultTypeSlice,
+		return callResultHandler(stkc.Evm, "getValidatorList",
 			arr, staking.ErrGetValidatorList.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		return callResultHandler(stkc.Evm, "getValidatorList", ResultTypeSlice,
+		return callResultHandler(stkc.Evm, "getValidatorList",
 			arr, staking.ErrGetValidatorList.Wrap("ValidatorList info is not found")), nil
 	}
 
-	return callResultHandler(stkc.Evm, "getValidatorList", ResultTypeSlice,
+	return callResultHandler(stkc.Evm, "getValidatorList",
 		arr, nil), nil
 }
 
@@ -723,16 +723,16 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if snapshotdb.NonDbNotFoundErr(err) {
-		return callResultHandler(stkc.Evm, "getCandidateList", ResultTypeSlice,
+		return callResultHandler(stkc.Evm, "getCandidateList",
 			arr, staking.ErrGetCandidateList.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		return callResultHandler(stkc.Evm, "getCandidateList", ResultTypeSlice,
+		return callResultHandler(stkc.Evm, "getCandidateList",
 			arr, staking.ErrGetCandidateList.Wrap("CandidateList info is not found")), nil
 	}
 
-	return callResultHandler(stkc.Evm, "getCandidateList", ResultTypeSlice,
+	return callResultHandler(stkc.Evm, "getCandidateList",
 		arr, nil), nil
 }
 
@@ -741,16 +741,16 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	blockHash := stkc.Evm.BlockHash
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr), ResultTypeSlice,
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
 			arr, staking.ErrGetDelegateRelated.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr), ResultTypeSlice,
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
 			arr, staking.ErrGetDelegateRelated.Wrap("RelatedList info is not found")), nil
 	}
 
-	return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr), ResultTypeSlice,
+	return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
 		arr, nil), nil
 }
 
@@ -763,18 +763,18 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-			delAddr, nodeId, stakingBlockNum), ResultTypeStructRef,
+			delAddr, nodeId, stakingBlockNum),
 			del, staking.ErrQueryDelegateInfo.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || del.IsEmpty() {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-			delAddr, nodeId, stakingBlockNum), ResultTypeStructRef,
+			delAddr, nodeId, stakingBlockNum),
 			del, staking.ErrQueryDelegateInfo.Wrap("Delegate info is not found")), nil
 	}
 
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
-		delAddr, nodeId, stakingBlockNum), ResultTypeStructRef,
+		delAddr, nodeId, stakingBlockNum),
 		del, nil), nil
 }
 
@@ -786,19 +786,19 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-			nodeId), ResultTypeStructRef, nil, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
+			nodeId), nil, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
 	can, err := stkc.Plugin.GetCandidateCompactInfo(blockHash, blockNumber.Uint64(), canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-			nodeId), ResultTypeStructRef, can, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
+			nodeId), can, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || can.IsEmpty() {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-			nodeId), ResultTypeStructRef, can, staking.ErrQueryCandidateInfo.Wrap("Candidate info is not found")), nil
+			nodeId), can, staking.ErrQueryCandidateInfo.Wrap("Candidate info is not found")), nil
 	}
 
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
-		nodeId), ResultTypeStructRef, can, nil), nil
+		nodeId), can, nil), nil
 }
