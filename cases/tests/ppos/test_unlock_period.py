@@ -559,3 +559,58 @@ def test_UP_FV_013(client_new_node_obj, reset_environment):
             client1.economic.wait_consensus_blocknum(node)
 
 
+@pytest.mark.P2
+def test_UP_FV_014(client_new_node_obj, reset_environment):
+    """
+    锁仓验证人违规被剔除验证人列表，申请赎回委托金
+    :param client_new_node_obj:
+    :param reset_environment:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = von_amount(economic.create_staking_limit, 1)
+    address1, report_address = create_account_amount(client, amount1, amount2)
+    # create Restricting Plan
+    delegate_amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 3, 'Amount': delegate_amount}]
+    result = client.restricting.createRestrictingPlan(report_address, plan, report_address)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, report_address)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    #
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # view current block
+            current_block = node.eth.blockNumber
+            log.info("Current block: {}".format(current_block))
+            # Report prepareblock signature
+            report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block)
+            log.info("Report information: {}".format(report_information))
+            result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            assert_code(result, 0)
+            time.sleep(3)
+            # Access to pledge information
+            candidate_info = client.ppos.getCandidateInfo(node.node_id)
+            info = candidate_info['Ret']
+            staking_blocknum = info['StakingBlockNum']
+            # withdrew delegate
+            client.delegate.withdrew_delegate(staking_blocknum, report_address, amount=delegate_amount)
+            # view restricting plan
+            restricting_info = client.ppos.getRestrictingInfo(address1)
+            assert_code(restricting_info, 0)
+            break
+        else:
+            # wait consensus block
+            client1.economic.wait_consensus_blocknum(node)
