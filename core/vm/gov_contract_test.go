@@ -1396,7 +1396,7 @@ func Test_ResetVoteOption(t *testing.T) {
 }
 
 func logResult(t *testing.T, resultValue interface{}) {
-	if xcom.IsNil(resultValue) {
+	if IsBlank(resultValue) {
 		resultBytes := xcom.NewFailedResult(common.NotFound)
 		t.Log("result  json：", string(resultBytes))
 	} else {
