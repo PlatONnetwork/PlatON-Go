@@ -255,3 +255,48 @@ def test_UP_FV_007(client_new_node_obj):
     info = restricting_info['Ret']
     assert info['debt'] == delegate_amount, 'ErrMsg: restricting debt amount {}'.format(
         info['debt'])
+
+
+@pytest.mark.P1
+def test_UP_FV_008(client_new_node_obj):
+    """
+    到达释放期释放锁仓金额之后再申请赎回委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = von_amount(economic.create_staking_limit, 1)
+    address1, address2 = create_account_amount(client, amount1, amount2)
+    # create Restricting Plan
+    delegate_amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': delegate_amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address2)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == delegate_amount, 'ErrMsg: restricting debt amount {}'.format(
+        info['debt'])
+    # Access to pledge information
+    candidate_info = client.ppos.getCandidateInfo(node.node_id)
+    info = candidate_info['Ret']
+    staking_blocknum = info['StakingBlockNum']
+    # withdrew delegate
+    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=delegate_amount)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    assert_code(restricting_info, 304005)
+
