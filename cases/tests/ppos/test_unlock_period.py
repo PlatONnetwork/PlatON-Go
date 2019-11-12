@@ -310,14 +310,14 @@ def test_UP_FV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_009(client_con_list_obj):
+def test_UP_FV_009(client_new_node_obj_list, reset_environment):
     """
     锁仓账号申请质押，验证人违规被扣除节点自有质押金k
-    :param client_con_list_obj:
+    :param client_new_node_obj_list:
     :return:
     """
-    client1 = client_con_list_obj[0]
-    client2 = client_con_list_obj[1]
+    client1 = client_new_node_obj_list[0]
+    client2 = client_new_node_obj_list[1]
     economic = client1.economic
     node = client1.node
     # create restricting plan and staking
@@ -354,14 +354,13 @@ def test_UP_FV_009(client_con_list_obj):
 
 
 @pytest.mark.P2
-def test_UP_FV_010(client_new_node_obj_list):
+def test_UP_FV_010(client_new_node_obj, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请质押节点
-    :param client_new_node_obj_list:
+    :param client_new_node_obj:
     :return:
     """
-    client1 = client_new_node_obj_list[0]
-    client2 = client_new_node_obj_list[1]
+    client1 = client_new_node_obj
     economic = client1.economic
     node = client1.node
     # create account
@@ -399,8 +398,8 @@ def test_UP_FV_010(client_new_node_obj_list):
             assert_code(result, 0)
             time.sleep(3)
             # create staking
-            result = client2.staking.create_staking(1, address1, address1)
-            assert_code(result, 301103)
+            result = client1.staking.create_staking(1, address1, address1)
+            assert_code(result, 301101)
             break
         else:
             # wait consensus block
@@ -408,14 +407,13 @@ def test_UP_FV_010(client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_UP_FV_011(client_new_node_obj_list):
+def test_UP_FV_011(client_new_node_obj, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请委托节点
-    :param client_new_node_obj_list:
+    :param client_new_node_obj:
     :return:
     """
-    client1 = client_new_node_obj_list[0]
-    client2 = client_new_node_obj_list[1]
+    client1 = client_new_node_obj
     economic = client1.economic
     node = client1.node
     # create account
@@ -450,7 +448,7 @@ def test_UP_FV_011(client_new_node_obj_list):
             assert_code(result, 0)
             time.sleep(3)
             # Application for Commission
-            result = client2.delegate.delegate(1, report_address)
+            result = client1.delegate.delegate(1, report_address)
             assert_code(result, 301103)
             break
         else:
@@ -459,14 +457,13 @@ def test_UP_FV_011(client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_UP_FV_012(client_new_node_obj_list):
+def test_UP_FV_012(client_new_node_obj, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请增持质押
-    :param client_new_node_obj_list:
+    :param client_new_node_obj:
     :return:
     """
-    client1 = client_new_node_obj_list[0]
-    client2 = client_new_node_obj_list[1]
+    client1 = client_new_node_obj
     economic = client1.economic
     node = client1.node
     # create account
@@ -503,6 +500,59 @@ def test_UP_FV_012(client_new_node_obj_list):
             # Apply for additional pledge
             result = client1.staking.increase_staking(1, address1)
             assert_code(result, 301103)
+            break
+        else:
+            # wait consensus block
+            client1.economic.wait_consensus_blocknum(node)
+
+
+@pytest.mark.P2
+def test_UP_FV_013(client_new_node_obj, reset_environment):
+    """
+    锁仓验证人违规被剔除验证人列表，申请退回质押金
+    :param client_new_node_obj:
+    :return:
+    """
+    client1 = client_new_node_obj
+    economic = client1.economic
+    node = client1.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 3)
+    amount2 = von_amount(economic.create_staking_limit, 1)
+    address1, report_address = create_account_amount(client1, amount1, amount2)
+    # create Restricting Plan
+    delegate_amount = von_amount(economic.create_staking_limit, 2)
+    plan = [{'Epoch': 3, 'Amount': delegate_amount}]
+    result = client1.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # view restricting plan again
+    restricting_info = client1.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    # create staking
+    result = client1.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # view restricting plan again
+    restricting_info = client1.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    #
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client1.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # view current block
+            current_block = node.eth.blockNumber
+            log.info("Current block: {}".format(current_block))
+            # Report prepareblock signature
+            report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block)
+            log.info("Report information: {}".format(report_information))
+            result = client1.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            assert_code(result, 0)
+            time.sleep(3)
+            # withdrew staking
+            result = client1.staking.withdrew_staking(address1)
+            assert_code(result, 0)
             break
         else:
             # wait consensus block
