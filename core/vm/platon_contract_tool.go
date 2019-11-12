@@ -54,7 +54,7 @@ func callResultHandler(evm *EVM, title string, resultValue interface{}, err erro
 		return xcom.NewFailedResult(err)
 	}
 
-	if xcom.IsNil(resultValue) {
+	if IsBlank(resultValue) {
 		return xcom.NewFailedResult(common.NotFound)
 	}
 
@@ -62,4 +62,24 @@ func callResultHandler(evm *EVM, title string, resultValue interface{}, err erro
 		"txHash", txHash, "result", resultValue)
 	resultBytes := xcom.NewOkResult(resultValue)
 	return resultBytes
+}
+
+func IsBlank(i interface{}) bool {
+	defer func() {
+		recover()
+	}()
+
+	typ := reflect.TypeOf(i)
+	val := reflect.ValueOf(i)
+	if typ == nil {
+		return true
+	} else {
+		if typ.Kind() == reflect.Slice {
+			return val.Len() == 0
+		}
+		if typ.Kind() == reflect.Map {
+			return val.Len() == 0
+		}
+	}
+	return val.IsNil()
 }

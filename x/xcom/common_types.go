@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/big"
-	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -139,17 +138,4 @@ func PrintObject(s string, obj interface{}) {
 func PrintObjForErr(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 	log.Error(s + " == " + string(objs))
-}
-
-func IsNil(i interface{}) bool {
-	defer func() {
-		recover()
-	}()
-
-	if reflect.TypeOf(i) == nil {
-		return true
-	}
-
-	vi := reflect.ValueOf(i)
-	return vi.IsNil()
 }
