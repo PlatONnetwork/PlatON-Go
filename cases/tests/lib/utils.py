@@ -213,6 +213,14 @@ def update_param_by_dict(data, key1, key2, key3, value):
         else:
             data[key1][key2][key3] = value
         return data
+    elif isinstance(data, str):
+        jsoninfo = json.loads(data)
+        if key3 is None:
+            jsoninfo[key1][key2] = value
+        else:
+            jsoninfo[key1][key2][key3] = value
+        jsondata = json.dumps(jsoninfo)
+        return jsondata
     raise Exception("Data format error")
 
 

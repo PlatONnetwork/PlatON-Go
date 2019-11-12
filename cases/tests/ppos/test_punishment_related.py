@@ -214,19 +214,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
 
-@pytest.mark.P1
-def test_VP_PV_010(client_consensus_obj, reset_environment):
-    """
-    举报双签-双签证据epoch不一致
-    :param client_consensus_obj:
-    :param reset_environment:
-    :return:
-    """
-    client = client_consensus_obj
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+def obtaining_evidence_information(economic, node):
     # Wait for the consensus round to end
     economic.wait_consensus_blocknum(node, 1)
     # Get current block height
@@ -237,10 +225,50 @@ def test_VP_PV_010(client_consensus_obj, reset_environment):
     # Report1 prepareblock signature
     report_information = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block)
     log.info("Report information: {}".format(report_information))
+    return report_information, current_block
+
+
+@pytest.mark.P1
+def test_VP_PV_010(client_consensus_obj):
+    """
+    举报双签-双签证据epoch不一致
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
     jsondata = update_param_by_dict(report_information, 'prepareA', 'epoch', None, 1)
     log.info("Evidence information: {}".format(jsondata))
-
+    # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
     assert_code(result, 303000)
+
+
+@pytest.mark.P1
+def test_VP_PV_011(client_consensus_obj):
+    """
+    举报双签-双签证据view_number不一致
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Modification of evidence
+    jsondata = update_param_by_dict(report_information, 'prepareA', 'viewNumber', None, 1)
+    log.info("Evidence information: {}".format(jsondata))
+    # Report verifier Duplicate Sign
+    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
+    assert_code(result, 303000)
+
 
