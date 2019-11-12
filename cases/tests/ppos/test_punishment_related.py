@@ -836,7 +836,7 @@ def test_VP_PR_003(client_new_node_obj):
             log.info("proportion_reward + incentive_pool_reward: {}".format(proportion_reward + incentive_pool_reward))
             info = candidate_info['Ret']
             assert info['Released'] == pledge_amount1 - (
-                        proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
+                    proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
                 info['Released'])
             break
         else:
@@ -1230,10 +1230,62 @@ def test_VP_PVF_008(client_new_node_obj):
             result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
             assert_code(result, 0)
             # create staking
-            result = client.staking.increase_staking(0, pledge_address, pledge_address)
+            result = client.staking.increase_staking(0, pledge_address)
             assert_code(result, 301103)
             break
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
 
+
+@pytest.mark.P2
+def test_VP_PVF_009(client_new_node_obj):
+    """
+    移出PlatON验证人与候选人名单，委托人可在处罚所在结算周期，申请赎回全部委托金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Additional pledge
+    result = client.delegate.delegate(0, report_address)
+    assert_code(result, 304013)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            # Report verifier Duplicate Sign
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            # Access to pledge information
+            candidate_info = client.ppos.getCandidateInfo(node.node_id)
+            info = candidate_info['Ret']
+            staking_blocknum = info['StakingBlockNum']
+            # To view the entrusted account balance
+            report_balance = node.eth.getBalance(report_address)
+            log.info("report address balance: {}".format(report_balance))
+            # withdrew delegate
+            result = client.delegate.withdrew_delegate(staking_blocknum, report_address)
+            assert_code(result, 0)
+            # To view the entrusted account balance
+            report_balance1 = node.eth.getBalance(report_address)
+            log.info("report address balance: {}".format(report_balance1))
+            assert report_balance + economic.delegate_limit - report_balance1, "ErrMsg:Ireport balance {}".format(
+                report_balance1)
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
