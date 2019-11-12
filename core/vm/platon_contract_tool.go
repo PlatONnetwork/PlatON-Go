@@ -58,7 +58,7 @@ func callResultHandler(evm *EVM, title string, resultType CallResultType, result
 
 	if xcom.IsNil(resultValue) {
 		if resultType == ResultTypeStructRef {
-			resultValue = ""
+			resultValue = struct{}{}
 		} else if resultType == ResultTypeSlice {
 			resultValue = []string{}
 		} else if resultType == ResultTypeMap {
