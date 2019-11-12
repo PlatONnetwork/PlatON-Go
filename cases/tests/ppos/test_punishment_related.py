@@ -81,7 +81,7 @@ def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
         incentive_pool_account2)
 
 
-@pytest.fixture(scope='class', autouse=True)
+@pytest.fixture(scope='class')
 def initial_report(global_test_env):
     """
     Report a non consensus node prepareBlock
@@ -98,16 +98,25 @@ def initial_report(global_test_env):
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
-    # Get current block height
-    current_block = node.eth.blockNumber
-    log.info("Current block height: {}".format(current_block))
-    result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
-    assert_code(result, 0)
-    log.info("case execution completed")
-    return client, economic, node, report_address, current_block
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Get current block height
+            current_block = node.eth.blockNumber
+            log.info("Current block height: {}".format(current_block))
+            result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+            assert_code(result, 0)
+            yield client, economic, node, report_address, current_block
+            log.info("case execution completed")
+            global_test_env.deploy_all()
+            time.sleep(3)
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
 
 
-class MultipleReports:
+class TestMultipleReports:
 
     def test_VP_PV_004(self, initial_report):
         """
@@ -129,5 +138,14 @@ class MultipleReports:
         result = verification_duplicate_sign(client, 1, 1, report_address, current_block-1)
         assert_code(result, 0)
 
+    def test_VP_PV_006(self, initial_report):
+        """
+        举报双签-同一验证人不同块高不同类型
+        :param initial_report:
+        :return:
+        """
+        client, economic, node, report_address, current_block = initial_report
+        result = verification_duplicate_sign(client, 2, 2, report_address, current_block - 1)
+        assert_code(result, 0)
 
 
