@@ -19,9 +19,12 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -245,7 +248,9 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\platon-go\\data1", 0, 0)
+	tmpDir, _ := ioutil.TempDir("", "platon")
+	defer os.Remove(tmpDir)
+	db, _ := ethdb.NewLDBDatabase(tmpDir, 0, 0)
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
@@ -273,7 +278,7 @@ func TestEmptyByte(t *testing.T) {
 		fmt.Println(it.Key, it.Value)
 	}
 
-	//pvalue = []byte{}
+	pvalue = []byte{}
 	state.SetState(address, key, []byte{})
 	state.Commit(false)
 

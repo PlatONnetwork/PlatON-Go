@@ -373,6 +373,13 @@ func (self *stateObject) updateTrie(db Database) Trie {
 
 		if valueKey == emptyStorage || (valueKey == common.Hash{}) {
 			delete(self.dirtyValueStorage, valueKey)
+
+			if oldValueKey, ok := self.originStorage[key]; ok {
+				delete(self.originValueStorage, oldValueKey)
+			}
+			self.originStorage[key] = valueKey
+			self.originValueStorage[valueKey] = []byte{}
+
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
