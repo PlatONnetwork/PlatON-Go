@@ -7,7 +7,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value
+    get_governable_parameter_value, Client
 
 
 def penalty_proportion_and_income(client_obj):
@@ -17,7 +17,7 @@ def penalty_proportion_and_income(client_obj):
     # view Parameter value before treatment
     penalty_ratio = get_governable_parameter_value(client_obj, 'SlashFractionDuplicateSign')
     proportion_ratio = get_governable_parameter_value(client_obj, 'DuplicateSignReportReward')
-    return pledge_amount1, penalty_ratio, proportion_ratio
+    return pledge_amount1, int(penalty_ratio), int(proportion_ratio)
 
 
 def verification_duplicate_sign(client_obj, evidence_type, reporting_type, report_address, report_block):
@@ -33,10 +33,14 @@ def verification_duplicate_sign(client_obj, evidence_type, reporting_type, repor
 
 
 @pytest.mark.P0
-def test_VP_PV_001(client_consensus_obj, reset_environment):
+@pytest.mark.parametrize('repor_type', [1, 2, 3])
+def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     """
-    举报验证人区块双签prepareBlock类型
+    举报验证人区块双签:VP_PV_001 prepareBlock类型
+                    VP_PV_002 举报验证人区块双签prepareVote类型
+                    VP_PV_003 举报验证人区块双签viewChange类型
     :param client_consensus_obj:
+    :param repor_type:
     :param reset_environment:
     :return:
     """
@@ -58,10 +62,11 @@ def test_VP_PV_001(client_consensus_obj, reset_environment):
     # Get current block height
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
-    result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+    result = verification_duplicate_sign(client, repor_type, repor_type, report_address, current_block)
     assert_code(result, 0)
     # view Amount of penalty
-    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio, proportion_ratio)
+    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                          proportion_ratio)
     # view report amount again
     report_amount2 = node.eth.getBalance(report_address)
     log.info("report account amount:{} ".format(report_amount2))
@@ -69,13 +74,60 @@ def test_VP_PV_001(client_consensus_obj, reset_environment):
     incentive_pool_account2 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("incentive pool account1 amount:{} ".format(incentive_pool_account2))
     # assert account reward
-    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1, 'ether'), "ErrMsg:report amount {}".format(
+    assert report_amount1 + proportion_reward - report_amount2 < node.web3.toWei(1,'ether'), "ErrMsg:report amount {}".format(
         report_amount2)
-    assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward, "ErrMsg:incentive pool account amount {}".format(
+    assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
+            report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
 
 
+@pytest.fixture(scope='class', autouse=True)
+def initial_report(global_test_env):
+    """
+    Report a non consensus node prepareBlock
+    :param global_test_env:
+    :return:
+    """
+    cfg = StakingConfig("11111", "faker", "www.baidu.com", "how much")
+    node_obj = global_test_env.get_a_normal_node()
+    client_new_node_obj = Client(global_test_env, node_obj, cfg)
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # Get current block height
+    current_block = node.eth.blockNumber
+    log.info("Current block height: {}".format(current_block))
+    result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
+    assert_code(result, 0)
+    log.info("case execution completed")
+    return client, economic, node, report_address, current_block
 
+
+class MultipleReports:
+
+    def test_VP_PV_004(self, initial_report):
+        """
+        举报双签-同一验证人同一块高不同类型
+        :param initial_report:
+        :return:
+        """
+        client, economic, node, report_address, current_block = initial_report
+        result = verification_duplicate_sign(client, 2, 2, report_address, current_block)
+        assert_code(result, 0)
+
+    def test_VP_PV_005(self, initial_report):
+        """
+        举报双签-同一验证人不同块高同一类型
+        :param initial_report:
+        :return:
+        """
+        client, economic, node, report_address, current_block = initial_report
+        result = verification_duplicate_sign(client, 1, 1, report_address, current_block-1)
+        assert_code(result, 0)
 
 
 
