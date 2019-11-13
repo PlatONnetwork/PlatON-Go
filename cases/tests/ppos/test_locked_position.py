@@ -18,9 +18,9 @@ def test_LS_FV_001(client_consensus_obj):
     :return:
     """
     # Reset environment
-    client_consensus_obj.economic.env.deploy_all()
+    # client_consensus_obj.economic.env.deploy_all()
     # view Lock in contract amount
-    lock_up_amount = client_consensus_obj.node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS)
+    lock_up_amount = client_consensus_obj.node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS, 0)
     log.info("Lock in contract amount: {}".format(lock_up_amount))
     # view Lockup plan
     result = client_consensus_obj.ppos.getRestrictingInfo(EconomicConfig.INCENTIVEPOOL_ADDRESS)
@@ -28,9 +28,7 @@ def test_LS_FV_001(client_consensus_obj):
     assert_code(result, 0)
     log.info("Lockup plan information: {}".format(result))
     # assert louck up amount
-    for i in release_plans_list:
-        print("a", type(release_plans_list[i]))
-        print("b", EconomicConfig.release_info[i])
+    for i in range(len(release_plans_list)):
         assert release_plans_list[i] == EconomicConfig.release_info[
             i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
             'blockNumber'], release_plans_list[i]['amount'])
@@ -2183,4 +2181,3 @@ def test_LS_CSV_016(client_new_node_obj):
     # Free amount Additional pledge
     result = client.staking.increase_staking(0, address1)
     assert_code(result, 301103)
-

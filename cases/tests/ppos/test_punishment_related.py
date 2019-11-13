@@ -1,12 +1,9 @@
 import time
 import pytest
 import allure
-from dacite import from_dict
-from common.key import get_pub_key, mock_duplicate_sign, generate_key
+from common.key import mock_duplicate_sign, generate_key
 from common.log import log
-from client_sdk_python import Web3
-from decimal import Decimal
-from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
+from tests.lib import EconomicConfig, StakingConfig, check_node_in_list, assert_code, von_amount, \
     get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
 
 
@@ -15,8 +12,8 @@ def penalty_proportion_and_income(client_obj):
     candidate_info1 = client_obj.ppos.getCandidateInfo(client_obj.node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio = get_governable_parameter_value(client_obj, 'SlashFractionDuplicateSign')
-    proportion_ratio = get_governable_parameter_value(client_obj, 'DuplicateSignReportReward')
+    penalty_ratio = get_governable_parameter_value(client_obj, 'slashFractionDuplicateSign')
+    proportion_ratio = get_governable_parameter_value(client_obj, 'duplicateSignReportReward')
     return pledge_amount1, int(penalty_ratio), int(proportion_ratio)
 
 

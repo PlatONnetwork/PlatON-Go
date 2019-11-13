@@ -61,19 +61,13 @@ class EconomicConfig:
     REMAIN_ACCOUNT_ADDRESS = "0x2e95e3ce0a54951eb9a99152a6d5827872dfb4fd"
     # Developer Foundation Account
     DEVELOPER_FOUNDATAION_ADDRESS = '0x54a7a3c6822eb222c53F76443772a60b0f9A8bab'
-    init_token_info = {FOUNDATION_LOCKUP_ADDRESS: 259096240418673500000000000,
-                       STAKING_ADDRESS: 40000000000000000000000000,
-                       INCENTIVEPOOL_ADDRESS: 262215742486916500000000000,
-                       FOUNDATION_ADDRESS: 1638688017094410000000000000,
-                       REMAIN_ACCOUNT_ADDRESS: 8000000000000000000000000000,
-                       DEVELOPER_FOUNDATAION_ADDRESS: 50000000000000000000000000
-                       }
-    release_info = [{"blockNumber": 1600, "amount": 55965742486916500000000000},
-                    {"blockNumber": 3200, "amount": 49559492486916500000000000},
-                    {"blockNumber": 4800, "amount": 42993086236916500000000000},
-                    {"blockNumber": 6400, "amount": 36262519830666600000000000},
-                    {"blockNumber": 8000, "amount": 29363689264263300000000000},
-                    {"blockNumber": 9600, "amount": 22292387933693900000000000},
-                    {"blockNumber": 11200, "amount": 15044304069863300000000000},
-                    {"blockNumber": 12800, "amount": 7615018109436900000000000}
+
+    release_info = [{"blockNumber": 1600, "amount": 55965742000000000000000000},
+                    {"blockNumber": 3200, "amount": 49559492000000000000000000},
+                    {"blockNumber": 4800, "amount": 42993086000000000000000000},
+                    {"blockNumber": 6400, "amount": 36262520000000000000000000},
+                    {"blockNumber": 8000, "amount": 29363689000000000000000000},
+                    {"blockNumber": 9600, "amount": 22292388000000000000000000},
+                    {"blockNumber": 11200, "amount": 15044304000000000000000000},
+                    {"blockNumber": 12800, "amount": 7615018000000000000000000}
                     ]

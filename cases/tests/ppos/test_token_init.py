@@ -42,7 +42,7 @@ def test_IT_IA_002_to_007(new_genesis_env):
         "1000000000000000000000000000000000000003": {
             "balance": "200000000000000000000000000"
         },
-        "0x2e95e3ce0a54951eb9a99152a6d5827872dfb4fd": {
+        "0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD": {
             "balance": surplus_amount
         }
     }
@@ -265,6 +265,82 @@ def no_consensus_node_pledge_award_assertion(client_new_node_obj, benifit_addres
         else:
             # wait consensus block
             client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+
+
+@ pytest.mark.p1
+def test_AL_IE_001(client_consensus_obj):
+    """
+    查看初始激励池总额
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # 初始化环境
+    client.economic.env.deploy_all()
+    # 查询激励池初始金额
+    incentive_pool = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
+    assert incentive_pool == 262215742000000000000000000, "ErrMsg:Initial amount of incentive pool {}".format(
+        incentive_pool)
+
+
+@pytest.mark.P2
+def test_AL_IE_002(client_new_node_obj_list):
+    """
+    转账到激励池
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    client2 = client_new_node_obj_list[0]
+    economic = client1.economic
+    node = client1.node
+    log.info("Node ID：{}".format(node.node_id))
+    address, _ = client1.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
+    address1, _ = client1.economic.account.generate_account(node.web3, 0)
+    address2, _ = client1.economic.account.generate_account(node.web3, 0)
+    log.info("staking address: {}".format(address))
+    # Free amount application pledge node
+    result = client1.staking.create_staking(0, address1, address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # 获取当前结算周期验证人
+    verifier_list = node.ppos.getVerifierList()
+    log.info("verifier_list: {}".format(verifier_list))
+    # view block_reward
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # view account amount
+    benifit_balance = node.eth.getBalance(address1)
+    log.info("benifit_balance: {}".format(benifit_balance))
+    # view benifit reward
+    blocknumber = view_benifit_reward(client1, address)
+    # view account amount again
+    benifit_balance1 = node.eth.getBalance(address1)
+    log.info("benifit_balance: {}".format(benifit_balance1))
+    reward = int(blocknumber * Decimal(str(block_reward)))
+    assert benifit_balance1 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance1)
+    # Transfer to the incentive pool
+    result = client1.account.sendTransaction(node.web3, '', address, EconomicConfig.INCENTIVEPOOL_ADDRESS, node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    assert result is not None, "ErrMsg:Transfer result {}".format(result)
+    # Free amount application pledge node
+    result = client2.staking.create_staking(0, address2, address, amount=von_amount(economic.create_staking_limit, 2))
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(client2.node)
+    # view account amount
+    benifit_balance2 = client2.node.eth.getBalance(address2)
+    log.info("benifit_balance: {}".format(benifit_balance2))
+    # view benifit reward
+    blocknumber = view_benifit_reward(client2, address)
+    # view account amount again
+    benifit_balance3 = client2.node.eth.getBalance(address2)
+    log.info("benifit_balance: {}".format(benifit_balance3))
+    reward = int(blocknumber * Decimal(str(block_reward)))
+    assert benifit_balance3 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance3)
+
 
 
 @pytest.mark.P1
@@ -509,20 +585,20 @@ def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environme
         benifit_balance1)
 
 
-def view_benifit_reward(client_new_node_obj, address):
+def view_benifit_reward(client, address):
     """
     withdrew pledge return benifit balance and Number of blocks
-    :param client_new_node_obj:
+    :param client:
     :param address:
     :return:
     """
     # withdrew of pledge
-    result = client_new_node_obj.staking.withdrew_staking(address)
+    result = client.staking.withdrew_staking(address)
     assert_code(result, 0)
     # wait settlement block
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    client.economic.wait_settlement_blocknum(client.node)
     # count the number of blocks
-    blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
+    blocknumber = client.economic.get_block_count_number(client.node, 10)
     log.info("blocknumber: {}".format(blocknumber))
     return blocknumber
 
