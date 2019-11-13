@@ -87,7 +87,7 @@ func (t *Trie) SetCacheLimit(l uint16) {
 // newFlag returns the cache flag value for a newly created node.
 func (t *Trie) newFlag() nodeFlag {
 	dirty := true
-	return nodeFlag{dirty: &dirty, gen: t.cachegen}
+	return nodeFlag{hash: &hashNode{}, dirty: &dirty, gen: t.cachegen}
 }
 
 // New creates a trie with an existing root node from db.
@@ -502,12 +502,8 @@ func (t *Trie) copyNode(n node) {
 	switch n := n.(type) {
 	case *shortNode:
 		if _, ok := n.Val.(valueNode); !ok {
-			if _, dirty := n.cache(); !dirty {
-				if hash, _ := n.cache(); hash != nil {
-					empty := common.Hash{}
-					if bytes.Equal(hash, empty.Bytes()) {
-						panic("empty")
-					}
+			if _, dirty := n.Val.cache(); !dirty {
+				if hash, _ := n.Val.cache(); len(hash) != 0 {
 					n.Val = hash
 				}
 			} else {
@@ -527,11 +523,7 @@ func (t *Trie) copyNode(n node) {
 				if _, ok := n.Children[i].(valueNode); !ok {
 
 					if _, dirty := n.Children[i].cache(); !dirty {
-						if hash, _ := n.Children[i].cache(); hash != nil {
-							empty := common.Hash{}
-							if bytes.Equal(hash, empty.Bytes()) {
-								panic("empty")
-							}
+						if hash, _ := n.Children[i].cache(); len(hash) != 0 {
 							n.Children[i] = hash
 						}
 					} else {

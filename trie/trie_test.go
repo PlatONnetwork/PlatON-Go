@@ -627,7 +627,19 @@ func TestDeepCopy(t *testing.T) {
 	root := common.Hash{}
 	tr, _ := NewSecure(root, triedb, 0)
 	start := time.Now()
-	kv := make(map[string][]byte)
+	kv := make(map[common.Hash][]byte)
+	leafCB := func(leaf []byte, parent common.Hash) error {
+		var valueKey common.Hash
+		_, content, _, err := rlp.Split(leaf)
+		assert.Nil(t, err)
+		valueKey.SetBytes(content)
+		if value, ok := kv[valueKey]; ok {
+			tr.trie.db.InsertBlob(valueKey, value)
+		}
+
+		tr.trie.db.Reference(valueKey, parent)
+		return nil
+	}
 	k, v := randBytes(32), randBytes(32)
 	parent := root
 	for j := 0; j < 1; j++ {
@@ -636,10 +648,10 @@ func TestDeepCopy(t *testing.T) {
 			binary.BigEndian.PutUint32(k, uint32(i))
 			binary.BigEndian.PutUint32(v, uint32(i))
 			tr.Update(k, v)
-			kv[string(k)] = v
+			kv[common.BytesToHash(tr.hashKey(k))] = v
 		}
 
-		root, _ = tr.Commit(nil)
+		root, _ = tr.Commit(leafCB)
 		parent = root
 		triedb.Reference(root, common.Hash{})
 		triedb.Commit(root, false, false)
@@ -651,17 +663,18 @@ func TestDeepCopy(t *testing.T) {
 		binary.BigEndian.PutUint32(k, uint32(i))
 		binary.BigEndian.PutUint32(v, uint32(i))
 		tr2.Update(k, v)
-		kv[string(k)] = v
+		kv[common.BytesToHash(tr.hashKey(k))] = v
 	}
 
 	//root, _ = tr2.Commit(nil)
 	root = tr2.Hash()
 
-	cpy := tr2.Copy()
+	cpy := tr2.New().New()
 
 	iter := tr2.NodeIterator(nil)
 	cpyIter := cpy.NodeIterator(nil)
 	count := 0
+	keys := 0
 	for iter.Next(true) {
 		if !cpyIter.Next(true) {
 			t.Fatal("cpy iter failed, next error")
@@ -679,21 +692,29 @@ func TestDeepCopy(t *testing.T) {
 			if !bytes.Equal(iter.LeafKey(), iter.LeafKey()) {
 				t.Fatal("iter leaf key failed")
 			}
+			if _, ok := kv[common.BytesToHash(iter.LeafKey())]; !ok {
+				t.Fatal("find none key")
+			}
+			keys++
+			//fmt.Println(hexutil.Encode(iter.LeafKey()))
+			//delete(kv, common.BytesToHash(iter.LeafKey()))
 		}
 		if iter.Hash() != cpyIter.Hash() {
 			t.Fatal("cpy iter failed", iter.Hash(), cpyIter.Hash())
 		}
 		count++
 	}
-	root, _ = tr2.Commit(nil)
+	assert.Equal(t, len(kv), keys)
+	root, _ = tr2.Commit(leafCB)
 	triedb.Reference(root, common.Hash{})
 	assert.Nil(t, triedb.Commit(root, false, false))
 	triedb.DereferenceDB(parent)
-	cpyRoot, _ := cpy.Commit(nil)
+	cpyRoot, _ := cpy.Commit(leafCB)
 	if root != cpyRoot {
 		t.Fatal("cpyroot failed")
 	}
+	triedb.Reference(cpyRoot, common.Hash{})
+
 	assert.Nil(t, triedb.Commit(cpyRoot, false, false))
 	triedb.DereferenceDB(cpyRoot)
-	fmt.Println(count)
 }

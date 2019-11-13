@@ -235,7 +235,7 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 			Key: compactToHex(n.Key),
 			Val: expandNode(nil, n.Val, cachegen),
 			flags: nodeFlag{
-				hash:  hash,
+				hash:  &hash,
 				gen:   cachegen,
 				dirty: &dirty,
 			},
@@ -245,7 +245,7 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 		// Full nodes need child expansion
 		node := &fullNode{
 			flags: nodeFlag{
-				hash:  hash,
+				hash:  &hash,
 				gen:   cachegen,
 				dirty: &dirty,
 			},
