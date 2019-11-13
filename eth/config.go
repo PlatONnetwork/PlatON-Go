@@ -58,6 +58,7 @@ var DefaultConfig = Config{
 	DBDisabledGC:  false,
 	DBGCInterval:  86400,
 	DBGCTimeout:   time.Minute,
+	DBGCMpt:       true,
 	DBGCBlock:     10,
 	MinerGasPrice: big.NewInt(params.GVon),
 	MinerRecommit: 3 * time.Second,
