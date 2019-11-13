@@ -71,7 +71,7 @@ def test_IP_PR_004(reset_cfg_env_node):
     genesis.to_file(reset_cfg_env_node.genesis_path)
     reset_cfg_env_node.deploy_me(reset_cfg_env_node.genesis_path)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["Staking"]["StakeThreshold"], "Inconsistent with the genesis file configuration amount"
+    assert value == config["staking"]["stakeThreshold"], "Inconsistent with the genesis file configuration amount"
 
 
 @pytest.mark.P2
@@ -99,7 +99,7 @@ def test_IP_PR_006_1(reset_cfg_env_node):
     genesis.to_file(new_file)
     reset_cfg_env_node.deploy_me(new_file)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["Staking"]["OperatingThreshold"]
+    assert value == config["staking"]["operatingThreshold"]
 
 
 @pytest.mark.P2
@@ -130,7 +130,7 @@ def test_IP_PR_007_1(reset_cfg_env_node):
     genesis.to_file(new_file)
     reset_cfg_env_node.deploy_me(new_file)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["Staking"]["HesitateRatio"]
+    assert value == config["staking"]["hesitateRatio"]
 
 
 @pytest.mark.P2
@@ -160,7 +160,7 @@ def test_IP_PR_008_1(reset_cfg_env_node):
     genesis.to_file(new_file)
     reset_cfg_env_node.deploy_me(new_file)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["Staking"]["UnStakeFreezeDuration"]
+    assert value == config["staking"]["unStakeFreezeDuration"]
 
 
 @pytest.mark.P2
@@ -190,7 +190,7 @@ def test_IP_PR_009_1(reset_cfg_env_node):
     genesis.to_file(new_file)
     reset_cfg_env_node.deploy_me(new_file)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["Reward"]["PlatONFoundationYear"]
+    assert value == config["reward"]["platONFoundationYear"]
 
 
 @pytest.mark.P2
@@ -222,7 +222,7 @@ def test_IP_PR_011(reset_cfg_env_node, value):
     genesis.to_file(new_file)
     reset_cfg_env_node.deploy_me(new_file)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["Reward"]["NewBlockRate"]
+    assert value == config["reward"]["newBlockRate"]
 
 
 @pytest.mark.P2
