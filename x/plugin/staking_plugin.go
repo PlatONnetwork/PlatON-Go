@@ -1116,17 +1116,15 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			can = c
 		}
 
-		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
-
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
 			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion,
+			ProgramVersion:  can.ProgramVersion, // Display the real-time version number to let users know why they were not elected. (Real-time version number will be used when selecting the consensus cycle validator)
 			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares),
+			Shares:          (*hexutil.Big)(v.Shares), // Shares can show the snapshot, because the value will only be used at the end of the epoch.
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
 		}
@@ -1276,9 +1274,9 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion,
+			ProgramVersion:  can.ProgramVersion, // Display the real-time version number to let users know why they were not elected. (Real-time version number will be used when selecting the consensus cycle validator)
 			StakingBlockNum: can.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares),
+			Shares:          (*hexutil.Big)(v.Shares), // Shares can show the snapshot, because the value will only be used at the end of the epoch.
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
 		}
