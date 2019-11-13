@@ -1,10 +1,8 @@
 package vm
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
-	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -21,19 +19,27 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 const (
-	CreateStakingEvent     = "1000"
-	EditorCandidateEvent   = "1001"
-	IncreaseStakingEvent   = "1002"
-	WithdrewCandidateEvent = "1003"
-	DelegateEvent          = "1004"
-	WithdrewDelegateEvent  = "1005"
-	BLSPUBKEYLEN           = 96 //  the bls public key length must be 96 byte
-	BLSPROOFLEN            = 64 // the bls proof length must be 64 byte
+	TxCreateStaking     = 1000
+	TxEditorCandidate   = 1001
+	TxIncreaseStaking   = 1002
+	TxWithdrewCandidate = 1003
+	TxDelegate          = 1004
+	TxWithdrewDelegate  = 1005
+	QueryVerifierList   = 1100
+	QueryValidatorList  = 1101
+	QueryCandidateList  = 1102
+	QueryRelateList     = 1103
+	QueryDelegateInfo   = 1104
+	QueryCandidateInfo  = 1105
+)
+
+const (
+	BLSPUBKEYLEN = 96 //  the bls public key length must be 96 byte
+	BLSPROOFLEN  = 64 // the bls proof length must be 64 byte
 )
 
 type StakingContract struct {
@@ -57,20 +63,20 @@ func (stkc *StakingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) erro
 func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		1000: stkc.createStaking,
-		1001: stkc.editCandidate,
-		1002: stkc.increaseStaking,
-		1003: stkc.withdrewStaking,
-		1004: stkc.delegate,
-		1005: stkc.withdrewDelegate,
+		TxCreateStaking:     stkc.createStaking,
+		TxEditorCandidate:   stkc.editCandidate,
+		TxIncreaseStaking:   stkc.increaseStaking,
+		TxWithdrewCandidate: stkc.withdrewStaking,
+		TxDelegate:          stkc.delegate,
+		TxWithdrewDelegate:  stkc.withdrewDelegate,
 
 		// Get
-		1100: stkc.getVerifierList,
-		1101: stkc.getValidatorList,
-		1102: stkc.getCandidateList,
-		1103: stkc.getRelatedListByDelAddr,
-		1104: stkc.getDelegateInfo,
-		1105: stkc.getCandidateInfo,
+		QueryVerifierList:  stkc.getVerifierList,
+		QueryValidatorList: stkc.getValidatorList,
+		QueryCandidateList: stkc.getCandidateList,
+		QueryRelateList:    stkc.getRelatedListByDelAddr,
+		QueryDelegateInfo:  stkc.getDelegateInfo,
+		QueryCandidateInfo: stkc.getCandidateInfo,
 	}
 }
 
@@ -101,49 +107,44 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	if len(blsPubKey) != BLSPUBKEYLEN {
-		receipt := strconv.Itoa(int(staking.ErrWrongBlsPubKey.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN), "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("got blsKey length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN),
+			TxCreateStaking, int(staking.ErrWrongBlsPubKey.Code)), nil
 	}
 
 	if len(blsProof) != BLSPROOFLEN {
-		receipt := strconv.Itoa(int(staking.ErrWrongBlsPubKeyProof.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			fmt.Sprintf("got length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN), "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("got blsProof length: %d, must be: %d", len(blsProof), BLSPROOFLEN),
+			TxCreateStaking, int(staking.ErrWrongBlsPubKeyProof.Code)), nil
 	}
 
 	// parse bls publickey
 	blsPk, err := blsPubKey.ParseBlsPubKey()
 	if nil != err {
-		receipt := strconv.Itoa(int(staking.ErrWrongBlsPubKey.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			fmt.Sprintf("failed to parse blspubkey: %s", err.Error()), "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("failed to parse blspubkey: %s", err.Error()),
+			TxCreateStaking, int(staking.ErrWrongBlsPubKey.Code)), nil
 	}
 
 	// verify bls proof
 	if err := verifyBlsProof(blsProof, blsPk); nil != err {
-		receipt := strconv.Itoa(int(staking.ErrWrongBlsPubKeyProof.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			fmt.Sprintf("failed to verify bls proof: %s", err.Error()), "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
+			TxCreateStaking, int(staking.ErrWrongBlsPubKeyProof.Code)), nil
+
 	}
 
 	// validate programVersion sign
 	if !node.GetCryptoHandler().IsSignedByNodeID(programVersion, programVersionSign.Bytes(), nodeId) {
-		receipt := strconv.Itoa(int(staking.ErrWrongProgramVersionSign.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			"call IsSignedByNodeID is failed", "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			"call IsSignedByNodeID is failed",
+			TxCreateStaking, int(staking.ErrWrongProgramVersionSign.Code)), nil
 	}
 
 	if ok, threshold := plugin.CheckStakeThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
-		receipt := strconv.Itoa(int(staking.ErrStakeVonTooLow.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			fmt.Sprintf("staking threshold: %d, deposit: %d", threshold, amount), "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("staking threshold: %d, deposit: %d", threshold, amount),
+			TxCreateStaking, int(staking.ErrStakeVonTooLow.Code)), nil
 	}
 
 	// check Description length
@@ -154,10 +155,9 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		Details:    details,
 	}
 	if err := desc.CheckLength(); nil != err {
-		receipt := strconv.Itoa(int(staking.ErrDescriptionLen.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			staking.ErrDescriptionLen.Msg+":"+err.Error(), "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			staking.ErrDescriptionLen.Msg+":"+err.Error(),
+			TxCreateStaking, int(staking.ErrDescriptionLen.Code)), nil
 	}
 
 	// Query current active version
@@ -171,11 +171,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
-		err := fmt.Sprintf("input Version: %s, current valid Version: %s",
-			xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion))
-		receipt := strconv.Itoa(int(staking.ErrProgramVersionTooLow.Code))
-		stkc.badLog(CreateStakingEvent, receipt, err, "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			fmt.Sprintf("input Version: %s, current valid Version: %s",
+				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion)),
+			TxCreateStaking, int(staking.ErrProgramVersionTooLow.Code)), nil
 
 	} else if inputVersion > currVersion {
 		isDeclareVersion = true
@@ -196,10 +195,9 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	if canOld.IsNotEmpty() {
-		receipt := strconv.Itoa(int(staking.ErrCanAlreadyExist.Code))
-		stkc.badLog(CreateStakingEvent, receipt,
-			"can is not nil", "createStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+			"can is not nil",
+			TxCreateStaking, int(staking.ErrCanAlreadyExist.Code)), nil
 	}
 
 	/**
@@ -232,10 +230,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receipt := strconv.Itoa(int(bizErr.Code))
-			stkc.badLog(CreateStakingEvent, receipt,
-				fmt.Sprintf("failed to createStaking: %s", bizErr.Error()), "createStaking")
-			return []byte(receipt), nil
+
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+				bizErr.Error(), TxCreateStaking, int(bizErr.Code)), nil
+
 		} else {
 			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -256,14 +254,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 					"blockNumber", blockNumber, "err", er)
 			}
 
-			receipt := strconv.Itoa(int(staking.ErrDeclVsFialedCreateCan.Code))
-			stkc.badLog(CreateStakingEvent, receipt, err.Error(), "createStaking")
-			return []byte(receipt), nil
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+				err.Error(), TxCreateStaking, int(staking.ErrDeclVsFialedCreateCan.Code)), nil
+
 		}
 	}
-	receipt := strconv.Itoa(int(common.NoErr.Code))
-	stkc.goodLog(CreateStakingEvent, receipt, "createStaking")
-	return []byte(receipt), nil
+
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxCreateStaking, int(common.NoErr.Code)), nil
 }
 
 func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
@@ -320,25 +318,20 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	}
 
 	if canOld.IsEmpty() {
-		receipt := strconv.Itoa(int(staking.ErrCanNoExist.Code))
-		stkc.badLog(EditorCandidateEvent, receipt,
-			"can is nil", "editCandidate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+			"can is nil", TxEditorCandidate, int(staking.ErrCanNoExist.Code)), nil
 	}
 
 	if canOld.IsInvalid() {
-		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
-		stkc.badLog(EditorCandidateEvent, receipt,
-			fmt.Sprintf("can status is: %d", canOld.Status), "editCandidate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+			fmt.Sprintf("can status is: %d", canOld.Status),
+			TxEditorCandidate, int(staking.ErrCanStatusInvalid.Code)), nil
 	}
 
 	if from != canOld.StakingAddress {
-		receipt := strconv.Itoa(int(staking.ErrNoSameStakingAddr.Code))
-		stkc.badLog(EditorCandidateEvent, receipt,
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
-			"editCandidate")
-		return []byte(receipt), nil
+			TxEditorCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
 	if canOld.BenefitAddress != vm.RewardManagerPoolAddr {
@@ -353,11 +346,9 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 		Details:    details,
 	}
 	if err := desc.CheckLength(); nil != err {
-		err := common.NewBizError(staking.ErrDescriptionLen.Code, staking.ErrDescriptionLen.Msg+":"+err.Error())
-		receipt := strconv.Itoa(int(staking.ErrDescriptionLen.Code))
-		stkc.badLog(EditorCandidateEvent, receipt,
-			err.Error(), "editCandidate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+			staking.ErrDescriptionLen.Msg+":"+err.Error(),
+			TxEditorCandidate, int(staking.ErrDescriptionLen.Code)), nil
 	}
 
 	canOld.Description = *desc
@@ -365,10 +356,8 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 	err = stkc.Plugin.EditCandidate(blockHash, blockNumber, canAddr, canOld)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receipt := strconv.Itoa(int(bizErr.Code))
-			stkc.badLog(EditorCandidateEvent, receipt,
-				fmt.Sprintf("failed to editCandidate: %s", bizErr.Error()), "editCandidate")
-			return []byte(receipt), nil
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
+				bizErr.Error(), TxEditorCandidate, int(bizErr.Code)), nil
 		} else {
 			log.Error("Failed to editCandidate by EditCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -377,9 +366,8 @@ func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId
 
 	}
 
-	receipt := strconv.Itoa(int(common.NoErr.Code))
-	stkc.goodLog(EditorCandidateEvent, receipt, "editCandidate")
-	return []byte(receipt), nil
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxEditorCandidate, int(common.NoErr.Code)), nil
 }
 
 func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
@@ -403,10 +391,9 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	}
 
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
-		receipt := strconv.Itoa(int(staking.ErrIncreaseStakeVonTooLow.Code))
-		stkc.badLog(IncreaseStakingEvent, receipt,
-			fmt.Sprintf("increase staking threshold: %d, deposit: %d", threshold, amount), "increaseStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
+			fmt.Sprintf("increase staking threshold: %d, deposit: %d", threshold, amount),
+			TxIncreaseStaking, int(staking.ErrIncreaseStakeVonTooLow.Code)), nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -424,35 +411,29 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	}
 
 	if canOld.IsEmpty() {
-		receipt := strconv.Itoa(int(staking.ErrCanNoExist.Code))
-		stkc.badLog(IncreaseStakingEvent, receipt,
-			"can is nil", "increaseStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
+			"can is nil", TxIncreaseStaking, int(staking.ErrCanNoExist.Code)), nil
 	}
 
 	if canOld.IsInvalid() {
-		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
-		stkc.badLog(IncreaseStakingEvent, receipt,
-			fmt.Sprintf("can status is: %d", canOld.Status), "increaseStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
+			fmt.Sprintf("can status is: %d", canOld.Status),
+			TxIncreaseStaking, int(staking.ErrCanStatusInvalid.Code)), nil
 	}
 
 	if from != canOld.StakingAddress {
-		receipt := strconv.Itoa(int(staking.ErrNoSameStakingAddr.Code))
-		stkc.badLog(IncreaseStakingEvent, receipt,
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
-			"increaseStaking")
-		return []byte(receipt), nil
+			TxIncreaseStaking, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
 	err = stkc.Plugin.IncreaseStaking(state, blockHash, blockNumber, amount, typ, canAddr, canOld)
 
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receipt := strconv.Itoa(int(bizErr.Code))
-			stkc.badLog(IncreaseStakingEvent, receipt,
-				fmt.Sprintf("failed to increaseStaking: %s", bizErr.Error()), "increaseStaking")
-			return []byte(receipt), nil
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
+				bizErr.Error(), TxIncreaseStaking, int(bizErr.Code)), nil
+
 		} else {
 			log.Error("Failed to increaseStaking by EditCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -460,9 +441,8 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		}
 
 	}
-	receipt := strconv.Itoa(int(common.NoErr.Code))
-	stkc.goodLog(IncreaseStakingEvent, receipt, "increaseStaking")
-	return []byte(receipt), nil
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxIncreaseStaking, int(common.NoErr.Code)), nil
 }
 
 func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, error) {
@@ -499,34 +479,27 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 	}
 
 	if canOld.IsEmpty() {
-		receipt := strconv.Itoa(int(staking.ErrCanNoExist.Code))
-		stkc.badLog(WithdrewCandidateEvent, receipt,
-			"can is nil", "withdrewStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
+			"can is nil", TxWithdrewCandidate, int(staking.ErrCanNoExist.Code)), nil
 	}
 
 	if canOld.IsInvalid() {
-		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
-		stkc.badLog(WithdrewCandidateEvent, receipt,
-			fmt.Sprintf("can status is: %d", canOld.Status), "withdrewStaking")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
+			fmt.Sprintf("can status is: %d", canOld.Status),
+			TxWithdrewCandidate, int(staking.ErrCanStatusInvalid.Code)), nil
 	}
 
 	if from != canOld.StakingAddress {
-		receipt := strconv.Itoa(int(staking.ErrNoSameStakingAddr.Code))
-		stkc.badLog(WithdrewCandidateEvent, receipt,
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from.Hex(), canOld.StakingAddress.Hex()),
-			"withdrewStaking")
-		return []byte(receipt), nil
+			TxWithdrewCandidate, int(staking.ErrNoSameStakingAddr.Code)), nil
 	}
 
 	err = stkc.Plugin.WithdrewStaking(state, blockHash, blockNumber, canAddr, canOld)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receipt := strconv.Itoa(int(bizErr.Code))
-			stkc.badLog(WithdrewCandidateEvent, receipt,
-				fmt.Sprintf("failed to withdrewStaking: %s", bizErr.Error()), "withdrewStaking")
-			return []byte(receipt), nil
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewStaking",
+				bizErr.Error(), TxWithdrewCandidate, int(bizErr.Code)), nil
 		} else {
 			log.Error("Failed to withdrewStaking by WithdrewStaking", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -535,9 +508,8 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 
 	}
 
-	receipt := strconv.Itoa(int(common.NoErr.Code))
-	stkc.goodLog(WithdrewCandidateEvent, receipt, "withdrewStaking")
-	return []byte(receipt), nil
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxWithdrewCandidate, int(common.NoErr.Code)), nil
 }
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
@@ -561,10 +533,9 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
-		receipt := strconv.Itoa(int(staking.ErrDelegateVonTooLow.Code))
-		stkc.badLog(DelegateEvent, receipt,
-			fmt.Sprintf("delegate threshold: %d, deposit: %d", threshold, amount), "delegate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			fmt.Sprintf("delegate threshold: %d, deposit: %d", threshold, amount),
+			TxDelegate, int(staking.ErrDelegateVonTooLow.Code)), nil
 	}
 
 	// check account
@@ -574,10 +545,9 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 
 	if hasStake {
-		receipt := strconv.Itoa(int(staking.ErrAccountNoAllowToDelegate.Code))
-		stkc.badLog(DelegateEvent, receipt,
-			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from.Hex()), "delegate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			fmt.Sprintf("'%s' has staking, so don't allow to delegate", from.Hex()),
+			TxDelegate, int(staking.ErrAccountNoAllowToDelegate.Code)), nil
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -594,27 +564,23 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 
 	if canMutable.IsEmpty() {
-		receipt := strconv.Itoa(int(staking.ErrCanNoExist.Code))
-		stkc.badLog(DelegateEvent, receipt,
-			"can is nil", "delegate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			"can is nil", TxDelegate, int(staking.ErrCanNoExist.Code)), nil
 	}
 
 	if canMutable.IsInvalid() {
-		receipt := strconv.Itoa(int(staking.ErrCanStatusInvalid.Code))
-		stkc.badLog(DelegateEvent, receipt,
-			fmt.Sprintf("can status is: %d", canMutable.Status), "delegate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			fmt.Sprintf("can status is: %d", canMutable.Status),
+			TxDelegate, int(staking.ErrCanStatusInvalid.Code)), nil
 	}
 
 	canBase, err := stkc.Plugin.GetCanBase(blockHash, canAddr)
 
 	// If the candidate’s benefitaAddress is the RewardManagerPoolAddr, no delegation is allowed
 	if canBase.BenefitAddress == vm.RewardManagerPoolAddr {
-		receipt := strconv.Itoa(int(staking.ErrCanNoAllowDelegate.Code))
-		stkc.badLog(DelegateEvent, receipt,
-			"the can benefitAddr is reward addr", "delegate")
-		return []byte(receipt), nil
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+			"the can benefitAddr is reward addr",
+			TxDelegate, int(staking.ErrCanNoAllowDelegate.Code)), nil
 	}
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canBase.StakingBlockNum)
@@ -639,19 +605,16 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canAddr, can, typ, amount)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receipt := strconv.Itoa(int(bizErr.Code))
-			stkc.badLog(DelegateEvent, receipt,
-				fmt.Sprintf("failed to delegate: %s", bizErr.Error()), "delegate")
-			return []byte(receipt), nil
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
+				bizErr.Error(), TxDelegate, int(bizErr.Code)), nil
 		} else {
 			log.Error("Failed to delegate by Delegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
 	}
 
-	receipt := strconv.Itoa(int(common.NoErr.Code))
-	stkc.goodLog(DelegateEvent, receipt, "delegate")
-	return []byte(receipt), nil
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxDelegate, int(common.NoErr.Code)), nil
 }
 
 func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
@@ -675,10 +638,10 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	}
 
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
-		receipt := strconv.Itoa(int(staking.ErrWithdrewDelegateVonTooLow.Code))
-		stkc.badLog(WithdrewDelegateEvent, receipt,
-			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", threshold, amount), "withdrewDelegate")
-		return []byte(receipt), nil
+
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
+			fmt.Sprintf("withdrewDelegate threshold: %d, deposit: %d", threshold, amount),
+			TxWithdrewDelegate, int(staking.ErrWithdrewDelegateVonTooLow.Code)), nil
 	}
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, stakingBlockNum)
@@ -689,27 +652,26 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	}
 
 	if del.IsEmpty() {
-		receipt := strconv.Itoa(int(staking.ErrDelegateNoExist.Code))
-		stkc.badLog(WithdrewDelegateEvent, receipt,
-			"del is nil", "withdrewDelegate")
-		return []byte(receipt), nil
+
+		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
+			"del is nil", TxWithdrewDelegate, int(staking.ErrDelegateNoExist.Code)), nil
 	}
 
 	err = stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-			receipt := strconv.Itoa(int(bizErr.Code))
-			stkc.badLog(WithdrewDelegateEvent, receipt,
-				fmt.Sprintf("failed to withdrewDelegate: %s", bizErr.Error()), "withdrewDelegate")
-			return []byte(receipt), nil
+
+			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegate",
+				bizErr.Error(), TxWithdrewDelegate, int(bizErr.Code)), nil
+
 		} else {
 			log.Error("Failed to withdrewDelegate by WithdrewDelegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
 	}
-	receipt := strconv.Itoa(int(common.NoErr.Code))
-	stkc.goodLog(WithdrewDelegateEvent, receipt, "withdrewDelegate")
-	return []byte(receipt), nil
+
+	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
+		"", TxWithdrewDelegate, int(common.NoErr.Code)), nil
 }
 
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
@@ -720,29 +682,17 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
 
 	if snapshotdb.NonDbNotFoundErr(err) {
-		data := xcom.NewFailedResult(staking.ErrGetVerifierList.Wrap(err.Error()))
-		log.Error("Failed to getVerifierList: Query VerifierList is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return data, nil
+		return callResultHandler(stkc.Evm, "getVerifierList",
+			arr, staking.ErrGetVerifierList.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		data := xcom.NewFailedResult(staking.ErrGetVerifierList.Wrap("VerifierList info is not found"))
-		log.Error("Failed to getVerifierList: VerifierList info is not found",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
-		return data, nil
+		return callResultHandler(stkc.Evm, "getVerifierList",
+			arr, staking.ErrGetVerifierList.Wrap("VerifierList info is not found")), nil
 	}
 
-	arrByte, err := json.Marshal(arr)
-	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrGetVerifierList.Wrap(err.Error()))
-		log.Error("Failed to getVerifierList: VerifierList Marshal json is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return data, nil
-	}
-	data := xcom.NewOkResult(string(arrByte))
-	log.Debug("getVerifierList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "verArr", string(arrByte))
-	return data, nil
+	return callResultHandler(stkc.Evm, "getVerifierList",
+		arr, nil), nil
 }
 
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
@@ -752,29 +702,18 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		data := xcom.NewFailedResult(staking.ErrGetValidatorList.Wrap(err.Error()))
-		log.Error("Failed to getValidatorList: Query ValidatorList is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return data, nil
+
+		return callResultHandler(stkc.Evm, "getValidatorList",
+			arr, staking.ErrGetValidatorList.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		data := xcom.NewFailedResult(staking.ErrGetValidatorList.Wrap("ValidatorList info is not found"))
-		log.Error("Failed to getValidatorList: ValidatorList info is not found",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
-		return data, nil
+		return callResultHandler(stkc.Evm, "getValidatorList",
+			arr, staking.ErrGetValidatorList.Wrap("ValidatorList info is not found")), nil
 	}
 
-	arrByte, err := json.Marshal(arr)
-	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrGetValidatorList.Wrap(err.Error()))
-		log.Error("Failed to getValidatorList: ValidatorList Marshal json is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return data, nil
-	}
-	data := xcom.NewOkResult(string(arrByte))
-	log.Debug("getValidatorList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "valArr", string(arrByte))
-	return data, nil
+	return callResultHandler(stkc.Evm, "getValidatorList",
+		arr, nil), nil
 }
 
 func (stkc *StakingContract) getCandidateList() ([]byte, error) {
@@ -784,62 +723,35 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if snapshotdb.NonDbNotFoundErr(err) {
-		data := xcom.NewFailedResult(staking.ErrGetCandidateList.Wrap(err.Error()))
-		log.Error("Failed to getCandidateList: Query CandidateList is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return data, nil
+		return callResultHandler(stkc.Evm, "getCandidateList",
+			arr, staking.ErrGetCandidateList.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		data := xcom.NewFailedResult(staking.ErrGetCandidateList.Wrap("CandidateList info is not found"))
-		log.Error("Failed to getCandidateList: CandidateList info is not found",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
-		return data, nil
+		return callResultHandler(stkc.Evm, "getCandidateList",
+			arr, staking.ErrGetCandidateList.Wrap("CandidateList info is not found")), nil
 	}
 
-	arrByte, err := json.Marshal(arr)
-	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrGetCandidateList.Wrap(err.Error()))
-		log.Error("Failed to getCandidateList: CandidateList Marshal json is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return data, nil
-	}
-	data := xcom.NewOkResult(string(arrByte))
-	log.Debug("getCandidateList", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canArr", string(arrByte))
-	return data, nil
+	return callResultHandler(stkc.Evm, "getCandidateList",
+		arr, nil), nil
 }
 
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
-	blockNumber := stkc.Evm.BlockNumber
 	blockHash := stkc.Evm.BlockHash
-
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		data := xcom.NewFailedResult(staking.ErrGetDelegateRelated.Wrap(err.Error()))
-		log.Error("Failed to getRelatedListByDelAddr: Query RelatedList is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", addr.Hex(), "err", err)
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
+			arr, staking.ErrGetDelegateRelated.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || arr.IsEmpty() {
-		data := xcom.NewFailedResult(staking.ErrGetDelegateRelated.Wrap("RelatedList info is not found"))
-		log.Error("Failed to getRelatedListByDelAddr: RelatedList info is not found",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", addr.Hex())
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
+			arr, staking.ErrGetDelegateRelated.Wrap("RelatedList info is not found")), nil
 	}
 
-	jsonByte, err := json.Marshal(arr)
-	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrGetDelegateRelated.Wrap(err.Error()))
-		log.Error("Failed to getRelatedListByDelAddr: RelatedList Marshal json is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", addr.Hex(), "err", err)
-		return data, nil
-	}
-	data := xcom.NewOkResult(string(jsonByte))
-	log.Debug("getRelatedListByDelAddr", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"delAddr", addr.Hex(), "relateArr", string(jsonByte))
-	return data, nil
+	return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
+		arr, nil), nil
 }
 
 func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr common.Address,
@@ -850,33 +762,20 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 
 	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		data := xcom.NewFailedResult(staking.ErrQueryDelegateInfo.Wrap(err.Error()))
-		log.Error("Failed to getDelegateInfo: Query Delegate info is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum, "err", err)
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
+			delAddr, nodeId, stakingBlockNum),
+			del, staking.ErrQueryDelegateInfo.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || del.IsEmpty() {
-		data := xcom.NewFailedResult(staking.ErrQueryDelegateInfo.Wrap("Delegate info is not found"))
-		log.Error("Failed to getDelegateInfo: Delegate info is not found",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum)
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
+			delAddr, nodeId, stakingBlockNum),
+			del, staking.ErrQueryDelegateInfo.Wrap("Delegate info is not found")), nil
 	}
 
-	jsonByte, err := json.Marshal(del)
-	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrQueryDelegateInfo.Wrap(err.Error()))
-		log.Error("Failed to getDelegateInfo: Delegate Marshal json is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum, "err", err)
-		return data, nil
-	}
-	data := xcom.NewOkResult(string(jsonByte))
-	log.Debug("getDelegateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakingBlockNumber", stakingBlockNum, "delinfo", string(jsonByte))
-	return data, nil
+	return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
+		delAddr, nodeId, stakingBlockNum),
+		del, nil), nil
 }
 
 func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
@@ -886,50 +785,20 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrQueryCandidateInfo.Wrap(err.Error()))
-		log.Error("Failed to getCandidateInfo: Parse NodeId to Address is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
+			nodeId), nil, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
 	can, err := stkc.Plugin.GetCandidateCompactInfo(blockHash, blockNumber.Uint64(), canAddr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-		data := xcom.NewFailedResult(staking.ErrQueryCandidateInfo.Wrap(err.Error()))
-		log.Error("Failed to getCandidateInfo: Query Candidate info is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
+			nodeId), can, staking.ErrQueryCandidateInfo.Wrap(err.Error())), nil
 	}
 
 	if snapshotdb.IsDbNotFoundErr(err) || can.IsEmpty() {
-		data := xcom.NewFailedResult(staking.ErrQueryCandidateInfo.Wrap("Candidate info is not found"))
-		log.Error("Failed to getCandidateInfo: Candidate info is not found",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-		return data, nil
+		return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
+			nodeId), can, staking.ErrQueryCandidateInfo.Wrap("Candidate info is not found")), nil
 	}
 
-	jsonByte, err := json.Marshal(can)
-	if nil != err {
-		data := xcom.NewFailedResult(staking.ErrQueryCandidateInfo.Wrap(err.Error()))
-		log.Error("Failed to getCandidateInfo: Candidate Marshal json is failed",
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return data, nil
-	}
-	data := xcom.NewOkResult(string(jsonByte))
-	log.Debug("getCandidateInfo", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-		"nodeId", nodeId.String(), "caninfo", string(jsonByte))
-	return data, nil
-}
-
-func (stkc *StakingContract) goodLog(eventType, eventData, callFn string) {
-
-	blockNumber := stkc.Evm.BlockNumber.Uint64()
-	xcom.AddLog(stkc.Evm.StateDB, blockNumber, vm.StakingContractAddr, eventType, eventData)
-}
-
-func (stkc *StakingContract) badLog(eventType, eventData, reason, callFn string) {
-
-	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber.Uint64()
-	xcom.AddLog(stkc.Evm.StateDB, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Error("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber, "receipt: ", eventData, "the reason", reason)
+	return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
+		nodeId), can, nil), nil
 }

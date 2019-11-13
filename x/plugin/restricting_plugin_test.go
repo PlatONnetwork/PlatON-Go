@@ -1,7 +1,22 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package plugin
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -35,15 +50,12 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		result, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
+		res, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
 		if err != nil {
 			t.Error(err)
 			return
 		}
-		var res restricting.Result
-		if err = json.Unmarshal(result, &res); err != nil {
-			t.Fatalf("failed to json decode result, result: %s", result)
-		}
+
 		if res.Balance.ToInt().Cmp(big.NewInt(5e18)) != 0 {
 			t.Errorf("balance not cmp")
 		}
@@ -409,16 +421,10 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			t.Error(err)
 		}
 
-		result, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
+		res, err := RestrictingInstance().GetRestrictingInfo(addrArr[0], chain.StateDB)
 		if err != nil {
 			t.Errorf("get restrictingInfo fail  error: %s", err.Error())
 		}
-
-		var res restricting.Result
-		if err = json.Unmarshal(result, &res); err != nil {
-			t.Fatalf("failed to json decode result, result: %s", result)
-		}
-
 		if res.Balance.ToInt().Cmp(total) != 0 {
 			t.Errorf("Balance num is not cmp,should %v have %v", total, res.Balance)
 		}

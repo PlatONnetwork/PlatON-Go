@@ -551,7 +551,7 @@ func BatchVerifyDistinctMsg(curve int, pkVec []PublicKey, msgVec []Sign, sign Si
 		e1 = e2
 	}
 	if !e.IsEqual(&e2) {
-		errors.New("not equal pairing\n")
+		return errors.New("not equal pairing\n")
 	}
 	return nil
 }

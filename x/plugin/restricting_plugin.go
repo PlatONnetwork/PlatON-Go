@@ -1,7 +1,22 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package plugin
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -483,10 +498,10 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 	return nil
 }
 
-func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, state xcom.StateDB) (restricting.Result, error) {
+func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, state xcom.StateDB) (*restricting.Result, error) {
 	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
-		return restricting.Result{}, err
+		return nil, err
 	}
 
 	var (
@@ -508,20 +523,11 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 	result.Entry = plans
 	result.Pledge = (*hexutil.Big)(info.StakingAmount)
 	rp.log.Debug("Call releaseRestricting: query restricting result", "account", account, "result", result)
-	return result, nil
+	return &result, nil
 }
 
-func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) ([]byte, error) {
-	result, err := rp.getRestrictingInfoToReturn(account, state)
-	if err != nil {
-		return nil, err
-	}
-	bResult, err := json.Marshal(result)
-	if err != nil {
-		rp.log.Error("Failed to Marshal restricting result")
-		return []byte{}, err
-	}
-	return bResult, nil
+func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) (*restricting.Result, error) {
+	return rp.getRestrictingInfoToReturn(account, state)
 }
 
 // state DB operation

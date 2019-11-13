@@ -6,7 +6,7 @@ from copy import copy
 from tests.lib import StakingConfig
 from common.log import log
 from tests.lib.client import Client, get_client_obj, get_client_obj_list
-from tests.lib.utils import get_pledge_list, wait_block_number
+from tests.lib.utils import get_pledge_list, wait_block_number, assert_code
 
 @pytest.fixture()
 def global_running_env(global_test_env):
@@ -43,16 +43,16 @@ def client_list_obj(global_test_env, staking_cfg):
 
 
 @pytest.fixture()
-def client_con_list_obj(global_test_env, staking_cfg):
+def client_con_list_obj(global_running_env, staking_cfg):
     '''
     获取共识Client对象列表
     :param global_test_env:
     :return:
     '''
     client_con_list_obj = []
-    consensus_node_obj_list = global_test_env.consensus_node_list
+    consensus_node_obj_list = global_running_env.consensus_node_list
     for node_obj in consensus_node_obj_list:
-        client_con_list_obj.append(Client(global_test_env, node_obj, staking_cfg))
+        client_con_list_obj.append(Client(global_running_env, node_obj, staking_cfg))
     return client_con_list_obj
 
 
@@ -115,19 +115,20 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
 
 
 @pytest.fixture()
-def client_new_node_obj(client_noconsensus_obj, client_list_obj, client_noc_list_obj):
+def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
     '''
     获取单个未被质押节点Client对象
     :param global_test_env:
     :return:
     '''
-    candidate_list = get_pledge_list(client_noconsensus_obj.ppos.getCandidateList)
-    log.info('candidatelist{}'.format(candidate_list))
     for noconsensus_node_obj in client_noc_list_obj:
-        if noconsensus_node_obj.node.node_id not in candidate_list:
+        msg = noconsensus_node_obj.ppos.getCandidateInfo(noconsensus_node_obj.node.node_id)
+        log.info(msg)
+        if msg["Code"] == 301204:
             return noconsensus_node_obj
     log.info('非共识节点已全部质押，重新启链')
     client_noconsensus_obj.economic.env.deploy_all()
+    log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
     return client_noconsensus_obj
 
 
@@ -173,6 +174,7 @@ def reset_environment(global_test_env):
     log.info("case execution completed")
     yield
     global_test_env.deploy_all()
+    time.sleep(3)
 
 
 @pytest.fixture
@@ -202,6 +204,7 @@ def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=Tr
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), module, name, newvalue, pip_obj.node.staking_address,
                                  transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
+    assert_code(result, 0)
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
     client_obj_list = []
@@ -246,6 +249,7 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), module, name, newvalue, pip_obj.node.staking_address,
                                  transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result : {}'.format(result))
+    assert_code(result, 0)
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
     client_obj_list = []

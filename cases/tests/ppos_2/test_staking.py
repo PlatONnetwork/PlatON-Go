@@ -25,20 +25,20 @@ def test_IV_003(global_test_env, client_consensus_obj):
     StakingAddress = global_test_env.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
     log.info("Staking result:{}".format(result))
-    assert result.get('Code') == 301101
+    assert_code(result,301101)
 
 
 def test_IV_004(get_generate_account, client_consensus_obj):
     address, _ = get_generate_account
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
-    assert result.get('Code') == 301107
+    assert_code(result,301107)
 
 
 def test_IV_005(global_test_env,client_consensus_obj):
     StakingAddress = global_test_env.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.increase_staking(0, StakingAddress)
-    assert result.get('Code') == 0
+    assert_code(result,0)
 
 
 def test_IV_006_007_008(client_consensus_obj, get_generate_account):
@@ -47,18 +47,17 @@ def test_IV_006_007_008(client_consensus_obj, get_generate_account):
     log.info(result)
     result = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
     log.info(result)
-    assert result.get('Code') == 0
-    log.info("进入下2个周期")
-    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, number=1)
-    result = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
-    log.info(result)
-    assert result.get('Code') == 301204, "预期验证人已退出"
+    log.info("进入下3个周期")
+    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node, number=2)
+    msg = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
+    log.info(msg)
+    assert msg["Code"] == 301204, "预期验证人已退出"
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     address, _ = get_generate_account
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     client_consensus_obj.economic.env.deploy_all()
 
 
@@ -67,7 +66,7 @@ def test_IV_009(client_consensus_obj, get_generate_account):
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.edit_candidate(StakingAddress, address1)
     log.info(result)
-    assert result.get('Code') == 0
+    assert_code(result,0)
 
 
 def test_P_014_015_019_024(client_noc_list_obj, get_generate_account):
@@ -81,10 +80,10 @@ def test_P_014_015_019_024(client_noc_list_obj, get_generate_account):
     log.info("Generate address:{}".format(address))
     result = client_noc_list_obj[0].staking.create_staking(0, address, address)
     log.info(result)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     result = client_noc_list_obj[0].staking.create_staking(0, address, address)
     log.info(result)
-    assert result.get('Code') == 301101
+    assert_code(result,301101)
 
 
 def test_P_016(client_new_node_obj, get_generate_account):
@@ -99,7 +98,7 @@ def test_P_016(client_new_node_obj, get_generate_account):
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address, node_id=illegal_nodeID)
     log.info(result)
-    assert result.get('Code') == 301003
+    assert_code(result,301003)
 
 
 def test_P_017(client_new_node_obj, get_generate_account):
@@ -112,7 +111,7 @@ def test_P_017(client_new_node_obj, get_generate_account):
     INCENTPEPOOL_ADDRESS = client_new_node_obj.economic.cfg.INCENTPEPOOL_ADDRESS
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, INCENTPEPOOL_ADDRESS, address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
 
 
 def test_P_018(client_new_node_obj, get_generate_account):
@@ -125,7 +124,7 @@ def test_P_018(client_new_node_obj, get_generate_account):
     FOUNDATION_ADDRESS = client_new_node_obj.economic.cfg.FOUNDATION_ADDRESS
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, FOUNDATION_ADDRESS, address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
 
 
 @pytest.mark.P2
@@ -140,7 +139,7 @@ def test_P_020_21(client_new_node_obj, get_generate_account):
     amount = client_new_node_obj.economic.create_staking_limit
     result = client_new_node_obj.staking.create_staking(0, address, address, amount=amount - 1)
     log.info(result)
-    assert result.get('Code') == 301100
+    assert_code(result,301100)
     cfg = {"gas": 1}
     status = 0
     try:
@@ -163,7 +162,7 @@ def test_P_025(client_new_node_obj, get_generate_account, client_consensus_obj):
     program_version_sign = client_consensus_obj.node.program_version_sign
     result = client_new_node_obj.staking.create_staking(0, address, address, program_version_sign=program_version_sign)
     log.info(result)
-    assert result.get('Code') == 301003
+    assert_code(result,301003)
 
 
 def test_P_029(client_new_node_obj, get_generate_account):
@@ -176,10 +175,10 @@ def test_P_029(client_new_node_obj, get_generate_account):
     """
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     result = client_new_node_obj.staking.withdrew_staking(address)
     log.info(result)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
 
@@ -193,14 +192,14 @@ def test_P_030(client_new_node_obj, get_generate_account):
     """
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     log.info("进入下个周期")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.withdrew_staking(address)
-    assert result.get('Code') == 0
+    assert_code(result,0)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert result.get('Code') == 301101,"预期退质押未完成,再质押失败"
+    assert_code(result,301101)
 
 
 

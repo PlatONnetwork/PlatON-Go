@@ -20,8 +20,6 @@
 		"EstHeaderRlpSize":  500,
 		"DefaultTxsCacheSize":20,
 		"DefaultBroadcastInterval":100000000,
-		"MinerGasFloor": 	 3150000000,
-		"MinerGasCeil":  	 3150000000,
 		"MinerGasPrice": 	 100000000,
 		"MinerRecommit": 	 3000000000,
 		"MinerNoverify": 	 false,

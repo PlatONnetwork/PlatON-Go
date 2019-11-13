@@ -96,15 +96,15 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		t.Fatalf("ReportDuplicateSign encode rlp data fail: %v", err)
+		t.Fatalf("reportDuplicateSign encode rlp data fail: %v", err)
 	} else {
-		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("reportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	var blsKey bls.SecretKey
 	skbyte, err := hex.DecodeString("b36d4c3c3e8ee7fba3fbedcda4e0493e699cd95b68594093a8498c618680480a")
 	if nil != err {
-		t.Fatalf("ReportDuplicateSign DecodeString byte data fail: %v", err)
+		t.Fatalf("reportDuplicateSign DecodeString byte data fail: %v", err)
 	}
 	blsKey.SetLittleEndian(skbyte)
 	var blsKeyHex bls.PublicKeyHex
@@ -172,9 +172,9 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		t.Fatalf("CheckDuplicateSign encode rlp data fail: %v", err)
+		t.Fatalf("checkDuplicateSign encode rlp data fail: %v", err)
 	} else {
-		t.Log("CheckDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("checkDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 	runContract(contract, buf.Bytes(), t)
 }

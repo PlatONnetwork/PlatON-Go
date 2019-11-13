@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package gov
 
 import (
@@ -124,7 +140,7 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 		return ProposalTypeError
 	}
 
-	if err := verifyBasic(tp, state); err != nil {
+	if err := verifyBasic(tp, blockHash, state); err != nil {
 		return err
 	}
 
@@ -207,7 +223,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return EndVotingRoundsTooLarge
 	}
 
-	if err := verifyBasic(vp, state); err != nil {
+	if err := verifyBasic(vp, blockHash, state); err != nil {
 		return err
 	}
 
@@ -302,7 +318,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return ProposalTypeError
 	}
 
-	if err := verifyBasic(cp, state); err != nil {
+	if err := verifyBasic(cp, blockHash, state); err != nil {
 		return err
 	}
 
@@ -394,7 +410,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	if pp.ProposalType != Param {
 		return ProposalTypeError
 	}
-	if err := verifyBasic(pp, state); err != nil {
+	if err := verifyBasic(pp, blockHash, state); err != nil {
 		return err
 	}
 
@@ -447,7 +463,7 @@ func (pp *ParamProposal) String() string {
 		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock, pp.Module, pp.Name, pp.NewValue)
 }
 
-func verifyBasic(p Proposal, state xcom.StateDB) error {
+func verifyBasic(p Proposal, blockHash common.Hash, state xcom.StateDB) error {
 	log.Debug("verify proposal basic parameters", "proposalID", p.GetProposalID(), "proposer", p.GetProposer(), "pipID", p.GetPIPID(), "endVotingBlock", p.GetEndVotingBlock(), "submitBlock", p.GetSubmitBlock())
 
 	if p.GetProposalID() != common.ZeroHash {
@@ -466,6 +482,7 @@ func verifyBasic(p Proposal, state xcom.StateDB) error {
 		return ProposerEmpty
 	}
 
+	//if a PIPID is used in a proposal which is passed, this PIPID cannot be used in another proposal
 	if len(p.GetPIPID()) == 0 {
 		return PIPIDEmpty
 	} else if pipIdList, err := ListPIPID(state); err != nil {
@@ -474,6 +491,22 @@ func verifyBasic(p Proposal, state xcom.StateDB) error {
 	} else if isPIPIDExist(p.GetPIPID(), pipIdList) {
 		return PIPIDExist
 	}
+
+	//if a PIPID is used in a proposal which is at voting stage, this PIPID cannot be used in another proposal
+	if votingPIDList, err := ListVotingProposalID(blockHash); err != nil {
+		log.Error("list voting proposal ID error", "err", err)
+		return err
+	} else {
+		for _, votingPID := range votingPIDList {
+			if exist, err := GetExistProposal(votingPID, state); err != nil {
+				log.Error("get existing proposal error", "err", err)
+				return err
+			} else if exist.GetPIPID() == p.GetPIPID() {
+				return PIPIDExist
+			}
+		}
+	}
+
 	return nil
 }
 

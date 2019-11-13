@@ -106,7 +106,7 @@ type governanceConfig struct {
 
 type rewardConfig struct {
 	NewBlockRate         uint64 `json:"newBlockRate"`         // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
-	PlatONFoundationYear uint32 `json:"platONFoundationYear"` // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
+	PlatONFoundationYear uint32 `json:"platonFoundationYear"` // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 }
 
 type innerAccount struct {

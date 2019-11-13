@@ -1,9 +1,21 @@
 import pytest
 from common.log import log
 from copy import copy
-import time
+import time, math
 from tests.lib.client import get_client_obj, get_client_obj_list
-from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code
+from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_governable_parameter_value
+
+
+def get_refund_to_account_block(pip_obj, blocknumber=None):
+    '''
+    Get refund to account block
+    :param pip_obj:
+    :return:
+    '''
+    if blocknumber is None:
+        blocknumber = pip_obj.node.block_number
+    return math.ceil(blocknumber/pip_obj.economic.settlement_size + pip_obj.economic.unstaking_freeze_ratio
+                     ) * pip_obj.economic.settlement_size
 
 def version_proposal_vote(pip_obj, vote_option=None):
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
@@ -27,12 +39,15 @@ def version_proposal_vote(pip_obj, vote_option=None):
     log.info('The node {} vote result {}'.format(pip_obj.node.node_id, result))
     return result
 
-@pytest.fixture(scope="class")
-def pip_env(global_test_env):
-    cfg_copy = copy(global_test_env.cfg)
-    yield global_test_env
-    # global_test_env.set_cfg(cfg_copy)
-    # global_test_env.deploy_all()
+def param_proposal_vote(pip_obj, vote_option = None):
+    if vote_option is None:
+        vote_option = pip_obj.cfg.vote_option_yeas
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    log.info('proposalinfo: {}'.format(proposalinfo))
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), vote_option,
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Node {} vote param proposal result {}'.format(pip_obj.node.node_id, result))
+    return result
 
 @pytest.fixture()
 def no_vp_proposal(global_test_env, client_verifier_obj):
@@ -54,9 +69,13 @@ def submit_version(no_vp_proposal):
     return pip_obj
 
 @pytest.fixture()
-def submit_param(no_vp_proposal):
+def submit_param(no_vp_proposal, client_list_obj):
     pip_obj = no_vp_proposal
-    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '1',
+    client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
+    newvalue = '1'
+    if int(get_governable_parameter_value(client_obj, 'SlashBlocksReward')) == 1:
+        newvalue = '2'
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', newvalue,
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('submit param proposal result:'.format(result))
     assert_code(result, 0)
@@ -66,10 +85,21 @@ def submit_param(no_vp_proposal):
 def submit_cancel(submit_version):
     pip_obj = submit_version
     propolsalinfo = pip_obj.get_effect_proposal_info_of_vote()
-    log.info('获取处于投票期的升级提案信息{}'.format(propolsalinfo))
+    log.info('get voting version proposal info :{}'.format(propolsalinfo))
     result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 4, propolsalinfo.get('ProposalID'),
                                   pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('发起取消提案结果为{}'.format(result))
+    log.info('submit cancel proposal result : {}'.format(result))
+    assert_code(result, 0)
+    return pip_obj
+
+@pytest.fixture()
+def submit_cancel_param(submit_param):
+    pip_obj = submit_param
+    propolsalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    log.info('get voting param proposal info :{}'.format(propolsalinfo))
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 3, propolsalinfo.get('ProposalID'),
+                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('submit cancel proposal result : {}'.format(result))
     assert_code(result, 0)
     return pip_obj
 
