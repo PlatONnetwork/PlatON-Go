@@ -134,6 +134,7 @@ def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
     for noconsensus_node_obj in client_noc_list_obj:
         msg = noconsensus_node_obj.ppos.getCandidateInfo(noconsensus_node_obj.node.node_id)
         log.info(msg)
+        log.info(noconsensus_node_obj.node.node_id)
         if msg["Code"] == 301204:
             log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
             return noconsensus_node_obj

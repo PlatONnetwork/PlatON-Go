@@ -45,3 +45,4 @@ tmp_log
 ./deploy/global/
 /deploy/global/
 /deploy/bin/
+./tests/ppos_2/report
