@@ -1229,7 +1229,7 @@ def test_VP_PVF_008(client_new_node_obj, reset_environment):
             # Report verifier Duplicate Sign
             result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
             assert_code(result, 0)
-            # create staking
+            # increase staking
             result = client.staking.increase_staking(0, pledge_address)
             assert_code(result, 301103)
             break
