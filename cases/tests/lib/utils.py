@@ -246,8 +246,13 @@ def wait_block_number(node, block, interval=1):
     if node.block_number >= block:
         log.info('current block {} is greater than block {}'.format(node.block_number, block))
         return
+    print_t = 0
     while int(time.time()) < timeout:
-        log.info('The current block height is {}, waiting until {}'.format(node.block_number, block))
+        print_t += 1
+        if print_t == 10:
+            # Print once every 10 seconds to avoid printing too often
+            log.info('The current block height is {}, waiting until {}'.format(node.block_number, block))
+            print_t = 0
         if node.block_number > block:
             return
         time.sleep(1)
