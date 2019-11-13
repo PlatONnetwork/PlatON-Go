@@ -862,7 +862,7 @@ def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
     """
     低出块率被最高处罚金大于自由处罚金（锁仓金额质押）
     :param new_genesis_env:
@@ -926,3 +926,48 @@ def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
     assert pledge_amount3 == increase_amount - (
                 punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+
+
+@pytest.mark.P2
+def test_VP_GPFV_020(client_new_node_obj_list):
+    """
+    移出PlatON验证人与候选人名单，（扣除以后剩余自有质押金），未申请退回质押金
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current connection node1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current connection node2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create staking
+    result = client1.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # get pledge amount1 and block reward
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
+    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+    # stop node
+    client1.node.stop()
+    # Waiting for a settlement round
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # view verifier list
+    verifier_list = client2.ppos.getVerifierList()
+    log.info("verifier_list: {}".format(verifier_list))
+    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
+    log.info("Pledge node information： {}".format(candidate_info))
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    # Query pledge account balance
+    balance1 = client2.node.eth.getBalance(address)
+    log.info("pledge account balance: {}".format(balance1))
+    # Wait for the 2 settlement round to end
+    economic.wait_settlement_blocknum(node, 2)
+    # Query pledge account balance
+    balance2 = client2.node.eth.getBalance(address)
+    log.info("pledge account balance: {}".format(balance2))
+    assert balance2 == balance1 + (pledge_amount1 - punishment_amonut), "ErrMsg:pledge account balance {}".format(balance2)
