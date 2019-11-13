@@ -68,7 +68,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		return nil, nil
 	}
 
-	err := rc.Plugin.AddRestrictingRecord(from, account, plans, state)
+	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), plans, state)
 	switch err.(type) {
 	case nil:
 		receipt := strconv.Itoa(int(common.NoErr.Code))
