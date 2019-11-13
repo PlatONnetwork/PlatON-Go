@@ -344,7 +344,40 @@ def test_VP_GPFV_009(client_new_node_obj_list, reset_environment):
     client2.economic.wait_consensus_blocknum(client2.node, 2)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # Additional pledge
-    result = client2.staking.create_staking(1, address, address, node_id=node.node_id)
+    result = client2.staking.create_staking(0, address, address, node_id=node.node_id)
     assert_code(result, 301101)
 
+
+@pytest.mark.P2
+def test_VP_GPFV_010(client_new_node_obj_list, reset_environment):
+    """
+    节点被处罚后马上重新增持质押（高惩罚）
+    :param client_new_node_obj_list:
+    :param reset_environment:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current connection node1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current connection node2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create staking
+    result = client1.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # get pledge amount1 and block reward
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
+    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+    # stop node
+    client1.node.stop()
+    # Waiting for a settlement round
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # Additional pledge
+    result = client2.staking.increase_staking(1, address, node_id=node.node_id)
+    assert_code(result, 301103)
 
