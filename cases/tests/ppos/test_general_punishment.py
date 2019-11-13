@@ -501,3 +501,45 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
         assert info['Released'] == pledge_amount1 - block_penalty - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(info['Released'])
 
 
+@pytest.mark.P2
+def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
+    """
+    验证人被处罚后质押金=>创建验证人的最小质押门槛金额K
+    :param new_genesis_env:
+    :param client_con_list_obj:
+    :return:
+    """
+    # Change configuration parameters
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.slashBlocksReward = 5
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
+    client1 = client_con_list_obj[0]
+    log.info("Current connection node1: {}".format(client1.node.node_mark))
+    client2 = client_con_list_obj[1]
+    log.info("Current connection node2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # Wait for the consensus round to end
+    economic.wait_consensus_blocknum(node, 1)
+    # get pledge amount1 and block reward
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
+    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+    # stop node
+    client1.node.stop()
+    # Waiting for a settlement round
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # view verifier list
+    verifier_list = client2.ppos.getVerifierList()
+    log.info("verifier_list: {}".format(verifier_list))
+    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
+    log.info("Pledge node information： {}".format(candidate_info))
+    pledge_amount2 = candidate_info['Ret']['Released']
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+        pledge_amount2)
+
+
