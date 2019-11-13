@@ -248,9 +248,11 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
 	}
-	votingVP := proposal.(*VersionProposal)
+
 	//there is a voting version proposal
-	if votingVP != nil {
+	if proposal != nil {
+		votingVP := proposal.(*VersionProposal)
+
 		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
 
 		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, blockHash)
