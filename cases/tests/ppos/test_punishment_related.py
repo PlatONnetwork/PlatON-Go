@@ -790,7 +790,7 @@ def test_VP_PV_031(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PR_003(client_new_node_obj):
+def test_VP_PR_003(client_new_node_obj, reset_environment):
     """
     举报被处罚退出状态中的验证人
     :param client_new_node_obj:
@@ -921,7 +921,7 @@ def test_VP_PR_005(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_VP_PVF_001(client_consensus_obj):
+def test_VP_PVF_001(client_consensus_obj, reset_environment):
     """
     查询已成功的举报
     :param client_consensus_obj:
@@ -1024,7 +1024,7 @@ def test_VP_PVF_003(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PVF_004(client_new_node_obj):
+def test_VP_PVF_004(client_new_node_obj, reset_environment):
     """
     验证人在共识轮第230区块前被举报并被处罚
     :param client_new_node_obj:
@@ -1077,7 +1077,7 @@ def test_VP_PVF_004(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_VP_PVF_005(client_new_node_obj):
+def test_VP_PVF_005(client_new_node_obj, reset_environment):
     """
     验证人在共识轮第230区块后举报并被处罚
     :param client_new_node_obj:
@@ -1125,7 +1125,7 @@ def test_VP_PVF_005(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_VP_PVF_006(client_new_node_obj):
+def test_VP_PVF_006(client_new_node_obj, reset_environment):
     """
     移出PlatON验证人与候选人名单，验证人申请退回质押金
     :param client_new_node_obj:
@@ -1163,7 +1163,7 @@ def test_VP_PVF_006(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_VP_PVF_007(client_new_node_obj):
+def test_VP_PVF_007(client_new_node_obj, reset_environment):
     """
     节点被处罚后马上重新质押（双签）
     :param client_new_node_obj:
@@ -1201,7 +1201,7 @@ def test_VP_PVF_007(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_VP_PVF_008(client_new_node_obj):
+def test_VP_PVF_008(client_new_node_obj, reset_environment):
     """
     节点被处罚后马上重新增持质押（双签）
     :param client_new_node_obj:
@@ -1239,7 +1239,7 @@ def test_VP_PVF_008(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_VP_PVF_009(client_new_node_obj):
+def test_VP_PVF_009(client_new_node_obj, reset_environment):
     """
     移出PlatON验证人与候选人名单，委托人可在处罚所在结算周期，申请赎回全部委托金
     :param client_new_node_obj:
@@ -1257,7 +1257,7 @@ def test_VP_PVF_009(client_new_node_obj):
     assert_code(result, 0)
     # Additional pledge
     result = client.delegate.delegate(0, report_address)
-    assert_code(result, 304013)
+    assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     for i in range(4):

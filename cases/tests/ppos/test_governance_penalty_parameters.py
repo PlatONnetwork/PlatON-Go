@@ -17,7 +17,7 @@ def pledge_punishment(client_con_list_obj):
     """
     client1 = client_con_list_obj[0]
     client2 = client_con_list_obj[1]
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
