@@ -29,8 +29,8 @@ def penalty_proportion_and_income(client_obj):
     candidate_info1 = client_obj.ppos.getCandidateInfo(client_obj.node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio = get_governable_parameter_value(client_obj, 'SlashFractionDuplicateSign')
-    proportion_ratio = get_governable_parameter_value(client_obj, 'DuplicateSignReportReward')
+    penalty_ratio = get_governable_parameter_value(client_obj, 'slashFractionDuplicateSign')
+    proportion_ratio = get_governable_parameter_value(client_obj, 'duplicateSignReportReward')
     return pledge_amount1, int(penalty_ratio), int(proportion_ratio)
 
 
@@ -386,7 +386,7 @@ def test_VP_GPFV_010(client_new_node_obj_list, reset_environment):
     client2.economic.wait_consensus_blocknum(client2.node, 2)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # Additional pledge
-    result = client2.staking.increase_staking(1, address, node_id=node.node_id)
+    result = client2.staking.increase_staking(0, address, node_id=node.node_id)
     assert_code(result, 301103)
 
 
@@ -413,37 +413,40 @@ def test_VP_GPFV_011(client_new_node_obj_list, reset_environment):
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
-    # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
-    report_block = client2.node.eth.blockNumber
-    log.info("Current block height: {}".format(report_block))
-    # Obtain penalty proportion and income
-    pledge_amount2, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client1)
-    # view Amount of penalty
-    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount2, penalty_ratio,
-                                                                          proportion_ratio)
-    # Obtain evidence of violation
-    report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
-    log.info("Report information: {}".format(report_information))
-    result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-    assert_code(result, 0)
-    # Query pledge node information:
-    candidate_info = client2.ppos.getCandidateInfo(node.node_id)
-    log.info("pledge node information: {}".format(candidate_info))
-    info = candidate_info['Ret']
-    block_penalty = Decimal(str(block_reward)) * Decimal(str(slash_blocks))
-    duplicateSign_penalty = proportion_reward + incentive_pool_reward
-    total_punish = block_penalty + duplicateSign_penalty
-    if total_punish > pledge_amount1:
-        assert info['Released'] == 0, "ErrMsg:pledge node account {}".format(info['Released'])
-    else:
-        assert info[
-                   'Released'] == pledge_amount1 - block_penalty - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(
-            info['Released'])
+    for i in range(4):
+        # get pledge amount1 and block reward
+        pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
+        result = check_node_in_list(node.node_id, client2.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # stop node
+            client1.node.stop()
+            report_block = client2.node.eth.blockNumber
+            log.info("Current block height: {}".format(report_block))
+            # view Parameter value before treatment
+            penalty_ratio = get_governable_parameter_value(client2, 'slashFractionDuplicateSign')
+            proportion_ratio = get_governable_parameter_value(client2, 'duplicateSignReportReward')
+            # view Amount of penalty
+            proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, int(penalty_ratio),
+                                                                                  int(proportion_ratio))
+            # Obtain evidence of violation
+            report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
+            log.info("Report information: {}".format(report_information))
+            result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            assert_code(result, 0)
+            # Query pledge node information:
+            candidate_info = client2.ppos.getCandidateInfo(node.node_id)
+            log.info("pledge node information: {}".format(candidate_info))
+            info = candidate_info['Ret']
+            # block_penalty = Decimal(str(block_reward)) * Decimal(str(slash_blocks))
+            duplicateSign_penalty = proportion_reward + incentive_pool_reward
+            # total_punish = block_penalty + duplicateSign_penalty
+            assert info['Released'] == pledge_amount1 - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(
+                info['Released'])
+
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
 
 
 @pytest.mark.P2
@@ -469,41 +472,43 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
-    # Query current block height
-    report_block = client2.node.eth.blockNumber
-    log.info("Current block height: {}".format(report_block))
-    # Obtain penalty proportion and income
-    pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client1)
-    # view Amount of penalty
-    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
-                                                                          proportion_ratio)
-    # Obtain evidence of violation
-    report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
-    log.info("Report information: {}".format(report_information))
-    result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-    assert_code(result, 0)
-    # Waiting for a consensus round
-    client2.economic.wait_consensus_blocknum(client2.node)
-    # stop node
-    client1.node.stop()
-    # Waiting for 2 consensus round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
-    # get pledge amount1 and block reward
-    pledge_amount2, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
-    time.sleep(3)
-    # Query pledge node information:
-    candidate_info = client2.ppos.getCandidateInfo(node.node_id)
-    log.info("pledge node information: {}".format(candidate_info))
-    info = candidate_info['Ret']
-    block_penalty = Decimal(str(block_reward)) * Decimal(str(slash_blocks))
-    duplicateSign_penalty = proportion_reward + incentive_pool_reward
-    total_punish = block_penalty + duplicateSign_penalty
-    if total_punish > pledge_amount1:
-        assert info['Released'] == 0, "ErrMsg:pledge node account {}".format(info['Released'])
-    else:
-        assert info[
-                   'Released'] == pledge_amount1 - block_penalty - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(
-            info['Released'])
+    for i in range(4):
+        result = check_node_in_list(node.node_id, client1.ppos.getValidatorList)
+        log.info("Current node in consensus list status：{}".format(result))
+        if result:
+            # Query current block height
+            report_block = client1.node.eth.blockNumber
+            log.info("Current block height: {}".format(report_block))
+            # Obtain penalty proportion and income
+            pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client1)
+            # view Amount of penalty
+            proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                                  proportion_ratio)
+            # Obtain evidence of violation
+            report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
+            log.info("Report information: {}".format(report_information))
+            result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            assert_code(result, 0)
+            # Waiting for a consensus round
+            client2.economic.wait_consensus_blocknum(client2.node)
+            # stop node
+            client1.node.stop()
+            # Waiting for 2 consensus round
+            client2.economic.wait_consensus_blocknum(client2.node, 2)
+            # view block_reward
+            block_reward, staking_reward = client2.economic.get_current_year_reward(client2.node)
+            log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+            # Query pledge node information:
+            candidate_info = client2.ppos.getCandidateInfo(node.node_id)
+            log.info("pledge node information: {}".format(candidate_info))
+            info = candidate_info['Ret']
+            duplicateSign_penalty = proportion_reward + incentive_pool_reward
+            assert info['Released'] == pledge_amount1 - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(
+                info['Released'])
+            break
+        else:
+            # wait consensus block
+            economic.wait_consensus_blocknum(node)
 
 
 @pytest.mark.P2
@@ -745,7 +750,7 @@ def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
 @pytest.mark.P2
 def test_VP_GPFV_017(new_genesis_env, client_new_node_obj_list):
     """
-    低出块率被最高处罚金低于自由处罚金（锁仓金额质押）
+    低出块率被最高处罚金低于质押金额（锁仓金额质押）
     :param new_genesis_env:
     :param client_new_node_obj_list:
     :return:
@@ -798,14 +803,14 @@ def test_VP_GPFV_017(new_genesis_env, client_new_node_obj_list):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
-    assert pledge_amount3 == increase_amount - (
+    assert pledge_amount3 == economic.create_staking_limit - (
                 punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
 def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
     """
-    低出块率被最高处罚金等于自由处罚金（锁仓金额质押）
+    低出块率被最高处罚金等于质押金额（锁仓金额质押）
     :param new_genesis_env:
     :param client_new_node_obj_list:
     :return:
@@ -864,15 +869,16 @@ def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
     pledge_amount2 = info['Released']
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == increase_amount - (
+    assert pledge_amount3 == staking_amount - (
                 punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
 def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
     """
-    低出块率被最高处罚金大于自由处罚金（锁仓金额质押）
+    低出块率被最高处罚金大于质押金额（锁仓金额质押）
     :param new_genesis_env:
     :param client_new_node_obj_list:
     :return:
@@ -903,12 +909,11 @@ def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
     # Get governable parameters
     slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     # create staking
-    staking_amount = int(Decimal(str(block_reward)) * Decimal(slash_blocks))
-    result = client1.staking.create_staking(0, address, address, amount=staking_amount)
+    result = client1.staking.create_staking(1, address, address)
     assert_code(result, 0)
     # increase staking
     increase_amount = von_amount(economic.create_staking_limit, 0.5)
-    result = client1.staking.increase_staking(1, address, amount=increase_amount)
+    result = client1.staking.increase_staking(0, address, amount=increase_amount)
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
@@ -931,13 +936,14 @@ def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
     pledge_amount2 = info['Released']
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == increase_amount - (
+    assert pledge_amount3 == economic.create_staking_limit - (
             punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
-def test_VP_GPFV_020(client_new_node_obj_list):
+def test_VP_GPFV_020(client_new_node_obj_list, reset_environment):
     """
     移出PlatON验证人与候选人名单，（扣除以后剩余自有质押金），未申请退回质押金
     :param client_new_node_obj_list:
@@ -983,7 +989,7 @@ def test_VP_GPFV_020(client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_021(client_new_node_obj_list):
+def test_VP_GPFV_021(client_new_node_obj_list, reset_environment):
     """
     移出PlatON验证人与候选人名单，委托人可在处罚所在结算周期，申请赎回全部委托金
     :param client_new_node_obj_list:

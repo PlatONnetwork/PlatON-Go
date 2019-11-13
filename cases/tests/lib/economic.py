@@ -72,10 +72,8 @@ class Economic:
         count = 0
         for i in range(block_namber - 1):
             node_id = get_pub_key(node.url, current_block)
-            print(node_id)
             current_block = current_block - 1
             if node_id == node.node_id:
-                print(node_id)
                 count = count + 1
         return count
 

@@ -293,10 +293,11 @@ def test_AL_IE_002(client_new_node_obj_list):
     :return:
     """
     client1 = client_new_node_obj_list[0]
-    client2 = client_new_node_obj_list[0]
+    client2 = client_new_node_obj_list[1]
     economic = client1.economic
     node = client1.node
     log.info("Node ID：{}".format(node.node_id))
+    log.info("Current connection node： {}".format(node.node_mark))
     address, _ = client1.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
     address1, _ = client1.economic.account.generate_account(node.web3, 0)
     address2, _ = client1.economic.account.generate_account(node.web3, 0)
@@ -323,7 +324,7 @@ def test_AL_IE_002(client_new_node_obj_list):
     reward = int(blocknumber * Decimal(str(block_reward)))
     assert benifit_balance1 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance1)
     # Transfer to the incentive pool
-    result = client1.account.sendTransaction(node.web3, '', address, EconomicConfig.INCENTIVEPOOL_ADDRESS, node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
+    result = client1.economic.account.sendTransaction(node.web3, '', address, EconomicConfig.INCENTIVEPOOL_ADDRESS, node.eth.gasPrice, 21000, node.web3.toWei(1000, 'ether'))
     assert result is not None, "ErrMsg:Transfer result {}".format(result)
     # Free amount application pledge node
     result = client2.staking.create_staking(0, address2, address, amount=von_amount(economic.create_staking_limit, 2))
@@ -597,6 +598,8 @@ def view_benifit_reward(client, address):
     assert_code(result, 0)
     # wait settlement block
     client.economic.wait_settlement_blocknum(client.node)
+    # wait consensus block
+    client.economic.wait_consensus_blocknum(client.node)
     # count the number of blocks
     blocknumber = client.economic.get_block_count_number(client.node, 10)
     log.info("blocknumber: {}".format(blocknumber))

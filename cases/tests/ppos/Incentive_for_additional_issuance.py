@@ -11,7 +11,7 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
 
 
 @pytest.mark.P1
-def test_AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
+def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
     """
     AL_FI_001:查看每年释放补贴激励池变化
     AL_FI_002:查看每年固定增发变化
@@ -173,7 +173,7 @@ def test_AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
 
 
 @pytest.mark.p1
-def test_AL_FI_004_005(new_genesis_env, client_new_node_obj_list):
+def AL_FI_004_005(new_genesis_env, client_new_node_obj_list):
     """
     AL_FI_004:查看每年区块奖励变化
     AL_FI_005:查看每年质押奖励变化
@@ -201,7 +201,39 @@ def test_AL_FI_004_005(new_genesis_env, client_new_node_obj_list):
     new_genesis_env.deploy_all(new_file)
 
     client1 = client_new_node_obj_list[0]
+    client2 = client_new_node_obj_list[0]
     economic = client1.economic
     node = client1.node
-
+    log.info("Node ID：{}".format(node.node_id))
+    address, _ = client1.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 4))
+    address1, _ = client1.economic.account.generate_account(node.web3, 0)
+    address2, _ = client1.economic.account.generate_account(node.web3, 0)
+    log.info("staking address: {}".format(address))
+    # Free amount application pledge node
+    result = client1.staking.create_staking(0, address1, address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # 获取当前结算周期验证人
+    verifier_list = node.ppos.getVerifierList()
+    log.info("verifier_list: {}".format(verifier_list))
+    # view block_reward
+    block_reward, staking_reward = economic.get_current_year_reward(node)
+    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    # view account amount
+    benifit_balance = node.eth.getBalance(address1)
+    log.info("benifit_balance: {}".format(benifit_balance))
+    # withdrew of pledge
+    result = client1.staking.withdrew_staking(address)
+    assert_code(result, 0)
+    # wait settlement block
+    client1.economic.wait_settlement_blocknum(client1.node)
+    # count the number of blocks
+    blocknumber = client1.economic.get_block_count_number(client1.node, 10)
+    log.info("blocknumber: {}".format(blocknumber))
+    # view account amount again
+    benifit_balance1 = node.eth.getBalance(address1)
+    log.info("benifit_balance: {}".format(benifit_balance1))
+    reward = int(blocknumber * Decimal(str(block_reward)))
+    assert benifit_balance1 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance1)
 
