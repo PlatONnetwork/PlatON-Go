@@ -60,8 +60,7 @@ func callResultHandler(evm *EVM, title string, resultValue interface{}, err erro
 
 	log.Debug("Call "+title+" finished", "blockNumber", blockNumber,
 		"txHash", txHash, "result", resultValue)
-	resultBytes := xcom.NewOkResult(resultValue)
-	return resultBytes
+	return xcom.NewOkResult(resultValue)
 }
 
 func IsBlank(i interface{}) bool {
