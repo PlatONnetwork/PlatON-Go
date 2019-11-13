@@ -40,7 +40,7 @@ def test_DE_DE_001(client_verifier_obj):
     address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
     result = pip_obj.declareVersion(pip_obj.node.node_id, address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('declareVersion result: {}'.format(result))
-    assert result.get('Code') == 302021
+    assert_code(result, 302021)
 
 class TestNoProposalVE():
     def test_DE_VE_001(self, noproposal_pipobj_list):
@@ -79,7 +79,7 @@ class TestNoProposalVE():
 
     def test_DE_VE_005(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
-        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN5, pip_obj.cfg.version5)
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
         assert_code(result, 302028)
 
         result = wrong_verisonsign_declare(pip_obj, noproposal_pipobj_list[1])
@@ -107,7 +107,10 @@ class TestNoProposalVE():
         result = wrong_verisonsign_declare(pip_obj, noproposal_pipobj_list[1])
         assert_code(result, 302024)
 
-        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version3)
+        assert_code(result, 302024)
+
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version2)
         assert_code(result, 302024)
 
 class TestVotingProposalVE():
@@ -391,9 +394,6 @@ class TestVotingProposlaVotedVE():
         result = wrong_verison_declare(pip_obj)
         assert_code(result, 302024)
 
-        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
-        assert_code(result, 302024)
-
     def test_DE_VE_035(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -403,9 +403,6 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip_obj)
-        assert_code(result, 302024)
-
-        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
 
     def test_DE_VE_037(self, proposal_voted_pipobj_list):
@@ -554,7 +551,7 @@ class TestPreactiveProposalVE():
         result = wrong_verisonsign_declare(pip_obj, preactive_proposal_pipobj_list[1])
         assert_code(result, 302024)
 
-        result = wrong_verison_declare(pip_obj)
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version5)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
@@ -799,7 +796,7 @@ class TestNoProposalCA:
     def test_DE_CA_005(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
 
-        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN5, pip_obj.cfg.version5)
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
         assert_code(result, 302028)
 
         result = wrong_verisonsign_declare(pip_obj, client_verifier_obj.pip)

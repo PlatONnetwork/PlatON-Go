@@ -328,7 +328,7 @@ def get_governable_parameter_value(client_obj, parameter):
     """
     # Get governable parameters
     govern_param = client_obj.pip.pip.listGovernParam()
-    parameter_information = json.loads(govern_param['Ret'])
+    parameter_information = govern_param['Ret']
     for i in parameter_information:
         if i['ParamItem']['Name'] == parameter:
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))

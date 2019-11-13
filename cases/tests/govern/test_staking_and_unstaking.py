@@ -15,7 +15,7 @@ def new_node_no_proposal(no_vp_proposal, client_noc_list_obj, client_list_obj):
             return client_obj.pip
     log.info('All nodes are staked, restart the chain')
     pip_obj.economic.env.deploy_all()
-    return client_noc_list_obj[0]
+    return client_noc_list_obj[0].pip
 
 
 def replace_platon_and_staking(pip_obj, bin):
@@ -85,7 +85,7 @@ class TestNoProposalStaking():
     def test_ST_NO_005(self, new_node_no_proposal):
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
-        assert_code(result, 301004)
+        assert_code(result, 301005)
 
 class TestPreactiveProposalStaking():
     def preactive_proposal(self, client_list_obj):
@@ -125,7 +125,7 @@ class TestPreactiveProposalStaking():
 
     def test_ST_PR_004(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
-        self.preactiveproposal(client_list_obj)
+        self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3)
         assert_code(result, 301004)
 
@@ -139,7 +139,7 @@ class TestPreactiveProposalStaking():
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8)
-        assert_code(result, 301004)
+        assert_code(result, 301005)
 
 class TestUpgradedProposalStaking():
     def upgraded_proposal(self, client_list_obj):
@@ -164,32 +164,32 @@ class TestUpgradedProposalStaking():
     def test_ST_UPG_001(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
-        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2)
+        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4)
         assert_code(result, 0)
 
     def test_ST_UPG_002(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
-        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2)
+        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0)
         assert_code(result, 301004)
 
     def test_ST_UPG_003(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
-        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0)
+        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
         assert_code(result, 0)
 
     def test_ST_UPG_004(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
-        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3)
+        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6)
         assert_code(result, 0)
 
     def test_ST_UPG_005(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
-        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
-        assert_code(result, 301004)
+        result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN7)
+        assert_code(result, 301005)
 
 
 

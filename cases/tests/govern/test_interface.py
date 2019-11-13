@@ -3,7 +3,8 @@ from tests.lib.utils import assert_code, wait_block_number, get_blockhash
 from dacite import from_dict
 from tests.lib import Genesis
 from common.key import mock_duplicate_sign
-from tests.govern.test_voting_statistics import submitppandvote, submitcvpandvote, submitvpandvote, submittpandvote
+from tests.govern.test_voting_statistics import submitppandvote, submitcvpandvote, submitvpandvote, submittpandvote, submitcppandvote
+
 import json, time, math
 import pytest
 from tests.govern.conftest import version_proposal_vote
@@ -15,11 +16,11 @@ class TestgetProposal():
         log.info('Cancel proposal information : {}'.format(proposalinfo))
         result = pip_obj.pip.getProposal(proposalinfo.get('ProposalID'))
         log.info('Interface getProposal result : {}'.format(result))
-        assert json.loads(result.get('Ret')).get('Proposer') == pip_obj.node.node_id
-        assert json.loads(result.get('Ret')).get('ProposalType') == pip_obj.cfg.cancel_proposal
-        assert json.loads(result.get('Ret')).get('PIPID') == proposalinfo.get('PIPID')
-        assert json.loads(result.get('Ret')).get('SubmitBlock') == proposalinfo.get('SubmitBlock')
-        assert json.loads(result.get('Ret')).get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
+        assert result.get('Ret').get('Proposer') == pip_obj.node.node_id
+        assert result.get('Ret').get('ProposalType') == pip_obj.cfg.cancel_proposal
+        assert result.get('Ret').get('PIPID') == proposalinfo.get('PIPID')
+        assert result.get('Ret').get('SubmitBlock') == proposalinfo.get('SubmitBlock')
+        assert result.get('Ret').get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
     def test_GP_IF_002(self, submit_param):
         pip_obj = submit_param
@@ -27,11 +28,11 @@ class TestgetProposal():
         log.info('Param proposal information : {}'.format(proposalinfo))
         result = pip_obj.pip.getProposal(proposalinfo.get('ProposalID'))
         log.info('Interface getProposal result : {}'.format(result))
-        assert json.loads(result.get('Ret')).get('Proposer') == pip_obj.node.node_id
-        assert json.loads(result.get('Ret')).get('ProposalType') == pip_obj.cfg.param_proposal
-        assert json.loads(result.get('Ret')).get('PIPID') == proposalinfo.get('PIPID')
-        assert json.loads(result.get('Ret')).get('SubmitBlock') == proposalinfo.get('SubmitBlock')
-        assert json.loads(result.get('Ret')).get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
+        assert result.get('Ret').get('Proposer') == pip_obj.node.node_id
+        assert result.get('Ret').get('ProposalType') == pip_obj.cfg.param_proposal
+        assert result.get('Ret').get('PIPID') == proposalinfo.get('PIPID')
+        assert result.get('Ret').get('SubmitBlock') == proposalinfo.get('SubmitBlock')
+        assert result.get('Ret').get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
     def test_PR_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
@@ -57,21 +58,21 @@ class TestgetProposal():
         result_cancel = pip_obj.pip.getProposal(proposalinfo_cancel.get('ProposalID'))
         log.info('Interface getProposal-cancel result : {}'.format(result_cancel))
 
-        assert json.loads(result_version.get('Ret')).get('Proposer') == pip_obj.node.node_id
-        assert json.loads(result_version.get('Ret')).get('ProposalType') == pip_obj.cfg.version_proposal
-        assert json.loads(result_version.get('Ret')).get('PIPID') == pip_id
-        assert json.loads(result_version.get('Ret')).get('SubmitBlock') == proposalinfo_version.get('SubmitBlock')
+        assert result_version.get('Ret').get('Proposer') == pip_obj.node.node_id
+        assert result_version.get('Ret').get('ProposalType') == pip_obj.cfg.version_proposal
+        assert result_version.get('Ret').get('PIPID') == pip_id
+        assert result_version.get('Ret').get('SubmitBlock') == proposalinfo_version.get('SubmitBlock')
         caculated_endvotingblock = math.ceil(proposalinfo_version.get('SubmitBlock')/pip_obj.economic.consensus_size +
                                              3)* pip_obj.economic.consensus_size - 20
-        assert json.loads(result_version.get('Ret')).get('EndVotingBlock') == caculated_endvotingblock
+        assert result_version.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
-        assert json.loads(result_cancel.get('Ret')).get('Proposer') == pip_obj.node.node_id
-        assert json.loads(result_cancel.get('Ret')).get('ProposalType') == pip_obj.cfg.cancel_proposal
-        assert json.loads(result_cancel.get('Ret')).get('PIPID') == pip_id_cancel
-        assert json.loads(result_cancel.get('Ret')).get('SubmitBlock') == proposalinfo_cancel.get('SubmitBlock')
+        assert result_cancel.get('Ret').get('Proposer') == pip_obj.node.node_id
+        assert result_cancel.get('Ret').get('ProposalType') == pip_obj.cfg.cancel_proposal
+        assert result_cancel.get('Ret').get('PIPID') == pip_id_cancel
+        assert result_cancel.get('Ret').get('SubmitBlock') == proposalinfo_cancel.get('SubmitBlock')
         caculated_endvotingblock = math.ceil(proposalinfo_cancel.get('SubmitBlock')/pip_obj.economic.consensus_size)* \
                                    pip_obj.economic.consensus_size + 20
-        assert json.loads(result_cancel.get('Ret')).get('EndVotingBlock') == caculated_endvotingblock
+        assert result_cancel.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
     def test_PR_IN_003(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
@@ -86,14 +87,14 @@ class TestgetProposal():
         result_text = pip_obj.pip.getProposal(proposalinfo_text.get('ProposalID'))
         log.info('Interface getProposal-text result : {}'.format(result_text))
 
-        assert json.loads(result_text.get('Ret')).get('Proposer') == pip_obj.node.node_id
-        assert json.loads(result_text.get('Ret')).get('ProposalType') == pip_obj.cfg.text_proposal
-        assert json.loads(result_text.get('Ret')).get('PIPID') == pip_id
-        assert json.loads(result_text.get('Ret')).get('SubmitBlock') == proposalinfo_text.get('SubmitBlock')
+        assert result_text.get('Ret').get('Proposer') == pip_obj.node.node_id
+        assert result_text.get('Ret').get('ProposalType') == pip_obj.cfg.text_proposal
+        assert result_text.get('Ret').get('PIPID') == pip_id
+        assert result_text.get('Ret').get('SubmitBlock') == proposalinfo_text.get('SubmitBlock')
         log.info(pip_obj.economic.tp_vote_settlement_wheel)
         caculated_endvotingblock = math.ceil(proposalinfo_text.get('SubmitBlock')/pip_obj.economic.consensus_size +
                                              pip_obj.economic.tp_vote_settlement_wheel)* pip_obj.economic.consensus_size - 20
-        assert json.loads(result_text.get('Ret')).get('EndVotingBlock') == caculated_endvotingblock
+        assert result_text.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
     def test_PR_IN_004(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip
@@ -179,7 +180,7 @@ class TestgetTallyResult():
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
-        submitppandvote(client_con_list_obj, 1, 1, 1, 3)
+        submitcppandvote(client_con_list_obj, 1, 1, 1, 3)
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Param proposal information {}'.format(proposalinfo_param))
         proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
@@ -218,7 +219,7 @@ class TestgetAccuVerifiersCount():
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[-1].pip
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'slashBlocksReward', '999',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '999',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -268,7 +269,7 @@ class TestgetAccuVerifiersCount():
         assert pip_obj_test.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 0, 0, 0]
         assert pip_obj_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 0]
 
-    def test_AC_IN_001_002_004_to_006_012_to_014(self, client_verifier_obj_list):
+    def test_AC_IN_001_002_004_to_006_012_to_014(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[-1].pip
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5, pip_obj.node.staking_address,
                               transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -384,7 +385,7 @@ class TestListGovernParam():
         result = client_obj.pip.pip.listGovernParam(module)
         log.info('Interface listGovernParam result {}'.format(result))
         assert_code(result, 0)
-        resultinfo = json.loads(result.get('Ret'))
+        resultinfo = result.get('Ret')
         module = []
         name = []
         for param in resultinfo:
@@ -394,27 +395,27 @@ class TestListGovernParam():
 
     def test_IN_LG_001(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj)
-        assert set(name) == {'MaxValidators', 'UnStakeFreezeDuration', 'OperatingThreshold', 'SlashBlocksReward',
-                             'StakeThreshold', 'MaxBlockGasLimit', 'DuplicateSignReportReward', 'MaxEvidenceAge', 'SlashFractionDuplicateSign'}
-        assert set(module) == {'Block', 'Slashing', 'Staking'}
+        assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'slashBlocksReward',
+                             'stakeThreshold', 'maxBlockGasLimit', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
+        assert set(module) == {'block', 'slashing', 'staking'}
 
     def test_IN_LG_002(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj, 'Staking')
-        assert set(name) == {'MaxValidators', 'UnStakeFreezeDuration', 'OperatingThreshold', 'StakeThreshold'}
+        name, module = self.get_govern_param(client_noconsensus_obj, 'staking')
+        assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
         assert set(module) == {'Staking'}
 
     def test_IN_LG_003(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj, 'Slashing')
-        assert set(name) == {'SlashBlocksReward', 'DuplicateSignReportReward', 'MaxEvidenceAge', 'SlashFractionDuplicateSign'}
-        assert set(module) == {'Slashing'}
+        name, module = self.get_govern_param(client_noconsensus_obj, 'slashing')
+        assert set(name) == {'slashBlocksReward', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
+        assert set(module) == {'slashing'}
 
     def test_IN_LG_004(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj, 'Block')
-        assert set(name) == {'MaxBlockGasLimit'}
-        assert set(module) == {'Block'}
+        name, module = self.get_govern_param(client_noconsensus_obj, 'block')
+        assert set(name) == {'maxBlockGasLimit'}
+        assert set(module) == {'block'}
 
     def test_IN_LG_005(self, client_noconsensus_obj):
-        result = client_noconsensus_obj.pip.pip.listGovernParam('Txpool')
+        result = client_noconsensus_obj.pip.pip.listGovernParam('txpool')
         log.info('Interface listGovernParam result {}'.format(result))
 
 class TestGetGovernParam():
@@ -422,53 +423,42 @@ class TestGetGovernParam():
         client_noconsensus_obj.economic.env.deploy_all()
         genesis = from_dict(data_class=Genesis, data=client_noconsensus_obj.economic.env.genesis_config)
         pip_obj = client_noconsensus_obj.pip.pip
-        result = pip_obj.getGovernParamValue('Slashing', 'SlashBlocksReward')
+        result = pip_obj.getGovernParamValue('slashing', 'slashBlocksReward')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Slashing.SlashBlocksReward == int(result.get('Ret'))
+        assert genesis.economicModel.slashing.slashBlocksReward == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Slashing', 'MaxEvidenceAge')
+        result = pip_obj.getGovernParamValue('slashing', 'maxEvidenceAge')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Slashing.MaxEvidenceAge == int(result.get('Ret'))
+        assert genesis.economicModel.slashing.maxEvidenceAge == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Slashing', 'SlashFractionDuplicateSign')
+        result = pip_obj.getGovernParamValue('slashing', 'slashFractionDuplicateSign')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Slashing.SlashFractionDuplicateSign == int(result.get('Ret'))
+        assert genesis.economicModel.slashing.slashFractionDuplicateSign == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Slashing', 'DuplicateSignReportReward')
+        result = pip_obj.getGovernParamValue('slashing', 'duplicateSignReportReward')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Slashing.DuplicateSignReportReward == int(result.get('Ret'))
+        assert genesis.economicModel.slashing.duplicateSignReportReward == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Staking', 'StakeThreshold')
+        result = pip_obj.getGovernParamValue('staking', 'stakeThreshold')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Staking.StakeThreshold == int(result.get('Ret'))
+        assert genesis.economicModel.staking.stakeThreshold == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Staking', 'OperatingThreshold')
+        result = pip_obj.getGovernParamValue('staking', 'operatingThreshold')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Staking.OperatingThreshold == int(result.get('Ret'))
+        assert genesis.economicModel.staking.operatingThreshold == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Staking', 'UnStakeFreezeDuration')
+        result = pip_obj.getGovernParamValue('staking', 'unStakeFreezeDuration')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Staking.UnStakeFreezeDuration == int(result.get('Ret'))
+        assert genesis.economicModel.staking.unStakeFreezeDuration == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Staking', 'MaxValidators')
+        result = pip_obj.getGovernParamValue('staking', 'maxValidators')
         log.info('Interface getGovernParamValue result : {}'.format(result))
-        assert genesis.EconomicModel.Staking.MaxValidators == int(result.get('Ret'))
+        assert genesis.economicModel.staking.maxValidators == int(result.get('Ret'))
 
-        result = pip_obj.getGovernParamValue('Block', 'MaxBlockGasLimit')
+        result = pip_obj.getGovernParamValue('block', 'maxBlockGasLimit')
         log.info('Interface getGovernParamValue result : {}'.format(result))
 
     def test_IN_GG_002(self, client_noconsensus_obj):
-        pip_obj = client_noconsensus_obj.pip.pip
-        result = pip_obj.getGovernParamValue('staking', 'MaxValidators')
-        assert_code(result, 302031)
-        pip_obj = client_noconsensus_obj.pip.pip
-        result = pip_obj.getGovernParamValue('slashing', 'SlashBlocksReward')
-        assert_code(result, 302031)
-        pip_obj = client_noconsensus_obj.pip.pip
-        result = pip_obj.getGovernParamValue('block', 'MaxBlockGasLimit')
-        assert_code(result, 302031)
-
-    def test_IN_GG_003(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip.pip
         result = pip_obj.getGovernParamValue('Staking', 'maxValidators')
         assert_code(result, 302031)
@@ -476,7 +466,18 @@ class TestGetGovernParam():
         result = pip_obj.getGovernParamValue('Slashing', 'slashBlocksReward')
         assert_code(result, 302031)
         pip_obj = client_noconsensus_obj.pip.pip
-        result = pip_obj.getGovernParamValue('Block', 'maxValidators')
+        result = pip_obj.getGovernParamValue('Block', 'maxBlockGasLimit')
+        assert_code(result, 302031)
+
+    def test_IN_GG_003(self, client_noconsensus_obj):
+        pip_obj = client_noconsensus_obj.pip.pip
+        result = pip_obj.getGovernParamValue('staking', 'MaxValidators')
+        assert_code(result, 302031)
+        pip_obj = client_noconsensus_obj.pip.pip
+        result = pip_obj.getGovernParamValue('slashing', 'SlashBlocksReward')
+        assert_code(result, 302031)
+        pip_obj = client_noconsensus_obj.pip.pip
+        result = pip_obj.getGovernParamValue('block', 'MaxValidators')
         assert_code(result, 302031)
 
 class TestGetActiveVersion():
@@ -499,7 +500,7 @@ class TestListProposal():
     def test_LP_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
-        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id, 'Slashing', 'SlashBlocksReward', '456',
+        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id, 'slashing', 'slashBlocksReward', '456',
                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -531,7 +532,8 @@ class TestListProposal():
         client_consensus_obj.economic.env.deploy_all()
         result = client_consensus_obj.pip.pip.listProposal()
         log.info('There is no proposal, interface listProposal return : {}'.format(result))
-        assert_code(result, 0)
+        assert_code(result, 2)
+        assert result.get('Ret') == "Object not found"
         
 if __name__ == '__main__':
     pytest.main(['./tests/govern/','-s', '-q', '--alluredir', './report/report'])

@@ -24,7 +24,7 @@ def submitvpandvote(client_list_obj, *args):
 
 def submitppandvote(client_list_obj, *args):
     pip_obj = client_list_obj[0].pip
-    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '83',
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
@@ -38,7 +38,7 @@ def submitppandvote(client_list_obj, *args):
 
 def submitcppandvote(client_list_obj, *args):
     pip_obj = client_list_obj[0].pip
-    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '83',
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
@@ -141,14 +141,14 @@ class TestVotingStatistics():
         log.info('Get proposal vote infomation {}'.format(result))
         assert result == [6, 1, 1, 0]
 
-        result = param_proposal_vote(client_con_list_obj[3].pip, pip_obj.cfg.vote_option_Abstentions)
+        result = param_proposal_vote(client_noc_list_obj[0].pip, pip_obj.cfg.vote_option_Abstentions)
         assert_code(result, 0)
         self.createstaking(client_noc_list_obj[2])
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
 
         result = pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result))
-        assert result == [6, 1, 1, 0]
+        assert result == [6, 1, 1, 1]
 
     def test_VS_EP_006(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
@@ -158,7 +158,7 @@ class TestVotingStatistics():
         submitppandvote(client_con_list_obj[:1], 1)
         proposalinfo = client_con_list_obj[0].pip.get_effect_proposal_info_of_vote(client_con_list_obj[0].pip.cfg.param_proposal)
         log.info('Param proposal info {}'.format(proposalinfo))
-        self.createstaking(client_noc_list_obj[:1])
+        self.createstaking(client_noc_list_obj[0])
         client_con_list_obj[0].pip.economic.wait_settlement_blocknum(client_con_list_obj[0].pip.node)
         result = client_con_list_obj[0].pip.get_accuverifiers_count(proposalinfo.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result))
@@ -361,8 +361,8 @@ class TestVotingStatistics():
     def test_VS_EP_016(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.999
-        genesis.economicModel.gov.paramProposalVoteRate = 0.25
+        genesis.economicModel.gov.paramProposalSupportRate = 1
+        genesis.economicModel.gov.paramProposalVoteRate = 0.249
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitppandvote(client_con_list_obj[:2], 1, 1)
@@ -379,8 +379,8 @@ class TestVotingStatistics():
     def test_VS_EP_017(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.99
-        genesis.economicModel.gov.paramProposalVoteRate = 0.25
+        genesis.economicModel.gov.paramProposalSupportRate = 1
+        genesis.economicModel.gov.paramProposalVoteRate = 0.249
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitppandvote(client_con_list_obj[:2], 2, 1)
@@ -398,8 +398,8 @@ class TestVotingStatistics():
     def test_VS_EP_018(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.99
-        genesis.economicModel.gov.paramProposalVoteRate = 0.25
+        genesis.economicModel.gov.paramProposalSupportRate = 1
+        genesis.economicModel.gov.paramProposalVoteRate = 0.249
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         submitppandvote(client_con_list_obj[:2], 3, 1)

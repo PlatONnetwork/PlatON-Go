@@ -8,6 +8,28 @@ from dacite import from_dict
 from tests.lib.genesis import Genesis
 
 
+def replace_platon_vote(pip_obj, bin=None, program_version=None, version_sign=None):
+    '''
+    Replace the bin package of the node, restart the node
+    :param pip_obj:
+    :param bin:
+    :return:
+    '''
+    if not bin:
+        upload_platon(pip_obj.node, bin)
+        pip_obj.node.restart()
+    if program_version is None:
+        program_version = pip_obj.node.program_version
+    if version_sign is None:
+        version_sign = pip_obj.node.program_version_sign
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+    log.info('Get version proposal information {}'.format(proposalinfo))
+    result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                 pip_obj.node.staking_address, program_version=program_version, version_sign=version_sign,
+                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('Node {} vote result : {}'.format(pip_obj.node.node_id, result))
+    return result
+
 def text_proposal_vote(pip_obj):
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
     log.info('proposalinfo: {}'.format(proposalinfo))
@@ -93,7 +115,7 @@ class TestVoteVP():
         log.info('Node {} vote proposal result : {}'.format(client_verifier_obj_list[-1].node.node_id, result))
 
 
-def test_V0_VO_001_V0_RE_001_V0_WA_001_V_STA_1_V_OP_1_V_OP_2(no_vp_proposal):
+def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposal):
     pip_obj = no_vp_proposal
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 2,
                                    pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -183,28 +205,6 @@ def test_V0_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal
     log.info('Endvoting block vote result {}'.format(result))
     assert_code(result, 302026)
 
-class TestVoteNodeExceptionVP():
-    def test_V_VE_001_V_VE_002(self, voting_proposal_ve_pipobj, client_list_obj):
-        pip_obj = voting_proposal_ve_pipobj
-        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
-        address = client_obj.node.staking_address
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
-        log.info('proposalinfo {}'.format(proposalinfo))
-        result = client_obj.staking.withdrew_staking(address)
-        log.info('Node {} withdrew staking result : {}'.format(client_obj.node.node_id, result))
-        assert_code(result, 0)
-
-        result = version_proposal_vote(pip_obj)
-        log.info('node vote result {}'.format(result))
-        assert_code(result, 302020)
-
-        pip_obj.economic.wait_settlement_blocknum(pip_obj.node, pip_obj.economic.unstaking_freeze_ratio)
-        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_nays,
-                     address, program_version=pip_obj.node.program_version, version_sign=pip_obj.node.program_version_sign,
-                     transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Exited node vote result {}'.format(result))
-        assert_code(result, 302022)
-
 class TestVoteNodeException():
     def test_VO_TE_001_002_PP_VO_009_010_PP_VO_011_012_PP_VO_014_VO_TER_008_VO_TER_006(self, new_genesis_env,
                                                                                        client_con_list_obj, client_noconsensus_obj):
@@ -221,7 +221,7 @@ class TestVoteNodeException():
         proposalinfo_text = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
         log.info('Get text proposal information : {}'.format(proposalinfo_text))
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                      '123', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal information : {}'.format(result))
         assert_code(result, 0)
@@ -321,7 +321,7 @@ class TestVoteNodeException():
         log.info('node vote cancel proposal result {}'.format(result))
         assert_code(result, 302020)
 
-        address_test, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
+        address_test, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 100000)
         result = client_noconsensus_obj.pip.vote(client_noconsensus_obj.node.node_id, proposalinfo_version.get('ProposalID'),
                                                  pip_obj.cfg.vote_option_yeas, address_test,
                                                  transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -345,10 +345,10 @@ class TestVoteNodeException():
         log.info('Exited node vote cancel proposal result {}'.format(result))
         assert_code(result, 302022)
 
-    def test_VO_TER_002_004(self, client_candidate_obj, client_verifier_obj_list):
+    def test_VO_TER_002_004(self, no_vp_proposal, client_candidate_obj, client_verifier_obj_list):
         pip_obj = client_candidate_obj.pip
         ver_pip_obj = client_verifier_obj_list[0].pip
-        result = ver_pip_obj.submitParam(ver_pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward',
+        result = ver_pip_obj.submitParam(ver_pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                          '111', ver_pip_obj.node.staking_address,
                                          transaction_cfg=ver_pip_obj.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -393,7 +393,7 @@ class TestVoteNodeException():
         assert_code(result, 302022)
 
 class TestVoteCancelVersion():
-    def test_V0_VO_002_V0_WA_002_V0_RE_002_V_STA_8(self, submit_cancel):
+    def test_VO_VO_002_V0_WA_002_V0_RE_002_V_STA_8(self, submit_cancel):
         pip_obj = submit_cancel
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10 ** 18 * 10000)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
@@ -478,7 +478,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_lis
     new_genesis_env.set_genesis(genesis.to_dict())
     new_genesis_env.deploy_all()
     pip_obj = client_con_list_obj[0].pip
-    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'Slashing', 'SlashBlocksReward', '123',
+    result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '123',
                         pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
@@ -511,15 +511,29 @@ def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('Node {} vote cancel proposal result : {]'.format(pip_obj.node.node_id, result))
+    log.info('Node {} vote cancel proposal result : {}'.format(pip_obj.node.node_id, result))
     result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
     log.info('Interface getTallyResult result is {}'.format(result))
     assert_code(result, 0)
 
 class TestVoteVPVerify():
-    def test_V_VER_1(self, submit_version):
+    def test_VO_VER_001(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 2,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Node {} submit version proposal result : {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 0)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+
+
+    def test_VO_VER_002(self, submit_version):
         pip_obj = submit_version
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
-        log.info('Get version proposal information : {}'.format(proposalinfo))
-        upload_platon(pip_obj.node, pip_obj.cfg.P)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN4)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN6)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN7)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN8)
+
+
+
 
