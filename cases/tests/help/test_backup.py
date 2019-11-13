@@ -218,7 +218,7 @@ def test_into_quit_block_reward(staking_client):
     log.info("当前验证人列表：{}".format(verifier_list))
     validator_list = get_pledge_list(node.ppos.getValidatorList)
     log.info("当前共识验证人列表：{}".format(validator_list))
-    block_number = get_block_count_number(node, economic.settlement_size)
+    block_number = get_block_count_number(node, economic.settlement_size*3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("奖励的总金额{}".format(reward_sum))
@@ -318,7 +318,7 @@ def test_520(staking_client):
     balance2 = node.eth.getBalance(staking_address)
     log.info(balance2)
 
-    block_number = get_block_count_number(node, economic.settlement_size * 2)
+    block_number = get_block_count_number(node, economic.settlement_size*3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("奖励的总金额{}".format(reward_sum))
@@ -327,16 +327,14 @@ def test_520(staking_client):
 
 @allure.title("撤销5种身份候选人，验证人，共识验证人，不存在的候选人，已失效的候选人")
 @pytest.mark.P1
-def test_backup_identity(client_new_node_obj_list):
+def test_withdrew_staking_000(client_new_node_obj_list):
     """
     由于其他用例有验证过退质押的金额，这里不做断言
-    :param status:
     0: 候选人
     1:验证人
     2:共识验证人
     3:不存在的候选人
     4：已失效的候选人
-    :return:
     """
     client_a = client_new_node_obj_list[0]
     node_a = client_a.node
@@ -498,7 +496,7 @@ def test_007(staking_client):
 
     """算出块奖励+质押奖励"""
     log.info("以下为获取节点2出的块数")
-    block_number = get_block_count_number(node, economic.settlement_size * 2)
+    block_number = get_block_count_number(node, economic.settlement_size*3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("奖励的总金额{}".format(reward_sum))
@@ -544,11 +542,11 @@ def test_009(staking_client):
     balance2 = node.eth.getBalance(staking_address)
     log.info("第2个周期发起撤销后的余额{}".format(balance2))
     """当前自由资金的增持已退,以下相减为手续费"""
-    assert client.amount - balance2 < Web3.toWei(1, "ether")
+    assert client.amount - balance2 - client.staking_amount < Web3.toWei(1, "ether")
     locked_info = client.ppos.getRestrictingInfo(staking_address)
     log.info("第2个周期发起撤销后查询锁仓计划{}".format(locked_info))
     assert_code(locked_info, 0)
-    assert locked_info["Ret"]["Pledge"] == lockup_amount, "预期锁仓计划里的金额为锁定期金额"
+    assert locked_info["Ret"]["Pledge"] == economic.add_staking_limit, "预期锁仓计划里的金额为锁定期金额"
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("查询节点2的质押情况{}".format(msg))
@@ -567,7 +565,7 @@ def test_009(staking_client):
     log.info("第4个周期发起撤销后的余额{}".format(balance4))
 
     locked_info = client.ppos.getRestrictingInfo(staking_address)
-    assert_code(locked_info, 304005)
+    assert_code(locked_info, 1)
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("查询节点2的质押情况{}".format(msg))
@@ -575,7 +573,7 @@ def test_009(staking_client):
 
     """算出块奖励+质押奖励"""
     log.info("以下为获取节点2出的块数")
-    block_number = get_block_count_number(node, economic.settlement_size * 2)
+    block_number = get_block_count_number(node, economic.settlement_size*3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("奖励的总金额{}".format(reward_sum))
@@ -594,6 +592,7 @@ def test_alter_address_backup(staking_client):
     staking_address = client.staking_address
     economic = client.economic
     ben_address, _ = economic.account.generate_account(node.web3)
+    log.info("ben address balance:{}".format(node.eth.getBalance(ben_address)))
     log.info("节点2修改节点信息")
     msg = client.staking.edit_candidate(staking_address, ben_address)
     assert_code(msg, 0)
@@ -614,7 +613,7 @@ def test_alter_address_backup(staking_client):
 
     """算出块奖励+质押奖励"""
     log.info("以下为获取节点2出的块数")
-    block_number = get_block_count_number(node, economic.settlement_size * 2)
+    block_number = get_block_count_number(node, economic.settlement_size*3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("奖励的总金额{}".format(reward_sum))
