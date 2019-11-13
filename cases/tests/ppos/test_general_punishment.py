@@ -443,3 +443,61 @@ def test_VP_GPFV_011(client_new_node_obj_list, reset_environment):
         assert info['Released'] == pledge_amount1 - block_penalty - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(info['Released'])
 
 
+@pytest.mark.P2
+def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
+    """
+    先双签再低出块率
+    :param client_new_node_obj_list:
+    :param reset_environment:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current connection node1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current connection node2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account1
+    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create account2
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client1.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # Query current block height
+    report_block = client2.node.eth.blockNumber
+    log.info("Current block height: {}".format(report_block))
+    # Obtain penalty proportion and income
+    pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client1)
+    # view Amount of penalty
+    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                          proportion_ratio)
+    # Obtain evidence of violation
+    report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
+    log.info("Report information: {}".format(report_information))
+    result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
+    # Waiting for a consensus round
+    client2.economic.wait_consensus_blocknum(client2.node)
+    # stop node
+    client1.node.stop()
+    # Waiting for 2 consensus round
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    # get pledge amount1 and block reward
+    pledge_amount2, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
+    time.sleep(3)
+    # Query pledge node information:
+    candidate_info = client2.ppos.getCandidateInfo(node.node_id)
+    log.info("pledge node information: {}".format(candidate_info))
+    info = candidate_info['Ret']
+    block_penalty = Decimal(str(block_reward)) * Decimal(str(slash_blocks))
+    duplicateSign_penalty = proportion_reward + incentive_pool_reward
+    total_punish = block_penalty + duplicateSign_penalty
+    if total_punish > pledge_amount1:
+        assert info['Released'] == 0, "ErrMsg:pledge node account {}".format(info['Released'])
+    else:
+        assert info['Released'] == pledge_amount1 - block_penalty - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(info['Released'])
+
+
