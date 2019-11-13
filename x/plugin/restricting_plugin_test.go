@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/stretchr/testify/assert"
 
@@ -145,7 +144,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			},
 		}
 		for _, value := range x {
-			if err := plugin.AddRestrictingRecord(sender, addrArr[0], value.input, mockDB); err != value.expect {
+			if err := plugin.AddRestrictingRecord(sender, addrArr[0], 20, value.input, mockDB); err != value.expect {
 				t.Errorf("have %v,want %v", err, value.des)
 			}
 		}
@@ -158,7 +157,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
 		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
 
-		if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
+		if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
 			t.Error(err)
 		}
 		_, rAmount := plugin.getReleaseAmount(mockDB, 1, to)
@@ -211,7 +210,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
 		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
 		plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(1e18)})
-		if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
+		if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
 			t.Error(err)
 		}
 
@@ -239,100 +238,147 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		assert.Equal(t, big.NewInt(2e18+2e17+2e18), balance)
 
 	})
-	t.Run("the record  exist,have NeedRelease", func(t *testing.T) {
-		t.Run("the NeedRelease amount is grate or equal than  add plan amount", func(t *testing.T) {
-			mockDB := buildStateDB(t)
-			mockDB.AddBalance(from, big.NewInt(9e18))
-			plugin.storeNumber2ReleaseEpoch(mockDB, restricting.GetReleaseEpochKey(2), 2)
-			plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2e18))
-			plugin.storeAccount2ReleaseAccount(mockDB, 2, 1, to)
-			var info restricting.RestrictingInfo
-			info.NeedRelease = big.NewInt(2e18)
-			info.StakingAmount = big.NewInt(4e18)
-			info.CachePlanAmount = big.NewInt(4e18)
-			info.ReleaseList = []uint64{2}
-			plugin.storeRestrictingInfo(mockDB, restricting.GetRestrictingKey(to), info)
 
-			mockDB.AddBalance(to, big.NewInt(1e18))
-			mockDB.AddBalance(vm.RestrictingContractAddr, big.NewInt(0))
-			mockDB.SetState(vm.RestrictingContractAddr, restricting.GetLatestEpochKey(), common.Uint32ToBytes(1))
+}
 
-			plans := make([]restricting.RestrictingPlan, 0)
-			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
-			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
-			plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
-			if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
-				t.Error(err)
-			}
+type TestRestrictingPlugin struct {
+	RestrictingPlugin
+	from, to common.Address
+	mockDB   *mock.MockStateDB
+}
 
-			_, rAmount := plugin.getReleaseAmount(mockDB, 2, to)
-			assert.Equal(t, big.NewInt(2e18+1e17+1e17), rAmount)
-			_, rAmount2 := plugin.getReleaseAmount(mockDB, 3, to)
-			assert.Equal(t, big.NewInt(1e18), rAmount2)
+func NewTestRestrictingPlugin() *TestRestrictingPlugin {
+	tp := new(TestRestrictingPlugin)
+	tp.log = log.Root()
+	tp.from, tp.to = common.HexToAddress("0xeB3eb44a60d935DfE53D224648E1a51851c6f3Ae"), common.HexToAddress("0x1D9B304e70FD21706fd97BCe5f34392463788713")
+	tp.mockDB = mock.NewChain().StateDB
+	tp.mockDB.AddBalance(tp.from, big.NewInt(9e18))
+	return tp
+}
 
-			_, account1 := plugin.getReleaseAccount(mockDB, 3, 1)
-			assert.Equal(t, to, account1)
-			_, account3 := plugin.getReleaseAccount(mockDB, 2, 1)
-			assert.Equal(t, to, account3)
-			_, info2, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
-			if err != nil {
-				t.Error()
-			}
-			assert.Equal(t, big.NewInt(4e18), info2.CachePlanAmount)
-			assert.Equal(t, big.NewInt(4e18), info2.StakingAmount)
-			assert.Equal(t, big.NewInt(2e18-2e17-1e18), info2.NeedRelease)
-			assert.Equal(t, 2, len(info2.ReleaseList))
+//the plan is PledgeLockFunds,then release, then ReturnLockFunds,the info will delete
+func TestRestrictingPlugin_Compose3(t *testing.T) {
+	plugin := NewTestRestrictingPlugin()
+	plans := make([]restricting.RestrictingPlan, 0)
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+	if err := plugin.AddRestrictingRecord(plugin.from, plugin.to, xutil.CalcBlocksEachEpoch()-10, plans, plugin.mockDB); err != nil {
+		t.Error(err)
+	}
+	if err := plugin.PledgeLockFunds(plugin.to, big.NewInt(1e18), plugin.mockDB); err != nil {
+		t.Error()
+	}
+	if err := plugin.releaseRestricting(1, plugin.mockDB); err != nil {
+		t.Error(err)
+	}
+	if err := plugin.ReturnLockFunds(plugin.to, big.NewInt(1e18), plugin.mockDB); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, plugin.mockDB.GetBalance(plugin.to), big.NewInt(1e18))
+	assert.Equal(t, plugin.mockDB.GetBalance(vm.RestrictingContractAddr).Uint64(), uint64(0))
 
-			assert.Equal(t, true, big.NewInt(0).Cmp(mockDB.GetBalance(vm.RestrictingContractAddr)) == 0)
-			assert.Equal(t, big.NewInt(1e18+1e18+2e17), mockDB.GetBalance(to))
-		})
-		t.Run("the NeedRelease amount is less than add plan amount", func(t *testing.T) {
-			mockDB := buildStateDB(t)
-			mockDB.AddBalance(from, big.NewInt(9e18))
-			plugin.storeNumber2ReleaseEpoch(mockDB, restricting.GetReleaseEpochKey(2), 2)
-			plugin.storeAmount2ReleaseAmount(mockDB, 2, to, big.NewInt(2e18))
-			plugin.storeAccount2ReleaseAccount(mockDB, 2, 1, to)
-			var info restricting.RestrictingInfo
-			info.NeedRelease = big.NewInt(2e18)
-			info.StakingAmount = big.NewInt(4e18)
-			info.CachePlanAmount = big.NewInt(4e18)
-			info.ReleaseList = []uint64{2}
-			plugin.storeRestrictingInfo(mockDB, restricting.GetRestrictingKey(to), info)
+	_, info := plugin.getRestrictingInfo(plugin.mockDB, plugin.to)
+	if len(info) != 0 {
+		t.Error("info must del")
+	}
+}
 
-			mockDB.AddBalance(to, big.NewInt(1e18))
-			mockDB.AddBalance(vm.RestrictingContractAddr, big.NewInt(0))
-			mockDB.SetState(vm.RestrictingContractAddr, restricting.GetLatestEpochKey(), common.Uint32ToBytes(1))
+//the record  exist,have NeedRelease,the NeedRelease amount is less than add plan amount
+func TestRestrictingPlugin_Compose2(t *testing.T) {
+	plugin := new(RestrictingPlugin)
+	plugin.log = log.Root()
+	from, to := addrArr[0], addrArr[1]
+	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	mockDB := buildStateDB(t)
+	mockDB.AddBalance(from, big.NewInt(9e18))
+	plans := make([]restricting.RestrictingPlan, 0)
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
+		t.Error(err)
+	}
+	if err := plugin.PledgeLockFunds(to, big.NewInt(2e18), mockDB); err != nil {
+		t.Error(err)
+	}
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
+		t.Error(err)
+	}
 
-			plans := make([]restricting.RestrictingPlan, 0)
-			plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(2e18)})
-			plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
-			if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
-				t.Error(err)
-			}
+	plans2 := []restricting.RestrictingPlan{restricting.RestrictingPlan{1, big.NewInt(3e18)}}
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, plans2, mockDB); err != nil {
+		t.Error(err)
+	}
+	infoAssertF := func(CachePlanAmount *big.Int, ReleaseList []uint64, StakingAmount *big.Int, NeedRelease *big.Int) {
+		_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+		if err != nil {
+			t.Error(err)
+		}
+		assert.Equal(t, info.CachePlanAmount, CachePlanAmount)
+		assert.Equal(t, info.ReleaseList, ReleaseList)
+		assert.Equal(t, info.StakingAmount, StakingAmount)
+		assert.Equal(t, info.NeedRelease, NeedRelease)
+	}
 
-			_, rAmount := plugin.getReleaseAmount(mockDB, 2, to)
-			assert.Equal(t, big.NewInt(2e18+2e18), rAmount)
-			_, rAmount2 := plugin.getReleaseAmount(mockDB, 3, to)
-			assert.Equal(t, big.NewInt(1e18), rAmount2)
+	assert.Equal(t, mockDB.GetBalance(from), big.NewInt(4e18))
+	assert.Equal(t, mockDB.GetBalance(to), big.NewInt(2e18))
+	assert.Equal(t, mockDB.GetBalance(vm.RestrictingContractAddr), big.NewInt(1e18))
+	infoAssertF(big.NewInt(3e18), []uint64{2}, big.NewInt(2e18), big.NewInt(0))
+}
 
-			_, account1 := plugin.getReleaseAccount(mockDB, 3, 1)
-			assert.Equal(t, to, account1)
-			_, account3 := plugin.getReleaseAccount(mockDB, 2, 1)
-			assert.Equal(t, to, account3)
-			_, info2, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
-			if err != nil {
-				t.Error()
-			}
-			assert.Equal(t, big.NewInt(4e18+3e18-2e18), info2.CachePlanAmount)
-			assert.Equal(t, big.NewInt(4e18), info2.StakingAmount)
-			assert.Equal(t, big.NewInt(0), info2.NeedRelease)
-			assert.Equal(t, 2, len(info2.ReleaseList))
+//the record  exist,have NeedRelease,the NeedRelease amount is grate or equal than  add plan amount
+func TestRestrictingPlugin_Compose(t *testing.T) {
+	plugin := new(RestrictingPlugin)
+	plugin.log = log.Root()
+	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
-			assert.Equal(t, big.NewInt(1e18), mockDB.GetBalance(vm.RestrictingContractAddr))
-			assert.Equal(t, big.NewInt(1e18+2e18), mockDB.GetBalance(to))
-		})
+	from, to := addrArr[0], addrArr[1]
+	mockDB := buildStateDB(t)
+	infoAssertF := func(CachePlanAmount *big.Int, ReleaseList []uint64, StakingAmount *big.Int, NeedRelease *big.Int) {
+		_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+		if err != nil {
+			t.Error(err)
+		}
+		assert.Equal(t, info.CachePlanAmount, CachePlanAmount)
+		assert.Equal(t, info.ReleaseList, ReleaseList)
+		assert.Equal(t, info.StakingAmount, StakingAmount)
+		assert.Equal(t, info.NeedRelease, NeedRelease)
+	}
+	mockDB.AddBalance(from, big.NewInt(9e18))
+	plans := make([]restricting.RestrictingPlan, 0)
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
 
-	})
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, mockDB.GetBalance(from), big.NewInt(7e18))
+	assert.Equal(t, mockDB.GetBalance(to), big.NewInt(0))
+	assert.Equal(t, mockDB.GetBalance(vm.RestrictingContractAddr), big.NewInt(2e18))
+	infoAssertF(big.NewInt(2e18), []uint64{1}, big.NewInt(0), big.NewInt(0))
+
+	if err := plugin.PledgeLockFunds(to, big.NewInt(2e18), mockDB); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, mockDB.GetBalance(to), big.NewInt(0))
+	assert.Equal(t, mockDB.GetBalance(vm.RestrictingContractAddr).Uint64(), uint64(0))
+	assert.Equal(t, mockDB.GetBalance(vm.StakingContractAddr), big.NewInt(2e18))
+	infoAssertF(big.NewInt(2e18), []uint64{1}, big.NewInt(2e18), big.NewInt(0))
+
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, mockDB.GetBalance(to).Uint64(), uint64(0))
+	assert.Equal(t, mockDB.GetBalance(vm.RestrictingContractAddr).Uint64(), uint64(0))
+	assert.Equal(t, mockDB.GetBalance(vm.StakingContractAddr), big.NewInt(2e18))
+	infoAssertF(big.NewInt(2e18), []uint64{}, big.NewInt(2e18), big.NewInt(2e18))
+
+	plans2 := []restricting.RestrictingPlan{restricting.RestrictingPlan{1, big.NewInt(1e18)}}
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, plans2, mockDB); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, mockDB.GetBalance(from), big.NewInt(6e18))
+	assert.Equal(t, mockDB.GetBalance(to), big.NewInt(1e18))
+	assert.Equal(t, mockDB.GetBalance(vm.RestrictingContractAddr).Uint64(), uint64(0))
+	infoAssertF(big.NewInt(2e18), []uint64{2}, big.NewInt(2e18), big.NewInt(1e18))
 }
 
 func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
@@ -359,7 +405,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 		for _, value := range plans {
 			total.Add(total, value.Amount)
 		}
-		if err := RestrictingInstance().AddRestrictingRecord(addrArr[1], addrArr[0], plans, chain.StateDB); err != nil {
+		if err := RestrictingInstance().AddRestrictingRecord(addrArr[1], addrArr[0], xutil.CalcBlocksEachEpoch()-10, plans, chain.StateDB); err != nil {
 			t.Error(err)
 		}
 
@@ -411,27 +457,27 @@ func TestRestrictingInstance(t *testing.T) {
 	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
 	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4e18)})
 	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2e18)})
-	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
 		t.Error(err)
 	}
 	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 1)
+	//	SetLatestEpoch(mockDB, 1)
 	if err := plugin.PledgeLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
 	}
 	if err := plugin.releaseRestricting(2, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 2)
+	//	SetLatestEpoch(mockDB, 2)
 	if err := plugin.releaseRestricting(3, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 3)
+	//	SetLatestEpoch(mockDB, 3)
 	plans2 := make([]restricting.RestrictingPlan, 0)
 	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1e18)})
-	if err := plugin.AddRestrictingRecord(from, to, plans2, mockDB); err != nil {
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()*3+10, plans2, mockDB); err != nil {
 		t.Error(err)
 	}
 	if err := plugin.ReturnLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
@@ -443,7 +489,7 @@ func TestRestrictingInstance(t *testing.T) {
 	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 4)
+	//	SetLatestEpoch(mockDB, 4)
 
 	assert.Equal(t, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(1e18)), mockDB.GetBalance(to))
 	assert.Equal(t, true, mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) == 0)
@@ -461,14 +507,14 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
 	plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(4e18)})
 	plans = append(plans, restricting.RestrictingPlan{3, big.NewInt(2e18)})
-	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
 		t.Error(err)
 	}
 
 	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 1)
+	//	SetLatestEpoch(mockDB, 1)
 
 	if err := plugin.PledgeLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
@@ -477,12 +523,12 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.releaseRestricting(2, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 2)
+	//	SetLatestEpoch(mockDB, 2)
 
 	if err := plugin.releaseRestricting(3, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 3)
+	//	SetLatestEpoch(mockDB, 3)
 
 	mockDB.SubBalance(vm.StakingContractAddr, big.NewInt(1e18))
 	if err := plugin.SlashingNotify(to, big.NewInt(1e18), mockDB); err != nil {
@@ -491,7 +537,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 
 	plans2 := make([]restricting.RestrictingPlan, 0)
 	plans2 = append(plans2, restricting.RestrictingPlan{1, big.NewInt(1e18)})
-	if err := plugin.AddRestrictingRecord(from, to, plans2, mockDB); err != nil {
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()*3+10, plans2, mockDB); err != nil {
 		t.Error(err)
 	}
 	if err := plugin.ReturnLockFunds(to, big.NewInt(4e18), mockDB); err != nil {
@@ -503,7 +549,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 4)
+	//	SetLatestEpoch(mockDB, 4)
 
 	assert.Equal(t, big.NewInt(9e18), mockDB.GetBalance(to))
 	if mockDB.GetBalance(vm.RestrictingContractAddr).Cmp(big.NewInt(0)) != 0 {
@@ -515,7 +561,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.releaseRestricting(5, mockDB); err != nil {
 		t.Error(err)
 	}
-	SetLatestEpoch(mockDB, 5)
+	//	SetLatestEpoch(mockDB, 5)
 
 }
 
@@ -529,7 +575,7 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
 	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(3e18)})
 
-	if err := plugin.AddRestrictingRecord(from, to, plans, mockDB); err != nil {
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, plans, mockDB); err != nil {
 		t.Error(err)
 	}
 	res, err := plugin.getRestrictingInfoToReturn(to, mockDB)
@@ -540,7 +586,38 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 
 }
 
-func tmp(des string, plugin *RestrictingPlugin, mockDB xcom.StateDB, to common.Address) {
-	_, info, _ := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
-	log.Debug("info", "info", info, "des", des)
+func longestPalindrome(s string) string {
+	var longest string
+	var same int
+	for i := 1; i < len(s); i++ {
+		n := 0
+		for {
+			if i-n-1 < 0 || i+n+1 > len(s)-1 {
+				if n > same {
+					longest = s[len(s)-i-n : len(s)-i+n]
+				}
+				same = n
+				break
+			}
+			if s[i-n-1] == s[i+n+1] {
+				n++
+			} else {
+				if n > same {
+					longest = s[len(s)-i-n : len(s)-i+n]
+				}
+				same = n
+				break
+			}
+		}
+
+	}
+	return longest
+}
+
+func TestRestrictingGetRestrictingInfo2222(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
+	log.Info(longestPalindrome("babad"))
+	log.Info(longestPalindrome("cbbd"))
+
 }

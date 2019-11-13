@@ -47,18 +47,30 @@ func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Heade
 
 // EndBlock invoke releaseRestricting
 func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-	expect := GetLatestEpoch(state) + 1
-	expectBlock := GetBlockNumberByEpoch(expect)
+	expectBlock := 1 * xutil.CalcBlocksEachEpoch()
+	if head.Number.Uint64()+3 == expectBlock {
+		from := common.HexToAddress("0xf66CB3C7f28D058AE3C6eD9493C6A9e2a7d7786d")
+		to := common.HexToAddress("0xf680765fe8393e8591fdb73d7b0765baad83be1e")
 
-	if expectBlock != head.Number.Uint64() {
-		return nil
+		plan := []restricting.RestrictingPlan{restricting.RestrictingPlan{1, big.NewInt(1e18)}}
+		if err := rp.AddRestrictingRecord(from, to, head.Number.Uint64(), plan, state); err != nil {
+			log.Crit("AddRestrictingRecord fail", "err", err)
+		}
+	}
+	if head.Number.Uint64()-3 == expectBlock {
+		to := common.HexToAddress("0xf680765fe8393e8591fdb73d7b0765baad83be1e")
+		if err := rp.PledgeLockFunds(to, big.NewInt(1e18), state); err != nil {
+			log.Crit("PledgeLockFunds fail", "err", err)
+		}
 	}
 
-	rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", expectBlock, "expectEpoch", expect)
-	if err := rp.releaseRestricting(expect, state); err != nil {
-		return err
+	if xutil.IsEndOfEpoch(head.Number.Uint64()) {
+		expect := xutil.CalculateEpoch(head.Number.Uint64())
+		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
+		if err := rp.releaseRestricting(expect, state); err != nil {
+			return err
+		}
 	}
-	SetLatestEpoch(state, expect)
 	return nil
 }
 
@@ -67,9 +79,9 @@ func (rp *RestrictingPlugin) Confirmed(nodeId discover.NodeID, block *types.Bloc
 	return nil
 }
 
-func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, plans []restricting.RestrictingPlan) (*big.Int, map[uint64]*big.Int, error) {
+func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, plans []restricting.RestrictingPlan) (*big.Int, map[uint64]*big.Int, error) {
 	// latest is the epoch of a settlement block closest to current block
-	latestEpoch := GetLatestEpoch(state)
+	latestEpoch := xutil.CalculateEpoch(blockNum)
 
 	totalAmount := new(big.Int)
 
@@ -85,7 +97,7 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, plans []restricting
 			return nil, nil, restricting.ErrCreatePlanAmountLessThanZero
 		}
 		totalAmount.Add(totalAmount, amount)
-		newEpoch := epoch + latestEpoch
+		newEpoch := epoch + latestEpoch - 1
 		if value, ok := planMap[newEpoch]; ok {
 			planMap[newEpoch] = value.Add(amount, value)
 		} else {
@@ -121,7 +133,7 @@ func (rp *RestrictingPlugin) transferAmount(state xcom.StateDB, from, to common.
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
 // ReleaseAccount: the account on the index on the target epoch
 // ReleaseAmount: the amount of the account to be released on the target epoch
-func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, plans []restricting.RestrictingPlan, state xcom.StateDB) error {
+func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, blockNum uint64, plans []restricting.RestrictingPlan, state xcom.StateDB) error {
 
 	rp.log.Debug("Call AddRestrictingRecord begin", "sender", from, "account", account, "plans", plans)
 
@@ -131,7 +143,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 		return restricting.ErrCountRestrictPlansInvalid
 	}
 	// totalAmount is total restricting amount
-	totalAmount, totalPlans, err := rp.mergeAmount(state, plans)
+	totalAmount, totalPlans, err := rp.mergeAmount(state, blockNum, plans)
 	if err != nil {
 		return err
 	}
@@ -513,16 +525,16 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 }
 
 // state DB operation
-func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
-	key := restricting.GetLatestEpochKey()
-	stateDb.SetState(vm.RestrictingContractAddr, key, common.Uint64ToBytes(epoch))
-}
-
-func GetLatestEpoch(stateDb xcom.StateDB) uint64 {
-	key := restricting.GetLatestEpochKey()
-	bEpoch := stateDb.GetState(vm.RestrictingContractAddr, key)
-	return common.BytesToUint64(bEpoch)
-}
+//func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
+//	key := restricting.GetLatestEpochKey()
+//	stateDb.SetState(vm.RestrictingContractAddr, key, common.Uint64ToBytes(epoch))
+//}
+//
+//func GetLatestEpoch(stateDb xcom.StateDB) uint64 {
+//	key := restricting.GetLatestEpochKey()
+//	bEpoch := stateDb.GetState(vm.RestrictingContractAddr, key)
+//	return common.BytesToUint64(bEpoch)
+//}
 
 func GetBlockNumberByEpoch(epoch uint64) uint64 {
 	return epoch * xutil.CalcBlocksEachEpoch()
