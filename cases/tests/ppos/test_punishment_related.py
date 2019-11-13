@@ -1270,6 +1270,7 @@ def test_VP_PVF_009(client_new_node_obj, reset_environment):
             # Report verifier Duplicate Sign
             result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
             assert_code(result, 0)
+            time.sleep(3)
             # Access to pledge information
             candidate_info = client.ppos.getCandidateInfo(node.node_id)
             info = candidate_info['Ret']
@@ -1283,7 +1284,7 @@ def test_VP_PVF_009(client_new_node_obj, reset_environment):
             # To view the entrusted account balance
             report_balance1 = node.eth.getBalance(report_address)
             log.info("report address balance: {}".format(report_balance1))
-            assert report_balance + economic.delegate_limit - report_balance1, "ErrMsg:Ireport balance {}".format(
+            assert report_balance + economic.delegate_limit - report_balance1 < node.web3.toWei(1, 'ether'), "ErrMsg:Ireport balance {}".format(
                 report_balance1)
             break
         else:

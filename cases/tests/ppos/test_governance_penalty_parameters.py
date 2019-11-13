@@ -41,7 +41,7 @@ def information_before_slash_blocks(client_obj):
     block_reward, staking_reward = client_obj.economic.get_current_year_reward(node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks1 = get_governable_parameter_value(client_obj, 'SlashBlocksReward')
+    slash_blocks1 = get_governable_parameter_value(client_obj, 'slashBlocksReward')
     return pledge_amount1, block_reward, slash_blocks1
 
 
@@ -70,9 +70,9 @@ def test_PIP_PVF_001(client_con_list_obj, reset_environment):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks1 = information_before_slash_blocks(client_con_list_obj[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0', False)
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'slashBlocksReward', '0', False)
     # Get governable parameters again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'slashBlocksReward')
     assert slash_blocks1 == slash_blocks2, "ErrMsg:slash blocks {}".format(slash_blocks2)
     # Verify changed parameters
     Verify_changed_parameters(client_con_list_obj, pledge_amount1, block_reward, slash_blocks1)
@@ -88,9 +88,9 @@ def test_PIP_PVF_002(client_con_list_obj, reset_environment):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks1 = information_before_slash_blocks(client_con_list_obj[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'Slashing', 'slashBlocksReward', '0')
     # Get governable parameters again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'slashBlocksReward')
     assert slash_blocks1 == slash_blocks2, "ErrMsg:slash blocks {}".format(slash_blocks2)
     # Verify changed parameters
     Verify_changed_parameters(client_con_list_obj, pledge_amount1, block_reward, slash_blocks1)
@@ -107,10 +107,10 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks1 = information_before_slash_blocks(client_con_list_obj[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '0')
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'slashBlocksReward', '0')
     log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'slashBlocksReward')
     assert slash_blocks2 == '0', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # Verify changed parameters
     Verify_changed_parameters(client_con_list_obj, pledge_amount1, block_reward, slash_blocks2)
@@ -127,10 +127,10 @@ def test_PIP_PVF_004(client_con_list_obj, client_new_node_obj_list, reset_enviro
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks1 = information_before_slash_blocks(client_con_list_obj[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'slashBlocksReward', '60100')
     log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters again
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'slashBlocksReward')
     assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # create account
     address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
@@ -165,10 +165,10 @@ def test_PIP_PVF_005(client_con_list_obj, client_new_node_obj_list, reset_enviro
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks1 = information_before_slash_blocks(client_con_list_obj[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'Slashing', 'SlashBlocksReward', '60100')
+    param_governance_verify(client_con_list_obj[0], 'Slashing', 'slashBlocksReward', '60100')
     log.info("Current block height: {}".format(client_con_list_obj[0].node.eth.blockNumber))
     # Get governable parameters
-    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'SlashBlocksReward')
+    slash_blocks2 = get_governable_parameter_value(client_con_list_obj[0], 'slashBlocksReward')
     assert slash_blocks2 == '60100', "ErrMsg:Change parameters {}".format(slash_blocks2)
     # create account
     address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,

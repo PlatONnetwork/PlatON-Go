@@ -20,7 +20,7 @@ def get_out_block_penalty_parameters(client_obj, node, amount_type):
     block_reward, staking_reward = client_obj.economic.get_current_year_reward(node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks = get_governable_parameter_value(client_obj, 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client_obj, 'slashBlocksReward')
     return pledge_amount1, block_reward, slash_blocks
 
 
@@ -971,3 +971,56 @@ def test_VP_GPFV_020(client_new_node_obj_list):
     balance2 = client2.node.eth.getBalance(address)
     log.info("pledge account balance: {}".format(balance2))
     assert balance2 == balance1 + (pledge_amount1 - punishment_amonut), "ErrMsg:pledge account balance {}".format(balance2)
+
+
+@pytest.mark.P2
+def test_VP_GPFV_021(client_new_node_obj_list):
+    """
+    移出PlatON验证人与候选人名单，委托人可在处罚所在结算周期，申请赎回全部委托金
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current connection node1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current connection node2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create pledge address
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create report address
+    delegate_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create staking
+    result = client1.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Additional pledge
+    result = client1.delegate.delegate(0, delegate_address)
+    assert_code(result, 0)
+    # Wait for the settlement round to end
+    economic.wait_settlement_blocknum(node)
+    # stop node
+    client1.node.stop()
+    # Waiting for a settlement round
+    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    # view verifier list
+    verifier_list = client2.ppos.getVerifierList()
+    log.info("verifier_list: {}".format(verifier_list))
+    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
+    log.info("Pledge node information： {}".format(candidate_info))
+    time.sleep(3)
+    # Access to pledge information
+    candidate_info = client2.ppos.getCandidateInfo(node.node_id)
+    info = candidate_info['Ret']
+    staking_blocknum = info['StakingBlockNum']
+    # To view the entrusted account balance
+    delegate_balance = node.eth.getBalance(delegate_address)
+    log.info("report address balance: {}".format(delegate_balance))
+    # withdrew delegate
+    result = client2.delegate.withdrew_delegate(staking_blocknum, delegate_address, node_id=node.node_id)
+    assert_code(result, 0)
+    # To view the entrusted account balance
+    delegate_balance1 = node.eth.getBalance(delegate_address)
+    log.info("report address balance: {}".format(delegate_balance1))
+    assert delegate_balance + economic.delegate_limit - delegate_balance1 < client2.node.web3.toWei(1, 'ether'), "ErrMsg:Ireport balance {}".format(
+                delegate_balance1)
