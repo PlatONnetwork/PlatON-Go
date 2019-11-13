@@ -273,6 +273,25 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 	return pool
 }
 
+// Reset reset validator pool.
+func (vp *ValidatorPool) Reset(blockNumber uint64, epoch uint64) {
+	if vp.agency.GetLastNumber(blockNumber) == blockNumber {
+		vp.prevValidators, _ = vp.agency.GetValidator(blockNumber)
+		vp.currentValidators, _ = vp.agency.GetValidator(NextRound(blockNumber))
+		vp.lastNumber = vp.agency.GetLastNumber(NextRound(blockNumber))
+		vp.epoch = epoch + 1
+	} else {
+		vp.currentValidators, _ = vp.agency.GetValidator(blockNumber)
+		vp.prevValidators = vp.currentValidators
+		vp.lastNumber = vp.agency.GetLastNumber(blockNumber)
+		vp.epoch = epoch
+	}
+	if vp.currentValidators.ValidBlockNumber > 0 {
+		vp.switchPoint = vp.currentValidators.ValidBlockNumber - 1
+	}
+	log.Debug("Update validator", "validators", vp.currentValidators.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
+}
+
 // ShouldSwitch check if should switch validators at the moment.
 func (vp *ValidatorPool) ShouldSwitch(blockNumber uint64) bool {
 	if blockNumber == 0 {
