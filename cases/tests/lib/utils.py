@@ -332,6 +332,10 @@ def get_governable_parameter_value(client_obj, parameter):
     print(type(parameter_information))
     for i in parameter_information:
         print(i)
+        print(type(i))
+        print(i['ParamItem']['Name'])
+        print(type(i['ParamValue']['Value']))
+        print(i['ParamValue']['Value'])
         if i['ParamItem']['Name'] == parameter:
             print('parameter: ', i['ParamItem']['Name'])
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))
