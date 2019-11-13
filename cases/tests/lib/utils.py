@@ -8,6 +8,7 @@ from decimal import Decimal
 from hexbytes import HexBytes
 from environment.node import Node
 from common.log import log
+from common.key import get_pub_key
 from typing import List
 
 
@@ -283,6 +284,21 @@ def get_max_staking_tx_index(node):
     term_nodeid_dict = dict(zip(staking_tx_index_list, nodeid))
     return term_nodeid_dict[max_staking_tx_index]
 
+def get_block_count_number(node, number):
+    """
+    获取验证人出块数
+    :param url: 节点url
+    :param cycle: 共识周期
+    :return:
+    """
+    current_block = node.block_number
+    count = 0
+    for i in range(number - 1):
+        nodeid = get_pub_key(node.url, current_block)
+        current_block = current_block - 1
+        if nodeid == node.node_id:
+            count = count + 1
+    return count
 
 def random_string(length=10) -> str:
     """

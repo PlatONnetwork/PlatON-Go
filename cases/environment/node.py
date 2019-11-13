@@ -233,6 +233,7 @@ class Node:
         :return:
         """
         def __update():
+            # todo fix me
             self.stop()
             self.put_bin()
             self.start()
@@ -408,16 +409,14 @@ class Node:
         :param genesis_file:
         :return:
         """
-        def __deploy():
-            self.stop()
-            log.debug("{}-clean node path...".format(self.node_mark))
-            is_success, msg = self.clean()
-            if not is_success:
-                return is_success, msg
-            self.clean_log()
-            self.put_all_file(genesis_file)
-            return self.start(self.cfg.init_chain)
-        return self.try_do_resturn(__deploy)
+        self.stop()
+        log.debug("{}-clean node path...".format(self.node_mark))
+        is_success, msg = self.clean()
+        if not is_success:
+            return is_success, msg
+        self.clean_log()
+        self.put_all_file(genesis_file)
+        return self.start(self.cfg.init_chain)
 
     def put_all_file(self, genesis_file):
         """

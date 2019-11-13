@@ -6,7 +6,6 @@
             "initialNodes": [
 
             ],
-            "epoch": 1,
             "amount": 10,
             "validatorMode": "ppos",
             "period": 10000
