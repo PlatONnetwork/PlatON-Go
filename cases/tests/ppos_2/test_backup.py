@@ -105,8 +105,8 @@ def test_punishment_refund(staking_client, global_test_env):
     economic = client.economic
     balance = node.eth.getBalance(staking_address)
     log.info(balance)
-    msg = client.ppos.getCandidateInfo(node.node_id)
-    log.info(msg)
+    candidate_info = client.ppos.getCandidateInfo(node.node_id)
+    log.info(candidate_info)
     log.info("Stop the new verifier node")
     node.stop()
     log.info("Go to the next billing cycle")
@@ -118,7 +118,6 @@ def test_punishment_refund(staking_client, global_test_env):
     msg = get_pledge_list(other_node.ppos.getValidatorList)
     log.info("Current consensus round certifier {}".format(msg))
     log.info("Go to the next billing cycle")
-    candidate_info = other_node.ppos.getCandidateInfo(node.node_id)
     economic.wait_settlement_blocknum(other_node, 1)
     msg = get_pledge_list(other_node.ppos.getCandidateList)
     log.info("Real-time certifier list {}".format(msg))
