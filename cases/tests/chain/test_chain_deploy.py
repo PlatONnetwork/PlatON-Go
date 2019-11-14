@@ -194,5 +194,5 @@ def test_start_all_node_close_f_add_1_and_fast_one(global_test_env):
     new_cfg.syncmode = "fast"
     test_node.cfg = new_cfg
     test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
-    time.sleep(10)
-    assert test_node.block_number > 10
+    time.sleep(100)
+    assert test_node.block_number > 100
