@@ -203,6 +203,9 @@ def test_UP_FV_006(client_new_node_obj):
     staking_amount = economic.create_staking_limit
     result = client.staking.create_staking(1, address1, address1, amount=staking_amount)
     assert_code(result, 0)
+    # view restricting plan
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
     # Waiting for the end of the settlement period
     economic.wait_settlement_blocknum(node)
     # view restricting plan
@@ -328,7 +331,7 @@ def test_UP_FV_009(client_new_node_obj_list, reset_environment):
     # Obtain block bonus and pledge bonus
     block_reward, staking_reward = client1.economic.get_current_year_reward(node)
     # Get penalty blocks
-    slash_blocks = get_governable_parameter_value(client1, 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     # view restricting plan
     restricting_info = client1.ppos.getRestrictingInfo(address1)
     log.info("restricting plan informtion: {}".format(restricting_info))
