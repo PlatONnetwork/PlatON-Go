@@ -86,7 +86,7 @@ type Signer interface {
 	// Equal returns true if the given signer is the same as the receiver.
 	Equal(Signer) bool
 	// Signature return the sig info of the transaction
-	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
+	//	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
 }
 
 // EIP155Transaction implements Signer using the EIP155 rules.
