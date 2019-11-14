@@ -199,7 +199,7 @@ class TestgetTallyResult():
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_con_list_obj)
 
         assert pip_obj.get_status_of_proposal(proposalinfo_param.get('ProposalID')) == 6
-        assert pip_obj.get_yeas_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
+        assert pip_obj.get_yeas_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_nays_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)

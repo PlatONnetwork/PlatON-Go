@@ -64,7 +64,7 @@ def submit_version(no_vp_proposal):
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 10,
                                    pip_obj.node.staking_address,
                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('submit version result:'.format(result))
+    log.info('submit version result : {}'.format(result))
     assert_code(result, 0)
     return pip_obj
 

@@ -381,6 +381,9 @@ class TestSubmitCancel():
     def test_CP_PR_002(self, candidate_has_proposal):
         pip_obj = candidate_has_proposal
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        if not proposalinfo:
+            time.sleep(10)
+            proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
         log.info('Get proposal information {}'.format(proposalinfo))
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1,
                                                     proposalinfo.get('ProposalID'),
@@ -908,12 +911,12 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '21000*200 + 0.5',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388 + 0.5',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '-21000*200',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '-4712388',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -923,7 +926,7 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', 21000*200,
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', 4712388,
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -939,8 +942,8 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'maxBlockGasLimit')) != 21000*200:
-            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712389',
+        if int(get_governable_parameter_value(client_obj, 'maxBlockGasLimit')) != 4712388:
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388',
                                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
@@ -1081,7 +1084,7 @@ class TestSubmitPPAbnormal():
         assert_code(result, 302021)
 
 class TestSubmitPPAgain():
-    def test_VP_TI_001_002_CP_PI_003_VP_PIP_004(self, new_genesis_env, client_con_list_obj):
+    def test_VP_TI_001_002(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -1103,16 +1106,6 @@ class TestSubmitPPAgain():
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Param proposal information : {}'.format(proposalinfo_param))
         wait_block_number(pip_obj.node, proposalinfo_param.get('EndVotingBlock'))
-
-        result = pip_obj.submitParam(pip_obj.node.node_id, proposalinfo_param.get('PIPID'), 'slashing', 'slashBlocksReward',
-                                     '998', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Same PIPID, submit param proposal result : {}'.format(result))
-        assert_code(result, 302008)
-
-        result = pip_obj.submitVersion(pip_obj.node.node_id, proposalinfo_param.get('PIPID'), pip_obj.cfg.version5,
-                                       1, pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Same PIPID, submit version proposal result : {}'.format(result))
-        assert_code(result, 302008)
 
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '998',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -1183,39 +1176,35 @@ class TestPIPVerify():
         assert_code(result, 302008)
 
         wait_block_number(pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
-        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id_version, pip_obj.cfg.version5, 2,
+        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id_version, pip_obj.cfg.version5, 1,
                                        pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Same PIPID, submit version proposal result : {}'.format(result))
-        assert_code(result, 302008)
+        assert_code(result, 0)
 
-        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id_cancel, pip_obj.cfg.version5, 2,
-                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Same PIPID, submit version proposal result : {}'.format(result))
-        assert_code(result, 302008)
-
-        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id_cancel, 'slashing', 'slashBlocksReward', '889',
-                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Same PIPID, submit param proposal result : {}'.format(result))
-        assert_code(result, 302008)
-
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '889',
+        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
+        log.info('Version proposal information : {}'.format(proposalinfo_version))
+        wait_block_number(pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
+        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id_version, 'slashing', 'slashBlocksReward', '889',
                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Differ PIPID, submit param proposal result : {}'.format(result))
         assert_code(result, 0)
 
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Param proposal information : {}'.format(proposalinfo_param))
-        pip_id_param = proposalinfo_param.get('PIPID')
 
-        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id_param, 1, proposalinfo_param.get('ProposalID'),
+        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id_cancel, 1, proposalinfo_param.get('ProposalID'),
                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Same PIPID, submit cancel proposal result : {}'.format(result))
-        assert_code(result, 302008)
+        assert_code(result, 0)
 
-        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_param, pip_obj.node.staking_address,
+        proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Cancel proposal information : {}'.format(proposalinfo_cancel))
+
+        wait_block_number(pip_obj.node, proposalinfo_cancel.get('EndVotingBlock'))
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id_cancel, pip_obj.node.staking_address,
                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Same PIPID, submit text proposal result : {}'.format(result))
-        assert_code(result, 302008)
+        assert_code(result, 0)
 
 
 

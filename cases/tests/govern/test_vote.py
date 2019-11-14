@@ -15,7 +15,7 @@ def replace_platon_vote(pip_obj, bin=None, program_version=None, version_sign=No
     :param bin:
     :return:
     '''
-    if not bin:
+    if bin:
         upload_platon(pip_obj.node, bin)
         pip_obj.node.restart()
     if program_version is None:
@@ -517,22 +517,55 @@ def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
     assert_code(result, 0)
 
 class TestVoteVPVerify():
-    def test_VO_VER_001(self, no_vp_proposal):
-        pip_obj = no_vp_proposal
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 2,
-                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Node {} submit version proposal result : {}'.format(pip_obj.node.node_id, result))
-        assert_code(result, 0)
-        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+    def vote_wrong_version(self, pip_obj, proposaltype):
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(proposaltype)
+        log.info('Get proposal information : {}'.format(proposalinfo))
+        program_version = pip_obj.cfg.version1
+        if pip_obj.node.program_version == pip_obj.cfg.version1:
+            program_version = pip_obj.cfg.version2
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                                pip_obj.node.staking_address, program_version=program_version,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Wrong  program version vote result : {}'.format(result))
+        return result
 
+    def vote_wrong_versionsign(self, pip_obj, proposaltype):
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(proposaltype)
+        log.info('Get proposal information : {}'.format(proposalinfo))
+        version_sign = pip_obj.node.program_version_sign
+        version_sign = version_sign.replace(version_sign[2:4], '11')
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                                pip_obj.node.staking_address, version_sign=version_sign,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Wrong version sign vote result : {}'.format(result))
+        return result
 
-    def test_VO_VER_002(self, submit_version):
+    def test_VO_VER_001_003_VO_SI_001(self, submit_version):
         pip_obj = submit_version
-        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN1)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN2)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN0)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN3)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN4)
+        assert_code(result, 302025)
+        version_sign = pip_obj.node.program_version_sign
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN, version_sign=version_sign)
+        assert_code(result, 302024)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN6)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN7)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN8)
+        assert_code(result, 302025)
+
+
+
+
+
 
 
 
