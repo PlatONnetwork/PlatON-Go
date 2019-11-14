@@ -595,6 +595,30 @@ var (
 		Usage: "Blacklist effective time. uint:minute",
 		Value: "60",
 	}
+
+	DBNoGCFlag = cli.BoolFlag{
+		Name:  "db.nogc",
+		Usage: "Disables database garbage collection",
+	}
+	DBGCIntervalFlag = cli.Uint64Flag{
+		Name:  "db.gc_interval",
+		Usage: "Block interval for garbage collection",
+		Value: eth.DefaultConfig.DBGCInterval,
+	}
+	DBGCTimeoutFlag = cli.DurationFlag{
+		Name:  "db.gc_timeout",
+		Usage: "Maximum time for database garbage collection",
+		Value: eth.DefaultConfig.DBGCTimeout,
+	}
+	DBGCMptFlag = cli.BoolFlag{
+		Name:  "db.gc_mpt",
+		Usage: "Enables database garbage collection MPT",
+	}
+	DBGCBlockFlag = cli.Uint64Flag{
+		Name:  "db.gc_block",
+		Usage: "Number of cache block states, default 10",
+		Value: eth.DefaultConfig.DBGCBlock,
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1165,6 +1189,25 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
+	}
+
+	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
+		cfg.DBDisabledGC = ctx.GlobalBool(DBNoGCFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCIntervalFlag.Name) {
+		cfg.DBGCInterval = ctx.GlobalUint64(DBGCIntervalFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCTimeoutFlag.Name) {
+		cfg.DBGCTimeout = ctx.GlobalDuration(DBGCTimeoutFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCMptFlag.Name) {
+		cfg.DBGCMpt = ctx.GlobalBool(DBGCMptFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCBlockFlag.Name) {
+		b := ctx.GlobalUint64(DBGCBlockFlag.Name)
+		if b > 0 {
+			cfg.DBGCBlock = b
+		}
 	}
 }
 

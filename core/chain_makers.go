@@ -189,7 +189,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
-			if err := statedb.Database().TrieDB().Commit(root, false); err != nil {
+			if err := statedb.Database().TrieDB().Commit(root, false, true); err != nil {
 				panic(fmt.Sprintf("trie write error: %v", err))
 			}
 			return block, b.receipts
@@ -222,6 +222,8 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		MaxFutureBlocks: 256,
 		BadBlockLimit:   10,
 		TriesInMemory:   128,
+		DBGCInterval:    86400,
+		DBGCTimeout:     time.Minute,
 	}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
@@ -274,6 +276,8 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		MaxFutureBlocks: 256,
 		BadBlockLimit:   10,
 		TriesInMemory:   128,
+		DBGCInterval:    86400,
+		DBGCTimeout:     time.Minute,
 	}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)

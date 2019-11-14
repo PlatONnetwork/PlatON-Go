@@ -543,7 +543,7 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) error {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err, "peerMsgCh", len(cbft.peerMsgCh))
+		cbft.log.Debug("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id, "err", err, "peerMsgCh", len(cbft.peerMsgCh))
 	}
 	return err
 }
@@ -995,11 +995,7 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 			return
 		}
 
-		vEpoch := qc.Epoch
-		if cbft.validatorPool.ShouldSwitch(block.NumberU64()) {
-			vEpoch += 1
-		}
-		err = cbft.validatorPool.Update(block.NumberU64(), vEpoch, cbft.eventMux)
+		cbft.validatorPool.Reset(block.NumberU64(), qc.Epoch)
 
 		cbft.blockTree.Reset(block, qc)
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
