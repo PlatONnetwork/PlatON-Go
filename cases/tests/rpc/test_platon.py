@@ -53,7 +53,7 @@ def block_with_txn(global_test_env):
 
 @pytest.fixture(scope="module")
 def empty_block(platon_connect):
-    return platon_connect.getBlock(2)
+    return platon_connect.getBlock(3)
 
 
 # return block  with contract_address
@@ -437,7 +437,7 @@ class TestPlaton():
         replace_txn = platon.getTransaction(replace_txn_hash)
 
         # todo minimum gas price is what
-        assert replace_txn['gasPrice'] == 1100000000
+        assert replace_txn['gasPrice'] == 110000000
 
     @pytest.mark.P1
     def test_platon_replaceTransaction_gas_price_defaulting_strategy_higher(self,unlocked_account):
@@ -500,8 +500,7 @@ class TestPlaton():
         replace_txn = platon.getTransaction(replace_txn_hash)
 
         # Strategy provices lower gas price - minimum preferred
-        assert replace_txn['gasPrice'] == price * 2*1.1
-
+        assert replace_txn['gasPrice'] == int(price * 2*1.1)
     #todo  需要一个出块很慢的环境
     # def test_platon_modifyTransaction(self,  unlocked_account):
     #     node = unlocked_account['node']
