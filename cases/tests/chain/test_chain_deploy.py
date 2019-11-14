@@ -190,6 +190,7 @@ def test_start_all_node_close_f_add_1_and_fast_one(global_test_env):
     time.sleep(100)
     test_node = copy(global_test_env.get_rand_node())
     test_node.clean()
+    time.sleep(2)
     new_cfg = copy(global_test_env.cfg)
     new_cfg.syncmode = "fast"
     test_node.cfg = new_cfg
