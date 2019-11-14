@@ -47,6 +47,7 @@ func TestHttpPostTransfer(t *testing.T) {
 		//Params:[]TxParams{},
 		Id: 1,
 	}
+
 	s, e := HttpPost(param)
 	if e != nil {
 		t.Fatal("test http post error .\n" + e.Error())
