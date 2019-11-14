@@ -62,23 +62,6 @@ func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Heade
 
 // EndBlock invoke releaseRestricting
 func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-	expectBlock := 1 * xutil.CalcBlocksEachEpoch()
-	if head.Number.Uint64()+3 == expectBlock {
-		from := common.HexToAddress("0xf66CB3C7f28D058AE3C6eD9493C6A9e2a7d7786d")
-		to := common.HexToAddress("0xf680765fe8393e8591fdb73d7b0765baad83be1e")
-
-		plan := []restricting.RestrictingPlan{restricting.RestrictingPlan{1, big.NewInt(1e18)}}
-		if err := rp.AddRestrictingRecord(from, to, head.Number.Uint64(), plan, state); err != nil {
-			log.Crit("AddRestrictingRecord fail", "err", err)
-		}
-	}
-	if head.Number.Uint64()-3 == expectBlock {
-		to := common.HexToAddress("0xf680765fe8393e8591fdb73d7b0765baad83be1e")
-		if err := rp.PledgeLockFunds(to, big.NewInt(1e18), state); err != nil {
-			log.Crit("PledgeLockFunds fail", "err", err)
-		}
-	}
-
 	if xutil.IsEndOfEpoch(head.Number.Uint64()) {
 		expect := xutil.CalculateEpoch(head.Number.Uint64())
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
@@ -368,7 +351,7 @@ func (rp *RestrictingPlugin) getRestrictingInfo(state xcom.StateDB, account comm
 	return restrictingKey, restrictInfoByte
 }
 
-func (rp *RestrictingPlugin) mustGetRestrictingInfoByDecode(state xcom.StateDB, account common.Address) ([]byte, restricting.RestrictingInfo, error) {
+func (rp *RestrictingPlugin) mustGetRestrictingInfoByDecode(state xcom.StateDB, account common.Address) ([]byte, restricting.RestrictingInfo, *common.BizError) {
 	var restrictInfo restricting.RestrictingInfo
 	restrictingKey, restrictInfoByte := rp.getRestrictingInfo(state, account)
 	if len(restrictInfoByte) == 0 {
@@ -498,7 +481,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 	return nil
 }
 
-func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, state xcom.StateDB) (*restricting.Result, error) {
+func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, state xcom.StateDB) (*restricting.Result, *common.BizError) {
 	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return nil, err
@@ -526,7 +509,7 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 	return &result, nil
 }
 
-func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) (*restricting.Result, error) {
+func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) (*restricting.Result, *common.BizError) {
 	return rp.getRestrictingInfoToReturn(account, state)
 }
 

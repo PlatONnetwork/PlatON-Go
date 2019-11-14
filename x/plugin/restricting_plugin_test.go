@@ -19,7 +19,6 @@ package plugin
 import (
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,9 +43,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		buildDbRestrictingPlan(addrArr[0], t, chain.StateDB)
 		head := types.Header{Number: big.NewInt(1)}
 
-		err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB)
-
-		if err != nil {
+		if err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB); err != nil {
 			t.Error(err)
 			return
 		}
@@ -589,41 +586,5 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 		t.Error(err)
 	}
 	assert.Equal(t, res.Balance.ToInt(), big.NewInt(6e18))
-
-}
-
-func longestPalindrome(s string) string {
-	var longest string
-	var same int
-	for i := 1; i < len(s); i++ {
-		n := 0
-		for {
-			if i-n-1 < 0 || i+n+1 > len(s)-1 {
-				if n > same {
-					longest = s[len(s)-i-n : len(s)-i+n]
-				}
-				same = n
-				break
-			}
-			if s[i-n-1] == s[i+n+1] {
-				n++
-			} else {
-				if n > same {
-					longest = s[len(s)-i-n : len(s)-i+n]
-				}
-				same = n
-				break
-			}
-		}
-
-	}
-	return longest
-}
-
-func TestRestrictingGetRestrictingInfo2222(t *testing.T) {
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
-	log.Info(longestPalindrome("babad"))
-	log.Info(longestPalindrome("cbbd"))
 
 }
