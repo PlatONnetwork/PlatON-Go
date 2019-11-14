@@ -398,7 +398,7 @@ def test_version(global_test_env):
     # for i in range(len(returnList)):
     #     log.info("序号：{}   结果：{}".format(i, returnList[i]))
 
-    assert returnList[0].strip()=="Platon"
+    assert returnList[0].strip()=="PlatON"
     assert "Version:" in returnList[1]
 
 
