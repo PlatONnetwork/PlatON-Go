@@ -6,7 +6,7 @@ from tests.lib.config import EconomicConfig
 
 
 @pytest.mark.P1
-def test_DI_001_009(client_new_node_obj):
+def test_DI_001_009_026(client_new_node_obj):
     """
     :param client_new_node_obj:
     :param get_generate_account:
@@ -380,5 +380,74 @@ def test_DI_022_023_024(client_new_node_obj, status):
         log.info(result)
         msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
         log.info(msg)
+
+
+@pytest.mark.P2
+def test_DI_025(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                                10 ** 18 * 10000000)
+
+    client_new_node_obj.staking.create_staking(0, address, address)
+
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    staking_blocknum = msg["Ret"]["StakingBlockNum"]
+
+    nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
+             "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
+
+    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate, nodeID)
+    assert_code(result, 301205)
+
+
+@pytest.mark.P2
+def test_DI_025(client_new_node_obj):
+    """
+    uncommitted
+    :param client_new_node_obj:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                                10 ** 18 * 10000000)
+
+    client_new_node_obj.staking.create_staking(0, address, address)
+
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    staking_blocknum = msg["Ret"]["StakingBlockNum"]
+
+    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate, client_new_node_obj.node.node_id)
+    log.info(result)
+
+
+
+@pytest.mark.P2
+def test_DI_027(client_new_node_obj):
+    """
+    The entrusted candidate does not exist
+    :param client_new_node_obj:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                                10 ** 18 * 10000000)
+
+    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    log.info(result)
+
+    client_new_node_obj.staking.create_staking(0, address, address)
+
+
+    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    staking_blocknum = msg["Ret"]["StakingBlockNum"]
+
+    nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
+             "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
+    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate, nodeID)
+    log.info(result)
+
 
 

@@ -10,7 +10,7 @@ from common.key import generate_key
 
 
 def calculate(big_int, mul):
-    return int(Decimal(str(big_int))*Decimal(mul))
+    return int(Decimal(str(big_int)) * Decimal(mul))
 
 
 @pytest.fixture()
@@ -131,7 +131,8 @@ def test_punishment_refund(staking_client, global_test_env):
     time.sleep(10)
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
-    assert balance_before + candidate_info["Ret"]["Released"] == balance_after, "After being sent out and removed from the certifier, the amount is refunded abnormally"
+    assert balance_before + candidate_info["Ret"][
+        "Released"] == balance_after, "After being sent out and removed from the certifier, the amount is refunded abnormally"
     msg = other_node.ppos.getCandidateInfo(node.node_id)
     log.info(msg)
     node.start()
@@ -218,7 +219,7 @@ def test_into_quit_block_reward(staking_client):
     log.info("Current certifier list:{}".format(verifier_list))
     validator_list = get_pledge_list(node.ppos.getValidatorList)
     log.info("Current consensus certifier list:{}".format(validator_list))
-    block_number = get_block_count_number(node, economic.settlement_size*3)
+    block_number = get_block_count_number(node, economic.settlement_size * 3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("Total amount of reward {}".format(reward_sum))
@@ -240,8 +241,9 @@ def test_back_unStaking(staking_client):
     balance_after = node.eth.getBalance(staking_address)
     log.info("Node 4 exits the pledge wallet balance {}".format(balance_after))
     assert balance_after > balance_before, "After exiting the pledge, the wallet balance has not increased"
-    log.info("Because the value of gas consumed by the pledge is greater than the value of the gas that cancels the pledge")
-    assert balance_after > client.amount - 10**18
+    log.info(
+        "Because the value of gas consumed by the pledge is greater than the value of the gas that cancels the pledge")
+    assert balance_after > client.amount - 10 ** 18
     node_list = get_pledge_list(node.ppos.getCandidateList)
     assert node.node_id not in node_list, "Verify that the node exits abnormally"
 
@@ -282,10 +284,11 @@ def test_unstaking_all(staking_client):
 
 @allure.title("验证人申请退回质押金（犹豫期+锁定期）")
 @pytest.mark.P1
-def test_520(staking_client):
+def test_520(global_test_env, staking_client):
     """
     The certifier applies for a refund of the quality deposit (hesitation period + lock-up period)
     """
+    global_test_env.deploy_all()
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -296,9 +299,11 @@ def test_520(staking_client):
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge information {}".format(msg))
-    assert msg["Ret"]["Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
+    assert msg["Ret"][
+               "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
     assert msg["Ret"]["Released"] == client.staking_amount, "Expected display of the amount of the deposit"
-    assert msg["Ret"]["ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
+    assert msg["Ret"][
+               "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
     block_reward, staking_reward = economic.get_current_year_reward(node)
 
     balance = node.eth.getBalance(staking_address)
@@ -309,7 +314,8 @@ def test_520(staking_client):
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Initiate a refund after pledge information{}".format(msg))
-    assert msg["Ret"]["ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
+    assert msg["Ret"][
+               "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
     balance1 = node.eth.getBalance(client.staking_address)
     log.info(balance1)
     log.info("Enter the 3rd cycle")
@@ -318,7 +324,7 @@ def test_520(staking_client):
     balance2 = node.eth.getBalance(staking_address)
     log.info(balance2)
 
-    block_number = get_block_count_number(node, economic.settlement_size*3)
+    block_number = get_block_count_number(node, economic.settlement_size * 3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("Total amount of reward {}".format(reward_sum))
@@ -356,8 +362,8 @@ def test_withdrew_staking_000(client_new_node_obj_list):
     assert_code(msg, 0)
 
 
+@pytest.mark.P2
 def test_withdrew_staking_001(staking_client):
-
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -371,6 +377,7 @@ def test_withdrew_staking_001(staking_client):
     assert_code(msg, 0)
 
 
+@pytest.mark.P2
 def test_withdrew_staking_002(staking_client):
     client = staking_client
     node = client.node
@@ -388,6 +395,7 @@ def test_withdrew_staking_002(staking_client):
     assert_code(msg, 0)
 
 
+@pytest.mark.P2
 def test_withdrew_staking_003(staking_client):
     _, node_id = generate_key()
     msg = staking_client.staking.withdrew_staking(staking_client.staking_address, node_id=node_id)
@@ -395,6 +403,7 @@ def test_withdrew_staking_003(staking_client):
     assert_code(msg, 301102)
 
 
+@pytest.mark.P2
 def test_withdrew_staking_004(staking_client):
     client = staking_client
     node = client.node
@@ -402,7 +411,8 @@ def test_withdrew_staking_004(staking_client):
     msg = client.staking.withdrew_staking(staking_address)
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
-    assert msg["Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
+    assert msg[
+               "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
     msg = client.staking.withdrew_staking(staking_address)
     assert_code(msg, 301102)
 
@@ -417,7 +427,8 @@ def test_006(staking_client):
     log.info("Create a lockout plan")
     lockup_amount = economic.add_staking_limit * 2
     plan = [{'Epoch': 1, 'Amount': lockup_amount}]
-    msg = client.restricting.createRestrictingPlan(staking_address, plan, economic.account.account_with_money["address"])
+    msg = client.restricting.createRestrictingPlan(staking_address, plan,
+                                                   economic.account.account_with_money["address"])
     assert_code(msg, 0)
     locked_info = client.ppos.getRestrictingInfo(staking_address)
     log.info(locked_info)
@@ -460,7 +471,8 @@ def test_007(staking_client):
     log.info("Create a lockout plan")
     lockup_amount = economic.add_staking_limit * 2
     plan = [{'Epoch': 1, 'Amount': lockup_amount}]
-    msg = client.restricting.createRestrictingPlan(staking_address, plan, economic.account.account_with_money["address"])
+    msg = client.restricting.createRestrictingPlan(staking_address, plan,
+                                                   economic.account.account_with_money["address"])
     assert_code(msg, 0)
     locked_info = client.ppos.getRestrictingInfo(staking_address)
     log.info(locked_info)
@@ -496,11 +508,12 @@ def test_007(staking_client):
 
     """Calculate block reward + pledge reward"""
     log.info("The following is the number of blocks to get the node")
-    block_number = get_block_count_number(node, economic.settlement_size*3)
+    block_number = get_block_count_number(node, economic.settlement_size * 3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("Total amount of reward {}".format(reward_sum))
-    assert before_create_balance + reward_sum + lockup_amount - balance_settlement_2 < Web3.toWei(1, "ether"), "After the expected result unlock period, the money has been refunded + the block reward + pledge reward"
+    assert before_create_balance + reward_sum + lockup_amount - balance_settlement_2 < Web3.toWei(1,
+                                                                                                  "ether"), "After the expected result unlock period, the money has been refunded + the block reward + pledge reward"
 
 
 @allure.title("自由账户质押+锁仓账户增持(都存在犹豫期+锁定期)")
@@ -513,7 +526,8 @@ def test_009(staking_client):
     log.info("Create a lockout plan")
     lockup_amount = economic.add_staking_limit * 5
     plan = [{'Epoch': 3, 'Amount': lockup_amount}]
-    msg = client.restricting.createRestrictingPlan(staking_address, plan, economic.account.account_with_money["address"])
+    msg = client.restricting.createRestrictingPlan(staking_address, plan,
+                                                   economic.account.account_with_money["address"])
     assert_code(msg, 0), "Creating a lockout plan failed"
     locked_info = client.ppos.getRestrictingInfo(staking_address)
     log.info(locked_info)
@@ -546,13 +560,15 @@ def test_009(staking_client):
     locked_info = client.ppos.getRestrictingInfo(staking_address)
     log.info("Query the lockout plan after the second cycle initiated revocation {}".format(locked_info))
     assert_code(locked_info, 0)
-    assert locked_info["Ret"]["Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
+    assert locked_info["Ret"][
+               "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query the pledge of node {}".format(msg))
 
     assert msg["Ret"]["ReleasedHes"] == 0, "Expected amount of hesitation has been refunded"
-    assert msg["Ret"]["RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
+    assert msg["Ret"][
+               "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
 
     log.info("Enter the 3rd cycle")
     economic.wait_settlement_blocknum(node)
@@ -573,20 +589,22 @@ def test_009(staking_client):
 
     """Compute Block Reward + Pledge Reward"""
     log.info("The following is the number of blocks to get the node")
-    block_number = get_block_count_number(node, economic.settlement_size*3)
+    block_number = get_block_count_number(node, economic.settlement_size * 3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("Total amount of reward {}".format(reward_sum))
 
-    assert client.amount + reward_sum - balance4 < Web3.toWei(1, "ether"), "After the expected result unlock period, the money has been refunded + the block reward + pledge reward"
+    assert client.amount + reward_sum - balance4 < Web3.toWei(1,
+                                                              "ether"), "After the expected result unlock period, the money has been refunded + the block reward + pledge reward"
 
 
 @allure.title("修改节点收益地址，再做退回：验证质押奖励+出块奖励")
 @pytest.mark.P0
-def test_alter_address_backup(staking_client):
+def test_alter_address_backup(global_test_env, staking_client):
     """
     修改钱包地址，更改后的地址收益正常
     """
+    global_test_env.deploy_all()
     client = staking_client
     node = client.node
     staking_address = client.staking_address
@@ -613,7 +631,7 @@ def test_alter_address_backup(staking_client):
 
     """Compute Block Reward + Pledge Reward"""
     log.info("The following is the number of blocks to get the node")
-    block_number = get_block_count_number(node, economic.settlement_size*3)
+    block_number = get_block_count_number(node, economic.settlement_size * 3)
     sum_block_reward = calculate(block_reward, block_number)
     reward_sum = sum_block_reward + staking_reward
     log.info("Total amount of reward {}".format(reward_sum))

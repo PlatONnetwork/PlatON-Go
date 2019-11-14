@@ -249,7 +249,7 @@ def test_CS_CL_007(global_test_env, client_noc_list_obj):
     assert verifierlist[0] == client_noc_list_obj[0].node.node_id
 
 @pytest.mark.P1
-def test_CS_CL_010(global_test_env, client_new_node_obj):
+def test_CS_CL_010_030(global_test_env, client_new_node_obj):
     """
     :param global_test_env:
     :param client_new_node_obj:
@@ -283,7 +283,7 @@ def test_CS_CL_010(global_test_env, client_new_node_obj):
     assert client_new_node_obj.node.node_id not in verifierlist
 
 @pytest.mark.P1
-def test_CS_CL_012(global_test_env, client_new_node_obj):
+def test_CS_CL_012_033(global_test_env, client_new_node_obj):
     """
     :param client_new_node_obj:
     :return:
@@ -320,7 +320,7 @@ def test_CS_CL_012(global_test_env, client_new_node_obj):
     assert client_new_node_obj.node.node_id not in validatorlist
 
 @pytest.mark.P1
-def test_CS_CL_013(global_test_env, client_new_node_obj, client_consensus_obj):
+def test_CS_CL_013_031(global_test_env, client_new_node_obj, client_consensus_obj):
     """
 
     :param client_new_node_obj:
@@ -350,9 +350,9 @@ def test_CS_CL_013(global_test_env, client_new_node_obj, client_consensus_obj):
     assert client_new_node_obj.node.node_id not in verifierlist
 
 
-@pytest.mark.P3
+@pytest.mark.P2
 @pytest.mark.parametrize('status', [0, 1, 2])
-def test_CS_CL_014_015_016(status, global_test_env, client_con_list_obj, client_noc_list_obj):
+def test_CS_CL_014_015_016_029(status, global_test_env, client_con_list_obj, client_noc_list_obj):
     """
     :param status:
     :param global_test_env:
@@ -497,7 +497,7 @@ def test_CS_CL_014_015_016(status, global_test_env, client_con_list_obj, client_
         # assert client_con_list_obj[3] in validatorlist
 
 
-@pytest.mark.P3
+@pytest.mark.P2
 @pytest.mark.parametrize('status', [0, 1])
 def test_CS_CL_017_018_019(status, global_test_env, client_con_list_obj, client_noc_list_obj):
     """
@@ -573,5 +573,25 @@ def test_CS_CL_017_018_019(status, global_test_env, client_con_list_obj, client_
         assert client_con_list_obj[3] in validatorlist
 
 
-if __name__ == '__main__':
-    pytest.main(['-s', '-q', '--alluredir', './report/rep', 'test_vote.py::test_CS_CL_014_015_016'])
+@pytest.mark.P2
+def test_CS_CL_028(global_test_env, client_new_node_obj):
+    global_test_env.deploy_all()
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                           10 ** 18 * 10000000)
+
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address1, address1, amount=value)
+    assert_code(result, 0)
+
+    # Next settlement period
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    # Next consensus period
+    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+
+    verifierlist = get_pledge_list(client_new_node_obj.ppos.getVerifierList)
+    log.info("verifierlist:{}".format(verifierlist))
+    assert client_new_node_obj.node.node_id in verifierlist
+
+
+
+

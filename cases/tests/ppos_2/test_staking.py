@@ -6,6 +6,7 @@ from tests.lib.config import EconomicConfig
 
 @pytest.mark.P1
 def test_IV_001_002_010(global_test_env, client_consensus_obj):
+    global_test_env.deploy_all()
     node_info = client_consensus_obj.ppos.getValidatorList()
     log.info(node_info)
     nodeid_list = []
@@ -199,14 +200,15 @@ def test_P_029(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_P_030(client_new_node_obj, get_generate_account):
+def test_P_030(client_new_node_obj):
     """
     锁定期质押
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("进入下个周期")
@@ -237,10 +239,10 @@ def test_P_031(client_new_node_obj):
     assert_code(result, 0)
     # Lock-up increase
     result = client_new_node_obj.staking.increase_staking(0, address)
-    assert_code(result, 301003)
+    assert_code(result, 301102)
     # Lockup delegate
     result = client_new_node_obj.delegate.delegate(0, address_delegate)
-    assert_code(result, 301003)
+    assert_code(result, 301102)
 
 
 @pytest.mark.P3
