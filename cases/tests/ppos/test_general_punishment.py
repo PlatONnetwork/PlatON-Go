@@ -60,7 +60,7 @@ def test_VP_GPFV_003(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -69,6 +69,7 @@ def test_VP_GPFV_003(client_new_node_obj_list, reset_environment):
     log.info("Pledge node information： {}".format(candidate_info))
     pledge_amount2 = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("punishment_amonut: {}".format(punishment_amonut))
     if punishment_amonut < pledge_amount1:
         assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
             pledge_amount2)
@@ -107,7 +108,7 @@ def test_VP_GPFV_004(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -167,7 +168,7 @@ def test_VP_GPFV_005(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -217,7 +218,7 @@ def test_VP_GPFV_006(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -263,7 +264,7 @@ def test_VP_GPFV_007(client_new_node_obj_list, reset_environment):
     result = client2.staking.withdrew_staking(address, node_id=node.node_id)
     assert_code(result, 0)
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -309,7 +310,7 @@ def test_VP_GPFV_008(client_new_node_obj_list, reset_environment):
     result = client2.staking.increase_staking(0, address, node_id=node.node_id, amount=economic.create_staking_limit)
     assert_code(result, 0)
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -345,13 +346,11 @@ def test_VP_GPFV_009(client_new_node_obj_list, reset_environment):
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
-    # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
     log.info("Current block height: {}".format(client1.node.eth.blockNumber))
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # create staking again
     result = client2.staking.create_staking(0, address, address, node_id=node.node_id, program_version=node.program_version,
@@ -383,7 +382,7 @@ def test_VP_GPFV_010(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # Additional pledge
     result = client2.staking.increase_staking(0, address, node_id=node.node_id)
@@ -494,7 +493,7 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
             # stop node
             client1.node.stop()
             # Waiting for 2 consensus round
-            client2.economic.wait_consensus_blocknum(client2.node, 2)
+            client2.economic.wait_consensus_blocknum(client2.node, 3)
             # view block_reward
             block_reward, staking_reward = client2.economic.get_current_year_reward(client2.node)
             log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
@@ -540,7 +539,7 @@ def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -554,11 +553,11 @@ def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_014(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
     """
     低出块率被最高处罚金低于自由处罚金（自由金额质押）
     :param new_genesis_env:
-    :param client_new_node_obj_list:
+    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -568,9 +567,9 @@ def test_VP_GPFV_014(new_genesis_env, client_new_node_obj_list):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_new_node_obj_list[0]
+    client1 = client_noc_list_obj[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
+    client2 = client_noc_list_obj[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -596,7 +595,7 @@ def test_VP_GPFV_014(new_genesis_env, client_new_node_obj_list):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -613,11 +612,11 @@ def test_VP_GPFV_014(new_genesis_env, client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_015(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_015(new_genesis_env, client_noc_list_obj):
     """
     低出块率被最高处罚金等于于自由处罚金（自由金额质押）
     :param new_genesis_env:
-    :param client_new_node_obj_list:
+    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -627,9 +626,9 @@ def test_VP_GPFV_015(new_genesis_env, client_new_node_obj_list):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_new_node_obj_list[0]
+    client1 = client_noc_list_obj[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
+    client2 = client_noc_list_obj[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -663,7 +662,7 @@ def test_VP_GPFV_015(new_genesis_env, client_new_node_obj_list):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -680,11 +679,11 @@ def test_VP_GPFV_015(new_genesis_env, client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_016(new_genesis_env, client_noc_list_obj):
     """
     低出块率被最高处罚金大于自由处罚金（自由金额质押）
     :param new_genesis_env:
-    :param client_new_node_obj_list:
+    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -694,9 +693,9 @@ def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_new_node_obj_list[0]
+    client1 = client_noc_list_obj[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
+    client2 = client_noc_list_obj[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -730,7 +729,7 @@ def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -748,11 +747,11 @@ def test_VP_GPFV_016(new_genesis_env, client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_017(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_017(new_genesis_env, client_noc_list_obj):
     """
     低出块率被最高处罚金低于质押金额（锁仓金额质押）
     :param new_genesis_env:
-    :param client_new_node_obj_list:
+    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -762,9 +761,9 @@ def test_VP_GPFV_017(new_genesis_env, client_new_node_obj_list):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_new_node_obj_list[0]
+    client1 = client_noc_list_obj[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
+    client2 = client_noc_list_obj[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -790,7 +789,7 @@ def test_VP_GPFV_017(new_genesis_env, client_new_node_obj_list):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -801,14 +800,14 @@ def test_VP_GPFV_017(new_genesis_env, client_new_node_obj_list):
     pledge_amount2 = info['Released']
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(
+    log.info("punishment_amonut: {}".format(punishment_amonut))
+    assert pledge_amount2 == increase_amount - punishment_amonut, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
-    assert pledge_amount3 == economic.create_staking_limit - (
-                punishment_amonut - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == economic.create_staking_limit - (pledge_amount1 - punishment_amonut), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
-def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_018(new_genesis_env, client_noc_list_obj):
     """
     低出块率被最高处罚金等于质押金额（锁仓金额质押）
     :param new_genesis_env:
@@ -822,9 +821,9 @@ def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_new_node_obj_list[0]
+    client1 = client_noc_list_obj[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
+    client2 = client_noc_list_obj[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -858,7 +857,7 @@ def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -876,7 +875,7 @@ def test_VP_GPFV_018(new_genesis_env, client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
+def test_VP_GPFV_019(new_genesis_env, client_noc_list_obj):
     """
     低出块率被最高处罚金大于质押金额（锁仓金额质押）
     :param new_genesis_env:
@@ -890,9 +889,9 @@ def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_new_node_obj_list[0]
+    client1 = client_noc_list_obj[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
+    client2 = client_noc_list_obj[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -925,7 +924,7 @@ def test_VP_GPFV_019(new_genesis_env, client_new_node_obj_list):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -968,7 +967,7 @@ def test_VP_GPFV_020(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -1016,7 +1015,7 @@ def test_VP_GPFV_021(client_new_node_obj_list, reset_environment):
     # stop node
     client1.node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()

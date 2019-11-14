@@ -349,12 +349,14 @@ def test_UP_FV_009(client_new_node_obj_list, reset_environment):
     log.info("verifier_list: {}".format(verifier_list))
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     # view restricting plan again
-    restricting_info = client1.ppos.getRestrictingInfo(address1)
+    restricting_info = client2.ppos.getRestrictingInfo(address1)
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info[
-               'debt'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting debt amount {}'.format(
-        info['debt'])
+    if punishment_amonut < economic.create_staking_limit:
+        assert info['debt'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting debt amount {}'.format(
+            info['debt'])
+    else:
+        assert info['debt'] == 0, 'ErrMsg: restricting debt amount {}'.format(info['debt'])
 
 
 @pytest.mark.P2
