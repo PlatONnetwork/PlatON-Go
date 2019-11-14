@@ -8,6 +8,7 @@
 *.egg-info
 .pytest_cache
 deploy/tmp
+deploy/node
 deploy/bin
 allure-report
 
