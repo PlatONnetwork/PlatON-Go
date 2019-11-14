@@ -17,7 +17,13 @@
 package eth
 
 import (
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Tests that fast sync gets disabled as soon as a real block is successfully
@@ -25,7 +31,7 @@ import (
 func TestFastSyncDisabling(t *testing.T) {
 	// Create a pristine protocol manager, check that fast sync is left enabled
 	// TODO test
-	/*pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
+	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
 	if atomic.LoadUint32(&pmEmpty.fastSync) == 0 {
 		t.Fatalf("fast sync disabled on pristine blockchain")
 	}
@@ -46,5 +52,5 @@ func TestFastSyncDisabling(t *testing.T) {
 	// Check that fast sync was disabled
 	if atomic.LoadUint32(&pmEmpty.fastSync) == 1 {
 		t.Fatalf("fast sync not disabled after successful synchronisation")
-	}*/
+	}
 }
