@@ -190,7 +190,7 @@ def test_IP_PR_009_1(reset_cfg_env_node):
     genesis.to_file(new_file)
     reset_cfg_env_node.deploy_me(new_file)
     config = reset_cfg_env_node.debug.economicConfig()
-    assert value == config["reward"]["platONFoundationYear"]
+    assert value == config["reward"]["platonFoundationYear"]
 
 
 @pytest.mark.P2
