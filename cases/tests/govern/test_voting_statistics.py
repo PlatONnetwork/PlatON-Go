@@ -103,8 +103,9 @@ def submittpandvote(client_list_obj, *args):
 class TestVotingStatistics():
     def createstaking(self, obj):
         if isinstance(obj, Client):
-            obj = []
-            obj.append(obj)
+            obj_list = []
+            obj_list.append(obj)
+            obj = obj_list
         for client_obj in obj:
             address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10 ** 18 * 10000000)
             result = client_obj.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
@@ -135,6 +136,7 @@ class TestVotingStatistics():
         submitppandvote(client_con_list_obj[:2], 1, 2)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Param proposal info {}'.format(proposalinfo))
+        log.info('{}'.format(client_con_list_obj[:2]))
         self.createstaking(client_noc_list_obj[:2])
         pip_obj.economic.wait_settlement_blocknum(pip_obj.node)
         result = pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID'))
@@ -143,6 +145,7 @@ class TestVotingStatistics():
 
         result = param_proposal_vote(client_noc_list_obj[0].pip, pip_obj.cfg.vote_option_Abstentions)
         assert_code(result, 0)
+        log.info('{}'.format(client_con_list_obj[2]))
         self.createstaking(client_noc_list_obj[2])
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
 
@@ -172,14 +175,14 @@ class TestVotingStatistics():
         log.info('Get proposal vote infomation {}'.format(result))
         assert result == [6, 1, 1, 0]
 
-        result = param_proposal_vote(client_con_list_obj[2].pip, client_con_list_obj[0].pip.cfg.vote_option_nays)
+        result = param_proposal_vote(client_con_list_obj[2].pip, client_con_list_obj[0].pip.cfg.vote_option_Abstentions)
         assert_code(result, 0)
         self.createstaking(client_noc_list_obj[2])
         wait_block_number(client_con_list_obj[0].pip.node, proposalinfo.get('EndVotingBlock'))
 
         result = client_con_list_obj[0].pip.get_accuverifiers_count(proposalinfo.get('ProposalID'))
         log.info('Get proposal vote infomation {}'.format(result))
-        assert result == [6, 1, 1, 0]
+        assert result == [6, 1, 1, 1]
 
     def test_VS_EP_007(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
