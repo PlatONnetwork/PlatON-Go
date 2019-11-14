@@ -54,7 +54,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyStakeThreshold,
-				fmt.Sprintf("minimum amount of stake, range：[%d, %d) ", xcom.MillionLAT, xcom.BillionLAT)},
+				fmt.Sprintf("minimum amount of stake, range：[%d, %d) ", xcom.MillionLAT, xcom.TenMillionLAT)},
 			ParamValue: &ParamValue{"", xcom.StakeThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -72,7 +72,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyOperatingThreshold,
-				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range：[%d, %d) ", xcom.TenLAT, xcom.BillionLAT)},
+				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range：[%d, %d) ", xcom.TenLAT, xcom.TenThousandLAT)},
 			ParamValue: &ParamValue{"", xcom.OperatingThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -228,10 +228,9 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
 				}
 
-				// (4712388, 1008000000)
-				max := int(params.DefaultMinerGasCeil) * 10
-				if gasLimit <= int(params.GenesisGasLimit) || gasLimit > max {
-					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %d)", int(params.GenesisGasLimit), max))
+				// (4712388, 21000 0000)
+				if gasLimit <= int(params.GenesisGasLimit) || gasLimit > int(params.MaxGasCeil) {
+					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %d)", int(params.GenesisGasLimit), int(params.MaxGasCeil)))
 				}
 
 				return nil
