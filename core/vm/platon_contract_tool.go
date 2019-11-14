@@ -44,7 +44,7 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 	return []byte(receipt)
 }
 
-func callResultHandler(evm *EVM, title string, resultValue interface{}, err error) []byte {
+func callResultHandler(evm *EVM, title string, resultValue interface{}, err *common.BizError) []byte {
 	txHash := evm.StateDB.TxHash()
 	blockNumber := evm.BlockNumber.Uint64()
 

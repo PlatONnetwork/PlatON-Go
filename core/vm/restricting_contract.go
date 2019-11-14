@@ -91,11 +91,6 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	state := rc.Evm.StateDB
 
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
-	if err != nil {
-		return callResultHandler(rc.Evm, fmt.Sprintf("getRestrictingInfo, account: %s", account.String()),
-			result, common.InternalError.Wrap(err.Error())), nil
-	} else {
-		return callResultHandler(rc.Evm, fmt.Sprintf("getRestrictingInfo, account: %s", account.String()),
-			result, nil), nil
-	}
+	return callResultHandler(rc.Evm, fmt.Sprintf("getRestrictingInfo, account: %s", account.String()),
+		result, err), nil
 }
