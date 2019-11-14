@@ -86,7 +86,6 @@ class TestStartParam(object):
         test_node = append_cmd_restart(global_test_env, "--ipcpath platon_test.ipc")
         assert file_is_exist(test_node.ssh, test_node.remote_data_dir, "platon_test.ipc")
 
-    ## 待处理
     def test_open_bootnodes(self, global_test_env):
         global_test_env.deploy_all()
         env = global_test_env
