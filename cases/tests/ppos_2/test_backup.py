@@ -128,6 +128,7 @@ def test_punishment_refund(staking_client, global_test_env):
     log.info("Query the account balance after being punished: {}".format(balance_before))
     log.info("Go to the next billing cycle")
     economic.wait_settlement_blocknum(other_node, 1)
+    time.sleep(10)
     balance_after = other_node.eth.getBalance(staking_address)
     log.info("The balance after the penalty is refunded to the account:{}".format(balance_after))
     assert balance_before + candidate_info["Ret"]["Released"] == balance_after, "After being sent out and removed from the certifier, the amount is refunded abnormally"
