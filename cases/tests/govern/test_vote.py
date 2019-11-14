@@ -590,7 +590,17 @@ class TestVoteVPVerify():
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN9, version_sign=version_sign)
         assert_code(result, 302024)
 
-
+    def test_VO_SI_011_012(self, client_verifier_obj_list):
+        pip_obj = client_verifier_obj_list[0].pip
+        pip_obj_two = client_verifier_obj_list[1].pip
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
+        result = self.vote_wrong_version(pip_obj, pip_obj.cfg.text_proposal)
+        assert_code(result, 0)
+        result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.text_proposal)
+        assert_code(result, 0)
 
 
 
