@@ -50,13 +50,13 @@ def global_test_env(request):
     init_chain = request.config.getoption("--initChain")
     install_dependency = request.config.getoption("--installDependency")
     install_supervisor = request.config.getoption("--installSupervisor")
-    plant_url = request.config.getoption("--platonUrl")
+    platon_url = request.config.getoption("--platonUrl")
     allure_dir = request.config.getoption("--alluredir")
-    if plant_url:
-        download.download_platon(plant_url)
+    if platon_url:
+        download.download_platon(platon_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
-    # env.deploy_all()
-    env.prepare_all()
+    env.deploy_all()
+    # env.prepare_all()
     yield env
 
     if allure_dir:

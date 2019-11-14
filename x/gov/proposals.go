@@ -443,6 +443,16 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		}
 	}
 
+	//another VersionProposal in Pre-active process，exit
+	proposalID, err := GetPreActiveProposalID(blockHash)
+	if err != nil {
+		log.Error("check pre-active version proposal error", "blockNumber", submitBlock, "blockHash", blockHash)
+		return err
+	}
+	if proposalID != common.ZeroHash {
+		return PreActiveVersionProposalExist
+	}
+
 	epochRounds := xutil.CalcEpochRounds(xcom.ParamProposalVote_DurationSeconds())
 	endVotingBlock := xutil.CalEndVotingBlockForParamProposal(submitBlock, epochRounds)
 	pp.EndVotingBlock = endVotingBlock

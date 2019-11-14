@@ -57,6 +57,9 @@ var (
 	// 10 LAT
 	TenLAT, _ = new(big.Int).SetString("10000000000000000000", 10)
 
+	// 10000 LAT
+	TenThousandLAT, _ = new(big.Int).SetString("10000000000000000000000", 10)
+
 	// hard code genesis staking balance
 	// 150W LAT
 	GeneStakingAmount, _ = new(big.Int).SetString("1500000000000000000000000", 10)
@@ -65,6 +68,8 @@ var (
 	MillionLAT, _ = new(big.Int).SetString("1000000000000000000000000", 10)
 	// 1000W LAT
 	TenMillionLAT, _ = new(big.Int).SetString("10000000000000000000000000", 10)
+
+	BillionLAT, _ = new(big.Int).SetString("1000000000000000000000000000", 10)
 )
 
 type commonConfig struct {
@@ -310,15 +315,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 func CheckStakeThreshold(threshold *big.Int) error {
 
-	if threshold.Cmp(MillionLAT) < 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %s) LAT", MillionLAT, PositiveInfinity))
+	if threshold.Cmp(MillionLAT) < 0 || threshold.Cmp(TenMillionLAT) >= 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d) LAT", MillionLAT, TenMillionLAT))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
-	if threshold.Cmp(TenLAT) < 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %s) LAT", TenLAT, PositiveInfinity))
+	if threshold.Cmp(TenLAT) < 0 || threshold.Cmp(TenThousandLAT) >= 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d) LAT", TenLAT, TenThousandLAT))
 	}
 	return nil
 }

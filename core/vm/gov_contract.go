@@ -448,5 +448,13 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 }
 
 func (gc *GovContract) callHandler(funcName string, resultValue interface{}, err error) ([]byte, error) {
-	return callResultHandler(gc.Evm, funcName+" of GovContract", resultValue, err), nil
+	if err == nil {
+		return callResultHandler(gc.Evm, funcName+" of GovContract", resultValue, nil), nil
+	}
+	switch typed := err.(type) {
+	case *common.BizError:
+		return callResultHandler(gc.Evm, funcName+" of GovContract", resultValue, typed), nil
+	default:
+		return callResultHandler(gc.Evm, funcName+" of GovContract", resultValue, common.InternalError.Wrap(err.Error())), nil
+	}
 }

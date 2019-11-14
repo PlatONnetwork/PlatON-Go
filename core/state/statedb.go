@@ -120,7 +120,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 func (self *StateDB) NewStateDB() *StateDB {
 	stateDB := &StateDB{
 		db:                 self.db,
-		trie:               self.db.CopyTrie(self.trie),
+		trie:               self.db.NewTrie(self.trie),
 		stateObjects:       make(map[common.Address]*stateObject),
 		stateObjectsDirty:  make(map[common.Address]struct{}),
 		logs:               make(map[common.Hash][]*types.Log),

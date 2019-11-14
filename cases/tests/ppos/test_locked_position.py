@@ -18,9 +18,9 @@ def test_LS_FV_001(client_consensus_obj):
     :return:
     """
     # Reset environment
-    client_consensus_obj.economic.env.deploy_all()
+    # client_consensus_obj.economic.env.deploy_all()
     # view Lock in contract amount
-    lock_up_amount = client_consensus_obj.node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS)
+    lock_up_amount = client_consensus_obj.node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS, 0)
     log.info("Lock in contract amount: {}".format(lock_up_amount))
     # view Lockup plan
     result = client_consensus_obj.ppos.getRestrictingInfo(EconomicConfig.INCENTIVEPOOL_ADDRESS)
@@ -28,9 +28,7 @@ def test_LS_FV_001(client_consensus_obj):
     assert_code(result, 0)
     log.info("Lockup plan information: {}".format(result))
     # assert louck up amount
-    for i in release_plans_list:
-        print("a", type(release_plans_list[i]))
-        print("b", EconomicConfig.release_info[i])
+    for i in range(len(release_plans_list)):
         assert release_plans_list[i] == EconomicConfig.release_info[
             i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
             'blockNumber'], release_plans_list[i]['amount'])
@@ -610,7 +608,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     slash_blocks = get_governable_parameter_value(client1, 'SlashBlocksReward')
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # stop node
-    client1.node.stop()
+    node.stop()
     # Waiting 2 consensus block
     client2.economic.wait_consensus_blocknum(client2.node, 2)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
@@ -628,7 +626,8 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     if punishment_amonut > pledge_amount:
         assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
     else:
-        assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+        assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(
+            info['Pledge'])
     # create Restricting Plan again
     plan = [{'Epoch': 1, 'Amount': von_amount(economic.create_staking_limit, 2)}]
     result = client2.restricting.createRestrictingPlan(address2, plan, address1)
@@ -818,7 +817,8 @@ def test_LS_PV_001(client_new_node_obj):
     log.info("restricting info: {}".format(restricting_info))
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    assert info['Pledge'] == economic.create_staking_limit, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
 
 
 @pytest.mark.P1
@@ -923,7 +923,7 @@ def test_LS_PV_006(client_new_node_obj):
 @pytest.mark.P1
 def test_LS_PV_007(client_new_node_obj_list):
     """
-    创建计划退回质押-锁仓计划退回质押金额>锁仓质押金额
+    创建计划退回质押-退回质押金额>锁仓质押金额
     :param client_new_node_obj_list:
     :return:
     """
@@ -951,11 +951,6 @@ def test_LS_PV_007(client_new_node_obj_list):
     # withdrew staking
     result = client2.staking.withdrew_staking(address2)
     assert_code(result, 0)
-    # view Restricting plan
-    restricting_info = client2.ppos.getRestrictingInfo(address2)
-    assert_code(restricting_info, 0)
-    info = restricting_info['Ret']
-    assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
 
 
 @pytest.mark.P1
@@ -975,4 +970,1214 @@ def test_LS_PV_008(client_new_node_obj):
     assert_code(result, 0)
 
 
+@pytest.mark.P1
+def test_LS_PV_009(client_new_node_obj_list):
+    """
+    创建计划退回质押-欠释放金额<回退金额
+    :param client_new_node_obj_list:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = von_amount(economic.create_staking_limit, 2)
+    address1, address2 = create_lock_release_amount(client1, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client1.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client1.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    # wait settlement block
+    economic.wait_settlement_blocknum(node)
+    # view restricting info
+    restricting_info = client1.ppos.getRestrictingInfo(address2)
+    info = restricting_info['Ret']
+    assert info['dept'] == economic.create_staking_limit, "rrMsg: restricting debt amount {}".format(info['debt'])
+    # create Free amount staking
+    result = client2.staking.create_staking(0, address2, address2)
+    assert_code(result, 0)
+    # withdrew staking
+    result = client2.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # view Restricting plan
+    restricting_info = client2.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['debt'] == 0, "errMsg: restricting debt amount {}".format(info['debt'])
 
+
+@pytest.mark.P2
+def test_LS_PV_010(client_new_node_obj):
+    """
+    创建计划退回质押-锁仓账户余额不足的情况下申请退回质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = node.web3.toWei(0.000009, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    log.info("address amount: {}".format(node.eth.getBalance(address2)))
+    try:
+        # withdrew staking
+        result = client.staking.withdrew_staking(address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P2
+def test_LS_PV_011(client_new_node_obj):
+    """
+    锁仓账户退回质押金中，申请质押节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan and staking
+    address1, address2 = create_restricting_plan_and_staking(client, node, economic)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # create Restricting amount staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 301101)
+
+
+@pytest.mark.P2
+def test_LS_PV_012(client_new_node_obj):
+    """
+    锁仓账户申请完质押后又退回质押金（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account restricting plan
+    address2 = create_account_restricting_plan(client, economic, node)
+    # create staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_LS_PV_013(client_new_node_obj):
+    """
+    锁仓账户申请完质押后又退回质押金（锁定期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account restricting plan
+    address2 = create_account_restricting_plan(client, economic, node)
+    # create staking
+    result = client.staking.create_staking(1, address2, address2)
+    assert_code(result, 0)
+    # wait settlement block
+    economic.wait_settlement_blocknum(node)
+    # withdrew staking
+    result = client.staking.withdrew_staking(address2)
+    assert_code(result, 0)
+    # wait settlement block
+    economic.wait_settlement_blocknum(node, 2)
+    # view restricting info
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting info: {}".format(restricting_info))
+    assert_code(restricting_info, 304005)
+
+
+def create_free_pledge(client, economic):
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = client.node.web3.toWei(1000, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # view Restricting Plan informtion
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("Restricting Plan informtion: {}".format(restricting_info))
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P1
+def test_LS_EV_001(client_new_node_obj):
+    """
+    创建计划委托-委托正常节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 0)
+    # view Restricting Plan
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting info: {}".format(restricting_info))
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == economic.delegate_limit, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
+
+
+@pytest.mark.P1
+def test_LS_EV_002(client_new_node_obj):
+    """
+    创建计划委托-未找到锁仓信息
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = client.node.web3.toWei(1000, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 304005)
+
+
+@pytest.mark.P1
+def test_LS_EV_003(client_new_node_obj, client_consensus_obj):
+    """
+    锁仓账户委托基金会节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    result = client_consensus_obj.delegate.delegate(1, address2)
+    assert_code(result, 301107)
+
+
+@pytest.mark.P1
+def test_LS_EV_004(client_new_node_obj):
+    """
+    锁仓账户委托非候选节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    test_LS_EV_001(client)
+
+
+@pytest.mark.P1
+def test_LS_EV_005(client_new_node_obj):
+    """
+    锁仓账户委托金额小于最低委托金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    delegate_amount = von_amount(economic.delegate_limit, 0.8)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    assert_code(result, 301105)
+
+
+@pytest.mark.P1
+def test_LS_EV_006(client_new_node_obj):
+    """
+    有锁仓可用金额，但是账户余额为0的情况下申请委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    address1, address2 = create_lock_release_amount(client, amount1, 0)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': economic.delegate_limit}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    try:
+        # Application for Commission
+        result = client.delegate.delegate(1, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_EV_007(client_new_node_obj):
+    """
+    创建计划委托-锁仓计划委托金额<0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    try:
+        # Application for Commission
+        delegate_amount = von_amount(economic.delegate_limit, 0.8)
+        result = client.delegate.delegate(1, address2, amount=delegate_amount)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_EV_008(client_new_node_obj):
+    """
+    创建计划委托-锁仓计划委托金额=0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2, amount=0)
+    assert_code(result, 301105)
+
+
+def create_delegation_information(client, economic, node, base):
+    address2 = create_free_pledge(client, economic)
+    # Application for Commission
+    delegate_amount = von_amount(economic.delegate_limit, base)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    assert_code(result, 0)
+    # view restricting info
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == delegate_amount, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+    # get Pledge node information
+    candidate_info = client.ppos.getCandidateInfo(node.node_id)
+    info = candidate_info['Ret']
+    staking_blocknum = info['StakingBlockNum']
+    return address2, delegate_amount, staking_blocknum
+
+
+@pytest.mark.P2
+def test_LS_EV_009(client_new_node_obj):
+    """
+    锁仓账户发起委托之后赎回部分委托验证（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 5)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting info again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == delegate_amount - redemption_amount, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
+
+
+@pytest.mark.P2
+def test_LS_EV_010(client_new_node_obj):
+    """
+    锁仓账户发起委托之后赎回全部委托验证（犹豫期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 10)
+    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    # view restricting info again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == delegate_amount - redemption_amount, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
+
+
+@pytest.mark.P2
+def test_LS_EV_011(client_new_node_obj):
+    """
+    锁仓账户发起委托之后赎回委托验证（锁定期）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 10)
+    client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    # view restricting info again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    assert_code(restricting_info, 304005)
+
+
+@pytest.mark.P1
+def test_LS_EV_012(client_new_node_obj):
+    """
+    锁仓赎回委托金额小于委托最低门槛
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 0.8)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 301108)
+
+
+@pytest.mark.P1
+def test_LS_EV_013(client_new_node_obj):
+    """
+    锁仓赎回委托后剩余委托小于委托最低门槛
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 2)
+    # view restricting plan information
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan information: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['Pledge'] == von_amount(economic.delegate_limit, 2), 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 1.5)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting plan information again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan information: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['Pledge'] == 0, 'ErrMsg: restricting Pledge amount {}'.format(info['Pledge'])
+
+
+@pytest.mark.P2
+def test_LS_EV_014(client_new_node_obj_list, reset_environment):
+    """
+    锁仓账户委托节点状态异常验证人（节点已挂）
+    :param client_new_node_obj_list:
+    :param reset_environment:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # create free pledge
+    address2 = create_free_pledge(client1, economic)
+    # stop pledge node
+    node.stop()
+    # Wait for the consensus round to end
+    client2.economic.wait_consensus_blocknum(client2.node)
+    # Application for Commission
+    result = client2.delegate.delegate(1, address2, node_id=node.node_id)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_EV_015(client_new_node_obj):
+    """
+    创建计划委托-锁仓账户余额为0的情况下申请委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    address1, address2 = create_lock_release_amount(client, amount1, 0)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    try:
+        # Application for Commission
+        result = client.delegate.delegate(1, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_EV_016(client_new_node_obj):
+    """
+    创建计划退回委托-锁仓计划退回委托金额<0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    try:
+        # withdrew delegate
+        result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=-100)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_EV_017(client_new_node_obj):
+    """
+    创建计划退回委托-锁仓计划退回委托金额=0
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=0)
+    assert_code(result, 301108)
+
+
+@pytest.mark.P1
+def test_LS_EV_018(client_new_node_obj):
+    """
+    创建计划退回委托-锁仓计划退回委托金额>锁仓委托金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create delegation information
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 11)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 301113)
+
+
+@pytest.mark.P1
+def test_LS_EV_019(client_new_node_obj):
+    """
+    创建计划退回委托-欠释放金额>赎回委托金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan informtion
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit, 10), "rrMsg: restricting debt amount {}".format(
+        info['debt'])
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 5)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting plan informtion again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit,
+                                      10) - redemption_amount, "rrMsg: restricting debt amount {}".format(info['debt'])
+
+
+@pytest.mark.P1
+def test_LS_EV_020(client_new_node_obj):
+    """
+    创建计划退回委托-欠释放金额=撤销委托金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 10)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan informtion
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit, 10), "rrMsg: restricting debt amount {}".format(
+        info['debt'])
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 10)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting plan informtion again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    assert_code(restricting_info, 304005)
+
+
+@pytest.mark.P1
+def test_LS_EV_021(client_new_node_obj):
+    """
+    创建计划退回委托-欠释放金额<撤销委托金额
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address2, delegate_amount, staking_blocknum = create_delegation_information(client, economic, node, 5)
+    # Waiting for the end of the settlement cycle
+    economic.wait_settlement_blocknum(node)
+    # view restricting plan informtion
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    info = restricting_info['Ret']
+    assert info['debt'] == von_amount(economic.delegate_limit, 5), "rrMsg: restricting debt amount {}".format(
+        info['debt'])
+    # Application for Commission
+    delegate_amount2 = von_amount(economic.delegate_limit, 5)
+    result = client.delegate.delegate(0, address2, amount=delegate_amount2)
+    assert_code(result, 0)
+    # withdrew delegate
+    redemption_amount = von_amount(economic.delegate_limit, 10)
+    result = client.delegate.withdrew_delegate(staking_blocknum, address2, amount=redemption_amount)
+    assert_code(result, 0)
+    # view restricting plan informtion again
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    assert_code(restricting_info, 304005)
+
+
+@pytest.mark.P1
+def test_LS_EV_022(client_new_node_obj):
+    """
+    创建计划退回委托-锁仓账户余额不足的情况下申请退回委托
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    amount1 = von_amount(economic.create_staking_limit, 2)
+    amount2 = node.web3.toWei(0.000006, 'ether')
+    address1, address2 = create_lock_release_amount(client, amount1, amount2)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 0)
+    try:
+        # get Pledge node information
+        candidate_info = client.ppos.getCandidateInfo(node.node_id)
+        info = candidate_info['Ret']
+        staking_blocknum = info['StakingBlockNum']
+        # withdrew delegate
+        result = client.delegate.withdrew_delegate(staking_blocknum, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+def create_restricting_increase_staking(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create Restricting Plan1
+    add_staking_amount = von_amount(economic.add_staking_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    # create staking
+    result = client.staking.create_staking(0, address2, address2)
+    assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P1
+def test_LS_IV_001(client_new_node_obj):
+    """
+    锁仓账户申请质押后用锁仓余额进行增持质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    address2 = create_restricting_increase_staking(client, economic, node)
+    # Create pledge of increasing holding
+    result = client.staking.increase_staking(1, address2)
+    assert_code(result, 0)
+
+
+@pytest.mark.P1
+def test_LS_IV_002(client_new_node_obj):
+    """
+    有锁仓可用金额，但是账户gas不足的情况下申请增持
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3,
+                                                    economic.create_staking_limit + node.web3.toWei(0.000009, 'ether'))
+    # create Restricting Plan
+    add_staking_amount = von_amount(economic.add_staking_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': add_staking_amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address2)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    # create staking
+    result = client.staking.create_staking(0, address2, address2)
+    assert_code(result, 0)
+    try:
+        # Create pledge of increasing holding
+        result = client.staking.increase_staking(1, address2)
+        assert_code(result, 0)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+
+
+@pytest.mark.P1
+def test_LS_IV_003(client_new_node_obj_list, reset_environment):
+    """
+    锁仓账户增持状态异常验证人（节点已挂）
+    :param client_new_node_obj_list:
+    :param reset_environment:
+    :return:
+    """
+    client1 = client_new_node_obj_list[0]
+    log.info("Current linked client1: {}".format(client1.node.node_mark))
+    client2 = client_new_node_obj_list[1]
+    log.info("Current linked client2: {}".format(client2.node.node_mark))
+    economic = client1.economic
+    node = client1.node
+    # Create restricting plan and free pledge
+    address2 = create_restricting_increase_staking(client1, economic, node)
+    # stop pledge node
+    node.stop()
+    # Wait for the consensus round to end
+    client2.economic.wait_consensus_blocknum(client2.node)
+    # Create pledge of increasing holding
+    result = client2.staking.increase_staking(1, address2, node_id=node.node_id)
+    assert_code(result, 0)
+
+
+def restricting_plan_verification_pledge(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create Restricting Plan
+    amount = economic.create_staking_limit
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    return address1
+
+
+@pytest.mark.P2
+def test_LS_CSV_001(client_new_node_obj):
+    """
+    创建计划质押-锁仓账户和释放账户是同一个账户账户进行质押（质押金额小于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # Create restricting plan
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # create staking
+    staking_amount = economic.create_staking_limit
+    result = client.staking.create_staking(1, address1, address1, amount=staking_amount)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_002(client_new_node_obj):
+    """
+    创建计划质押-锁仓账户和释放账户是同一个账户账户进行质押（质押金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # Create restricting plan
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # create staking
+    staking_amount = von_amount(economic.create_staking_limit, 2)
+    result = client.staking.create_staking(0, address1, address1, amount=staking_amount)
+    assert_code(result, 301111)
+
+
+def restricting_plan_verification_pledge2(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create Restricting Plan
+    amount = economic.create_staking_limit
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P2
+def test_LS_CSV_003(client_new_node_obj):
+    """
+    创建计划质押-锁仓账户和释放账户不同时进行质押（质押金额小于等于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # Create restricting plan
+    address2 = restricting_plan_verification_pledge2(client, economic, node)
+    # create staking
+    staking_amount = economic.create_staking_limit
+    result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_004(client_new_node_obj):
+    """
+    创建计划质押-锁仓账户和释放账户不同时进行质押（质押金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # Create restricting plan
+    address2 = restricting_plan_verification_pledge2(client, economic, node)
+    # create staking
+    staking_amount = von_amount(economic.create_staking_limit, 2)
+    result = client.staking.create_staking(1, address2, address2, amount=staking_amount)
+    assert_code(result, 304013)
+
+
+def restricting_plan_verification_add_staking(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create Restricting Plan
+    amount = von_amount(economic.create_staking_limit, 2)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    return address1
+
+
+@pytest.mark.P2
+def test_LS_CSV_005(client_new_node_obj):
+    """
+    锁仓账户和释放账户是同一个账户账户进行增持质押（质押金额小于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address1 = restricting_plan_verification_add_staking(client, economic, node)
+    # Additional pledge
+    increase_amount = von_amount(economic.delegate_limit, 5)
+    result = client.staking.increase_staking(1, address1, amount=increase_amount)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_006(client_new_node_obj):
+    """
+    锁仓账户和释放账户是同一个账户账户进行增持质押（质押金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address1 = restricting_plan_verification_add_staking(client, economic, node)
+    # Additional pledge
+    increase_amount = von_amount(economic.create_staking_limit, 2)
+    result = client.staking.increase_staking(1, address1, amount=increase_amount)
+    assert_code(result, 304013)
+
+
+def restricting_plan_verification_add_staking2(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    # create Restricting Plan
+    amount = von_amount(economic.add_staking_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address2, address2)
+    assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P2
+def test_LS_CSV_007(client_new_node_obj):
+    """
+    锁仓账户和释放账户不同时进行质押（增持质押金额小于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address2 = restricting_plan_verification_add_staking2(client, economic, node)
+    # Additional pledge
+    increase_amount = von_amount(economic.add_staking_limit, 5)
+    result = client.staking.increase_staking(1, address2, amount=increase_amount)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_008(client_new_node_obj):
+    """
+    锁仓账户和释放账户不同时进行质押（增持质押金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address2 = restricting_plan_verification_add_staking2(client, economic, node)
+    # Additional pledge
+    increase_amount = von_amount(economic.add_staking_limit, 15)
+    result = client.staking.increase_staking(1, address2, amount=increase_amount)
+    assert_code(result, 304013)
+
+
+def restricting_plan_verification_delegate(client, economic, node):
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create Restricting Plan
+    amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(0, address1, address1)
+    assert_code(result, 0)
+    return address2
+
+
+@pytest.mark.P2
+def test_LS_CSV_009(client_new_node_obj):
+    """
+    锁仓账户和释放账户不是同一个账号进行委托（委托金额小于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address2 = restricting_plan_verification_delegate(client, economic, node)
+    # Additional pledge
+    delegate_amount = von_amount(economic.delegate_limit, 5)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_010(client_new_node_obj):
+    """
+    锁仓账户和释放账户不是同一个账号进行委托（委托金额大于锁仓金额）
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address2 = restricting_plan_verification_delegate(client, economic, node)
+    # Additional pledge
+    delegate_amount = von_amount(economic.delegate_limit, 15)
+    result = client.delegate.delegate(1, address2, amount=delegate_amount)
+    assert_code(result, 304013)
+
+
+@pytest.mark.P2
+def test_LS_CSV_011(client_new_node_obj):
+    """
+    锁仓账号在犹豫期申请质押后，在锁定期申请增持后，在申请退回质押金
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create account
+    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    # create Restricting Plan
+    amount = von_amount(economic.create_staking_limit, 2)
+    plan = [{'Epoch': 2, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Additional pledge
+    result = client.staking.increase_staking(1, address1)
+    assert_code(result, 0)
+    balance = node.eth.getBalance(address1)
+    log.info("Account address: {} balance: {}".format(address1, balance))
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    balance1 = node.eth.getBalance(address1)
+    log.info("Account address: {} balance: {}".format(address1, balance1))
+    # Waiting for the end of the 2 settlement period
+    economic.wait_settlement_blocknum(node, 2)
+    balance2 = node.eth.getBalance(address1)
+    log.info("Account address: {} balance: {}".format(address1, balance2))
+    assert balance2 - balance1 > economic.create_staking_limit, "errMsg: Account address: {} balance: {}".format(
+        address1, balance2)
+
+
+@pytest.mark.P2
+def test_LS_CSV_012(client_new_node_obj):
+    """
+    锁仓账户退回质押金中，申请委托节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # create account
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    # create Restricting Plan
+    amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address2)
+    assert_code(result, 0)
+    # Free amount Entrust node
+    result = client.delegate.delegate(0, address2)
+    assert_code(result, 301103)
+    # Restricting amount Entrust node
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 301103)
+
+
+@pytest.mark.P2
+def test_LS_CSV_013(client_new_node_obj):
+    """
+    锁仓账户退回质押金中，申请增持质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan staking
+    address1 = restricting_plan_verification_add_staking(client, economic, node)
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    # create Restricting Plan
+    amount = von_amount(economic.add_staking_limit, 5)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # Restricting amount Additional pledge
+    result = client.staking.increase_staking(1, address1)
+    assert_code(result, 301103)
+    # Free amount Additional pledge
+    result = client.staking.increase_staking(0, address1)
+    assert_code(result, 301103)
+
+
+def steps_of_returning_pledge(client, economic, node):
+    # create restricting plan staking
+    address1 = restricting_plan_verification_pledge(client, economic, node)
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+    # create account
+    address2, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Waiting for the end of the settlement period
+    economic.wait_settlement_blocknum(node)
+    # Application for return of pledge
+    result = client.staking.withdrew_staking(address1)
+    assert_code(result, 0)
+    # Waiting for the end of the 2 settlement period
+    economic.wait_settlement_blocknum(node, 2)
+    log.info("Pledge node information: {}".format(client.ppos.getCandidateInfo(node.node_id)))
+    return address1, address2
+
+
+@pytest.mark.P2
+def test_LS_CSV_014(client_new_node_obj):
+    """
+    锁仓账户退回质押金后，重新申请质押节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # After returning the deposit
+    address1, address2 = steps_of_returning_pledge(client, economic, node)
+    # create Restricting Plan
+    amount = economic.create_staking_limit
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(address1)
+    log.info("restricting plan informtion: {}".format(restricting_info))
+    # create staking
+    result = client.staking.create_staking(1, address1, address1)
+    assert_code(result, 0)
+
+
+@pytest.mark.P2
+def test_LS_CSV_015(client_new_node_obj):
+    """
+    锁仓账户退回质押金后，重新申请委托节点
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # After returning the deposit
+    address1, address2 = steps_of_returning_pledge(client, economic, node)
+    # create Restricting Plan
+    amount = von_amount(economic.delegate_limit, 10)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address2, plan, address2)
+    assert_code(result, 0)
+    # Free amount Entrust node
+    result = client.delegate.delegate(0, address2)
+    assert_code(result, 301103)
+    # Restricting amount Entrust node
+    result = client.delegate.delegate(1, address2)
+    assert_code(result, 301103)
+
+
+@pytest.mark.P2
+def test_LS_CSV_016(client_new_node_obj):
+    """
+    锁仓账户退回质押金后，重新申请增持质押
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # After returning the deposit
+    address1, address2 = steps_of_returning_pledge(client, economic, node)
+    # create Restricting Plan
+    amount = von_amount(economic.add_staking_limit, 5)
+    plan = [{'Epoch': 1, 'Amount': amount}]
+    result = client.restricting.createRestrictingPlan(address1, plan, address1)
+    assert_code(result, 0)
+    # Restricting amount Additional pledge
+    result = client.staking.increase_staking(1, address1)
+    assert_code(result, 301103)
+    # Free amount Additional pledge
+    result = client.staking.increase_staking(0, address1)
+    assert_code(result, 301103)

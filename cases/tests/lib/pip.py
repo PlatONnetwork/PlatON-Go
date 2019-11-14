@@ -180,7 +180,7 @@ class Pip:
         """
         result = self.pip.getTallyResult(proposal_id)
         data = result.get('Ret')
-        data = json.loads(data)
+        # data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
         return data.get('status')
@@ -193,7 +193,7 @@ class Pip:
         """
         result = self.pip.getTallyResult(proposal_id)
         resultinfo = result.get('Ret')
-        resultinfo = json.loads(resultinfo)
+        # resultinfo = json.loads(resultinfo)
         if not resultinfo:
             raise Exception('Failed to query proposal result based on given proposal id')
         return resultinfo.get('accuVerifiers')
@@ -206,7 +206,7 @@ class Pip:
         """
         result = self.pip.getTallyResult(proposal_id)
         data = result.get('Ret')
-        data = json.loads(data)
+        # data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
         return data.get('yeas')
@@ -219,7 +219,7 @@ class Pip:
         """
         result = self.pip.getTallyResult(proposal_id)
         data = result.get('Ret')
-        data = json.loads(data)
+        # data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
         return data.get('nays')
@@ -232,10 +232,23 @@ class Pip:
         """
         result = self.pip.getTallyResult(proposal_id)
         data = result.get('Ret')
-        data = json.loads(data)
+        # data = json.loads(data)
         if not data:
             raise Exception('Failed to query proposal result based on given proposal id')
         return data.get('abstentions')
+
+    def get_canceledby_of_proposal(self, proposal_id):
+        """
+        Obtain the number of abstentions during the entire voting period
+        :param proposal_id:
+        :return:
+        """
+        result = self.pip.getTallyResult(proposal_id)
+        data = result.get('Ret')
+        # data = json.loads(data)
+        if not data:
+            raise Exception('Failed to query proposal result based on given proposal id')
+        return data.get('canceledBy')
 
     @property
     def chain_version(self):
@@ -271,8 +284,8 @@ class Pip:
         blockhash = get_blockhash(self.node, blocknumber)
         result = self.pip.getAccuVerifiersCount(proposal_id, blockhash)
         voteinfo = result.get('Ret')
-        vote_result = eval(voteinfo)
-        return vote_result
+        # vote_result = eval(voteinfo)
+        return voteinfo
 
     def get_rate_of_voting(self, proposal_id):
         """
@@ -281,7 +294,7 @@ class Pip:
         :return:
         """
         result = self.pip.getTallyResult(proposal_id).get('Ret')
-        result = json.loads(result)
+        # result = json.loads(result)
         if not result:
             raise Exception('Failed to query proposal result based on given proposal id')
         yeas = result.get('yeas')
@@ -294,11 +307,11 @@ class Pip:
         :return:
         """
         result = self.pip.listProposal().get('Ret')
-        result = json.loads(result)
+        # result = json.loads(result)
         for pid_list in result:
             if pid_list.get('ProposalType') == 2:
                 if self.get_status_of_proposal(pid_list.get('ProposalID')) == 4:
-                    return pid_list.get('ProposalID'), pid_list.get('NewVersion'), pid_list.get('ActiveBlock')
+                    return pid_list
         raise Exception('There is no pre-validation upgrade proposal')
 
     def get_effect_proposal_info_of_vote(self, proposaltype=cfg.version_proposal):
@@ -319,7 +332,7 @@ class Pip:
             return None
 
         proposal_info = self.pip.listProposal().get('Ret')
-        proposal_info = json.loads(proposal_info)
+        # proposal_info = json.loads(proposal_info)
         proposal_list_text = []
         proposal_list_version = []
         proposal_list_param = []
@@ -361,8 +374,8 @@ class Pip:
         """
         proposal_info_list = self.pip.listProposal().get('Ret')
         version_proposal_list, text_proposal_list, cancel_proposal_list, param_proposal_list = [], [], [], []
-        if proposal_info_list != 'null':
-            proposal_info_list = json.loads(proposal_info_list)
+        if proposal_info_list != 'Object not found':
+            # proposal_info_list = json.loads(proposal_info_list)
             for proposal_info in proposal_info_list:
                 if proposal_info.get('ProposalType') == self.cfg.version_proposal:
                     version_proposal_list.append(proposal_info)
@@ -438,7 +451,7 @@ class Pip:
         """
         candidate_list = self.node.ppos.getCandidateList().get('Ret')
         verifier_list = self.node.ppos.getVerifierList().get('Ret')
-        if not verifier_list:
+        if verifier_list == "Getting verifierList is failed:The validator is not exist":
             time.sleep(10)
             verifier_list = self.node.ppos.getVerifierList().get('Ret')
         candidate_no_verify_list = []

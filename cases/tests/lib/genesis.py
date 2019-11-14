@@ -7,7 +7,6 @@ import json
 @dataclass
 class Cbft:
     initialNodes: list
-    epoch: int
     amount: int
     validatorMode: str
     period: int

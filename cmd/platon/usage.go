@@ -243,6 +243,16 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "DB",
+		Flags: []cli.Flag{
+			utils.DBNoGCFlag,
+			utils.DBGCIntervalFlag,
+			utils.DBGCTimeoutFlag,
+			utils.DBGCMptFlag,
+			utils.DBGCBlockFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }

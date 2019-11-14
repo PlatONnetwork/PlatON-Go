@@ -657,7 +657,9 @@ if __name__ == "__main__":
     # print(env.cfg.syncmode)
     log.info("测试部署")
     env.deploy_all()
-    # node = env.get_consensus_node_by_index(0)
+    node = env.get_consensus_node_by_index(0)
+    print(node.debug.economicConfig())
+    print(type(node.debug.economicConfig()))
     # print(node.node_mark)
     # address, prikey = env.account.generate_account(node.web3, 10**18*100000000000)
     # transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
@@ -725,4 +727,4 @@ if __name__ == "__main__":
     # time.sleep(60)
     # d = env.block_numbers()
     # print(d)
-    # env.shutdown()
+    env.shutdown()

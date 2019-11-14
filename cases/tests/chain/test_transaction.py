@@ -67,11 +67,13 @@ def test_money_negative_transaction(global_running_env):
     """
     node = global_running_env.get_rand_node()
     account = global_running_env.account
+    status = 0
     try:
         account.generate_account(node.web3, -1000)
-        assert False
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
 
 
 @pytest.mark.P2
@@ -86,11 +88,13 @@ def test_balance_insufficient_transaction(global_running_env, balance):
     address, _ = account.generate_account(node.web3, balance)
     to_address, _ = account.generate_account(node.web3)
     value = 1000
+    status = 0
     try:
         tx_res = account.sendTransaction(node.web3, "", address, to_address, node.eth.gasPrice, 21000, value)
-        assert False, "{}".format(tx_res)
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
 
 
 @pytest.mark.P2
@@ -103,11 +107,13 @@ def test_gas_to_low(global_running_env):
     address = account.account_with_money["address"]
     to_address, _ = account.generate_account(node.web3)
     value = 1000
+    status = 0
     try:
         tx_res = account.sendTransaction(node.web3, "", address, to_address, node.eth.gasPrice, 210, value)
-        assert False, "{}".format(tx_res)
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
 
 
 @pytest.mark.P3
@@ -130,8 +136,10 @@ def test_to_account_abnormal(global_running_env, to_address):
     node = global_running_env.get_rand_node()
     account = global_running_env.account
     from_address = account.account_with_money["address"]
+    status = 0
     try:
         tx_res = account.sendTransaction(node.web3, "", from_address, to_address, node.eth.gasPrice, 21000, 100, False)
-        assert False, "{}".format(tx_res)
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
