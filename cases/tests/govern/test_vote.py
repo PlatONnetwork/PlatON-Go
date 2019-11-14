@@ -602,6 +602,17 @@ class TestVoteVPVerify():
         result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.text_proposal)
         assert_code(result, 0)
 
+    def test_VO_SI_013_VO_SI_014(self, submit_param, client_verifier_obj_list):
+        pip_obj = submit_param
+        for client_obj in client_verifier_obj_list:
+            if pip_obj.node.node_id != client_obj.node.node_id:
+                pip_obj_two = client_obj.pip
+                break
+        result = self.vote_wrong_version(pip_obj, pip_obj.cfg.param_proposal)
+        assert_code(result, 0)
+        result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.param_proposal)
+        assert_code(result, 0)
+
     def test_V0_POI_001(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         result = pip_obj.vote(pip_obj.node.node_id, '0x29b553fb979855751890aecf3e105948a11a21f121cad11f9e455c1f01b12345',
