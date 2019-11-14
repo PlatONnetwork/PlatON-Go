@@ -23,7 +23,7 @@ var (
 )
 
 const (
-	snapshotDBBaseNum = 120
+	snapshotDBBaseNum = 300
 	blockSyncItems    = 1024
 )
 
@@ -99,7 +99,7 @@ func (tc *testChain) copy(newlen int) *testChain {
 		cpy.pposData = tc.pposData[0:newlen]
 	}
 	if newlen < tc.baseNum {
-		cpy.baseNum = newlen
+		cpy.baseNum = newlen - 1
 	} else {
 		cpy.baseNum = tc.baseNum
 	}

@@ -295,7 +295,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
 	}
 
-	if err := plugin.RestrictingInstance().AddRestrictingRecord(xcom.CDFAccount(), vm.RewardManagerPoolAddr, restrictingPlans, statedb); err != nil {
+	if err := plugin.RestrictingInstance().AddRestrictingRecord(xcom.CDFAccount(), vm.RewardManagerPoolAddr, 0, restrictingPlans, statedb); err != nil {
 		return err
 	}
 	return nil
@@ -340,8 +340,8 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 		return err
 	}
 	// Store genesis last Epoch
-	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
-	plugin.SetLatestEpoch(statedb, uint64(0))
+	//	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
+	//	plugin.SetLatestEpoch(statedb, uint64(0))
 
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
