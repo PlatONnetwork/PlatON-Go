@@ -562,7 +562,33 @@ class TestVoteVPVerify():
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN8)
         assert_code(result, 302025)
 
-
+    def test_VO_VER_002_004_VO_SI_002(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version9, 4,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Node {} submit version proposal result : {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 0)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN0)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN1)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN2)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN3)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN4)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN6)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN7)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN8)
+        assert_code(result, 302025)
+        version_sign = pip_obj.node.program_version_sign
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN9, version_sign=version_sign)
+        assert_code(result, 302024)
 
 
 
