@@ -6,7 +6,6 @@
             "initialNodes": [
 
             ],
-            "epoch": 1,
             "amount": 10,
             "validatorMode": "ppos",
             "period": 10000
@@ -32,7 +31,7 @@
             "maxEvidenceAge": 1
         },
         "gov": {
-            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalVoteDurationSeconds": 1600,
             "versionProposalSupportRate": 0.667,
             "textProposalVoteDurationSeconds": 160,
             "textProposalVoteRate": 0.5,
@@ -48,7 +47,7 @@
             "platONFoundationYear": 10
         },
         "innerAcc": {
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "0x493301712671Ada506ba6Ca7891F436D29185821",
             "platonFundBalance": 0,
             "cdfAccount": "0x54a7a3c6822eb222c53F76443772a60b0f9A8bab",
             "cdfBalance": 431811981000000000000000000
@@ -62,7 +61,7 @@
         "1000000000000000000000000000000000000003": {
             "balance": "200000000000000000000000000"
         },
-        "0x2e95e3ce0a54951eb9a99152a6d5827872dfb4fd": {
+        "0x2e95E3ce0a54951eB9A99152A6d5827872dFB4FD": {
             "balance": "9718188019000000000000000000"
         }
     },

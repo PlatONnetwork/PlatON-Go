@@ -8,6 +8,7 @@ from decimal import Decimal
 from hexbytes import HexBytes
 from environment.node import Node
 from common.log import log
+from common.key import get_pub_key
 from typing import List
 
 
@@ -193,6 +194,14 @@ def get_param_by_dict(data, *args):
             if isinstance(data, dict) and i > len(args):
                 raise Exception("The parameters entered are incorrect.")
         return data
+    elif isinstance(data, str):
+        data = json.loads(data)
+        for key in args:
+            data = data.get(key)
+            i = i + 1
+            if isinstance(data, dict) and i > len(args):
+                raise Exception("The parameters entered are incorrect.")
+        return data
 
     raise Exception("Data format error")
 
@@ -213,6 +222,14 @@ def update_param_by_dict(data, key1, key2, key3, value):
         else:
             data[key1][key2][key3] = value
         return data
+    elif isinstance(data, str):
+        jsoninfo = json.loads(data)
+        if key3 is None:
+            jsoninfo[key1][key2] = value
+        else:
+            jsoninfo[key1][key2][key3] = value
+        jsondata = json.dumps(jsoninfo)
+        return jsondata
     raise Exception("Data format error")
 
 
@@ -229,8 +246,13 @@ def wait_block_number(node, block, interval=1):
     if node.block_number >= block:
         log.info('current block {} is greater than block {}'.format(node.block_number, block))
         return
+    print_t = 0
     while int(time.time()) < timeout:
-        log.info('The current block height is {}, waiting until {}'.format(node.block_number, block))
+        print_t += 1
+        if print_t == 10:
+            # Print once every 10 seconds to avoid printing too often
+            log.info('The current block height is {}, waiting until {}'.format(node.block_number, block))
+            print_t = 0
         if node.block_number > block:
             return
         time.sleep(1)
@@ -267,6 +289,21 @@ def get_max_staking_tx_index(node):
     term_nodeid_dict = dict(zip(staking_tx_index_list, nodeid))
     return term_nodeid_dict[max_staking_tx_index]
 
+def get_block_count_number(node, number):
+    """
+    获取验证人出块数
+    :param url: 节点url
+    :param cycle: 共识周期
+    :return:
+    """
+    current_block = node.block_number
+    count = 0
+    for i in range(number - 1):
+        nodeid = get_pub_key(node.url, current_block)
+        current_block = current_block - 1
+        if nodeid == node.node_id:
+            count = count + 1
+    return count
 
 def random_string(length=10) -> str:
     """
@@ -312,7 +349,7 @@ def get_governable_parameter_value(client_obj, parameter):
     """
     # Get governable parameters
     govern_param = client_obj.pip.pip.listGovernParam()
-    parameter_information = json.loads(govern_param['Ret'])
+    parameter_information = govern_param['Ret']
     for i in parameter_information:
         if i['ParamItem']['Name'] == parameter:
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))

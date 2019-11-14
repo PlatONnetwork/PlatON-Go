@@ -3,7 +3,7 @@ from tests.lib.utils import *
 import pytest
 
 
-def test_AS_031_032_39(client_new_node_obj, get_generate_account):
+def test_AS_031_032_39(client_new_node_obj):
     """
     Normal overweight
     The verifier initiates the overweight with the amount of free account, meeting the minimum threshold
@@ -11,13 +11,15 @@ def test_AS_031_032_39(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    StakeThreshold = get_governable_parameter_value(client_new_node_obj,"StakeThreshold")
+    log.info(StakeThreshold)
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert assert_code(result,0)
+    assert_code(result,0)
     result = client_new_node_obj.staking.increase_staking(0, address)
-    assert assert_code(result,0)
+    assert_code(result,0)
     result = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    log.info(result)
     staking_amount = client_new_node_obj.economic.create_staking_limit
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
     assert result["Ret"]["Shares"] == staking_amount + add_staking_amount
@@ -85,7 +87,7 @@ def test_AS_037(client_new_node_obj, get_generate_account):
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
     result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
     log.info(result)
-    assert_code(result,301102)
+    assert_code(result,301104)
 
 
 def test_AS_038(client_new_node_obj, get_generate_account):
@@ -171,33 +173,34 @@ def test_AS_045(client_new_node_obj, get_generate_account):
     amount = node.eth.getBalance(address)
     log.info("Check your wallet balance{}".format(amount))
     result = client_new_node_obj.staking.increase_staking(0, address)
-    assert_code(result,301102)
+    assert_code(result,301111)
     locked_info = client_new_node_obj.ppos.getRestrictingInfo(address)
     log.info(locked_info)
 
 
-def test_AS_046(client_new_node_obj, get_generate_account):
+def test_AS_046(client_new_node_obj):
     """
     The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
     node = client_new_node_obj.node
     amount = node.eth.getBalance(address)
     log.info("Wallet balance{}".format(amount))
-    locked_amount = node.web3.toWei(100, "ether")
+    locked_amount = 100000000000000000000
     plan = [{'Epoch': 1, 'Amount': locked_amount}]
     result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
     log.info(result)
     assert_code(result,0)
-    value = 101
-    result = client_new_node_obj.staking.increase_staking(0, address, amount=value)
+    value = 101000000000000000000
+    result = client_new_node_obj.staking.increase_staking(1, address, amount=value)
     log.info(result)
-    assert_code(result,301102)
+    assert_code(result,304013)
 
 
 def test_AS_047(client_new_node_obj, get_generate_account):
@@ -213,7 +216,7 @@ def test_AS_047(client_new_node_obj, get_generate_account):
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
     result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
     log.info(result)
-    assert_code(result,301102)
+    assert_code(result,301104)
 
 
 def test_AS_048_049(client_new_node_obj, get_generate_account):
@@ -256,21 +259,38 @@ def test_AS_050_051(client_new_node_obj, get_generate_account,client_consensus_o
     client_new_node_obj.node.stop()
     node = client_consensus_obj.node
     log.info("The next two periods")
-    client_new_node_obj.economic.wait_settlement_blocknum(node,number=1)
+    client_new_node_obj.economic.wait_settlement_blocknum(node,number=2)
     log.info("Restart the node")
     client_new_node_obj.node.start()
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
+    assert_code(result,301103)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(node)
     result = client_new_node_obj.staking.increase_staking(0, address)
+    log.info(result)
+    assert_code(result, 301102)
+
+
+def test_AS_052(client_new_node_obj):
+    """
+    Increase your holdings with a new wallet
+    :param client_new_node_obj:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result,0)
+    result = client_new_node_obj.staking.increase_staking(0, address1)
     log.info(result)
 
 
 
 
-if __name__ == '__main__':
-    pytest.main('-q test_increase_staking.py::test_AS_048_049')
+
 
 
 

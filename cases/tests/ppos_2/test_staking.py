@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from tests.lib.utils import *
 import pytest
+from tests.lib.config import EconomicConfig
 
 
 def test_IV_001_002_010(global_test_env, client_consensus_obj):
@@ -21,24 +22,24 @@ def test_IV_001_002_010(global_test_env, client_consensus_obj):
         assert nodeid in nodeid_list
 
 
-def test_IV_003(global_test_env, client_consensus_obj):
-    StakingAddress = global_test_env.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+def test_IV_003(client_consensus_obj):
+    StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
     log.info("Staking result:{}".format(result))
-    assert_code(result,301101)
+    assert_code(result, 301101)
 
 
 def test_IV_004(get_generate_account, client_consensus_obj):
     address, _ = get_generate_account
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
-    assert_code(result,301107)
+    assert_code(result, 301107)
 
 
-def test_IV_005(global_test_env,client_consensus_obj):
-    StakingAddress = global_test_env.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+def test_IV_005(client_consensus_obj):
+    StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.increase_staking(0, StakingAddress)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
 def test_IV_006_007_008(client_consensus_obj, get_generate_account):
@@ -53,11 +54,11 @@ def test_IV_006_007_008(client_consensus_obj, get_generate_account):
     log.info(msg)
     assert msg["Code"] == 301204, "预期验证人已退出"
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
-    assert_code(result,0)
+    assert_code(result, 0)
     address, _ = get_generate_account
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
-    assert_code(result,0)
+    assert_code(result, 0)
     client_consensus_obj.economic.env.deploy_all()
 
 
@@ -66,24 +67,25 @@ def test_IV_009(client_consensus_obj, get_generate_account):
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.edit_candidate(StakingAddress, address1)
     log.info(result)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
-def test_P_014_015_019_024(client_noc_list_obj, get_generate_account):
+def test_P_014_015_019_024(client_new_node_obj):
     """
     正常质押,重复质押
     :param client_noconsensus_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     log.info("Generate address:{}".format(address))
-    result = client_noc_list_obj[0].staking.create_staking(0, address, address)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert_code(result,0)
-    result = client_noc_list_obj[0].staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert_code(result,301101)
+    assert_code(result, 301101)
 
 
 def test_P_016(client_new_node_obj, get_generate_account):
@@ -98,7 +100,7 @@ def test_P_016(client_new_node_obj, get_generate_account):
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address, node_id=illegal_nodeID)
     log.info(result)
-    assert_code(result,301003)
+    assert_code(result, 301003)
 
 
 def test_P_017(client_new_node_obj, get_generate_account):
@@ -108,10 +110,10 @@ def test_P_017(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    INCENTPEPOOL_ADDRESS = client_new_node_obj.economic.cfg.INCENTPEPOOL_ADDRESS
+    INCENTPEPOOL_ADDRESS = EconomicConfig.INCENTIVEPOOL_ADDRESS
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, INCENTPEPOOL_ADDRESS, address)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
 def test_P_018(client_new_node_obj, get_generate_account):
@@ -124,7 +126,7 @@ def test_P_018(client_new_node_obj, get_generate_account):
     FOUNDATION_ADDRESS = client_new_node_obj.economic.cfg.FOUNDATION_ADDRESS
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, FOUNDATION_ADDRESS, address)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
 @pytest.mark.P2
@@ -139,7 +141,7 @@ def test_P_020_21(client_new_node_obj, get_generate_account):
     amount = client_new_node_obj.economic.create_staking_limit
     result = client_new_node_obj.staking.create_staking(0, address, address, amount=amount - 1)
     log.info(result)
-    assert_code(result,301100)
+    assert_code(result, 301100)
     cfg = {"gas": 1}
     status = 0
     try:
@@ -162,10 +164,10 @@ def test_P_025(client_new_node_obj, get_generate_account, client_consensus_obj):
     program_version_sign = client_consensus_obj.node.program_version_sign
     result = client_new_node_obj.staking.create_staking(0, address, address, program_version_sign=program_version_sign)
     log.info(result)
-    assert_code(result,301003)
+    assert_code(result, 301003)
 
 
-def test_P_029(client_new_node_obj, get_generate_account):
+def test_P_029(client_new_node_obj):
     """
     之前质押过，且候选人已经失效(主动退出)
     锁定期质押
@@ -173,12 +175,13 @@ def test_P_029(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert_code(result,0)
+    assert_code(result, 0)
     result = client_new_node_obj.staking.withdrew_staking(address)
     log.info(result)
-    assert_code(result,0)
+    assert_code(result, 0)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
 
@@ -192,15 +195,54 @@ def test_P_030(client_new_node_obj, get_generate_account):
     """
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert_code(result,0)
+    assert_code(result, 0)
     log.info("进入下个周期")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.withdrew_staking(address)
-    assert_code(result,0)
+    assert_code(result, 0)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert_code(result,301101)
+    assert_code(result, 301101)
 
+
+def test_P_031(client_new_node_obj):
+    """
+    Drop pledge after continue to add, entrust
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    # Lock-up increase
+    result = client_new_node_obj.staking.increase_staking(0,address)
+    assert_code(result,301002)
+    # Lockup delegate
+    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    assert_code(result, 301002)
+
+
+def test_P_032(client_new_node_obj):
+    """
+    Use your new wallet as collateral
+    :param client_new_node_obj:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address_1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+
+    result = client_new_node_obj.staking.create_staking(0, address_1, address_1)
+    assert_code(result, 301101)
 
 
 

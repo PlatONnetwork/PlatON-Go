@@ -6,7 +6,7 @@ from copy import copy
 from tests.lib import StakingConfig
 from common.log import log
 from tests.lib.client import Client, get_client_obj, get_client_obj_list
-from tests.lib.utils import get_pledge_list, wait_block_number, assert_code
+from tests.lib.utils import get_pledge_list, wait_block_number, assert_code, upload_platon
 
 @pytest.fixture()
 def global_running_env(global_test_env):
@@ -19,7 +19,7 @@ def global_running_env(global_test_env):
     yield global_test_env
     if id_cfg != id(global_test_env.cfg) or id(genesis) != id(global_test_env.genesis_config):
         global_test_env.set_cfg(backup_cfg)
-        global_test_env.deploy_all()
+        # global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -31,7 +31,7 @@ def staking_cfg():
 @pytest.fixture()
 def client_list_obj(global_test_env, staking_cfg):
     '''
-    获取所有Node对象列表
+    Get all node  Node object list
     :param global_test_env:
     :return:
     '''
@@ -45,7 +45,7 @@ def client_list_obj(global_test_env, staking_cfg):
 @pytest.fixture()
 def client_con_list_obj(global_running_env, staking_cfg):
     '''
-    获取共识Client对象列表
+    Get all consensus node  Client object list
     :param global_test_env:
     :return:
     '''
@@ -59,7 +59,7 @@ def client_con_list_obj(global_running_env, staking_cfg):
 @pytest.fixture()
 def client_noc_list_obj(global_test_env, staking_cfg):
     '''
-    获取非共识Client对象列表
+    Get all noconsensus node  Client object list
     :param global_test_env:
     :return:
     '''
@@ -73,7 +73,7 @@ def client_noc_list_obj(global_test_env, staking_cfg):
 @pytest.fixture()
 def client_consensus_obj(global_test_env, staking_cfg):
     '''
-    随机获取单个共识Client对象
+    Get a consensus node  Client object
     :param global_test_env:
     :return:
     '''
@@ -85,7 +85,7 @@ def client_consensus_obj(global_test_env, staking_cfg):
 @pytest.fixture()
 def client_noconsensus_obj(global_test_env, staking_cfg):
     '''
-    随机获取单个非共识Client对象
+    Get a noconsensus node  Client object
     :param global_test_env:
     :return:
     '''
@@ -97,7 +97,7 @@ def client_noconsensus_obj(global_test_env, staking_cfg):
 @pytest.fixture()
 def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
-    获取单个验证节点Client对象
+    Get a verifier node  Client object
     :param global_test_env:
     :return:
     '''
@@ -109,24 +109,36 @@ def client_verifier_obj(global_test_env, client_consensus_obj, client_list_obj):
             nodeid = nodeobj.node_id
             break
     if not nodeid:
-        raise Exception('获取验证节点Client对象失败')
+        raise Exception('Get a verifier node  Client object ')
     client_obj = get_client_obj(nodeid, client_list_obj)
     return client_obj
 
+@pytest.fixture()
+def client_verifier_obj_list(global_test_env, client_consensus_obj, client_list_obj):
+    '''
+    Get verifier node  Client object list
+    :param global_test_env:
+    :return:
+    '''
+    verifier_list = get_pledge_list(client_consensus_obj.ppos.getVerifierList)
+    log.info('verifierlist{}'.format(verifier_list))
+    return get_client_obj_list(verifier_list, client_list_obj)
 
 @pytest.fixture()
 def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
     '''
-    获取单个未被质押节点Client对象
+    Get a new node  Client object list
     :param global_test_env:
     :return:
     '''
     for noconsensus_node_obj in client_noc_list_obj:
         msg = noconsensus_node_obj.ppos.getCandidateInfo(noconsensus_node_obj.node.node_id)
         log.info(msg)
+        log.info(noconsensus_node_obj.node.node_id)
         if msg["Code"] == 301204:
+            log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
             return noconsensus_node_obj
-    log.info('非共识节点已全部质押，重新启链')
+    log.info('noconsensus node has been staked, restart the chain')
     client_noconsensus_obj.economic.env.deploy_all()
     log.info("Current linked node: {}".format(client_noconsensus_obj.node.node_mark))
     return client_noconsensus_obj
@@ -135,7 +147,7 @@ def client_new_node_obj(client_noconsensus_obj, client_noc_list_obj):
 @pytest.fixture()
 def client_new_node_obj_list(global_test_env, client_noc_list_obj):
     '''
-    获取新节点Client列表对象
+    Get new node Client object list
     :param global_test_env:
     :return:
     '''
@@ -146,26 +158,29 @@ def client_new_node_obj_list(global_test_env, client_noc_list_obj):
 @pytest.fixture()
 def client_candidate_obj(global_test_env, client_consensus_obj, client_list_obj):
     '''
-    获取单个候选节点Client对象
+    Get a candidate node Client object
     :param global_test_env:
     :return:
     '''
-    address = client_consensus_obj.node.staking_address
     if not client_consensus_obj.staking.get_candidate_list_not_verifier():
-        log.info('不存在候选节点，需要对节点进行质押')
+        log.info('There is no candidate, node stake')
         candidate_list = get_pledge_list(client_consensus_obj.node.ppos.getCandidateList)
         for normal_node_obj in global_test_env.normal_node_list:
             if normal_node_obj.node_id not in candidate_list:
                 client_obj = get_client_obj(normal_node_obj.node_id, client_list_obj)
-                log.info('对节点{}进行质押操作'.format(normal_node_obj.node_id))
+                if client_obj.node.program_version != client_obj.pip.cfg.version0:
+                    upload_platon(client_obj.node, client_obj.pip.cfg.PLATON_NEW_BIN0)
+                    client_obj.node.restart()
+                log.info('Node {} staking'.format(normal_node_obj.node_id))
+                address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
                 result = client_obj.staking.create_staking(0, address, address)
-                log.info('节点{}质押结果为{}'.format(normal_node_obj.node_id, result))
-                assert result.get('Code') == 0
+                log.info('Node {} staking result :{}'.format(normal_node_obj.node_id, result))
+                assert_code(result, 0)
         client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node)
     node_id_list = client_consensus_obj.staking.get_candidate_list_not_verifier()
-    log.info('候选非验证人列表为{}'.format(node_id_list))
+    log.info('Get candidate list no verifier {}'.format(node_id_list))
     if not node_id_list:
-        raise Exception('获取候选人失败')
+        raise Exception('Get candidate list no verifier failed')
     return get_client_obj(node_id_list[0], client_list_obj)
 
 
@@ -268,3 +283,5 @@ def param_governance_verify_before_endblock(client_obj, module, name, newvalue, 
             log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
     return proposalinfo.get('EndVotingBlock')
+
+
