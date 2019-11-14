@@ -602,6 +602,15 @@ class TestVoteVPVerify():
         result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.text_proposal)
         assert_code(result, 0)
 
+    def test_V0_POI_001(self, client_verifier_obj):
+        pip_obj = client_verifier_obj.pip
+        result = pip_obj.vote(pip_obj.node.node_id, '0x29b553fb979855751890aecf3e105948a11a21f121cad11f9e455c1f01b12345',
+                              pip_obj.cfg.vote_option_yeas, pip_obj.node.staking_address,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Ineffective proposalid, vote result : {}'.format(result))
+        assert_code(result, 302006)
+
+
 
 
 
