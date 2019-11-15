@@ -602,8 +602,8 @@ class TestVoteVPVerify():
         result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.text_proposal)
         assert_code(result, 0)
 
-    def test_VO_SI_013_VO_SI_014(self, submit_param, client_verifier_obj_list):
-        pip_obj = submit_param
+    def test_VO_SI_013_VO_SI_014_VO_SI_015_VO_SI_016(self, submit_cancel_param, client_verifier_obj_list):
+        pip_obj = submit_cancel_param
         for client_obj in client_verifier_obj_list:
             if pip_obj.node.node_id != client_obj.node.node_id:
                 pip_obj_two = client_obj.pip
@@ -611,6 +611,11 @@ class TestVoteVPVerify():
         result = self.vote_wrong_version(pip_obj, pip_obj.cfg.param_proposal)
         assert_code(result, 0)
         result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.param_proposal)
+        assert_code(result, 0)
+
+        result = self.vote_wrong_version(pip_obj, pip_obj.cfg.cancel_proposal)
+        assert_code(result, 0)
+        result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.cancel_proposal)
         assert_code(result, 0)
 
     def test_V0_POI_001(self, client_verifier_obj):

@@ -1,6 +1,5 @@
 from common.log import log
 from tests.lib.utils import upload_platon, assert_code
-from tests.lib.client import get_client_obj
 import pytest
 
 def replace_version_declare(pip_obj, platon_bin, versiontag):

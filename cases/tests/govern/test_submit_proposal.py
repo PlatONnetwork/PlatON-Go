@@ -2,10 +2,10 @@ from common.log import log
 from dacite import from_dict
 from tests.lib import Genesis
 import pytest
-from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_governable_parameter_value
+from tests.lib.utils import wait_block_number, assert_code, get_governable_parameter_value
 from tests.lib.client import get_client_obj
 import time, math
-from tests.govern.test_voting_statistics import submitcppandvote
+from tests.govern.test_voting_statistics import submitcppandvote, submitcvpandvote
 
 
 @pytest.mark.compatibility
@@ -1083,8 +1083,8 @@ class TestSubmitPPAbnormal():
         log.info('candidate submit param proposal result :{}'.format(result))
         assert_code(result, 302021)
 
-class TestSubmitPPAgain():
-    def test_VP_TI_001_002(self, new_genesis_env, client_con_list_obj):
+class TestSubmitAgain():
+    def test_PP_TI_001_002(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -1110,6 +1110,30 @@ class TestSubmitPPAgain():
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '998',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
+    def test_VP_TI_001_002(self, no_vp_proposal, client_verifier_obj_list):
+        submitcvpandvote(client_verifier_obj_list[:3], 1, 1, 1)
+        pip_obj = client_verifier_obj_list[0].pip
+        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
+        log.info('Version proposal information : {}'.format(proposalinfo_version))
+        proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        log.info('Cancel proposal information : {}'.format(proposalinfo_cancel))
+        wait_block_number(pip_obj.node, proposalinfo_cancel.get('EndVotingBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')), 2)
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo_version.get('ProposalID')), 6)
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit version proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
+        log.info('Version proposal information : {}'.format(proposalinfo_version))
+        wait_block_number(pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
+
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
 
 
