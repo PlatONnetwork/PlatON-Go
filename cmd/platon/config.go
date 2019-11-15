@@ -34,7 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 
@@ -79,7 +78,6 @@ type ethstatsConfig struct {
 
 type gethConfig struct {
 	Eth      eth.Config
-	Shh      whisper.Config
 	Node     node.Config
 	Ethstats ethstatsConfig
 }
@@ -128,7 +126,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	// Load defaults.
 	cfg := gethConfig{
 		Eth:  eth.DefaultConfig,
-		Shh:  whisper.DefaultConfig,
 		Node: defaultNodeConfig(),
 	}
 

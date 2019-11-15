@@ -18,21 +18,19 @@
 
 package geth
 
-import (
-	"github.com/PlatONnetwork/PlatON-Go/whisper/shhclient"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
-)
+//	"github.com/PlatONnetwork/PlatON-Go/whisper/shhclient"
+//	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 
 // WhisperClient provides access to the Ethereum APIs.
-type WhisperClient struct {
-	client *shhclient.Client
-}
+//type WhisperClient struct {
+//	client *shhclient.Client
+//}
 
 // NewWhisperClient connects a client to the given URL.
-func NewWhisperClient(rawurl string) (client *WhisperClient, _ error) {
-	rawClient, err := shhclient.Dial(rawurl)
-	return &WhisperClient{rawClient}, err
-}
+//func NewWhisperClient(rawurl string) (client *WhisperClient, _ error) {
+//	rawClient, err := shhclient.Dial(rawurl)
+//	return &WhisperClient{rawClient}, err
+//}
 
 // GetVersion returns the Whisper sub-protocol version.
 //func (wc *WhisperClient) GetVersion(ctx *Context) (version string, _ error) {
@@ -137,38 +135,38 @@ func NewWhisperClient(rawurl string) (client *WhisperClient, _ error) {
 
 // NewHeadHandler is a client-side subscription callback to invoke on events and
 // subscription failure.
-type NewMessageHandler interface {
-	OnNewMessage(message *Message)
-	OnError(failure string)
-}
+//type NewMessageHandler interface {
+//	OnNewMessage(message *Message)
+//	OnError(failure string)
+//}
 
 // SubscribeMessages subscribes to messages that match the given criteria. This method
 // is only supported on bi-directional connections such as websockets and IPC.
 // NewMessageFilter uses polling and is supported over HTTP.
-func (wc *WhisperClient) SubscribeMessages(ctx *Context, criteria *Criteria, handler NewMessageHandler, buffer int) (*Subscription, error) {
-	// Subscribe to the event internally
-	ch := make(chan *whisper.Message, buffer)
-	rawSub, err := wc.client.SubscribeMessages(ctx.context, *criteria.criteria, ch)
-	if err != nil {
-		return nil, err
-	}
-	// Start up a dispatcher to feed into the callback
-	go func() {
-		for {
-			select {
-			case message := <-ch:
-				handler.OnNewMessage(&Message{message})
-
-			case err := <-rawSub.Err():
-				if err != nil {
-					handler.OnError(err.Error())
-				}
-				return
-			}
-		}
-	}()
-	return &Subscription{rawSub}, nil
-}
+//func (wc *WhisperClient) SubscribeMessages(ctx *Context, criteria *Criteria, handler NewMessageHandler, buffer int) (*Subscription, error) {
+//	// Subscribe to the event internally
+//	ch := make(chan *whisper.Message, buffer)
+//	rawSub, err := wc.client.SubscribeMessages(ctx.context, *criteria.criteria, ch)
+//	if err != nil {
+//		return nil, err
+//	}
+//	// Start up a dispatcher to feed into the callback
+//	go func() {
+//		for {
+//			select {
+//			case message := <-ch:
+//				handler.OnNewMessage(&Message{message})
+//
+//			case err := <-rawSub.Err():
+//				if err != nil {
+//					handler.OnError(err.Error())
+//				}
+//				return
+//			}
+//		}
+//	}()
+//	return &Subscription{rawSub}, nil
+//}
 
 // NewMessageFilter creates a filter within the node. This filter can be used to poll
 // for new messages (see FilterMessages) that satisfy the given criteria. A filter can
@@ -178,18 +176,18 @@ func (wc *WhisperClient) SubscribeMessages(ctx *Context, criteria *Criteria, han
 //}
 
 // DeleteMessageFilter removes the filter associated with the given id.
-func (wc *WhisperClient) DeleteMessageFilter(ctx *Context, id string) error {
-	return wc.client.DeleteMessageFilter(ctx.context, id)
-}
+//func (wc *WhisperClient) DeleteMessageFilter(ctx *Context, id string) error {
+//	return wc.client.DeleteMessageFilter(ctx.context, id)
+//}
 
 // GetFilterMessages retrieves all messages that are received between the last call to
 // this function and match the criteria that where given when the filter was created.
-func (wc *WhisperClient) GetFilterMessages(ctx *Context, id string) (*Messages, error) {
-	rawFilterMessages, err := wc.client.FilterMessages(ctx.context, id)
-	if err != nil {
-		return nil, err
-	}
-	res := make([]*whisper.Message, len(rawFilterMessages))
-	copy(res, rawFilterMessages)
-	return &Messages{res}, nil
-}
+//func (wc *WhisperClient) GetFilterMessages(ctx *Context, id string) (*Messages, error) {
+//	rawFilterMessages, err := wc.client.FilterMessages(ctx.context, id)
+//	if err != nil {
+//		return nil, err
+//	}
+//	res := make([]*whisper.Message, len(rawFilterMessages))
+//	copy(res, rawFilterMessages)
+//	return &Messages{res}, nil
+//}
