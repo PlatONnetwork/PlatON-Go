@@ -16,7 +16,7 @@ from common.load_file import LoadFile, calc_hash
 from common.log import log
 from environment.account import Account
 from environment.config import TestConfig
-from conf.settings import DEFAULT_CONF_TMP_DIR
+from conf.settings import DEFAULT_CONF_TMP_DIR, ConfTmpDir
 from typing import List
 
 
@@ -651,6 +651,8 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
                install_dependency=False, install_supervisor=False) -> TestEnvironment:
     if not conf_tmp:
         conf_tmp = DEFAULT_CONF_TMP_DIR
+    else:
+        conf_tmp = ConfTmpDir(conf_tmp)
     cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain)
     if node_file:
         cfg.node_file = node_file

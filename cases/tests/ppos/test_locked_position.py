@@ -423,7 +423,7 @@ def test_LS_RV_007(client_new_node_obj):
         restricting_info['Ret']['plans'][2]['amount'])
 
 
-def create_restricting_plan_and_staking(client, node, economic):
+def create_restricting_plan_and_staking(client, economic, node):
     # create account
     amount1 = von_amount(economic.create_staking_limit, 4)
     amount2 = client.node.web3.toWei(1000, 'ether')
@@ -596,7 +596,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     economic = client1.economic
     node = client1.node
     # create restricting plan and staking
-    address1, address2 = create_restricting_plan_and_staking(client1, node, economic)
+    address1, address2 = create_restricting_plan_and_staking(client1, economic, node)
     # view
     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
     pledge_amount = candidate_info['Ret']['Shares']
@@ -605,12 +605,12 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     block_reward, staking_reward = client1.economic.get_current_year_reward(node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get 0 block rate penalties
-    slash_blocks = get_governable_parameter_value(client1, 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # stop node
     node.stop()
     # Waiting 2 consensus block
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -873,7 +873,7 @@ def test_LS_PV_004(client_new_node_obj):
     address2 = create_account_restricting_plan(client, economic, node)
     # create staking
     result = client.staking.create_staking(1, address2, address2, amount=0)
-    assert_code(result, 304007)
+    assert_code(result, 301100)
 
 
 @pytest.mark.P1
@@ -971,16 +971,14 @@ def test_LS_PV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_LS_PV_009(client_new_node_obj_list):
+def test_LS_PV_009(client_new_node_obj):
     """
     创建计划退回质押-欠释放金额<回退金额
-    :param client_new_node_obj_list:
+    :param client_new_node_obj:
     :return:
     """
-    client1 = client_new_node_obj_list[0]
+    client1 = client_new_node_obj
     log.info("Current linked client1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
-    log.info("Current linked client2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
     # create account
@@ -999,18 +997,18 @@ def test_LS_PV_009(client_new_node_obj_list):
     # view restricting info
     restricting_info = client1.ppos.getRestrictingInfo(address2)
     info = restricting_info['Ret']
-    assert info['dept'] == economic.create_staking_limit, "rrMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == economic.create_staking_limit, "rrMsg: restricting debt amount {}".format(info['debt'])
     # create Free amount staking
-    result = client2.staking.create_staking(0, address2, address2)
+    result = client1.staking.increase_staking(0, address2)
     assert_code(result, 0)
     # withdrew staking
-    result = client2.staking.withdrew_staking(address2)
+    result = client1.staking.withdrew_staking(address2)
     assert_code(result, 0)
     # view Restricting plan
-    restricting_info = client2.ppos.getRestrictingInfo(address2)
+    restricting_info = client1.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['debt'] == 0, "errMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == economic.create_staking_limit, "errMsg: restricting debt amount {}".format(info['debt'])
 
 
 @pytest.mark.P2
@@ -2152,10 +2150,10 @@ def test_LS_CSV_015(client_new_node_obj):
     assert_code(result, 0)
     # Free amount Entrust node
     result = client.delegate.delegate(0, address2)
-    assert_code(result, 301103)
+    assert_code(result, 301102)
     # Restricting amount Entrust node
     result = client.delegate.delegate(1, address2)
-    assert_code(result, 301103)
+    assert_code(result, 301102)
 
 
 @pytest.mark.P2
@@ -2177,7 +2175,7 @@ def test_LS_CSV_016(client_new_node_obj):
     assert_code(result, 0)
     # Restricting amount Additional pledge
     result = client.staking.increase_staking(1, address1)
-    assert_code(result, 301103)
+    assert_code(result, 301102)
     # Free amount Additional pledge
     result = client.staking.increase_staking(0, address1)
-    assert_code(result, 301103)
+    assert_code(result, 301102)

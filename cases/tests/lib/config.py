@@ -28,7 +28,7 @@ class PipConfig:
     param_proposal = 3
     vote_option_yeas = 1
     vote_option_nays = 2
-    vote_option_Abstentions = 2
+    vote_option_Abstentions = 3
     version1 = 1537
     version2 = 1792
     version3 = 1801

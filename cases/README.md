@@ -9,7 +9,12 @@ pip install -r requirements.txt
 # Run test:
 
 ## 执行所有用例
-py.test test_start.py -s --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
+py.test test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
+
+## 多套环境并发执行
+py.test case_path --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
+
+备注：节点配置文件数必须等于线程数，多个节点配置文件用英文","分隔
 
 # py.test 命令行参数
 --nodeFile "deploy/4_node.yml":  指定节点配置文件

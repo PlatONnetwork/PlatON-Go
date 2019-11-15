@@ -3,6 +3,7 @@ import os
 
 from common.connect import run_ssh, connect_linux
 from environment.config import TestConfig
+from common.log import log
 
 
 class Server:
@@ -25,9 +26,9 @@ class Server:
         try:
             ls = self.run_ssh("cd {};ls".format(self.cfg.remote_compression_tmp_path))
             gz_name = self.cfg.env_id + ".tar.gz"
+            local_gz = os.path.join(self.cfg.env_tmp, gz_name)
             if (gz_name + "\n") in ls:
                 return True, "need not upload"
-            local_gz = os.path.join(self.cfg.env_tmp, gz_name)
             self.run_ssh("rm -rf {};mkdir -p {}".format(self.cfg.remote_compression_tmp_path,
                                                         self.cfg.remote_compression_tmp_path))
             self.sftp.put(local_gz, self.cfg.remote_compression_tmp_path + "/" + os.path.basename(local_gz))
@@ -39,7 +40,6 @@ class Server:
 
     def install_dependency(self):
         try:
-            self.run_ssh("rm -rf {} bn bn.tar.gz tmp")
             self.run_ssh("sudo -S -p '' ntpdate 0.centos.pool.ntp.org", True)
             self.run_ssh("sudo -S -p '' apt install llvm g++ libgmp-dev libssl-dev -y", True)
         except Exception as e:

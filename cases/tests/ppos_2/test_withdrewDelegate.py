@@ -4,6 +4,7 @@ import pytest
 from tests.lib.config import EconomicConfig
 
 
+@pytest.mark.P0
 def test_ROE_001_007_015(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -23,6 +24,7 @@ def test_ROE_001_007_015(client_new_node_obj):
     assert_code(result, 0)
 
 
+@pytest.mark.P1
 def test_ROE_002(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -48,6 +50,7 @@ def test_ROE_002(client_new_node_obj):
     assert status == 1
 
 
+@pytest.mark.P3
 def test_ROE_003(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -70,6 +73,7 @@ def test_ROE_003(client_new_node_obj):
     assert_code(result, 301109)
 
 
+@pytest.mark.P1
 def test_ROE_004(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -90,6 +94,7 @@ def test_ROE_004(client_new_node_obj):
     assert_code(result, 301113)
 
 
+@pytest.mark.P1
 def test_ROE_005_018(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -123,6 +128,7 @@ def test_ROE_005_018(client_new_node_obj):
     assert delegate_limit - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P1
 def test_ROE_006_008(client_new_node_obj):
     """
 
@@ -148,6 +154,7 @@ def test_ROE_006_008(client_new_node_obj):
     log.info("The wallet balance:{}".format(amount2))
 
 
+@pytest.mark.P1
 def test_ROE_010(client_new_node_obj):
     """
 
@@ -196,6 +203,7 @@ def test_ROE_010(client_new_node_obj):
     assert undelegate_amount - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P1
 def test_ROE_011(client_new_node_obj):
     """
 
@@ -254,6 +262,7 @@ def test_ROE_011(client_new_node_obj):
     assert amount3 - amount2 == lockup_amount - msg["Ret"]["debt"]
 
 
+@pytest.mark.P1
 def test_ROE_012(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -281,6 +290,7 @@ def test_ROE_012(client_new_node_obj):
     assert delegate_amount - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P1
 def test_ROE_014(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -328,15 +338,12 @@ def test_ROE_014(client_new_node_obj):
     assert delegate_amount - account_dill < client_new_node_obj.node.web3.toWei(1, "ether")
 
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-
-    msg = client_new_node_obj.ppos.getRestrictingInfo(address)
-    log.info(msg)
-    assert msg["Code"] == 304005
     amount3 = client_new_node_obj.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount3))
     assert amount3 - amount2 == delegate_amount
 
 
+@pytest.mark.P1
 def test_ROE_017(client_new_node_obj):
     """
 
@@ -393,6 +400,7 @@ def test_ROE_017(client_new_node_obj):
     assert amount3 - amount2 == delegate_amount
 
 
+@pytest.mark.P1
 def test_ROE_019_021(client_new_node_obj):
     """
 
@@ -421,6 +429,7 @@ def test_ROE_019_021(client_new_node_obj):
     assert value - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P0
 def test_ROE_020(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -448,6 +457,7 @@ def test_ROE_020(client_new_node_obj):
     assert delegate_limit - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P1
 def test_ROE_024(client_new_node_obj):
     """
 
@@ -507,6 +517,7 @@ def test_ROE_024(client_new_node_obj):
     assert amount3 - amount2 == lockup_amount - msg["Ret"]["debt"]
 
 
+@pytest.mark.P1
 def test_ROE_028(client_new_node_obj):
     """
     :param client_new_node_bgj:
@@ -539,6 +550,7 @@ def test_ROE_028(client_new_node_obj):
     assert delegate_amount - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P1
 def test_ROE_030(client_new_node_obj):
     """
 
@@ -597,6 +609,7 @@ def test_ROE_030(client_new_node_obj):
     assert amount3 - amount2 == delegate_amount
 
 
+@pytest.mark.P1
 def test_ROE_042(client_new_node_obj):
     """
 
@@ -671,6 +684,7 @@ def test_ROE_042(client_new_node_obj):
     assert amount3 - amount2 == lockup_amount - msg["Ret"]["debt"]
 
 
+@pytest.mark.P1
 def test_ROE_055(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -693,6 +707,7 @@ def test_ROE_055(client_new_node_obj):
     assert_code(result, 301113)
 
 
+@pytest.mark.P1
 def test_ROE_056_057(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
     """
 
@@ -736,6 +751,7 @@ def test_ROE_056_057(client_new_node_obj, client_consensus_obj, greater_than_sta
     assert delegate_limit - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P3
 def test_ROE_058(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -766,6 +782,7 @@ def test_ROE_058(client_new_node_obj):
     assert status == 1
 
 
+@pytest.mark.P3
 def test_ROE_059(client_new_node_obj):
     """
     :param client_new_node_obj:
@@ -794,6 +811,7 @@ def test_ROE_059(client_new_node_obj):
     assert status == 1
 
 
+@pytest.mark.P1
 def test_ROE_060(client_new_node_obj):
     """
 
@@ -807,7 +825,6 @@ def test_ROE_060(client_new_node_obj):
     # The next cycle
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
 
-
     result = client_new_node_obj.staking.create_staking(0, address_staking, address_staking)
     assert_code(result, 0)
 
@@ -815,7 +832,7 @@ def test_ROE_060(client_new_node_obj):
     assert_code(result, 0)
     # The next two cycle
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=2)
-    #Pledge again after quitting pledge
+    # Pledge again after quitting pledge
     result = client_new_node_obj.staking.create_staking(0, address_staking, address_staking)
     assert_code(result, 0)
     result = client_new_node_obj.delegate.delegate(0, address)
@@ -830,11 +847,4 @@ def test_ROE_060(client_new_node_obj):
     amount2 = client_new_node_obj.node.eth.getBalance(address)
     log.info("The wallet balance:{}".format(amount2))
     delegate_limit = client_new_node_obj.economic.delegate_limit
-    assert delegate_limit - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1,"ether")
-
-
-
-
-
-
-
+    assert delegate_limit - (amount2 - amount1) < client_new_node_obj.node.web3.toWei(1, "ether")
