@@ -245,20 +245,4 @@ def test_P_031(client_new_node_obj):
     assert_code(result, 301102)
 
 
-@pytest.mark.P3
-def test_P_032(client_new_node_obj):
-    """
-    Use your new wallet as collateral
-    :param client_new_node_obj:
-    :return:
-    """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                         10 ** 18 * 10000000)
-
-    result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert_code(result, 0)
-
-    result = client_new_node_obj.staking.create_staking(0, address_1, address_1)
-    assert_code(result, 301101)
+#

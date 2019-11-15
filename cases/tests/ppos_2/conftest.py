@@ -2,9 +2,6 @@
 import pytest
 
 
-
-
-
 @pytest.fixture()
 def get_generate_account(client_consensus_obj):
     """

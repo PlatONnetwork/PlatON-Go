@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.P0
-def test_AS_031_032_39(client_new_node_obj):
+def test_AS_001_002_009(client_new_node_obj):
     """
     Normal overweight
     The verifier initiates the overweight with the amount of free account, meeting the minimum threshold
@@ -27,7 +27,7 @@ def test_AS_031_032_39(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_AS_033(client_new_node_obj, get_generate_account):
+def test_AS_003(client_new_node_obj, get_generate_account):
     """
     The verifier is not on the verifier and candidate list
     :param client_new_node_obj:
@@ -41,7 +41,7 @@ def test_AS_033(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_AS_034(client_new_node_obj, get_generate_account):
+def test_AS_004(client_new_node_obj, get_generate_account):
     """
     Undersupply of gas
     :param client_new_node_obj:
@@ -61,7 +61,7 @@ def test_AS_034(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_AS_035(client_new_node_obj):
+def test_AS_005(client_new_node_obj):
     """
     Insufficient balance initiated overweight
     :param client_new_node_obj:
@@ -80,7 +80,7 @@ def test_AS_035(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_AS_037(client_new_node_obj, get_generate_account):
+def test_AS_007(client_new_node_obj, get_generate_account):
     """
     (hesitation period) holdings less than the minimum threshold
     :param client_new_node_obj:
@@ -96,7 +96,7 @@ def test_AS_037(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_AS_038(client_new_node_obj, get_generate_account):
+def test_AS_008(client_new_node_obj, get_generate_account):
     """
     (hesitation period) when the verifier revoks the pledge, he/she shall apply for adding the pledge
     :param client_new_node_obj:
@@ -114,7 +114,7 @@ def test_AS_038(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
-def test_AS_041_042_043_044(client_new_node_obj, get_generate_account):
+def test_AS_011_012_013_014(client_new_node_obj, get_generate_account):
     """
     (lockup period) normal increase
     (lockup period) overweight meets the minimum threshold
@@ -159,7 +159,7 @@ def test_AS_041_042_043_044(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_AS_045(client_new_node_obj, get_generate_account):
+def test_AS_015(client_new_node_obj, get_generate_account):
     """
     The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
@@ -187,7 +187,7 @@ def test_AS_045(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_AS_046(client_new_node_obj):
+def test_AS_016(client_new_node_obj):
     """
     The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
@@ -213,7 +213,7 @@ def test_AS_046(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_AS_047(client_new_node_obj, get_generate_account):
+def test_AS_017(client_new_node_obj, get_generate_account):
     """
     The amount of the increase is less than the threshold
     :param client_new_node_obj:
@@ -230,7 +230,7 @@ def test_AS_047(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
-def test_AS_048_049(client_new_node_obj, get_generate_account):
+def test_AS_018_019(client_new_node_obj, get_generate_account):
     """
     Increase the number of active withdrawal but still in the freeze period of the candidate
     Candidates whose holdings have been actively withdrawn and who have passed the freeze period
@@ -256,7 +256,7 @@ def test_AS_048_049(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
-def test_AS_050_051(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
+def test_AS_020_021(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
     """
     Add to the list of candidates who have been penalized and are still in the freeze period
     A candidate whose holdings have been penalized has passed the freeze period
@@ -285,7 +285,7 @@ def test_AS_050_051(client_new_node_obj, get_generate_account, client_consensus_
 
 
 @pytest.mark.P3
-def test_AS_052(client_new_node_obj):
+def test_AS_022(client_new_node_obj):
     """
     Increase your holdings with a new wallet
     :param client_new_node_obj:
@@ -301,5 +301,4 @@ def test_AS_052(client_new_node_obj):
     log.info(result)
 
 
-if __name__ == '__main__':
-    pytest.main(['-s', '-q', '--alluredir', './report/777', 'test_increase_staking.py::test_AS_050_051'])
+

@@ -177,19 +177,12 @@ def test_MPI_061(client_new_node_obj):
     :param client_new_node_obj:
     :return:
     """
-
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-
-    result = client_new_node_obj.staking.create_staking(0, address1, address1)
-    assert_code(result, 0)
-
-    amount = client_new_node_obj.node.eth.getBalance(address1)
-    log.info("The wallet balance:{}".format(amount))
-    cfg = {'gasPrice': amount}
+    account = client_new_node_obj.economic.account
+    node = client_new_node_obj.node
+    address, _ = account.generate_account(node.web3, 10)
     status = 0
     try:
-        result = client_new_node_obj.staking.edit_candidate(address1, address1, transaction_cfg=cfg)
+        result = client_new_node_obj.staking.edit_candidate(address, address)
         log.info(result)
     except:
         status = 1
@@ -294,7 +287,7 @@ def test_MPI_015_016(client_new_node_obj, get_generate_account, client_consensus
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(node)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node.node_id)
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
     assert_code(result, 301102)

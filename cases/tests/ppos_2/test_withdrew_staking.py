@@ -32,7 +32,7 @@ def staking_client(client_new_node_obj):
 
 @allure.title("验证人退回质押金（锁定期）")
 @pytest.mark.P1
-def test_back_unstaking(staking_client):
+def test_RV_002(staking_client):
     """
     The certifier refunds the quality deposit (unreachable unlockable period)
     Pledge becomes the next cycle verifier, after exiting, exit in the next settlement cycle
@@ -94,7 +94,7 @@ def test_locked_quit_addstaking_delegate(staking_client):
 
 @allure.title("最高惩罚后,返回金额&重新质押、委托、赎回")
 @pytest.mark.P1
-def test_punishment_refund(staking_client, global_test_env):
+def test_RV_021(staking_client, global_test_env):
     """
     Return amount after the highest penalty
     """
@@ -151,7 +151,7 @@ def test_punishment_refund(staking_client, global_test_env):
 
 @allure.title("退出中修改质押信息")
 @pytest.mark.P2
-def test_quiting_updateStakingInfo(staking_client):
+def test__RV_021(staking_client):
     """
     Modify the pledge information in the exit
     """
@@ -173,7 +173,7 @@ def test_quiting_updateStakingInfo(staking_client):
 
 @allure.title("已退出修改质押信息")
 @pytest.mark.P2
-def test_quited_updateStakingInfo(staking_client):
+def test_RV_022(staking_client):
     """
     Revoked modify pledge information
     """
@@ -196,7 +196,7 @@ def test_quited_updateStakingInfo(staking_client):
 
 @allure.title("退出验证人后，返回质押金+出块奖励+质押奖励")
 @pytest.mark.P1
-def test_into_quit_block_reward(staking_client):
+def test_RV_014_015(staking_client):
     """
     After becoming a verifier, there are pledge rewards and block rewards.
     """
@@ -228,7 +228,7 @@ def test_into_quit_block_reward(staking_client):
 
 @allure.title("验证人申请退回质押金（犹豫期）")
 @pytest.mark.P0
-def test_back_unStaking(staking_client):
+def test_RV_001_024(staking_client):
     """
     The certifier applies for a refund of the quality deposit (hesitation period)
     """
@@ -250,7 +250,7 @@ def test_back_unStaking(staking_client):
 
 @allure.title("发起撤销质押（质押金+增持金额））")
 @pytest.mark.P1
-def test_unstaking_all(staking_client):
+def test_RV_009(staking_client):
     client = staking_client
     node = client.node
     staking_address = client.staking_address
@@ -284,11 +284,10 @@ def test_unstaking_all(staking_client):
 
 @allure.title("验证人申请退回质押金（犹豫期+锁定期）")
 @pytest.mark.P1
-def test_520(global_test_env, staking_client):
+def test_RV_006(staking_client):
     """
     The certifier applies for a refund of the quality deposit (hesitation period + lock-up period)
     """
-    global_test_env.deploy_all()
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -333,7 +332,7 @@ def test_520(global_test_env, staking_client):
 
 @allure.title("撤销5种身份候选人，验证人，共识验证人，不存在的候选人，已失效的候选人")
 @pytest.mark.P1
-def test_withdrew_staking_000(client_new_node_obj_list):
+def test_RV_012(client_new_node_obj_list):
     """
     Since other use cases have verified the amount of retaluation, no assertion is made here.
     0: Candidate
@@ -363,7 +362,7 @@ def test_withdrew_staking_000(client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_withdrew_staking_001(staking_client):
+def test_RV_013(staking_client):
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -378,7 +377,7 @@ def test_withdrew_staking_001(staking_client):
 
 
 @pytest.mark.P2
-def test_withdrew_staking_002(staking_client):
+def test_RV_011(staking_client):
     client = staking_client
     node = client.node
     economic = client.economic
@@ -396,7 +395,7 @@ def test_withdrew_staking_002(staking_client):
 
 
 @pytest.mark.P2
-def test_withdrew_staking_003(staking_client):
+def test_RV_016(staking_client):
     _, node_id = generate_key()
     msg = staking_client.staking.withdrew_staking(staking_client.staking_address, node_id=node_id)
     log.info(msg)
@@ -404,7 +403,7 @@ def test_withdrew_staking_003(staking_client):
 
 
 @pytest.mark.P2
-def test_withdrew_staking_004(staking_client):
+def test_RV_017(staking_client):
     client = staking_client
     node = client.node
     staking_address = client.staking_address
@@ -419,7 +418,7 @@ def test_withdrew_staking_004(staking_client):
 
 @allure.title("自由账户质押+锁仓账户增持(犹豫期退质押)")
 @pytest.mark.P1
-def test_006(staking_client):
+def test_RV_006(staking_client):
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -463,7 +462,7 @@ def test_006(staking_client):
 
 @allure.title("自由账户质押+锁仓账户增持(锁定期退质押)")
 @pytest.mark.P1
-def test_007(staking_client):
+def test_RV_007(staking_client):
     client = staking_client
     node = client.node
     staking_address = client.staking_address
@@ -518,7 +517,7 @@ def test_007(staking_client):
 
 @allure.title("自由账户质押+锁仓账户增持(都存在犹豫期+锁定期)")
 @pytest.mark.P1
-def test_009(staking_client):
+def test_RV_020(staking_client):
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -600,11 +599,10 @@ def test_009(staking_client):
 
 @allure.title("修改节点收益地址，再做退回：验证质押奖励+出块奖励")
 @pytest.mark.P0
-def test_alter_address_backup(global_test_env, staking_client):
+def test_RV_019(staking_client):
     """
     修改钱包地址，更改后的地址收益正常
     """
-    global_test_env.deploy_all()
     client = staking_client
     node = client.node
     staking_address = client.staking_address

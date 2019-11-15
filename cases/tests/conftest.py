@@ -140,7 +140,7 @@ def client_new_node_obj(global_running_env, staking_cfg):
             log.info("Current linked node: {}".format(noconsensus_node.node_mark))
             return Client(global_running_env, noconsensus_node, staking_cfg)
     log.info('noconsensus node has been staked, restart the chain')
-    client_noconsensus_obj.economic.env.deploy_all()
+    global_running_env.deploy_all()
     log.info("Current linked node: {}".format(normal_node.node_mark))
     return Client(global_running_env, normal_node, staking_cfg)
 
