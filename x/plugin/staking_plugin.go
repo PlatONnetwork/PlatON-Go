@@ -1117,13 +1117,13 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 		}
 
 		valEx := &staking.ValidatorEx{
-			NodeId:          can.NodeId,
-			BlsPubKey:       can.BlsPubKey,
+			NodeId:          v.NodeId,
+			BlsPubKey:       v.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
-			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion, // Display the real-time version number to let users know why they were not elected. (Real-time version number will be used when selecting the consensus cycle validator)
-			StakingBlockNum: can.StakingBlockNum,
+			StakingTxIndex:  v.StakingTxIndex,
+			ProgramVersion:  v.ProgramVersion, // Display the snapshot version number. (but real-time version number will be used when selecting the consensus cycle validator)
+			StakingBlockNum: v.StakingBlockNum,
 			Shares:          (*hexutil.Big)(v.Shares), // Shares can show the snapshot, because the value will only be used at the end of the epoch.
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
@@ -1269,13 +1269,13 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		}
 
 		valEx := &staking.ValidatorEx{
-			NodeId:          can.NodeId,
-			BlsPubKey:       can.BlsPubKey,
+			NodeId:          v.NodeId,
+			BlsPubKey:       v.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
-			StakingTxIndex:  can.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion, // Display the real-time version number to let users know why they were not elected. (Real-time version number will be used when selecting the consensus cycle validator)
-			StakingBlockNum: can.StakingBlockNum,
+			StakingTxIndex:  v.StakingTxIndex,
+			ProgramVersion:  v.ProgramVersion, // Display the snapshot version number. (but real-time version number will be used when selecting the consensus cycle validator)
+			StakingBlockNum: v.StakingBlockNum,
 			Shares:          (*hexutil.Big)(v.Shares), // Shares can show the snapshot, because the value will only be used at the end of the epoch.
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
