@@ -324,11 +324,16 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	restrictInfo.StakingAmount.Sub(restrictInfo.StakingAmount, amount)
 	restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, amount)
 
-	rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
-
-	// save restricting account info
-	rp.log.Debug("Call SlashingNotify finished", "restrictingInfo", restrictInfo, "account", account, "amount", amount)
-
+	if restrictInfo.StakingAmount.Cmp(common.Big0) == 0 &&
+		len(restrictInfo.ReleaseList) == 0 && restrictInfo.CachePlanAmount.Cmp(common.Big0) == 0 {
+		state.SetState(vm.RestrictingContractAddr, restrictingKey, []byte{})
+		// save restricting account info
+		rp.log.Debug("Call SlashingNotify finished,set empty info", "account", account, "amount", amount)
+	} else {
+		rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
+		// save restricting account info
+		rp.log.Debug("Call SlashingNotify finished", "restrictingInfo", restrictInfo, "account", account, "amount", amount)
+	}
 	return nil
 }
 
