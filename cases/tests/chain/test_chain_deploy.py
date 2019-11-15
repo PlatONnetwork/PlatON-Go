@@ -189,11 +189,14 @@ def test_start_all_node_close_f_add_1_and_fast_one(global_test_env):
     global_test_env.deploy_all()
     time.sleep(100)
     test_node = copy(global_test_env.get_rand_node())
+    test_node.stop()
     test_node.clean()
     test_node.run_ssh("cd {};ls".format(test_node.remote_node_path))
     new_cfg = copy(global_test_env.cfg)
     new_cfg.syncmode = "fast"
     test_node.cfg = new_cfg
-    test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
+    is_success, msg = test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
+    if not is_success:
+        raise Exception(msg)
     time.sleep(100)
     assert test_node.block_number > 100
