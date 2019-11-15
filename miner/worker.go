@@ -423,7 +423,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 								if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 									log.Debug("Begin to package new block regularly")
 									blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
-									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+									commit(false, commitInterruptResubmit, commitBlock, blockDeadline.Add(time.Millisecond*600))
 									continue
 								}
 							}
