@@ -28,7 +28,7 @@ def test_TR_TX_001(global_running_env):
     assert value == node.eth.getBalance(address)
 
 
-@allure.title("new_account_singed_transaction")
+@allure.title("new account singed transaction")
 @pytest.mark.P0
 def test_TR_TX_006(global_running_env):
     """
@@ -44,7 +44,7 @@ def test_TR_TX_006(global_running_env):
     assert new_value == node.eth.getBalance(to_address)
 
 
-@allure.title("unlock_sendtransaction")
+@allure.title("unlock sendtransaction")
 @pytest.mark.P1
 @pytest.mark.parametrize("node_type", ["consensus", "normal"])
 def test_TR_TX_004_to_005(global_running_env, node_type):
@@ -65,7 +65,7 @@ def test_TR_TX_004_to_005(global_running_env, node_type):
     assert value == node.eth.getBalance(to_address)
 
 
-@allure.title("money_negative_transaction")
+@allure.title("money negative transaction")
 @pytest.mark.P1
 def test_TR_TX_008(global_running_env):
     """
@@ -82,7 +82,7 @@ def test_TR_TX_008(global_running_env):
     assert status == 0
 
 
-@allure.title("balance_insufficient_transaction")
+@allure.title("balance insufficient transaction")
 @pytest.mark.P2
 @pytest.mark.parametrize("balance", [0, 100, 1000])
 def test_TR_TX_002_to_003_and_007(global_running_env, balance):
@@ -136,7 +136,7 @@ def test_TR_TX_011(global_running_env):
     assert value == node.eth.getBalance(address)
 
 
-@allure.title("to_account_abnormal")
+@allure.title("to account abnormal")
 @pytest.mark.P3
 @pytest.mark.parametrize("to_address", ["", "abcdefghigk"])
 def test_TR_TX_012_to_013(global_running_env, to_address):
