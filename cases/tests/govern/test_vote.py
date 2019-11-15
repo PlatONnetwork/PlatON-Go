@@ -3,7 +3,7 @@ from common.log import log
 import time
 from tests.lib.utils import assert_code, wait_block_number, upload_platon
 from tests.lib.client import get_client_obj
-from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, param_proposal_vote
+from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, proposal_vote
 from dacite import from_dict
 from tests.lib.genesis import Genesis
 
@@ -173,7 +173,7 @@ def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposa
     log.info('endblock vote result: {}'.format(result))
     assert_code(result, 302026)
 
-def test_V0_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal_te_pipobj, client_verifier_obj_list):
+def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal_te_pipobj, client_verifier_obj_list):
     pip_obj = voting_proposal_te_pipobj
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
     address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -244,7 +244,7 @@ class TestVoteNodeException():
         log.info('node vote text proposal result {}'.format(result))
         assert_code(result, 302020)
 
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         log.info('node vote param proposal result {}'.format(result))
         assert_code(result, 302020)
 
@@ -359,7 +359,7 @@ class TestVoteNodeException():
                                           ver_pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         log.info('Candidate node {} vote param proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 302022)
 
@@ -450,9 +450,9 @@ class TestVoteParam():
                               address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Not staking address , node {}, vote param proposal result {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 302021)
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         assert_code(result, 0)
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         assert_code(result, 302027)
 
     def test_PP_VO_009_PP_VO_010(self, submit_param, client_list_obj):
@@ -465,7 +465,7 @@ class TestVoteParam():
         assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Cancel proposal info : {}'.format(proposalinfo))
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         assert_code(result, 302020)
         wait_block_number(pip_obj.node, endblock)
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_nays, address,
@@ -485,7 +485,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_lis
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposal info {}'.format(proposalinfo))
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock') - 10)
-    result = param_proposal_vote(pip_obj)
+    result = proposal_vote(pip_obj)
     assert_code(result, 0)
     result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
     log.info('Interface getTallyResult result is {}'.format(result))
