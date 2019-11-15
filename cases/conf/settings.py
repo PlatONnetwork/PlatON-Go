@@ -30,6 +30,7 @@ LOCAL_TMP_FILE_ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, "deploy/tmp"))
 # cache directory configuration
 class ConfTmpDir:
     def __init__(self, dir):
+        self.dir = dir
         self.tmp_root_path = os.path.abspath(os.path.join(LOCAL_TMP_FILE_ROOT_DIR, dir))
         if not os.path.exists(self.tmp_root_path):
             os.makedirs(self.tmp_root_path)
