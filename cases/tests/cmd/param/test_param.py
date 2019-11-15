@@ -23,14 +23,6 @@ def isConnection(url, port):
         return False
 
 
-def isWsConnection(url):
-    ws_web3 = connect_web3(url)
-    try:
-        return ws_web3.isConnected()
-    except:
-        return False
-
-
 def file_is_exist(ssh, path, file_name):
     cmd_list = run_ssh(
         ssh, "find {} -name {}".format(path, file_name))
@@ -54,6 +46,7 @@ def append_cmd_restart(global_test_env, cmd, node=None):
 
 class TestStartParam(object):
 
+    @allure.title("测试访问rpcapi")
     def test_rpc_api(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
@@ -61,31 +54,49 @@ class TestStartParam(object):
         api_method = "debug"
         assert modules.get(api_method) is not None
 
+    @allure.title("测试开启ws功能")
     def test_open_ws_connection(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
-        assert isWsConnection(node.wsurl)
+        ws_url = "ws://{}:".format(node.host)
+        ws_port = node.wsport
+        if ws_port is None:
+            ws_port = 16000
+            node.wsport = ws_port
+            node.wsurl = "{}{}".format(ws_url, ws_port)
+            append_cmd_restart(global_test_env, None, node)
+        assert node.ws_web3.isConnected()
 
+    @allure.title("测试开启wsapi功能")
     def test_ws_api(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
-        modules = node.web3.manager.request_blocking("rpc_modules", [])
+        if node.wsport is None:
+            node.wsport = 16000
+            node.wsurl = "ws://{}:{}".format(node.host, node.wsport)
+            append_cmd_restart(global_test_env, None, node)
+        modules = node.ws_web3.manager.request_blocking("rpc_modules", [])
         api_method = "debug"
         assert modules.get(api_method) is not None
 
+    @allure.title("测试开启ipc功能")
     def test_enable_ipc(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         assert file_is_exist(node.ssh, node.remote_data_dir, "platon.ipc")
 
+    @allure.title("测试关闭ipc功能")
     def test_disable_ipc(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--ipcdisable")
         assert bool(1 - file_is_exist(test_node.ssh, test_node.remote_data_dir, "platon.ipc"))
 
+    @allure.title("测试配置ipc文件名称")
     def test_enable_ipc_config_name(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--ipcpath platon_test.ipc")
+        time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_data_dir, "platon_test.ipc")
 
+    @allure.title("测试启用种子节点")
     def test_open_bootnodes(self, global_test_env):
         global_test_env.deploy_all()
         env = global_test_env
@@ -98,16 +109,18 @@ class TestStartParam(object):
         new_cfg.append_cmd = "--bootnodes \"{}\"".format(collusion_node.enode)
         test_node.cfg = new_cfg
         test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
-        time.sleep(10)
+        time.sleep(20)
         node_peers = test_node.admin.peers
         assert len(node_peers) == 1
         assert node_peers[0]["id"] == collusion_node.node_id
 
+    @allure.title("测试开启p2p端口")
     def test_open_p2p_connection(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         assert isConnection(node.host, int(node.p2p_port))
 
+    @allure.title("测试开启discovery功能")
     def test_open_discovery(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
@@ -115,12 +128,14 @@ class TestStartParam(object):
         discovery = node_info["ports"]["discovery"]
         assert discovery != 0
 
+    @allure.title("测试关闭discovery功能")
     def test_close_discovery(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--nodiscover")
         node_info = test_node.admin.nodeInfo
         discovery = node_info["ports"]["discovery"]
         assert discovery == 0
 
+    @allure.title("测试开启pprof功能")
     def test_open_pprof(self, global_test_env):
         test_node = global_test_env.get_rand_node()
         pprof = 6060
@@ -128,14 +143,18 @@ class TestStartParam(object):
                                        "--pprof --pprofaddr {} --pprofport {}".format(test_node.host, pprof), test_node)
         assert isConnection(test_node.host, pprof)
 
+    @allure.title("测试开启trace信息文件输出")
     def test_enable_trace(self, global_test_env):
         test_node = global_test_env.get_rand_node()
-        test_node = append_cmd_restart(global_test_env, "--trace {}/tracefile".format(test_node.remote_node_path))
+        append_cmd_restart(global_test_env, "--trace {}/tracefile".format(test_node.remote_node_path), test_node)
+        time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_node_path, "tracefile")
 
+    @allure.title("测试开启输出cpufile内容")
     def test_enable_cpufile(self, global_test_env):
         test_node = global_test_env.get_rand_node()
-        test_node = append_cmd_restart(global_test_env, "--cpuprofile {}/cpufile".format(test_node.remote_node_path))
+        append_cmd_restart(global_test_env, "--cpuprofile {}/cpufile".format(test_node.remote_node_path), test_node)
+        time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_node_path, "cpufile")
 
     @allure.title("测试开启指标监控功能")
