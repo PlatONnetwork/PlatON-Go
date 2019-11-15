@@ -12,23 +12,17 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-var (
-	abiFilePath = "../test/contracta.cpp.abi.json"
-	configPath  = "../config.json"
-)
-
 func TestParseConfig(t *testing.T) {
-	err := parseConfigJson(configPath)
-	assert.Nil(t, err, fmt.Sprintf("%v", err))
-	assert.NotEmpty(t, config.Gas, "the Gas is empty")
-	assert.NotEmpty(t, config.GasPrice, "the GasPrice is empty")
-	assert.NotEmpty(t, config.From, "the From is empty")
+	parseConfig(t)
+	assert.NotEqual(t, config.Gas, "", "the Gas is empty")
+	assert.NotEqual(t, config.GasPrice, "", "the GasPrice is empty")
+	assert.NotEqual(t, config.From, "", "the From is empty")
 }
 
 func TestParseFuncFromAbi(t *testing.T) {
 	funcDesc, err := parseFuncFromAbi(abiFilePath, "atransfer")
 	assert.Nil(t, err, fmt.Sprintf("%v", err))
-	assert.NotNil(t, funcDesc, "the funcDesc is nil in abi")
+	assert.NotEqual(t, funcDesc, "", "the funcDesc is nil in abi")
 }
 
 func TestParseAbiFromJson(t *testing.T) {
@@ -36,29 +30,40 @@ func TestParseAbiFromJson(t *testing.T) {
 	assert.Nil(t, e, fmt.Sprintf("parse abi json error! \n，%v", e))
 	marshal, e := json.Marshal(a)
 	assert.Nil(t, e, fmt.Sprintf("parse data to json error! \n，%v", e))
-	assert.NotNil(t, marshal, "the data is nil")
+	assert.NotEqual(t, marshal, "", "the data is nil")
 }
 
 func TestHttpPostTransfer(t *testing.T) {
 
+	platon, datadir := prepare(t)
+
 	param := JsonParam{
 		Jsonrpc: "2.0",
 		Method:  "platon_sendTransaction",
-		//Params:[]TxParams{},
+		Params: []TxParams{
+			{
+				From:     from,
+				To:       to,
+				Value:    "0xf4240",        // 1000000
+				Gas:      "0x5208",         // 21000
+				GasPrice: "0x2d79883d2000", // 50000000000000
+			},
+		},
 		Id: 1,
 	}
 
-	s, e := HttpPost(param)
-	if e != nil {
-		t.Fatal("test http post error .\n" + e.Error())
-	}
-	fmt.Println(s)
-
+	r, e := HttpPost(param)
+	assert.Nil(t, e, fmt.Sprintf("test http post error: %v", e))
+	assert.NotEqual(t, r, "", "the result is nil")
+	t.Log("the result ", r)
+	clean(platon, datadir)
 }
 
 func TestHttpPostDeploy(t *testing.T) {
+	platon, datadir := prepare(t)
+
 	deployParams := DeployParams{
-		From:     "0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b",
+		From:     from,
 		Gas:      "0x400000",
 		GasPrice: "0x9184e72a000",
 	}
@@ -68,14 +73,22 @@ func TestHttpPostDeploy(t *testing.T) {
 	param := JsonParam{
 		Jsonrpc: "2.0",
 		Method:  "platon_sendTransaction",
-		Params:  params,
-		Id:      1,
+		Params: []TxParams{
+			{
+				From:     from,
+				To:       to,
+				Value:    "0xf4240",        // 1000000
+				Gas:      "0x5208",         // 21000
+				GasPrice: "0x2d79883d2000", // 50000000000000
+			},
+		},
+		Id: 1,
 	}
 
 	r, e := HttpPost(param)
-	if e != nil {
-		t.Fatal("test http post error .\n" + e.Error())
-	}
+	assert.Nil(t, e, fmt.Sprintf("test http post error: %v", e))
+	assert.NotEqual(t, r, "", "the result is nil")
+	t.Log("the result ", r)
 
 	var resp = Response{}
 	err := json.Unmarshal([]byte(r), &resp)
@@ -97,26 +110,28 @@ func TestHttpPostDeploy(t *testing.T) {
 	select {
 	case address := <-ch:
 		fmt.Printf("contract address:%s\n", address)
-	case <-time.After(time.Second * 100):
+	case <-time.After(time.Second * 10):
 		exit <- "exit"
 		fmt.Printf("get contract receipt timeout...more than 100 second.\n")
 	}
 
+	clean(platon, datadir)
 }
 
 func TestHttpCallContact(t *testing.T) {
+	platon, datadir := prepare(t)
 
 	param1 := uint(33)
 	b := new(bytes.Buffer)
 	rlp.Encode(b, param1)
 
 	params := TxParams{
-		From:     "0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b",
+		From:     from,
 		To:       "0xace6bdba54c8c359e70f541bfc1cabaf0244b916",
 		Value:    "0x2710",
 		Gas:      "0x76c00",
 		GasPrice: "0x9184e72a000",
-		//Data:"0x60fe47b10000000000000000000000000000000000000000000000000000000000000011",
+		Data:     "0x60fe47b10000000000000000000000000000000000000000000000000000000000000011",
 	}
 
 	param := JsonParam{
@@ -127,17 +142,17 @@ func TestHttpCallContact(t *testing.T) {
 	}
 	paramJson, _ := json.Marshal(param)
 	fmt.Println(string(paramJson))
-	s, e := HttpPost(param)
-	if e != nil {
-		t.Fatal("test http post error .\n" + e.Error())
-	}
-	fmt.Println(s)
+	r, e := HttpPost(param)
+	assert.Nil(t, e, fmt.Sprintf("test http post error: %v", e))
+	assert.NotEqual(t, r, "", "the result is nil")
+	t.Log("the result ", r)
+	clean(platon, datadir)
 
 }
 
 func TestGetFuncParam(t *testing.T) {
 	f := "set()"
 	s, strings := GetFuncNameAndParams(f)
-	fmt.Println(s)
-	fmt.Println(len(strings))
+	assert.Equal(t, s, "set", fmt.Sprintf("the result is not `set`, but it is %s", s))
+	assert.Equal(t, len(strings), 0, fmt.Sprintf("the params len is not 0, but it is %d", len(strings)))
 }
