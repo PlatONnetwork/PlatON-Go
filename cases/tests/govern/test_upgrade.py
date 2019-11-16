@@ -1,5 +1,5 @@
 from common.log import log
-from tests.lib.utils import assert_code, wait_block_number, upload_platon
+from tests.lib.utils import assert_code, wait_block_number, upload_platon, get_pledge_list
 from tests.lib import Genesis
 from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
@@ -629,3 +629,43 @@ class TestUpgradedST():
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert_code(result, 0)
         log.info('Node {} vote result : {}'.format(pip_obj.node.node_id, result))
+
+class TestUpgradeVP():
+    @pytest.mark.compatibility
+    def test_UV_UPG_2(self, new_genesis_env, client_con_list_obj, client_noconsensus_obj):
+        new_genesis_env.deploy_all()
+        pip_obj = client_con_list_obj[0].pip
+        pip_obj_test = client_noconsensus_obj.pip
+        address, _ = pip_obj_test.economic.account.generate_account(pip_obj_test.node.web3, 10**18 * 10000000)
+        result = client_noconsensus_obj.staking.create_staking(0, address, address, amount=10**18 * 2000000,
+                                                               transaction_cfg=pip_obj_test.cfg.transaction_cfg)
+        log.info('Staking result : {}'.format(result))
+        pip_obj_test.economic.wait_settlement_blocknum(pip_obj_test.node)
+        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        log.info('Get verifier list : {}'.format(verifier_list))
+        assert pip_obj_test.node.node_id in verifier_list
+
+        submitvpandvote(client_con_list_obj)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('Get version proposal information : {}'.format(proposalinfo))
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info('Validator list : {}'.format(validator_list))
+        wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+        pip_obj.economic.wait_settlement_blocknum(pip_obj.node)
+        validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info('Validator list : {}'.format(validator_list))
+        assert pip_obj_test.node.node_id not in validator_list
+        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        log.info('Get verifier list : {}'.format(verifier_list))
+        assert pip_obj_test.node.node_id not in verifier_list
+        balance_before = pip_obj.node.eth.getBalance(address, 2 * pip_obj.economic.settlement_size - 1)
+        log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size-1, balance_before))
+        balance_after = pip_obj.node.eth.getBalance(address, 2 * pip_obj.economic.settlement_size)
+        log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size, balance_after))
+        _, staking_reward = pip_obj_test.economic.get_current_year_reward(pip_obj_test.node, verifier_num=5)
+        assert balance_after - balance_before == staking_reward
+
+
