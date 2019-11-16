@@ -1,9 +1,8 @@
 import socket
 import time
 from copy import copy
-
-import allure
 import pytest
+import allure
 
 from common.connect import connect_web3, run_ssh
 
@@ -47,18 +46,20 @@ def append_cmd_restart(global_test_env, cmd, node=None):
 
 class TestStartParam(object):
 
-    @allure.title("测试访问rpcapi")
     @pytest.mark.compatibility
-    def test_rpc_api(self, global_test_env):
+    @allure.title("Test access rpcapi")
+    @pytest.mark.P3
+    def test_CMD_077(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         modules = node.web3.manager.request_blocking("rpc_modules", [])
         api_method = "debug"
         assert modules.get(api_method) is not None
 
-    @allure.title("测试开启ws功能")
     @pytest.mark.compatibility
-    def test_open_ws_connection(self, global_test_env):
+    @allure.title("Test to enable ws function")
+    @pytest.mark.P3
+    def test_CMD_078(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         ws_url = "ws://{}:".format(node.host)
@@ -70,8 +71,9 @@ class TestStartParam(object):
             append_cmd_restart(global_test_env, None, node)
         assert node.ws_web3.isConnected()
 
-    @allure.title("测试开启wsapi功能")
-    def test_ws_api(self, global_test_env):
+    @allure.title("Test to enable wsapi function")
+    @pytest.mark.P3
+    def test_CMD_082(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         if node.wsport is None:
@@ -82,27 +84,31 @@ class TestStartParam(object):
         api_method = "debug"
         assert modules.get(api_method) is not None
 
-    @allure.title("测试开启ipc功能")
+    @allure.title("Test to enable ipc function")
+    @pytest.mark.P3
     @pytest.mark.compatibility
     def test_enable_ipc(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         assert file_is_exist(node.ssh, node.remote_data_dir, "platon.ipc")
 
-    @allure.title("测试关闭ipc功能")
-    def test_disable_ipc(self, global_test_env):
+    @allure.title("Test off ipc function")
+    @pytest.mark.P3
+    def test_CMD_085(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--ipcdisable")
         assert bool(1 - file_is_exist(test_node.ssh, test_node.remote_data_dir, "platon.ipc"))
 
-    @allure.title("测试配置ipc文件名称")
-    def test_enable_ipc_config_name(self, global_test_env):
+    @allure.title("Test configuration ipc file name")
+    @pytest.mark.P3
+    def test_CMD_086(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--ipcpath platon_test.ipc")
         time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_data_dir, "platon_test.ipc")
 
-    @allure.title("测试启用种子节点")
     @pytest.mark.compatibility
-    def test_open_bootnodes(self, global_test_env):
+    @allure.title("Test enable seed node")
+    @pytest.mark.P3
+    def test_CMD_089(self, global_test_env):
         global_test_env.deploy_all()
         env = global_test_env
         normal_node = env.get_a_normal_node()
@@ -119,53 +125,60 @@ class TestStartParam(object):
         assert len(node_peers) == 1
         assert node_peers[0]["id"] == collusion_node.node_id
 
-    @allure.title("测试开启p2p端口")
     @pytest.mark.compatibility
-    def test_open_p2p_connection(self, global_test_env):
+    @allure.title("Test open p2p port")
+    @pytest.mark.P3
+    def test_CMD_090(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         assert isConnection(node.host, int(node.p2p_port))
 
-    @allure.title("测试开启discovery功能")
     @pytest.mark.compatibility
-    def test_open_discovery(self, global_test_env):
+    @allure.title("Test to enable the discovery function")
+    @pytest.mark.P3
+    def test_CMD_097(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         node_info = node.admin.nodeInfo
         discovery = node_info["ports"]["discovery"]
         assert discovery != 0
 
-    @allure.title("测试关闭discovery功能")
-    def test_close_discovery(self, global_test_env):
+    @allure.title("Test off the discovery function")
+    @pytest.mark.P3
+    def test_CMD_098(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--nodiscover")
         node_info = test_node.admin.nodeInfo
         discovery = node_info["ports"]["discovery"]
         assert discovery == 0
 
-    @allure.title("测试开启pprof功能")
-    def test_open_pprof(self, global_test_env):
+    @allure.title("Test to enable pprof function")
+    @pytest.mark.P3
+    def test_CMD_114(self, global_test_env):
         test_node = global_test_env.get_rand_node()
         pprof = 6060
         test_node = append_cmd_restart(global_test_env,
                                        "--pprof --pprofaddr {} --pprofport {}".format(test_node.host, pprof), test_node)
         assert isConnection(test_node.host, pprof)
 
-    @allure.title("测试开启trace信息文件输出")
-    def test_enable_trace(self, global_test_env):
+    @allure.title("Test to enable trace information file output")
+    @pytest.mark.P3
+    def test_CMD_119(self, global_test_env):
         test_node = global_test_env.get_rand_node()
         append_cmd_restart(global_test_env, "--trace {}/tracefile".format(test_node.remote_node_path), test_node)
         time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_node_path, "tracefile")
 
-    @allure.title("测试开启输出cpufile内容")
-    def test_enable_cpufile(self, global_test_env):
+    @allure.title("Test open output cpufile content")
+    @pytest.mark.P3
+    def test_CMD_118(self, global_test_env):
         test_node = global_test_env.get_rand_node()
         append_cmd_restart(global_test_env, "--cpuprofile {}/cpufile".format(test_node.remote_node_path), test_node)
         time.sleep(10)
         assert file_is_exist(test_node.ssh, test_node.remote_node_path, "cpufile")
 
-    @allure.title("测试开启指标监控功能")
-    def test_enable_metrics(self, global_test_env):
+    @allure.title("Test open indicator monitoring function")
+    @pytest.mark.P3
+    def test_CMD_121(self, global_test_env):
         test_node = append_cmd_restart(global_test_env, "--metrics")
         time.sleep(10)
         metrics = test_node.debug.web3.manager.request_blocking("debug_metrics", [True])
