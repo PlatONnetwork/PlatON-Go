@@ -139,6 +139,7 @@ def test_TP_UN_001(submit_text):
     log.info('There is voting text proposal, submit text proposal result : {}'.format(result))
     assert_code(result, 0)
 
+@pytest.mark.compatibility
 def test_VP_SU_001_VP_UN_001(submit_version):
     pip_obj = submit_version
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,

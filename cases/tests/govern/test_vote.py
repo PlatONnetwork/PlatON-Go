@@ -114,7 +114,7 @@ class TestVoteVP():
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} vote proposal result : {}'.format(client_verifier_obj_list[-1].node.node_id, result))
 
-
+@pytest.mark.compatibility
 def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposal):
     pip_obj = no_vp_proposal
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 2,
@@ -393,6 +393,7 @@ class TestVoteNodeException():
         assert_code(result, 302022)
 
 class TestVoteCancelVersion():
+    @pytest.mark.compatibility
     def test_VO_VO_002_V0_WA_002_V0_RE_002_V_STA_8(self, submit_cancel):
         pip_obj = submit_cancel
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10 ** 18 * 10000)
@@ -426,6 +427,7 @@ class TestVoteCancelVersion():
 
 
 class TestVoteCancelParam():
+    @pytest.mark.compatibility
     def test_PP_VO_001_PP_VO_005_PP_VO_015_PP_VO_017(self, submit_cancel_param):
         pip_obj = submit_cancel_param
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -441,6 +443,7 @@ class TestVoteCancelParam():
         assert_code(result, 302027)
 
 class TestVoteParam():
+    @pytest.mark.compatibility
     def test_PP_VO_002_PP_VO_008_PP_VO_018_PP_VO_016(self, submit_param):
         pip_obj = submit_param
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -472,6 +475,7 @@ class TestVoteParam():
                               transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert_code(result, 302022)
 
+@pytest.mark.compatibility
 def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_list_obj):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0

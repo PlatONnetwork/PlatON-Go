@@ -34,6 +34,7 @@ class TestgetProposal():
         assert result.get('Ret').get('SubmitBlock') == proposalinfo.get('SubmitBlock')
         assert result.get('Ret').get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
+    @pytest.mark.compatibility
     def test_PR_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -126,6 +127,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(client_verifier_obj_list)
 
+    @pytest.mark.compatibility
     def test_TR_IN_001(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = no_vp_proposal
         submitcvpandvote(client_verifier_obj_list, 1, 2, 3, 3)
@@ -269,6 +271,7 @@ class TestgetAccuVerifiersCount():
         assert pip_obj_test.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 0, 0, 0]
         assert pip_obj_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 0]
 
+    @pytest.mark.compatibility
     def test_AC_IN_001_002_004_to_006_012_to_014(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[-1].pip
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5, pip_obj.node.staking_address,
@@ -481,6 +484,7 @@ class TestGetGovernParam():
         assert_code(result, 302031)
 
 class TestGetActiveVersion():
+    @pytest.mark.compatibility
     def test_AV_IN_001(self, no_vp_proposal):
         assert_code(no_vp_proposal.chain_version, no_vp_proposal.cfg.version0)
 

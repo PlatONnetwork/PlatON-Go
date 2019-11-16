@@ -4,11 +4,12 @@ from tests.lib import Genesis
 from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
     submitppandvote, submitcvpandvote, submitvpandvote
-import time
+import time, pytest
 from tests.govern.test_declare_version import replace_version_declare
 
 class TestSupportRateVoteRatePP():
-    def test_UP_PA_001(self, new_genesis_env, client_con_list_obj):
+    @pytest.mark.compatibility
+    def test_UP_PA_001_VS_EP_002(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.332
@@ -84,6 +85,7 @@ class TestSupportRateVoteRatePP():
         assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
+    @pytest.mark.compatibility
     def test_UP_PA_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -218,6 +220,7 @@ class TestSupportRateVoteRateCPP():
         assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
+    @pytest.mark.compatibility
     def test_UC_CP_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.cancelProposalSupportRate = 0.332
@@ -277,6 +280,7 @@ class TestSupportRateVoteRateCPP():
 
 
 class TestSupportRateVoteRateCVP():
+    @pytest.mark.compatibility
     def test_UP_CA_001_VS_BL_2(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.cancelProposalSupportRate = 0.332
@@ -353,6 +357,7 @@ class TestSupportRateVoteRateCVP():
         assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
+    @pytest.mark.compatibility
     def test_UP_CA_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.cancelProposalSupportRate = 0.332
@@ -412,7 +417,8 @@ class TestSupportRateVoteRateCVP():
 
 
 class TestSupportRateVoteRateTP():
-    def test_UP_TE_001(self, new_genesis_env, client_con_list_obj):
+    @pytest.mark.compatibility
+    def test_UP_TE_001_VS_BL_3(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalSupportRate = 0.332
         genesis.economicModel.gov.textProposalVoteRate = 0.751
@@ -492,6 +498,7 @@ class TestSupportRateVoteRateTP():
         assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
+    @pytest.mark.compatibility
     def test_UP_TE_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalSupportRate = 0.332
@@ -553,6 +560,7 @@ class TestSupportRateVoteRateTP():
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
 class TestUpgradedST():
+    @pytest.mark.compatibility
     def test_UV_TR_001_004_to_008_011_to_017_VS_EP_001(self, new_genesis_env, client_con_list_obj):
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip

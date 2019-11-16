@@ -112,6 +112,7 @@ def submittpandvote(client_list_obj, *args):
         assert_code(result, 0)
 
 class TestVotingStatisticsVP():
+    @pytest.mark.compatibility
     def test_VS_EXV_001_VS_BL_1(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
         new_genesis_env.deploy_all()
         submitvpandvote(client_con_list_obj[0:-1])
