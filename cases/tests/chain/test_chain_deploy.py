@@ -22,7 +22,7 @@ def reset_env(global_test_env):
 
 @allure.title("start all nodes normally")
 @pytest.mark.P0
-def test_start_all_node(global_test_env):
+def test_SC_ST_001(global_test_env):
     """
     Used to test the start of all consensus nodes, check out the block situation
     """
@@ -33,7 +33,7 @@ def test_start_all_node(global_test_env):
 
 @allure.title("Start consensus node 2f+1 starts to block")
 @pytest.mark.P0
-def test_start_mini_node(global_test_env):
+def test_SC_ST_002(global_test_env):
     """
     When the test start consensus node reaches the minimum consensus node number, it starts to pop out.
     """
@@ -45,7 +45,7 @@ def test_start_mini_node(global_test_env):
 
 @allure.title("Start all nodes normally, and gradually close f")
 @pytest.mark.P0
-def test_start_all_node_close_f(global_test_env):
+def test_SC_CL_001(global_test_env):
     """
     After starting n nodes, gradually close f, then the window of the closed node does not come out.
     """
@@ -59,7 +59,7 @@ def test_start_all_node_close_f(global_test_env):
 
 @allure.title("Start 2f+1 nodes normally, start one after 50 seconds")
 @pytest.mark.P2
-def test_start_2f1_node_and_start_one(global_test_env):
+def test_SC_IV_001(global_test_env):
     """
     Start 2f+1 first, start one after 50 seconds
     """
@@ -75,7 +75,7 @@ def test_start_2f1_node_and_start_one(global_test_env):
 
 @allure.title("Only start 2f nodes")
 @pytest.mark.P0
-def test_start_2f(global_test_env):
+def test_SC_ST_003(global_test_env):
     """
     Start 2f nodes
     """
@@ -90,7 +90,7 @@ def test_start_2f(global_test_env):
 
 @allure.title("Start all nodes normally and gradually close f+1")
 @pytest.mark.P0
-def test_start_all_node_close_f_add_1(global_test_env):
+def test_SC_CL_002(global_test_env):
     """
     After starting all nodes, gradually close f+1, then it will not be blocked after closing.
     """
@@ -108,7 +108,7 @@ def test_start_all_node_close_f_add_1(global_test_env):
 @allure.title("Start 2f nodes first, then start one after {t} seconds")
 @pytest.mark.P2
 @pytest.mark.parametrize('t', [50, 150])
-def test_start_2f_after_one(t, global_test_env):
+def test_SC_IV_002_to_003(t, global_test_env):
     """
     Start 2f nodes first, then start a node after a certain interval to see the block situation.
     """
@@ -124,7 +124,7 @@ def test_start_2f_after_one(t, global_test_env):
 @allure.title("Start 2f nodes first, start all nodes after {t} seconds")
 @pytest.mark.P2
 @pytest.mark.parametrize('t', [50, 150])
-def test_start_2f_after_all(t, global_test_env):
+def test_SC_IV_004_to_005(t, global_test_env):
     """
     Start 2f nodes first, and then start all the consensus nodes that are not
     started after a certain interval, and check the block status.
@@ -140,7 +140,7 @@ def test_start_2f_after_all(t, global_test_env):
 
 @allure.title("Start 2f nodes first, and restart other nodes within 30 seconds")
 @pytest.mark.P2
-def test_up2f_after_other(global_test_env):
+def test_SC_IR_001(global_test_env):
     num = int(2 * global_test_env.max_byzantium)
     log.info("Start {} nodes first".format(num))
     global_test_env.deploy_nodes(global_test_env.consensus_node_list[0:num], genesis_file=global_test_env.cfg.genesis_tmp)
@@ -154,7 +154,7 @@ def test_up2f_after_other(global_test_env):
 
 @allure.title("Start all nodes normally, gradually close f+1, and then start all gradually")
 @pytest.mark.P0
-def test_start_all_node_close_f_add_1_and_all(global_test_env):
+def test_SC_IR_002(global_test_env):
     """
     After starting all nodes, gradually close f+1, then there will
     be no block after closing, waiting for the block to be restarted.
@@ -168,7 +168,7 @@ def test_start_all_node_close_f_add_1_and_all(global_test_env):
 
 @allure.title("Start all nodes normally, gradually close f+1, and then start one step by step.")
 @pytest.mark.P0
-def test_start_all_node_close_f_add_1_and_one(global_test_env):
+def test_SC_RC_001(global_test_env):
     """
     After starting all nodes, gradually close f+1, then there will be no
      block after closing, waiting for the block to be restarted.
@@ -182,18 +182,21 @@ def test_start_all_node_close_f_add_1_and_one(global_test_env):
 
 @allure.title("Start all nodes normally, wait for a block of time, close one, and delete the database, start with fast mode")
 @pytest.mark.P0
-def test_start_all_node_close_f_add_1_and_fast_one(global_test_env):
+def test_SC_FT_001(global_test_env):
     """
     Start all nodes normally, wait for a block of time, close one, and delete the database, start with fast mode
     """
     global_test_env.deploy_all()
     time.sleep(100)
     test_node = copy(global_test_env.get_rand_node())
+    test_node.stop()
     test_node.clean()
     test_node.run_ssh("cd {};ls".format(test_node.remote_node_path))
     new_cfg = copy(global_test_env.cfg)
     new_cfg.syncmode = "fast"
     test_node.cfg = new_cfg
-    test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
+    is_success, msg = test_node.deploy_me(genesis_file=new_cfg.genesis_tmp)
+    if not is_success:
+        raise Exception(msg)
     time.sleep(100)
     assert test_node.block_number > 100

@@ -409,13 +409,14 @@ class Node:
         :param genesis_file:
         :return:
         """
-        self.stop()
         log.debug("{}-clean node path...".format(self.node_mark))
         is_success, msg = self.clean()
         if not is_success:
             return is_success, msg
         self.clean_log()
-        self.put_all_file(genesis_file)
+        is_success, msg = self.put_all_file(genesis_file)
+        if not is_success:
+            return is_success, msg
         return self.start(self.cfg.init_chain)
 
     def put_all_file(self, genesis_file):
