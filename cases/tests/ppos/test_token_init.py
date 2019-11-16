@@ -111,14 +111,15 @@ def test_IT_SD_002_003(global_test_env, value):
     """
     node = global_test_env.get_rand_node()
     address, _ = global_test_env.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    status = True
     # Account balance insufficient transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        result = global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice,
-                                                         21000, value)
-        assert result is None, "ErrMsg:Transfer result {}".format(result)
+        global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice,21000, value)
+        status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+    assert status, "ErrMsg:Transfer result {}".format(status)
 
 
 @pytest.mark.P1
@@ -130,15 +131,18 @@ def test_IT_SD_011(global_test_env):
     """
     node = global_test_env.get_rand_node()
     address, _ = global_test_env.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    status = True
     # Insufficient gas fee for transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        result = global_test_env.account.sendTransaction(node.web3, '', address,
+        global_test_env.account.sendTransaction(node.web3, '', address,
                                                          address1,
                                                          node.web3.platon.gasPrice, 2100, 500)
-        assert result is None, "ErrMsg:Transfer result {}".format(result)
+        status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+    assert status, "ErrMsg:Transfer result {}".format(status)
+
 
 
 @pytest.mark.P2
@@ -801,7 +805,6 @@ def test_AL_NBI_014(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_AL_NBI_015(client_new_node_obj):
     """
     退回质押金并处于锁定期
@@ -840,7 +843,7 @@ def test_AL_NBI_015(client_new_node_obj):
 
 @pytest.mark.P2
 @pytest.mark.compatibility
-def test_AL_NBI_016(client_new_node_obj):
+def test_AL_NBI_016(client_new_node_obj, reset_environment):
     """
     被双签处罚槛剔除验证人列表
     :param client_new_node_obj:
@@ -849,6 +852,7 @@ def test_AL_NBI_016(client_new_node_obj):
     client = client_new_node_obj
     economic = client.economic
     node = client.node
+    client.economic.env.deploy_all()
     # create account
     address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     address2, _ = economic.account.generate_account(node.web3, 0)

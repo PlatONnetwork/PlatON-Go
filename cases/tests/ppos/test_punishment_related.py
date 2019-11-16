@@ -34,8 +34,8 @@ def verification_duplicate_sign(client_obj, evidence_type, reporting_type, repor
 def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     """
     举报验证人区块双签:VP_PV_001 prepareBlock类型
-                    VP_PV_002 举报验证人区块双签prepareVote类型
-                    VP_PV_003 举报验证人区块双签viewChange类型
+                    VP_PV_002 prepareVote类型
+                    VP_PV_003 viewChange类型
     :param client_consensus_obj:
     :param repor_type:
     :param reset_environment:
@@ -790,16 +790,18 @@ def test_VP_PV_031(client_consensus_obj):
     client = client_consensus_obj
     economic = client.economic
     node = client.node
+    status = True
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, 0)
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     try:
         # Report verifier Duplicate Sign
-        result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-        assert_code(result, 0)
+        client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+        status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+    assert status, "ErrMsg:Report verifier status {}".format(status)
 
 
 @pytest.mark.P1
@@ -1003,6 +1005,7 @@ def test_VP_PVF_003(client_new_node_obj, reset_environment):
     client = client_new_node_obj
     economic = client.economic
     node = client.node
+    time.sleep(5)
     # create pledge address
     pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create report address
