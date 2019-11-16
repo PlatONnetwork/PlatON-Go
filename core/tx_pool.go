@@ -825,13 +825,13 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	//	log.Trace("Discarding already known transaction", "hash", hash)
 	//	return false, fmt.Errorf("known transaction: %x", hash)
 	//}
-	// If the transaction fails basic validation, discard it
-	//if err := pool.validateTx(tx, local); err != nil {
-	//	log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
-	//	invalidTxCounter.Inc(1)
-	//	return false, err
-	//}
-	// If the transaction pool is full, discard underpriced transactions
+	//// If the transaction fails basic validation, discard it
+	if err := pool.validateTx(tx, local); err != nil {
+		log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
+		invalidTxCounter.Inc(1)
+		return false, err
+	}
+	//// If the transaction pool is full, discard underpriced transactions
 	//if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
 	//	// If the new transaction is underpriced, don't accept it
 	//	if !local && pool.priced.Underpriced(tx, pool.locals) {
@@ -847,7 +847,9 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	//		pool.removeTx(tx.Hash(), false)
 	//	}
 	//}
-	// If the transaction is replacing an already pending one, do directly
+	//from, _ := types.Sender(pool.signer, tx) // already validated
+	//
+	//// If the transaction is replacing an already pending one, do directly
 	//if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
 	//	// Nonce already pending, check if required price bump is met
 	//	inserted, old := list.Add(tx, pool.config.PriceBump)
@@ -998,7 +1000,7 @@ func (pool *TxPool) MakeTransaction() error {
 	log.Debug("MakeTransaction begin prepare account", "account size", accountsize)
 	accounts := generateAccount(accountsize)
 	amountEach, _ := new(big.Int).SetString("100000000000000000000", 10)
-	gasPrice := new(big.Int).SetInt64(100000)
+	gasPrice := new(big.Int).SetInt64(10000)
 	nonce := uint64(0)
 	for _, account := range accounts {
 		tx := types.NewTransaction(nonce, account.Address, amountEach, 30000, gasPrice, nil)
@@ -1013,7 +1015,7 @@ func (pool *TxPool) MakeTransaction() error {
 	}
 	log.Debug("MakeTransaction begin prepare account finish")
 
-	time.Sleep(15 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	//	add := common.HexToAddress("0x021875a46201a572fa092e88fab46b8be6a88a13")
 	amount := new(big.Int).SetInt64(1)
@@ -1028,8 +1030,8 @@ func (pool *TxPool) MakeTransaction() error {
 				now := time.Now()
 				for _, tx := range txs {
 					a = append(a, tx)
-					if len(a) > 400 {
-						pool.addTxs(a, false)
+					if len(a) > 300 {
+						pool.addTxs(a, true)
 						a = make([]*types.Transaction, 0)
 					}
 					//err := pool.addTx(tx, false)
@@ -1038,9 +1040,9 @@ func (pool *TxPool) MakeTransaction() error {
 					//}
 				}
 				if len(a) > 0 {
-					pool.addTxs(a, false)
+					pool.addTxs(a, true)
 				}
-				log.Debug("MakeTransaction time use", "use", time.Since(now), "all_tx_count", pool.all.Count())
+				log.Debug("MakeTransaction time use", "use", time.Since(now))
 			case <-exitCH:
 				return
 			}
@@ -1049,14 +1051,24 @@ func (pool *TxPool) MakeTransaction() error {
 
 	log.Debug("begin to MakeTransaction")
 	for i := 0; i < 100000000/accountsize; i++ {
+		if i%10 == 0 {
+			time.Sleep(3 * time.Second)
+			//pool.mu.RLock()
+			//for _, account := range accounts {
+			//	if pool.currentState.GetNonce(account.Address)+1 != account.Nonce {
+			//		account.Nonce = pool.currentState.GetNonce(account.Address) + 1
+			//	}
+			//}
+			//pool.mu.RUnlock()
+		}
 		txs := make([]*types.Transaction, accountsize)
-		for i, account := range accounts {
+		for n, account := range accounts {
 			tx := types.NewTransaction(account.Nonce, accounts[rand.Int31n(int32(accountsize))].Address, amount, 30000, gasPrice, nil)
 			newTx, err := types.SignTx(tx, singine, account.Priv)
 			if err != nil {
 				log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 			}
-			txs[i] = newTx
+			txs[n] = newTx
 			account.Nonce++
 		}
 

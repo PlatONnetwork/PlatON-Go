@@ -423,7 +423,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 								if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 									log.Debug("Begin to package new block regularly")
 									blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp)
-									commit(false, commitInterruptResubmit, commitBlock, blockDeadline.Add(time.Millisecond*600))
+									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
 									continue
 								}
 							}
@@ -825,7 +825,9 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
 		logs, err := w.commitTransaction(tx)
-
+		if err != nil {
+			log.Error("ctTn 22", "bN", header.Number, "tx", tx.Hash(), "sd", from, "ne", tx.Nonce(), "err", err)
+		}
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
