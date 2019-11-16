@@ -10,7 +10,6 @@ from tests.lib.config import EconomicConfig
 def test_DI_001_009(client_new_node_obj):
     """
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
@@ -228,10 +227,9 @@ def test_DI_011_012_013_014(client_new_node_obj, status):
 
 
 @pytest.mark.P1
-def test_DI_015_016(client_new_node_obj, greater_than_staking_amount, client_consensus_obj):
+def test_DI_015_016(client_new_node_obj, client_consensus_obj):
     """
     :param client_new_node_obj:
-    :param greater_than_staking_amount:
     :param client_consensus_obj:
     :return:
     """
@@ -239,7 +237,8 @@ def test_DI_015_016(client_new_node_obj, greater_than_staking_amount, client_con
                                                                        10 ** 18 * 10000000)
     address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                         10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Close one node")
     client_new_node_obj.node.stop()
@@ -310,7 +309,7 @@ def test_DI_019(client_new_node_obj):
 
 
 @pytest.mark.P3
-def test_DI_021(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
+def test_DI_021(client_new_node_obj, client_consensus_obj):
     """
 
     :param client_new_node_obj:
@@ -320,7 +319,8 @@ def test_DI_021(client_new_node_obj, client_consensus_obj, greater_than_staking_
                                                                        10 ** 18 * 10000000)
     address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                         10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     result = client_new_node_obj.delegate.delegate(0, address1)
     log.info(result)
