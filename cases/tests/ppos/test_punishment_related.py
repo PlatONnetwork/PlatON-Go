@@ -134,6 +134,7 @@ def initial_report(global_test_env):
 
 class TestMultipleReports:
     @pytest.mark.P1
+
     def test_VP_PV_004(self, initial_report):
         """
         举报双签-同一验证人同一块高不同类型
@@ -146,6 +147,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_005(self, initial_report):
         """
         举报双签-同一验证人不同块高同一类型
@@ -158,6 +160,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_006(self, initial_report):
         """
         举报双签-同一验证人不同块高不同类型
@@ -170,6 +173,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_007(self, initial_report):
         """
         举报双签-不同验证人同一块高同一类型
@@ -184,6 +188,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_008(self, initial_report):
         """
         举报双签-不同验证人同一块高不同类型
@@ -198,6 +203,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_009(self, initial_report):
         """
         举报双签-不同验证人不同块高不同类型
@@ -253,6 +259,7 @@ def obtaining_evidence_information(economic, node):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_010(client_consensus_obj):
     """
     举报双签-双签证据epoch不一致
@@ -275,6 +282,7 @@ def test_VP_PV_010(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_011(client_consensus_obj):
     """
     举报双签-双签证据view_number不一致
@@ -297,6 +305,7 @@ def test_VP_PV_011(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_012(client_consensus_obj):
     """
     举报双签-双签证据block_number不一致
@@ -319,6 +328,7 @@ def test_VP_PV_012(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_013(client_consensus_obj):
     """
     举报双签-双签证据block_hash一致
@@ -342,6 +352,7 @@ def test_VP_PV_013(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_014(client_consensus_obj):
     """
     举报双签-双签证据block_index不一致
@@ -364,6 +375,7 @@ def test_VP_PV_014(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_015(client_consensus_obj):
     """
     举报双签-双签证据validate_node-index不一致
@@ -386,6 +398,7 @@ def test_VP_PV_015(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_016(client_consensus_obj):
     """
     举报双签-双签证据address不一致
@@ -409,6 +422,7 @@ def test_VP_PV_016(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_017(client_con_list_obj):
     """
     举报双签-NodeID不一致举报双签
@@ -432,6 +446,7 @@ def test_VP_PV_017(client_con_list_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_018(client_con_list_obj):
     """
     举报双签-blsPubKey不一致举报双签
@@ -455,6 +470,7 @@ def test_VP_PV_018(client_con_list_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_019(client_con_list_obj):
     """
     举报双签-signature一致举报双签

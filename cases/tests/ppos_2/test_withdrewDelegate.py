@@ -5,6 +5,7 @@ from tests.lib.config import EconomicConfig
 
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_ROE_001_007_015(client_new_node_obj):
     """
     :param client_new_node_obj:

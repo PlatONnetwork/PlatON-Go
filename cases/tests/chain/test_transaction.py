@@ -18,6 +18,7 @@ def transaction(w3, from_address, to_address=None, value=1000000000000000000000,
 
 @allure.title("signed transaction")
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_TR_TX_001(global_running_env):
     """
     Test signature transfer transaction

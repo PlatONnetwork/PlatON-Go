@@ -78,6 +78,7 @@ def test_IV_009(client_consensus_obj, get_generate_account):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_P_014_015_019_024(client_new_node_obj):
     """
     正常质押,重复质押
