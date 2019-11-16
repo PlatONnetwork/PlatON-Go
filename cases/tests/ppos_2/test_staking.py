@@ -220,29 +220,7 @@ def test_P_030(client_new_node_obj):
     assert_code(result, 301101)
 
 
-@pytest.mark.P1
-def test_P_031(client_new_node_obj):
-    """
-    Drop pledge after continue to add, entrust
-    :param client_new_node_obj:
-    :param get_generate_account:
-    :return:
-    """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
-
-    result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert_code(result, 0)
-    result = client_new_node_obj.staking.withdrew_staking(address)
-    assert_code(result, 0)
-    # Lock-up increase
-    result = client_new_node_obj.staking.increase_staking(0, address)
-    assert_code(result, 301102)
-    # Lockup delegate
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
-    assert_code(result, 301102)
 
 
-#
+
+

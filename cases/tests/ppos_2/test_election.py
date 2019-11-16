@@ -319,7 +319,7 @@ def test_CS_CL_010_030(global_test_env, client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_CS_CL_012_033(global_test_env, client_new_node_obj):
+def test_CS_CL_012_032(global_test_env, client_new_node_obj):
     """
     :param client_new_node_obj:
     :return:
@@ -615,7 +615,7 @@ def test_CS_CL_017_018_019(status, global_test_env, client_con_list_obj, client_
 
 
 @pytest.mark.P2
-def test_CS_CL_028(global_test_env, client_new_node_obj):
+def test_CS_CL_033(global_test_env, client_new_node_obj):
     global_test_env.deploy_all()
     address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                         10 ** 18 * 10000000)
