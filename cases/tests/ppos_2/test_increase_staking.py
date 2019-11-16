@@ -114,6 +114,7 @@ def test_AS_008(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_AS_011_012_013_014(client_new_node_obj, get_generate_account):
     """
     (lockup period) normal increase

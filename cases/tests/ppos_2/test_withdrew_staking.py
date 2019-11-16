@@ -32,6 +32,7 @@ def staking_client(client_new_node_obj):
 
 @allure.title("验证人申请退回质押金（犹豫期）")
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_RV_001(staking_client):
     """
     The certifier applies for a refund of the quality deposit (hesitation period)
@@ -454,6 +455,7 @@ def test_RV_013(staking_client):
 
 @allure.title("退出验证人后，返回质押金+出块奖励+质押奖励")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_RV_014_015(staking_client):
     """
     After becoming a verifier, there are pledge rewards and block rewards.

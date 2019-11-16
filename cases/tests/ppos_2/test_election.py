@@ -358,6 +358,7 @@ def test_CS_CL_012_032(global_test_env, client_new_node_obj):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_CS_CL_013_031(global_test_env, client_new_node_obj, client_consensus_obj):
     """
 

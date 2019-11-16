@@ -6,6 +6,7 @@ from tests.lib.config import EconomicConfig
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_DI_001_009(client_new_node_obj):
     """
     :param client_new_node_obj:

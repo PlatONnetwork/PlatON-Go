@@ -6,6 +6,7 @@ import allure
 
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_MPI_001_002(client_new_node_obj, get_generate_account):
     """
     Modify node information
