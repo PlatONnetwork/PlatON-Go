@@ -171,7 +171,7 @@ def test_MPI_009(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_MPI_061(client_new_node_obj):
+def test_MPI_010(client_new_node_obj):
     """
     Insufficient balance to initiate the modification node
     :param client_new_node_obj:
@@ -242,7 +242,7 @@ def test_MPI_012_013(client_new_node_obj):
 
 
 @pytest.mark.P3
-def test_MPI_065(client_new_node_obj, get_generate_account):
+def test_MPI_014(client_new_node_obj, get_generate_account):
     """
     Non-verifier, modify node information
     :param client_new_node_obj:
@@ -289,5 +289,21 @@ def test_MPI_015_016(client_new_node_obj, get_generate_account, client_consensus
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node.node_id)
     result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert_code(result, 301102)
+
+
+@pytest.mark.P2
+def test_MPI_017(client_new_node_obj):
+    external_id = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    node_name = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    website = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+    details = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
+
+    result = client_new_node_obj.ppos.editCandidate(address, client_new_node_obj.node.node_id,
+                                                    external_id, node_name, website, details, pri_key)
     log.info(result)
     assert_code(result, 301102)

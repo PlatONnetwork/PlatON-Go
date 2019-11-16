@@ -733,5 +733,4 @@ def test_POP_023(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert amount2 - amount1 == staking_amount
 
 
-if __name__ == '__main__':
-    pytest.main(['-s', '-q', '--alluredir', './report/2019-11-13'])
+

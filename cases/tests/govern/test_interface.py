@@ -5,7 +5,7 @@ from tests.lib import Genesis
 from common.key import mock_duplicate_sign
 from tests.govern.test_voting_statistics import submitppandvote, submitcvpandvote, submitvpandvote, submittpandvote, submitcppandvote
 
-import json, time, math
+import time, math
 import pytest
 from tests.govern.conftest import version_proposal_vote
 
@@ -199,7 +199,7 @@ class TestgetTallyResult():
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_con_list_obj)
 
         assert pip_obj.get_status_of_proposal(proposalinfo_param.get('ProposalID')) == 6
-        assert pip_obj.get_yeas_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
+        assert pip_obj.get_yeas_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_nays_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
@@ -486,7 +486,7 @@ class TestGetActiveVersion():
 
     def test_AV_IN_002_003(self, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[0].pip
-        submitvpandvote(client_verifier_obj_list, 1, 1, 1, 1)
+        submitvpandvote(client_verifier_obj_list)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
         log.info('Version proposal information : {}'.format(proposalinfo))
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))

@@ -299,6 +299,7 @@ def test_AS_022(client_new_node_obj):
     assert_code(result, 0)
     result = client_new_node_obj.staking.increase_staking(0, address1)
     log.info(result)
+    assert_code(result,301006)
 
 
 

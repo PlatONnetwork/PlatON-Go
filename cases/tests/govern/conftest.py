@@ -19,7 +19,7 @@ def get_refund_to_account_block(pip_obj, blocknumber=None):
 
 def version_proposal_vote(pip_obj, vote_option=None):
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
-    log.info('proposalinfo: {}'.format(proposalinfo))
+    log.info('Version proposalinfo: {}'.format(proposalinfo))
     if not proposalinfo:
         raise Exception('there is no voting version proposal')
     if proposalinfo.get('NewVersion') == pip_obj.cfg.version5:
@@ -39,10 +39,10 @@ def version_proposal_vote(pip_obj, vote_option=None):
     log.info('The node {} vote result {}'.format(pip_obj.node.node_id, result))
     return result
 
-def param_proposal_vote(pip_obj, vote_option = None):
+def proposal_vote(pip_obj, vote_option = None, proposaltype = 3):
     if vote_option is None:
         vote_option = pip_obj.cfg.vote_option_yeas
-    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(proposaltype)
     log.info('proposalinfo: {}'.format(proposalinfo))
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), vote_option,
                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -64,7 +64,7 @@ def submit_version(no_vp_proposal):
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 10,
                                    pip_obj.node.staking_address,
                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('submit version result:'.format(result))
+    log.info('submit version result : {}'.format(result))
     assert_code(result, 0)
     return pip_obj
 
@@ -77,7 +77,7 @@ def submit_param(no_vp_proposal, client_list_obj):
         newvalue = '2'
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', newvalue,
                                  pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-    log.info('submit param proposal result:'.format(result))
+    log.info('submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     return pip_obj
 

@@ -39,7 +39,7 @@ def pytest_addoption(parser):
     parser.addoption("--installSupervisor", action="store_true", default=False, dest="installSuperVisor", help="installSupervisor: default do not install supervisor service")
 
 
-# py.test 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
+# pytest 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
 # --reruns 3
 @pytest.fixture(scope="session", autouse=False)
 def global_test_env(request, worker_id):
@@ -65,8 +65,8 @@ def global_test_env(request, worker_id):
     if platon_url:
         download.download_platon(platon_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
-    env.deploy_all()
-    # env.prepare_all()
+    # env.deploy_all()
+    env.prepare_all()
     yield env
 
     if allure_dir:

@@ -3,7 +3,7 @@ from common.log import log
 import time
 from tests.lib.utils import assert_code, wait_block_number, upload_platon
 from tests.lib.client import get_client_obj
-from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, param_proposal_vote
+from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, proposal_vote
 from dacite import from_dict
 from tests.lib.genesis import Genesis
 
@@ -15,7 +15,7 @@ def replace_platon_vote(pip_obj, bin=None, program_version=None, version_sign=No
     :param bin:
     :return:
     '''
-    if not bin:
+    if bin:
         upload_platon(pip_obj.node, bin)
         pip_obj.node.restart()
     if program_version is None:
@@ -173,7 +173,7 @@ def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposa
     log.info('endblock vote result: {}'.format(result))
     assert_code(result, 302026)
 
-def test_V0_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal_te_pipobj, client_verifier_obj_list):
+def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal_te_pipobj, client_verifier_obj_list):
     pip_obj = voting_proposal_te_pipobj
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
     address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -244,7 +244,7 @@ class TestVoteNodeException():
         log.info('node vote text proposal result {}'.format(result))
         assert_code(result, 302020)
 
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         log.info('node vote param proposal result {}'.format(result))
         assert_code(result, 302020)
 
@@ -359,7 +359,7 @@ class TestVoteNodeException():
                                           ver_pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         log.info('Candidate node {} vote param proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 302022)
 
@@ -450,9 +450,9 @@ class TestVoteParam():
                               address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Not staking address , node {}, vote param proposal result {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 302021)
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         assert_code(result, 0)
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         assert_code(result, 302027)
 
     def test_PP_VO_009_PP_VO_010(self, submit_param, client_list_obj):
@@ -465,7 +465,7 @@ class TestVoteParam():
         assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Cancel proposal info : {}'.format(proposalinfo))
-        result = param_proposal_vote(pip_obj)
+        result = proposal_vote(pip_obj)
         assert_code(result, 302020)
         wait_block_number(pip_obj.node, endblock)
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_nays, address,
@@ -485,7 +485,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_lis
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
     log.info('param proposal info {}'.format(proposalinfo))
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock') - 10)
-    result = param_proposal_vote(pip_obj)
+    result = proposal_vote(pip_obj)
     assert_code(result, 0)
     result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
     log.info('Interface getTallyResult result is {}'.format(result))
@@ -517,22 +517,116 @@ def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
     assert_code(result, 0)
 
 class TestVoteVPVerify():
-    def test_VO_VER_001(self, no_vp_proposal):
+    def vote_wrong_version(self, pip_obj, proposaltype):
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(proposaltype)
+        log.info('Get proposal information : {}'.format(proposalinfo))
+        program_version = pip_obj.cfg.version1
+        if pip_obj.node.program_version == pip_obj.cfg.version1:
+            program_version = pip_obj.cfg.version2
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                                pip_obj.node.staking_address, program_version=program_version,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Wrong  program version vote result : {}'.format(result))
+        return result
+
+    def vote_wrong_versionsign(self, pip_obj, proposaltype):
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(proposaltype)
+        log.info('Get proposal information : {}'.format(proposalinfo))
+        version_sign = pip_obj.node.program_version_sign
+        version_sign = version_sign.replace(version_sign[2:4], '11')
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                                pip_obj.node.staking_address, version_sign=version_sign,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Wrong version sign vote result : {}'.format(result))
+        return result
+
+    def test_VO_VER_001_003_VO_SI_001(self, submit_version):
+        pip_obj = submit_version
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN1)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN2)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN0)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN3)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN4)
+        assert_code(result, 302025)
+        version_sign = pip_obj.node.program_version_sign
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN, version_sign=version_sign)
+        assert_code(result, 302024)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN6)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN7)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN8)
+        assert_code(result, 302025)
+
+    def test_VO_VER_002_004_VO_SI_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 2,
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version9, 4,
                                        pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} submit version proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 0)
-        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
-
-
-    def test_VO_VER_002(self, submit_version):
-        pip_obj = submit_version
-        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN0)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN1)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN2)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN3)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN4)
+        assert_code(result, 302025)
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN6)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN7)
+        assert_code(result, 302025)
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN8)
+        assert_code(result, 302025)
+        version_sign = pip_obj.node.program_version_sign
+        result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN9, version_sign=version_sign)
+        assert_code(result, 302024)
+
+    def test_VO_SI_011_012(self, client_verifier_obj_list):
+        pip_obj = client_verifier_obj_list[0].pip
+        pip_obj_two = client_verifier_obj_list[1].pip
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
+        result = self.vote_wrong_version(pip_obj, pip_obj.cfg.text_proposal)
+        assert_code(result, 0)
+        result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.text_proposal)
+        assert_code(result, 0)
+
+    def test_VO_SI_013_VO_SI_014_VO_SI_015_VO_SI_016(self, submit_cancel_param, client_verifier_obj_list):
+        pip_obj = submit_cancel_param
+        for client_obj in client_verifier_obj_list:
+            if pip_obj.node.node_id != client_obj.node.node_id:
+                pip_obj_two = client_obj.pip
+                break
+        result = self.vote_wrong_version(pip_obj, pip_obj.cfg.param_proposal)
+        assert_code(result, 0)
+        result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.param_proposal)
+        assert_code(result, 0)
+
+        result = self.vote_wrong_version(pip_obj, pip_obj.cfg.cancel_proposal)
+        assert_code(result, 0)
+        result = self.vote_wrong_versionsign(pip_obj_two, pip_obj.cfg.cancel_proposal)
+        assert_code(result, 0)
+
+    def test_V0_POI_001(self, client_verifier_obj):
+        pip_obj = client_verifier_obj.pip
+        result = pip_obj.vote(pip_obj.node.node_id, '0x29b553fb979855751890aecf3e105948a11a21f121cad11f9e455c1f01b12345',
+                              pip_obj.cfg.vote_option_yeas, pip_obj.node.staking_address,
+                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Ineffective proposalid, vote result : {}'.format(result))
+        assert_code(result, 302006)
+
+
 
 
 

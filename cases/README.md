@@ -9,18 +9,23 @@ pip install -r requirements.txt
 # Run test:
 
 ## 执行所有用例
-py.test test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
+pytest test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
 
 ## 多套环境并发执行
-py.test case_path --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
+pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
 
 备注：节点配置文件数必须等于线程数，多个节点配置文件用英文","分隔
 
-# py.test 命令行参数
+# pytest 命令行参数
+
 --nodeFile "deploy/4_node.yml":  指定节点配置文件
+
 --accountFile "deploy/accounts.yml": 指定测试用的账号文件
+
 --initChain：出现此选项，表示要初始化链数据；如果没有此选项，表示不初始化链数据
+
 --installDependency：表示节点需要安装必需的依赖，一般第一次部署时使用；如果没有此选项，则不再安装
+
 --installSuperVisor：表示节点是否安装supervisor服务，一般第一次部署时使用；如果没有此选项，则不再安装
 
 # 注意事项
