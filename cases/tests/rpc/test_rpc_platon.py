@@ -109,6 +109,7 @@ def test_platon_evidences(setNodeInfo):
 
 @allure.title("查询任意区块的聚合签名：GetPrepareQC")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_platon_getPrepareQC(setNodeInfo):
     if w3 != None:
         blockNumber = w3.platon.blockNumber

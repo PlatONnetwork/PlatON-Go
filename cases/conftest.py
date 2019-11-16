@@ -12,8 +12,8 @@ def set_report_env(allure_dir, env):
     version_info_list = node.run_ssh("{} version".format(node.remote_bin_file))
     version_info = "".join(version_info_list).replace(" ", "").replace("Platon\n", "")
     allure_dir_env = os.path.join(allure_dir, "environment.properties")
-    consensus_node = "ConsensusNodes:{}\n".format("|".join([node.node_mark for node in env.consensus_node_list]))
-    normal_node = "NormalNodes:{}\n".format("|".join([node.node_mark for node in env.normal_node_list]))
+    consensus_node = "ConsensusNodes:{}\n".format("|><|".join([node.node_mark for node in env.consensus_node_list]))
+    normal_node = "NormalNodes:{}\n".format("|><|".join([node.node_mark for node in env.normal_node_list]))
     env_id = "TestEnvironmentID:{}\n".format(env.cfg.env_id)
     with open(allure_dir_env, "w", encoding="UTF-8")as f:
         f.write(version_info)
@@ -42,7 +42,7 @@ def pytest_addoption(parser):
 # py.test 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
 # --reruns 3
 @pytest.fixture(scope="session", autouse=False)
-def global_test_env(request):
+def global_test_env(request, worker_id):
     log.info("start global_test_env>>>>>>>>>>>>>>")
     tmp_dir = request.config.getoption("--tmpDir")
     node_file = request.config.getoption("--nodeFile")
@@ -52,6 +52,16 @@ def global_test_env(request):
     install_supervisor = request.config.getoption("--installSupervisor")
     platon_url = request.config.getoption("--platonUrl")
     allure_dir = request.config.getoption("--alluredir")
+    log.info(node_file)
+    if worker_id != "master":
+        if not node_file:
+            raise Exception("The number of configuration files must be equal to the number of threads")
+        node_file_list = node_file.split(",")
+        for i in range(len(node_file_list)):
+            if str(i) in worker_id:
+                node_file = node_file_list[i]
+                log.info("Session with nodeFile:{}".format(node_file_list[i]))
+                tmp_dir = str(tmp_dir) + worker_id
     if platon_url:
         download.download_platon(platon_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)

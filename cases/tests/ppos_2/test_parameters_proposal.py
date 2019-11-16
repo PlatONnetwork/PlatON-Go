@@ -7,6 +7,7 @@ from common.log import log
 from tests.lib import Genesis
 
 
+@pytest.mark.P2
 def test_POP_001_003(client_consensus_obj, client_new_node_obj):
     """
     Increase the threshold of pledge
@@ -35,6 +36,7 @@ def test_POP_001_003(client_consensus_obj, client_new_node_obj):
     assert client_new_node_obj.node.node_id in verifier_list
 
 
+@pytest.mark.P2
 def test_POP_002(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Minimum pledge reduced pledge threshold
@@ -62,7 +64,8 @@ def test_POP_002(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert_code(result, 0)
 
 
-def test_POP_005(client_consensus_obj, client_new_node_obj,new_genesis_env):
+@pytest.mark.P2
+def test_POP_005(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     The amendment of the threshold of pledge shall not take effect
     :param client_consensus_obj:
@@ -84,6 +87,7 @@ def test_POP_005(client_consensus_obj, client_new_node_obj,new_genesis_env):
     assert_code(result, 0)
 
 
+@pytest.mark.P2
 def test_POP_006(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     (hesitation period) increase - entrustment overweight threshold
@@ -117,6 +121,7 @@ def test_POP_006(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert_code(result, 0)
 
 
+@pytest.mark.P2
 def test_POP_007(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     (lockup period) increase - entrustment overweight threshold
@@ -152,6 +157,7 @@ def test_POP_007(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert_code(result, 0)
 
 
+@pytest.mark.P2
 def test_POP_008(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     (hesitation period) reduce the entrustment overweight threshold - test
@@ -185,6 +191,7 @@ def test_POP_008(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert_code(result, 0)
 
 
+@pytest.mark.P2
 def test_POP_009(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     (lockup period) reduce the entrustment increase threshold - test
@@ -220,6 +227,7 @@ def test_POP_009(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert_code(result, 0)
 
 
+@pytest.mark.P2
 def test_POP_010_011(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     (hesitation period, lockup period) free amount initiate revocation entrustment
@@ -273,6 +281,7 @@ def test_POP_010_011(client_consensus_obj, client_new_node_obj, new_genesis_env)
     assert amount1_before - amount1_after < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P2
 def test_POP_012(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     :param client_consensus_obj:
@@ -327,6 +336,7 @@ def test_POP_012(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert delegate_amount * 2 - (amount1_last - amount_before) < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P2
 def test_POP_013(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     :param client_consensus_obj:
@@ -361,6 +371,7 @@ def test_POP_013(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert_code(result, 0)
 
 
+@pytest.mark.P2
 def test_POP_014(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Parameter not in effect - initiate redemption
@@ -412,6 +423,7 @@ def test_POP_014(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert withdrew_delegate - amount1_dill < client_new_node_obj.node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P2
 def test_POP_015(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     """
     Increase the number of alternative nodes
@@ -447,6 +459,7 @@ def test_POP_015(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     assert node_id_2 in getVerifierList
 
 
+@pytest.mark.P2
 def test_POP_016(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     """
     Reduce the number of alternative nodes
@@ -478,6 +491,7 @@ def test_POP_016(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     assert len(getVerifierList) == 5
 
 
+@pytest.mark.P2
 def test_POP_017(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     """
     Increase the number of node candidates - not active
@@ -508,6 +522,7 @@ def test_POP_017(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     assert len(getVerifierList) == 5
 
 
+@pytest.mark.P2
 def test_POP_018(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     """
     Reduce the number of node candidates - not in effect
@@ -544,6 +559,7 @@ def test_POP_018(client_consensus_obj, client_noc_list_obj, new_genesis_env):
     assert node_id_2 in getVerifierList
 
 
+@pytest.mark.P2
 def test_POP_019(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Increased lock - up threshold
@@ -575,6 +591,7 @@ def test_POP_019(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert amount3 - amount2 == staking_amount
 
 
+@pytest.mark.P2
 def test_POP_020(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Reduce lock - up threshold
@@ -610,6 +627,7 @@ def test_POP_020(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert amount3 - amount2 == staking_amount
 
 
+@pytest.mark.P2
 def test_POP_021(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Increased lock - time threshold - not in effect
@@ -645,6 +663,7 @@ def test_POP_021(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert amount3 - amount2 == staking_amount
 
 
+@pytest.mark.P2
 def test_POP_022(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Reduced lockup threshold - not in effect
@@ -679,6 +698,7 @@ def test_POP_022(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert amount3 - amount2 == staking_amount
 
 
+@pytest.mark.P2
 def test_POP_023(client_consensus_obj, client_new_node_obj, new_genesis_env):
     """
     Return pledge before lock time parameter takes effect
@@ -713,7 +733,5 @@ def test_POP_023(client_consensus_obj, client_new_node_obj, new_genesis_env):
     assert amount2 - amount1 == staking_amount
 
 
-
-
-
-
+if __name__ == '__main__':
+    pytest.main(['-s', '-q', '--alluredir', './report/2019-11-13'])

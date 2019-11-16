@@ -188,7 +188,7 @@ def test_PIP_PVF_005(client_con_list_obj, client_new_node_obj_list, reset_enviro
     client_new_node_obj_list[0].economic.wait_settlement_blocknum(client_new_node_obj_list[0].node)
     for i in range(4):
         result = check_node_in_list(client_con_list_obj[0].node.node_id, client_con_list_obj[0].ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # Verify changed parameters
             Verify_changed_parameters(client_con_list_obj, pledge_amount1, block_reward, slash_blocks2)
@@ -427,7 +427,8 @@ def duplicate_sign(client_obj, report_address, report_block):
 
 def assret_penalty_amount(client_con_list_obj, pledge_amount1, penalty_ratio=None):
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(pledge_amount1, penalty_ratio)
+    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(pledge_amount1,
+                                                                                                 penalty_ratio)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # view Pledge amount again
     candidate_info2 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
@@ -447,7 +448,8 @@ def test_PIP_PVF_011(client_con_list_obj, reset_environment):
     # view Pledge amount and Parameter value before treatment
     pledge_amount1, penalty_ratio1 = information_before_penalty_ratio(client_con_list_obj[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '1000', False)
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '1000',
+                                            False)
     # view Parameter value after treatment again
     penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'slashFractionDuplicateSign')
     assert penalty_ratio1 == penalty_ratio2, "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
@@ -607,9 +609,13 @@ def asster_income_account_amount(client_obj, report_amount1, incentive_pool_acco
     # view Incentive pool account
     incentive_pool_account2 = client_obj.node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     # asster amount reward
+    log.info("report_amount1 {} ,proportion_reward {} , report_amount2 {}".format(report_amount1, proportion_reward,
+                                                                                  report_amount2))
     assert report_amount1 + proportion_reward - report_amount2 < client_obj.node.web3.toWei(1,
                                                                                             'ether'), "ErrMsg:report amount {}".format(
         report_amount2)
+    log.info("incentive_pool_account2 {} ,incentive_pool_account1 {} , incentive_pool_reward {}".format(
+        incentive_pool_account2, incentive_pool_account1, incentive_pool_reward))
     assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
             report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
@@ -772,6 +778,7 @@ def test_PIP_PVF_020(client_con_list_obj, reset_environment):
     asster_income_account_amount(client_con_list_obj[1], report_amount1, incentive_pool_account1,
                                  report_address, proportion_reward, incentive_pool_reward)
 
+
 #
 # def transaction(client_obj, nonce, from_address, to_address, value):
 #     account = client_obj.economic.account.accounts[from_address]
@@ -837,7 +844,8 @@ def test_PIP_MG_001(client_con_list_obj, reset_environment):
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
     # create Parametric proposal
-    block = param_governance_verify_before_endblock(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712388', False)
+    block = param_governance_verify_before_endblock(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712389',
+                                                    False)
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
     # wait block
@@ -856,7 +864,7 @@ def test_PIP_MG_002(client_con_list_obj, reset_environment):
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712388')
+    param_governance_verify_before_endblock(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712389')
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
 
@@ -874,7 +882,7 @@ def test_PIP_MG_003(client_con_list_obj, reset_environment):
     # view Parameter value before treatment
     max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712388')
+    param_governance_verify(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712389')
     # view Parameter value after treatment
     max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
-    assert max_gas_limit2 == '4200001', "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)
+    assert max_gas_limit2 == '4712389', "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)

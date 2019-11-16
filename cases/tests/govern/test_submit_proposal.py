@@ -7,6 +7,8 @@ from tests.lib.client import get_client_obj
 import time, math
 from tests.govern.test_voting_statistics import submitcppandvote
 
+
+@pytest.mark.compatibility
 def test_VP_SU_001(submit_version):
     pip_obj = submit_version
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
@@ -20,6 +22,7 @@ def test_VP_SU_001(submit_version):
     assert int(endvotingblock_count) + 21 == proposalinfo.get('ActiveBlock')
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_CP_SU_001_CP_UN_001(submit_cancel):
     pip_obj = submit_cancel
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
@@ -70,6 +73,7 @@ class TestsubmitCP():
         assert_code(result, 302014)
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_PP_SU_001_PP_UN_001_VP_UN_003(submit_param):
     pip_obj = submit_param
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
@@ -246,6 +250,7 @@ class TestEndVotingRounds():
                                                    proposalinfo.get('EndVotingBlock')))
         assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
 
+    @pytest.mark.compatibility
     def test_VP_CR_005_VP_CR_006_TP_TE_001(self, new_genesis_env, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
@@ -384,12 +389,20 @@ class TestSubmitCancel():
         assert_code(result, 302022)
 
     @pytest.mark.P2
-    def test_CP_PR_003_CP_PR_004(self, submit_version, client_list_obj):
-        pip_obj = submit_version
+    def test_CP_PR_003_CP_PR_004(self, new_genesis_env, client_consensus_obj):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.versionProposalVoteDurationSeconds = 10000
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        pip_obj = client_consensus_obj.pip
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 20,
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit version proposal result : {}'.format(result))
+        assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
-        client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
-        address = client_obj.node.staking_address
         log.info('proposalinfo: {}'.format(proposalinfo))
+        client_obj = client_consensus_obj
+        address = pip_obj.node.staking_address
         result = client_obj.staking.withdrew_staking(address)
         log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
         assert_code(result, 0)

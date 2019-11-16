@@ -75,17 +75,17 @@ class Account:
             'from': tmp_from_address,
         }
 
-        log.debug("account['prikey']:::::::{}".format(account['prikey']))
+        # log.debug("account['prikey']:::::::{}".format(account['prikey']))
 
         signedTransactionDict = platon.account.signTransaction(
             transaction_dict, account['prikey']
         )
 
-        log.debug("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
+        # log.debug("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
 
         data = signedTransactionDict.rawTransaction
         result = HexBytes(platon.sendRawTransaction(data)).hex()
-        log.debug("result:::::::{}".format(result))
+        # log.debug("result:::::::{}".format(result))
         res = platon.waitForTransactionReceipt(result)
         account['nonce'] = nonce + 1
         self.accounts[from_address] = account
@@ -95,7 +95,7 @@ class Account:
     def generate_account_in_node(self, node, passwd, balance=0):
         personal = Personal(node.web3)
         address = personal.newAccount(passwd)
-        log.debug(address)
+        # log.debug(address)
         if balance > 0:
             self.sendTransaction(node.web3, '', self.account_with_money['address'], address, node.eth.gasPrice, 40000, balance)
         account = {

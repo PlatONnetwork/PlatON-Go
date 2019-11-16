@@ -11,6 +11,7 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
 
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_LS_FV_001(client_consensus_obj):
     """
     查看锁仓账户计划
@@ -47,6 +48,7 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_LS_PV_001(client_new_node_obj):
     """
     锁仓参数的有效性验证:
@@ -74,6 +76,7 @@ def test_LS_PV_001(client_new_node_obj):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_LS_PV_003(client_new_node_obj):
     """
     正常创建锁仓计划
@@ -185,6 +188,7 @@ def test_LS_PV_008(client_new_node_obj):
 
 
 @pytest.mark.P2
+
 def test_LS_PV_009(client_new_node_obj):
     """
     创建锁仓计划-锁仓金额中文、特殊字符字符测试
@@ -423,7 +427,7 @@ def test_LS_RV_007(client_new_node_obj):
         restricting_info['Ret']['plans'][2]['amount'])
 
 
-def create_restricting_plan_and_staking(client, node, economic):
+def create_restricting_plan_and_staking(client, economic, node):
     # create account
     amount1 = von_amount(economic.create_staking_limit, 4)
     amount2 = client.node.web3.toWei(1000, 'ether')
@@ -454,6 +458,7 @@ def create_restricting_plan_and_staking(client, node, economic):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_008(client_new_node_obj):
     """
     创建锁仓计划-锁仓欠释放金额<新增锁仓计划总金额
@@ -477,6 +482,7 @@ def test_LS_RV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_009(client_new_node_obj):
     """
     创建锁仓计划-锁仓欠释放金额>新增锁仓计划总金额
@@ -502,6 +508,7 @@ def test_LS_RV_009(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_010(client_new_node_obj):
     """
     创建锁仓计划-锁仓欠释放金额=新增锁仓计划总金额
@@ -560,6 +567,7 @@ def create_restricting_plan_and_entrust(client, node, economic):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_011(client_new_node_obj):
     """
     创建锁仓计划-锁仓委托释放后再次创建锁仓计划
@@ -583,6 +591,7 @@ def test_LS_RV_011(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     """
     创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划
@@ -596,7 +605,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     economic = client1.economic
     node = client1.node
     # create restricting plan and staking
-    address1, address2 = create_restricting_plan_and_staking(client1, node, economic)
+    address1, address2 = create_restricting_plan_and_staking(client1, economic, node)
     # view
     candidate_info = client1.ppos.getCandidateInfo(node.node_id)
     pledge_amount = candidate_info['Ret']['Shares']
@@ -605,12 +614,12 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     block_reward, staking_reward = client1.economic.get_current_year_reward(node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get 0 block rate penalties
-    slash_blocks = get_governable_parameter_value(client1, 'SlashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # stop node
     node.stop()
     # Waiting 2 consensus block
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
@@ -641,6 +650,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_013(client_new_node_obj):
     """
     同个账号锁仓给多个人
@@ -669,6 +679,7 @@ def test_LS_RV_013(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_014(client_new_node_obj):
     """
     同个账号被多个人锁仓
@@ -698,6 +709,7 @@ def test_LS_RV_014(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_015(client_new_node_obj):
     """
     使用多人锁仓金额质押
@@ -713,6 +725,7 @@ def test_LS_RV_015(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_016(client_new_node_obj):
     """
     使用多人锁仓金额委托
@@ -798,6 +811,7 @@ def create_account_restricting_plan(client, economic, node):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_LS_PV_001(client_new_node_obj):
     """
     锁仓账户质押正常节点
@@ -873,7 +887,7 @@ def test_LS_PV_004(client_new_node_obj):
     address2 = create_account_restricting_plan(client, economic, node)
     # create staking
     result = client.staking.create_staking(1, address2, address2, amount=0)
-    assert_code(result, 304007)
+    assert_code(result, 301100)
 
 
 @pytest.mark.P1
@@ -971,16 +985,14 @@ def test_LS_PV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_LS_PV_009(client_new_node_obj_list):
+def test_LS_PV_009(client_new_node_obj):
     """
     创建计划退回质押-欠释放金额<回退金额
-    :param client_new_node_obj_list:
+    :param client_new_node_obj:
     :return:
     """
-    client1 = client_new_node_obj_list[0]
+    client1 = client_new_node_obj
     log.info("Current linked client1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list[1]
-    log.info("Current linked client2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
     # create account
@@ -999,21 +1011,22 @@ def test_LS_PV_009(client_new_node_obj_list):
     # view restricting info
     restricting_info = client1.ppos.getRestrictingInfo(address2)
     info = restricting_info['Ret']
-    assert info['dept'] == economic.create_staking_limit, "rrMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == economic.create_staking_limit, "rrMsg: restricting debt amount {}".format(info['debt'])
     # create Free amount staking
-    result = client2.staking.create_staking(0, address2, address2)
+    result = client1.staking.increase_staking(0, address2)
     assert_code(result, 0)
     # withdrew staking
-    result = client2.staking.withdrew_staking(address2)
+    result = client1.staking.withdrew_staking(address2)
     assert_code(result, 0)
     # view Restricting plan
-    restricting_info = client2.ppos.getRestrictingInfo(address2)
+    restricting_info = client1.ppos.getRestrictingInfo(address2)
     assert_code(restricting_info, 0)
     info = restricting_info['Ret']
-    assert info['debt'] == 0, "errMsg: restricting debt amount {}".format(info['debt'])
+    assert info['debt'] == economic.create_staking_limit, "errMsg: restricting debt amount {}".format(info['debt'])
 
 
 @pytest.mark.P2
+
 def test_LS_PV_010(client_new_node_obj):
     """
     创建计划退回质押-锁仓账户余额不足的情况下申请退回质押
@@ -1044,6 +1057,7 @@ def test_LS_PV_010(client_new_node_obj):
 
 
 @pytest.mark.P2
+
 def test_LS_PV_011(client_new_node_obj):
     """
     锁仓账户退回质押金中，申请质押节点
@@ -1152,6 +1166,7 @@ def test_LS_EV_001(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_EV_002(client_new_node_obj):
     """
     创建计划委托-未找到锁仓信息
@@ -1520,6 +1535,7 @@ def test_LS_EV_018(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_EV_019(client_new_node_obj):
     """
     创建计划退回委托-欠释放金额>赎回委托金额
@@ -1551,6 +1567,7 @@ def test_LS_EV_019(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_EV_020(client_new_node_obj):
     """
     创建计划退回委托-欠释放金额=撤销委托金额
@@ -2152,10 +2169,10 @@ def test_LS_CSV_015(client_new_node_obj):
     assert_code(result, 0)
     # Free amount Entrust node
     result = client.delegate.delegate(0, address2)
-    assert_code(result, 301103)
+    assert_code(result, 301102)
     # Restricting amount Entrust node
     result = client.delegate.delegate(1, address2)
-    assert_code(result, 301103)
+    assert_code(result, 301102)
 
 
 @pytest.mark.P2
@@ -2177,7 +2194,7 @@ def test_LS_CSV_016(client_new_node_obj):
     assert_code(result, 0)
     # Restricting amount Additional pledge
     result = client.staking.increase_staking(1, address1)
-    assert_code(result, 301103)
+    assert_code(result, 301102)
     # Free amount Additional pledge
     result = client.staking.increase_staking(0, address1)
-    assert_code(result, 301103)
+    assert_code(result, 301102)

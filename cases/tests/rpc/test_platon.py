@@ -527,6 +527,7 @@ class TestPlaton():
     #     assert modified_txn['gasPrice'] == txn_params['gasPrice'] * 2
 
     @pytest.mark.P1
+    @pytest.mark.compatibility
     def test_platon_sendRawTransaction(self,global_test_env):
         env = global_test_env
         node = env.get_rand_node()
