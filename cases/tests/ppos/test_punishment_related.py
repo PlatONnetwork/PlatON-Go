@@ -44,6 +44,7 @@ def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     client = client_consensus_obj
     economic = client.economic
     node = client.node
+    client.economic.env.deploy_all()
     # Obtain penalty proportion and income
     pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
     # create report address

@@ -12,7 +12,7 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
 
 
 @pytest.mark.P1
-def test_AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
+def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
     """
     AL_FI_001:查看每年释放补贴激励池变化
     AL_FI_002:查看每年固定增发变化
@@ -254,4 +254,3 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
         assert benifit_balance1 == benifit_balance + staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance1)
         # Waiting for the end of the annual increase
         economic.wait_annual_blocknum(node)
-

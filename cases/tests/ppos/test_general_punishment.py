@@ -658,6 +658,7 @@ def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
     pledge_amount2 = info['Released']
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)

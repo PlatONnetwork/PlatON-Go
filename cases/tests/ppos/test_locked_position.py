@@ -698,9 +698,9 @@ def test_LS_RV_019(new_genesis_env, client_noc_list_obj):
     restricting_info = client2.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info['Pledge'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting Pledge amount {}'.format(
+    assert info['Pledge'] == pledge_amount - punishment_amonut*2, 'ErrMsg: restricting Pledge amount {}'.format(
         info['Pledge'])
-    assert info['balance'] == pledge_amount - punishment_amonut, 'ErrMsg: restricting balance amount {}'.format(
+    assert info['balance'] == pledge_amount - punishment_amonut*2, 'ErrMsg: restricting balance amount {}'.format(
         info['balance'])
     # create Restricting Plan again
     staking_amount = von_amount(economic.create_staking_limit, 2)
@@ -721,7 +721,9 @@ def test_LS_RV_019(new_genesis_env, client_noc_list_obj):
     # view Restricting Plan
     restricting_info3 = client2.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info3))
-    assert_code(restricting_info3, 0)
+    assert_code(restricting_info3, 304005)
+
+
 
 
 
