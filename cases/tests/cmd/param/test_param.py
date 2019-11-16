@@ -3,6 +3,7 @@ import time
 from copy import copy
 
 import allure
+import pytest
 
 from common.connect import connect_web3, run_ssh
 
@@ -47,6 +48,7 @@ def append_cmd_restart(global_test_env, cmd, node=None):
 class TestStartParam(object):
 
     @allure.title("测试访问rpcapi")
+    @pytest.mark.compatibility
     def test_rpc_api(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
@@ -55,6 +57,7 @@ class TestStartParam(object):
         assert modules.get(api_method) is not None
 
     @allure.title("测试开启ws功能")
+    @pytest.mark.compatibility
     def test_open_ws_connection(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
@@ -80,6 +83,7 @@ class TestStartParam(object):
         assert modules.get(api_method) is not None
 
     @allure.title("测试开启ipc功能")
+    @pytest.mark.compatibility
     def test_enable_ipc(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
@@ -97,6 +101,7 @@ class TestStartParam(object):
         assert file_is_exist(test_node.ssh, test_node.remote_data_dir, "platon_test.ipc")
 
     @allure.title("测试启用种子节点")
+    @pytest.mark.compatibility
     def test_open_bootnodes(self, global_test_env):
         global_test_env.deploy_all()
         env = global_test_env
@@ -115,12 +120,14 @@ class TestStartParam(object):
         assert node_peers[0]["id"] == collusion_node.node_id
 
     @allure.title("测试开启p2p端口")
+    @pytest.mark.compatibility
     def test_open_p2p_connection(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         assert isConnection(node.host, int(node.p2p_port))
 
     @allure.title("测试开启discovery功能")
+    @pytest.mark.compatibility
     def test_open_discovery(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()

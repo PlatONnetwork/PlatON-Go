@@ -43,6 +43,7 @@ def test_DE_DE_001(client_verifier_obj):
     assert_code(result, 302021)
 
 class TestNoProposalVE():
+    @pytest.mark.compatibility
     def test_DE_VE_001(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)

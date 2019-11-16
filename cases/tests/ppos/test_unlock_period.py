@@ -40,6 +40,7 @@ def restricting_plan_validation_staking(client, economic, node):
 
 
 @pytest.mark.P2
+@pytest.mark.compatibility
 def test_UP_FV_001(client_new_node_obj):
     """
     只有一个锁仓期，到达释放期返回解锁金额
@@ -181,6 +182,7 @@ def test_UP_FV_005(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_UP_FV_006(client_new_node_obj):
     """
     多个锁仓期，质押一部分锁仓金额再依次释放
@@ -655,6 +657,7 @@ def test_UP_FV_015(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_UP_FV_016(client_new_node_obj):
     """
     自由资金质押，锁仓再增持
@@ -687,6 +690,7 @@ def test_UP_FV_016(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_UP_FV_017(client_new_node_obj):
     """
     锁仓账户质押，自由资金再增持

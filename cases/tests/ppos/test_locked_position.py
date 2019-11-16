@@ -11,6 +11,7 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
 
 
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_LS_FV_001(client_consensus_obj):
     """
     查看锁仓账户计划
@@ -47,6 +48,7 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_LS_PV_001(client_new_node_obj):
     """
     锁仓参数的有效性验证:
@@ -74,6 +76,7 @@ def test_LS_PV_001(client_new_node_obj):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_LS_PV_003(client_new_node_obj):
     """
     正常创建锁仓计划
@@ -185,6 +188,7 @@ def test_LS_PV_008(client_new_node_obj):
 
 
 @pytest.mark.P2
+
 def test_LS_PV_009(client_new_node_obj):
     """
     创建锁仓计划-锁仓金额中文、特殊字符字符测试
@@ -454,6 +458,7 @@ def create_restricting_plan_and_staking(client, economic, node):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_008(client_new_node_obj):
     """
     创建锁仓计划-锁仓欠释放金额<新增锁仓计划总金额
@@ -477,6 +482,7 @@ def test_LS_RV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_009(client_new_node_obj):
     """
     创建锁仓计划-锁仓欠释放金额>新增锁仓计划总金额
@@ -502,6 +508,7 @@ def test_LS_RV_009(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_010(client_new_node_obj):
     """
     创建锁仓计划-锁仓欠释放金额=新增锁仓计划总金额
@@ -560,6 +567,7 @@ def create_restricting_plan_and_entrust(client, node, economic):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_011(client_new_node_obj):
     """
     创建锁仓计划-锁仓委托释放后再次创建锁仓计划
@@ -583,6 +591,7 @@ def test_LS_RV_011(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     """
     创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划
@@ -641,6 +650,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_013(client_new_node_obj):
     """
     同个账号锁仓给多个人
@@ -669,6 +679,7 @@ def test_LS_RV_013(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_014(client_new_node_obj):
     """
     同个账号被多个人锁仓
@@ -698,6 +709,7 @@ def test_LS_RV_014(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_015(client_new_node_obj):
     """
     使用多人锁仓金额质押
@@ -713,6 +725,7 @@ def test_LS_RV_015(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_RV_016(client_new_node_obj):
     """
     使用多人锁仓金额委托
@@ -798,6 +811,7 @@ def create_account_restricting_plan(client, economic, node):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_LS_PV_001(client_new_node_obj):
     """
     锁仓账户质押正常节点
@@ -1012,6 +1026,7 @@ def test_LS_PV_009(client_new_node_obj):
 
 
 @pytest.mark.P2
+
 def test_LS_PV_010(client_new_node_obj):
     """
     创建计划退回质押-锁仓账户余额不足的情况下申请退回质押
@@ -1042,6 +1057,7 @@ def test_LS_PV_010(client_new_node_obj):
 
 
 @pytest.mark.P2
+
 def test_LS_PV_011(client_new_node_obj):
     """
     锁仓账户退回质押金中，申请质押节点
@@ -1150,6 +1166,7 @@ def test_LS_EV_001(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_EV_002(client_new_node_obj):
     """
     创建计划委托-未找到锁仓信息
@@ -1518,6 +1535,7 @@ def test_LS_EV_018(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_EV_019(client_new_node_obj):
     """
     创建计划退回委托-欠释放金额>赎回委托金额
@@ -1549,6 +1567,7 @@ def test_LS_EV_019(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_LS_EV_020(client_new_node_obj):
     """
     创建计划退回委托-欠释放金额=撤销委托金额
