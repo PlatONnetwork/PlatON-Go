@@ -76,8 +76,8 @@ def run_ssh(ssh, cmd, password=None):
         if password:
             stdin.write(password + "\n")
         stdout_list = stdout.readlines()
-        if len(stdout_list):
-            log.debug('{}:{}'.format(cmd, stdout_list))
+        # if len(stdout_list):
+            # log.debug('{}:{}'.format(cmd, stdout_list))
     except Exception as e:
         raise e
     return stdout_list
@@ -95,8 +95,8 @@ def run_ssh_cmd(ssh, cmd, password=None, password2=None, password3=None):
             stdin.write(password3 + "\n")
 
         stdout_list = stdout.readlines()
-        if len(stdout_list):
-            log.info('{}:{}'.format(cmd, stdout_list))
+        # if len(stdout_list):
+        #     log.info('{}:{}'.format(cmd, stdout_list))
     except Exception as e:
         raise e
     return stdout_list
