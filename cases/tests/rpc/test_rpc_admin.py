@@ -92,6 +92,7 @@ def test_admin_datadir(setNodeInfo):
 
 @allure.title("获取程序的版本号和签名:admin.getProgramVersion()")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_admin_getProgramVersion(setNodeInfo):
     if w3 != None:
         msg = w3.admin.getProgramVersion()
@@ -107,6 +108,7 @@ def test_admin_getProgramVersion(setNodeInfo):
 
 @allure.title("获取零知识证明信息:admin.getSchnorrNIZKProve()")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_admin_getSchnorrNIZKProve(setNodeInfo):
     if w3 != None:
         blsproof = w3.admin.getSchnorrNIZKProve()
@@ -116,6 +118,7 @@ def test_admin_getSchnorrNIZKProve(setNodeInfo):
 
 @allure.title("校验节点信息:admin.nodeInfo")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_admin_nodeInfo(setNodeInfo):
     if w3 != None:
         try:
@@ -146,6 +149,7 @@ def test_admin_nodeInfo(setNodeInfo):
 
 @allure.title("和本节点的连接信息:admin.peers")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_admin_peers(setNodeInfo):
     if w3 != None:
         try:
@@ -208,6 +212,7 @@ def admin_stopWS(setNodeInfo):
 
 @allure.title("启动websocket rpc服务:admin.startWS()")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_admin_startWS(admin_stopWS):
     if w3 != None:
         try:
@@ -230,6 +235,7 @@ def admin_stopRPC(setNodeInfo):
 
 @allure.title("启动http rpc服务:admin.startRPC()")
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_admin_startRPC(admin_stopRPC):
     if ws != None:
         try:

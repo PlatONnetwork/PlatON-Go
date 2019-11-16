@@ -125,6 +125,7 @@ def test_VP_GPFV_004(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P2
+
 def test_VP_GPFV_005(client_new_node_obj_list, reset_environment):
     """
     锁仓增持/委托后被惩罚
@@ -185,6 +186,7 @@ def test_VP_GPFV_005(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P2
+@pytest.mark.compatibility
 def test_VP_GPFV_006(client_new_node_obj_list, reset_environment):
     """
     自由金额增持/委托后被惩罚
@@ -326,6 +328,7 @@ def test_VP_GPFV_008(client_new_node_obj_list, reset_environment):
         assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
 
 
+
 def test_VP_GPFV_009(client_new_node_obj_list, reset_environment):
     """
     节点被处罚后马上重新质押（高惩罚）
@@ -390,6 +393,7 @@ def test_VP_GPFV_010(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P2
+
 def test_VP_GPFV_011(client_new_node_obj_list, reset_environment):
     """
     先低出块率再双签
@@ -449,6 +453,7 @@ def test_VP_GPFV_011(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P2
+
 def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
     """
     先双签再低出块率
@@ -511,6 +516,7 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
 
 
 @pytest.mark.P2
+
 def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
     """
     验证人被处罚后质押金=>创建验证人的最小质押门槛金额K

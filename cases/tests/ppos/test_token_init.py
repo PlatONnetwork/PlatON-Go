@@ -287,6 +287,7 @@ def test_AL_IE_001(client_consensus_obj):
 
 
 @pytest.mark.P2
+
 def test_AL_IE_002(client_new_node_obj_list):
     """
     转账到激励池
@@ -345,8 +346,8 @@ def test_AL_IE_002(client_new_node_obj_list):
     assert benifit_balance3 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance3)
 
 
-
 @pytest.mark.P1
+
 def test_AL_IE_003(client_new_node_obj_list):
     """
     自由账户创建质押节点且收益地址为激励池
@@ -365,6 +366,7 @@ def test_AL_IE_003(client_new_node_obj_list):
 
 
 @pytest.mark.P1
+
 def test_AL_IE_004(client_new_node_obj_list):
     """
     锁仓账户创建质押节点且收益地址为激励池
@@ -585,6 +587,7 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environment):
     """
     AL_NBI_004:非内置验证人Staking奖励（候选人）
@@ -634,6 +637,7 @@ def view_benifit_reward(client, address):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_AL_NBI_007_to_009(client_new_node_obj):
     """
     AL_NBI_007:非内置验证人Staking奖励（验证人）
@@ -709,6 +713,7 @@ def assert_benifit_reward(client_new_node_obj, benifit_address, address):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_010_to_012(client_new_node_obj):
     """
     AL_NBI_010:非内置验证人Staking奖励（共识验证人）
@@ -724,6 +729,7 @@ def test_AL_NBI_010_to_012(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_013(client_new_node_obj):
     """
     修改节点质押收益地址查看收益变更
@@ -748,6 +754,7 @@ def query_ccount_amount(client_new_node_obj, address):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_014(client_new_node_obj):
     """
     修改节点质押收益地址查看收益变更（正在出块中）
@@ -794,6 +801,7 @@ def test_AL_NBI_014(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_015(client_new_node_obj):
     """
     退回质押金并处于锁定期
@@ -831,6 +839,7 @@ def test_AL_NBI_015(client_new_node_obj):
 
 
 @pytest.mark.P2
+@pytest.mark.compatibility
 def test_AL_NBI_016(client_new_node_obj):
     """
     被双签处罚槛剔除验证人列表
@@ -886,6 +895,7 @@ def test_AL_NBI_016(client_new_node_obj):
 
 
 @pytest.mark.P2
+@pytest.mark.compatibility
 def test_AL_NBI_017(client_new_node_obj_list):
     """
     0出块率剔除验证人列表

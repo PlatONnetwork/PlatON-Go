@@ -54,6 +54,7 @@ def account_env(global_test_env)->(Node, AccountEnv):
 
 @allure.title("指定datadir和keystore路径，通过输入密码创建新账号")
 @pytest.mark.P1
+@pytest.mark.compatibility
 @pytest.mark.SYNC
 def test_account_new(account_env):
     node, env = account_env
@@ -207,6 +208,7 @@ def test_account_import_2(account_env):
 
 @allure.title("导入账号，指定密码文件，指定datadir")
 @pytest.mark.P1
+@pytest.mark.compatibility
 @pytest.mark.SYNC
 def test_account_import_3(account_env):
     node, env = account_env
@@ -282,6 +284,7 @@ def test_attach_http(account_env):
 '''
 platon attach http / ws
 '''
+@pytest.mark.compatibility
 def test_copydb(global_test_env):
     globalEnv = global_test_env
 

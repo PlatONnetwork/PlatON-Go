@@ -36,6 +36,7 @@ def reset_cfg_env_node(global_test_env):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [2, 8, ""])
 def test_IP_PR_001_to_012(value, reset_cfg_env_node):
     """
@@ -49,6 +50,7 @@ def test_IP_PR_001_to_012(value, reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 def test_IP_PR_003(reset_cfg_env_node):
     """
     IP_PR_003:备选验证人节点数小于验证节点数
@@ -61,6 +63,7 @@ def test_IP_PR_003(reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 def test_IP_PR_004(reset_cfg_env_node):
     """
     正常范围内的质押Token数
@@ -75,6 +78,7 @@ def test_IP_PR_004(reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [9, 0])
 def test_IP_PR_004_005(value, reset_cfg_env_node):
     """
@@ -91,6 +95,7 @@ def test_IP_PR_004_005(value, reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 def test_IP_PR_006_1(reset_cfg_env_node):
     value = Web3.toWei(100, 'ether')
     genesis = reset_cfg_env_node.genesis
@@ -103,6 +108,7 @@ def test_IP_PR_006_1(reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [9, 0])
 def test_IP_PR_006_2(value, reset_cfg_env_node):
     """
@@ -134,6 +140,7 @@ def test_IP_PR_007_1(reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [-1, 0, ""])
 def test_IP_PR_007(value, reset_cfg_env_node):
     """
@@ -164,6 +171,7 @@ def test_IP_PR_008_1(reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [-1, 0, ""])
 def test_IP_PR_008_2(value, reset_cfg_env_node):
     """
@@ -194,6 +202,7 @@ def test_IP_PR_009_1(reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [-1, 0, ""])
 def test_IP_PR_009(value, reset_cfg_env_node):
     """
@@ -209,6 +218,7 @@ def test_IP_PR_009(value, reset_cfg_env_node):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [40, 0, 100])
 def test_IP_PR_011(reset_cfg_env_node, value):
     """
@@ -226,6 +236,7 @@ def test_IP_PR_011(reset_cfg_env_node, value):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [-1, 110, ""])
 def test_IP_PR_010_012(reset_cfg_env_node, value):
     """
@@ -331,6 +342,7 @@ def test_IP_CP_004(reset_cfg_env_node, key):
 
 
 @pytest.mark.P2
+
 @pytest.mark.parametrize('value', [0.1, "ss", ""])
 def test_IP_CP_005(reset_cfg_env_node, value):
     """
