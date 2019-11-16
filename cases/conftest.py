@@ -39,7 +39,7 @@ def pytest_addoption(parser):
     parser.addoption("--installSupervisor", action="store_true", default=False, dest="installSuperVisor", help="installSupervisor: default do not install supervisor service")
 
 
-# py.test 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
+# pytest 'tests/example/test_step.py' --nodeFile "deploy/node/debug_4_4.yml" --accountFile "deploy/accounts.yml" --alluredir="report/allure"
 # --reruns 3
 @pytest.fixture(scope="session", autouse=False)
 def global_test_env(request, worker_id):
