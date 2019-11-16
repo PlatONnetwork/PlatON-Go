@@ -1,3 +1,4 @@
+import math
 import time
 import pytest
 import allure
@@ -173,12 +174,12 @@ def test_AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
 
 
 @pytest.mark.p1
-def test_AL_FI_004_005(new_genesis_env, client_new_node_obj):
+def test_AL_FI_004_005(new_genesis_env, staking_cfg):
     """
     AL_FI_004:查看每年区块奖励变化
     AL_FI_005:查看每年质押奖励变化
     :param new_genesis_env:
-    :param client_new_node_obj:
+    :param staking_cfg:
     :return:
     """
     # Initialization genesis file Initial amount
@@ -199,34 +200,43 @@ def test_AL_FI_004_005(new_genesis_env, client_new_node_obj):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
-
-    client1 = client_new_node_obj
+    normal_node = new_genesis_env.get_a_normal_node()
+    client1 = Client(new_genesis_env, normal_node, staking_cfg)
     economic = client1.economic
     node = client1.node
     log.info("Current connection node：{}".format(node.node_mark))
     log.info("Current connection nodeid：{}".format(node.node_id))
-    current_annual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
-    log.info("Current annual incentive pool amount".format(current_annual_incentive_pool_amount))
     address, _ = client1.economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     log.info("address: {}".format(address))
     address1, _ = client1.economic.account.generate_account(node.web3, 0)
     log.info("address1: {}".format(address1))
-    log.info("staking address: {}".format(address))
     for i in range(10):
+        current_block = node.eth.blockNumber
+        log.info("Current query block height： {}".format(node.eth.blockNumber))
+        annualcycle = (economic.additional_cycle_time * 60) // economic.settlement_size
+        annual_size = annualcycle * economic.settlement_size
+        starting_block_height = math.floor(current_block / annual_size) * annual_size
+        amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, starting_block_height)
+        log.info("Current annual incentive pool amount: {}".format(amount))
+        # if i == 0:
+        #     current_annual_incentive_pool_amount = 262215742000000000000000000
+        # else:
+        #     current_annual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
+        #     log.info("Current annual incentive pool amount: {}".format(current_annual_incentive_pool_amount))
         # Free amount application pledge node
         result = client1.staking.create_staking(0, address1, address)
         assert_code(result, 0)
+        # view account amount
+        benifit_balance = node.eth.getBalance(address1)
+        log.info("benifit_balance: {}".format(benifit_balance))
         # Wait for the settlement round to end
         economic.wait_settlement_blocknum(node)
         # 获取当前结算周期验证人
         verifier_list = node.ppos.getVerifierList()
         log.info("verifier_list: {}".format(verifier_list))
         # view block_reward
-        block_reward, staking_reward = economic.get_current_year_reward(node, amount=current_annual_incentive_pool_amount)
+        block_reward, staking_reward = economic.get_current_year_reward(node, amount=amount)
         log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
-        # view account amount
-        benifit_balance = node.eth.getBalance(address1)
-        log.info("benifit_balance: {}".format(benifit_balance))
         # withdrew of pledge
         result = client1.staking.withdrew_staking(address)
         assert_code(result, 0)

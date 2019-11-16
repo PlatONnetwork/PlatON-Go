@@ -9,6 +9,8 @@ from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
+
+from tests.conftest import get_client_noconsensus_list
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
     get_governable_parameter_value, get_pledge_list
 
@@ -413,10 +415,11 @@ def test_AL_BI_001(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_AL_BI_002(new_genesis_env, client_noc_list_obj):
+def test_AL_BI_002(new_genesis_env, staking_cfg):
     """
     节点出块率为0被处罚，激励池金额增加
-    :param client_noc_list_obj:
+    :param new_genesis_env:
+    :param staking_cfg:
     :return:
     """
     # Change configuration parameters
@@ -425,7 +428,7 @@ def test_AL_BI_002(new_genesis_env, client_noc_list_obj):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
-
+    client_noc_list_obj = get_client_noconsensus_list(new_genesis_env, staking_cfg)
     client1 = client_noc_list_obj[0]
     client2 = client_noc_list_obj[1]
     economic = client1.economic

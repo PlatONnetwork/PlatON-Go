@@ -84,7 +84,7 @@ class Economic:
         """
         if new_block_rate is None:
             new_block_rate = self.genesis.economicModel.reward.newBlockRate
-        current_block = node.eth.blockNumber
+        # current_block = node.eth.blockNumber
         annualcycle = (self.additional_cycle_time * 60) // self.settlement_size
         annual_size = annualcycle * self.settlement_size
         # starting_block_height = math.floor(current_block / annual_size) * annual_size
