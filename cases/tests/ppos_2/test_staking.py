@@ -180,6 +180,67 @@ def test_P_025(client_new_node_obj, get_generate_account, client_consensus_obj):
     assert_code(result, 301003)
 
 
+@pytest.mark.P2
+def test_P_026_01(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    blspubkey = client_new_node_obj.node.blspubkey + "00000000"
+    log.info(blspubkey)
+    status = 0
+    try:
+        result = client_new_node_obj.staking.create_staking(0, address, address, bls_pubkey=blspubkey)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+@pytest.mark.P2
+def test_P_026_02(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    blspubkey = client_new_node_obj.node.blspubkey[0:10]
+    log.info(blspubkey)
+    status = 0
+    try:
+        result = client_new_node_obj.staking.create_staking(0, address, address, bls_pubkey=blspubkey)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+@pytest.mark.P2
+def test_P_026_03(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    program_version = 0000
+    log.info(type(program_version))
+    result = client_new_node_obj.staking.create_staking(0, address, address, program_version=program_version)
+    assert_code(result, 301003)
+
+
+@pytest.mark.P2
+def test_P_027(client_new_node_obj):
+    external_id = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    node_name = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    website = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+    details = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+    program_version = client_new_node_obj.node.program_version
+    program_version_sign = client_new_node_obj.node.program_version_sign
+    bls_pubkey = client_new_node_obj.node.blspubkey
+    bls_proof = client_new_node_obj.node.schnorr_NIZK_prove
+    amount = client_new_node_obj.economic.create_staking_limit
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
+
+    result = client_new_node_obj.ppos.createStaking(0, address, client_new_node_obj.node.node_id,
+                                                    external_id, node_name, website, details, amount,
+                                                    program_version, program_version_sign, bls_pubkey, bls_proof,
+                                                    pri_key)
+    assert_code(result, 301002)
+
+
 @pytest.mark.P1
 def test_P_029(client_new_node_obj):
     """
@@ -221,7 +282,21 @@ def test_P_030(client_new_node_obj):
     assert_code(result, 301101)
 
 
+@pytest.mark.P2
+def test_P_031(client_new_node_obj):
+    """
+    使用新钱包质押
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
 
-
-
-
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address1, address1)
+    log.info(result)
+    assert_code(result, 301101)

@@ -321,6 +321,39 @@ def test_RV_006(staking_client):
                                                               "ether"), "After the expected result unlock period, the money has been refunded + the block reward + pledge reward"
 
 
+@pytest.mark.P1
+def test_RV_007(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    cfg = {"gas": 1}
+    status = 0
+    try:
+        result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+@pytest.mark.P1
+def test_RV_008(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    value = 10 ** 18 * 10000000
+    cfg = {"gasPrice": value}
+    status = 0
+    try:
+        result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
 @allure.title("发起撤销质押（质押金+增持金额））")
 @pytest.mark.P1
 def test_RV_009(staking_client):
@@ -473,6 +506,19 @@ def test_RV_017(staking_client):
     assert_code(msg, 301102)
 
 
+@pytest.mark.P2
+def test_RV_018(client_new_node_obj):
+    illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
+                     "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
+
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    msg = client_new_node_obj.staking.withdrew_staking(address, node_id=illegal_nodeID)
+    assert_code(msg, 301102)
+
+
 @allure.title("修改节点收益地址，再做退回：验证质押奖励+出块奖励")
 @pytest.mark.P0
 def test_RV_019(staking_client):
@@ -555,6 +601,22 @@ def test_RV_021(staking_client):
     client.staking.cfg.node_name = node_name
     msg = client.staking.edit_candidate(staking_address, staking_address)
     assert_code(msg, 301102)
+
+
+@pytest.mark.P2
+def test_RV_022(client_new_node_obj):
+    """
+    Non-pledged wallets are pledged back
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    log.info("Node exit pledge")
+    result = client_new_node_obj.staking.withdrew_staking(address1)
+    assert_code(result, 301006)
 
 
 @allure.title("最高惩罚后,返回金额&重新质押、委托、赎回")

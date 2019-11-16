@@ -162,6 +162,7 @@ def test_CS_CL_003(global_test_env, client_con_list_obj, client_noc_list_obj):
     assert client_noc_list_obj[0].node.node_id in validatorlist3
 
 
+###have bug
 @pytest.mark.P1
 def test_CS_CL_004(global_test_env, client_consensus_obj, client_new_node_obj):
     """
@@ -612,6 +613,33 @@ def test_CS_CL_017_018_019(status, global_test_env, client_con_list_obj, client_
         assert client_con_list_obj[1].node.node_id in validatorlist
         assert client_con_list_obj[2].node.node_id in validatorlist
         assert client_con_list_obj[3].node.node_id in validatorlist
+
+
+@pytest.mark.P2
+def test_CS_CL_027_028(global_test_env, client_noc_list_obj):
+    global_test_env.deploy_all()
+    address1, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
+    address2, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
+
+    result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
+                                                           amount=client_noc_list_obj[
+                                                                      0].economic.create_staking_limit * 2)
+    assert_code(result, 0)
+
+    result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,
+                                                           amount=client_noc_list_obj[1].economic.create_staking_limit)
+    assert_code(result, 0)
+
+    log.info("Next settlement period")
+    client_noc_list_obj[1].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
+    msg = client_noc_list_obj[1].ppos.getVerifierList()
+    log.info(msg)
+    verifierlist = get_pledge_list(client_noc_list_obj[1].ppos.getVerifierList)
+    log.info("verifierlist:{}".format(verifierlist))
+    assert client_noc_list_obj[0].node.node_id in verifierlist
+    assert client_noc_list_obj[1].node.node_id not in verifierlist
 
 
 @pytest.mark.P2
