@@ -1,6 +1,7 @@
 from common.log import log
-from tests.lib.utils import upload_platon, assert_code
+from tests.lib.utils import upload_platon, assert_code, wait_block_number
 import pytest
+from tests.govern.test_voting_statistics import submitvpandvote
 
 def replace_version_declare(pip_obj, platon_bin, versiontag):
     upload_platon(pip_obj.node, platon_bin)
@@ -1059,3 +1060,28 @@ class TestNoProposalCA:
 
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
+
+class TestNewDeclareVersion():
+    def test_DE_NN_001_to_003(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
+        new_genesis_env.deploy_all()
+        pip_obj = client_noc_list_obj[0].pip
+        address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000000)
+        result = pip_obj.declareVersion(pip_obj.node.node_id, address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('New node declare version result : {}'.format(result))
+        assert_code(result, 302023)
+
+        submitvpandvote(client_con_list_obj)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('Get version proposal information : {}'.format(proposalinfo))
+        result = pip_obj.declareVersion(pip_obj.node.node_id, address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('New node declare version result : {}'.format(result))
+        assert_code(result, 302023)
+
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+
+        result = pip_obj.declareVersion(pip_obj.node.node_id, address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('New node declare version result : {}'.format(result))
+        assert_code(result, 302023)

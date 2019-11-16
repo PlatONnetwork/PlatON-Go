@@ -319,7 +319,7 @@ class TestVotingStatisticsVP():
 
 
 class TestVotingStatisticsTP():
-    def test_VS_EXT_001(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
+    def test_VS_EXT_001_VS_EXC_001(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -341,7 +341,7 @@ class TestVotingStatisticsTP():
         assert result_text == [4, 1, 1, 1]
         assert result_cancel == [4, 1, 1, 1]
 
-    def test_VS_EXT_002(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
+    def test_VS_EXT_002_VS_EXC_002(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 200
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -377,7 +377,7 @@ class TestVotingStatisticsTP():
 
         assert result_text == [6, 1, 1, 1]
 
-    def test_VS_EXT_003(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
+    def test_VS_EXT_003_VS_EXC_003(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 320
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -409,7 +409,7 @@ class TestVotingStatisticsTP():
         log.info('Get proposal vote infomation {}'.format(result))
         assert result == [6, 1, 1, 1]
 
-    def test_VS_EXT_004(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_004_VS_EXC_004(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 1
@@ -427,7 +427,7 @@ class TestVotingStatisticsTP():
         assert client_con_list_obj[0].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 2
         assert client_con_list_obj[0].pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 2
 
-    def test_VS_EXT_005(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_005_VS_EXC_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.5
@@ -447,7 +447,7 @@ class TestVotingStatisticsTP():
         assert_code(result, 0)
         assert client_con_list_obj[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 2
 
-    def test_VS_EXT_006(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_006_VS_EXC_006(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.5
@@ -467,7 +467,7 @@ class TestVotingStatisticsTP():
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
         assert client_con_list_obj[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
 
-    def test_VS_EXT_007(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_007_VS_EXC_007(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.5
@@ -487,7 +487,7 @@ class TestVotingStatisticsTP():
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
         assert client_con_list_obj[1].pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 1
 
-    def test_VS_EXT_008(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_008_VS_EXC_008(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.5
@@ -507,7 +507,7 @@ class TestVotingStatisticsTP():
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
         assert client_con_list_obj[1].pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 1
 
-    def test_VS_EXT_009(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_009_VS_EXC_009(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.5
@@ -527,7 +527,7 @@ class TestVotingStatisticsTP():
         assert_code(result, 0)
         assert client_con_list_obj[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 2
 
-    def test_VS_EXT_010(self, new_genesis_env, client_con_list_obj):
+    def test_VS_EXT_010_VS_EXC_010(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         genesis.economicModel.gov.paramProposalSupportRate = 0.5
