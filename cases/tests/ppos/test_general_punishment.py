@@ -422,7 +422,7 @@ def test_VP_GPFV_011(client_new_node_obj_list, reset_environment):
             # stop node
             client1.node.stop()
             report_block = client2.node.eth.blockNumber
-            log.info("Current block height: {}".format(report_block))
+            # log.info("Current block height: {}".format(report_block))
             # view Parameter value before treatment
             penalty_ratio = get_governable_parameter_value(client2, 'slashFractionDuplicateSign')
             proportion_ratio = get_governable_parameter_value(client2, 'duplicateSignReportReward')
@@ -431,12 +431,12 @@ def test_VP_GPFV_011(client_new_node_obj_list, reset_environment):
                                                                                   int(proportion_ratio))
             # Obtain evidence of violation
             report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
-            log.info("Report information: {}".format(report_information))
+            # log.info("Report information: {}".format(report_information))
             result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
             assert_code(result, 0)
             # Query pledge node information:
             candidate_info = client2.ppos.getCandidateInfo(node.node_id)
-            log.info("pledge node information: {}".format(candidate_info))
+            # log.info("pledge node information: {}".format(candidate_info))
             info = candidate_info['Ret']
             # block_penalty = Decimal(str(block_reward)) * Decimal(str(slash_blocks))
             duplicateSign_penalty = proportion_reward + incentive_pool_reward
@@ -474,11 +474,11 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
     economic.wait_settlement_blocknum(node)
     for i in range(4):
         result = check_node_in_list(node.node_id, client1.ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # Query current block height
             report_block = client1.node.eth.blockNumber
-            log.info("Current block height: {}".format(report_block))
+            # log.info("Current block height: {}".format(report_block))
             # Obtain penalty proportion and income
             pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client1)
             # view Amount of penalty
@@ -486,7 +486,7 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
                                                                                   proportion_ratio)
             # Obtain evidence of violation
             report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
-            log.info("Report information: {}".format(report_information))
+            # log.info("Report information: {}".format(report_information))
             result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
             assert_code(result, 0)
             # Waiting for a consensus round
@@ -497,10 +497,10 @@ def test_VP_GPFV_012(client_new_node_obj_list, reset_environment):
             client2.economic.wait_consensus_blocknum(client2.node, 2)
             # view block_reward
             block_reward, staking_reward = client2.economic.get_current_year_reward(client2.node)
-            log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+            # log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
             # Query pledge node information:
             candidate_info = client2.ppos.getCandidateInfo(node.node_id)
-            log.info("pledge node information: {}".format(candidate_info))
+            # log.info("pledge node information: {}".format(candidate_info))
             info = candidate_info['Ret']
             duplicateSign_penalty = proportion_reward + incentive_pool_reward
             assert info['Released'] == pledge_amount1 - duplicateSign_penalty, "ErrMsg:pledge node account {}".format(

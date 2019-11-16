@@ -634,7 +634,7 @@ def test_AL_NBI_007_to_009(client_new_node_obj):
             blocknumber = view_benifit_reward(client_new_node_obj, address)
             # view account amount again
             benifit_balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
-            log.info("benifit_balance: {}".format(benifit_balance1))
+            # log.info("benifit_balance: {}".format(benifit_balance1))
             assert benifit_balance + staking_reward + blocknumber * Decimal(
                 str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1,
                                                                                             'ether'), "ErrMsg:benifit_balance: {}".format(
@@ -670,7 +670,7 @@ def assert_benifit_reward(client_new_node_obj, benifit_address, address):
             blocknumber = view_benifit_reward(client_new_node_obj, address)
             # view account amount again
             benifit_balance1 = client_new_node_obj.node.eth.getBalance(benifit_address)
-            log.info("benifit_balance: {}".format(benifit_balance1))
+            # log.info("benifit_balance: {}".format(benifit_balance1))
             assert benifit_balance + staking_reward + blocknumber * Decimal(
                 str(block_reward)) - benifit_balance1 < client_new_node_obj.node.web3.toWei(1,
                                                                                             'ether'), "ErrMsg:benifit_balance: {}".format(
@@ -740,14 +740,14 @@ def test_AL_NBI_014(client_new_node_obj):
     # change benifit address
     for i in range(4):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             current_block = client_new_node_obj.node.eth.blockNumber
-            log.info("Current block:{}".format(current_block))
+            # log.info("Current block:{}".format(current_block))
             for i in range(40):
                 nodeid = get_pub_key(client_new_node_obj.node.url, current_block)
                 current_block = client_new_node_obj.node.eth.blockNumber
-                log.info("当前块高:{}".format(current_block))
+                # log.info("当前块高:{}".format(current_block))
                 time.sleep(3)
                 if nodeid == client_new_node_obj.node.node_id:
                     break
@@ -781,12 +781,12 @@ def test_AL_NBI_015(client_new_node_obj):
     benifit_balance = query_ccount_amount(client_new_node_obj, benifit_address)
     for i in range(4):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # withdrew of pledge
             result = client_new_node_obj.staking.withdrew_staking(address)
             assert_code(result, 0)
-            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+            # log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
             for i in range(40):
                 client_new_node_obj.economic.account.sendTransaction(client_new_node_obj.node.web3, '',
                                                                      client_new_node_obj.economic.account.account_with_money[
@@ -825,24 +825,24 @@ def test_AL_NBI_016(client_new_node_obj):
     report_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3, client_new_node_obj.node.web3.toWei(1000, 'ether'))
     for i in range(4):
         result = check_node_in_list(client_new_node_obj.node.node_id, client_new_node_obj.ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # view Current block
             current_block = client_new_node_obj.node.eth.blockNumber
-            log.info("Current block: {}".format(current_block))
+            # log.info("Current block: {}".format(current_block))
             # Report prepareblock signature
             report_information = mock_duplicate_sign(1, client_new_node_obj.node.nodekey, client_new_node_obj.node.blsprikey, current_block)
-            log.info("Report information: {}".format(report_information))
+            # log.info("Report information: {}".format(report_information))
             result = client_new_node_obj.duplicatesign.reportDuplicateSign(1, report_information, report_address)
             assert_code(result, 0)
-            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
+            # log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj.ppos.getVerifierList()))
             # wait settlement block
             client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
             # view account amount again
             benifit_balance1 = query_ccount_amount(client_new_node_obj, benifit_address)
             # count the number of blocks
             blocknumber = client_new_node_obj.economic.get_block_count_number(client_new_node_obj.node, 5)
-            log.info("blocknumber: {}".format(blocknumber))
+            # log.info("blocknumber: {}".format(blocknumber))
             assert benifit_balance1 == benifit_balance + int(Decimal(str(block_reward)) * blocknumber), "ErrMsg:benifit_balance1：{}".format(benifit_balance1)
             break
         else:
@@ -871,18 +871,18 @@ def test_AL_NBI_017(client_new_node_obj_list):
     benifit_balance = query_ccount_amount(client_new_node_obj_list[0], benifit_address)
     for i in range(4):
         result = check_node_in_list(client_new_node_obj_list[0].node.node_id, client_new_node_obj_list[0].ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # stop node
             client_new_node_obj_list[0].node.stop()
-            log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj_list[1].ppos.getVerifierList()))
+            # log.info("Current settlement cycle verifier list：{}".format(client_new_node_obj_list[1].ppos.getVerifierList()))
             # wait settlement block
             client_new_node_obj_list[1].economic.wait_settlement_blocknum(client_new_node_obj_list[1].node)
             # view account amount again
             benifit_balance1 = query_ccount_amount(client_new_node_obj_list[1], benifit_address)
             # count the number of blocks
             blocknumber = client_new_node_obj_list[1].economic.get_block_count_number(client_new_node_obj_list[1].node, 5)
-            log.info("blocknumber: {}".format(blocknumber))
+            # log.info("blocknumber: {}".format(blocknumber))
             assert benifit_balance1 == benifit_balance + int(
                 Decimal(str(block_reward)) * blocknumber), "ErrMsg:benifit_balance1：{}".format(benifit_balance1)
             break

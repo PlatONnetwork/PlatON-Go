@@ -67,17 +67,17 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
                 node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS), 0)
             # Query current annual fund amount
             current_annual_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS), 0)
-            log.info(
-                "{} Year Incentive Pool Address: {} Balance: {}".format(i + 1, EconomicConfig.INCENTIVEPOOL_ADDRESS,
-                                                                        INCENTIVEPOOL))
-            log.info('{} Year Foundation Address: {} Balance: {}'.format(i + 1, EconomicConfig.FOUNDATION_ADDRESS,
-                                                                         FOUNDATION))
-            log.info("{} Year Developer Foundation Address:{} Balance:{}".format(i + 1,
-                                                                                 EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
-                                                                                 developer_foundation))
-            log.info("{} Year Foundation Locking Address: {} Balance: {}".format(i + 1,
-                                                                                 EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,
-                                                                                 FOUNDATIONLOCKUP))
+            # log.info(
+            #     "{} Year Incentive Pool Address: {} Balance: {}".format(i + 1, EconomicConfig.INCENTIVEPOOL_ADDRESS,
+            #                                                             INCENTIVEPOOL))
+            # log.info('{} Year Foundation Address: {} Balance: {}'.format(i + 1, EconomicConfig.FOUNDATION_ADDRESS,
+            #                                                              FOUNDATION))
+            # log.info("{} Year Developer Foundation Address:{} Balance:{}".format(i + 1,
+            #                                                                      EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
+            #                                                                      developer_foundation))
+            # log.info("{} Year Foundation Locking Address: {} Balance: {}".format(i + 1,
+            #                                                                      EconomicConfig.FOUNDATION_LOCKUP_ADDRESS,
+            #                                                                      FOUNDATIONLOCKUP))
             assert current_annual_incentive_pool_amount == init_incentive_pool, "{} Year Incentive Pool Address: {} Balance: {}".format(
                 i + 1, EconomicConfig.INCENTIVEPOOL_ADDRESS, INCENTIVEPOOL)
             assert current_annual_developer_foundation_amount == developer_foundation, "{} Year Developer Foundation Address:{} Balance:{}".format(
@@ -112,16 +112,16 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
             current_annual_developer_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
             # Query current annual fund amount
             current_annual_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
-            log.info("{} year initialization incentive pool address: {} balance: {}".format(i + 1,
-                                                                                            EconomicConfig.INCENTIVEPOOL_ADDRESS,
-                                                                                            init_incentive_pool))
-            log.info('{} Year Initialization Foundation Address: {} balance: {}'.format(i + 1,
-                                                                                        EconomicConfig.FOUNDATION_ADDRESS,
-                                                                                        FOUNDATION))
-            log.info("{} Year Developer Fund Address: {} balance: {}".format(i + 1,
-                                                                             EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
-                                                                             developer_foundation))
-            log.info("{} Year additional balance:{}".format(i + 1, additional_amount))
+            # log.info("{} year initialization incentive pool address: {} balance: {}".format(i + 1,
+            #                                                                                 EconomicConfig.INCENTIVEPOOL_ADDRESS,
+            #                                                                                 init_incentive_pool))
+            # log.info('{} Year Initialization Foundation Address: {} balance: {}'.format(i + 1,
+            #                                                                             EconomicConfig.FOUNDATION_ADDRESS,
+            #                                                                             FOUNDATION))
+            # log.info("{} Year Developer Fund Address: {} balance: {}".format(i + 1,
+            #                                                                  EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
+            #                                                                  developer_foundation))
+            # log.info("{} Year additional balance:{}".format(i + 1, additional_amount))
             assert current_annual_incentive_pool_amount == init_incentive_pool, "{} year initialization incentive pool address: {} balance: {}".format(
                 i + 1, EconomicConfig.INCENTIVEPOOL_ADDRESS, init_incentive_pool)
             assert current_annual_developer_foundation_amount == developer_foundation, "{} Year Developer Fund Address: {} balance: {}".format(
@@ -154,16 +154,16 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
             current_annual_developer_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
             # Query current annual fund amount
             current_annual_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
-            log.info("{} year initialization incentive pool address: {} balance: {}".format(i + 1,
-                                                                                            EconomicConfig.INCENTIVEPOOL_ADDRESS,
-                                                                                            init_incentive_pool))
-            log.info('{} Year Initialization Foundation Address: {} balance: {}'.format(i + 1,
-                                                                                        EconomicConfig.FOUNDATION_ADDRESS,
-                                                                                        FOUNDATION))
-            log.info("{} Year Developer Fund Address: {} balance: {}".format(i + 1,
-                                                                             EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
-                                                                             developer_foundation))
-            log.info("{} Year additional balance:{}".format(i + 1, additional_amount))
+            # log.info("{} year initialization incentive pool address: {} balance: {}".format(i + 1,
+            #                                                                                 EconomicConfig.INCENTIVEPOOL_ADDRESS,
+            #                                                                                 init_incentive_pool))
+            # log.info('{} Year Initialization Foundation Address: {} balance: {}'.format(i + 1,
+            #                                                                             EconomicConfig.FOUNDATION_ADDRESS,
+            #                                                                             FOUNDATION))
+            # log.info("{} Year Developer Fund Address: {} balance: {}".format(i + 1,
+            #                                                                  EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS,
+            #                                                                  developer_foundation))
+            # log.info("{} Year additional balance:{}".format(i + 1, additional_amount))
             assert current_annual_incentive_pool_amount == init_incentive_pool, "{} year initialization incentive pool address: {} balance: {}".format(
                 i + 1, EconomicConfig.INCENTIVEPOOL_ADDRESS, init_incentive_pool)
             assert current_annual_developer_foundation_amount == developer_foundation, "{} Year Developer Fund Address: {} balance: {}".format(

@@ -343,10 +343,10 @@ class Node:
         :return:
         """
         def __put_deploy_conf():
-            log.debug("{}-generate supervisor deploy conf...".format(self.node_mark))
+            # log.debug("{}-generate supervisor deploy conf...".format(self.node_mark))
             supervisor_tmp_file = os.path.join(self.local_node_tmp, "{}.conf".format(self.node_name))
             self.__gen_deploy_conf(supervisor_tmp_file)
-            log.debug("{}-upload supervisor deploy conf...".format(self.node_mark))
+            # log.debug("{}-upload supervisor deploy conf...".format(self.node_mark))
             self.run_ssh("rm -rf {}".format(self.remote_supervisor_node_file))
             self.run_ssh("mkdir -p {}".format(self.cfg.remote_supervisor_tmp))
             self.sftp.put(supervisor_tmp_file, self.remote_supervisor_node_file)
@@ -410,7 +410,7 @@ class Node:
         :return:
         """
         self.stop()
-        log.debug("{}-clean node path...".format(self.node_mark))
+        # log.debug("{}-clean node path...".format(self.node_mark))
         is_success, msg = self.clean()
         if not is_success:
             return is_success, msg
@@ -427,7 +427,7 @@ class Node:
         def __pre_env():
             ls = self.run_ssh("cd {};ls".format(self.cfg.remote_compression_tmp_path))
             if self.cfg.env_id and (self.cfg.env_id + ".tar.gz\n") in ls:
-                log.debug("{}-copy bin...".format(self.remote_node_path))
+                # log.debug("{}-copy bin...".format(self.remote_node_path))
                 cmd = "cp -r {}/{}/* {}".format(self.cfg.remote_compression_tmp_path, self.cfg.env_id,
                                                 self.remote_node_path)
                 self.run_ssh(cmd)
@@ -438,13 +438,13 @@ class Node:
                 # self.put_static()
                 self.create_keystore()
             if self.cfg.init_chain:
-                log.debug("{}-upload genesis...".format(self.node_mark))
+                # log.debug("{}-upload genesis...".format(self.node_mark))
                 self.put_genesis(genesis_file)
             if self.cfg.is_need_static:
                 self.put_static()
-            log.debug("{}-upload blskey...".format(self.node_mark))
+            # log.debug("{}-upload blskey...".format(self.node_mark))
             self.put_blskey()
-            log.debug("{}-upload nodekey...".format(self.node_mark))
+            # log.debug("{}-upload nodekey...".format(self.node_mark))
             self.put_nodekey()
             self.put_deploy_conf()
             self.run_ssh("sudo -S -p '' supervisorctl update " + self.node_name, True)

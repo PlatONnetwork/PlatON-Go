@@ -188,7 +188,7 @@ def test_PIP_PVF_005(client_con_list_obj, client_new_node_obj_list, reset_enviro
     client_new_node_obj_list[0].economic.wait_settlement_blocknum(client_new_node_obj_list[0].node)
     for i in range(4):
         result = check_node_in_list(client_con_list_obj[0].node.node_id, client_con_list_obj[0].ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # Verify changed parameters
             Verify_changed_parameters(client_con_list_obj, pledge_amount1, block_reward, slash_blocks2)

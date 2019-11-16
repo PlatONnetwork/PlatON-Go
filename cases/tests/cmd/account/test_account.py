@@ -23,11 +23,11 @@ class AccountEnv:
 
 @pytest.fixture(scope='module',autouse=False)
 def account_env(global_test_env)->(Node, AccountEnv):
-    log.info("module account begin.................................")
+    # log.info("module account begin.................................")
 
     env = global_test_env
     node = env.get_rand_node()
-    log.info("Node::::::::::::::::::::::::::::::{}".format(node))
+    # log.info("Node::::::::::::::::::::::::::::::{}".format(node))
 
     remote_pwd_file = node.remote_node_path + "/password.txt"
     node.upload_file("./deploy/keystore/password.txt", remote_pwd_file)
@@ -46,7 +46,7 @@ def account_env(global_test_env)->(Node, AccountEnv):
 
     yield node, account_env
 
-    log.info("module account end.................................")
+    # log.info("module account end.................................")
     # node.deleteRemoteFile(remote_pwd_file)
     # node.deleteRemoteFile(remote_pwd_file)
     # node.deleteRemoteFile(remote_pwd_file)
@@ -287,7 +287,7 @@ def test_copydb(global_test_env):
 
     node = globalEnv.collusion_node_list[0]
 
-    log.info("test copydb on host: {}".format(node.host))
+    # log.info("test copydb on host: {}".format(node.host))
 
     node.stop()
 
@@ -363,16 +363,16 @@ def test_export_import_preimages(global_test_env):
 
     # dump
     exportList = run_ssh_cmd(node.ssh, "sudo -S -p '' {} export-preimages exportPreImage --datadir {}".format(node.remote_bin_file, node.remote_data_dir), node.password)
-    for i in range(len(exportList)):
-        log.info("序号：{}   结果：{}".format(i, exportList[i]))
+    # for i in range(len(exportList)):
+    #     log.info("序号：{}   结果：{}".format(i, exportList[i]))
 
     time.sleep(1)
 
     importList = run_ssh_cmd(node.ssh, "sudo -S -p '' {} import-preimages exportPreImage --datadir {}".format(node.remote_bin_file, node.remote_data_dir), node.password)
     node.start(False)
 
-    for i in range(len(importList)):
-        log.info("序号：{}   结果：{}".format(i, importList[i]))
+    # for i in range(len(importList)):
+    #     log.info("序号：{}   结果：{}".format(i, importList[i]))
 
     assert len(exportList) == 1
     assert len(importList) == 1
@@ -427,8 +427,8 @@ def no_t1est_removedb(global_test_env):
     node.stop()
 
     returnList = run_ssh_cmd(node.ssh, "{} removedb --datadir {}".format(node.remote_bin_file, node.remote_data_dir, "y", "y"))
-    for i in range(len(returnList)):
-        log.info("序号：{}   结果：{}".format(i, returnList[i]))
+    # for i in range(len(returnList)):
+    #     log.info("序号：{}   结果：{}".format(i, returnList[i]))
 
     node.start(False)
     #assert returnList[0].strip()=="platon is free software: you can redistribute it and/or modify"
