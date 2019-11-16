@@ -882,7 +882,7 @@ def test_VP_PR_004(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_VP_PR_005(client_new_node_obj):
+def test_VP_PR_005(client_new_node_obj, reset_environment):
     """
     举报人和被举报人为同一个人
     :param client_new_node_obj:

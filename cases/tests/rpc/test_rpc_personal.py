@@ -8,33 +8,61 @@ import allure
 import pytest
 from client_sdk_python import Web3
 from hexbytes import HexBytes
+password = "88888888"
+address = "0x493301712671Ada506ba6Ca7891F436D29185821"
+priKey = "a11859ce23effc663a9460e332ca09bd812acc390497f8dc7542b6938e13f8d7"
+dataDir = "/home/platon/"
+startApi = "eth,web3,net,txpool,platon,admin,personal"
 
-from common import log
-from common.connect import connect_web3
-from common.load_file import get_node_list
-from conf import setting as conf
+w3 = None
+id = ""
+host = ""
+http_url = ""
+http_port = "6789"
+p2p_prot = "16789"
 
-node_yml = conf.NODE_YML
-collusion_list, nocollusion_list = get_node_list(node_yml)
 test_data = "0x11"
 sign_data = ""
 signer = ""
 
 addressCount = 1
-w3 = None
 
-if len(collusion_list) > 0:
-    try:
-        w3 = connect_web3(collusion_list[0]["url"])
-        addressCount = len(w3.personal.listAccounts)
-        addressCount2 = len(w3.platon.accounts)
-        assert addressCount == addressCount2
-    except Exception as e:
-        w3 = None
+@pytest.fixture()
+def setNodeInfo(global_test_env):
+    collusion_list = global_test_env.consensus_node_list
+    if len(collusion_list) > 0:
+        try:
+            global w3
+            global ws
+            global id
+            global host
+            global http_url
+            global http_port
+            global p2p_prot
+            global addressCount
+            global priKey
+
+            test_node = collusion_list[0]
+            id = test_node.node_id
+            host = test_node.host
+            http_url = test_node.url
+            http_port = test_node.rpc_port
+            p2p_prot = test_node.p2p_port
+
+            # rpc连接
+            w3 = test_node.web3
+
+            addressCount = len(w3.personal.listAccounts)
+            addressCountTmp = len(w3.platon.accounts)
+            assert addressCount == addressCountTmp
+        except Exception as e:
+            print("setNodeInfo error:{}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>".format(e))
+            w3 = None
+            ws = None
 
 @allure.title("列出所有的账户地址:personal.listAccounts")
 @pytest.mark.P1
-def test_personal_listAccounts():
+def test_personal_listAccounts(setNodeInfo):
     if w3 != None:
         listAccounts = w3.personal.listAccounts
         assert addressCount == len(listAccounts)
@@ -42,7 +70,7 @@ def test_personal_listAccounts():
 
 @allure.title("列出所有的钱包信息:personal.listWallets")
 @pytest.mark.P1
-def test_personal_listWallets():
+def test_personal_listWallets(setNodeInfo):
     if w3 != None:
         listWallets = w3.personal.listWallets
         assert addressCount == len(listWallets)
@@ -50,10 +78,10 @@ def test_personal_listWallets():
 
 @allure.title("创建一个新账户并产生一个新钱包:personal.newAccount")
 @pytest.mark.P1
-def test_personal_newAccount():
+def test_personal_newAccount(setNodeInfo):
     if w3 != None:
         print("\n 本地钱包个数:{}".format(len(w3.platon.accounts)))
-        new_account = w3.personal.newAccount(conf.PASSWORD)
+        new_account = w3.personal.newAccount(password)
         time.sleep(2)
         to_account = w3.toChecksumAddress(new_account)
         assert len(to_account) == 42
@@ -61,22 +89,22 @@ def test_personal_newAccount():
 
 @allure.title("打开一个钱包:personal.openWallet")
 @pytest.mark.P1
-def test_personal_openWallet():
+def test_personal_openWallet(setNodeInfo):
     if w3 != None:
         listWallet = w3.personal.listWallets
         if len(listWallet) > 0 :
-            assert None == w3.personal.openWallet(listWallet[0]["url"], conf.PASSWORD)
+            assert None == w3.personal.openWallet(listWallet[0]["url"], password)
             print("\n打开钱包成功,钱包路径:{}".format(listWallet[0]["url"]))
 
 @allure.title("解锁钱包:personal.unlockAccount")
 @pytest.mark.P1
-def test_personal_unlockAccount():
+def test_personal_unlockAccount(setNodeInfo):
     if w3 != None:
         listWallet = w3.personal.listWallets
         if len(listWallet) > 0:
             addr1 = w3.toChecksumAddress(listWallet[0]["accounts"][0]["address"])
             try:
-                assert True == w3.personal.unlockAccount(addr1, conf.PASSWORD)
+                assert True == w3.personal.unlockAccount(addr1, password)
                 listWallet = w3.personal.listWallets
                 assert "Unlocked" == listWallet[0]["status"]
                 print("\n解锁钱包成功,钱包地址:{},状态:{}".format(addr1, listWallet[0]["status"]))
@@ -85,7 +113,7 @@ def test_personal_unlockAccount():
 
 @allure.title("上锁钱包:personal.lockAccount")
 @pytest.mark.P1
-def test_personal_lockAccount():
+def test_personal_lockAccount(setNodeInfo):
     if w3 != None:
         listWallet = w3.personal.listWallets
         if len(listWallet) > 0:
@@ -97,10 +125,10 @@ def test_personal_lockAccount():
 
 @allure.title("导入钱包私钥:personal.importRawKey")
 @pytest.mark.P1
-def test_personal_importRawKey():
+def test_personal_importRawKey(setNodeInfo):
     if w3 != None:
         try:
-            addr = w3.personal.importRawKey(conf.PRIVATE_KEY, conf.PASSWORD)
+            addr = w3.personal.importRawKey(priKey, password)
             assert 42 == len(addr)
             print("\n导入私钥成功,钱包地址:{}".format(addr))
         except Exception as e:
@@ -108,10 +136,10 @@ def test_personal_importRawKey():
 
 @allure.title("签名数据和解签:personal.sign()/personal.ecRecover()")
 @pytest.mark.P1
-def test_personal_sign_ecRecover():
+def test_personal_sign_ecRecover(setNodeInfo):
     if w3 != None:
         signer = Web3.toChecksumAddress(w3.platon.accounts[0])
-        sign_data = w3.personal.sign(test_data, signer, conf.PASSWORD)
+        sign_data = w3.personal.sign(test_data, signer, password)
         assert len(sign_data) == 132
         print("\n签名数据成功,测试数据:{},签名数据sign_data:{}".format(test_data, sign_data))
         assert w3.toChecksumAddress(w3.personal.ecRecover(test_data, sign_data)) == signer
@@ -120,12 +148,12 @@ def test_personal_sign_ecRecover():
 # 签名交易
 @allure.title("签名交易:personal.signTransaction")
 @pytest.mark.P1
-def test_personal_signTransaction():
+def test_personal_signTransaction(setNodeInfo):
     if w3 != None:
-        nonce = hex(w3.platon.getTransactionCount(Web3.toChecksumAddress(conf.ADDRESS)))
+        nonce = hex(w3.platon.getTransactionCount(Web3.toChecksumAddress(address)))
         to = w3.platon.accounts[0]
         transaction_dict = {
-            "from": Web3.toChecksumAddress(conf.ADDRESS),
+            "from": Web3.toChecksumAddress(address),
             "to": Web3.toChecksumAddress(to),
             "value": "0x10000000000000",
             "data": "0x11",
@@ -134,15 +162,15 @@ def test_personal_signTransaction():
             "nonce": nonce,
         }
         try:
-            ret = w3.personal.signTransaction(transaction_dict, conf.PASSWORD)
+            ret = w3.personal.signTransaction(transaction_dict, password)
             assert ret != None
-            print("\n签名交易成功, 签名钱包地址:{}, 签名数据:{}".format(conf.ADDRESS, ret))
+            print("\n签名交易成功, 签名钱包地址:{}, 签名数据:{}".format(address, ret))
         except Exception as e:
             print("\n签名交易失败,error message:{}".format(e))
 
 
-def transaction_func(from_addr=conf.ADDRESS, to_addr='', value='0x10000000000000', data='0x11', gasPrice='100000000',
-                     gas='21068', nonce='0x11', password=conf.PASSWORD) :
+def transaction_func(from_addr=address, to_addr='', value='0x10000000000000', data='0x11', gasPrice='100000000',
+                     gas='21068', nonce='0x11', password=password) :
     if w3 != None:
         transaction_dict = {
             "from": w3.toChecksumAddress(from_addr),
@@ -163,12 +191,12 @@ def transaction_func(from_addr=conf.ADDRESS, to_addr='', value='0x10000000000000
 # 发送交易
 @allure.title("签名交易:personal.sendTransaction")
 @pytest.fixture()
-def personal_sendTransaction():
+def personal_sendTransaction(setNodeInfo):
     if w3 != None:
-        nonce = hex(w3.platon.getTransactionCount(Web3.toChecksumAddress(conf.ADDRESS)))
+        nonce = hex(w3.platon.getTransactionCount(Web3.toChecksumAddress(address)))
         to = w3.platon.accounts[0]
         transaction_dict = {
-            "from": Web3.toChecksumAddress(conf.ADDRESS),
+            "from": Web3.toChecksumAddress(address),
             "to": Web3.toChecksumAddress(to),
             "value": "0x10000000000000",
             "data": "0x11",
@@ -177,7 +205,7 @@ def personal_sendTransaction():
             "nonce": nonce,
         }
         try:
-            tx_hash = w3.personal.sendTransaction(transaction_dict, conf.PASSWORD)
+            tx_hash = w3.personal.sendTransaction(transaction_dict, password)
             assert len(tx_hash) == 32
             print("\n发送交易成功,交易hash:{}".format(HexBytes(tx_hash).hex()))
             result = w3.platon.waitForTransactionReceipt(HexBytes(tx_hash).hex())
@@ -215,9 +243,9 @@ def test_platon_getTransaction(personal_sendTransaction):
 
 @allure.title("根据gasprice的建议值,发送交易")
 @pytest.mark.P1
-def test_platon_gasPrice():
+def test_platon_gasPrice(setNodeInfo):
     if w3 != None:
-        nCount = w3.platon.getTransactionCount(Web3.toChecksumAddress(conf.ADDRESS))
+        nCount = w3.platon.getTransactionCount(Web3.toChecksumAddress(address))
         nonce = hex(nCount)
         to = w3.platon.accounts[0]
         gasprice = w3.platon.gasPrice
@@ -248,9 +276,9 @@ def test_platon_gasPrice():
 
 @allure.title("验证获取区块:根据区块高度和区块hash, fullTx:Flase/True")
 @pytest.mark.P1
-def test_platon_GetBlock():
+def test_platon_GetBlock(setNodeInfo):
     if w3 != None:
-        nCount = w3.platon.getTransactionCount(Web3.toChecksumAddress(conf.ADDRESS))
+        nCount = w3.platon.getTransactionCount(Web3.toChecksumAddress(address))
         nonce = hex(nCount)
         to = w3.platon.accounts[0]
         gasprice = w3.platon.gasPrice
@@ -306,9 +334,9 @@ def test_platon_GetBlock():
 
 @allure.title("根据交易的gas预估值,发送交易")
 @pytest.mark.P1
-def test_platon_estimateGas():
+def test_platon_estimateGas(setNodeInfo):
     if w3 != None:
-        nCount = w3.platon.getTransactionCount(Web3.toChecksumAddress(conf.ADDRESS))
+        nCount = w3.platon.getTransactionCount(Web3.toChecksumAddress(address))
         nonce = hex(nCount)
         to = w3.platon.accounts[0]
         # 获取交易的预估值

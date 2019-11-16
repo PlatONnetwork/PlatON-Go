@@ -198,7 +198,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_con_list_obj)
 
-        assert pip_obj.get_status_of_proposal(proposalinfo_param.get('ProposalID')) == 0
+        assert pip_obj.get_status_of_proposal(proposalinfo_param.get('ProposalID')) == 6
         assert pip_obj.get_yeas_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
         assert pip_obj.get_nays_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_param.get('ProposalID')) == 0
@@ -402,7 +402,7 @@ class TestListGovernParam():
     def test_IN_LG_002(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'staking')
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
-        assert set(module) == {'Staking'}
+        assert set(module) == {'staking'}
 
     def test_IN_LG_003(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'slashing')

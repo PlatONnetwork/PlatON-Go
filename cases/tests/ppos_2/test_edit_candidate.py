@@ -5,7 +5,8 @@ import pytest
 import allure
 
 
-def test_MPI_052_053(client_new_node_obj, get_generate_account):
+@pytest.mark.P0
+def test_MPI_001_002(client_new_node_obj, get_generate_account):
     """
     Modify node information
     :param client_new_node_obj:
@@ -30,7 +31,8 @@ def test_MPI_052_053(client_new_node_obj, get_generate_account):
     assert result["Ret"]["Details"] == details
 
 
-def test_MPI_054(client_new_node_obj, greater_than_staking_amount):
+@pytest.mark.P1
+def test_MPI_003(client_new_node_obj, greater_than_staking_amount):
     """
     Node becomes consensus validator when modifying revenue address
     :param client_new_node_obj:
@@ -54,7 +56,8 @@ def test_MPI_054(client_new_node_obj, greater_than_staking_amount):
     log.info(result)
 
 
-def test_MPI_055(client_consensus_obj, get_generate_account):
+@pytest.mark.P1
+def test_MPI_004(client_consensus_obj, get_generate_account):
     """
     The original verifier beneficiary's address modifies the ordinary address
     :param client_consensus_obj:
@@ -72,7 +75,8 @@ def test_MPI_055(client_consensus_obj, get_generate_account):
     assert msg["Ret"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
 
-def test_MPI_056_057(client_new_node_obj, get_generate_account):
+@pytest.mark.P1
+def test_MPI_005_006(client_new_node_obj, get_generate_account):
     """
     The beneficiary address of the non-initial verifier is changed to the incentive pool address
     and then to the ordinary address
@@ -100,7 +104,8 @@ def test_MPI_056_057(client_new_node_obj, get_generate_account):
     assert msg["Ret"]["BenefitAddress"] == INCENTIVEPOOL_ADDRESS
 
 
-def test_MPI_058(client_new_node_obj, client_noconsensus_obj, get_generate_account):
+@pytest.mark.P1
+def test_MPI_007(client_new_node_obj, client_noconsensus_obj, get_generate_account):
     """
     Edit wallet address as legal
     :param client_new_node_obj:
@@ -124,7 +129,8 @@ def test_MPI_058(client_new_node_obj, client_noconsensus_obj, get_generate_accou
     assert client_new_node_obj.node.web3.toChecksumAddress(msg["Ret"]["BenefitAddress"]) == address2
 
 
-def test_MPI_059(client_new_node_obj, get_generate_account):
+@pytest.mark.P1
+def test_MPI_008(client_new_node_obj, get_generate_account):
     """
     It is illegal to edit wallet addresses
     :param client_new_node_obj:
@@ -145,7 +151,8 @@ def test_MPI_059(client_new_node_obj, get_generate_account):
     assert status == 1
 
 
-def test_MPI_060(client_new_node_obj, get_generate_account):
+@pytest.mark.P3
+def test_MPI_009(client_new_node_obj, get_generate_account):
     """
     Insufficient gas to initiate modification node
     :param client_new_node_obj:
@@ -163,27 +170,27 @@ def test_MPI_060(client_new_node_obj, get_generate_account):
     assert status == 1
 
 
+@pytest.mark.P3
 def test_MPI_061(client_new_node_obj):
     """
     Insufficient balance to initiate the modification node
     :param client_new_node_obj:
     :return:
     """
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
+    account = client_new_node_obj.economic.account
+    node = client_new_node_obj.node
+    address, _ = account.generate_account(node.web3, 10)
     status = 0
-    amount = client_new_node_obj.node.eth.getBalance(address1)
-    log.info("The wallet balance:{}".format(amount))
-    cfg = {'gasPrice': amount}
     try:
-        result = client_new_node_obj.staking.edit_candidate(address1, address1, transaction_cfg=cfg)
+        result = client_new_node_obj.staking.edit_candidate(address, address)
         log.info(result)
     except:
         status = 1
     assert status == 1
 
 
-def test_MPI_062(client_new_node_obj, get_generate_account):
+@pytest.mark.P1
+def test_MPI_011(client_new_node_obj, get_generate_account):
     """
     During the hesitation period, withdraw pledge and modify node information
     :param client_new_node_obj:
@@ -200,7 +207,8 @@ def test_MPI_062(client_new_node_obj, get_generate_account):
     assert_code(result, 301102)
 
 
-def test_MPI_063_064(client_new_node_obj, get_generate_account):
+@pytest.mark.P2
+def test_MPI_012_013(client_new_node_obj):
     """
     Lock period exit pledge, modify node information
     After the lockout pledge is complete, the node information shall be modified
@@ -208,7 +216,8 @@ def test_MPI_063_064(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    address, pri_key = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Next settlement period")
@@ -232,6 +241,7 @@ def test_MPI_063_064(client_new_node_obj, get_generate_account):
     assert_code(result, 301102)
 
 
+@pytest.mark.P3
 def test_MPI_065(client_new_node_obj, get_generate_account):
     """
     Non-verifier, modify node information
@@ -254,7 +264,8 @@ def test_MPI_065(client_new_node_obj, get_generate_account):
     assert_code(result, 301102)
 
 
-def test_MPI_066_067(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
+@pytest.mark.P2
+def test_MPI_015_016(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
     """
     Candidates whose commissions have been penalized are still frozen
     A candidate whose mandate has expired after a freeze period
@@ -276,10 +287,7 @@ def test_MPI_066_067(client_new_node_obj, get_generate_account, client_consensus
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(node)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node.node_id)
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
     assert_code(result, 301102)
-
-
-

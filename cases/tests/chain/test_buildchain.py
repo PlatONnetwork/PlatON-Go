@@ -23,7 +23,7 @@ def reset_env(global_test_env):
 
 @allure.title("Node interconnects that do not initialize boot nodes and different creation files")
 @pytest.mark.P0
-def test_no_init_no_join_chain(global_test_env):
+def test_CH_IN_006(global_test_env):
     global_test_env.deploy_all()
     test_node = copy(global_test_env.get_a_normal_node())
     test_node.clean()
@@ -42,7 +42,7 @@ def test_no_init_no_join_chain(global_test_env):
 
 @allure.title("Test deployment of a single-node private chain, synchronization of single-node blocks")
 @pytest.mark.P0
-def test_build_one_node_privatechain(global_test_env):
+def test_CH_IN_005(global_test_env):
     test_node = copy(global_test_env.get_a_normal_node())
     log.info("test node :{}".format(test_node.node_mark))
     genesis_data = global_test_env.genesis_config
@@ -63,7 +63,7 @@ def test_build_one_node_privatechain(global_test_env):
 
 @allure.title("Test node interconnections between different initnode founding files")
 @pytest.mark.P0
-def test_init_diff_genesis_join_chain(global_test_env):
+def test_CH_IN_009(global_test_env):
     global_test_env.deploy_all()
     test_node = copy(global_test_env.get_a_normal_node())
     log.info("test node :{}".format(test_node.node_mark))
