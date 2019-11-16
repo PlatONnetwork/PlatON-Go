@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package snapshotdb
 
 import (
@@ -27,7 +43,7 @@ const (
 
 func (s *snapshotDB) schedule() {
 	// Compaction condition , last Compaction execute time gt than 60s or commit block num gt than 100
-	if counter.get() >= 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
+	if counter.get() >= 60 || s.current.GetHighest(false).Num.Uint64()-s.current.GetBase(false).Num.Uint64() >= 100 {
 		//only one compaction can execute
 		if atomic.CompareAndSwapInt32(&s.snapshotLockC, snapshotUnLock, snapshotLock) {
 			if err := s.Compaction(); err != nil {

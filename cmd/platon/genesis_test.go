@@ -56,33 +56,33 @@ var customGenesisTests = []struct {
     },
     "EconomicModel":{
         "Common":{
-            "ExpectedMinutes":4,
-            "ValidatorCount":4,
+            "MaxEpochMinutes":4,
+            "MaxConsensusVals":4,
             "AdditionalCycleTime":16
         },
         "Staking":{
             "StakeThreshold":               1000000000000000000000000,
-            "MinimumThreshold":             10000000000000000000,
-            "EpochValidatorNum":            24,
+            "OperatingThreshold":             10000000000000000000,
+            "MaxValidators":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2
+            "UnStakeFreezeDuration":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "DuplicateSignHighSlashing": 100,
+           "SlashFractionDuplicateSign": 100,
            "DuplicateSignReportReward": 50,
-           "NumberOfBlockRewardForSlashing":20, 
-           "EvidenceValidEpoch":1
+           "SlashBlocksReward":20, 
+           "MaxEvidenceAge":1
         },
         "Gov": {
-            "VersionProposalVote_DurationSeconds": 160,
+            "VersionProposalVoteDurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_DurationSeconds": 160,
-            "TextProposal_VoteRate": 0.5,
-            "TextProposal_SupportRate": 0.667,          
-            "CancelProposal_VoteRate": 0.50,
-            "CancelProposal_SupportRate": 0.667
+            "VersionProposalSupportRate": 0.667,
+            "TextProposalVoteDurationSeconds": 160,
+            "TextProposalVoteRate": 0.5,
+            "TextProposalSupportRate": 0.667,          
+            "CancelProposalVoteRate": 0.50,
+            "CancelProposalSupportRate": 0.667
         },
         "Reward":{
             "NewBlockRate": 50,
@@ -147,33 +147,33 @@ var customGenesisTests = []struct {
     },
     "EconomicModel":{
         "Common":{
-            "ExpectedMinutes":4,
-            "ValidatorCount":4,
+            "MaxEpochMinutes":4,
+            "MaxConsensusVals":4,
             "AdditionalCycleTime":16
         },
         "Staking":{
             "StakeThreshold":               1000000000000000000000000,
-            "MinimumThreshold":             10000000000000000000,
-            "EpochValidatorNum":            24,
+            "OperatingThreshold":             10000000000000000000,
+            "MaxValidators":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2
+            "UnStakeFreezeDuration":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "DuplicateSignHighSlashing": 100,
+           "SlashFractionDuplicateSign": 100,
            "DuplicateSignReportReward": 50,
-           "NumberOfBlockRewardForSlashing":20, 
-           "EvidenceValidEpoch":1
+           "SlashBlocksReward":20, 
+           "MaxEvidenceAge":1
         },
         "Gov": {
-            "VersionProposalVote_DurationSeconds": 160,
+            "VersionProposalVoteDurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_DurationSeconds": 160,
-            "TextProposal_VoteRate": 0.5,
-            "TextProposal_SupportRate": 0.667,          
-            "CancelProposal_VoteRate": 0.50,
-            "CancelProposal_SupportRate": 0.667
+            "VersionProposalSupportRate": 0.667,
+            "TextProposalVoteDurationSeconds": 160,
+            "TextProposalVoteRate": 0.5,
+            "TextProposalSupportRate": 0.667,          
+            "CancelProposalVoteRate": 0.50,
+            "CancelProposalSupportRate": 0.667
         },
         "Reward":{
             "NewBlockRate": 50,
@@ -238,33 +238,33 @@ var customGenesisTests = []struct {
     },
     "EconomicModel":{
         "Common":{
-            "ExpectedMinutes":4,
-            "ValidatorCount":4,
+            "MaxEpochMinutes":4,
+            "MaxConsensusVals":4,
             "AdditionalCycleTime":16
         },
         "Staking":{
             "StakeThreshold":               1000000000000000000000000,
-            "MinimumThreshold":             10000000000000000000,
-            "EpochValidatorNum":            24,
+            "OperatingThreshold":             10000000000000000000,
+            "MaxValidators":            24,
             "HesitateRatio":                1,
-            "UnStakeFreezeRatio":           2
+            "UnStakeFreezeDuration":           2
         },
         "Slashing":{
            "PackAmountAbnormal":   6,
-           "DuplicateSignHighSlashing": 100,
+           "SlashFractionDuplicateSign": 100,
            "DuplicateSignReportReward": 50,
-           "NumberOfBlockRewardForSlashing":20, 
-           "EvidenceValidEpoch":1
+           "SlashBlocksReward":20, 
+           "MaxEvidenceAge":1
         },
         "Gov": {
-            "VersionProposalVote_DurationSeconds": 160,
+            "VersionProposalVoteDurationSeconds": 160,
             "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposal_SupportRate": 0.667,
-            "TextProposalVote_DurationSeconds": 160,
-            "TextProposal_VoteRate": 0.5,
-            "TextProposal_SupportRate": 0.667,          
-            "CancelProposal_VoteRate": 0.50,
-            "CancelProposal_SupportRate": 0.667
+            "VersionProposalSupportRate": 0.667,
+            "TextProposalVoteDurationSeconds": 160,
+            "TextProposalVoteRate": 0.5,
+            "TextProposalSupportRate": 0.667,          
+            "CancelProposalVoteRate": 0.50,
+            "CancelProposalSupportRate": 0.667
         },
         "Reward":{
             "NewBlockRate": 50,

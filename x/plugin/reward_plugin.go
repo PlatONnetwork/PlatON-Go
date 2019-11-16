@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package plugin
 
 import (
@@ -27,10 +43,8 @@ const (
 	LessThanFoundationYearDeveloperRate    = 100
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
-
-	IncreaseIssue = 40
-
-	RewardPoolIncreaseRate = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+	IncreaseIssue                          = 40
+	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
 )
 
 var (
@@ -58,8 +72,6 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	blockNumber := head.Number.Uint64()
 
-	//	log.Info("Call EndBlock on reward_plugin start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
-
 	thisYear := xutil.CalculateYear(blockNumber)
 	var lastYear uint32
 	if thisYear != 0 {
@@ -71,10 +83,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		rmp.currentYear = thisYear
 	}
 	stakingReward := new(big.Int).Set(rmp.stakingReward)
-	newBlockReward := new(big.Int).Set(rmp.newBlockReward)
-
-	//log.Info("Call EndBlock on reward_plugin: after call calculateExpectReward", "blockNumber", blockNumber,
-	//	"blockHash", blockHash.Hex(), "stakingReward", rmp.stakingReward, "packageBlockReward", rmp.newBlockReward, "thisYear", thisYear, "lastYear", lastYear)
+	packageReward := new(big.Int).Set(rmp.newBlockReward)
 
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
@@ -82,14 +91,12 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 	}
 
-	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, newBlockReward, state)
+	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, packageReward, state)
 
 	// the block at the end of each year, additional issuance
 	if xutil.IsYearEnd(blockNumber) {
 		rmp.increaseIssuance(thisYear, lastYear, state)
 	}
-
-	//	log.Debug("Call EndBlock on reward_plugin End")
 
 	return nil
 }
@@ -130,17 +137,17 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		// Restore the cumulative issue at this year end
 		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
-		log.Info("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
 
 	}
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 	lessBalance := new(big.Int).Sub(currIssuance, rewardpoolIncr)
 	if rmp.isLessThanFoundationYear(thisYear) {
-		log.Info("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer", "thisYear", thisYear, "developBalance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, LessThanFoundationYearDeveloperRate)
 	} else {
-		log.Info("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
+		log.Debug("Call EndBlock on reward_plugin: increase issuance to developer and platon", "thisYear", thisYear, "develop and platon Balance", lessBalance)
 		rmp.addCommunityDeveloperFoundation(state, lessBalance, AfterFoundationYearDeveloperRewardRate)
 		rmp.addPlatONFoundation(state, lessBalance, AfterFoundationYearFoundRewardRate)
 	}
@@ -168,13 +175,13 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	validatorNum := int64(len(list))
 	everyValidatorReward := new(big.Int).Div(reward, big.NewInt(validatorNum))
 
-	log.Info("calculate validator staking reward", "validator length", validatorNum, "everyOneReward", everyValidatorReward)
+	log.Debug("calculate validator staking reward", "validator length", validatorNum, "everyOneReward", everyValidatorReward)
 	totalValidatorReward := new(big.Int)
 	for _, value := range list {
 		addr := value.BenefitAddress
 		if addr != vm.RewardManagerPoolAddr {
 
-			log.Info("allocate staking reward one-by-one", "nodeId", value.NodeId.String(),
+			log.Debug("allocate staking reward one-by-one", "nodeId", value.NodeId.String(),
 				"benefitAddress", addr.String(), "staking reward", everyValidatorReward)
 
 			state.AddBalance(addr, everyValidatorReward)
@@ -189,7 +196,7 @@ func (rmp *RewardMgrPlugin) allocatePackageBlock(blockNumber uint64, blockHash c
 
 	if coinBase != vm.RewardManagerPoolAddr {
 
-		log.Info("allocate package reward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		log.Debug("allocate package reward", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 			"coinBase", coinBase.String(), "reward", reward)
 
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
@@ -216,7 +223,7 @@ func (rmp *RewardMgrPlugin) calculateExpectReward(thisYear, lastYear uint32, sta
 	newBlockReward := new(big.Int).Div(totalNewBlockReward, big.NewInt(int64(blocks)))
 	stakingReward := new(big.Int).Div(totalStakingReward, big.NewInt(int64(epochs)))
 
-	log.Info("Call EndBlock on reward_plugin:calculateExpectReward", "thisYear", thisYear, "lastYear", lastYear,
+	log.Debug("Call calculateExpectReward", "thisYear", thisYear, "lastYear", lastYear,
 		"lastYearBalance", lastYearBalance, "totalNewBlockReward", totalNewBlockReward,
 		"totalStakingReward", totalStakingReward, "epochs of this year", epochs,
 		"blocks of this year", blocks, "newBlockReward", newBlockReward, "stakingReward", stakingReward)

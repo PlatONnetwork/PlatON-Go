@@ -20,11 +20,12 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -119,7 +120,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 func (self *StateDB) NewStateDB() *StateDB {
 	stateDB := &StateDB{
 		db:                 self.db,
-		trie:               self.db.CopyTrie(self.trie),
+		trie:               self.db.NewTrie(self.trie),
 		stateObjects:       make(map[common.Address]*stateObject),
 		stateObjectsDirty:  make(map[common.Address]struct{}),
 		logs:               make(map[common.Hash][]*types.Log),
@@ -141,7 +142,6 @@ func (self *StateDB) HadParent() bool {
 }
 
 func (self *StateDB) DumpStorage(check bool) {
-	return
 	log.Debug("statedb stateobjects", "len", len(self.stateObjects), "root", self.Root())
 	disk, err := New(self.Root(), self.db)
 	if check && err != nil {

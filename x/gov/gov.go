@@ -1,6 +1,26 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package gov
 
 import (
+	"fmt"
+	"math/big"
+	"strconv"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -14,10 +34,38 @@ import (
 type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
-	GetCandidateList(blockHash common.Hash, blockNumber uint64) (staking.CandidateHexQueue, error)
+	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
 	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
+
+const (
+	ModuleStaking  = "staking"
+	ModuleSlashing = "slashing"
+	ModuleBlock    = "block"
+	ModuleTxPool   = "txPool"
+)
+
+const (
+	KeyStakeThreshold             = "stakeThreshold"
+	KeyOperatingThreshold         = "operatingThreshold"
+	KeyMaxValidators              = "maxValidators"
+	KeyUnStakeFreezeDuration      = "unStakeFreezeDuration"
+	KeySlashFractionDuplicateSign = "slashFractionDuplicateSign"
+	KeyDuplicateSignReportReward  = "duplicateSignReportReward"
+	KeyMaxEvidenceAge             = "maxEvidenceAge"
+	KeySlashBlocksReward          = "slashBlocksReward"
+	KeyMaxBlockGasLimit           = "maxBlockGasLimit"
+	KeyMaxTxDataLimit             = "maxTxDataLimit"
+)
+
+const (
+//GenesisTxSize = 1024 * 1024        //  1 MB
+//CeilTxSize    = GenesisTxSize * 10 // 10 MB
+
+)
 
 func GetVersionForStaking(state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(state)
@@ -167,7 +215,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if node has voted
-	votedMap, err := GetVotedVerifierMap(vote.ProposalID, state)
+	votedMap, err := GetVotedVerifierMap(vote.ProposalID, blockHash)
 	if err != nil {
 		log.Error("get voted verifier map error", "proposalID", vote.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
 		return err
@@ -178,7 +226,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//handle storage
-	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
+	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, blockHash); err != nil {
 		log.Error("save vote error", "proposalID", vote.ProposalID)
 		return err
 	}
@@ -211,17 +259,19 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		return ActiveVersionError
 	}
 
-	votingVP, err := FindVotingVersionProposal(blockHash, state)
+	proposal, err := FindVotingProposal(blockHash, state, Version)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
 	}
 
 	//there is a voting version proposal
-	if votingVP != nil {
+	if proposal != nil {
+		votingVP := proposal.(*VersionProposal)
+
 		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
 
-		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, state)
+		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, blockHash)
 		if err != nil {
 			log.Error("get voted verifier map error", "proposalID", votingVP.ProposalID)
 			return err
@@ -298,7 +348,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 		return err
 	}
 
-	xcom.PrintObject("checkVerifier", verifierList)
+	//xcom.PrintObject("checkVerifier", verifierList)
 
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
@@ -307,10 +357,10 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 				if err != nil {
 					return err
 				}
-				candidate, err := stk.GetCandidateInfo(blockHash, nodeAddress)
+				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
 				if err != nil {
 					return VerifierInfoNotFound
-				} else if staking.Is_Invalid(candidate.Status) {
+				} else if candidate.IsInvalid() {
 					return VerifierStatusInvalid
 				}
 				log.Debug("tx sender is a valid verifier.", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
@@ -375,9 +425,12 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	return idList, nil
 }
 
-// find a cancel proposal at voting stage
-func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (*CancelProposal, error) {
-	log.Debug("call findVotingCancelProposal", "blockHash", blockHash, "blockNumber", blockNumber)
+// find a proposal at voting stage
+func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
+
+	if len(proposalTypes) == 0 {
+		return nil, common.InvalidParameter
+	}
 	idList, err := ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting proposal error", "blockHash", blockHash)
@@ -388,9 +441,11 @@ func FindVotingCancelProposal(blockHash common.Hash, blockNumber uint64, state x
 		if err != nil {
 			return nil, err
 		}
-		if p.GetProposalType() == Cancel {
-			vp := p.(*CancelProposal)
-			return vp, nil
+
+		for _, typ := range proposalTypes {
+			if p.GetProposalType() == typ {
+				return p, nil
+			}
 		}
 	}
 	return nil, nil
@@ -405,7 +460,7 @@ func GetMaxEndVotingBlock(nodeID discover.NodeID, blockHash common.Hash, state x
 	} else {
 		var maxEndVotingBlock = uint64(0)
 		for _, proposalID := range proposalIDList {
-			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
 				return 0, err
 			} else {
 				for _, voteValue := range voteValueList {
@@ -432,7 +487,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 		return err
 	} else if len(votingProposalIDList) > 0 {
 		for _, proposalID := range votingProposalIDList {
-			if voteValueList, err := ListVoteValue(proposalID, state); err != nil {
+			if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
 				return err
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
@@ -445,7 +500,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 				}
 				if idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
-					if err := UpdateVoteValue(proposalID, voteValueList, state); err != nil {
+					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
 						return err
 					}
 				}
@@ -468,10 +523,39 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	}
 	return nil
 }
+func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
+	paramValue := &ParamValue{"", initValue, activeBlockNumber}
+	return addGovernParam(module, name, desc, paramValue, currentBlockHash)
+}
+
+func UpdateGovernParamValue(module, name string, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	return updateGovernParamValue(module, name, newValue, activeBlock, blockHash)
+}
+
+func ListGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
+	return listGovernParam(module, blockHash)
+}
+
+func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, error) {
+	itemList, err := listGovernParamItem(module, blockHash)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range itemList {
+		if item.Name == name {
+			if value, err := findGovernParamValue(module, name, blockHash); err != nil {
+				return nil, err
+			} else if value != nil {
+				param := &GovernParam{item, value, nil}
+				return param, nil
+			}
+		}
+	}
+	return nil, nil
+}
 
 // check if the node a candidate, and the caller address is same as the staking address
 func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64, stk Staking) error {
-	log.Debug("call checkCandidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 
 	_, err := xutil.NodeId2Addr(nodeID)
 	if nil != err {
@@ -479,7 +563,7 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 		return err
 	}
 
-	candidateList, err := stk.GetCandidateList(blockHash, blockNumber)
+	candidateList, err := stk.GetCanBaseList(blockHash, blockNumber)
 	if err != nil {
 		log.Error("list candidates error", "blockHash", blockHash)
 		return err
@@ -488,7 +572,6 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 	for _, candidate := range candidateList {
 		if candidate.NodeId == nodeID {
 			if candidate.StakingAddress == from {
-				//log.Debug("tx sender is a candidate", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 				return nil
 			} else {
 				return TxSenderDifferFromStaking
@@ -497,3 +580,177 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 	}
 	return TxSenderIsNotCandidate
 }
+
+type ParamVerifier func(blockNumber uint64, blockHash common.Hash, value string) error
+
+var paramVerifier = func(blockNumber uint64, blockHash common.Hash, value string) error {
+	return nil
+}
+
+func GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
+	paramValue, err := findGovernParamValue(module, name, blockHash)
+	if err != nil {
+		return "", err
+	}
+	if paramValue == nil {
+		return "", UnsupportedGovernParam
+	} else {
+		if blockNumber >= paramValue.ActiveBlock {
+			return paramValue.Value, nil
+		} else {
+			return paramValue.StaleValue, nil
+		}
+	}
+}
+
+func GovernStakeThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+
+	thresholdStr, err := GetGovernParamValue(ModuleStaking, KeyStakeThreshold, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernStakeThreshold, query governParams is failed", "err", err)
+		return new(big.Int).SetInt64(0), err
+	}
+
+	threshold, ok := new(big.Int).SetString(thresholdStr, 10)
+	if !ok {
+		return new(big.Int).SetInt64(0), fmt.Errorf("Failed to parse the govern stakethreshold")
+	}
+
+	return threshold, nil
+}
+
+func GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+
+	thresholdStr, err := GetGovernParamValue(ModuleStaking, KeyOperatingThreshold, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernOperatingThreshold, query governParams is failed", "err", err)
+		return new(big.Int).SetInt64(0), err
+	}
+
+	threshold, ok := new(big.Int).SetString(thresholdStr, 10)
+	if !ok {
+		return new(big.Int).SetInt64(0), fmt.Errorf("Failed to parse the govern operatingthreshold")
+	}
+
+	return threshold, nil
+}
+
+func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	maxvalidatorsStr, err := GetGovernParamValue(ModuleStaking, KeyMaxValidators, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to CheckOperatingThreshold, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	maxvalidators, err := strconv.Atoi(maxvalidatorsStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(maxvalidators), nil
+}
+
+func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernUnStakeFreezeDuration, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	duration, err := strconv.Atoi(durationStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(duration), nil
+}
+
+func GovernSlashFractionDuplicateSign(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	fractionStr, err := GetGovernParamValue(ModuleSlashing, KeySlashFractionDuplicateSign, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernSlashFractionDuplicateSign, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	fraction, err := strconv.Atoi(fractionStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint32(fraction), nil
+}
+
+func GovernDuplicateSignReportReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	rewardStr, err := GetGovernParamValue(ModuleSlashing, KeyDuplicateSignReportReward, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernDuplicateSignReportReward, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	reward, err := strconv.Atoi(rewardStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint32(reward), nil
+}
+
+func GovernMaxEvidenceAge(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	ageStr, err := GetGovernParamValue(ModuleSlashing, KeyMaxEvidenceAge, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernMaxEvidenceAge, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	age, err := strconv.Atoi(ageStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint32(age), nil
+}
+
+func GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	rewardStr, err := GetGovernParamValue(ModuleSlashing, KeySlashBlocksReward, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernSlashBlocksReward, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	reward, err := strconv.Atoi(rewardStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint32(reward), nil
+}
+
+func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
+	gasLimitStr, err := GetGovernParamValue(ModuleBlock, KeyMaxBlockGasLimit, blockNumber, blockHash)
+	if nil != err {
+		log.Error("Failed to GovernMaxBlockGasLimit, query governParams is failed", "err", err)
+		return 0, err
+	}
+
+	gasLimit, err := strconv.Atoi(gasLimitStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return gasLimit, nil
+}
+
+//func GovernMaxTxDataLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
+//	sizeStr, err := GetGovernParamValue(ModuleTxPool, KeyMaxTxDataLimit, blockNumber, blockHash)
+//	if nil != err {
+//		log.Error("Failed to GovernMaxTxDataLimit, query governParams is failed", "err", err)
+//		return 0, err
+//	}
+//
+//	size, err := strconv.Atoi(sizeStr)
+//	if nil != err {
+//		return 0, err
+//	}
+//
+//	return size, nil
+//}

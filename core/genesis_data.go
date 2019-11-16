@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -50,8 +52,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 	var length int
 
-	if int(xcom.ConsValidatorNum()) <= len(g.Config.Cbft.InitialNodes) {
-		length = int(xcom.ConsValidatorNum())
+	if int(xcom.MaxConsensusVals()) <= len(g.Config.Cbft.InitialNodes) {
+		length = int(xcom.MaxConsensusVals())
 	} else {
 		length = len(g.Config.Cbft.InitialNodes)
 	}
@@ -83,21 +85,23 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 
 		node := initQueue[index]
 
-		can := &staking.Candidate{
-			NodeId:             node.Node.ID,
-			BlsPubKey:          node.BlsPubKey,
-			StakingAddress:     xcom.CDFAccount(),
-			BenefitAddress:     vm.RewardManagerPoolAddr,
-			StakingTxIndex:     uint32(index), // txIndex from zero to n
-			ProgramVersion:     version,
-			Status:             staking.Valided,
-			StakingEpoch:       uint32(0),
-			StakingBlockNum:    uint64(0),
-			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
-			Released:           new(big.Int).Set(xcom.GeneStakingAmount),
-			ReleasedHes:        new(big.Int).SetInt64(0),
-			RestrictingPlan:    new(big.Int).SetInt64(0),
-			RestrictingPlanHes: new(big.Int).SetInt64(0),
+		var keyHex bls.PublicKeyHex
+		if b, err := node.BlsPubKey.MarshalText(); nil != err {
+			return err
+		} else {
+			if err := keyHex.UnmarshalText(b); nil != err {
+				return err
+			}
+		}
+
+		base := &staking.CandidateBase{
+			NodeId:          node.Node.ID,
+			BlsPubKey:       keyHex,
+			StakingAddress:  xcom.CDFAccount(),
+			BenefitAddress:  vm.RewardManagerPoolAddr,
+			StakingTxIndex:  uint32(index), // txIndex from zero to n
+			ProgramVersion:  version,
+			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",
 				NodeName:   "platon.node." + fmt.Sprint(index+1),
@@ -106,42 +110,70 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			},
 		}
 
-		nodeAddr, err := xutil.NodeId2Addr(can.NodeId)
-		if err != nil {
-			return fmt.Errorf("Failed to convert nodeID to address. nodeId:%s, error:%s",
-				can.NodeId.String(), err.Error())
+		mutable := &staking.CandidateMutable{
+			Status:             staking.Valided,
+			StakingEpoch:       uint32(0),
+			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
+			Released:           new(big.Int).Set(xcom.GeneStakingAmount),
+			ReleasedHes:        new(big.Int).SetInt64(0),
+			RestrictingPlan:    new(big.Int).SetInt64(0),
+			RestrictingPlanHes: new(big.Int).SetInt64(0),
 		}
 
-		key := staking.CandidateKeyByAddr(nodeAddr)
+		nodeAddr, err := xutil.NodeId2Addr(base.NodeId)
+		if err != nil {
+			return fmt.Errorf("Failed to convert nodeID to address. nodeId:%s, error:%s",
+				base.NodeId.String(), err.Error())
+		}
 
-		if val, err := rlp.EncodeToBytes(can); nil != err {
-			return fmt.Errorf("Failed to Store Candidate Info: rlp encodeing failed. nodeId:%s, error:%s",
-				can.NodeId.String(), err.Error())
+		// about CanBase ...
+		baseKey := staking.CanBaseKeyByAddr(nodeAddr)
+		if val, err := rlp.EncodeToBytes(base); nil != err {
+			return fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. nodeId:%s, error:%s",
+				base.NodeId.String(), err.Error())
 		} else {
 
-			lastHash, err = putbasedbFn(key, val, lastHash)
+			lastHash, err = putbasedbFn(baseKey, val, lastHash)
 			if nil != err {
-				return fmt.Errorf("Failed to Store Candidate Info: PutBaseDB failed. nodeId:%s, error:%s",
-					can.NodeId.String(), err.Error())
+				return fmt.Errorf("Failed to Store CanBase Info: PutBaseDB failed. nodeId:%s, error:%s",
+					base.NodeId.String(), err.Error())
 			}
 
 		}
 
-		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
+		// about CanMutable ...
+		mutableKey := staking.CanMutableKeyByAddr(nodeAddr)
+		if val, err := rlp.EncodeToBytes(mutable); nil != err {
+			return fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. nodeId:%s, error:%s",
+				base.NodeId.String(), err.Error())
+		} else {
+
+			lastHash, err = putbasedbFn(mutableKey, val, lastHash)
+			if nil != err {
+				return fmt.Errorf("Failed to Store CanMutable Info: PutBaseDB failed. nodeId:%s, error:%s",
+					base.NodeId.String(), err.Error())
+			}
+
+		}
+
+		// about can power ...
+		powerKey := staking.TallyPowerKey(mutable.Shares, base.StakingBlockNum, base.StakingTxIndex, base.ProgramVersion)
 		lastHash, err = putbasedbFn(powerKey, nodeAddr.Bytes(), lastHash)
 		if nil != err {
 			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s",
-				can.NodeId.String(), err.Error())
+				base.NodeId.String(), err.Error())
 		}
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
-			NodeAddress: nodeAddr,
-			NodeId:      can.NodeId,
-			BlsPubKey:   can.BlsPubKey,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Released.String(),
-				fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)},
-			ValidatorTerm: 0,
+			NodeAddress:     nodeAddr,
+			NodeId:          base.NodeId,
+			BlsPubKey:       base.BlsPubKey,
+			ProgramVersion:  base.ProgramVersion,
+			Shares:          mutable.Shares,
+			StakingBlockNum: base.StakingBlockNum,
+			StakingTxIndex:  base.StakingTxIndex,
+			ValidatorTerm:   0,
 		}
 		validatorQueue[index] = validator
 
@@ -241,20 +273,20 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 
 	account := vm.RewardManagerPoolAddr
 	var (
-		zeroEpoch  = new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-		oneEpoch   = new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18))
-		twoEpoch   = new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18))
-		threeEpoch = new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18))
-		fourEpoch  = new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18))
-		fiveEpoch  = new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18))
-		sixEpoch   = new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18))
-		sevenEpoch = new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18))
-		eightEpoch = new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18))
+		zeroYear  = new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
+		oneYear   = new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18))
+		twoYear   = new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18))
+		threeYear = new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18))
+		fourYear  = new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18))
+		fiveYear  = new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18))
+		sixYear   = new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18))
+		sevenYear = new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18))
+		eightYear = new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18))
 	)
 
-	statedb.SubBalance(xcom.CDFAccount(), zeroEpoch)
-	statedb.AddBalance(account, zeroEpoch)
-	needRelease := []*big.Int{oneEpoch, twoEpoch, threeEpoch, fourEpoch, fiveEpoch, sixEpoch, sevenEpoch, eightEpoch}
+	statedb.SubBalance(xcom.CDFAccount(), zeroYear)
+	statedb.AddBalance(account, zeroYear)
+	needRelease := []*big.Int{oneYear, twoYear, threeYear, fourYear, fiveYear, sixYear, sevenYear, eightYear}
 
 	restrictingPlans := make([]restricting.RestrictingPlan, 0)
 	OneYearEpochs := xutil.EpochsPerYear()
@@ -263,7 +295,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
 	}
 
-	if err := plugin.RestrictingInstance().AddRestrictingRecord(xcom.CDFAccount(), vm.RewardManagerPoolAddr, restrictingPlans, statedb); err != nil {
+	if err := plugin.RestrictingInstance().AddRestrictingRecord(xcom.CDFAccount(), vm.RewardManagerPoolAddr, 0, restrictingPlans, statedb); err != nil {
 		return err
 	}
 	return nil
@@ -308,8 +340,8 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 		return err
 	}
 	// Store genesis last Epoch
-	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
-	plugin.SetLatestEpoch(statedb, uint64(0))
+	//	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
+	//	plugin.SetLatestEpoch(statedb, uint64(0))
 
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)

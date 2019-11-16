@@ -181,15 +181,11 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 		return
 	}
 
-	//nodeId := discover.PubkeyID(&privateKey.PublicKey)
 	nodeIdAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to SetWorkerCoinBase: parse current nodeId is failed", "err", err)
 		panic(fmt.Sprintf("parse current nodeId is failed: %s", err.Error()))
 	}
-
-	log.Info("Call SetWorkerCoinBase on blockchain_reactor", "blockNumber", header.Number,
-		"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex())
 
 	if plu, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
 		stake := plu.(*plugin.StakingPlugin)
@@ -235,7 +231,6 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		if nil != err {
 			return err
 		}
-		//log.Debug("BeginBlock verifyVrf", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(sealHash), "nodeId", discover.PubkeyID(pk).String())
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
 		}
@@ -303,7 +298,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
-		log.Info("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(),
+		log.Debug("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(),
 			"pposHash", hex.EncodeToString(pposHash))
 	}
 
@@ -362,41 +357,6 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) VerifyHeader(header *types.Header, stateDB *state.StateDB) error {
-	/*if len(header.Extra) > 0 {
-		var tobeDecoded []byte
-		tobeDecoded = header.Extra
-		if len(header.Extra) <= 32 {
-			tobeDecoded = header.Extra
-		} else {
-			tobeDecoded = header.Extra[:32]
-		}
-
-		log.Debug("verify header extra", "data", hex.EncodeToString(header.Extra))
-
-		var extraData []interface{}
-		err := rlp.DecodeBytes(byteutil.RTrim(tobeDecoded), &extraData)
-		if err != nil {
-			log.Error(" rlp decode header extra error", "err", err)
-			return errors.New("rlp decode header extra error")
-		}
-		//reference to makeExtraData() in gov_plugin.go
-		if len(extraData) == 4 {
-			versionBytes := extraData[0].([]byte)
-			versionInHeader := common.BytesToUint32(versionBytes)
-
-			activeVersion := gov.GetActiveVersion(header.Number.Uint64(), stateDB)
-			log.Debug("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", header.Number.Uint64())
-
-			if activeVersion == versionInHeader {
-				return nil
-			} else {
-				return errors.New("header version error")
-			}
-		} else {
-			log.Error("unknown header extra data", "elementCount", len(extraData))
-			return errors.New("unknown header extra data")
-		}
-	}*/
 	return nil
 }
 

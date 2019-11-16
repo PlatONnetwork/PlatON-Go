@@ -81,6 +81,18 @@ class TestEnvironment:
         return self.genesis_config["config"]["chainId"]
 
     @property
+    def amount(self):
+        return self.genesis_config["config"]["cbft"]["amount"]
+
+    @property
+    def period(self):
+        return self.genesis_config["config"]["cbft"]["period"]
+
+    @property
+    def validatorMode(self):
+        return self.genesis_config["config"]["cbft"]["validatorMode"]
+
+    @property
     def version(self):
         return ""
 

@@ -482,7 +482,7 @@ class Node:
         if not self.__is_ws_connected:
             self.__ws_rpc = wait_connect_web3(self.wsurl, self.chain_id)
             self.__is_ws_connected = True
-        return self.__rpc
+        return self.__ws_rpc
 
     @property
     def eth(self) -> Eth:

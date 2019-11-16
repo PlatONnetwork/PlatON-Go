@@ -438,11 +438,9 @@ func (f *Fetcher) loop() {
 					f.completingHook(hashes)
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
-				go func() {
-					if v, ok := f.completing[hashes[0]]; ok {
-						v.fetchBodies(hashes)
-					}
-				}()
+				if v := f.completing[hashes[0]]; v != nil {
+					go v.fetchBodies(hashes)
+				}
 				//go f.completing[hashes[0]].fetchBodies(hashes)
 			}
 			// Schedule the next fetch if blocks are still pending

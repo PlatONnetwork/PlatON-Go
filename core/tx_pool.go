@@ -82,6 +82,9 @@ var (
 
 	// PlatON inner contract tx data invalid
 	ErrPlatONTxDataInvalid = errors.New("the tx data is invalid")
+
+	// the txSizeLimit of PlatON govern param found failed
+	//ErrPlatONGovTxDataSize = errors.New("not found the govern txData size")
 )
 
 var (
@@ -755,8 +758,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return fmt.Errorf("contract creation is not allowed")
 	}
 
-	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	// 32kb -> 1m
+	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks
 	if tx.Size() > 1024*1024 {
 		return ErrOversizedData
 	}
@@ -788,7 +790,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, true)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil)
 	if err != nil {
 		return err
 	}
