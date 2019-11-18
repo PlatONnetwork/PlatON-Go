@@ -2,6 +2,7 @@ import time
 
 import pytest
 import allure
+from client_sdk_python.eth import Eth
 
 from dacite import from_dict
 
@@ -12,7 +13,7 @@ from decimal import Decimal
 
 from tests.conftest import get_client_noconsensus_list
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, get_pledge_list
+    get_governable_parameter_value, get_pledge_list, HexBytes
 
 
 @pytest.fixture(scope="function")
@@ -117,7 +118,9 @@ def test_IT_SD_002_003(global_test_env, value):
     # Account balance insufficient transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice,21000, value)
+        transfer_amount = node.web3.toWei(value, 'ether')
+        result = global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice, 21000, transfer_amount)
+        log.info("result: {}".format(result))
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
@@ -183,9 +186,98 @@ def test_IT_SD_008(global_test_env):
     balance1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("Account balance after transfer： {}".format(balance1))
     log.info("Transaction fee： {}".format(node.web3.platon.gasPrice * 21000))
-    assert balance1 == balance + node.web3.toWei(100,
-                                                 'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
+    assert balance1 == balance + node.web3.toWei(100,'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
         balance1)
+
+
+def sendTransaction_input_nonce(client, data, from_address, to_address, gasPrice, gas, value, nonce, check_address=True):
+    node = client.node
+    account = client.economic.account.accounts[from_address]
+    print(account)
+    if check_address:
+        to_address = Web3.toChecksumAddress(to_address)
+    tmp_from_address = Web3.toChecksumAddress(from_address)
+    # nonce = platon.getTransactionCount(tmp_from_address)
+
+    # if nonce < account['nonce']:
+    #     nonce = account['nonce']
+
+    transaction_dict = {
+        "to": to_address,
+        "gasPrice": gasPrice,
+        "gas": gas,
+        "nonce": nonce,
+        "data": data,
+        "chainId": client.economic.account.chain_id,
+        "value": value,
+        'from': tmp_from_address,
+    }
+
+    # log.debug("account['prikey']:::::::{}".format(account['prikey']))
+
+    signedTransactionDict = node.eth.account.signTransaction(
+        transaction_dict, account['prikey']
+    )
+
+    # log.debug("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
+
+    data = signedTransactionDict.rawTransaction
+    result = HexBytes(node.eth.sendRawTransaction(data)).hex()
+    # log.debug("result:::::::{}".format(result))
+    res = node.eth.waitForTransactionReceipt(result)
+
+    return res
+
+
+@pytest.mark.P2
+def test_IT_SD_009(client_consensus_obj):
+    """
+    同一时间多次转账
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    address1, _ = economic.account.generate_account(node.web3, 0)
+    nonce = node.eth.getTransactionCount(address)
+    print('nonce: ', nonce)
+    balance = node.eth.getBalance(address1)
+    log.info("balance: {}".format(balance))
+    sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce)
+    sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce+1)
+    time.sleep(3)
+    balance1 = node.eth.getBalance(address1)
+    log.info("Account balance after transfer： {}".format(balance1))
+    assert balance1 == balance + node.web3.toWei(200, 'ether'), "ErrMsg:Account balance after transfer：{}".format(balance1)
+
+
+@pytest.mark.P2
+def test_IT_SD_010(client_consensus_obj):
+    """
+    同一时间多次转账，余额不足
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    address1, _ = economic.account.generate_account(node.web3, 0)
+    balance = node.eth.getBalance(address1)
+    log.info("balance: {}".format(balance))
+    try:
+        nonce = node.eth.getTransactionCount(address)
+        log.info('nonce: {}'.format(nonce))
+        sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(500, 'ether'), nonce)
+        sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(600, 'ether'), nonce+1)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+        time.sleep(3)
+        balance1 = node.eth.getBalance(address1)
+        log.info("Account balance after transfer： {}".format(balance1))
+        assert balance1 == balance + node.web3.toWei(500, 'ether'), "ErrMsg:Account balance after transfer：{}".format(balance1)
 
 
 def consensus_node_pledge_award_assertion(client_new_node_obj, address):

@@ -1,6 +1,8 @@
 import time
 import pytest
 import allure
+import rlp
+from client_sdk_python.utils.transactions import send_obj_transaction
 from dacite import from_dict
 from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
@@ -19,9 +21,9 @@ def test_LS_FV_001(client_consensus_obj):
     :return:
     """
     # Reset environment
-    # client_consensus_obj.economic.env.deploy_all()
+    client_consensus_obj.economic.env.deploy_all()
     # view Lock in contract amount
-    lock_up_amount = client_consensus_obj.node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS, 0)
+    lock_up_amount = client_consensus_obj.node.eth.getBalance(EconomicConfig.FOUNDATION_LOCKUP_ADDRESS)
     log.info("Lock in contract amount: {}".format(lock_up_amount))
     # view Lockup plan
     result = client_consensus_obj.ppos.getRestrictingInfo(EconomicConfig.INCENTIVEPOOL_ADDRESS)
@@ -33,6 +35,35 @@ def test_LS_FV_001(client_consensus_obj):
         assert release_plans_list[i] == EconomicConfig.release_info[
             i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
             'blockNumber'], release_plans_list[i]['amount'])
+
+
+def test_LS_UPV_002(client_new_node_obj):
+    """
+    创建锁仓计划Gas费
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    plan = [{'Epoch': 1, 'Amount': node.web3.toWei(1000, 'ether')}]
+    # result = client.restricting.createRestrictingPlan(address, plan, address)
+    pri_key = economic.account.find_pri_key(address)
+    if address[:2] == '0x':
+        address = address[2:]
+    log.info("address: {}".format(address))
+    plan_list = []
+    for dict_ in plan:
+        v = [dict_[k] for k in dict_]
+        plan_list.append(v)
+    rlp_list = rlp.encode(plan_list)
+    log.info("rlp_list: {}".format(rlp_list))
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address)), rlp_list])
+    log.info("data info: {}".format(data))
+    gas_data = {"to": node.web3.restrictingAddress, "data": data}
+    log.info("gas_data: {}".format(gas_data))
 
 
 def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
@@ -49,7 +80,7 @@ def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
 
 @pytest.mark.P1
 @pytest.mark.compatibility
-def test_LS_PV_001(client_new_node_obj):
+def test_LS_UPV_001(client_new_node_obj):
     """
     锁仓参数的有效性验证:
                     None,
@@ -57,29 +88,63 @@ def test_LS_PV_001(client_new_node_obj):
     :param client_new_node_obj:
     :return:
     """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
     status = True
     # create restricting plan
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       client_new_node_obj.economic.create_staking_limit)
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     plan = [{'Epoch': 1, 'Amount': ""}]
-    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    result = client.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 304011)
 
     # create restricting plan
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       client_new_node_obj.economic.create_staking_limit)
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     plan = [{'Epoch': 1, 'Amount': None}]
     try:
-        client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+        client.restricting.createRestrictingPlan(address, plan, address)
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
     assert status, "ErrMsg: create restricting result {}".format(status)
 
 
+def test_LS_UPV_002(client_new_node_obj):
+    """
+    创建锁仓计划Gas费
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address1 = None
+    plan = [{'Epoch': 1, 'Amount': node.web3.toWei(1000, 'ether')}]
+    pri_key = economic.account.find_pri_key(address)
+    if address[:2] == '0x':
+        address1 = address[2:]
+    log.info("address: {}".format(address))
+    plan_list = []
+    for dict_ in plan:
+        v = [dict_[k] for k in dict_]
+        plan_list.append(v)
+    rlp_list = rlp.encode(plan_list)
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    log.info("data info: {}".format(data))
+    transaction_data = {"to": address, "data": data}
+    transaction_gas = node.eth.estimateGas(transaction_data)
+    log.info("transaction_gas: {}".format(transaction_gas))
+    result = client.restricting.createRestrictingPlan(address, plan, address)
+    log.info("result: {}".format(result))
+    info = node.eth.waitForTransactionReceipt(result)
+    log.info("info: {}".format(info))
+
+
 @pytest.mark.P1
 @pytest.mark.compatibility
-def test_LS_PV_003(client_new_node_obj):
+def test_LS_UPV_003(client_new_node_obj):
     """
     正常创建锁仓计划
     :param client_new_node_obj:
@@ -93,18 +158,22 @@ def test_LS_PV_003(client_new_node_obj):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('epoch, amount', [(0.1, 10), (1, 0.1)])
-def test_LS_PV_004_1(client_new_node_obj, epoch, amount):
+def test_LS_UPV_004_1(client_new_node_obj):
     """
-    锁仓参数的有效性验证:
-                    number 0.1, amount 10
-                    number 1, amount 0.1
+    锁仓参数的有效性验证:number 1, amount 0.1
+                      number 0.1, amount 10
     :param client_new_node_obj:
     :return:
     """
     status = True
+    # number 1, amount 0.1
+    result, address, benifit_address = create_restrictingplan(client_new_node_obj, 1, 0.1)
+    log.info('result: {}'.format(result))
+    assert_code(result, 304003)
+    # number 0.1, amount 10
     try:
-        create_restrictingplan(client_new_node_obj, epoch, amount)
+        result = create_restrictingplan(client_new_node_obj, 0.1, 10)
+        log.info('result: {}'.format(result))
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
@@ -113,7 +182,7 @@ def test_LS_PV_004_1(client_new_node_obj, epoch, amount):
 
 @pytest.mark.parametrize('epoch, amount', [(-1, 10), (1, -10)])
 @pytest.mark.P1
-def test_LS_PV_004_2(client_new_node_obj, epoch, amount):
+def test_LS_UPV_004_2(client_new_node_obj, epoch, amount):
     """
     锁仓参数的有效性验证:epoch -1, amount 10
                       epoch 1, amount -10
@@ -134,7 +203,7 @@ def test_LS_PV_004_2(client_new_node_obj, epoch, amount):
 
 
 @pytest.mark.P1
-def test_LS_PV_005(client_new_node_obj):
+def test_LS_UPV_005(client_new_node_obj):
     """
     锁仓参数的有效性验证:epoch 0, amount 10
     :param client_new_node_obj:
@@ -146,7 +215,7 @@ def test_LS_PV_005(client_new_node_obj):
 
 @pytest.mark.P1
 @pytest.mark.parametrize('number', [1, 5, 36])
-def test_LS_PV_006(client_new_node_obj, number):
+def test_LS_UPV_006(client_new_node_obj, number):
     """
     创建锁仓计划1<= 释放计划个数N <=36
     :param client_new_node_obj:
@@ -164,7 +233,7 @@ def test_LS_PV_006(client_new_node_obj, number):
 
 
 @pytest.mark.P1
-def test_LS_PV_007(client_new_node_obj):
+def test_LS_UPV_007(client_new_node_obj):
     """
     创建锁仓计划-释放计划的锁定期个数 > 36
     :param client_new_node_obj:
@@ -182,7 +251,7 @@ def test_LS_PV_007(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_LS_PV_008(client_new_node_obj):
+def test_LS_UPV_008(client_new_node_obj):
     """
     锁仓参数的有效性验证:epoch 1, amount 0
     :param client_new_node_obj:
@@ -194,8 +263,7 @@ def test_LS_PV_008(client_new_node_obj):
 
 
 @pytest.mark.P2
-
-def test_LS_PV_009(client_new_node_obj):
+def test_LS_UPV_009(client_new_node_obj):
     """
     创建锁仓计划-锁仓金额中文、特殊字符字符测试
     :param client_new_node_obj:
@@ -598,7 +666,7 @@ def test_LS_RV_011(client_new_node_obj):
 @pytest.mark.P1
 def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     """
-    创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划
+    创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划(处罚金额大于质押金额)
     :param client_new_node_obj_list:
     :return:
     """
@@ -635,19 +703,7 @@ def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     restricting_info = client2.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
     assert_code(restricting_info, 304005)
-    # create Restricting Plan again
-    plan = [{'Epoch': 1, 'Amount': von_amount(economic.create_staking_limit, 2)}]
-    result = client2.restricting.createRestrictingPlan(address2, plan, address1)
-    assert_code(result, 0)
-    # view Restricting Plan
-    restricting_info3 = client2.ppos.getRestrictingInfo(address2)
-    log.info("restricting info: {}".format(restricting_info3))
-    assert_code(restricting_info3, 0)
-    info = restricting_info3['Ret']
-    assert info['balance'] == von_amount(economic.create_staking_limit, 2), "rrMsg: restricting balance amount {}".format(info['balance'])
-    assert info['debt'] == 0, "rrMsg: restricting debt amount {}".format(info['debt'])
-    assert info['plans'][0]['amount'] == von_amount(economic.create_staking_limit, 2), "rrMsg: restricting plans amount {}".format(info['plans'][0]['amount'])
-    assert info['Pledge'] == 0, "rrMsg: restricting Pledge amount {}".format(info['Pledge'])
+
 
 
 @pytest.mark.P1
@@ -1353,8 +1409,9 @@ def test_LS_EV_007(client_new_node_obj):
     status = True
     try:
         # Application for Commission
-        delegate_amount = von_amount(economic.delegate_limit, 0.8)
-        client.delegate.delegate(1, address2, amount=delegate_amount)
+        # delegate_amount = von_amount(economic.delegate_limit, -8)
+        result = client.delegate.delegate(1, address2, amount=-8)
+        log.info("result: {}".format(result))
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
