@@ -316,7 +316,7 @@ def test_UP_FV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_009(client_new_node_obj_list, reset_environment):
+def test_UP_FV_009(client_new_node_obj_list):
     """
     锁仓账号申请质押，验证人违规被扣除节点自有质押金k
     :param client_new_node_obj_list:
@@ -343,22 +343,32 @@ def test_UP_FV_009(client_new_node_obj_list, reset_environment):
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # stop node
     client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 2)
+    # Waiting for a 3 consensus round
+    client2.economic.wait_consensus_blocknum(client2.node, 3)
     log.info("Current block height: {}".format(client2.node.eth.blockNumber))
     # view verifier list
     verifier_list = client2.ppos.getVerifierList()
     log.info("verifier_list: {}".format(verifier_list))
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("punishment_amonut: {}".format(punishment_amonut))
     # view restricting plan again
     restricting_info = client2.ppos.getRestrictingInfo(address1)
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
     if punishment_amonut < economic.create_staking_limit:
-        assert info['debt'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting debt amount {}'.format(
-            info['debt'])
+        assert info['balance'] == economic.create_staking_limit - punishment_amonut, 'ErrMsg: restricting balance amount {}'.format(
+            info['balance'])
     else:
-        assert info['debt'] == 0, 'ErrMsg: restricting debt amount {}'.format(info['debt'])
+        assert_code(restricting_info, 304005)
+    # # Obtain the lock account pledge account balance
+    # balance = client2.node.eth.getBalance(address1)
+    # # Waiting for the end of the 2 settlement period
+    # economic.wait_settlement_blocknum(client2.node, 3)
+    # # Regain the lock pledge account balance again
+    # balance1 = client2.node.eth.getBalance(address1)
+    # restricting_info = client2.ppos.getRestrictingInfo(address1)
+    # assert_code(restricting_info, 304005)
+    # assert balance1 == balance, 'ErrMsg: account balance1 {}'.format(balance1)
 
 
 @pytest.mark.P2

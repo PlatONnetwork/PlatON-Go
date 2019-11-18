@@ -26,12 +26,12 @@ def staking_client(client_new_node_obj):
     setattr(client_new_node_obj, "amount", amount)
     setattr(client_new_node_obj, "staking_amount", staking_amount)
     yield client_new_node_obj
-    if not client_new_node_obj.economic.env.running:
-        client_new_node_obj.economic.env.deploy_all()
+    client_new_node_obj.economic.env.deploy_all()
 
 
 @allure.title("验证人申请退回质押金（犹豫期）")
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_RV_001(staking_client):
     """
     The certifier applies for a refund of the quality deposit (hesitation period)
@@ -390,6 +390,9 @@ def test_RV_009(staking_client):
 
 @pytest.mark.P2
 def test_RV_011(staking_client):
+    """
+    The consensus verifier revoks the pledge
+    """
     client = staking_client
     node = client.node
     economic = client.economic
@@ -406,39 +409,42 @@ def test_RV_011(staking_client):
     assert_code(msg, 0)
 
 
-@allure.title("撤销5种身份候选人，验证人，共识验证人，不存在的候选人，已失效的候选人")
-@pytest.mark.P1
-def test_RV_012(client_new_node_obj_list):
+@pytest.mark.P2
+def test_RV_012(global_test_env, client_noc_list_obj):
     """
-    Since other use cases have verified the amount of retaluation, no assertion is made here.
-    0: Candidate
-    1: verifier
-    2: Consensus certifier
-    3: Candidates that do not exist
-    4: Cancelled candidate
+    Candidate cancels pledge
     """
-    client_a = client_new_node_obj_list[0]
-    node_a = client_a.node
-    client_b = client_new_node_obj_list[1]
-    node_b = client_b.node
-    amount_a = client_b.economic.create_staking_limit * 6
-    amount_b = client_b.economic.create_staking_limit * 7
-    amount = Web3.toWei(amount_a + amount_b + 10, "ether")
-    address, _ = client_a.economic.account.generate_account(node_a.web3, amount)
-    msg = client_a.staking.create_staking(0, address, address, amount=amount_a)
+    global_test_env.deploy_all()
+    address1, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
+    address2, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
 
-    assert_code(msg, 0)
-    msg = client_b.staking.create_staking(0, address, address, amount=amount_b)
+    result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
+                                                           amount=client_noc_list_obj[
+                                                                      0].economic.create_staking_limit * 2)
+    assert_code(result, 0)
 
-    assert_code(msg, 0)
-    log.info("Enter the next cycle")
-    client_b.economic.wait_settlement_blocknum(node_b)
-    msg = client_b.staking.withdrew_staking(address)
+    result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,
+                                                           amount=client_noc_list_obj[1].economic.create_staking_limit)
+    assert_code(result, 0)
+
+    log.info("Next settlement period")
+    client_noc_list_obj[1].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
+    msg = client_noc_list_obj[1].ppos.getVerifierList()
+    log.info(msg)
+    verifierlist = get_pledge_list(client_noc_list_obj[1].ppos.getVerifierList)
+    log.info("verifierlist:{}".format(verifierlist))
+    assert client_noc_list_obj[1].node.node_id not in verifierlist
+    msg = client_noc_list_obj[1].staking.withdrew_staking(address2)
     assert_code(msg, 0)
 
 
 @pytest.mark.P2
 def test_RV_013(staking_client):
+    """
+    The verifier revoks the pledge
+    """
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -454,6 +460,7 @@ def test_RV_013(staking_client):
 
 @allure.title("退出验证人后，返回质押金+出块奖励+质押奖励")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_RV_014_015(staking_client):
     """
     After becoming a verifier, there are pledge rewards and block rewards.

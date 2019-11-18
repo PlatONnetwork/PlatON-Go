@@ -48,7 +48,7 @@ def test_IV_005(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_IV_006_007_008(client_consensus_obj, get_generate_account):
+def test_IV_006_007_008(client_consensus_obj):
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.withdrew_staking(StakingAddress)
     log.info(result)
@@ -61,7 +61,8 @@ def test_IV_006_007_008(client_consensus_obj, get_generate_account):
     assert msg["Code"] == 301204, "预期验证人已退出"
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
     assert_code(result, 0)
-    address, _ = get_generate_account
+    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
     assert_code(result, 0)
@@ -69,8 +70,9 @@ def test_IV_006_007_008(client_consensus_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_IV_009(client_consensus_obj, get_generate_account):
-    address1, _ = get_generate_account
+def test_IV_009(client_consensus_obj):
+    address1, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.edit_candidate(StakingAddress, address1)
     log.info(result)
@@ -83,7 +85,6 @@ def test_P_014_015_019_024(client_new_node_obj):
     """
     正常质押,重复质押
     :param client_noconsensus_obj:
-    :param get_generate_account:
     :return:
     """
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
@@ -98,7 +99,7 @@ def test_P_014_015_019_024(client_new_node_obj):
 
 
 @pytest.mark.P3
-def test_P_016(client_new_node_obj, get_generate_account):
+def test_P_016(client_new_node_obj):
     """
     未加入链的nodeID质押
     :param client_new_node_obj:
@@ -107,28 +108,29 @@ def test_P_016(client_new_node_obj, get_generate_account):
     """
     illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
                      "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address, node_id=illegal_nodeID)
     log.info(result)
     assert_code(result, 301003)
 
 
 @pytest.mark.P3
-def test_P_017(client_new_node_obj, get_generate_account):
+def test_P_017(client_new_node_obj):
     """
     收益地址为激励池地址
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     INCENTPEPOOL_ADDRESS = EconomicConfig.INCENTIVEPOOL_ADDRESS
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, INCENTPEPOOL_ADDRESS, address)
     assert_code(result, 0)
 
 
 @pytest.mark.P3
-def test_P_018(client_new_node_obj, get_generate_account):
+def test_P_018(client_new_node_obj):
     """
     收益地址为基金会地址
     :param client_new_node_obj:
@@ -136,20 +138,21 @@ def test_P_018(client_new_node_obj, get_generate_account):
     :return:
     """
     FOUNDATION_ADDRESS = client_new_node_obj.economic.cfg.FOUNDATION_ADDRESS
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, FOUNDATION_ADDRESS, address)
     assert_code(result, 0)
 
 
 @pytest.mark.P2
-def test_P_020_21(client_new_node_obj, get_generate_account):
+def test_P_020_21(client_new_node_obj):
     """
     自由账户质押金额小于质押门槛,gas不足
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     amount = client_new_node_obj.economic.create_staking_limit
     result = client_new_node_obj.staking.create_staking(0, address, address, amount=amount - 1)
     log.info(result)
@@ -165,15 +168,15 @@ def test_P_020_21(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_P_025(client_new_node_obj, get_generate_account, client_consensus_obj):
+def test_P_025(client_new_node_obj, client_consensus_obj):
     """
     使用错误的版本签名
     :param client_new_node_obj:
-    :param get_generate_account:
     :param client_consensus_obj:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     program_version_sign = client_consensus_obj.node.program_version_sign
     result = client_new_node_obj.staking.create_staking(0, address, address, program_version_sign=program_version_sign)
     log.info(result)
