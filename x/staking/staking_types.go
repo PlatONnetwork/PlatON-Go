@@ -803,8 +803,8 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 // NOTE: Sort when doing storage
 //
-// The priorities just like that: (No  shares)
-// ProgramVersion > validaotorTerm > BlockNumber > TxIndex
+// The priorities just like that:
+// ProgramVersion > validaotorTerm > Shares > BlockNumber > TxIndex
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -839,6 +839,18 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 		}
 	}
 
+	// 3. Shares
+	compareSharesFunc := func(l, r *Validator) int {
+		switch {
+		case l.Shares.Cmp(r.Shares) < 0:
+			return -1
+		case l.Shares.Cmp(r.Shares) > 0:
+			return 1
+		default:
+			return compareBlockNumberFunc(l, r)
+		}
+	}
+
 	// 2. Term
 	compareTermFunc := func(l, r *Validator) int {
 		switch {
@@ -847,8 +859,8 @@ func CompareForStore(_ NeedRemoveCans, left, right *Validator) int {
 		case l.ValidatorTerm > r.ValidatorTerm:
 			return 1
 		default:
-			//return compareSharesFunc(l, r)
-			return compareBlockNumberFunc(l, r)
+			return compareSharesFunc(l, r)
+
 		}
 	}
 
@@ -922,6 +934,45 @@ func (vex *ValidatorEx) String() string {
 }
 
 type ValidatorExQueue []*ValidatorEx
+
+func (arr ValidatorExQueue) Len() int {
+	return len(arr)
+}
+
+func (arr ValidatorExQueue) Less(i, j int) bool {
+
+	l, r := arr[i], arr[j]
+
+	lversion, rversion := xutil.CalcVersion(l.ProgramVersion), xutil.CalcVersion(r.ProgramVersion)
+
+	if lversion == rversion {
+
+		if l.Shares.ToInt().Cmp(r.Shares.ToInt()) == 0 {
+
+			if l.StakingBlockNum == r.StakingBlockNum {
+
+				if l.StakingTxIndex == r.StakingTxIndex {
+					return false
+				} else {
+					return l.StakingTxIndex < r.StakingTxIndex
+				}
+
+			} else {
+				return l.StakingBlockNum < r.StakingBlockNum
+			}
+
+		} else {
+			return l.Shares.ToInt().Cmp(r.Shares.ToInt()) > 0
+		}
+
+	} else {
+		return lversion > rversion
+	}
+}
+
+func (arr ValidatorExQueue) Swap(i, j int) {
+	arr[i], arr[j] = arr[j], arr[i]
+}
 
 func (queue ValidatorExQueue) IsNotEmpty() bool {
 	return !queue.IsEmpty()

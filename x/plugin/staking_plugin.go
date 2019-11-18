@@ -2197,7 +2197,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 	//version := xutil.CalcVersion(programVersion)
 
 	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "real version", programVersion /*, "calc version", version*/, "nodeId", nodeId.String())
+		"blockHash", blockHash.Hex(), "real version", programVersion, "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)

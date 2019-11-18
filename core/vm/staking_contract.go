@@ -3,6 +3,7 @@ package vm
 import (
 	"fmt"
 	"math/big"
+	st "sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -691,6 +692,8 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		return callResultHandler(stkc.Evm, "getVerifierList",
 			arr, staking.ErrGetVerifierList.Wrap("VerifierList info is not found")), nil
 	}
+	// resort for display
+	st.Sort(arr)
 
 	return callResultHandler(stkc.Evm, "getVerifierList",
 		arr, nil), nil
@@ -712,6 +715,9 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 		return callResultHandler(stkc.Evm, "getValidatorList",
 			arr, staking.ErrGetValidatorList.Wrap("ValidatorList info is not found")), nil
 	}
+
+	// resort for display
+	st.Sort(arr)
 
 	return callResultHandler(stkc.Evm, "getValidatorList",
 		arr, nil), nil
