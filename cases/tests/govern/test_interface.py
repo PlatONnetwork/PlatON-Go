@@ -182,7 +182,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
 
-    @pytest.markP0
+    @pytest.mark.P0
     def test_TR_IN_011_TR_IN_012(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0

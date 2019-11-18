@@ -718,7 +718,7 @@ class TestUpgradeVP():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
-    @pytest.markP1
+    @pytest.mark.P1
     def test_UV_UP_1(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.versionProposalSupportRate == 0.25
