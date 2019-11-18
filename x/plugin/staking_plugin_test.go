@@ -2821,19 +2821,15 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	/**
 	Start GetCandidateONEpoch
 	*/
-	canQueue, err := StakingInstance().GetCandidateONEpoch(header.Hash(), header.Number.Uint64(), QueryStartNotIrr)
-	if nil != err {
-		t.Errorf("Failed to GetCandidateONEpoch by QueryStartNotIrr, err: %v", err)
-		return
-	}
+	canNotIrrQueue, err := StakingInstance().GetCandidateONEpoch(header.Hash(), header.Number.Uint64(), QueryStartNotIrr)
 
-	canArr, _ := json.Marshal(canQueue)
-	t.Log("GetCandidateONEpoch by QueryStartNotIrr:", string(canArr))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateONEpoch by QueryStartNotIrr, err: %v", err))
+	assert.True(t, 0 != len(canNotIrrQueue))
+	t.Log("GetCandidateONEpoch by QueryStartNotIrr:", canNotIrrQueue)
 
-	canQueue, err = StakingInstance().GetCandidateONEpoch(header.Hash(), header.Number.Uint64(), QueryStartIrr)
+	canQueue, err := StakingInstance().GetCandidateONEpoch(header.Hash(), header.Number.Uint64(), QueryStartIrr)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateONEpoch by QueryStartIrr, err: %v", err))
-
 	assert.True(t, 0 != len(canQueue))
 	t.Log("GetCandidateONEpoch by QueryStartIrr:", canQueue)
 }
@@ -2862,16 +2858,13 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	/**
 	Start GetCandidateONRound
 	*/
-	canQueue, err := StakingInstance().GetCandidateONRound(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartNotIrr)
-	if nil != err {
-		t.Errorf("Failed to GetCandidateONRound by QueryStartNotIrr, err: %v", err)
-		return
-	}
+	canNotIrrQueue, err := StakingInstance().GetCandidateONRound(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartNotIrr)
 
-	canArr, _ := json.Marshal(canQueue)
-	t.Log("GetCandidateONRound by QueryStartNotIrr:", string(canArr))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateONRound by QueryStartNotIrr, err: %v", err))
+	assert.True(t, 0 != len(canNotIrrQueue))
+	t.Log("GetCandidateONRound by QueryStartNotIrr:", canNotIrrQueue)
 
-	canQueue, err = StakingInstance().GetCandidateONRound(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartIrr)
+	canQueue, err := StakingInstance().GetCandidateONRound(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartIrr)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to GetCandidateONRound by QueryStartIrr, err: %v", err))
 
@@ -2904,16 +2897,13 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	/**
 	Start  GetValidatorList
 	*/
-	validatorExQueue, err := StakingInstance().GetValidatorList(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartNotIrr)
-	if nil != err {
-		t.Errorf("Failed to GetValidatorList by QueryStartNotIrr, err: %v", err)
-		return
-	}
+	validatorNotIrrExQueue, err := StakingInstance().GetValidatorList(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartNotIrr)
 
-	validatorExArr, _ := json.Marshal(validatorExQueue)
-	t.Log("GetValidatorList by QueryStartNotIrr:", string(validatorExArr))
+	assert.Nil(t, err, fmt.Sprintf("Failed to GetValidatorList by QueryStartNotIrr, err: %v", err))
+	assert.True(t, 0 != len(validatorNotIrrExQueue))
+	t.Log("GetValidatorList by QueryStartNotIrr:", validatorNotIrrExQueue)
 
-	validatorExQueue, err = StakingInstance().GetValidatorList(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartIrr)
+	validatorExQueue, err := StakingInstance().GetValidatorList(header.Hash(), header.Number.Uint64(), CurrentRound, QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetValidatorList by QueryStartIrr, err: %v", err)
 		return
@@ -2949,13 +2939,13 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	/**
 	Start GetVerifierList
 	*/
-	validatorExQueue, err := StakingInstance().GetVerifierList(header.Hash(), header.Number.Uint64(), QueryStartNotIrr)
+	validatorNotIrrExQueue, err := StakingInstance().GetVerifierList(header.Hash(), header.Number.Uint64(), QueryStartNotIrr)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to GetVerifierList by QueryStartNotIrr, err: %v", err))
-	assert.True(t, 0 != len(validatorExQueue))
-	t.Log("GetVerifierList by QueryStartNotIrr:", validatorExQueue)
+	assert.True(t, 0 != len(validatorNotIrrExQueue))
+	t.Log("GetVerifierList by QueryStartNotIrr:", validatorNotIrrExQueue)
 
-	validatorExQueue, err = StakingInstance().GetVerifierList(header.Hash(), header.Number.Uint64(), QueryStartIrr)
+	validatorExQueue, err := StakingInstance().GetVerifierList(header.Hash(), header.Number.Uint64(), QueryStartIrr)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to GetVerifierList by QueryStartIrr, err: %v", err))
 	assert.True(t, 0 != len(validatorExQueue))

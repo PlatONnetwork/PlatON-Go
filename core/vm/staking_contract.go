@@ -241,6 +241,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		}
 	}
 
+	// Because we must need to staking before we declare the version information.
 	if isDeclareVersion {
 		// Declare new Version
 		err := gov.DeclareVersion(can.StakingAddress, can.NodeId,
