@@ -113,8 +113,6 @@ def test_ROE_005_018(client_new_node_obj):
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     # Return a pledge
     client_new_node_obj.staking.withdrew_staking(address)
-    # The next cycle
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
 
     # The next two cycle
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=2)

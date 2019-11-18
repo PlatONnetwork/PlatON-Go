@@ -266,7 +266,7 @@ def test_MPI_014(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_MPI_015_016(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
+def test_MPI_015_016(client_new_node_obj, client_consensus_obj):
     """
     Candidates whose commissions have been penalized are still frozen
     A candidate whose mandate has expired after a freeze period
@@ -275,7 +275,9 @@ def test_MPI_015_016(client_new_node_obj, client_consensus_obj, greater_than_sta
     """
     address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                              10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Close one node")
     client_new_node_obj.node.stop()
@@ -288,7 +290,7 @@ def test_MPI_015_016(client_new_node_obj, client_consensus_obj, greater_than_sta
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node.node_id)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
     assert_code(result, 301102)

@@ -365,6 +365,7 @@ def test_DI_022_023_024(client_new_node_obj, status):
         log.info(result)
         msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
         log.info(msg)
+        assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit * 2
 
     if status == 1:
         client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -372,6 +373,8 @@ def test_DI_022_023_024(client_new_node_obj, status):
         log.info(result)
         msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
         log.info(msg)
+        assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit
+        assert msg["Ret"]["Released"] == client_new_node_obj.economic.delegate_limit
 
     if status == 2:
         client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -381,6 +384,8 @@ def test_DI_022_023_024(client_new_node_obj, status):
         log.info(result)
         msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
         log.info(msg)
+        assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit * 2
+        assert msg["Ret"]["Released"] == client_new_node_obj.economic.delegate_limit
 
 
 @pytest.mark.P2
@@ -416,9 +421,9 @@ def test_DI_026(client_new_node_obj):
 
     result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
     log.info(result)
-    assert_code(result, 0)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert result["Code"] == 0
+    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
+    assert result["Ret"][0]["NodeId"] == client_new_node_obj.node.node_id
 
 
 @pytest.mark.P2
@@ -461,9 +466,9 @@ def test_DI_028(client_new_node_obj):
     result = client_new_node_obj.staking.withdrew_staking(address)
     assert_code(result, 0)
     result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
-    assert_code(result, 0)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert result["Code"] == 0
+    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
+    assert result["Ret"][0]["NodeId"] == client_new_node_obj.node.node_id
 
 
 @pytest.mark.P2
@@ -487,9 +492,9 @@ def test_DI_029_030(client_new_node_obj):
     log.info("The next cycle")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
-    assert_code(result, 0)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert result["Code"] == 0
+    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
+    assert result["Ret"][0]["NodeId"] == client_new_node_obj.node.node_id
 
 
 @pytest.mark.P2
@@ -604,16 +609,20 @@ def test_DI_035_036(client_new_node_obj, client_consensus_obj):
     client_new_node_obj.economic.wait_settlement_blocknum(node, number=2)
 
     result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+                                       client_new_node_obj.node.node_id)
     log.info(result)
+    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
     log.info("Restart the node")
     client_new_node_obj.node.start()
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
 
     result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+                                       client_new_node_obj.node.node_id)
     log.info(result)
+    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
 
 
 @pytest.mark.P2
