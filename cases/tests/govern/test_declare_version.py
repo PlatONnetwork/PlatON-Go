@@ -1,6 +1,6 @@
 from common.log import log
-from tests.lib.utils import upload_platon, assert_code, wait_block_number
-import pytest
+from tests.lib.utils import upload_platon, assert_code, wait_block_number, get_pledge_list
+import pytest, time
 from tests.govern.test_voting_statistics import submitvpandvote
 
 def replace_version_declare(pip_obj, platon_bin, versiontag):
@@ -644,7 +644,7 @@ class TestPreactiveProposalVE():
         result = wrong_verisonsign_declare(pip_obj, preactive_proposal_pipobj_list[1])
         assert_code(result, 302024)
 
-        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version0)
         assert_code(result, 302024)
 
     def test_DE_VE_066(self, preactive_proposal_pipobj_list):
@@ -753,7 +753,7 @@ class TestPreactiveProposalVE():
         result = wrong_verisonsign_declare(pip_obj, preactive_bv_proposal_pipobj_list[1])
         assert_code(result, 302024)
 
-        result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
+        result = wrong_verison_declare(pip_obj, pip_obj.cfg.version0)
         assert_code(result, 302024)
 
 class TestNoProposalCA:
@@ -1085,3 +1085,49 @@ class TestNewDeclareVersion():
         result = pip_obj.declareVersion(pip_obj.node.node_id, address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('New node declare version result : {}'.format(result))
         assert_code(result, 302023)
+
+class TestDV():
+    # def upgrade_chain(self, ):
+
+    def test_DE_VE_003_DE_VE_009_DE_VE_012_DE_CA_003_DE_CA_009_DE_CA_012(self, new_genesis_env, client_con_list_obj):
+        new_genesis_env.deploy_all()
+        pip_obj = client_con_list_obj[-1].pip
+        submitvpandvote(client_con_list_obj[0:3], votingrounds=3, version=pip_obj.cfg.version9)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info("Get version proposal information : {}".format(proposalinfo))
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+        assert pip_obj.cfg.version9 == pip_obj.chain_version
+        result = pip_obj.declareVersion(pip_obj.node.node_id, pip_obj.node.staking_address,
+                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Node {} declare version result {}'.format(pip_obj.node.node_id, result))
+        assert_code(result, 302028)
+        result = client_con_list_obj[0].pip.submitVersion(client_con_list_obj[0].node.node_id, str(time.time()),
+                                                          pip_obj.cfg.version8, 1,
+                                                          client_con_list_obj[0].node.staking_address,
+                                                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Node {} submit version proposal result : {}'.format(client_con_list_obj[0].node.node_id, result))
+        assert_code(result, 0)
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, versiontag=pip_obj.cfg.version4)
+        assert_code(result, 302028)
+        verifier_list = get_pledge_list(client_con_list_obj[-1].ppos.getVerifierList)
+        log.info('verifier list : {}'.format(verifier_list))
+        assert pip_obj.node.node_id not in verifier_list
+        client_con_list_obj[-1].economic.wait_settlement_blocknum(client_con_list_obj[-1].node)
+        assert pip_obj.node.node_id not in verifier_list
+
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, versiontag=pip_obj.cfg.version0)
+        assert_code(result, 302028)
+        result = client_con_list_obj[0].pip.submitVersion(client_con_list_obj[0].node.node_id, str(time.time()),
+                                                          pip_obj.cfg.version8, 1,
+                                                          client_con_list_obj[0].node.staking_address,
+                                                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Node {} submit version proposal result : {}'.format(client_con_list_obj[0].node.node_id, result))
+        assert_code(result, 0)
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, versiontag=pip_obj.cfg.version0)
+        assert_code(result, 302028)
+        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, versiontag=pip_obj.cfg.version4)
+        assert_code(result, 302028)
+

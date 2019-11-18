@@ -182,7 +182,7 @@ class TestgetTallyResult():
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
-        submitcppandvote(client_con_list_obj, 1, 1, 1, 3)
+        submitcppandvote(client_con_list_obj, [1, 1, 1, 3])
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Param proposal information {}'.format(proposalinfo_param))
         proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)

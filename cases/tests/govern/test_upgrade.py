@@ -150,7 +150,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.751
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -169,7 +169,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.749
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -188,7 +188,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.751
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -207,7 +207,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.75
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -227,7 +227,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.749
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -246,7 +246,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.749
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -265,7 +265,7 @@ class TestSupportRateVoteRateCPP():
         genesis.economicModel.gov.cancelProposalVoteRate = 0.75
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 2, 3)
+        submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Get cancel proposal information {}'.format(proposalinfo))
@@ -572,7 +572,7 @@ class TestUpgradedST():
         assert pip_obj.chain_version == pip_obj.cfg.version5
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
         submittpandvote(client_con_list_obj[:2], 1, 2)
-        submitcppandvote(client_con_list_obj[:2], 1, 2)
+        submitcppandvote(client_con_list_obj[:2], [1, 2])
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Get param proposal information {}'.format(proposalinfo_param))
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_param.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
@@ -632,7 +632,7 @@ class TestUpgradedST():
 
 class TestUpgradeVP():
     @pytest.mark.compatibility
-    def test_UV_UPG_2(self, new_genesis_env, client_con_list_obj, client_noconsensus_obj):
+    def test_UV_UPG_1_UV_UPG_2(self, new_genesis_env, client_con_list_obj, client_noconsensus_obj):
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_noconsensus_obj.pip
@@ -668,4 +668,40 @@ class TestUpgradeVP():
         _, staking_reward = pip_obj_test.economic.get_current_year_reward(pip_obj_test.node, verifier_num=5)
         assert balance_after - balance_before == staking_reward
 
+    def test_UV_NO_1(self, new_genesis_env, client_con_list_obj):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.versionProposalSupportRate == 0.249
+        genesis.economicModel.slashing.slashBlocksReward = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        pip_obj = client_con_list_obj[0].pip
+        submitvpandvote([client_con_list_obj[0]])
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('Get version proposal infomation  {}'.format(proposalinfo))
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
+        assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
+        assert pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
+        assert pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
+    def test_UV_UP_1(self, new_genesis_env, client_con_list_obj):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.versionProposalSupportRate == 0.25
+        genesis.economicModel.slashing.slashBlocksReward = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        pip_obj = client_con_list_obj[0].pip
+        submitvpandvote([client_con_list_obj[0]])
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        log.info('Get version proposal infomation  {}'.format(proposalinfo))
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
+        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
+        assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
+        assert pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
+        assert pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
