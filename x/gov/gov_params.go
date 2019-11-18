@@ -219,7 +219,7 @@ func initParam() []*GovernParam {
 		About Block module
 		*/
 		{
-			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：(%d, %s)", int(params.TxGas*200), xcom.PositiveInfinity)},
+			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：(%d, %d)", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DefaultMinerGasCeil)), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
