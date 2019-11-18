@@ -59,8 +59,8 @@ def test_LS_UPV_002(client_new_node_obj):
         v = [dict_[k] for k in dict_]
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
-    log.info("rlp_list: {}".format(rlp_list))
     data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    log.info("data: {}".format(data))
     zero_number = 0
     byte_group_length = len(data)
     for i in data:

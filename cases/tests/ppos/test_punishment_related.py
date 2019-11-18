@@ -1,6 +1,8 @@
 import time
 import pytest
 import allure
+import rlp
+
 from common.key import mock_duplicate_sign, generate_key
 from common.log import log
 from tests.lib import EconomicConfig, StakingConfig, check_node_in_list, assert_code, von_amount, \
@@ -781,6 +783,34 @@ def test_VP_PV_028(client_consensus_obj):
     assert_code(result, 303002)
 
 
+@pytest.mark.P2
+def test_VP_PV_030(client_consensus_obj):
+    """
+    举报签名Gas费
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    data = rlp.encode([rlp.encode(int(3000)), rlp.encode(1), rlp.encode(report_information)])
+    log.info("data: {}".format(data))
+    zero_number = 0
+    byte_group_length = len(data)
+    for i in data:
+        if i == 0:
+            zero_number = zero_number + 1
+    non_zero_number = byte_group_length - zero_number
+    gas_total = 21000 + 21000 + 21000 + 21000 + non_zero_number * 68 + zero_number * 4
+    log.info("Call contract to create a lockout plan consumption contract：{}".format(gas_total))
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address, {"gas": gas_total})
+    assert_code(result, 0)
+
+
 @pytest.mark.P1
 def test_VP_PV_031(client_consensus_obj):
     """
@@ -793,7 +823,7 @@ def test_VP_PV_031(client_consensus_obj):
     node = client.node
     status = True
     # create report address
-    report_address, _ = economic.account.generate_account(node.web3, 0)
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     try:
