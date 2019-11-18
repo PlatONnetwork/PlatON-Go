@@ -37,6 +37,7 @@ def test_LS_FV_001(client_consensus_obj):
             'blockNumber'], release_plans_list[i]['amount'])
 
 
+@pytest.mark.P2
 def test_LS_UPV_002(client_new_node_obj):
     """
     创建锁仓计划Gas费
@@ -48,11 +49,10 @@ def test_LS_UPV_002(client_new_node_obj):
     node = client.node
     # create restricting plan
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address1 = None
     plan = [{'Epoch': 1, 'Amount': node.web3.toWei(1000, 'ether')}]
-    # result = client.restricting.createRestrictingPlan(address, plan, address)
-    pri_key = economic.account.find_pri_key(address)
     if address[:2] == '0x':
-        address = address[2:]
+        address1 = address[2:]
     log.info("address: {}".format(address))
     plan_list = []
     for dict_ in plan:
@@ -60,10 +60,17 @@ def test_LS_UPV_002(client_new_node_obj):
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
     log.info("rlp_list: {}".format(rlp_list))
-    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address)), rlp_list])
-    log.info("data info: {}".format(data))
-    gas_data = {"to": node.web3.restrictingAddress, "data": data}
-    log.info("gas_data: {}".format(gas_data))
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    zero_number = 0
+    byte_group_length = len(data)
+    for i in data:
+        if i == 0:
+            zero_number = zero_number + 1
+    non_zero_number = byte_group_length - zero_number
+    gas_total = 21000 + 18000 + 21000 + 8000 + non_zero_number * 68 + zero_number * 4
+    log.info("调用合约创建锁仓计划消耗合约：{}".format(gas_total))
+    result = client.restricting.createRestrictingPlan(address, plan, address, {"gas": gas_total})
+    assert_code(result, 0)
 
 
 def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
