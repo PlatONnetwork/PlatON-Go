@@ -2,9 +2,6 @@
 import pytest
 
 
-
-
-
 @pytest.fixture()
 def get_generate_account(client_consensus_obj):
     """
@@ -29,4 +26,5 @@ def greater_than_staking_amount(global_test_env):
     msg = node.ppos.getVerifierList()
     info_dict = msg["Ret"]
     amount_list = [info["Shares"] for info in info_dict]
+    print(amount_list)
     return max(amount_list) + 10 ** 18 * 100000

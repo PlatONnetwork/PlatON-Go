@@ -42,7 +42,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/dashboard"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
@@ -175,26 +174,6 @@ var (
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
-	}
-	// Dashboard settings
-	DashboardEnabledFlag = cli.BoolFlag{
-		Name:  metrics.DashboardEnabledFlag,
-		Usage: "Enable the dashboard",
-	}
-	DashboardAddrFlag = cli.StringFlag{
-		Name:  "dashboard.addr",
-		Usage: "Dashboard listening interface",
-		Value: dashboard.DefaultConfig.Host,
-	}
-	DashboardPortFlag = cli.IntFlag{
-		Name:  "dashboard.host",
-		Usage: "Dashboard listening port",
-		Value: dashboard.DefaultConfig.Port,
-	}
-	DashboardRefreshFlag = cli.DurationFlag{
-		Name:  "dashboard.refresh",
-		Usage: "Dashboard metrics collection refresh rate",
-		Value: dashboard.DefaultConfig.Refresh,
 	}
 	// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
@@ -594,6 +573,30 @@ var (
 		Name:  "cbft.blacklist_deadline",
 		Usage: "Blacklist effective time. uint:minute",
 		Value: "60",
+	}
+
+	DBNoGCFlag = cli.BoolFlag{
+		Name:  "db.nogc",
+		Usage: "Disables database garbage collection",
+	}
+	DBGCIntervalFlag = cli.Uint64Flag{
+		Name:  "db.gc_interval",
+		Usage: "Block interval for garbage collection",
+		Value: eth.DefaultConfig.DBGCInterval,
+	}
+	DBGCTimeoutFlag = cli.DurationFlag{
+		Name:  "db.gc_timeout",
+		Usage: "Maximum time for database garbage collection",
+		Value: eth.DefaultConfig.DBGCTimeout,
+	}
+	DBGCMptFlag = cli.BoolFlag{
+		Name:  "db.gc_mpt",
+		Usage: "Enables database garbage collection MPT",
+	}
+	DBGCBlockFlag = cli.Uint64Flag{
+		Name:  "db.gc_block",
+		Usage: "Number of cache block states, default 10",
+		Value: eth.DefaultConfig.DBGCBlock,
 	}
 )
 
@@ -1166,6 +1169,25 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
 	}
+
+	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
+		cfg.DBDisabledGC = ctx.GlobalBool(DBNoGCFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCIntervalFlag.Name) {
+		cfg.DBGCInterval = ctx.GlobalUint64(DBGCIntervalFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCTimeoutFlag.Name) {
+		cfg.DBGCTimeout = ctx.GlobalDuration(DBGCTimeoutFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCMptFlag.Name) {
+		cfg.DBGCMpt = ctx.GlobalBool(DBGCMptFlag.Name)
+	}
+	if ctx.GlobalIsSet(DBGCBlockFlag.Name) {
+		b := ctx.GlobalUint64(DBGCBlockFlag.Name)
+		if b > 0 {
+			cfg.DBGCBlock = b
+		}
+	}
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
@@ -1201,13 +1223,6 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 
 }
 
-// SetDashboardConfig applies dashboard related command line flags to the config.
-func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
-	cfg.Host = ctx.GlobalString(DashboardAddrFlag.Name)
-	cfg.Port = ctx.GlobalInt(DashboardPortFlag.Name)
-	cfg.Refresh = ctx.GlobalDuration(DashboardRefreshFlag.Name)
-}
-
 // RegisterEthService adds an Ethereum client to the stack.
 func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
@@ -1236,13 +1251,6 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	if err != nil {
 		Fatalf("Failed to register the PlatON-Go service: %v", err)
 	}
-}
-
-// RegisterDashboardService adds a dashboard to the stack.
-func RegisterDashboardService(stack *node.Node, cfg *dashboard.Config, commit string) {
-	stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return dashboard.New(cfg, commit, ctx.ResolvePath("logs")), nil
-	})
 }
 
 // RegisterShhService configures Whisper and adds it to the given node.

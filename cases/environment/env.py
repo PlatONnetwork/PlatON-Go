@@ -16,7 +16,7 @@ from common.load_file import LoadFile, calc_hash
 from common.log import log
 from environment.account import Account
 from environment.config import TestConfig
-from conf.settings import DEFAULT_CONF_TMP_DIR
+from conf.settings import DEFAULT_CONF_TMP_DIR, ConfTmpDir
 from typing import List
 
 
@@ -79,6 +79,18 @@ class TestEnvironment:
     @property
     def chain_id(self):
         return self.genesis_config["config"]["chainId"]
+
+    @property
+    def amount(self):
+        return self.genesis_config["config"]["cbft"]["amount"]
+
+    @property
+    def period(self):
+        return self.genesis_config["config"]["cbft"]["period"]
+
+    @property
+    def validatorMode(self):
+        return self.genesis_config["config"]["cbft"]["validatorMode"]
 
     @property
     def version(self):
@@ -639,6 +651,8 @@ def create_env(conf_tmp=None, node_file=None, account_file=None, init_chain=True
                install_dependency=False, install_supervisor=False) -> TestEnvironment:
     if not conf_tmp:
         conf_tmp = DEFAULT_CONF_TMP_DIR
+    else:
+        conf_tmp = ConfTmpDir(conf_tmp)
     cfg = TestConfig(conf_tmp=conf_tmp, install_supervisor=install_supervisor, install_dependency=install_dependency, init_chain=init_chain)
     if node_file:
         cfg.node_file = node_file
@@ -657,7 +671,9 @@ if __name__ == "__main__":
     # print(env.cfg.syncmode)
     log.info("测试部署")
     env.deploy_all()
-    # node = env.get_consensus_node_by_index(0)
+    node = env.get_consensus_node_by_index(0)
+    print(node.debug.economicConfig())
+    print(type(node.debug.economicConfig()))
     # print(node.node_mark)
     # address, prikey = env.account.generate_account(node.web3, 10**18*100000000000)
     # transaction_cfg = {"gasPrice": 3000000000000000, "gas": 1000000}
@@ -725,4 +741,4 @@ if __name__ == "__main__":
     # time.sleep(60)
     # d = env.block_numbers()
     # print(d)
-    # env.shutdown()
+    env.shutdown()

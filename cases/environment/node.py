@@ -233,6 +233,7 @@ class Node:
         :return:
         """
         def __update():
+            # todo fix me
             self.stop()
             self.put_bin()
             self.start()
@@ -408,16 +409,15 @@ class Node:
         :param genesis_file:
         :return:
         """
-        def __deploy():
-            self.stop()
-            log.debug("{}-clean node path...".format(self.node_mark))
-            is_success, msg = self.clean()
-            if not is_success:
-                return is_success, msg
-            self.clean_log()
-            self.put_all_file(genesis_file)
-            return self.start(self.cfg.init_chain)
-        return self.try_do_resturn(__deploy)
+        log.debug("{}-clean node path...".format(self.node_mark))
+        is_success, msg = self.clean()
+        if not is_success:
+            return is_success, msg
+        self.clean_log()
+        is_success, msg = self.put_all_file(genesis_file)
+        if not is_success:
+            return is_success, msg
+        return self.start(self.cfg.init_chain)
 
     def put_all_file(self, genesis_file):
         """
@@ -482,7 +482,7 @@ class Node:
         if not self.__is_ws_connected:
             self.__ws_rpc = wait_connect_web3(self.wsurl, self.chain_id)
             self.__is_ws_connected = True
-        return self.__rpc
+        return self.__ws_rpc
 
     @property
     def eth(self) -> Eth:

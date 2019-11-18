@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from tests.lib.utils import *
 import pytest
+from tests.lib.config import EconomicConfig
 
 
+@pytest.mark.P1
 def test_IV_001_002_010(global_test_env, client_consensus_obj):
+    global_test_env.deploy_all()
     node_info = client_consensus_obj.ppos.getValidatorList()
     log.info(node_info)
     nodeid_list = []
@@ -21,26 +24,30 @@ def test_IV_001_002_010(global_test_env, client_consensus_obj):
         assert nodeid in nodeid_list
 
 
-def test_IV_003(global_test_env, client_consensus_obj):
-    StakingAddress = global_test_env.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+@pytest.mark.P1
+def test_IV_003(client_consensus_obj):
+    StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
     log.info("Staking result:{}".format(result))
-    assert_code(result,301101)
+    assert_code(result, 301101)
 
 
+@pytest.mark.P1
 def test_IV_004(get_generate_account, client_consensus_obj):
     address, _ = get_generate_account
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
-    assert_code(result,301107)
+    assert_code(result, 301107)
 
 
-def test_IV_005(global_test_env,client_consensus_obj):
-    StakingAddress = global_test_env.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+@pytest.mark.P1
+def test_IV_005(client_consensus_obj):
+    StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.increase_staking(0, StakingAddress)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
+@pytest.mark.P1
 def test_IV_006_007_008(client_consensus_obj, get_generate_account):
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.withdrew_staking(StakingAddress)
@@ -53,39 +60,44 @@ def test_IV_006_007_008(client_consensus_obj, get_generate_account):
     log.info(msg)
     assert msg["Code"] == 301204, "预期验证人已退出"
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
-    assert_code(result,0)
+    assert_code(result, 0)
     address, _ = get_generate_account
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
-    assert_code(result,0)
+    assert_code(result, 0)
     client_consensus_obj.economic.env.deploy_all()
 
 
+@pytest.mark.P3
 def test_IV_009(client_consensus_obj, get_generate_account):
     address1, _ = get_generate_account
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.edit_candidate(StakingAddress, address1)
     log.info(result)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
-def test_P_014_015_019_024(client_noc_list_obj, get_generate_account):
+@pytest.mark.P1
+@pytest.mark.compatibility
+def test_P_014_015_019_024(client_new_node_obj):
     """
     正常质押,重复质押
     :param client_noconsensus_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     log.info("Generate address:{}".format(address))
-    result = client_noc_list_obj[0].staking.create_staking(0, address, address)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert_code(result,0)
-    result = client_noc_list_obj[0].staking.create_staking(0, address, address)
+    assert_code(result, 0)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert_code(result,301101)
+    assert_code(result, 301101)
 
 
+@pytest.mark.P3
 def test_P_016(client_new_node_obj, get_generate_account):
     """
     未加入链的nodeID质押
@@ -98,9 +110,10 @@ def test_P_016(client_new_node_obj, get_generate_account):
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, address, address, node_id=illegal_nodeID)
     log.info(result)
-    assert_code(result,301003)
+    assert_code(result, 301003)
 
 
+@pytest.mark.P3
 def test_P_017(client_new_node_obj, get_generate_account):
     """
     收益地址为激励池地址
@@ -108,12 +121,13 @@ def test_P_017(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    INCENTPEPOOL_ADDRESS = client_new_node_obj.economic.cfg.INCENTPEPOOL_ADDRESS
+    INCENTPEPOOL_ADDRESS = EconomicConfig.INCENTIVEPOOL_ADDRESS
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, INCENTPEPOOL_ADDRESS, address)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
+@pytest.mark.P3
 def test_P_018(client_new_node_obj, get_generate_account):
     """
     收益地址为基金会地址
@@ -124,7 +138,7 @@ def test_P_018(client_new_node_obj, get_generate_account):
     FOUNDATION_ADDRESS = client_new_node_obj.economic.cfg.FOUNDATION_ADDRESS
     address, _ = get_generate_account
     result = client_new_node_obj.staking.create_staking(0, FOUNDATION_ADDRESS, address)
-    assert_code(result,0)
+    assert_code(result, 0)
 
 
 @pytest.mark.P2
@@ -139,7 +153,7 @@ def test_P_020_21(client_new_node_obj, get_generate_account):
     amount = client_new_node_obj.economic.create_staking_limit
     result = client_new_node_obj.staking.create_staking(0, address, address, amount=amount - 1)
     log.info(result)
-    assert_code(result,301100)
+    assert_code(result, 301100)
     cfg = {"gas": 1}
     status = 0
     try:
@@ -150,6 +164,7 @@ def test_P_020_21(client_new_node_obj, get_generate_account):
     assert status == 1
 
 
+@pytest.mark.P3
 def test_P_025(client_new_node_obj, get_generate_account, client_consensus_obj):
     """
     使用错误的版本签名
@@ -162,10 +177,72 @@ def test_P_025(client_new_node_obj, get_generate_account, client_consensus_obj):
     program_version_sign = client_consensus_obj.node.program_version_sign
     result = client_new_node_obj.staking.create_staking(0, address, address, program_version_sign=program_version_sign)
     log.info(result)
-    assert_code(result,301003)
+    assert_code(result, 301003)
 
 
-def test_P_029(client_new_node_obj, get_generate_account):
+@pytest.mark.P2
+def test_P_026_01(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    blspubkey = client_new_node_obj.node.blspubkey + "00000000"
+    log.info(blspubkey)
+    status = 0
+    try:
+        result = client_new_node_obj.staking.create_staking(0, address, address, bls_pubkey=blspubkey)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+@pytest.mark.P2
+def test_P_026_02(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    blspubkey = client_new_node_obj.node.blspubkey[0:10]
+    log.info(blspubkey)
+    status = 0
+    try:
+        result = client_new_node_obj.staking.create_staking(0, address, address, bls_pubkey=blspubkey)
+        log.info(result)
+    except:
+        status = 1
+    assert status == 1
+
+
+@pytest.mark.P2
+def test_P_026_03(client_new_node_obj):
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    program_version = 0000
+    log.info(type(program_version))
+    result = client_new_node_obj.staking.create_staking(0, address, address, program_version=program_version)
+    assert_code(result, 301003)
+
+
+@pytest.mark.P2
+def test_P_027(client_new_node_obj):
+    external_id = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    node_name = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    website = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+    details = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+    program_version = client_new_node_obj.node.program_version
+    program_version_sign = client_new_node_obj.node.program_version_sign
+    bls_pubkey = client_new_node_obj.node.blspubkey
+    bls_proof = client_new_node_obj.node.schnorr_NIZK_prove
+    amount = client_new_node_obj.economic.create_staking_limit
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
+
+    result = client_new_node_obj.ppos.createStaking(0, address, client_new_node_obj.node.node_id,
+                                                    external_id, node_name, website, details, amount,
+                                                    program_version, program_version_sign, bls_pubkey, bls_proof,
+                                                    pri_key)
+    assert_code(result, 301002)
+
+
+@pytest.mark.P1
+def test_P_029(client_new_node_obj):
     """
     之前质押过，且候选人已经失效(主动退出)
     锁定期质押
@@ -173,44 +250,53 @@ def test_P_029(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert_code(result,0)
+    assert_code(result, 0)
     result = client_new_node_obj.staking.withdrew_staking(address)
     log.info(result)
-    assert_code(result,0)
+    assert_code(result, 0)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
 
 
-def test_P_030(client_new_node_obj, get_generate_account):
+@pytest.mark.P1
+def test_P_030(client_new_node_obj):
     """
     锁定期质押
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
-    assert_code(result,0)
+    assert_code(result, 0)
     log.info("进入下个周期")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.withdrew_staking(address)
-    assert_code(result,0)
+    assert_code(result, 0)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
-    assert_code(result,301101)
+    assert_code(result, 301101)
 
 
+@pytest.mark.P2
+def test_P_031(client_new_node_obj):
+    """
+    使用新钱包质押
+    :param client_new_node_obj:
+    :param get_generate_account:
+    :return:
+    """
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address, address)
+    assert_code(result, 0)
 
-
-
-
-
-
-
-
-
-
-
-
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        10 ** 18 * 10000000)
+    result = client_new_node_obj.staking.create_staking(0, address1, address1)
+    log.info(result)
+    assert_code(result, 301101)

@@ -15,7 +15,7 @@ def restart_env(global_test_env):
 
 
 @allure.title("Whether the block information is consistent")
-def test_block_info_synchronize(global_test_env):
+def test_CH_IN_021(global_test_env):
     """
     Test whether all node block information is consistent
     """
@@ -29,7 +29,7 @@ def test_block_info_synchronize(global_test_env):
 
 
 @allure.title("Block continuity, verify hash")
-def test_hash_continuous(global_test_env):
+def test_CH_IN_020(global_test_env):
     """
     Test block continuity, verify a certain number of blocks, block hash must be continuous
     """
@@ -53,7 +53,7 @@ def test_platon_versions(global_test_env):
 
 @allure.title("Test restart all consensus nodes")
 @pytest.mark.P0
-def test_restart_all(global_test_env):
+def test_CH_IN_019_SC_RC_003(global_test_env):
     current_block = max(global_test_env.block_numbers().values())
     log.info("Block height before restart:{}".format(current_block))
     global_test_env.reset_all()
@@ -66,7 +66,7 @@ def test_restart_all(global_test_env):
 
 @allure.title("Test fast mode synchronization")
 @pytest.mark.P2
-def test_syncmode(global_test_env):
+def test_CH_IN_017(global_test_env):
     test_node = copy(global_test_env.get_a_normal_node())
     test_node.clean()
     new_cfg = copy(global_test_env.cfg)
@@ -85,7 +85,7 @@ def test_syncmode(global_test_env):
 
 @allure.title("Test block synchronization")
 @pytest.mark.P0
-def test_deconsensus_block_synchronize(global_test_env):
+def test_CH_IN_018_CH_IN_007(global_test_env):
     """
     Non-consensus node block high synchronization
     """
@@ -104,6 +104,6 @@ def test_deconsensus_block_synchronize(global_test_env):
 
 @allure.title("Test node interconnection between identical founding files")
 @pytest.mark.P0
-def test_init_same_genesis_join_chain(global_test_env):
+def test_CH_IN_008_CH_IN_011(global_test_env):
     test_node = global_test_env.normal_node_list[0]
     assert test_node.web3.net.peerCount > 0, "Joining the chain failed"

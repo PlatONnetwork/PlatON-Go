@@ -1,4 +1,6 @@
+import allure
 import pytest
+
 from common.log import log
 
 
@@ -14,8 +16,10 @@ def transaction(w3, from_address, to_address=None, value=1000000000000000000000,
     return tx_hash
 
 
+@allure.title("signed transaction")
 @pytest.mark.P0
-def test_singed_transaction(global_running_env):
+@pytest.mark.compatibility
+def test_TR_TX_001(global_running_env):
     """
     Test signature transfer transaction
     """
@@ -25,13 +29,14 @@ def test_singed_transaction(global_running_env):
     assert value == node.eth.getBalance(address)
 
 
+@allure.title("new account singed transaction")
 @pytest.mark.P0
-def test_new_account_singed_transaction(global_running_env):
+def test_TR_TX_006(global_running_env):
     """
     After the new account has a balance, transfer it to another account.
     """
     node = global_running_env.get_rand_node()
-    value = 10**18
+    value = 10 ** 18
     address, _ = global_running_env.account.generate_account(node.web3, value)
     assert value == node.eth.getBalance(address)
     to_address, _ = global_running_env.account.generate_account(node.web3)
@@ -40,9 +45,10 @@ def test_new_account_singed_transaction(global_running_env):
     assert new_value == node.eth.getBalance(to_address)
 
 
+@allure.title("unlock sendtransaction")
 @pytest.mark.P1
 @pytest.mark.parametrize("node_type", ["consensus", "normal"])
-def test_unlock_sendtransaction(global_running_env, node_type):
+def test_TR_TX_004_to_005(global_running_env, node_type):
     """
     Node unlock transfer
     """
@@ -51,7 +57,7 @@ def test_unlock_sendtransaction(global_running_env, node_type):
     else:
         node = global_running_env.get_a_normal_node()
     account = global_running_env.account
-    address = account.generate_account_in_node(node, "88888888", 10**18)
+    address = account.generate_account_in_node(node, "88888888", 10 ** 18)
     account.unlock_account(node, address)
     to_address, _ = account.generate_account(node.web3)
     value = 1000
@@ -60,23 +66,27 @@ def test_unlock_sendtransaction(global_running_env, node_type):
     assert value == node.eth.getBalance(to_address)
 
 
+@allure.title("money negative transaction")
 @pytest.mark.P1
-def test_money_negative_transaction(global_running_env):
+def test_TR_TX_008(global_running_env):
     """
     The transfer amount is negative
     """
     node = global_running_env.get_rand_node()
     account = global_running_env.account
+    status = 0
     try:
         account.generate_account(node.web3, -1000)
-        assert False
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
 
 
+@allure.title("balance insufficient transaction")
 @pytest.mark.P2
-@pytest.mark.parametrize("balance", [0, 100])
-def test_balance_insufficient_transaction(global_running_env, balance):
+@pytest.mark.parametrize("balance", [0, 100, 1000])
+def test_TR_TX_002_to_003_and_007(global_running_env, balance):
     """
     Balance is 0 transfer
     Insufficient balance transfer
@@ -86,15 +96,18 @@ def test_balance_insufficient_transaction(global_running_env, balance):
     address, _ = account.generate_account(node.web3, balance)
     to_address, _ = account.generate_account(node.web3)
     value = 1000
+    status = 0
     try:
         tx_res = account.sendTransaction(node.web3, "", address, to_address, node.eth.gasPrice, 21000, value)
-        assert False, "{}".format(tx_res)
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
 
 
+@allure.title("gas too low")
 @pytest.mark.P2
-def test_gas_to_low(global_running_env):
+def test_TR_TX_010(global_running_env):
     """
     Gas is too low
     """
@@ -103,15 +116,18 @@ def test_gas_to_low(global_running_env):
     address = account.account_with_money["address"]
     to_address, _ = account.generate_account(node.web3)
     value = 1000
+    status = 0
     try:
         tx_res = account.sendTransaction(node.web3, "", address, to_address, node.eth.gasPrice, 210, value)
-        assert False, "{}".format(tx_res)
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
 
 
+@allure.title("wallet non local")
 @pytest.mark.P3
-def test_wallet_non_local(global_running_env):
+def test_TR_TX_011(global_running_env):
     """
     Transfer to a non-local wallet
     """
@@ -121,17 +137,20 @@ def test_wallet_non_local(global_running_env):
     assert value == node.eth.getBalance(address)
 
 
+@allure.title("to account abnormal")
 @pytest.mark.P3
 @pytest.mark.parametrize("to_address", ["", "abcdefghigk"])
-def test_to_account_abnormal(global_running_env, to_address):
+def test_TR_TX_012_to_013(global_running_env, to_address):
     """
     To address abnormal
     """
     node = global_running_env.get_rand_node()
     account = global_running_env.account
     from_address = account.account_with_money["address"]
+    status = 0
     try:
         tx_res = account.sendTransaction(node.web3, "", from_address, to_address, node.eth.gasPrice, 21000, 100, False)
-        assert False, "{}".format(tx_res)
+        status = 1
     except Exception as e:
         log.info("transaction error:{}".format(e))
+    assert status == 0
