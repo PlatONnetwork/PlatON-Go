@@ -58,14 +58,14 @@ def account_env(global_test_env) -> (Node, AccountEnv):
 @pytest.mark.SYNC
 def test_CMD_002(account_env):
     node, env = account_env
-    returnList = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    old_counts = len(return_list) - 1
 
     run_ssh_cmd(node.ssh, "{} account new --datadir {}  --keystore {}".format(node.remote_bin_file, node.remote_data_dir, node.remote_keystore_dir), "88888888", "88888888")
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    newCounts = len(returnList2) - 1
-    assert oldCounts + 1 == newCounts
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    new_counts = len(return_list2) - 1
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Specify datadir. In the default datadir/keystore, create a new account by entering a password.")
@@ -73,14 +73,14 @@ def test_CMD_002(account_env):
 @pytest.mark.SYNC
 def test_CMD_003(account_env):
     node, env = account_env
-    returnList = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    old_counts = len(return_list) - 1
 
     run_ssh_cmd(node.ssh, "{} account new --datadir {}".format(node.remote_bin_file, node.remote_data_dir), "88888888", "88888888")
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    newCounts = len(returnList2) - 1
-    assert oldCounts + 1 == newCounts
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    new_counts = len(return_list2) - 1
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Specify a keystore and create a new account by entering a password.")
@@ -88,14 +88,14 @@ def test_CMD_003(account_env):
 @pytest.mark.SYNC
 def test_CMD_004(account_env):
     node, env = account_env
-    returnList = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    old_counts = len(return_list) - 1
 
     run_ssh_cmd(node.ssh, "{} account new --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir), "88888888", "88888888")
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    newCounts = len(returnList2) - 1
-    assert oldCounts + 1 == newCounts
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    new_counts = len(return_list2) - 1
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Specify the datadir and keystore paths to create a new account with a password file.")
@@ -103,17 +103,17 @@ def test_CMD_004(account_env):
 @pytest.mark.SYNC
 def test_CMD_001(account_env):
     node, env = account_env
-    returnList = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    old_counts = len(return_list) - 1
 
     run_ssh_cmd(node.ssh, "{} account new --datadir {} --keystore {} --password {}".format(node.remote_bin_file,
                                                                                            node.remote_data_dir,
                                                                                            node.remote_keystore_dir,
                                                                                            env.remote_pwd_file))
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    newCounts = len(returnList2) - 1
-    assert oldCounts + 1 == newCounts
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    new_counts = len(return_list2) - 1
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Specify datadir, create a new account with the password file in the default datadir/keystore")
@@ -121,16 +121,16 @@ def test_CMD_001(account_env):
 @pytest.mark.SYNC
 def test_CMD_003_2(account_env):
     node, env = account_env
-    returnList = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    old_counts = len(return_list) - 1
 
     run_ssh_cmd(node.ssh, "{} account new --datadir {} --password {}".format(node.remote_bin_file,
                                                                              node.remote_data_dir,
                                                                              env.remote_pwd_file))
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    newCounts = len(returnList2) - 1
-    assert oldCounts + 1 == newCounts
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    new_counts = len(return_list2) - 1
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Specify a keystore and create a new account by entering a password.")
@@ -138,14 +138,14 @@ def test_CMD_003_2(account_env):
 @pytest.mark.SYNC
 def test_CMD_004_2(account_env):
     node, env = account_env
-    returnList = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    old_counts = len(return_list) - 1
 
     run_ssh_cmd(node.ssh, "{} account new --keystore {} --password {}".format(node.remote_bin_file, node.remote_keystore_dir, env.remote_pwd_file))
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    newCounts = len(returnList2) - 1
-    assert oldCounts + 1 == newCounts
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    new_counts = len(return_list2) - 1
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Change account password, specify datadir")
@@ -154,7 +154,7 @@ def test_CMD_004_2(account_env):
 def test_CMD_005(account_env):
     node, env = account_env
     run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
-    pass
+    pass # Why are there no assertions?
 
 
 @allure.title("Change account password, specify keystore")
@@ -163,7 +163,7 @@ def test_CMD_005(account_env):
 def test_CMD_006(account_env):
     node, env = account_env
     run_ssh_cmd(node.ssh, "{} account update {} --keystore {}".format(node.remote_bin_file, env.remote_account_address, node.remote_keystore_dir), "88888888", "88888888", "88888888")
-    pass
+    pass # Why are there no assertions?
 
 
 @allure.title("Import account, do not specify password file, specify datadir")
@@ -172,61 +172,61 @@ def test_CMD_006(account_env):
 def test_CMD_007(account_env):
     node, env = account_env
 
-    returnList = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    old_counts = len(return_list) - 1
 
     remote_key_file = node.remote_keystore_dir + "/key.pri"
     node.upload_file("./deploy/key.pri", remote_key_file)
 
     run_ssh_cmd(node.ssh, "{} account import {} --datadir {}".format(node.remote_bin_file, remote_key_file, node.remote_data_dir), "88888888", "88888888")
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
 
-    newCounts = len(returnList2) - 1
+    new_counts = len(return_list2) - 1
 
-    assert oldCounts + 1 == newCounts
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Import account, do not specify password file, specify keystore")
 @pytest.mark.P1
 @pytest.mark.SYNC
-def test_CMD_010(account_env):
+def test_CMD_010_CMD_034(account_env):
     node, env = account_env
 
-    returnList = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    old_counts = len(return_list) - 1
 
     remote_key_file = node.remote_keystore_dir + "/key.pri_2"
     node.upload_file("./deploy/key.pri_2", remote_key_file)
 
     run_ssh_cmd(node.ssh, "{} account import {} --keystore {}".format(node.remote_bin_file, remote_key_file, node.remote_keystore_dir), "88888888", "88888888")
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
 
-    newCounts = len(returnList2) - 1
+    new_counts = len(return_list2) - 1
 
-    assert oldCounts + 1 == newCounts
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Import account, specify password file, specify datadir")
 @pytest.mark.P1
 @pytest.mark.SYNC
-def test_CMD_007(account_env):
+def test_CMD_009(account_env):
     node, env = account_env
 
-    returnList = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    old_counts = len(return_list) - 1
 
     remote_key_file = node.remote_keystore_dir + "/key.pri_3"
     node.upload_file("./deploy/key.pri_3", remote_key_file)
 
     run_ssh_cmd(node.ssh, "{} account import {} --datadir {} --password {}".format(node.remote_bin_file, remote_key_file, node.remote_data_dir, env.remote_pwd_file))
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
 
-    newCounts = len(returnList2) - 1
+    new_counts = len(return_list2) - 1
 
-    assert oldCounts + 1 == newCounts
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("Import account, specify password file, specify keystore")
@@ -235,19 +235,19 @@ def test_CMD_007(account_env):
 def test_CMD_008(account_env):
     node, env = account_env
 
-    returnList = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    oldCounts = len(returnList) - 1
+    return_list = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    old_counts = len(return_list) - 1
 
     remote_key_file = node.remote_keystore_dir + "/key.pri_4"
     node.upload_file("./deploy/key.pri_4", remote_key_file)
 
     run_ssh_cmd(node.ssh, "{} account import {} --keystore {}  --password {}".format(node.remote_bin_file, remote_key_file, node.remote_keystore_dir, env.remote_pwd_file))
     time.sleep(0.2)
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
 
-    newCounts = len(returnList2) - 1
+    new_counts = len(return_list2) - 1
 
-    assert oldCounts + 1 == newCounts
+    assert old_counts + 1 == new_counts
 
 
 @allure.title("List account")
@@ -256,12 +256,12 @@ def test_CMD_008(account_env):
 def test_CMD_011(account_env):
     node, env = account_env
 
-    returnList1 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
+    return_list1 = run_ssh_cmd(node.ssh, "{} account list --datadir {}".format(node.remote_bin_file, node.remote_data_dir))
 
-    counts1 = len(returnList1) - 1
+    counts1 = len(return_list1) - 1
 
-    returnList2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
-    counts2 = len(returnList2) - 1
+    return_list2 = run_ssh_cmd(node.ssh, "{} account list --keystore {}".format(node.remote_bin_file, node.remote_keystore_dir))
+    counts2 = len(return_list2) - 1
 
     assert counts1 == counts2
 
@@ -293,9 +293,9 @@ platon attach http / ws
 @allure.title("Copy chain data")
 @pytest.mark.P3
 def test_CMD_016(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
 
     log.info("test copydb on host: {}".format(node.host))
 
@@ -337,25 +337,25 @@ def test_CMD_016(global_test_env):
 @allure.title("Analyze a specific block")
 @pytest.mark.P3
 def test_CMD_017(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
     node.stop()
 
     # dump
-    returnList = run_ssh_cmd(node.ssh, "sudo -S -p '' {} --datadir {} dump 0".format(node.remote_bin_file, node.remote_data_dir), node.password)
+    return_list = run_ssh_cmd(node.ssh, "sudo -S -p '' {} --datadir {} dump 0".format(node.remote_bin_file, node.remote_data_dir), node.password)
 
     node.start(False)
 
-    assert len(returnList) > 0 and "root" in returnList[1]
+    assert len(return_list) > 0 and "root" in return_list[1]
 
 
 @allure.title("Display configuration values(you can view the default configuration information of the node)")
 @pytest.mark.P3
 def test_CMD_018(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
     # dump
     returnList = run_ssh_cmd(node.ssh, "{} --nodekey {} --cbft.blskey {} dumpconfig".format(node.remote_bin_file, node.remote_nodekey_file, node.remote_blskey_file))
     assert returnList[0].strip() == '[Eth]'
@@ -364,78 +364,78 @@ def test_CMD_018(global_test_env):
 @allure.title("Modify the exported value when exporting")
 @pytest.mark.P3
 def test_CMD_019(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
     # dump
-    returnList = run_ssh_cmd(node.ssh, "{} --nodekey {} --cbft.blskey {} dumpconfig --networkid 1500".format(node.remote_bin_file, node.remote_nodekey_file, node.remote_blskey_file))
+    return_list = run_ssh_cmd(node.ssh, "{} --nodekey {} --cbft.blskey {} dumpconfig --networkid 1500".format(node.remote_bin_file, node.remote_nodekey_file, node.remote_blskey_file))
 
-    assert returnList[1].strip() == 'NetworkId = 1500'
+    assert return_list[1].strip() == 'NetworkId = 1500'
 
 
 @allure.title("Import blocks from the hash image file")
 @pytest.mark.P3
 def test_CMD_025(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
     node.stop()
 
     # dump
-    exportList = run_ssh_cmd(node.ssh, "sudo -S -p '' {} export-preimages exportPreImage --datadir {}".format(node.remote_bin_file, node.remote_data_dir), node.password)
-    for i in range(len(exportList)):
-        log.info("Serial number：{}   result：{}".format(i, exportList[i]))
+    export_list = run_ssh_cmd(node.ssh, "sudo -S -p '' {} export-preimages exportPreImage --datadir {}".format(node.remote_bin_file, node.remote_data_dir), node.password)
+    for i in range(len(export_list)):
+        log.info("Serial number：{}   result：{}".format(i, export_list[i]))
 
     time.sleep(1)
 
-    importList = run_ssh_cmd(node.ssh, "sudo -S -p '' {} import-preimages exportPreImage --datadir {}".format(node.remote_bin_file, node.remote_data_dir), node.password)
+    import_list = run_ssh_cmd(node.ssh, "sudo -S -p '' {} import-preimages exportPreImage --datadir {}".format(node.remote_bin_file, node.remote_data_dir), node.password)
     node.start(False)
 
-    for i in range(len(importList)):
-        log.info("Serial number：{}   result：{}".format(i, importList[i]))
+    for i in range(len(import_list)):
+        log.info("Serial number：{}   result：{}".format(i, import_list[i]))
 
-    assert len(exportList) == 1
-    assert len(importList) == 1
+    assert len(export_list) == 1
+    assert len(import_list) == 1
 
 
 @allure.title("Display version information")
 @pytest.mark.P3
 def test_CMD_026(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
 
-    returnList = run_ssh_cmd(node.ssh, "{} license".format(node.remote_bin_file))
+    return_list = run_ssh_cmd(node.ssh, "{} license".format(node.remote_bin_file))
     # for i in range(len(returnList)):
     #     log.info("Serial number：{}   result：{}".format(i, returnList[i]))
 
-    assert returnList[0].strip() == "platon is free software: you can redistribute it and/or modify"
+    assert return_list[0].strip() == "platon is free software: you can redistribute it and/or modify"
 
 
 @allure.title("Display chain version")
 @pytest.mark.P3
 def test_CMD_029(global_test_env):
-    globalEnv = global_test_env
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
 
-    returnList = run_ssh_cmd(node.ssh, "{} version".format(node.remote_bin_file))
+    return_list = run_ssh_cmd(node.ssh, "{} version".format(node.remote_bin_file))
     # for i in range(len(returnList)):
     #     log.info("Serial number：{}   Result: {}".format(i, returnList[i]))
 
-    assert returnList[0].strip() == "PlatON"
-    assert "Version:" in returnList[1]
+    assert return_list[0].strip() == "PlatON"
+    assert "Version:" in return_list[1]
 
 
 @allure.title("Load configuration file")
 @pytest.mark.P3
-def test_CMD_033(global_test_env):
-    globalEnv = global_test_env
+def test_CMD_033_CMD_034(global_test_env):
+    global_env = global_test_env
 
-    node = globalEnv.consensus_node_list[0]
+    node = global_env.consensus_node_list[0]
     node.stop()
 
-    returnList = run_ssh_cmd(node.ssh, "sed -i 's/\"NetworkId\": 1/\"NetworkId\": 111/g' {}".format(node.remote_config_file))
+    run_ssh_cmd(node.ssh, "sed -i 's/\"NetworkId\": 1/\"NetworkId\": 111/g' {}".format(node.remote_config_file))
 
     node.start(False)
 

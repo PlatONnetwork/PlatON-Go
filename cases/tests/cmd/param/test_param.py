@@ -28,8 +28,7 @@ def file_is_exist(ssh, path, file_name):
         ssh, "find {} -name {}".format(path, file_name))
     if len(cmd_list) > 0:
         return file_name in cmd_list[0]
-    else:
-        return False
+    return False
 
 
 def append_cmd_restart(global_test_env, cmd, node=None):
@@ -59,7 +58,7 @@ class TestStartParam(object):
     @pytest.mark.compatibility
     @allure.title("Test to enable ws function")
     @pytest.mark.P3
-    def test_CMD_078(self, global_test_env):
+    def test_CMD_078_CMD_081(self, global_test_env):
         env = global_test_env
         node = env.get_rand_node()
         ws_url = "ws://{}:".format(node.host)
@@ -153,7 +152,7 @@ class TestStartParam(object):
 
     @allure.title("Test to enable pprof function")
     @pytest.mark.P3
-    def test_CMD_114(self, global_test_env):
+    def test_CMD_115(self, global_test_env):
         test_node = global_test_env.get_rand_node()
         pprof = 6060
         test_node = append_cmd_restart(global_test_env,
