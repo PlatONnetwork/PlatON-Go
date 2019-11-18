@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/docker/pkg/reexec"
+
 	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
 	"github.com/stretchr/testify/assert"
 )
@@ -109,6 +111,14 @@ var (
 	pkFilePath = "../test/privateKeys.txt"
 )
 
+func TestMain(m *testing.M) {
+	// check if we have been reexec'd
+	if reexec.Init() {
+		return
+	}
+	os.Exit(m.Run())
+}
+
 func parseConfig(t *testing.T) {
 	err := parseConfigJson(configPath)
 	assert.Nil(t, err, fmt.Sprintf("%v", err))
@@ -124,11 +134,11 @@ func prepare(t *testing.T) (*testPlatON, string) {
 
 	runPlatON(t, "--datadir", datadir, "init", json).WaitExit()
 
-	time.Sleep(2 * time.Second)
+	//time.Sleep(2 * time.Second)
 
 	port := strings.Split(config.Url, ":")[2] // http://localhost:6789
 	platon := runPlatON(t,
-		"--datadir", datadir, "--port", "16789", "--nodiscover", "--nat", "none",
+		"--datadir", datadir, "--port", "0", "--nodiscover", "--nat", "none",
 		"--rpc", "--rpcaddr", "0.0.0.0", "--rpcport", port, "--rpcapi", "txpool,platon,net,web3,miner,admin,personal,version")
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
@@ -173,7 +183,7 @@ func runPlatON(t *testing.T, args ...string) *testPlatON {
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
 	for i, arg := range args {
 		switch {
-		case arg == "--datadir":
+		case arg == "-datadir" || arg == "--datadir":
 			if i < len(args)-1 {
 				tt.Datadir = args[i+1]
 			}
@@ -182,7 +192,7 @@ func runPlatON(t *testing.T, args ...string) *testPlatON {
 	if tt.Datadir == "" {
 		tt.Datadir = tmpdir(t)
 		tt.Cleanup = func() { os.RemoveAll(tt.Datadir) }
-		args = append([]string{"--datadir", tt.Datadir}, args...)
+		args = append([]string{"-datadir", tt.Datadir}, args...)
 		// Remove the temporary datadir if something fails below.
 		defer func() {
 			if t.Failed() {
