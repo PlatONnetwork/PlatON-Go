@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"math"
 	"math/rand"
 	"runtime"
 	"testing"

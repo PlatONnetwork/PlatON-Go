@@ -129,7 +129,7 @@ func prepare(t *testing.T) (*testPlatON, string) {
 
 	port := strings.Split(config.Url, ":")[2] // http://localhost:6789
 	platon := runPlatON(t,
-		"--datadir", datadir, "--port", "0", "--nodiscover", "--nat", "none",
+		"--datadir", datadir, "--port", "16789", "--nodiscover", "--nat", "none",
 		"--rpc", "--rpcaddr", "0.0.0.0", "--rpcport", port, "--rpcapi", "txpool,platon,net,web3,miner,admin,personal,version")
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
