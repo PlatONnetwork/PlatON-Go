@@ -35,9 +35,9 @@ var (
         "c1f330b214668beac2e6418dd651b09c759a4bf5":{
             "balance":"8050000000000000000000000000"
         },
-		"cB2e4854991502362df70951B230B987a63e43cc": {
-			"balance": "200000000000000000000000000"
-		},
+"cB2e4854991502362df70951B230B987a63e43cc":{
+            "balance":"8050000000000000000000000000"
+        }
     },
     "economicModel":{
         "common":{
@@ -127,6 +127,8 @@ func prepare(t *testing.T) (*testPlatON, string) {
 
 	runPlatON(t, "--datadir", datadir, "init", json).WaitExit()
 
+	time.Sleep(2 * time.Second)
+
 	port := strings.Split(config.Url, ":")[2] // http://localhost:6789
 	platon := runPlatON(t,
 		"--datadir", datadir, "--port", "16789", "--nodiscover", "--nat", "none",
@@ -174,7 +176,7 @@ func runPlatON(t *testing.T, args ...string) *testPlatON {
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
 	for i, arg := range args {
 		switch {
-		case arg == "-datadir" || arg == "--datadir":
+		case arg == "--datadir":
 			if i < len(args)-1 {
 				tt.Datadir = args[i+1]
 			}
@@ -183,7 +185,7 @@ func runPlatON(t *testing.T, args ...string) *testPlatON {
 	if tt.Datadir == "" {
 		tt.Datadir = tmpdir(t)
 		tt.Cleanup = func() { os.RemoveAll(tt.Datadir) }
-		args = append([]string{"-datadir", tt.Datadir}, args...)
+		args = append([]string{"--datadir", tt.Datadir}, args...)
 		// Remove the temporary datadir if something fails below.
 		defer func() {
 			if t.Failed() {
