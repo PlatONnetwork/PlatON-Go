@@ -80,7 +80,7 @@ contract test {
 */
 
 func testChainGen(i int, block *core.BlockGen) {
-	signer := types.NewEIP155Signer(new(big.Int))
+	signer := types.NewEIP155Signer(params.TestChainConfig.ChainID)
 
 	switch i {
 	case 0:
@@ -96,27 +96,22 @@ func testChainGen(i int, block *core.BlockGen) {
 
 		tx1, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBankAddress), acc1Addr, big.NewInt(1000), params.TxGas, nil, nil), signer, testBankKey)
 		tx2, _ := types.SignTx(types.NewTransaction(nonce, acc2Addr, big.NewInt(1000), params.TxGas, nil, nil), signer, acc1Key)
-		tx3, _ := types.SignTx(types.NewContractCreation(nonce+1, big.NewInt(0), 200000, big.NewInt(0), testContractCode), signer, acc1Key)
-		testContractAddr = crypto.CreateAddress(acc1Addr, nonce+1)
-		tx4, _ := types.SignTx(types.NewContractCreation(nonce+2, big.NewInt(0), 200000, big.NewInt(0), testEventEmitterCode), signer, acc1Key)
-		testEventEmitterAddr = crypto.CreateAddress(acc1Addr, nonce+2)
+
 		block.AddTx(tx1)
 		block.AddTx(tx2)
-		block.AddTx(tx3)
-		block.AddTx(tx4)
 	case 2:
 		// Block 3 is empty but was mined by account #2.
 		block.SetCoinbase(acc2Addr)
-		block.SetExtra([]byte("yeehaw"))
+		block.SetExtra(common.FromHex("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"))
 		data := common.Hex2Bytes("C16431B900000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001")
 		tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBankAddress), testContractAddr, big.NewInt(0), 100000, nil, data), signer, testBankKey)
 		block.AddTx(tx)
 	case 3:
 		// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
 		b2 := block.PrevBlock(1).Header()
-		b2.Extra = []byte("foo")
+		b2.Extra = common.FromHex("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 		b3 := block.PrevBlock(2).Header()
-		b3.Extra = []byte("foo")
+		b3.Extra = common.FromHex("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 		data := common.Hex2Bytes("C16431B900000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002")
 		tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBankAddress), testContractAddr, big.NewInt(0), 100000, nil, data), signer, testBankKey)
 		block.AddTx(tx)
@@ -246,7 +241,7 @@ func newTestPeer(t *testing.T, name string, version int, pm *ProtocolManager, sh
 			genesis = pm.blockchain.Genesis()
 			head    = pm.blockchain.CurrentHeader()
 		)
-		tp.handshake(t, big.NewInt(0), head.Hash(), head.Number.Uint64(), genesis.Hash())
+		tp.handshake(t, head.Hash(), head.Number.Uint64(), genesis.Hash())
 	}
 	return tp, errc
 }
@@ -286,11 +281,10 @@ func newTestPeerPair(name string, version int, pm, pm2 *ProtocolManager) (*peer,
 
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
-func (p *testPeer) handshake(t *testing.T, td *big.Int, head common.Hash, headNum uint64, genesis common.Hash) {
+func (p *testPeer) handshake(t *testing.T, head common.Hash, headNum uint64, genesis common.Hash) {
 	var expList keyValueList
 	expList = expList.add("protocolVersion", uint64(p.version))
 	expList = expList.add("networkId", uint64(NetworkId))
-	expList = expList.add("headTd", td)
 	expList = expList.add("headHash", head)
 	expList = expList.add("headNum", headNum)
 	expList = expList.add("genesisHash", genesis)
