@@ -161,8 +161,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	originVersion := gov.GetVersionForStaking(state)
-	currVersion := xutil.CalcVersion(originVersion)
+	govCurrVersion := gov.GetVersionForStaking(state)
+	currVersion := xutil.CalcVersion(govCurrVersion)
 	inputVersion := xutil.CalcVersion(programVersion)
 
 	var isDeclareVersion bool
@@ -173,7 +173,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if inputVersion < currVersion {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("input Version: %s, current valid Version: %s",
-				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion)),
+				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(govCurrVersion)),
 			TxCreateStaking, int(staking.ErrProgramVersionTooLow.Code)), nil
 
 	} else if inputVersion > currVersion {
@@ -210,7 +210,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		ProgramVersion:  currVersion,
+		ProgramVersion:  programVersion, // real version
 		Description:     *desc,
 	}
 
@@ -241,6 +241,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		}
 	}
 
+	// Because we must need to staking before we declare the version information.
 	if isDeclareVersion {
 		// Declare new Version
 		err := gov.DeclareVersion(can.StakingAddress, can.NodeId,
