@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang-collections/lib.go/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseConfig(t *testing.T) {
