@@ -3,7 +3,6 @@ package vm
 import (
 	"fmt"
 	"math/big"
-	st "sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -162,8 +161,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	govCurrVersion := gov.GetVersionForStaking(state)
-	currVersion := xutil.CalcVersion(govCurrVersion)
+	originVersion := gov.GetVersionForStaking(state)
+	currVersion := xutil.CalcVersion(originVersion)
 	inputVersion := xutil.CalcVersion(programVersion)
 
 	var isDeclareVersion bool
@@ -174,7 +173,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	if inputVersion < currVersion {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("input Version: %s, current valid Version: %s",
-				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(govCurrVersion)),
+				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion)),
 			TxCreateStaking, int(staking.ErrProgramVersionTooLow.Code)), nil
 
 	} else if inputVersion > currVersion {
@@ -211,7 +210,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		ProgramVersion:  programVersion, // real version
+		ProgramVersion:  currVersion,
 		Description:     *desc,
 	}
 
@@ -692,8 +691,6 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		return callResultHandler(stkc.Evm, "getVerifierList",
 			arr, staking.ErrGetVerifierList.Wrap("VerifierList info is not found")), nil
 	}
-	// resort for display
-	st.Sort(arr)
 
 	return callResultHandler(stkc.Evm, "getVerifierList",
 		arr, nil), nil
@@ -715,9 +712,6 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 		return callResultHandler(stkc.Evm, "getValidatorList",
 			arr, staking.ErrGetValidatorList.Wrap("ValidatorList info is not found")), nil
 	}
-
-	// resort for display
-	st.Sort(arr)
 
 	return callResultHandler(stkc.Evm, "getValidatorList",
 		arr, nil), nil

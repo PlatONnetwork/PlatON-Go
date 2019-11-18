@@ -1044,15 +1044,13 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			return err
 		}
 
-		// Calc version, is not real version
-		calcVersion := xutil.CalcVersion(canBase.ProgramVersion)
-		if calcVersion < currVersion {
+		if canBase.ProgramVersion < currVersion {
 			log.Warn("Warn ElectNextVerifierList: the can ProgramVersion is less than currVersion",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canVersion",
 				"nodeId", canBase.NodeId.String(), "canAddr", common.BytesToAddress(addrSuffix).Hex(),
-				"real version", canBase.ProgramVersion, "calcVersion", calcVersion, "currVersion", currVersion)
+				canBase.ProgramVersion, "currVersion", currVersion)
 
-			// Low program version (calc version, is not real version) cannot be elected for epoch validator
+			// Low program version cannot be elected for epoch validator
 			continue
 		}
 
@@ -1069,7 +1067,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			NodeAddress:     addr,
 			NodeId:          canBase.NodeId,
 			BlsPubKey:       canBase.BlsPubKey,
-			ProgramVersion:  canBase.ProgramVersion, // real version
+			ProgramVersion:  canBase.ProgramVersion,
 			Shares:          canMutable.Shares,
 			StakingBlockNum: canBase.StakingBlockNum,
 			StakingTxIndex:  canBase.StakingTxIndex,
@@ -1134,15 +1132,17 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			can = c
 		}
 
+		//shares, _ := new(big.Int).SetString(v.StakingWeight[1], 10)
+
 		valEx := &staking.ValidatorEx{
-			NodeId:          v.NodeId,
-			BlsPubKey:       v.BlsPubKey,
+			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
-			StakingTxIndex:  v.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion, // Display the real-time version number. (Because real-time version number will be used when selecting the consensus cycle validator)
-			StakingBlockNum: v.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares), // Shares can show the snapshot, because the value will only be used at the end of the epoch.
+			StakingTxIndex:  can.StakingTxIndex,
+			ProgramVersion:  can.ProgramVersion,
+			StakingBlockNum: can.StakingBlockNum,
+			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
 		}
@@ -1287,14 +1287,14 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		}
 
 		valEx := &staking.ValidatorEx{
-			NodeId:          v.NodeId,
-			BlsPubKey:       v.BlsPubKey,
+			NodeId:          can.NodeId,
+			BlsPubKey:       can.BlsPubKey,
 			StakingAddress:  can.StakingAddress,
 			BenefitAddress:  can.BenefitAddress,
-			StakingTxIndex:  v.StakingTxIndex,
-			ProgramVersion:  can.ProgramVersion, // Display the real-time version number. (Because real-time version number will be used when selecting the consensus cycle validator)
-			StakingBlockNum: v.StakingBlockNum,
-			Shares:          (*hexutil.Big)(v.Shares), // Shares can show the snapshot, because the value will only be used at the end of the epoch.
+			StakingTxIndex:  can.StakingTxIndex,
+			ProgramVersion:  can.ProgramVersion,
+			StakingBlockNum: can.StakingBlockNum,
+			Shares:          (*hexutil.Big)(v.Shares),
 			Description:     can.Description,
 			ValidatorTerm:   v.ValidatorTerm,
 		}
@@ -1579,12 +1579,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			status.IsInvalidDuplicateSign()
 	}
 
-	type versionAndShares struct {
-		shares  *big.Int
-		version uint32
-	}
-
-	currMap := make(map[discover.NodeID]*versionAndShares, len(curr.Arr))
+	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
 	for _, v := range curr.Arr {
 
 		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
@@ -1616,16 +1611,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Collect candidate who need to be removed
-		// from the validators because the version (calc version, is not real version) is too low
-		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+		// from the validators because the version is too low
+		if can.ProgramVersion < currVersion {
 			removeCans[v.NodeId] = can
 			needRMLowVersionLen++
 		}
 
-		currMap[v.NodeId] = &versionAndShares{
-			shares:  v.Shares,
-			version: v.ProgramVersion,
-		}
+		currMap[v.NodeId] = v.Shares
 	}
 
 	// Exclude the current consensus round validators from the validators of the Epoch
@@ -1637,10 +1629,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		if _, ok := currMap[v.NodeId]; ok {
-			// copy new shares and version by verifers
-			currMap[v.NodeId].shares = new(big.Int).Set(v.Shares)
-			currMap[v.NodeId].version = v.ProgramVersion
-			// jump current validator
+			currMap[v.NodeId] = new(big.Int).Set(v.Shares)
 			continue
 		}
 
@@ -1657,8 +1646,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			continue
 		}
 
-		// Ignore the low version (calc version, is not real version)
-		if xutil.CalcVersion(can.ProgramVersion) < currVersion {
+		// Ignore the low version
+		if can.ProgramVersion < currVersion {
 			continue
 		}
 
@@ -1692,11 +1681,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
 
-		// increase term and use new shares and version one by one
+		// increase term and use new shares  one by one
 		for i, v := range currQueue {
 			v.ValidatorTerm++
-			v.Shares = currMap[v.NodeId].shares
-			v.ProgramVersion = currMap[v.NodeId].version
+			v.Shares = currMap[v.NodeId]
 			currQueue[i] = v
 		}
 
@@ -2148,7 +2136,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
 
-	//version := xutil.CalcVersion(programVersion)
+	version := xutil.CalcVersion(programVersion)
 
 	for _, nodeId := range nodeIds {
 
@@ -2172,7 +2160,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			return err
 		}
 
-		can.ProgramVersion = programVersion // real version
+		can.ProgramVersion = version
 
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
@@ -2194,10 +2182,10 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
 	programVersion uint32) error {
 
-	//version := xutil.CalcVersion(programVersion)
+	version := xutil.CalcVersion(programVersion)
 
 	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "real version", programVersion, "nodeId", nodeId.String())
+		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", version, "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -2220,7 +2208,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return err
 	}
 
-	can.ProgramVersion = programVersion // real version
+	can.ProgramVersion = version
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
