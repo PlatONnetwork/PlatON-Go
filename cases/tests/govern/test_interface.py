@@ -10,6 +10,7 @@ import pytest
 from tests.govern.conftest import version_proposal_vote
 
 class TestgetProposal():
+    @pytest.mark.P0
     def test_GP_IF_001(self, submit_cancel_param):
         pip_obj = submit_cancel_param
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
@@ -22,6 +23,7 @@ class TestgetProposal():
         assert result.get('Ret').get('SubmitBlock') == proposalinfo.get('SubmitBlock')
         assert result.get('Ret').get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
+    @pytest.mark.P0
     def test_GP_IF_002(self, submit_param):
         pip_obj = submit_param
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
@@ -35,6 +37,7 @@ class TestgetProposal():
         assert result.get('Ret').get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
     @pytest.mark.compatibility
+    @pytest.mark.P0
     def test_PR_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -75,6 +78,7 @@ class TestgetProposal():
                                    pip_obj.economic.consensus_size + 20
         assert result_cancel.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
+    @pytest.mark.P0
     def test_PR_IN_003(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         pip_id = str(time.time())
@@ -97,6 +101,7 @@ class TestgetProposal():
                                              pip_obj.economic.tp_vote_settlement_wheel)* pip_obj.economic.consensus_size - 20
         assert result_text.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
+    @pytest.mark.P1
     def test_PR_IN_004(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip
         result = pip_obj.pip.getProposal('0xa89162be0bd0d081c50a5160f412c4926b3ae9ea96cf792935564357ddd11111')
@@ -104,6 +109,7 @@ class TestgetProposal():
         assert_code(result, 302006)
 
 class TestgetTallyResult():
+    @pytest.mark.P0
     def test_TR_IN_002_TR_IN_003(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = no_vp_proposal
         submitcvpandvote(client_verifier_obj_list, 1, 1, 1, 2)
@@ -127,6 +133,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(client_verifier_obj_list)
 
+    @pytest.mark.P0
     @pytest.mark.compatibility
     def test_TR_IN_001(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = no_vp_proposal
@@ -152,7 +159,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(client_verifier_obj_list)
 
-
+    @pytest.mark.P0
     def test_TR_IN_010_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -175,7 +182,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
 
-
+    @pytest.markP0
     def test_TR_IN_011_TR_IN_012(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -206,6 +213,7 @@ class TestgetTallyResult():
         assert pip_obj.get_abstentions_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
 
+    @pytest.mark.P1
     def test_TR_IN_006(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         result = pip_obj.pip.getTallyResult('0x9992d1f843fe8f376884d871f87605dda02da0722fd6b350bbf683518f73f111')
@@ -214,6 +222,7 @@ class TestgetTallyResult():
 
 
 class TestgetAccuVerifiersCount():
+    @pytest.mark.P0
     def test_AC_IN_018_to_025(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -272,6 +281,7 @@ class TestgetAccuVerifiersCount():
         assert pip_obj_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 0]
 
     @pytest.mark.compatibility
+    @pytest.mark.P0
     def test_AC_IN_001_002_004_to_006_012_to_014(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[-1].pip
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5, pip_obj.node.staking_address,
@@ -325,6 +335,7 @@ class TestgetAccuVerifiersCount():
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 0, 0, 0]
         assert pip_obj.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 0]
 
+    @pytest.mark.P0
     def test_AC_IN_003_008_010(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
@@ -358,6 +369,7 @@ class TestgetAccuVerifiersCount():
         assert_code(result, 0)
         assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
 
+    @pytest.mark.P2
     def test_AC_IN_016_to_018(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
@@ -396,32 +408,38 @@ class TestListGovernParam():
             name.append(param.get('ParamItem').get('Name'))
         return name, module
 
+    @pytest.mark.P0
     def test_IN_LG_001(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj)
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'slashBlocksReward',
                              'stakeThreshold', 'maxBlockGasLimit', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
         assert set(module) == {'block', 'slashing', 'staking'}
 
+    @pytest.mark.P2
     def test_IN_LG_002(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'staking')
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
         assert set(module) == {'staking'}
 
+    @pytest.mark.P2
     def test_IN_LG_003(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'slashing')
         assert set(name) == {'slashBlocksReward', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
         assert set(module) == {'slashing'}
 
+    @pytest.mark.P2
     def test_IN_LG_004(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'block')
         assert set(name) == {'maxBlockGasLimit'}
         assert set(module) == {'block'}
 
+    @pytest.mark.P2
     def test_IN_LG_005(self, client_noconsensus_obj):
         result = client_noconsensus_obj.pip.pip.listGovernParam('txpool')
         log.info('Interface listGovernParam result {}'.format(result))
 
 class TestGetGovernParam():
+    @pytest.mark.P0
     def test_IN_GG_001(self, client_noconsensus_obj):
         client_noconsensus_obj.economic.env.deploy_all()
         genesis = from_dict(data_class=Genesis, data=client_noconsensus_obj.economic.env.genesis_config)
@@ -461,6 +479,7 @@ class TestGetGovernParam():
         result = pip_obj.getGovernParamValue('block', 'maxBlockGasLimit')
         log.info('Interface getGovernParamValue result : {}'.format(result))
 
+    @pytest.mark.P2
     def test_IN_GG_002(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip.pip
         result = pip_obj.getGovernParamValue('Staking', 'maxValidators')
@@ -472,6 +491,7 @@ class TestGetGovernParam():
         result = pip_obj.getGovernParamValue('Block', 'maxBlockGasLimit')
         assert_code(result, 302031)
 
+    @pytest.mark.P2
     def test_IN_GG_003(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip.pip
         result = pip_obj.getGovernParamValue('staking', 'MaxValidators')
@@ -485,9 +505,11 @@ class TestGetGovernParam():
 
 class TestGetActiveVersion():
     @pytest.mark.compatibility
+    @pytest.mark.P0
     def test_AV_IN_001(self, no_vp_proposal):
         assert_code(no_vp_proposal.chain_version, no_vp_proposal.cfg.version0)
 
+    @pytest.mark.P0
     def test_AV_IN_002_003(self, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[0].pip
         submitvpandvote(client_verifier_obj_list)
@@ -501,6 +523,7 @@ class TestGetActiveVersion():
         assert_code(pip_obj.chain_version, pip_obj.cfg.version5)
 
 class TestListProposal():
+    @pytest.mark.P1
     def test_LP_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -532,12 +555,13 @@ class TestListProposal():
                                               1) * pip_obj.economic.consensus_size - 20
         assert proposalinfo_cancel.get('EndVotingBlock') == calculated_endvotingblock
 
+    @pytest.mark.P1
     def test_LP_IN_003(self, client_consensus_obj):
         client_consensus_obj.economic.env.deploy_all()
         result = client_consensus_obj.pip.pip.listProposal()
         log.info('There is no proposal, interface listProposal return : {}'.format(result))
         assert_code(result, 2)
         assert result.get('Ret') == "Object not found"
-        
+
 if __name__ == '__main__':
     pytest.main(['./tests/govern/','-s', '-q', '--alluredir', './report/report'])

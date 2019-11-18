@@ -54,52 +54,62 @@ def replace_platon_and_staking(pip_obj, bin):
 
 
 class TestVotingProposalStaking():
+    @pytest.mark.P1
     def test_ST_VS_001(self, new_node_has_proposal):
         pip_obj = new_node_has_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_VS_002(self, new_node_has_proposal):
         pip_obj = new_node_has_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1)
         assert_code(result, 301004)
 
+    @pytest.mark.P1
     def test_ST_VS_003(self, new_node_has_proposal):
         pip_obj = new_node_has_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_VS_004(self, new_node_has_proposal):
         pip_obj = new_node_has_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_VS_005(self, new_node_has_proposal):
         pip_obj = new_node_has_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
         assert_code(result, 0)
 
 class TestNoProposalStaking():
+    @pytest.mark.P1
     def test_ST_NO_001(self, new_node_no_proposal):
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_NO_002(self, new_node_no_proposal):
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1)
         assert_code(result, 301004)
 
+    @pytest.mark.P1
     def test_ST_NO_003(self, new_node_no_proposal):
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_NO_004(self, new_node_no_proposal):
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_NO_005(self, new_node_no_proposal):
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
@@ -123,36 +133,42 @@ class TestPreactiveProposalStaking():
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
         assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4
 
+    @pytest.mark.P1
     def test_ST_PR_001(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2)
         assert_code(result, 301004)
 
+    @pytest.mark.P1
     def test_ST_PR_002(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1)
         assert_code(result, 301004)
 
+    @pytest.mark.P1
     def test_ST_PR_003(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0)
         assert_code(result, 301004)
 
+    @pytest.mark.P1
     def test_ST_PR_004(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3)
         assert_code(result, 301004)
 
+    @pytest.mark.P1
     def test_ST_PR_005(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
         assert_code(result, 0)
 
+    @pytest.mark.P1
     def test_ST_PR_006(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.preactive_proposal(client_list_obj)
@@ -179,30 +195,35 @@ class TestUpgradedProposalStaking():
         wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
         assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 5
 
+    @pytest.mark.P2
     def test_ST_UPG_001(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4)
         assert_code(result, 0)
 
+    @pytest.mark.P2
     def test_ST_UPG_002(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0)
         assert_code(result, 301004)
 
+    @pytest.mark.P2
     def test_ST_UPG_003(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
         assert_code(result, 0)
 
+    @pytest.mark.P2
     def test_ST_UPG_004(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6)
         assert_code(result, 0)
 
+    @pytest.mark.P2
     def test_ST_UPG_005(self, new_genesis_env, new_node_no_proposal, client_list_obj):
         pip_obj = new_node_no_proposal
         self.upgraded_proposal(client_list_obj)
@@ -211,6 +232,7 @@ class TestUpgradedProposalStaking():
 
 
 class TestUnstaking():
+    @pytest.mark.P1
     def test_UNS_AM_003_007(self, new_genesis_env, client_verifier_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -236,6 +258,7 @@ class TestUnstaking():
         log.info('{}'.format(pip_obj.economic.get_current_year_reward(pip_obj.node)))
         assert balance_after - balance_before == shares
 
+    @pytest.mark.P1
     def test_UNS_AM_005(self, new_genesis_env, client_verifier_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -262,6 +285,7 @@ class TestUnstaking():
         log.info('Block bumber {} staking address balance {}'.format(calculated_block, balance_after))
         assert balance_after - balance_before == shares
 
+    @pytest.mark.P1
     def test_UNS_AM_004_006_008(self, new_genesis_env, client_verifier_obj_list):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -346,6 +370,7 @@ class TestUnstaking():
         log.info('Block bumber {} staking address balance {}'.format(blocknumber, balance_after))
         assert balance_after - balance_before == shares_three
 
+    @pytest.mark.P2
     def test_UNS_AM_009_011_013(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -412,7 +437,7 @@ class TestUnstaking():
                                                                      balance_after_lockup))
         assert balance_after_lockup - balance_before_lockup == shares
 
-
+    @pytest.mark.P2
     def test_UNS_AM_010_012_014(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -537,7 +562,7 @@ class TestUnstaking():
         assert balance_after_lockup - balance_before_lockup == shares1
 
 class TestSlashing():
-
+    @pytest.mark.P1
     def test_UNS_PU_003_005_007_017(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -576,6 +601,7 @@ class TestSlashing():
                                                                      balance_after))
         assert balance_after - balance_before == shares
 
+    @pytest.mark.P2
     def test_UNS_PU_016(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -637,7 +663,7 @@ class TestSlashing():
                                                                      balance_after))
         assert balance_after - balance_before == shares0
 
-
+    @pytest.mark.P1
     def test_UNS_PU_004(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -692,7 +718,7 @@ class TestSlashing():
                                                                      balance_after))
         assert balance_after - balance_before == shares0
 
-
+    @pytest.mark.P1
     def test_UNS_PU_006(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -738,6 +764,7 @@ class TestSlashing():
                                                                      balance_after))
         assert balance_after - balance_before == shares0
 
+    @pytest.mark.P2
     def test_UNS_PU_008(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -788,6 +815,7 @@ class TestSlashing():
                                                                      balance_after))
         assert balance_after - balance_before == shares0
 
+    @pytest.mark.P2
     def test_UNS_PU_009_011_013_019(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -833,6 +861,7 @@ class TestSlashing():
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares
 
+    @pytest.mark.P2
     def test_UNS_PU_010(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -887,6 +916,7 @@ class TestSlashing():
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares
 
+    @pytest.mark.P2
     def test_UNS_PU_012(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -942,7 +972,7 @@ class TestSlashing():
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares
 
-
+    @pytest.mark.P2
     def test_UNS_PU_014(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
@@ -971,6 +1001,7 @@ class TestSlashing():
         pip_obj.node.stop()
         self.verify_amount(pip_obj_test, address, shares)
 
+    @pytest.mark.P2
     def test_UNS_PU_020(self, new_genesis_env, client_noc_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.staking.unStakeFreezeDuration == 2
