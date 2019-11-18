@@ -947,22 +947,28 @@ func (arr ValidatorExQueue) Less(i, j int) bool {
 
 	if lversion == rversion {
 
-		if l.Shares.ToInt().Cmp(r.Shares.ToInt()) == 0 {
+		if l.ValidatorTerm == r.ValidatorTerm {
 
-			if l.StakingBlockNum == r.StakingBlockNum {
+			if l.Shares.ToInt().Cmp(r.Shares.ToInt()) == 0 {
 
-				if l.StakingTxIndex == r.StakingTxIndex {
-					return false
+				if l.StakingBlockNum == r.StakingBlockNum {
+
+					if l.StakingTxIndex == r.StakingTxIndex {
+						return false
+					} else {
+						return l.StakingTxIndex < r.StakingTxIndex
+					}
+
 				} else {
-					return l.StakingTxIndex < r.StakingTxIndex
+					return l.StakingBlockNum < r.StakingBlockNum
 				}
 
 			} else {
-				return l.StakingBlockNum < r.StakingBlockNum
+				return l.Shares.ToInt().Cmp(r.Shares.ToInt()) > 0
 			}
 
 		} else {
-			return l.Shares.ToInt().Cmp(r.Shares.ToInt()) > 0
+			return l.ValidatorTerm > r.ValidatorTerm
 		}
 
 	} else {
