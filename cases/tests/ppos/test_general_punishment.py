@@ -80,7 +80,7 @@ def VP_GPFV_001_002(client_new_node_obj_list_reset):
             assert info['Released'] == economic.create_staking_limit, "ErrMsg:Pledged Amount {}".format(info['Released'])
             validator_list = client1.ppos.getValidatorList()
             log.info("validator_list: {}".format(validator_list))
-            assert len(validator_list) == 4, "ErrMsg: Number of verification {}".format(len(validator_list))
+            assert len(validator_list['Ret']) == 4, "ErrMsg: Number of verification {}".format(len(validator_list))
         else:
             # wait consensus block
             economic.wait_consensus_blocknum(node)
@@ -659,7 +659,7 @@ def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Pledge Released {}".format(
+    assert pledge_amount2 == pledge_amount1 - punishment_amonut*2, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 

@@ -596,7 +596,6 @@ def test_LS_RV_011(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_LS_RV_012(client_new_node_obj_list, reset_environment):
     """
     创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划

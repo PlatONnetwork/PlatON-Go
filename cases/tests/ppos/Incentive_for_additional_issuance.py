@@ -7,17 +7,19 @@ from common.key import get_pub_key, mock_duplicate_sign, generate_key
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
+
+from tests.conftest import get_client_consensus_obj
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
     get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
 
 
 @pytest.mark.P1
-def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
+def AL_FI_001_to_003(new_genesis_env, staking_cfg):
     """
     AL_FI_001:查看每年释放补贴激励池变化
     AL_FI_002:查看每年固定增发变化
     AL_FI_003:第十年固定增发token分配
-    :param client_consensus_obj:
+    :param new_genesis_env:
     :return:
     """
     # Initialization genesis file Initial amount
@@ -39,7 +41,7 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client = client_consensus_obj
+    client = get_client_consensus_obj(new_genesis_env, staking_cfg)
     economic = client.economic
     node = client.node
     # Query the initial amount of incentive pool
@@ -67,7 +69,8 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
             current_annual_developer_foundation_amount = node.eth.getBalance(
                 node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS), 0)
             # Query current annual fund amount
-            current_annual_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS), 0)
+            current_annual_foundation_amount = node.eth.getBalance(
+                node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS), 0)
             log.info(
                 "{} Year Incentive Pool Address: {} Balance: {}".format(i + 1, EconomicConfig.INCENTIVEPOOL_ADDRESS,
                                                                         INCENTIVEPOOL))
@@ -103,16 +106,17 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
             # Total amount of additional issuance
             init_tt = init_tt + additional_amount
             # Current annual incentive pool amount
-            init_incentive_pool = init_incentive_pool + incentive_pool_additional_amount + \
-                                  EconomicConfig.release_info[i - 1]['amount']
+            init_incentive_pool = init_incentive_pool + incentive_pool_additional_amount + EconomicConfig.release_info[i - 1]['amount']
             # Current annual Developer Fund Amount
             developer_foundation = developer_foundation + developer_foundation_s_additional_amount
             # Query the current annual incentive pool amount
             current_annual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
             # Query current annual developer foundation amount
-            current_annual_developer_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+            current_annual_developer_foundation_amount = node.eth.getBalance(
+                node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
             # Query current annual fund amount
-            current_annual_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
+            current_annual_foundation_amount = node.eth.getBalance(
+                node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
             log.info("{} year initialization incentive pool address: {} balance: {}".format(i + 1,
                                                                                             EconomicConfig.INCENTIVEPOOL_ADDRESS,
                                                                                             init_incentive_pool))
@@ -152,9 +156,11 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
             # Query the current annual incentive pool amount
             current_annual_incentive_pool_amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
             # Query current annual developer foundation amount
-            current_annual_developer_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
+            current_annual_developer_foundation_amount = node.eth.getBalance(
+                node.web3.toChecksumAddress(EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS))
             # Query current annual fund amount
-            current_annual_foundation_amount = node.eth.getBalance(node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
+            current_annual_foundation_amount = node.eth.getBalance(
+                node.web3.toChecksumAddress(EconomicConfig.FOUNDATION_ADDRESS))
             log.info("{} year initialization incentive pool address: {} balance: {}".format(i + 1,
                                                                                             EconomicConfig.INCENTIVEPOOL_ADDRESS,
                                                                                             init_incentive_pool))
@@ -174,7 +180,7 @@ def AL_FI_001_to_003(new_genesis_env, client_consensus_obj):
 
 
 @pytest.mark.p1
-def test_AL_FI_004_005(new_genesis_env, staking_cfg):
+def AL_FI_004_005(new_genesis_env, staking_cfg):
     """
     AL_FI_004:查看每年区块奖励变化
     AL_FI_005:查看每年质押奖励变化
@@ -251,6 +257,7 @@ def test_AL_FI_004_005(new_genesis_env, staking_cfg):
         benifit_balance1 = node.eth.getBalance(address1)
         log.info("benifit_balance: {}".format(benifit_balance1))
         reward = int(blocknumber * Decimal(str(block_reward)))
-        assert benifit_balance1 == benifit_balance + staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance1)
+        assert benifit_balance1 == benifit_balance + staking_reward + reward, "ErrMsg:benifit_balance: {}".format(
+            benifit_balance1)
         # Waiting for the end of the annual increase
         economic.wait_annual_blocknum(node)
