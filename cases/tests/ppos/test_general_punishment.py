@@ -100,6 +100,7 @@ def test_VP_GPFV_003(client_new_node_obj_list_reset):
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
+    economic.env.deploy_all()
     # create account
     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create staking
