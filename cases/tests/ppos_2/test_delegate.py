@@ -611,7 +611,7 @@ def test_DI_035_036(client_new_node_obj, client_consensus_obj):
     result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
                                        client_new_node_obj.node.node_id)
     log.info(result)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert client_consensus_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
     assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
     log.info("Restart the node")
     client_new_node_obj.node.start()

@@ -153,6 +153,7 @@ def test_ROE_038(staking_delegate_client):
     assert msg["Ret"]["Pledge"] == delegate_limit
 
 
+@pytest.mark.P2
 def test_ROE_039(staking_delegate_client):
     client = staking_delegate_client
     delegate_address = client.delegate_address
@@ -169,7 +170,7 @@ def test_ROE_039(staking_delegate_client):
     assert_code(result, 0)
     result = client.delegate.delegate(0, delegate_address)
     assert_code(result, 0)
-    msg = client.ppos.getDelegateInfo(client.staking_blocknum,delegate_address,node.node_id)
+    msg = client.ppos.getDelegateInfo(client.staking_blocknum, delegate_address, node.node_id)
     log.info(msg)
     balance1 = node.eth.getBalance(delegate_address)
     log.info("Wallet balance{}".format(balance1))
@@ -185,6 +186,7 @@ def test_ROE_039(staking_delegate_client):
     assert msg["Ret"]["Pledge"] == client.delegate_amount
 
 
+@pytest.mark.P2
 def test_ROE_040(free_locked_delegate_client):
     client = free_locked_delegate_client
     delegate_address = client.delegate_address
@@ -197,9 +199,13 @@ def test_ROE_040(free_locked_delegate_client):
     assert_code(result, 0)
     balance2 = node.eth.getBalance(delegate_address)
     log.info("Wallet balance{}".format(balance2))
-    assert amount - (balance2 - balance1) < node.web3.toWei(1, "ether")
+    assert client.delegate_amount * 2 - (balance2 - balance1) < node.web3.toWei(1, "ether")
+    msg = client.ppos.getRestrictingInfo(delegate_address)
+    log.info(msg)
+    assert msg["Ret"]["Pledge"] == 0
 
 
+@pytest.mark.P2
 def test_ROE_041(free_locked_delegate_client):
     client = free_locked_delegate_client
     delegate_address = client.delegate_address
@@ -217,6 +223,7 @@ def test_ROE_041(free_locked_delegate_client):
     assert client.delegate_amount * 2 - (balance2 - balance1) < node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P2
 def test_ROE_042(free_locked_delegate_client):
     client = free_locked_delegate_client
     delegate_address = client.delegate_address
@@ -240,6 +247,7 @@ def test_ROE_042(free_locked_delegate_client):
     assert msg["Ret"]["Pledge"] == 0
 
 
+@pytest.mark.P2
 def test_ROE_043(free_locked_delegate_client):
     client = free_locked_delegate_client
     delegate_address = client.delegate_address
@@ -265,6 +273,7 @@ def test_ROE_043(free_locked_delegate_client):
     assert msg["Ret"]["Pledge"] == client.delegate_amount
 
 
+@pytest.mark.P2
 def test_ROE_044(free_locked_delegate_client):
     client = free_locked_delegate_client
     delegate_address = client.delegate_address
@@ -291,6 +300,7 @@ def test_ROE_044(free_locked_delegate_client):
     assert msg["Ret"]["Pledge"] == 0
 
 
+@pytest.mark.P2
 def test_ROE_045(staking_delegate_client):
     client = staking_delegate_client
     delegate_address = client.delegate_address
@@ -311,6 +321,7 @@ def test_ROE_045(staking_delegate_client):
     assert client.delegate_amount * 3 - (balance2 - balance1) < node.web3.toWei(1, "ether")
 
 
+@pytest.mark.P2
 def test_ROE_048(staking_delegate_client):
     client = staking_delegate_client
     delegate_address = client.delegate_address
@@ -331,11 +342,9 @@ def test_ROE_048(staking_delegate_client):
     msg = client.ppos.getRestrictingInfo(delegate_address)
     log.info(msg)
     assert client.delegate_amount * 3 - (balance2 - balance1) < node.web3.toWei(1, "ether")
-    msg = client.ppos.getRestrictingInfo(delegate_address)
-    log.info(msg)
-    assert msg["Ret"]["Pledge"] == 0
 
 
+@pytest.mark.P2
 def test_ROE_049(staking_delegate_client):
     client = staking_delegate_client
     delegate_address = client.delegate_address

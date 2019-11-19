@@ -33,8 +33,9 @@ def test_IV_003(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_IV_004(get_generate_account, client_consensus_obj):
-    address, _ = get_generate_account
+def test_IV_004(client_consensus_obj):
+    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
+                                                                               10 ** 18 * 10000000)
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
     assert_code(result, 301107)
