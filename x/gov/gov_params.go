@@ -219,7 +219,7 @@ func initParam() []*GovernParam {
 		About Block module
 		*/
 		{
-			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：(%d, %s)", int(params.TxGas*200), xcom.PositiveInfinity)},
+			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：[%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DefaultMinerGasCeil)), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -228,9 +228,9 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
 				}
 
-				// (4712388, 21000 0000)
-				if gasLimit <= int(params.GenesisGasLimit) || gasLimit > int(params.MaxGasCeil) {
-					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be (%d, %d)", int(params.GenesisGasLimit), int(params.MaxGasCeil)))
+				// (4712388<= x < =21000 0000)
+				if gasLimit < int(params.GenesisGasLimit) || gasLimit > int(params.MaxGasCeil) {
+					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be [%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil)))
 				}
 
 				return nil
