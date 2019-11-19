@@ -9,7 +9,6 @@ def test_AS_001_002_009(client_new_node_obj):
     Normal overweight
     The verifier initiates the overweight with the amount of free account, meeting the minimum threshold
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     StakeThreshold = get_governable_parameter_value(client_new_node_obj, "StakeThreshold")
@@ -27,28 +26,30 @@ def test_AS_001_002_009(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_AS_003(client_new_node_obj, get_generate_account):
+def test_AS_003(client_new_node_obj):
     """
     The verifier is not on the verifier and candidate list
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301102)
 
 
 @pytest.mark.P3
-def test_AS_004(client_new_node_obj, get_generate_account):
+def test_AS_004(client_new_node_obj):
     """
     Undersupply of gas
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     client_new_node_obj.staking.create_staking(0, address, address)
     fig = {"gas": 1}
     status = 0
@@ -80,14 +81,14 @@ def test_AS_005(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_AS_007(client_new_node_obj, get_generate_account):
+def test_AS_007(client_new_node_obj):
     """
     (hesitation period) holdings less than the minimum threshold
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     client_new_node_obj.staking.create_staking(0, address, address)
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
     result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
@@ -96,14 +97,14 @@ def test_AS_007(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_AS_008(client_new_node_obj, get_generate_account):
+def test_AS_008(client_new_node_obj):
     """
     (hesitation period) when the verifier revoks the pledge, he/she shall apply for adding the pledge
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     client_new_node_obj.staking.create_staking(0, address, address)
     log.info("进入下个周期")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -114,17 +115,18 @@ def test_AS_008(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
-def test_AS_011_012_013_014(client_new_node_obj, get_generate_account):
+@pytest.mark.compatibility
+def test_AS_011_012_013_014(client_new_node_obj):
     """
     (lockup period) normal increase
     (lockup period) overweight meets the minimum threshold
     (lock-up period) gas underinitiation overweight
     (lockup period) insufficient balance to initiate overweight pledge
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     client_new_node_obj.staking.create_staking(0, address, address)
     log.info("进入下个周期")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -159,14 +161,15 @@ def test_AS_011_012_013_014(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_AS_015(client_new_node_obj, get_generate_account):
+def test_AS_015(client_new_node_obj):
     """
     The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
     node = client_new_node_obj.node
@@ -191,7 +194,6 @@ def test_AS_016(client_new_node_obj):
     """
     The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
@@ -213,14 +215,14 @@ def test_AS_016(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_AS_017(client_new_node_obj, get_generate_account):
+def test_AS_017(client_new_node_obj):
     """
     The amount of the increase is less than the threshold
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     log.info(result)
     add_staking_amount = client_new_node_obj.economic.add_staking_limit
@@ -230,15 +232,15 @@ def test_AS_017(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
-def test_AS_018_019(client_new_node_obj, get_generate_account):
+def test_AS_018_019(client_new_node_obj):
     """
     Increase the number of active withdrawal but still in the freeze period of the candidate
     Candidates whose holdings have been actively withdrawn and who have passed the freeze period
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Next settlement period")
@@ -256,15 +258,15 @@ def test_AS_018_019(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P0
-def test_AS_020_021(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
+def test_AS_020_021(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
     """
     Add to the list of candidates who have been penalized and are still in the freeze period
     A candidate whose holdings have been penalized has passed the freeze period
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
     assert_code(result, 0)
     log.info("Close one node")
@@ -299,6 +301,7 @@ def test_AS_022(client_new_node_obj):
     assert_code(result, 0)
     result = client_new_node_obj.staking.increase_staking(0, address1)
     log.info(result)
+    assert_code(result,301006)
 
 
 

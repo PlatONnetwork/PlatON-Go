@@ -62,6 +62,7 @@ def setNodeInfo(global_test_env):
 
 @allure.title("列出所有的账户地址:personal.listAccounts")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_listAccounts(setNodeInfo):
     if w3 != None:
         listAccounts = w3.personal.listAccounts
@@ -70,6 +71,7 @@ def test_personal_listAccounts(setNodeInfo):
 
 @allure.title("列出所有的钱包信息:personal.listWallets")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_listWallets(setNodeInfo):
     if w3 != None:
         listWallets = w3.personal.listWallets
@@ -78,6 +80,7 @@ def test_personal_listWallets(setNodeInfo):
 
 @allure.title("创建一个新账户并产生一个新钱包:personal.newAccount")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_newAccount(setNodeInfo):
     if w3 != None:
         print("\n 本地钱包个数:{}".format(len(w3.platon.accounts)))
@@ -89,6 +92,7 @@ def test_personal_newAccount(setNodeInfo):
 
 @allure.title("打开一个钱包:personal.openWallet")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_openWallet(setNodeInfo):
     if w3 != None:
         listWallet = w3.personal.listWallets
@@ -98,6 +102,7 @@ def test_personal_openWallet(setNodeInfo):
 
 @allure.title("解锁钱包:personal.unlockAccount")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_unlockAccount(setNodeInfo):
     if w3 != None:
         listWallet = w3.personal.listWallets
@@ -113,6 +118,7 @@ def test_personal_unlockAccount(setNodeInfo):
 
 @allure.title("上锁钱包:personal.lockAccount")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_lockAccount(setNodeInfo):
     if w3 != None:
         listWallet = w3.personal.listWallets
@@ -125,6 +131,7 @@ def test_personal_lockAccount(setNodeInfo):
 
 @allure.title("导入钱包私钥:personal.importRawKey")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_importRawKey(setNodeInfo):
     if w3 != None:
         try:
@@ -136,6 +143,7 @@ def test_personal_importRawKey(setNodeInfo):
 
 @allure.title("签名数据和解签:personal.sign()/personal.ecRecover()")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_sign_ecRecover(setNodeInfo):
     if w3 != None:
         signer = Web3.toChecksumAddress(w3.platon.accounts[0])
@@ -148,6 +156,7 @@ def test_personal_sign_ecRecover(setNodeInfo):
 # 签名交易
 @allure.title("签名交易:personal.signTransaction")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_personal_signTransaction(setNodeInfo):
     if w3 != None:
         nonce = hex(w3.platon.getTransactionCount(Web3.toChecksumAddress(address)))
@@ -191,6 +200,7 @@ def transaction_func(from_addr=address, to_addr='', value='0x10000000000000', da
 # 发送交易
 @allure.title("签名交易:personal.sendTransaction")
 @pytest.fixture()
+@pytest.mark.compatibility
 def personal_sendTransaction(setNodeInfo):
     if w3 != None:
         nonce = hex(w3.platon.getTransactionCount(Web3.toChecksumAddress(address)))

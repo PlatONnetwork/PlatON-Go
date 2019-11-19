@@ -2,6 +2,7 @@ import time
 
 import pytest
 import allure
+from client_sdk_python.eth import Eth
 
 from dacite import from_dict
 
@@ -9,8 +10,10 @@ from common.key import get_pub_key, mock_duplicate_sign
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
+
+from tests.conftest import get_client_noconsensus_list
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, get_pledge_list
+    get_governable_parameter_value, get_pledge_list, HexBytes
 
 
 @pytest.fixture(scope="function")
@@ -111,14 +114,17 @@ def test_IT_SD_002_003(global_test_env, value):
     """
     node = global_test_env.get_rand_node()
     address, _ = global_test_env.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    status = True
     # Account balance insufficient transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        result = global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice,
-                                                         21000, value)
-        assert result is None, "ErrMsg:Transfer result {}".format(result)
+        transfer_amount = node.web3.toWei(value, 'ether')
+        result = global_test_env.account.sendTransaction(node.web3, '', address, address1, node.web3.platon.gasPrice, 21000, transfer_amount)
+        log.info("result: {}".format(result))
+        status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+    assert status, "ErrMsg:Transfer result {}".format(status)
 
 
 @pytest.mark.P1
@@ -130,15 +136,18 @@ def test_IT_SD_011(global_test_env):
     """
     node = global_test_env.get_rand_node()
     address, _ = global_test_env.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    status = True
     # Insufficient gas fee for transfer
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
-        result = global_test_env.account.sendTransaction(node.web3, '', address,
+        global_test_env.account.sendTransaction(node.web3, '', address,
                                                          address1,
                                                          node.web3.platon.gasPrice, 2100, 500)
-        assert result is None, "ErrMsg:Transfer result {}".format(result)
+        status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+    assert status, "ErrMsg:Transfer result {}".format(status)
+
 
 
 @pytest.mark.P2
@@ -177,9 +186,98 @@ def test_IT_SD_008(global_test_env):
     balance1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("Account balance after transfer： {}".format(balance1))
     log.info("Transaction fee： {}".format(node.web3.platon.gasPrice * 21000))
-    assert balance1 == balance + node.web3.toWei(100,
-                                                 'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
+    assert balance1 == balance + node.web3.toWei(100,'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
         balance1)
+
+
+def sendTransaction_input_nonce(client, data, from_address, to_address, gasPrice, gas, value, nonce, check_address=True):
+    node = client.node
+    account = client.economic.account.accounts[from_address]
+    print(account)
+    if check_address:
+        to_address = Web3.toChecksumAddress(to_address)
+    tmp_from_address = Web3.toChecksumAddress(from_address)
+    # nonce = platon.getTransactionCount(tmp_from_address)
+
+    # if nonce < account['nonce']:
+    #     nonce = account['nonce']
+
+    transaction_dict = {
+        "to": to_address,
+        "gasPrice": gasPrice,
+        "gas": gas,
+        "nonce": nonce,
+        "data": data,
+        "chainId": client.economic.account.chain_id,
+        "value": value,
+        'from': tmp_from_address,
+    }
+
+    # log.debug("account['prikey']:::::::{}".format(account['prikey']))
+
+    signedTransactionDict = node.eth.account.signTransaction(
+        transaction_dict, account['prikey']
+    )
+
+    # log.debug("signedTransactionDict:::::::{}，nonce::::::::::{}".format(signedTransactionDict, nonce))
+
+    data = signedTransactionDict.rawTransaction
+    result = HexBytes(node.eth.sendRawTransaction(data)).hex()
+    # log.debug("result:::::::{}".format(result))
+    res = node.eth.waitForTransactionReceipt(result)
+
+    return res
+
+
+@pytest.mark.P2
+def test_IT_SD_009(client_consensus_obj):
+    """
+    同一时间多次转账
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    address1, _ = economic.account.generate_account(node.web3, 0)
+    nonce = node.eth.getTransactionCount(address)
+    print('nonce: ', nonce)
+    balance = node.eth.getBalance(address1)
+    log.info("balance: {}".format(balance))
+    sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce)
+    sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce+1)
+    time.sleep(3)
+    balance1 = node.eth.getBalance(address1)
+    log.info("Account balance after transfer： {}".format(balance1))
+    assert balance1 == balance + node.web3.toWei(200, 'ether'), "ErrMsg:Account balance after transfer：{}".format(balance1)
+
+
+@pytest.mark.P2
+def test_IT_SD_010(client_consensus_obj):
+    """
+    同一时间多次转账，余额不足
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    economic.env.deploy_all()
+    address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    address1, _ = economic.account.generate_account(node.web3, 0)
+    balance = node.eth.getBalance(address1)
+    log.info("balance: {}".format(balance))
+    try:
+        nonce = node.eth.getTransactionCount(address)
+        log.info('nonce: {}'.format(nonce))
+        sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(500, 'ether'), nonce)
+        sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(600, 'ether'), nonce+1)
+    except Exception as e:
+        log.info("Use case success, exception information：{} ".format(str(e)))
+        time.sleep(3)
+        balance1 = node.eth.getBalance(address1)
+        log.info("Account balance after transfer： {}".format(balance1))
+        assert balance1 == balance + node.web3.toWei(500, 'ether'), "ErrMsg:Account balance after transfer：{}".format(balance1)
 
 
 def consensus_node_pledge_award_assertion(client_new_node_obj, address):
@@ -287,6 +385,7 @@ def test_AL_IE_001(client_consensus_obj):
 
 
 @pytest.mark.P2
+
 def test_AL_IE_002(client_new_node_obj_list):
     """
     转账到激励池
@@ -345,8 +444,8 @@ def test_AL_IE_002(client_new_node_obj_list):
     assert benifit_balance3 == staking_reward + reward, "ErrMsg:benifit_balance: {}".format(benifit_balance3)
 
 
-
 @pytest.mark.P1
+
 def test_AL_IE_003(client_new_node_obj_list):
     """
     自由账户创建质押节点且收益地址为激励池
@@ -365,6 +464,7 @@ def test_AL_IE_003(client_new_node_obj_list):
 
 
 @pytest.mark.P1
+
 def test_AL_IE_004(client_new_node_obj_list):
     """
     锁仓账户创建质押节点且收益地址为激励池
@@ -407,10 +507,11 @@ def test_AL_BI_001(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_AL_BI_002(new_genesis_env, client_noc_list_obj):
+def test_AL_BI_002(new_genesis_env, staking_cfg):
     """
     节点出块率为0被处罚，激励池金额增加
-    :param client_noc_list_obj:
+    :param new_genesis_env:
+    :param staking_cfg:
     :return:
     """
     # Change configuration parameters
@@ -419,7 +520,7 @@ def test_AL_BI_002(new_genesis_env, client_noc_list_obj):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
-
+    client_noc_list_obj = get_client_noconsensus_list(new_genesis_env, staking_cfg)
     client1 = client_noc_list_obj[0]
     client2 = client_noc_list_obj[1]
     economic = client1.economic
@@ -585,6 +686,7 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environment):
     """
     AL_NBI_004:非内置验证人Staking奖励（候选人）
@@ -634,6 +736,7 @@ def view_benifit_reward(client, address):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_AL_NBI_007_to_009(client_new_node_obj):
     """
     AL_NBI_007:非内置验证人Staking奖励（验证人）
@@ -709,6 +812,7 @@ def assert_benifit_reward(client_new_node_obj, benifit_address, address):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_010_to_012(client_new_node_obj):
     """
     AL_NBI_010:非内置验证人Staking奖励（共识验证人）
@@ -724,6 +828,7 @@ def test_AL_NBI_010_to_012(client_new_node_obj):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_013(client_new_node_obj):
     """
     修改节点质押收益地址查看收益变更
@@ -748,6 +853,7 @@ def query_ccount_amount(client_new_node_obj, address):
 
 
 @pytest.mark.P1
+
 def test_AL_NBI_014(client_new_node_obj):
     """
     修改节点质押收益地址查看收益变更（正在出块中）
@@ -831,7 +937,8 @@ def test_AL_NBI_015(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_AL_NBI_016(client_new_node_obj):
+@pytest.mark.compatibility
+def test_AL_NBI_016(client_new_node_obj, reset_environment):
     """
     被双签处罚槛剔除验证人列表
     :param client_new_node_obj:
@@ -840,6 +947,7 @@ def test_AL_NBI_016(client_new_node_obj):
     client = client_new_node_obj
     economic = client.economic
     node = client.node
+    client.economic.env.deploy_all()
     # create account
     address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     address2, _ = economic.account.generate_account(node.web3, 0)
@@ -886,6 +994,7 @@ def test_AL_NBI_016(client_new_node_obj):
 
 
 @pytest.mark.P2
+@pytest.mark.compatibility
 def test_AL_NBI_017(client_new_node_obj_list):
     """
     0出块率剔除验证人列表

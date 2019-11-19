@@ -6,18 +6,19 @@ import allure
 
 
 @pytest.mark.P0
-def test_MPI_001_002(client_new_node_obj, get_generate_account):
+@pytest.mark.compatibility
+def test_MPI_001_002(client_new_node_obj):
     """
     Modify node information
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     external_id = "ID1"
     node_name = "LIDA"
     website = "WEBSITE"
     details = "talent"
-    address, pri_key = get_generate_account
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client_new_node_obj.ppos.editCandidate(address, client_new_node_obj.node.node_id, external_id,
@@ -32,17 +33,17 @@ def test_MPI_001_002(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_MPI_003(client_new_node_obj, greater_than_staking_amount):
+def test_MPI_003(client_new_node_obj):
     """
     Node becomes consensus validator when modifying revenue address
     :param client_new_node_obj:
-    :param get_generate_account:
     :param greater_than_staking_amount:
     :return:
     """
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
@@ -57,14 +58,14 @@ def test_MPI_003(client_new_node_obj, greater_than_staking_amount):
 
 
 @pytest.mark.P1
-def test_MPI_004(client_consensus_obj, get_generate_account):
+def test_MPI_004(client_consensus_obj):
     """
     The original verifier beneficiary's address modifies the ordinary address
     :param client_consensus_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
+                                                                        10 ** 18 * 10000000)
     INCENTIVEPOOL_ADDRESS = client_consensus_obj.economic.cfg.INCENTIVEPOOL_ADDRESS
     DEVELOPER_FOUNDATAION_ADDRESS = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
 
@@ -76,7 +77,7 @@ def test_MPI_004(client_consensus_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_MPI_005_006(client_new_node_obj, get_generate_account):
+def test_MPI_005_006(client_new_node_obj):
     """
     The beneficiary address of the non-initial verifier is changed to the incentive pool address
     and then to the ordinary address
@@ -84,7 +85,8 @@ def test_MPI_005_006(client_new_node_obj, get_generate_account):
     :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     INCENTIVEPOOL_ADDRESS = client_new_node_obj.economic.cfg.INCENTIVEPOOL_ADDRESS
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
@@ -105,15 +107,15 @@ def test_MPI_005_006(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P1
-def test_MPI_007(client_new_node_obj, client_noconsensus_obj, get_generate_account):
+def test_MPI_007(client_new_node_obj, client_noconsensus_obj):
     """
     Edit wallet address as legal
     :param client_new_node_obj:
     :param client_noconsensus_obj:
-    :param get_generate_account:
     :return:
     """
-    address1, _ = get_generate_account
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        10 ** 18 * 10000000)
     log.info(address1)
     result = client_new_node_obj.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
@@ -130,14 +132,14 @@ def test_MPI_007(client_new_node_obj, client_noconsensus_obj, get_generate_accou
 
 
 @pytest.mark.P1
-def test_MPI_008(client_new_node_obj, get_generate_account):
+def test_MPI_008(client_new_node_obj):
     """
     It is illegal to edit wallet addresses
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address1, _ = get_generate_account
+    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                        10 ** 18 * 10000000)
     log.info(address1)
     result = client_new_node_obj.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
@@ -152,14 +154,14 @@ def test_MPI_008(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_MPI_009(client_new_node_obj, get_generate_account):
+def test_MPI_009(client_new_node_obj):
     """
     Insufficient gas to initiate modification node
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     cfg = {"gas": 1}
     status = 0
     try:
@@ -171,7 +173,7 @@ def test_MPI_009(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P3
-def test_MPI_061(client_new_node_obj):
+def test_MPI_010(client_new_node_obj):
     """
     Insufficient balance to initiate the modification node
     :param client_new_node_obj:
@@ -190,14 +192,14 @@ def test_MPI_061(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_MPI_011(client_new_node_obj, get_generate_account):
+def test_MPI_011(client_new_node_obj):
     """
     During the hesitation period, withdraw pledge and modify node information
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, pri_key = get_generate_account
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client_new_node_obj.staking.withdrew_staking(address)
@@ -213,7 +215,6 @@ def test_MPI_012_013(client_new_node_obj):
     Lock period exit pledge, modify node information
     After the lockout pledge is complete, the node information shall be modified
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
@@ -242,11 +243,10 @@ def test_MPI_012_013(client_new_node_obj):
 
 
 @pytest.mark.P3
-def test_MPI_065(client_new_node_obj, get_generate_account):
+def test_MPI_014(client_new_node_obj):
     """
     Non-verifier, modify node information
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
     external_id = "ID1"
@@ -255,7 +255,8 @@ def test_MPI_065(client_new_node_obj, get_generate_account):
     details = "talent"
     illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
                      "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
-    address, pri_key = get_generate_account
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
     result = client_new_node_obj.staking.create_staking(0, address, address)
     assert_code(result, 0)
     result = client_new_node_obj.ppos.editCandidate(address, illegal_nodeID, external_id,
@@ -265,16 +266,18 @@ def test_MPI_065(client_new_node_obj, get_generate_account):
 
 
 @pytest.mark.P2
-def test_MPI_015_016(client_new_node_obj, get_generate_account, client_consensus_obj, greater_than_staking_amount):
+def test_MPI_015_016(client_new_node_obj, client_consensus_obj):
     """
     Candidates whose commissions have been penalized are still frozen
     A candidate whose mandate has expired after a freeze period
     :param client_new_node_obj:
-    :param get_generate_account:
     :return:
     """
-    address, _ = get_generate_account
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
+
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Close one node")
     client_new_node_obj.node.stop()
@@ -287,7 +290,23 @@ def test_MPI_015_016(client_new_node_obj, get_generate_account, client_consensus
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node.node_id)
+    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     result = client_new_node_obj.staking.edit_candidate(address, address)
+    log.info(result)
+    assert_code(result, 301102)
+
+
+@pytest.mark.P2
+def test_MPI_017(client_new_node_obj):
+    external_id = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    node_name = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    website = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+    details = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 "
+
+    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                             10 ** 18 * 10000000)
+
+    result = client_new_node_obj.ppos.editCandidate(address, client_new_node_obj.node.node_id,
+                                                    external_id, node_name, website, details, pri_key)
     log.info(result)
     assert_code(result, 301102)

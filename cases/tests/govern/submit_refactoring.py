@@ -1,3 +1,5 @@
+import pytest
+
 from common.log import log
 from dacite import from_dict
 from tests.lib import Genesis
@@ -63,6 +65,7 @@ class TestEndVotingRounds:
         voting_round_deploy(pip_obj, pip_env, -1)
         voting_round_assert(pip_obj, 4)
 
+    @pytest.mark.compatibility
     def test_VP_CR_005_VP_CR_006_TP_TE_001(self, pip_env, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         voting_round_deploy(pip_obj, pip_env, 0)

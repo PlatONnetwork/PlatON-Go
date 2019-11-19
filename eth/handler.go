@@ -467,7 +467,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return err
 		}
 	case p.version >= eth63 && msg.Code == GetPPOSStorageMsg:
-		p.Log().Info("[GetPPOSStorageMsg]Received a broadcast message", "id", common.CurrentGoRoutineID())
+		p.Log().Info("[GetPPOSStorageMsg]Received a broadcast message")
 		var query []interface{}
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
@@ -725,7 +725,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Mark the hashes as present at the remote node
 		for _, block := range announces {
 			p.MarkBlock(block.Hash)
-			log.Debug("Received a message[NewBlockHashesMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", msg.ReceivedAt.Unix(), "peerId", p.id, "hash", block.Hash, "number", block.Number)
+			log.Debug("Received a message[NewBlockHashesMsg]------------", "receiveAt", msg.ReceivedAt.Unix(), "peerId", p.id, "hash", block.Hash, "number", block.Number)
 		}
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
@@ -748,7 +748,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 
-		log.Debug("Received a message[NewBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", request.Block.ReceivedAt.Unix(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Debug("Received a message[NewBlockMsg]------------", "receiveAt", request.Block.ReceivedAt.Unix(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())

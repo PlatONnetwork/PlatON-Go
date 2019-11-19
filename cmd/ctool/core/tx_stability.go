@@ -5,20 +5,23 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
-	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
-	accountPool         = make(map[string]*PriAccount)
+	//accountPool         = make(map[string]*PriAccount)
+	accountPool         = make(map[common.Address]*PriAccount)
 	StressTransferValue = 1000
 	txCh                = make(chan *types.Transaction, 10)
 	wg                  = &sync.WaitGroup{}
@@ -69,20 +72,22 @@ func stabilityTest(c *cli.Context) {
 }
 
 type PriAccount struct {
-	Priv  *ecdsa.PrivateKey
-	Nonce uint64
+	Priv    *ecdsa.PrivateKey
+	Nonce   uint64
+	Address common.Address
 }
 
 func generateAccount(size int, pkFile string) {
 	addrs := make([]string, size)
 	for i := 0; i < size; i++ {
 		privateKey, _ := crypto.GenerateKey()
-		address := crypto.PubkeyToAddress(privateKey.PublicKey).Hex()
-		accountPool[address] = &PriAccount{privateKey, 0}
-		addrs[i] = address
+		address := crypto.PubkeyToAddress(privateKey.PublicKey)
+		accountPool[address] = &PriAccount{privateKey, 0, address}
+		addrs[i] = address.Hex()
 	}
 	savePrivateKeyPool(pkFile)
 	saveAddrs(addrs, pkFile)
+
 }
 
 func savePrivateKeyPool(pkFile string) {
@@ -126,7 +131,7 @@ func PrepareAccount(size int, pkFile, value string) error {
 	}
 
 	for addr := range accountPool {
-		hash, err := SendTransaction("", addr, value)
+		hash, err := SendTransaction(from, addr.Hex(), value)
 		if err != nil {
 			return fmt.Errorf("prepare error,send from coinbase error,%s", err.Error())
 		}
@@ -152,7 +157,7 @@ func StabilityTest(pkFile string, times, interval int) error {
 			continue
 		}
 
-		acc, ok := accountPool[from]
+		acc, ok := accountPool[common.HexToAddress(from)]
 		if !ok {
 			return fmt.Errorf("private key not found,addr:%s", from)
 		}
@@ -212,13 +217,25 @@ func parsePkFile(pkFile string) {
 		dir, _ := os.Getwd()
 		pkFile = dir + DefaultPrivateKeyFilePath
 	}
+	//gob.Register(&secp256k1.BitCurve{})
+	//file, err := os.Open(pkFile)
+	//dec := gob.NewDecoder(file)
+	//err2 := dec.Decode(&accountPool)
+	//if err2 != nil {
+	//	panic(err.Error())
+	//}
+
 	gob.Register(&secp256k1.BitCurve{})
 	file, err := os.Open(pkFile)
+	if err != nil {
+		panic(err)
+	}
 	dec := gob.NewDecoder(file)
 	err2 := dec.Decode(&accountPool)
 	if err2 != nil {
-		panic(err.Error())
+		panic(err2)
 	}
+
 }
 
 func getAllAddress(pkFile string) []string {

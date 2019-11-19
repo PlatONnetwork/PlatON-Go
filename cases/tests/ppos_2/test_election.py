@@ -162,6 +162,7 @@ def test_CS_CL_003(global_test_env, client_con_list_obj, client_noc_list_obj):
     assert client_noc_list_obj[0].node.node_id in validatorlist3
 
 
+###have bug
 @pytest.mark.P1
 def test_CS_CL_004(global_test_env, client_consensus_obj, client_new_node_obj):
     """
@@ -319,7 +320,7 @@ def test_CS_CL_010_030(global_test_env, client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_CS_CL_012_033(global_test_env, client_new_node_obj):
+def test_CS_CL_012_032(global_test_env, client_new_node_obj):
     """
     :param client_new_node_obj:
     :return:
@@ -357,6 +358,7 @@ def test_CS_CL_012_033(global_test_env, client_new_node_obj):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_CS_CL_013_031(global_test_env, client_new_node_obj, client_consensus_obj):
     """
 
@@ -615,7 +617,34 @@ def test_CS_CL_017_018_019(status, global_test_env, client_con_list_obj, client_
 
 
 @pytest.mark.P2
-def test_CS_CL_028(global_test_env, client_new_node_obj):
+def test_CS_CL_027_028(global_test_env, client_noc_list_obj):
+    global_test_env.deploy_all()
+    address1, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
+    address2, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
+
+    result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
+                                                           amount=client_noc_list_obj[
+                                                                      0].economic.create_staking_limit * 2)
+    assert_code(result, 0)
+
+    result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,
+                                                           amount=client_noc_list_obj[1].economic.create_staking_limit)
+    assert_code(result, 0)
+
+    log.info("Next settlement period")
+    client_noc_list_obj[1].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
+    msg = client_noc_list_obj[1].ppos.getVerifierList()
+    log.info(msg)
+    verifierlist = get_pledge_list(client_noc_list_obj[1].ppos.getVerifierList)
+    log.info("verifierlist:{}".format(verifierlist))
+    assert client_noc_list_obj[0].node.node_id in verifierlist
+    assert client_noc_list_obj[1].node.node_id not in verifierlist
+
+
+@pytest.mark.P2
+def test_CS_CL_033(global_test_env, client_new_node_obj):
     global_test_env.deploy_all()
     address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                         10 ** 18 * 10000000)

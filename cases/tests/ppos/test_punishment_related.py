@@ -34,8 +34,8 @@ def verification_duplicate_sign(client_obj, evidence_type, reporting_type, repor
 def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     """
     举报验证人区块双签:VP_PV_001 prepareBlock类型
-                    VP_PV_002 举报验证人区块双签prepareVote类型
-                    VP_PV_003 举报验证人区块双签viewChange类型
+                    VP_PV_002 prepareVote类型
+                    VP_PV_003 viewChange类型
     :param client_consensus_obj:
     :param repor_type:
     :param reset_environment:
@@ -44,6 +44,7 @@ def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     client = client_consensus_obj
     economic = client.economic
     node = client.node
+    client.economic.env.deploy_all()
     # Obtain penalty proportion and income
     pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
     # create report address
@@ -134,6 +135,7 @@ def initial_report(global_test_env):
 
 class TestMultipleReports:
     @pytest.mark.P1
+
     def test_VP_PV_004(self, initial_report):
         """
         举报双签-同一验证人同一块高不同类型
@@ -146,6 +148,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_005(self, initial_report):
         """
         举报双签-同一验证人不同块高同一类型
@@ -158,6 +161,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_006(self, initial_report):
         """
         举报双签-同一验证人不同块高不同类型
@@ -170,6 +174,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_007(self, initial_report):
         """
         举报双签-不同验证人同一块高同一类型
@@ -184,6 +189,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_008(self, initial_report):
         """
         举报双签-不同验证人同一块高不同类型
@@ -198,6 +204,7 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
+
     def test_VP_PV_009(self, initial_report):
         """
         举报双签-不同验证人不同块高不同类型
@@ -253,6 +260,7 @@ def obtaining_evidence_information(economic, node):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_010(client_consensus_obj):
     """
     举报双签-双签证据epoch不一致
@@ -275,6 +283,7 @@ def test_VP_PV_010(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_011(client_consensus_obj):
     """
     举报双签-双签证据view_number不一致
@@ -297,6 +306,7 @@ def test_VP_PV_011(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_012(client_consensus_obj):
     """
     举报双签-双签证据block_number不一致
@@ -319,6 +329,7 @@ def test_VP_PV_012(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_013(client_consensus_obj):
     """
     举报双签-双签证据block_hash一致
@@ -342,6 +353,7 @@ def test_VP_PV_013(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_014(client_consensus_obj):
     """
     举报双签-双签证据block_index不一致
@@ -364,6 +376,7 @@ def test_VP_PV_014(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_015(client_consensus_obj):
     """
     举报双签-双签证据validate_node-index不一致
@@ -386,6 +399,7 @@ def test_VP_PV_015(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_016(client_consensus_obj):
     """
     举报双签-双签证据address不一致
@@ -409,6 +423,7 @@ def test_VP_PV_016(client_consensus_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_017(client_con_list_obj):
     """
     举报双签-NodeID不一致举报双签
@@ -432,6 +447,7 @@ def test_VP_PV_017(client_con_list_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_018(client_con_list_obj):
     """
     举报双签-blsPubKey不一致举报双签
@@ -455,6 +471,7 @@ def test_VP_PV_018(client_con_list_obj):
 
 
 @pytest.mark.P1
+
 def test_VP_PV_019(client_con_list_obj):
     """
     举报双签-signature一致举报双签
@@ -774,16 +791,18 @@ def test_VP_PV_031(client_consensus_obj):
     client = client_consensus_obj
     economic = client.economic
     node = client.node
+    status = True
     # create report address
     report_address, _ = economic.account.generate_account(node.web3, 0)
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     try:
         # Report verifier Duplicate Sign
-        result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
-        assert_code(result, 0)
+        client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+        status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
+    assert status, "ErrMsg:Report verifier status {}".format(status)
 
 
 @pytest.mark.P1
@@ -987,6 +1006,7 @@ def test_VP_PVF_003(client_new_node_obj, reset_environment):
     client = client_new_node_obj
     economic = client.economic
     node = client.node
+    time.sleep(5)
     # create pledge address
     pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create report address

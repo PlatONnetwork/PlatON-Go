@@ -48,7 +48,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 		return nil
 	}
 
-	version := xutil.CalcVersion(programVersion)
+	//version := xutil.CalcVersion(programVersion)
 
 	var length int
 
@@ -99,8 +99,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			BlsPubKey:       keyHex,
 			StakingAddress:  xcom.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,
-			StakingTxIndex:  uint32(index), // txIndex from zero to n
-			ProgramVersion:  version,
+			StakingTxIndex:  uint32(index),  // txIndex from zero to n
+			ProgramVersion:  programVersion, // real version
 			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",
@@ -169,7 +169,7 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			NodeAddress:     nodeAddr,
 			NodeId:          base.NodeId,
 			BlsPubKey:       base.BlsPubKey,
-			ProgramVersion:  base.ProgramVersion,
+			ProgramVersion:  base.ProgramVersion, // real version
 			Shares:          mutable.Shares,
 			StakingBlockNum: base.StakingBlockNum,
 			StakingTxIndex:  base.StakingTxIndex,

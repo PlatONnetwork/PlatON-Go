@@ -1,7 +1,7 @@
 rlp==1.1.0
 dacite==1.0.2
 hexbytes==0.1.0
-pytest==5.2.0
+pytest==4.6.6
 pytest-forked==0.2
 pytest-html==1.19.0
 pytest-metadata==1.7.0

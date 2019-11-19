@@ -114,6 +114,10 @@ class Genesis:
             f.write(json.dumps(data, indent=4))
 
 
+def to_genesis(genesis_conf) -> Genesis:
+    return from_dict(Genesis, genesis_conf)
+
+
 if __name__ == "__main__":
     # from common.load_file import LoadFile
     # from conf.settings import GENESIS_FILE
