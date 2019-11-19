@@ -94,7 +94,7 @@ def test_PP_SU_001_PP_UN_001_VP_UN_003(submit_param):
     log.info('There is a voting param proposal,submit version proposal result : {}'.format(result))
     assert_code(result, 302032)
 
-def test_VP_VE_001_to_VP_VE_004(no_vp_proposal):
+def test_VP_VE_001_to_VP_VE_005(no_vp_proposal):
     pip_obj_tmp = no_vp_proposal
     result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version1, 1,
                                        pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
@@ -115,6 +115,11 @@ def test_VP_VE_001_to_VP_VE_004(no_vp_proposal):
                                    pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
     assert_code(result, 302011)
+
+    result = pip_obj_tmp.submitVersion(pip_obj_tmp.node.node_id, str(time.time()), pip_obj_tmp.cfg.version8, 1,
+                                       pip_obj_tmp.node.staking_address, transaction_cfg=pip_obj_tmp.cfg.transaction_cfg)
+    log.info('Submit version proposal result : {}'.format(result))
+    assert_code(result, 0)
 
 def test_VP_WA_001(no_vp_proposal):
     pip_obj_tmp = no_vp_proposal
@@ -139,6 +144,7 @@ def test_TP_UN_001(submit_text):
     log.info('There is voting text proposal, submit text proposal result : {}'.format(result))
     assert_code(result, 0)
 
+@pytest.mark.compatibility
 def test_VP_SU_001_VP_UN_001(submit_version):
     pip_obj = submit_version
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1,
@@ -423,7 +429,7 @@ class TestSubmitCancel():
         log.info('exited node，cancel proposal result: {}'.format(result))
         assert_code(result, 302022)
 
-    def test_CP_CR_001(self, submit_version):
+    def test_CP_CR_001_CP_CR_002(self, submit_version):
         pip_obj = submit_version
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
         log.info('proposalinfo: {}'.format(proposalinfo))
@@ -450,6 +456,31 @@ class TestSubmitCancel():
         log.info('cancel proposal result: {}'.format(result))
         assert_code(result, 302015)
 
+    def test_CP_ID_004_CP_ID_003(self, new_genesis_env, client_consensus_obj):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+        pip_obj = client_consensus_obj.pip
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '123',
+                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit parameter proposal result : {}'.format(result))
+        assert_code(result, 0)
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Get parameter proposal information : {}'.format(proposalinfo_param))
+        proposalinfo_text = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
+        log.info('Get text proposal information : {}'.format(proposalinfo_text))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo_text.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
+        wait_block_number(pip_obj.node, proposalinfo_param.get('EndVotingBlock'))
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo_param.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
 
 class TestPP():
     def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, client_list_obj):
@@ -675,7 +706,7 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '100000.1',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '10**18 * 1000000 + 0.1',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -699,6 +730,12 @@ class TestPP():
                                      '10**18 * 1000000 - 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
+                                     '10**18 * 10000000 + 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(get_governable_parameter_value(client_obj, 'stakeThreshold')),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -710,6 +747,14 @@ class TestPP():
                                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
+
+    def test_PP_SU_010(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
+                                     '10**18 * 10000000',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
 
     def test_PP_SU_010(self, no_vp_proposal):
         pip_obj = no_vp_proposal
@@ -749,7 +794,12 @@ class TestPP():
         assert_code(result, 3)
 
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
-                                     '9', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     '10**18 * 10 - 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
+                                     '10**18 * 10000 + 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
@@ -768,8 +818,7 @@ class TestPP():
     def test_PP_SU_012(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
-                                     '10000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-                                     pip_obj.node.staking_address,
+                                     '10**18 * 10000', pip_obj.node.staking_address,
                                      transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -932,7 +981,12 @@ class TestPP():
         assert_code(result, 3)
 
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit',
-                                     '4712388', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     '4712387', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 3)
+
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit',
+                                     '210000001', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
@@ -948,11 +1002,17 @@ class TestPP():
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
 
+    def test_(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '210000000',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+
     def test_PP_SU_018(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit',
-                                     '10000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-                                     pip_obj.node.staking_address,
+                                     '210000000', pip_obj.node.staking_address,
                                      transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -1089,7 +1149,7 @@ class TestSubmitAgain():
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], 1, 1, 1)
+        submitcppandvote(client_con_list_obj[:3], [1, 1, 1])
         pip_obj = client_con_list_obj[0].pip
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Param proposal information : {}'.format(proposalinfo_param))
@@ -1230,7 +1290,24 @@ class TestPIPVerify():
         log.info('Same PIPID, submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
+def test_CP_CR_003_CP_CR_004(submit_param):
+    pip_obj = submit_param
+    proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+    log.info('proposalinfo: {}'.format(proposalinfo))
+    endvoting_rounds = (proposalinfo.get('EndVotingBlock') - math.ceil(
+        pip_obj.node.block_number/pip_obj.economic.consensus_size) * pip_obj.economic.consensus_size
+                        ) / pip_obj.economic.consensus_size
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), endvoting_rounds + 1,
+                                                  proposalinfo.get('ProposalID'), pip_obj.node.staking_address,
+                                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('endvoting_rounds:{}， cancel proposal result:{}'.format(endvoting_rounds, result))
+    assert_code(result, 302010)
 
+    result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), endvoting_rounds,
+                                                  proposalinfo.get('ProposalID'), pip_obj.node.staking_address,
+                                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+    log.info('endvoting_rounds:{}， cancel proposal result:{}'.format(endvoting_rounds+1, result))
+    assert_code(result, 0)
 
 
 if __name__ == '__main__':

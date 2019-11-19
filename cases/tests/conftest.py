@@ -196,7 +196,7 @@ def new_genesis_env(global_test_env):
     yield global_test_env
     log.info("reset deploy.................")
     global_test_env.set_cfg(cfg)
-    # global_test_env.deploy_all()
+    global_test_env.deploy_all()
 
 
 def param_governance_verify(client_obj, module, name, newvalue, effectiveflag=True):

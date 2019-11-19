@@ -28,6 +28,9 @@ def version_proposal_vote(pip_obj, vote_option=None):
     elif proposalinfo.get('NewVersion') == pip_obj.cfg.version8:
         upload_platon(pip_obj.node, pip_obj.cfg.PLATON_NEW_BIN8)
         log.info('Replace the node {} version to {}'.format(pip_obj.node.node_id, pip_obj.cfg.version8))
+    elif proposalinfo.get('NewVersion') == pip_obj.cfg.version9:
+        upload_platon(pip_obj.node, pip_obj.cfg.PLATON_NEW_BIN9)
+        log.info('Replace the node {} version to {}'.format(pip_obj.node.node_id, pip_obj.cfg.version9))
     else:
         raise Exception('The new version of the proposal is{}'.format(proposalinfo.get('NewVersion')))
     pip_obj.node.restart()

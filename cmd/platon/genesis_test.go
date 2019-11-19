@@ -54,45 +54,46 @@ var customGenesisTests = []struct {
             "balance":"2000000000000000000000000000"
         }
     },
-    "EconomicModel":{
-        "Common":{
-            "MaxEpochMinutes":4,
-            "MaxConsensusVals":4,
-            "AdditionalCycleTime":16
+    "economicModel":{
+        "common":{
+            "maxEpochMinutes":4,
+            "maxConsensusVals":4,
+            "additionalCycleTime":28
         },
-        "Staking":{
-            "StakeThreshold":               1000000000000000000000000,
-            "OperatingThreshold":             10000000000000000000,
-            "MaxValidators":            24,
-            "HesitateRatio":                1,
-            "UnStakeFreezeDuration":           2
+        "staking":{
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 30,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
         },
-        "Slashing":{
-           "PackAmountAbnormal":   6,
-           "SlashFractionDuplicateSign": 100,
-           "DuplicateSignReportReward": 50,
-           "SlashBlocksReward":20, 
-           "MaxEvidenceAge":1
+        "slashing":{
+           "slashFractionDuplicateSign": 100,
+           "duplicateSignReportReward": 50,
+           "maxEvidenceAge":1,
+           "slashBlocksReward":20
         },
-        "Gov": {
-            "VersionProposalVoteDurationSeconds": 160,
-            "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposalSupportRate": 0.667,
-            "TextProposalVoteDurationSeconds": 160,
-            "TextProposalVoteRate": 0.5,
-            "TextProposalSupportRate": 0.667,          
-            "CancelProposalVoteRate": 0.50,
-            "CancelProposalSupportRate": 0.667
+         "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,          
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667      
         },
-        "Reward":{
-            "NewBlockRate": 50,
-            "PlatONFoundationYear": 10 
+        "reward":{
+            "newBlockRate": 50,
+            "platonFoundationYear": 10 
         },
-        "InnerAcc":{
-            "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
-            "PlatONFundBalance": 0,
-            "CDFAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
-            "CDFBalance": 331811981000000000000000000
+        "innerAcc":{
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfBalance": 331811981000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -109,10 +110,9 @@ var customGenesisTests = []struct {
                     "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
                 }
             ],
-            "epoch":1,
             "amount":10,
-            "validatorMode":"ppos",
-            "period":10000
+			"period":10000,
+            "validatorMode":"ppos"
         }
     }
 }`,
@@ -145,45 +145,46 @@ var customGenesisTests = []struct {
             "balance":"2000000000000000000000000000"
         }
     },
-    "EconomicModel":{
-        "Common":{
-            "MaxEpochMinutes":4,
-            "MaxConsensusVals":4,
-            "AdditionalCycleTime":16
+    "economicModel":{
+        "common":{
+            "maxEpochMinutes":4,
+            "maxConsensusVals":4,
+            "additionalCycleTime":28
         },
-        "Staking":{
-            "StakeThreshold":               1000000000000000000000000,
-            "OperatingThreshold":             10000000000000000000,
-            "MaxValidators":            24,
-            "HesitateRatio":                1,
-            "UnStakeFreezeDuration":           2
+        "staking":{
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 30,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
         },
-        "Slashing":{
-           "PackAmountAbnormal":   6,
-           "SlashFractionDuplicateSign": 100,
-           "DuplicateSignReportReward": 50,
-           "SlashBlocksReward":20, 
-           "MaxEvidenceAge":1
+        "slashing":{
+           "slashFractionDuplicateSign": 100,
+           "duplicateSignReportReward": 50,
+           "maxEvidenceAge":1,
+           "slashBlocksReward":20
         },
-        "Gov": {
-            "VersionProposalVoteDurationSeconds": 160,
-            "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposalSupportRate": 0.667,
-            "TextProposalVoteDurationSeconds": 160,
-            "TextProposalVoteRate": 0.5,
-            "TextProposalSupportRate": 0.667,          
-            "CancelProposalVoteRate": 0.50,
-            "CancelProposalSupportRate": 0.667
+         "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,          
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667      
         },
-        "Reward":{
-            "NewBlockRate": 50,
-            "PlatONFoundationYear": 10 
+        "reward":{
+            "newBlockRate": 50,
+            "platonFoundationYear": 10 
         },
-        "InnerAcc":{
-            "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
-            "PlatONFundBalance": 0,
-            "CDFAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
-            "CDFBalance": 331811981000000000000000000
+        "innerAcc":{
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfBalance": 331811981000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -200,10 +201,9 @@ var customGenesisTests = []struct {
                     "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
                 }
             ],
-            "epoch":1,
             "amount":10,
-            "validatorMode":"ppos",
-            "period":10000
+			"period":10000,
+            "validatorMode":"ppos"
         }
     }
 }`,
@@ -236,45 +236,46 @@ var customGenesisTests = []struct {
             "balance":"2000000000000000000000000000"
         }
     },
-    "EconomicModel":{
-        "Common":{
-            "MaxEpochMinutes":4,
-            "MaxConsensusVals":4,
-            "AdditionalCycleTime":16
+    "economicModel":{
+        "common":{
+            "maxEpochMinutes":4,
+            "maxConsensusVals":4,
+            "additionalCycleTime":28
         },
-        "Staking":{
-            "StakeThreshold":               1000000000000000000000000,
-            "OperatingThreshold":             10000000000000000000,
-            "MaxValidators":            24,
-            "HesitateRatio":                1,
-            "UnStakeFreezeDuration":           2
+        "staking":{
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 30,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
         },
-        "Slashing":{
-           "PackAmountAbnormal":   6,
-           "SlashFractionDuplicateSign": 100,
-           "DuplicateSignReportReward": 50,
-           "SlashBlocksReward":20, 
-           "MaxEvidenceAge":1
+        "slashing":{
+           "slashFractionDuplicateSign": 100,
+           "duplicateSignReportReward": 50,
+           "maxEvidenceAge":1,
+           "slashBlocksReward":20
         },
-        "Gov": {
-            "VersionProposalVoteDurationSeconds": 160,
-            "VersionProposalActive_ConsensusRounds": 5,
-            "VersionProposalSupportRate": 0.667,
-            "TextProposalVoteDurationSeconds": 160,
-            "TextProposalVoteRate": 0.5,
-            "TextProposalSupportRate": 0.667,          
-            "CancelProposalVoteRate": 0.50,
-            "CancelProposalSupportRate": 0.667
+         "gov": {
+            "versionProposalVoteDurationSeconds": 160,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,          
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667      
         },
-        "Reward":{
-            "NewBlockRate": 50,
-            "PlatONFoundationYear": 10 
+        "reward":{
+            "newBlockRate": 50,
+            "platonFoundationYear": 10 
         },
-        "InnerAcc":{
-            "PlatONFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
-            "PlatONFundBalance": 0,
-            "CDFAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
-            "CDFBalance": 331811981000000000000000000
+        "innerAcc":{
+            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfBalance": 331811981000000000000000000
         }
     },
     "coinbase":"0x0000000000000000000000000000000000000000",
@@ -294,10 +295,9 @@ var customGenesisTests = []struct {
                     "blsPubKey":"d341a0c485c9ec00cecf7ea16323c547900f6a1bacb9daacb00c2b8bacee631f75d5d31b75814b7f1ae3a4e18b71c617bc2f230daa0c893746ed87b08b2df93ca4ddde2816b3ac410b9980bcc048521562a3b2d00e900fd777d3cf88ce678719"
                 }
             ],
-            "epoch":1,
             "amount":10,
-            "validatorMode":"ppos",
-            "period":10000
+			"period":10000,
+            "validatorMode":"ppos"
         }
     }
 }`,

@@ -85,7 +85,7 @@ def test_CH_IN_017(global_test_env):
 
 @allure.title("Test block synchronization")
 @pytest.mark.P0
-def test_CH_IN_018_CH_IN_007(global_test_env):
+def test_CH_IN_018_CH_IN_007_CMD_039(global_test_env):
     """
     Non-consensus node block high synchronization
     """

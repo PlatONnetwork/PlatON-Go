@@ -6,6 +6,7 @@ from tests.lib.client import get_client_obj
 from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, proposal_vote
 from dacite import from_dict
 from tests.lib.genesis import Genesis
+from tests.govern.test_voting_statistics import submitvpandvote, submittpandvote, submitcppandvote
 
 
 def replace_platon_vote(pip_obj, bin=None, program_version=None, version_sign=None):
@@ -114,7 +115,7 @@ class TestVoteVP():
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} vote proposal result : {}'.format(client_verifier_obj_list[-1].node.node_id, result))
 
-
+@pytest.mark.compatibility
 def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposal):
     pip_obj = no_vp_proposal
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 2,
@@ -393,6 +394,7 @@ class TestVoteNodeException():
         assert_code(result, 302022)
 
 class TestVoteCancelVersion():
+    @pytest.mark.compatibility
     def test_VO_VO_002_V0_WA_002_V0_RE_002_V_STA_8(self, submit_cancel):
         pip_obj = submit_cancel
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10 ** 18 * 10000)
@@ -426,6 +428,7 @@ class TestVoteCancelVersion():
 
 
 class TestVoteCancelParam():
+    @pytest.mark.compatibility
     def test_PP_VO_001_PP_VO_005_PP_VO_015_PP_VO_017(self, submit_cancel_param):
         pip_obj = submit_cancel_param
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -441,6 +444,7 @@ class TestVoteCancelParam():
         assert_code(result, 302027)
 
 class TestVoteParam():
+    @pytest.mark.compatibility
     def test_PP_VO_002_PP_VO_008_PP_VO_018_PP_VO_016(self, submit_param):
         pip_obj = submit_param
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -455,8 +459,12 @@ class TestVoteParam():
         result = proposal_vote(pip_obj)
         assert_code(result, 302027)
 
-    def test_PP_VO_009_PP_VO_010(self, submit_param, client_list_obj):
+    def test_PP_VO_009_PP_VO_010_V0_TE_001_V0_TE_002(self, submit_param, client_list_obj):
         pip_obj = submit_param
+        result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
         address = pip_obj.node.staking_address
         client_obj = get_client_obj(pip_obj.node.node_id, client_list_obj)
         result = client_obj.staking.withdrew_staking(pip_obj.node.staking_address)
@@ -465,13 +473,21 @@ class TestVoteParam():
         assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Cancel proposal info : {}'.format(proposalinfo))
+        proposalinfo_text = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Text proposal info : {}'.format(proposalinfo_text))
         result = proposal_vote(pip_obj)
+        assert_code(result, 302020)
+        result = proposal_vote(pip_obj, proposaltype=pip_obj.cfg.text_proposal)
         assert_code(result, 302020)
         wait_block_number(pip_obj.node, endblock)
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_nays, address,
                               transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert_code(result, 302022)
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_text.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                              address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        assert_code(result, 302022)
 
+@pytest.mark.compatibility
 def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_list_obj):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -540,7 +556,7 @@ class TestVoteVPVerify():
         log.info('Wrong version sign vote result : {}'.format(result))
         return result
 
-    def test_VO_VER_001_003_VO_SI_001(self, submit_version):
+    def test_VO_VER_001_003_VO_SI_001_V_UP_1(self, submit_version):
         pip_obj = submit_version
         result = replace_platon_vote(pip_obj, bin=pip_obj.cfg.PLATON_NEW_BIN1)
         assert_code(result, 302025)
@@ -626,6 +642,24 @@ class TestVoteVPVerify():
         log.info('Ineffective proposalid, vote result : {}'.format(result))
         assert_code(result, 302006)
 
+class TestCadidateVote():
+    def test_VO_TER_003_VO_TER_007_VO_TER_005_PP_VO_013(self, no_vp_proposal, client_candidate_obj, client_verifier_obj):
+        ca_pip_obj = client_candidate_obj.pip
+        ve_pip_obj = client_verifier_obj.pip
+        submittpandvote([client_verifier_obj], 2)
+        submitvpandvote([client_verifier_obj], votingrounds=1)
+        proposalinfo_version = ve_pip_obj.get_effect_proposal_info_of_vote()
+        log.info('Version proposal information {}'.format(proposalinfo_version))
+        result = version_proposal_vote(ca_pip_obj)
+        assert_code(result, 302022)
+        result = proposal_vote(ca_pip_obj, proposaltype=ca_pip_obj.cfg.text_proposal)
+        assert_code(result, 302022)
+        wait_block_number(ca_pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
+        submitcppandvote([client_verifier_obj], [2])
+        result = proposal_vote(ca_pip_obj, proposaltype=ca_pip_obj.cfg.param_proposal)
+        assert_code(result, 302022)
+        result = proposal_vote(ca_pip_obj, proposaltype=ca_pip_obj.cfg.cancel_proposal)
+        assert_code(result, 302022)
 
 
 

@@ -1579,7 +1579,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			status.IsInvalidDuplicateSign()
 	}
 
-	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
+	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
 	for _, v := range curr.Arr {
 
 		canAddr, _ := xutil.NodeId2Addr(v.NodeId)
@@ -1617,7 +1617,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			needRMLowVersionLen++
 		}
 
-		currMap[v.NodeId] = struct{}{}
+		currMap[v.NodeId] = v.Shares
 	}
 
 	// Exclude the current consensus round validators from the validators of the Epoch
@@ -1629,6 +1629,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		}
 
 		if _, ok := currMap[v.NodeId]; ok {
+			currMap[v.NodeId] = new(big.Int).Set(v.Shares)
 			continue
 		}
 
@@ -1679,16 +1680,20 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	invalidLen = hasSlashLen + needRMwithdrewLen + needRMLowVersionLen
 
 	shuffle := func(invalidLen int, currQueue, vrfQueue staking.ValidatorQueue) staking.ValidatorQueue {
+
+		// increase term and use new shares  one by one
+		for i, v := range currQueue {
+			v.ValidatorTerm++
+			v.Shares = currMap[v.NodeId]
+			currQueue[i] = v
+		}
+
+		// sort the validator by del rule
 		currQueue.ValidatorSort(removeCans, staking.CompareForDel)
 		// Increase term of validator
-		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue))
-		copy(copyCurrQueue, currQueue)
-		for i, v := range copyCurrQueue {
-			v.ValidatorTerm++
-			copyCurrQueue[i] = v
-		}
+		copyCurrQueue := make(staking.ValidatorQueue, len(currQueue)-invalidLen)
 		// Remove the invalid validators
-		copyCurrQueue = copyCurrQueue[invalidLen:]
+		copy(copyCurrQueue, currQueue[invalidLen:])
 		return shuffleQueue(copyCurrQueue, vrfQueue)
 	}
 
