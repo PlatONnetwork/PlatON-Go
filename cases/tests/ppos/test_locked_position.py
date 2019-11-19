@@ -104,6 +104,8 @@ def test_LS_UPV_002_1(client_new_node_obj):
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
     data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    transaction_data = {"to": address, "data": data}
+    aa = node.eth.estimateGas(transaction_data)
     dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
     gas_total = 21000 + 18000 + 8000 + 21000 + dynamic_gas
     log.info("gas_total: {}".format(gas_total))
