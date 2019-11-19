@@ -4,6 +4,9 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -207,6 +210,9 @@ func (rmp *RewardMgrPlugin) calculateExpectReward(thisYear, lastYear uint32, sta
 	totalStakingReward := new(big.Int).Sub(lastYearBalance, totalNewBlockReward)
 
 	newBlockReward := new(big.Int).Div(totalNewBlockReward, big.NewInt(int64(blocks)))
+	if gov.GetCurrentActiveVersion(state) == params.GenesisVersion {
+		newBlockReward.Sub(newBlockReward, new(big.Int).SetUint64(params.LAT))
+	}
 	stakingReward := new(big.Int).Div(totalStakingReward, big.NewInt(int64(epochs)))
 
 	log.Debug("Call calculateExpectReward", "thisYear", thisYear, "lastYear", lastYear,
