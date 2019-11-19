@@ -702,7 +702,7 @@ class TestUpgradeVP():
     @pytest.mark.P1
     def test_UV_NO_1(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate == 0.249
+        genesis.economicModel.gov.versionProposalSupportRate = 0.249
         genesis.economicModel.slashing.slashBlocksReward = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
@@ -721,7 +721,7 @@ class TestUpgradeVP():
     @pytest.mark.P1
     def test_UV_UP_1(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate == 0.25
+        genesis.economicModel.gov.versionProposalSupportRate = 0.25
         genesis.economicModel.slashing.slashBlocksReward = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()

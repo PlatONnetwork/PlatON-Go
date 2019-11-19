@@ -184,7 +184,7 @@ def test_PP_UN_003(preactive_proposal_pipobj_list, new_genesis_env):
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                  '84', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('there is preactive version proposal, submit cancel param proposal result: {}'.format(result))
-    assert_code(result, 302017)
+    assert_code(result, 302013)
 
 class TestEndVotingRounds():
     @pytest.mark.P1
@@ -1312,7 +1312,7 @@ class TestPIPVerify():
         assert_code(result, 0)
 
     @pytest.mark.P0
-    def test_VP_PIP_002_TP_PI_002_CP_PI_002_CP_PI_002(self, client_verifier_obj_list):
+    def test_VP_PIP_002_TP_PI_002_CP_PI_002_CP_PI_002(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[0].pip
         submitcvpandvote(client_verifier_obj_list, 1, 1, 1, 1)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
