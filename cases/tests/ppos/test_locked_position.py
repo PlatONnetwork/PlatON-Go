@@ -37,42 +37,6 @@ def test_LS_FV_001(client_consensus_obj):
             'blockNumber'], release_plans_list[i]['amount'])
 
 
-@pytest.mark.P2
-def test_LS_UPV_002(client_new_node_obj):
-    """
-    创建锁仓计划Gas费
-    :param client_new_node_obj:
-    :return:
-    """
-    client = client_new_node_obj
-    economic = client.economic
-    node = client.node
-    # create restricting plan
-    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
-    address1 = None
-    plan = [{'Epoch': 1, 'Amount': node.web3.toWei(1000, 'ether')}]
-    if address[:2] == '0x':
-        address1 = address[2:]
-    log.info("address: {}".format(address))
-    plan_list = []
-    for dict_ in plan:
-        v = [dict_[k] for k in dict_]
-        plan_list.append(v)
-    rlp_list = rlp.encode(plan_list)
-    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
-    log.info("data: {}".format(data))
-    zero_number = 0
-    byte_group_length = len(data)
-    for i in data:
-        if i == 0:
-            zero_number = zero_number + 1
-    non_zero_number = byte_group_length - zero_number
-    gas_total = 21000 + 18000 + 21000 + 8000 + non_zero_number * 68 + zero_number * 4
-    log.info("调用合约创建锁仓计划消耗合约：{}".format(gas_total))
-    result = client.restricting.createRestrictingPlan(address, plan, address, {"gas": gas_total})
-    assert_code(result, 0)
-
-
 def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
     # create restricting plan
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
@@ -116,9 +80,10 @@ def test_LS_UPV_001(client_new_node_obj):
     assert status, "ErrMsg: create restricting result {}".format(status)
 
 
-def test_LS_UPV_002(client_new_node_obj):
+@pytest.mark.P2
+def test_LS_UPV_002_1(client_new_node_obj):
     """
-    创建锁仓计划Gas费
+    创建锁仓计划Gas费- 单个解锁次数
     :param client_new_node_obj:
     :return:
     """
@@ -128,7 +93,8 @@ def test_LS_UPV_002(client_new_node_obj):
     # create restricting plan
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     address1 = None
-    plan = [{'Epoch': 1, 'Amount': node.web3.toWei(1000, 'ether')}]
+    lock_amount = node.web3.toWei(1000, 'ether')
+    plan = [{'Epoch': 1, 'Amount': lock_amount}]
     if address[:2] == '0x':
         address1 = address[2:]
     log.info("address: {}".format(address))
@@ -140,9 +106,50 @@ def test_LS_UPV_002(client_new_node_obj):
     data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
     dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
     gas_total = 21000 + 18000 + 8000 + 21000 + dynamic_gas
+    log.info("gas_total: {}".format(gas_total))
+    balance = node.eth.getBalance(address)
     # Create a lockout plan
-    result = client.restricting.createRestrictingPlan(address, plan, address, {"gas": gas_total})
+    result = client.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 0)
+    balance1 = node.eth.getBalance(address)
+    transaction_fees = gas_total * node.eth.gasPrice
+    assert balance - balance1 - lock_amount == transaction_fees, "ErrMsg: transaction fees {}".format(transaction_fees)
+
+
+@pytest.mark.P2
+def test_LS_UPV_002_2(client_new_node_obj):
+    """
+    创建锁仓计划Gas费 - 多个解锁次数
+    :param client_new_node_obj:
+    :return:
+    """
+    client = client_new_node_obj
+    economic = client.economic
+    node = client.node
+    # create restricting plan
+    address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
+    address1 = None
+    lock_amount = node.web3.toWei(1000, 'ether')
+    plan = [{'Epoch': 1, 'Amount': lock_amount}, {'Epoch': 2, 'Amount': lock_amount}]
+    if address[:2] == '0x':
+        address1 = address[2:]
+    log.info("address: {}".format(address))
+    plan_list = []
+    for dict_ in plan:
+        v = [dict_[k] for k in dict_]
+        plan_list.append(v)
+    rlp_list = rlp.encode(plan_list)
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
+    gas_total = 21000 + 18000 + 8000 + 21000 * 2 + dynamic_gas
+    log.info("gas_total: {}".format(gas_total))
+    balance = node.eth.getBalance(address)
+    # Create a lockout plan
+    result = client.restricting.createRestrictingPlan(address, plan, address)
+    assert_code(result, 0)
+    balance1 = node.eth.getBalance(address)
+    transaction_fees = gas_total * node.eth.gasPrice
+    assert balance - balance1 - lock_amount * 2 == transaction_fees, "ErrMsg: transaction fees {}".format(transaction_fees)
 
 
 @pytest.mark.P1
