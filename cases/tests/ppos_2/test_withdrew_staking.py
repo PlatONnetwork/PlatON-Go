@@ -571,7 +571,7 @@ def test__RV_020(staking_client):
     """
     Modify the pledge information in the exit
     """
-    node_name = "wuyiqin"
+    node_name = "Node"
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -593,7 +593,7 @@ def test_RV_021(staking_client):
     """
     Revoked modify pledge information
     """
-    node_name = "wuyiqin"
+    node_name = "Node"
     client = staking_client
     staking_address = client.staking_address
     node = client.node

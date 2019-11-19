@@ -293,7 +293,7 @@ def test_MPI_015_016(client_new_node_obj, client_consensus_obj):
     time.sleep(20)
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
-    assert result['Code'] == 301102
+    assert_code(result, 301102)
 
 
 @pytest.mark.P2
