@@ -601,7 +601,7 @@ def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
     pledge_amount2 = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut*2, "ErrMsg:Consensus Amount of pledge {}".format(
+    assert pledge_amount2 == pledge_amount1 - punishment_amonut * 2, "ErrMsg:Consensus Amount of pledge {}".format(
         pledge_amount2)
 
 
@@ -660,7 +660,7 @@ def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert (pledge_amount2 == pledge_amount1 - punishment_amonut*2) or (pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
+    assert (pledge_amount2 == pledge_amount1 - punishment_amonut * 2) or (pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
@@ -700,7 +700,7 @@ def test_VP_GPFV_015(new_genesis_env, client_noc_list_obj):
     slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
     # create staking
     staking_amount = int(Decimal(str(block_reward)) * Decimal(slash_blocks))
-    result = client1.staking.create_staking(0, address, address, amount=staking_amount*2)
+    result = client1.staking.create_staking(0, address, address, amount=staking_amount * 2)
     assert_code(result, 0)
     # increase staking
     increase_amount = von_amount(economic.create_staking_limit, 0.5)
@@ -727,7 +727,7 @@ def test_VP_GPFV_015(new_genesis_env, client_noc_list_obj):
     pledge_amount2 = info['Released']
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    assert pledge_amount2 == pledge_amount1 - punishment_amonut*2, "ErrMsg:Pledge Released {}".format(
+    assert pledge_amount2 == pledge_amount1 - punishment_amonut * 2, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
@@ -797,7 +797,7 @@ def test_VP_GPFV_016(new_genesis_env, client_noc_list_obj):
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert (pledge_amount2 == 0) or (pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
-    assert (pledge_amount3 == increase_amount - (punishment_amonut*2 - pledge_amount1)) or (pledge_amount3 == 0), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert (pledge_amount3 == increase_amount - (punishment_amonut * 2 - pledge_amount1)) or (pledge_amount3 == 0), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -857,7 +857,7 @@ def test_VP_GPFV_017(new_genesis_env, client_noc_list_obj):
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
-    assert pledge_amount3 == economic.create_staking_limit - (punishment_amonut*2 - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == economic.create_staking_limit - (punishment_amonut * 2 - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -991,7 +991,7 @@ def test_VP_GPFV_019(new_genesis_env, client_noc_list_obj):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == amount - (punishment_amonut*2 - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == amount - (punishment_amonut * 2 - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -1045,7 +1045,7 @@ def test_VP_GPFV_020(new_genesis_env, client_noc_list_obj):
     # Query pledge account balance
     balance2 = client2.node.eth.getBalance(address)
     log.info("pledge account balance: {}".format(balance2))
-    assert balance2 == balance1 + (pledge_amount1 - punishment_amonut*2), "ErrMsg:pledge account balance {}".format(
+    assert balance2 == balance1 + (pledge_amount1 - punishment_amonut * 2), "ErrMsg:pledge account balance {}".format(
         balance2)
 
 

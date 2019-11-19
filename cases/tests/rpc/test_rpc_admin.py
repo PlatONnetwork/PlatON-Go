@@ -9,6 +9,7 @@ from hexbytes import HexBytes
 
 startApi = "eth,web3,net,txpool,platon,admin,personal"
 
+
 @allure.title("获取进程保存数据的目录:admin.datadir")
 @pytest.mark.P1
 def test_admin_datadir(global_running_env):
@@ -145,6 +146,7 @@ def admin_stopRPC(global_running_env):
         pass
 
     yield node
+
 
 '''
 @allure.title("启动http rpc服务:admin.startRPC()")

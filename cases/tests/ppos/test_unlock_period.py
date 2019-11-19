@@ -182,7 +182,6 @@ def test_UP_FV_005(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_UP_FV_006(client_new_node_obj):
     """
     多个锁仓期，质押一部分锁仓金额再依次释放
@@ -667,7 +666,6 @@ def test_UP_FV_015(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_UP_FV_016(client_new_node_obj):
     """
     自由资金质押，锁仓再增持
@@ -700,7 +698,6 @@ def test_UP_FV_016(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_UP_FV_017(client_new_node_obj):
     """
     锁仓账户质押，自由资金再增持
@@ -775,5 +772,3 @@ def test_UP_FV_018(client_new_node_obj):
     log.info("restricting plan informtion: {}".format(restricting_info))
     info = restricting_info['Ret']
     assert info['debt'] == von_amount(economic.delegate_limit, 5), 'ErrMsg: restricting debt amount {}'.format(info['debt'])
-
-

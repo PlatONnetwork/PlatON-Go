@@ -4,8 +4,10 @@ from tests.lib import Genesis
 from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
     submitppandvote, submitcvpandvote, submitvpandvote
-import time, pytest
+import time
+import pytest
 from tests.govern.test_declare_version import replace_version_declare
+
 
 class TestSupportRateVoteRatePP():
     @pytest.mark.P0
@@ -149,6 +151,7 @@ class TestSupportRateVoteRatePP():
         assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
         assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+
 
 class TestSupportRateVoteRateCPP():
     @pytest.mark.P1
@@ -587,6 +590,7 @@ class TestSupportRateVoteRateTP():
         assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
+
 class TestUpgradedST():
     @pytest.mark.compatibility
     @pytest.mark.P0
@@ -636,7 +640,7 @@ class TestUpgradedST():
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID'))
 
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 3,
-                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote()
@@ -659,6 +663,7 @@ class TestUpgradedST():
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert_code(result, 0)
         log.info('Node {} vote result : {}'.format(pip_obj.node.node_id, result))
+
 
 class TestUpgradeVP():
     @pytest.mark.compatibility
@@ -698,7 +703,7 @@ class TestUpgradeVP():
         log.info('Get verifier list : {}'.format(verifier_list))
         assert pip_obj_test.node.node_id not in verifier_list
         balance_before = pip_obj.node.eth.getBalance(address, 2 * pip_obj.economic.settlement_size - 1)
-        log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size-1, balance_before))
+        log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size - 1, balance_before))
         balance_after = pip_obj.node.eth.getBalance(address, 2 * pip_obj.economic.settlement_size)
         log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size, balance_after))
         _, staking_reward = pip_obj_test.economic.get_current_year_reward(pip_obj_test.node, verifier_num=5)

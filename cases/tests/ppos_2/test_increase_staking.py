@@ -56,7 +56,7 @@ def test_AS_004(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -75,7 +75,7 @@ def test_AS_005(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -145,7 +145,7 @@ def test_AS_011_012_013_014(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
     account = client_new_node_obj.economic.account
@@ -155,7 +155,7 @@ def test_AS_011_012_013_014(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -185,8 +185,6 @@ def test_AS_015(client_new_node_obj):
     log.info("Check your wallet balance{}".format(amount))
     result = client_new_node_obj.staking.increase_staking(0, address)
     assert_code(result, 301111)
-    locked_info = client_new_node_obj.ppos.getRestrictingInfo(address)
-    log.info(locked_info)
 
 
 @pytest.mark.P1

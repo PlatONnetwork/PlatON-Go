@@ -65,8 +65,8 @@ def global_test_env(request, worker_id):
     if platon_url:
         download.download_platon(platon_url)
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
-    # Choose one, don't use both
-    # env.deploy_all()
+    # Must choose one, don't use both
+    env.deploy_all()
     # env.prepare_all()
     yield env
 
@@ -111,4 +111,3 @@ def pytest_runtest_makereport(item, call):
                 log.info("get block exception:{}".format(e))
         else:
             log.error("This case does not use global_test_env")
-

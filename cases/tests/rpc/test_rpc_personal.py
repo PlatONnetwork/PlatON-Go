@@ -13,12 +13,14 @@ password = "88888888"
 to_address = "0xdfdbb962a03bd270e1e8235a3d11b5775334c7d7"
 g_txHash = None
 
+
 @allure.title("列出所有的账户地址:personal.listAccounts")
 @pytest.mark.P1
 @pytest.mark.compatibility
 def test_personal_listAccounts(global_running_env):
     node = global_running_env.get_rand_node()
     assert len(node.personal.listAccounts) >= 0
+
 
 @allure.title("列出所有的钱包信息:personal.listWallets")
 @pytest.mark.P1
@@ -28,6 +30,7 @@ def test_personal_listWallets(global_running_env):
     listWallets = node.personal.listWallets
     assert len(listWallets) >= 0
     print("\n所有钱包信息:{}".format(listWallets))
+
 
 @allure.title("创建一个新账户并产生一个新钱包:personal.newAccount")
 @pytest.mark.P1
@@ -41,9 +44,10 @@ def test_personal_newAccount(global_running_env):
     to_account = Web3.toChecksumAddress(new_account)
     after = len(node.eth.accounts)
     assert len(to_account) == 42
-    assert after == (before+1)
+    assert after == (before + 1)
 #    print("\n创建账户成功:{}, 本地钱包个数:{}".format(to_account, after))
     yield node
+
 
 @allure.title("打开一个钱包:personal.openWallet")
 @pytest.mark.P1
@@ -54,6 +58,7 @@ def test_personal_openWallet(global_running_env):
     if len(listWallet) > 0:
         assert None == node.personal.openWallet(listWallet[0]["url"], password)
         print("\n打开钱包成功,钱包路径:{}".format(listWallet[0]["url"]))
+
 
 @allure.title("解锁钱包:personal.unlockAccount")
 @pytest.mark.P1
@@ -66,6 +71,7 @@ def test_personal_unlockAccount(test_personal_newAccount):
         listWallet = test_personal_newAccount.personal.listWallets
         assert "Unlocked" == listWallet[0]["status"]
         print("\n解锁钱包成功,钱包地址:{},状态:{}".format(addr1, listWallet[0]["status"]))
+
 
 @allure.title("上锁钱包:personal.lockAccount")
 @pytest.mark.P1
@@ -91,6 +97,7 @@ def test_personal_importRawKey(global_running_env):
     assert 42 == len(addr)
     print("\n导入私钥成功,钱包地址:{}".format(addr))
     yield node
+
 
 @allure.title("签名数据和解签:personal.sign()/personal.ecRecover()")
 @pytest.mark.P1
@@ -126,11 +133,12 @@ def test_personal_signTransaction(global_running_env):
         "nonce": nonce,
     }
     ret = node.personal.signTransaction(transaction_dict, password)
-    assert ret != None
+    assert ret is not None
     print("\n签名交易成功, 签名钱包地址:{}, 签名数据:{}".format(addr, ret))
 
+
 def transaction_func(node, from_addr="", to_addr=to_address, value=1000, data='', gasPrice='100000000',
-                     gas='21068', nonce=0, password=password) :
+                     gas='21068', nonce=0, password=password):
     transaction_dict = {
         "from": Web3.toChecksumAddress(from_addr),
         "to": Web3.toChecksumAddress(to_addr),
@@ -157,7 +165,7 @@ def transaction_func(node, from_addr="", to_addr=to_address, value=1000, data=''
 def test_platon_getTransaction(global_running_env):
     node = global_running_env.get_rand_node()
     ret = node.eth.getTransaction("0x1111111111111111111111111111111111111111111111111111111111111111")
-    assert ret == None
+    assert ret is None
     print("check succeed: getTransaction by not exist hash!,ret:{}".format(ret))
     ret = node.eth.getRawTransaction(
         HexBytes("0x1111111111111111111111111111111111111111111111111111111111111111").hex())
@@ -187,7 +195,7 @@ def test_platon_gasPrice(global_running_env):
     assert len(tx_hash) == 32
     print("\n使用大于建议的交易gasprice,发送交易成功,交易hash：{},  gasprice:{}".format(HexBytes(tx_hash).hex(), gasprice))
 
-    gasprice = int(node.eth.gasPrice/2)
+    gasprice = int(node.eth.gasPrice / 2)
     nCount = nCount + 1
     nonce = hex(nCount)
 
@@ -263,6 +271,7 @@ def test_platon_GetBlock(global_running_env):
     assert len(fullTransaction) > 0
     print("\ngetBlock by blockNumber fullTx为True,返回transactions信息为:{}".format(fullTransaction))
 
+
 @allure.title("根据交易的gas预估值,发送交易")
 @pytest.mark.P1
 def test_platon_estimateGas(global_running_env):
@@ -285,14 +294,14 @@ def test_platon_estimateGas(global_running_env):
     nCount = nCount + 1
     nonce = hex(nCount)
 
-    gas = int(estimateGas*2)
+    gas = int(estimateGas * 2)
     tx_hash = transaction_func(node=node, from_addr=address, to_addr=to_address, nonce=nonce, gas=gas)
     assert len(tx_hash) == 32
     print("\n使用大于预估的交易gas:【{}】,发送交易成功,交易hash:【{}】".format(gas, HexBytes(tx_hash).hex()))
     nCount = nCount + 1
     nonce = hex(nCount)
 
-    gas = int(estimateGas/2)
+    gas = int(estimateGas / 2)
     # 异常测试场景
     status = 0
     try:
@@ -302,5 +311,6 @@ def test_platon_estimateGas(global_running_env):
         print("\n使用小于预估的交易gas:【{}】,发送交易失败,error message:{}".format(gas, e))
     assert status == 0
 
+
 if __name__ == '__main__':
-    pytest.main(['-v','test_rpc_personal.py'])
+    pytest.main(['-v', 'test_rpc_personal.py'])

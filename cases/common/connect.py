@@ -77,7 +77,7 @@ def run_ssh(ssh, cmd, password=None):
             stdin.write(password + "\n")
         stdout_list = stdout.readlines()
         # if len(stdout_list):
-            # log.debug('{}:{}'.format(cmd, stdout_list))
+        # log.debug('{}:{}'.format(cmd, stdout_list))
     except Exception as e:
         raise e
     return stdout_list

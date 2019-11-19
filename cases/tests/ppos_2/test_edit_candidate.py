@@ -147,7 +147,7 @@ def test_MPI_008(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.edit_candidate(address1, address2)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -166,7 +166,7 @@ def test_MPI_009(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.edit_candidate(address, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -185,7 +185,7 @@ def test_MPI_010(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.edit_candidate(address, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 

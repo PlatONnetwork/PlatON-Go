@@ -109,10 +109,10 @@ def test_RV_003(staking_client):
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge information {}".format(msg))
     assert msg["Ret"][
-               "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
+        "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
     assert msg["Ret"]["Released"] == client.staking_amount, "Expected display of the amount of the deposit"
     assert msg["Ret"][
-               "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
+        "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
     block_reward, staking_reward = economic.get_current_year_reward(node)
 
     balance = node.eth.getBalance(staking_address)
@@ -124,7 +124,7 @@ def test_RV_003(staking_client):
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Initiate a refund after pledge information{}".format(msg))
     assert msg["Ret"][
-               "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
+        "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
     balance1 = node.eth.getBalance(client.staking_address)
     log.info(balance1)
     log.info("Enter the 3rd cycle")
@@ -284,14 +284,14 @@ def test_RV_006(staking_client):
     log.info("Query the lockout plan after the second cycle initiated revocation {}".format(locked_info))
     assert_code(locked_info, 0)
     assert locked_info["Ret"][
-               "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
+        "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query the pledge of node {}".format(msg))
 
     assert msg["Ret"]["ReleasedHes"] == 0, "Expected amount of hesitation has been refunded"
     assert msg["Ret"][
-               "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
+        "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
 
     log.info("Enter the 3rd cycle")
     economic.wait_settlement_blocknum(node)
@@ -332,7 +332,7 @@ def test_RV_007(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -349,7 +349,7 @@ def test_RV_008(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -422,7 +422,7 @@ def test_RV_012(global_test_env, client_noc_list_obj):
 
     result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
                                                            amount=client_noc_list_obj[
-                                                                      0].economic.create_staking_limit * 2)
+                                                               0].economic.create_staking_limit * 2)
     assert_code(result, 0)
 
     result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,
@@ -508,7 +508,7 @@ def test_RV_017(staking_client):
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
     assert msg[
-               "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
+        "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
     msg = client.staking.withdrew_staking(staking_address)
     assert_code(msg, 301102)
 
