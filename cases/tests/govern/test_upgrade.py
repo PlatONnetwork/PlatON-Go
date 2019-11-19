@@ -670,7 +670,7 @@ class TestUpgradeVP():
         address, _ = pip_obj_test.economic.account.generate_account(pip_obj_test.node.web3, 10**18 * 10000000)
         result = client_noconsensus_obj.staking.create_staking(0, address, address, amount=10**18 * 2000000,
                                                                transaction_cfg=pip_obj_test.cfg.transaction_cfg)
-        log.info('Staking result : {}'.format(result))
+        log.info('Node {} staking result : {}'.format(pip_obj_test.node.node_id, result))
         pip_obj_test.economic.wait_settlement_blocknum(pip_obj_test.node)
         verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
@@ -684,6 +684,11 @@ class TestUpgradeVP():
         validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
+
+        validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info('Validator list : {}'.format(validator_list))
+        assert pip_obj_test.node.node_id not in validator_list
+
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
         pip_obj.economic.wait_settlement_blocknum(pip_obj.node)
         validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)

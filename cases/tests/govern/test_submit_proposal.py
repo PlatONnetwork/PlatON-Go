@@ -731,12 +731,14 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '10**18 * 1000000 + 0.1',
+        value = 10**18 * 1000000 + 0.1
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '-10**18 * 1000000',
+        value = -10**18 * 1000000
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -751,13 +753,15 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
+        value = 10**18 * 1000000 - 1
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
-                                     '10**18 * 1000000 - 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     str(value), pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
+        value = 10**18 * 10000000
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
-                                     '10**18 * 10000000 + 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     str(value), pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
@@ -768,7 +772,8 @@ class TestPP():
         assert_code(result, 302034)
 
         if int(get_governable_parameter_value(client_obj, 'stakeThreshold')) != 10**18 * 1000000:
-            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '10**18 * 1000000',
+            value = 10**18 * 1000000
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
@@ -776,8 +781,9 @@ class TestPP():
     @pytest.mark.P0
     def test_PP_SU_010(self, no_vp_proposal):
         pip_obj = no_vp_proposal
+        value = 10**18 * 10000000 - 1
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
-                                     '10**18 * 10000000',
+                                     str(value),
                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -791,12 +797,14 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '10**18 * 10 + 0.5',
+        value = 10**18 * 10 + 0.5
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '-10**18 * 10',
+        value = -10**18 * 10
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
@@ -811,13 +819,15 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
+        value = 10**18 * 10 - 1
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
-                                     '10**18 * 10 - 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     str(value), pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
+        value = 10**18 * 10000
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
-                                     '10**18 * 10000 + 1', pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     str(value), pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
@@ -828,7 +838,8 @@ class TestPP():
         assert_code(result, 302034)
 
         if int(get_governable_parameter_value(client_obj, 'operatingThreshold')) != 10**18 * 10:
-            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '10**18 * 10',
+            value = 10**18 * 10
+            result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
@@ -836,8 +847,9 @@ class TestPP():
     @pytest.mark.P0
     def test_PP_SU_012(self, no_vp_proposal):
         pip_obj = no_vp_proposal
+        value = 10**18 * 10000 -1
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
-                                     '10**18 * 10000', pip_obj.node.staking_address,
+                                     str(value), pip_obj.node.staking_address,
                                      transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
@@ -983,7 +995,7 @@ class TestPP():
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388 + 0.5',
+        result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388.5',
                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)

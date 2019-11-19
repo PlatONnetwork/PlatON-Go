@@ -242,7 +242,7 @@ def wait_block_number(node, block, interval=1):
     :return:
     """
     current_block = node.block_number
-    if 0 < block - current_block < 10:
+    if 0 < block - current_block <= 10:
         timeout = 10 + int(time.time())
     elif block - current_block > 10:
         timeout = int((block - current_block) * interval * 1.5) + int(time.time())

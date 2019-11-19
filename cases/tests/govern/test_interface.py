@@ -1,11 +1,11 @@
 from common.log import log
-from tests.lib.utils import assert_code, wait_block_number, get_blockhash
+from tests.lib.utils import assert_code, wait_block_number, get_blockhash, get_the_dynamic_parameter_gas_fee
 from dacite import from_dict
 from tests.lib import Genesis
 from common.key import mock_duplicate_sign
 from tests.govern.test_voting_statistics import submitppandvote, submitcvpandvote, submitvpandvote, submittpandvote, submitcppandvote
 
-import time, math
+import time, math, rlp
 import pytest
 from tests.govern.conftest import version_proposal_vote
 
@@ -562,6 +562,110 @@ class TestListProposal():
         log.info('There is no proposal, interface listProposal return : {}'.format(result))
         assert_code(result, 2)
         assert result.get('Ret') == "Object not found"
+
+class TestGasUse():
+    def get_balance(self, pip_obj):
+        balance = pip_obj.node.eth.getBalance(pip_obj.node.staking_address)
+        log.info('address balance : {}'.format(balance))
+        return balance
+
+    def test_submitText(self, client_verifier_obj):
+        pip_obj = client_verifier_obj.pip
+        pip_id = str(time.time())
+        data = rlp.encode([rlp.encode(int(2000)), rlp.encode(bytes.fromhex(pip_obj.node.node_id)), rlp.encode(pip_id)])
+        balance_before = self.get_balance(pip_obj)
+        result = pip_obj.submitText(pip_obj.node.node_id, pip_id, pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit text proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
+        log.info('Get text proposal information : {}'.format(proposalinfo))
+        balance_after = self.get_balance(pip_obj)
+        gas = get_the_dynamic_parameter_gas_fee(data)
+        log.info('Calculated gas : {}'.format(gas))
+        assert_code(balance_before-balance_after, (gas+350000)*pip_obj.cfg.transaction_cfg.get('gasPrice'))
+
+        proposal_id = proposalinfo.get('ProposalID')[2:]
+        version_sign = pip_obj.node.program_version_sign[2:]
+        data = rlp.encode([rlp.encode(int(2003)), rlp.encode(bytes.fromhex(pip_obj.node.node_id)),
+                           rlp.encode(bytes.fromhex(proposal_id)),
+                           rlp.encode(pip_obj.cfg.vote_option_yeas), rlp.encode(int(pip_obj.node.program_version)),
+                           rlp.encode(bytes.fromhex(version_sign))])
+        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
+                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Vote reuslt : {}'.format(result))
+        assert_code(result, 0)
+        balance_after_vote = pip_obj.node.eth.getBalance(pip_obj.node.staking_address)
+        log.info('After vote text proposal, the address balance : {}'.format(balance_after_vote))
+        gas = get_the_dynamic_parameter_gas_fee(data)
+        log.info('Calculated gas : {}'.format(gas))
+        assert_code(balance_after-balance_after_vote, (gas+32000)*pip_obj.cfg.transaction_cfg.get('gasPrice'))
+
+
+    def test_submitversion(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        pip_id = str(time.time())
+        balance_before = self.get_balance(pip_obj)
+        result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id, pip_obj.cfg.version5, 1, pip_obj.node.staking_address,
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit version proposal result : {}'.format(result))
+        assert_code(result, 0)
+        balance_after = self.get_balance(pip_obj)
+        data = rlp.encode([rlp.encode(int(2001)), rlp.encode(bytes.fromhex(pip_obj.node.node_id)), rlp.encode(pip_id),
+                           rlp.encode(int(pip_obj.cfg.version5)), rlp.encode(int(1))])
+        gas = get_the_dynamic_parameter_gas_fee(data)
+        log.info('Calculated gas : {}'.format(gas))
+        assert_code(balance_before-balance_after, (gas+480000)*pip_obj.cfg.transaction_cfg.get('gasPrice'))
+
+    def test_submitparam_and_cancel(self, no_vp_proposal):
+        pip_obj = no_vp_proposal
+        pip_id = str(time.time())
+        balance_before = self.get_balance(pip_obj)
+        result = pip_obj.submitParam(pip_obj.node.node_id, pip_id, 'slashing', 'slashBlocksReward', '123',
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit param proposal result : {}'.format(result))
+        assert_code(result, 0)
+        proposalinfor_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        log.info('Get param proposal information : {}'.format(proposalinfor_param))
+        balance_after = self.get_balance(pip_obj)
+        data = rlp.encode([rlp.encode(int(2002)), rlp.encode(bytes.fromhex(pip_obj.node.node_id)),
+                           rlp.encode(pip_id), rlp.encode('slashing'), rlp.encode('slashBlocksReward'),
+                           rlp.encode('123')])
+        gas = get_the_dynamic_parameter_gas_fee(data)
+        log.info('Calculated gas : {}'.format(gas))
+        assert_code(balance_before - balance_after, (gas + 530000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
+
+        pip_id = str(time.time())
+        result = pip_obj.submitCancel(pip_obj.node.node_id, pip_id, 1, proposalinfor_param.get('ProposalID'),
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Submit cancel proposal result : {}'.format(result))
+        assert_code(result, 0)
+        assert_code(balance_before - balance_after, (gas + 530000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
+        balance_after_cancel = pip_obj.node.eth.getBalance(pip_obj.node.staking_address)
+        log.info('After submitting cancel proposal, the address balance : {}'.format(balance_after_cancel))
+        tobe_canceled_proposal_id = proposalinfor_param.get('ProposalID')[2:]
+        data = rlp.encode([rlp.encode(int(2005)), rlp.encode(bytes.fromhex(pip_obj.node.node_id)), rlp.encode(pip_id),
+                           rlp.encode(int(1)), rlp.encode(bytes.fromhex(tobe_canceled_proposal_id))])
+        gas = get_the_dynamic_parameter_gas_fee(data)
+        log.info('Calculated gas : {}'.format(gas))
+        assert_code(balance_after - balance_after_cancel, (gas + 530000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
+
+    def test_declareversion(self, client_verifier_obj):
+        pip_obj = client_verifier_obj.pip
+        balance_before = self.get_balance(pip_obj)
+        result = pip_obj.declareVersion(pip_obj.node.node_id, pip_obj.node.staking_address,
+                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
+        log.info('Declare version result : {}'.format(result))
+        assert_code(result, 0)
+        version_sign = pip_obj.node.program_version_sign[2:]
+        data = rlp.encode([rlp.encode(int(2004)), rlp.encode(bytes.fromhex(pip_obj.node.node_id)),
+                           rlp.encode(int(pip_obj.node.program_version)), rlp.encode(bytes.fromhex(version_sign))])
+        gas = get_the_dynamic_parameter_gas_fee(data)
+        log.info('Calculated gas : {}'.format(gas))
+        balance_after = self.get_balance(pip_obj)
+        assert_code(balance_before - balance_after, (gas + 33000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
+
+
 
 if __name__ == '__main__':
     pytest.main(['./tests/govern/','-s', '-q', '--alluredir', './report/report'])
