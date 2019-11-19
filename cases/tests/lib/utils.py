@@ -242,7 +242,7 @@ def wait_block_number(node, block, interval=1):
     :return:
     """
     current_block = node.block_number
-    if 0 < block - current_block < 10:
+    if 0 < block - current_block <= 10:
         timeout = 10 + int(time.time())
     elif block - current_block > 10:
         timeout = int((block - current_block) * interval * 1.5) + int(time.time())
@@ -358,4 +358,18 @@ def get_governable_parameter_value(client_obj, parameter):
             log.info("{} ParamValue: {}".format(parameter, i['ParamValue']['Value']))
             return i['ParamValue']['Value']
 
+
+def get_the_dynamic_parameter_gas_fee(data):
+    """
+    Get the dynamic parameter gas consumption cost
+    :return:
+    """
+    zero_number = 0
+    byte_group_length = len(data)
+    for i in data:
+        if i == 0:
+            zero_number = zero_number + 1
+    non_zero_number = byte_group_length - zero_number
+    dynamic_gas = non_zero_number * 68 + zero_number * 4
+    return dynamic_gas
 

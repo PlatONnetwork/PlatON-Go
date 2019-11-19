@@ -1,10 +1,12 @@
 import time
 import pytest
 import allure
+import rlp
+
 from common.key import mock_duplicate_sign, generate_key
 from common.log import log
 from tests.lib import EconomicConfig, StakingConfig, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
+    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict, get_the_dynamic_parameter_gas_fee
 
 
 def penalty_proportion_and_income(client_obj):
@@ -108,34 +110,10 @@ def initial_report(global_test_env):
     log.info("case execution completed")
     global_test_env.deploy_all()
     time.sleep(3)
-    # # create pledge address
-    # pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    # # create staking
-    # result = client.staking.create_staking(0, pledge_address, pledge_address)
-    # assert_code(result, 0)
-    # # Wait for the settlement round to end
-    # economic.wait_settlement_blocknum(node)
-    # for i in range(4):
-    #     result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
-    #     log.info("Current node in consensus list status：{}".format(result))
-    #     if result:
-    #         # Get current block height
-    #         current_block = node.eth.blockNumber
-    #         log.info("Current block height: {}".format(current_block))
-    #         result = verification_duplicate_sign(client, 1, 1, report_address, current_block)
-    #         assert_code(result, 0)
-    #         yield client, economic, node, report_address, current_block
-    #         log.info("case execution completed")
-    #         global_test_env.deploy_all()
-    #         time.sleep(3)
-    #     else:
-    #         # wait consensus block
-    #         economic.wait_consensus_blocknum(node)
 
 
 class TestMultipleReports:
     @pytest.mark.P1
-
     def test_VP_PV_004(self, initial_report):
         """
         举报双签-同一验证人同一块高不同类型
@@ -148,7 +126,6 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
-
     def test_VP_PV_005(self, initial_report):
         """
         举报双签-同一验证人不同块高同一类型
@@ -161,7 +138,6 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
-
     def test_VP_PV_006(self, initial_report):
         """
         举报双签-同一验证人不同块高不同类型
@@ -174,7 +150,6 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
-
     def test_VP_PV_007(self, initial_report):
         """
         举报双签-不同验证人同一块高同一类型
@@ -189,7 +164,6 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
-
     def test_VP_PV_008(self, initial_report):
         """
         举报双签-不同验证人同一块高不同类型
@@ -204,7 +178,6 @@ class TestMultipleReports:
         assert_code(result, 0)
 
     @pytest.mark.P1
-
     def test_VP_PV_009(self, initial_report):
         """
         举报双签-不同验证人不同块高不同类型
@@ -260,7 +233,6 @@ def obtaining_evidence_information(economic, node):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_010(client_consensus_obj):
     """
     举报双签-双签证据epoch不一致
@@ -283,7 +255,6 @@ def test_VP_PV_010(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_011(client_consensus_obj):
     """
     举报双签-双签证据view_number不一致
@@ -306,7 +277,6 @@ def test_VP_PV_011(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_012(client_consensus_obj):
     """
     举报双签-双签证据block_number不一致
@@ -329,7 +299,6 @@ def test_VP_PV_012(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_013(client_consensus_obj):
     """
     举报双签-双签证据block_hash一致
@@ -353,7 +322,6 @@ def test_VP_PV_013(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_014(client_consensus_obj):
     """
     举报双签-双签证据block_index不一致
@@ -376,7 +344,6 @@ def test_VP_PV_014(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_015(client_consensus_obj):
     """
     举报双签-双签证据validate_node-index不一致
@@ -399,7 +366,6 @@ def test_VP_PV_015(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_016(client_consensus_obj):
     """
     举报双签-双签证据address不一致
@@ -423,7 +389,6 @@ def test_VP_PV_016(client_consensus_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_017(client_con_list_obj):
     """
     举报双签-NodeID不一致举报双签
@@ -447,7 +412,6 @@ def test_VP_PV_017(client_con_list_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_018(client_con_list_obj):
     """
     举报双签-blsPubKey不一致举报双签
@@ -471,7 +435,6 @@ def test_VP_PV_018(client_con_list_obj):
 
 
 @pytest.mark.P1
-
 def test_VP_PV_019(client_con_list_obj):
     """
     举报双签-signature一致举报双签
@@ -781,6 +744,41 @@ def test_VP_PV_028(client_consensus_obj):
     assert_code(result, 303002)
 
 
+@pytest.mark.P2
+def test_VP_PV_030(client_consensus_obj, reset_environment):
+    """
+    举报签名Gas费
+    :param client_consensus_obj:
+    :return:
+    """
+    client = client_consensus_obj
+    economic = client.economic
+    node = client.node
+    # create report address
+    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # Obtain information of report evidence
+    report_information, current_block = obtaining_evidence_information(economic, node)
+    # Obtain penalty proportion and income
+    pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client)
+    # view Amount of penalty
+    proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
+                                                                          proportion_ratio)
+    data = rlp.encode([rlp.encode(int(3000)), rlp.encode(1), rlp.encode(report_information)])
+    dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
+    gas_total = 21000 + 21000 + 21000 + 21000 + dynamic_gas
+    log.info("Call contract to create a lockout plan consumption contract：{}".format(gas_total))
+    balance = node.eth.getBalance(report_address)
+    log.info("balance: {}".format(balance))
+    # Report verifier
+    result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    assert_code(result, 0)
+    balance1 = node.eth.getBalance(report_address)
+    log.info("balance1: {}".format(balance1))
+    log.info("proportion reward: {}".format(proportion_reward))
+    transaction_fees = gas_total * node.eth.gasPrice
+    assert balance + proportion_reward - balance1 == transaction_fees, "ErrMsg:transaction fees {}".format(transaction_fees)
+
+
 @pytest.mark.P1
 def test_VP_PV_031(client_consensus_obj):
     """
@@ -798,7 +796,8 @@ def test_VP_PV_031(client_consensus_obj):
     report_information, current_block = obtaining_evidence_information(economic, node)
     try:
         # Report verifier Duplicate Sign
-        client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+        result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+        log.info("result: {}".format(result))
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
@@ -1301,7 +1300,8 @@ def test_VP_PVF_009(client_new_node_obj, reset_environment):
             # To view the entrusted account balance
             report_balance1 = node.eth.getBalance(report_address)
             log.info("report address balance: {}".format(report_balance1))
-            assert report_balance + economic.delegate_limit - report_balance1 < node.web3.toWei(1, 'ether'), "ErrMsg:Ireport balance {}".format(
+            assert report_balance + economic.delegate_limit - report_balance1 < node.web3.toWei(1,
+                                                                                                'ether'), "ErrMsg:Ireport balance {}".format(
                 report_balance1)
             break
         else:

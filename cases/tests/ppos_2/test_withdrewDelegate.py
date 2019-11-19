@@ -707,20 +707,20 @@ def test_ROE_055(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_ROE_056_057(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
+def test_ROE_056_057(client_new_node_obj, client_consensus_obj):
     """
 
     :param client_new_node_obj:
     :param client_consensus_obj:
-    :param greater_than_staking_amount:
     :return:
     """
     address_staking, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                                10 ** 18 * 10000000)
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                        10 ** 18 * 10000000)
+    value = client_new_node_obj.economic.create_staking_limit * 2
     result = client_new_node_obj.staking.create_staking(0, address_staking, address_staking,
-                                                        amount=greater_than_staking_amount)
+                                                        amount=value)
     assert_code(result, 0)
 
     # create delegate

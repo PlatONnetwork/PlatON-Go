@@ -686,7 +686,6 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environment):
     """
     AL_NBI_004:非内置验证人Staking奖励（候选人）

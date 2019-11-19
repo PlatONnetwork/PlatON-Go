@@ -304,7 +304,7 @@ def test_RV_006(staking_client):
     log.info("The balance after the revocation of the second cycle {}".format(balance4))
 
     locked_info = client.ppos.getRestrictingInfo(staking_address)
-    assert_code(locked_info, 1)
+    log.info(locked_info)
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query the pledge of the node{}".format(msg))
