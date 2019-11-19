@@ -185,8 +185,6 @@ def test_AS_015(client_new_node_obj):
     log.info("Check your wallet balance{}".format(amount))
     result = client_new_node_obj.staking.increase_staking(0, address)
     assert_code(result, 301111)
-    locked_info = client_new_node_obj.ppos.getRestrictingInfo(address)
-    log.info(locked_info)
 
 
 @pytest.mark.P1
