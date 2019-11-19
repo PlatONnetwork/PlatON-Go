@@ -6,7 +6,7 @@ import rlp
 from common.key import mock_duplicate_sign, generate_key
 from common.log import log
 from tests.lib import EconomicConfig, StakingConfig, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
+    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict, get_the_dynamic_parameter_gas_fee
 
 
 def penalty_proportion_and_income(client_obj):
@@ -784,7 +784,7 @@ def test_VP_PV_028(client_consensus_obj):
 
 
 @pytest.mark.P2
-def test_VP_PV_030(client_consensus_obj):
+def test_VP_PV_030(client_consensus_obj, reset_environment):
     """
     举报签名Gas费
     :param client_consensus_obj:
@@ -798,14 +798,8 @@ def test_VP_PV_030(client_consensus_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     data = rlp.encode([rlp.encode(int(3000)), rlp.encode(1), rlp.encode(report_information)])
-    log.info("data: {}".format(data))
-    zero_number = 0
-    byte_group_length = len(data)
-    for i in data:
-        if i == 0:
-            zero_number = zero_number + 1
-    non_zero_number = byte_group_length - zero_number
-    gas_total = 21000 + 21000 + 21000 + 21000 + non_zero_number * 68 + zero_number * 4
+    dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
+    gas_total = 21000 + 21000 + 21000 + 21000 + dynamic_gas
     log.info("Call contract to create a lockout plan consumption contract：{}".format(gas_total))
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address, {"gas": gas_total})
     assert_code(result, 0)
@@ -823,12 +817,13 @@ def test_VP_PV_031(client_consensus_obj):
     node = client.node
     status = True
     # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    report_address, _ = economic.account.generate_account(node.web3, 0)
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     try:
         # Report verifier Duplicate Sign
-        client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+        result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+        log.info("result: {}".format(result))
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))

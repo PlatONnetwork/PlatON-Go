@@ -9,7 +9,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value
+    get_governable_parameter_value, get_the_dynamic_parameter_gas_fee
 
 
 @pytest.mark.P0
@@ -129,7 +129,6 @@ def test_LS_UPV_002(client_new_node_obj):
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
     address1 = None
     plan = [{'Epoch': 1, 'Amount': node.web3.toWei(1000, 'ether')}]
-    pri_key = economic.account.find_pri_key(address)
     if address[:2] == '0x':
         address1 = address[2:]
     log.info("address: {}".format(address))
@@ -139,14 +138,11 @@ def test_LS_UPV_002(client_new_node_obj):
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
     data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
-    log.info("data info: {}".format(data))
-    transaction_data = {"to": address, "data": data}
-    transaction_gas = node.eth.estimateGas(transaction_data)
-    log.info("transaction_gas: {}".format(transaction_gas))
-    result = client.restricting.createRestrictingPlan(address, plan, address)
-    log.info("result: {}".format(result))
-    info = node.eth.waitForTransactionReceipt(result)
-    log.info("info: {}".format(info))
+    dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
+    gas_total = 21000 + 18000 + 8000 + 21000 + dynamic_gas
+    # Create a lockout plan
+    result = client.restricting.createRestrictingPlan(address, plan, address, {"gas": gas_total})
+    assert_code(result, 0)
 
 
 @pytest.mark.P1

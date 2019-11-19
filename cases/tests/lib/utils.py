@@ -359,3 +359,16 @@ def get_governable_parameter_value(client_obj, parameter):
             return i['ParamValue']['Value']
 
 
+def get_the_dynamic_parameter_gas_fee(data):
+    """
+    Get the dynamic parameter gas consumption cost
+    :return:
+    """
+    zero_number = 0
+    byte_group_length = len(data)
+    for i in data:
+        if i == 0:
+            zero_number = zero_number + 1
+    non_zero_number = byte_group_length - zero_number
+    dynamic_gas = non_zero_number * 68 + zero_number * 4
+    return dynamic_gas
