@@ -153,8 +153,10 @@ def test_CMD_004_2(account_env):
 @pytest.mark.SYNC
 def test_CMD_005(account_env):
     node, env = account_env
-    run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
-    pass # Why are there no assertions?
+    returnList = run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
+
+    assert len(returnList) == 6
+    assert returnList[5].strip() == "Repeat passphrase:"
 
 
 @allure.title("Change account password, specify keystore")
@@ -162,8 +164,10 @@ def test_CMD_005(account_env):
 @pytest.mark.SYNC
 def test_CMD_006(account_env):
     node, env = account_env
-    run_ssh_cmd(node.ssh, "{} account update {} --keystore {}".format(node.remote_bin_file, env.remote_account_address, node.remote_keystore_dir), "88888888", "88888888", "88888888")
-    pass # Why are there no assertions?
+    returnList =  run_ssh_cmd(node.ssh, "{} account update {} --keystore {}".format(node.remote_bin_file, env.remote_account_address, node.remote_keystore_dir), "88888888", "88888888", "88888888")
+
+    assert len(returnList) == 6
+    assert returnList[5].strip() == "Repeat passphrase:"
 
 
 @allure.title("Import account, do not specify password file, specify datadir")

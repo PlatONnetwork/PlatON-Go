@@ -77,6 +77,13 @@ class TestPlaton():
         balance = platon_connect.getBalance(account['address'])
         assert balance >=0 , '账户余额相等'
 
+    @pytest.mark.P1
+    def test_getbalance_without_money(self, global_test_env):
+        node = global_test_env.get_rand_node()
+        address = global_test_env.account.generate_account_in_node(node,"123456")
+        balance = node.eth.getBalance(address)
+        assert balance == 0, '账户余额相等'
+
     @allure.title("测试块高")
     @pytest.mark.P1
     def test_BlockNumber(self, platon_connect):
@@ -140,23 +147,23 @@ class TestPlaton():
             in accounts_after
         ))
 
-    @allure.title("查看Storage")
-    @pytest.mark.P1
-    def test_getStorageAt(self, global_test_env):
-        env = global_test_env
-        node = env.get_rand_node()
-        account = env.account.get_rand_account()
-        platon = Eth(node.web3)
-
-        storage = platon.getStorageAt(account['address'], 0)
-        assert isinstance(storage, HexBytes)
-
-    @allure.title("使用不存在的地址查看Storage")
-    @pytest.mark.P1
-    def test_getStorageAt_invalid_address(self, platon_connect):
-        with pytest.raises(InvalidAddress):
-            platon_connect.getStorageAt(UNKNOWN_ADDRESS.lower(), 0)
-
+    # @allure.title("查看Storage")
+    # @pytest.mark.P1
+    # def test_getStorageAt(self, global_test_env):
+    #     env = global_test_env
+    #     node = env.get_rand_node()
+    #     account = env.account.get_rand_account()
+    #     platon = Eth(node.web3)
+    #
+    #     storage = platon.getStorageAt(account['address'], 0)
+    #     assert isinstance(storage, HexBytes)
+    #
+    # @allure.title("使用不存在的地址查看Storage")
+    # @pytest.mark.P1
+    # def test_getStorageAt_invalid_address(self, platon_connect):
+    #     with pytest.raises(InvalidAddress):
+    #         platon_connect.getStorageAt(UNKNOWN_ADDRESS.lower(), 0)
+    #
     @allure.title("查看交易数量")
     @pytest.mark.P1
     def test_getTransactionCount(self, global_test_env):
@@ -210,19 +217,19 @@ class TestPlaton():
     #     code = platon.getCode(account)
     #     assert isinstance(code, HexBytes)
     #     assert len(code) > 0
-    #
+
     # def test_eth_getCode_invalid_address(self, global_test_env):
     #     env = global_test_env
     #     node = env.get_rand_node()
     #     platon = Eth(node.connect_node())
     #     with pytest.raises(InvalidAddress):
     #         platon.getCode(UNKNOWN_ADDRESS)
-
+    #
     # def test_eth_getCode_with_block_identifier(self, global_test_env):
     #     #code = web3.eth.getCode(emitter_contract.address, block_identifier=web3.eth.blockNumber)
     #     assert isinstance(code, HexBytes)
     #     assert len(code) > 0
-    #
+
 
     @pytest.mark.P1
     def test_platon_sign(self, unlocked_account):
@@ -299,6 +306,35 @@ class TestPlaton():
         assert txn['value'] == 1
         assert txn['gas'] == 21000
         assert txn['gasPrice'] == txn_params['gasPrice']
+
+    @pytest.mark.P1
+    def test_platon_sendTransaction_withWrongAddress(self, unlocked_account):
+
+        platon = Eth(unlocked_account['node'].web3)
+
+        txn_params = {
+            'from': UNKNOWN_ADDRESS,
+            'to': unlocked_account['address'],
+            'value': 1,
+            'gas': 21000,
+            'gasPrice': platon.gasPrice,
+        }
+        with pytest.raises(ValueError):
+            platon.sendTransaction(txn_params)
+
+
+    @pytest.mark.P1
+    def test_platon_sendTransaction_withoutUnlock(self,global_test_env, platon_connect):
+        account = global_test_env.account.get_rand_account()
+        txn_params = {
+            'from': account['address'],
+            'to': account['address'],
+            'value': 1,
+            'gas': 21000,
+            'gasPrice': platon_connect.gasPrice,
+        }
+        with pytest.raises(ValueError):
+            platon_connect.sendTransaction(txn_params)
 
 
     @pytest.mark.P1
@@ -438,6 +474,7 @@ class TestPlaton():
 
         # todo minimum gas price is what
         assert replace_txn['gasPrice'] == 110000000
+
 
     @pytest.mark.P1
     def test_platon_replaceTransaction_gas_price_defaulting_strategy_higher(self,unlocked_account):
@@ -592,6 +629,57 @@ class TestPlaton():
         assert is_integer(gas_estimate)
         assert gas_estimate > 0
 
+        hash =  platon.sendTransaction({
+            'from': unlocked_account['address'],
+            'to': unlocked_account['address'],
+            'value': 1,
+            'gas':gas_estimate,
+        })
+        res = platon.waitForTransactionReceipt(hash)
+        assert res['blockNumber'] != 0
+
+    def test_platon_estimateGas_high(self, unlocked_account):
+        node = unlocked_account['node']
+        platon = Eth(node.web3)
+
+        gas_estimate = platon.estimateGas({
+            'from': unlocked_account['address'],
+            'to': unlocked_account['address'],
+            'value': 1,
+        })
+        assert is_integer(gas_estimate)
+        assert gas_estimate > 0
+
+        hash =  platon.sendTransaction({
+            'from': unlocked_account['address'],
+            'to': unlocked_account['address'],
+            'value': 1,
+            'gas':gas_estimate+2000,
+        })
+        res = platon.waitForTransactionReceipt(hash)
+        assert res['blockNumber'] != 0
+
+    def test_platon_estimateGas_low(self, unlocked_account):
+        node = unlocked_account['node']
+        platon = Eth(node.web3)
+
+        gas_estimate = platon.estimateGas({
+            'from': unlocked_account['address'],
+            'to': unlocked_account['address'],
+            'value': 1,
+        })
+        assert is_integer(gas_estimate)
+        assert gas_estimate > 0
+
+        hash =  platon.sendTransaction({
+            'from': unlocked_account['address'],
+            'to': unlocked_account['address'],
+            'value': 1,
+            'gas':gas_estimate-2000,
+        })
+        res = platon.waitForTransactionReceipt(hash)
+        assert res['blockNumber'] == 0
+
     @pytest.mark.P1
     def test_platon_getBlockByHash(self, platon_connect):
         empty_block = platon_connect.getBlock(1)
@@ -646,6 +734,10 @@ class TestPlaton():
         assert is_dict(transaction)
         assert transaction['hash'] == block_with_txn['transactions'][0]
 
+    def test_platon_getTransactionByHash_notfound(self,platon_connect):
+        transaction = platon_connect.getTransaction(UNKNOWN_HASH)
+        assert transaction == None
+
     # def test_platon_getTransactionByHash_contract_creation(self,
     #                                                     web3,
     #                                                     math_contract_deploy_txn_hash):
@@ -655,17 +747,32 @@ class TestPlaton():
 
     @pytest.mark.P1
     def test_platon_getTransactionFromBlockHashAndIndex(self, platon_connect,block_with_txn):
-
-
         transaction =platon_connect.getTransactionFromBlock(block_with_txn['hash'], 0)
         assert is_dict(transaction)
         assert transaction['hash'] == HexBytes(block_with_txn['transactions'][0])
+
+    @pytest.mark.P1
+    def test_platon_getTransactionFromBlockHashAndIndex_withwrongindex(self, platon_connect, block_with_txn):
+        transaction = platon_connect.getTransactionFromBlock(block_with_txn['hash'], 1000)
+        assert transaction == None
+
+    @pytest.mark.P1
+    def test_platon_getTransactionFromBlockHashAndIndex_withwrongHash(self, platon_connect, block_with_txn):
+        transaction = platon_connect.getTransactionFromBlock(UNKNOWN_HASH,0)
+        assert transaction == None
+
 
     @pytest.mark.P1
     def test_platon_getTransactionFromBlockNumberAndIndex(self,platon_connect,block_with_txn):
         transaction = platon_connect.getTransactionFromBlock(block_with_txn['number'], 0)
         assert is_dict(transaction)
         assert transaction['hash'] == HexBytes(block_with_txn['transactions'][0])
+        transaction = platon_connect.getTransactionFromBlock(block_with_txn['number'], 200)
+        assert is_dict(transaction) == False
+
+    def test_platon_getTransactionFromBlockNumberAndIndex_with_wrong_index(self,platon_connect):
+        with pytest.raises(ValueError):
+            platon_connect.getTransactionFromBlock(UNKNOWN_ADDRESS, 100)
 
     @pytest.mark.P1
     def test_platon_getTransactionReceipt_mined(self, platon_connect, block_with_txn):
