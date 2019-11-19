@@ -40,6 +40,9 @@ type IndexerConfig struct {
 	// The block frequency for creating CHTs.
 	ChtSize uint64
 
+	// A special auxiliary field represents client's chtsize for server config, otherwise represents server's chtsize.
+	PairChtSize uint64
+
 	// The number of confirmations needed to generate/accept a canonical hash help trie.
 	ChtConfirms uint64
 
@@ -79,6 +82,7 @@ var (
 	// TestServerIndexerConfig wraps a set of configs as a test indexer config for server side.
 	TestServerIndexerConfig = &IndexerConfig{
 		ChtSize:           512,
+		PairChtSize:       2048,
 		ChtConfirms:       4,
 		BloomSize:         64,
 		BloomConfirms:     4,

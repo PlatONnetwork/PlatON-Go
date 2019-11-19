@@ -19,6 +19,7 @@ package staking
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -429,6 +430,15 @@ func (desc *Description) CheckLength() error {
 }
 
 type CandidateQueue []*Candidate
+
+func (queue CandidateQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, c := range queue {
+		arr[i] = c.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
+}
+
 type CandidateHexQueue []*CandidateHex
 
 func (queue CandidateHexQueue) IsNotEmpty() bool {
@@ -437,6 +447,14 @@ func (queue CandidateHexQueue) IsNotEmpty() bool {
 
 func (queue CandidateHexQueue) IsEmpty() bool {
 	return len(queue) == 0
+}
+
+func (queue CandidateHexQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, c := range queue {
+		arr[i] = c.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
 }
 
 type CandidateBaseQueue []*CandidateBase
@@ -499,6 +517,14 @@ func (queue ValidatorQueue) IsNotEmpty() bool {
 
 func (queue ValidatorQueue) IsEmpty() bool {
 	return len(queue) == 0
+}
+
+func (queue ValidatorQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, v := range queue {
+		arr[i] = v.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
 }
 
 type CandidateMap map[discover.NodeID]*Candidate
@@ -849,7 +875,7 @@ type ValidatorArray struct {
 }
 
 func (v ValidatorArray) String() string {
-	return fmt.Sprintf(`{"Start": %d, "End": %d, "Arr": %+v}`, v.Start, v.End, v.Arr)
+	return fmt.Sprintf(`{"Start": %d, "End": %d, "Arr": %s}`, v.Start, v.End, v.Arr.String())
 }
 
 type ValidatorEx struct {
@@ -903,6 +929,14 @@ func (queue ValidatorExQueue) IsNotEmpty() bool {
 
 func (queue ValidatorExQueue) IsEmpty() bool {
 	return len(queue) == 0
+}
+
+func (queue ValidatorExQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, v := range queue {
+		arr[i] = v.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
 }
 
 // the Delegate information
@@ -1024,6 +1058,14 @@ func (queue DelRelatedQueue) IsEmpty() bool {
 	return len(queue) == 0
 }
 
+func (queue DelRelatedQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, r := range queue {
+		arr[i] = r.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
+}
+
 type UnStakeItem struct {
 	// this is the nodeAddress
 	NodeAddress     common.Address
@@ -1056,6 +1098,14 @@ func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*Val
 	return nil, queue
 }
 
+func (queue ValArrIndexQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, vi := range queue {
+		arr[i] = vi.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
+}
+
 // An item that exists for slash
 type SlashNodeItem struct {
 	// the nodeId will be slashed
@@ -1068,4 +1118,16 @@ type SlashNodeItem struct {
 	BenefitAddr common.Address
 }
 
+func (s *SlashNodeItem) String() string {
+	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr.Hex())
+}
+
 type SlashQueue []*SlashNodeItem
+
+func (queue SlashQueue) String() string {
+	arr := make([]string, len(queue))
+	for i, s := range queue {
+		arr[i] = s.String()
+	}
+	return "[" + strings.Join(arr, ",") + "]"
+}
