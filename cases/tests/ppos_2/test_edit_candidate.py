@@ -290,9 +290,10 @@ def test_MPI_015_016(client_new_node_obj, client_consensus_obj):
     assert_code(result, 301103)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    time.sleep(10)
+    time.sleep(20)
     result = client_new_node_obj.staking.edit_candidate(address, address)
-    assert_code(result, 301102)
+    log.info(result)
+    assert result['Code'] == 301102
 
 
 @pytest.mark.P2

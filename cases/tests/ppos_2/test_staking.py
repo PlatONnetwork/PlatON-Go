@@ -304,3 +304,6 @@ def test_P_031(client_new_node_obj):
     result = client_new_node_obj.staking.create_staking(0, address1, address1)
     log.info(result)
     assert_code(result, 301101)
+
+
+

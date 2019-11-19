@@ -171,6 +171,7 @@ def test_DI_010_020(client_new_node_obj):
                                                                               10 ** 18 * 10000000)
     result = client_new_node_obj.delegate.delegate(0, address1, node_id=illegal_nodeID)
     log.info(result)
+    assert_code(result, 301102)
 
 
 @pytest.mark.P1
@@ -252,8 +253,8 @@ def test_DI_015_016(client_new_node_obj, client_consensus_obj):
     assert_code(result, 301103)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(node)
+    time.sleep(20)
     result = client_new_node_obj.delegate.delegate(0, address1)
-    log.info(result)
     assert_code(result, 301102)
 
 
@@ -335,6 +336,7 @@ def test_DI_021(client_new_node_obj, client_consensus_obj):
     client_new_node_obj.node.start()
     msg = client_consensus_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
     log.info(msg)
+    assert msg["Ret"]["Released"] == client_new_node_obj.economic.delegate_limit
 
 
 @pytest.mark.P2

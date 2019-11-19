@@ -372,3 +372,4 @@ def get_the_dynamic_parameter_gas_fee(data):
     non_zero_number = byte_group_length - zero_number
     dynamic_gas = non_zero_number * 68 + zero_number * 4
     return dynamic_gas
+
