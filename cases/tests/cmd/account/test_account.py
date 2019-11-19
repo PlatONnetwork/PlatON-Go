@@ -151,8 +151,9 @@ def test_account_new_with_pwd_file_just_keystore_dir(account_env):
 @pytest.mark.SYNC
 def test_account_update_with_data_dir(account_env):
     node, env = account_env
-    run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
-    pass
+    echoList = run_ssh_cmd(node.ssh, "{} account update {} --datadir {}".format(node.remote_bin_file, env.remote_account_address, node.remote_data_dir), "88888888", "88888888", "88888888")
+    assert len(echoList) == 6
+    assert echoList[5].strip() == "Repeat passphrase:"
 
 
 @allure.title("修改账号密码，指定keystore")
@@ -160,8 +161,9 @@ def test_account_update_with_data_dir(account_env):
 @pytest.mark.SYNC
 def test_account_update_with_keystore_dir(account_env):
     node, env = account_env
-    run_ssh_cmd(node.ssh, "{} account update {} --keystore {}".format(node.remote_bin_file, env.remote_account_address, node.remote_keystore_dir), "88888888", "88888888", "88888888")
-    pass
+    echoList = run_ssh_cmd(node.ssh, "{} account update {} --keystore {}".format(node.remote_bin_file, env.remote_account_address, node.remote_keystore_dir), "88888888", "88888888", "88888888")
+    assert len(echoList) == 6
+    assert echoList[5].strip() == "Repeat passphrase:"
 
 
 @allure.title("导入账号，不指定密码文件，指定datadir")
