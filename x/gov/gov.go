@@ -76,21 +76,6 @@ func GetVersionForStaking(state xcom.StateDB) uint32 {
 	}
 }
 
-func GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
-	avList, err := ListActiveVersion(state)
-	if err != nil {
-		log.Error("List active version error", "err", err)
-		return 0
-	}
-
-	for _, av := range avList {
-		if blockNumber >= av.ActiveBlock {
-			return av.ActiveVersion
-		}
-	}
-	return 0
-}
-
 // Get current active version record
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
@@ -583,16 +568,14 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 
 type ParamVerifier func(blockNumber uint64, blockHash common.Hash, value string) error
 
-var paramVerifier = func(blockNumber uint64, blockHash common.Hash, value string) error {
-	return nil
-}
-
 func GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
 	paramValue, err := findGovernParamValue(module, name, blockHash)
 	if err != nil {
+		log.Error("get govern parameter value failed", "module", module, "name", name, "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
 		return "", err
 	}
 	if paramValue == nil {
+		log.Error("govern parameter value is nil", "module", module, "name", name, "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
 		return "", UnsupportedGovernParam
 	} else {
 		if blockNumber >= paramValue.ActiveBlock {
@@ -604,10 +587,8 @@ func GetGovernParamValue(module, name string, blockNumber uint64, blockHash comm
 }
 
 func GovernStakeThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
-
 	thresholdStr, err := GetGovernParamValue(ModuleStaking, KeyStakeThreshold, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernStakeThreshold, query governParams is failed", "err", err)
 		return new(big.Int).SetInt64(0), err
 	}
 
@@ -620,10 +601,8 @@ func GovernStakeThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, 
 }
 
 func GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
-
 	thresholdStr, err := GetGovernParamValue(ModuleStaking, KeyOperatingThreshold, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernOperatingThreshold, query governParams is failed", "err", err)
 		return new(big.Int).SetInt64(0), err
 	}
 
@@ -638,7 +617,6 @@ func GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.I
 func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, error) {
 	maxvalidatorsStr, err := GetGovernParamValue(ModuleStaking, KeyMaxValidators, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernMaxValidators, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -653,7 +631,6 @@ func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, err
 func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
 	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernUnStakeFreezeDuration, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -668,7 +645,6 @@ func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uin
 func GovernSlashFractionDuplicateSign(blockNumber uint64, blockHash common.Hash) (uint32, error) {
 	fractionStr, err := GetGovernParamValue(ModuleSlashing, KeySlashFractionDuplicateSign, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernSlashFractionDuplicateSign, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -683,7 +659,6 @@ func GovernSlashFractionDuplicateSign(blockNumber uint64, blockHash common.Hash)
 func GovernDuplicateSignReportReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
 	rewardStr, err := GetGovernParamValue(ModuleSlashing, KeyDuplicateSignReportReward, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernDuplicateSignReportReward, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -698,7 +673,6 @@ func GovernDuplicateSignReportReward(blockNumber uint64, blockHash common.Hash) 
 func GovernMaxEvidenceAge(blockNumber uint64, blockHash common.Hash) (uint32, error) {
 	ageStr, err := GetGovernParamValue(ModuleSlashing, KeyMaxEvidenceAge, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernMaxEvidenceAge, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -713,7 +687,6 @@ func GovernMaxEvidenceAge(blockNumber uint64, blockHash common.Hash) (uint32, er
 func GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
 	rewardStr, err := GetGovernParamValue(ModuleSlashing, KeySlashBlocksReward, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernSlashBlocksReward, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -728,7 +701,6 @@ func GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32,
 func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
 	gasLimitStr, err := GetGovernParamValue(ModuleBlock, KeyMaxBlockGasLimit, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to GovernMaxBlockGasLimit, query governParams is failed", "err", err)
 		return 0, err
 	}
 
@@ -743,7 +715,6 @@ func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, err
 //func GovernMaxTxDataLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
 //	sizeStr, err := GetGovernParamValue(ModuleTxPool, KeyMaxTxDataLimit, blockNumber, blockHash)
 //	if nil != err {
-//		log.Error("Failed to GovernMaxTxDataLimit, query governParams is failed", "err", err)
 //		return 0, err
 //	}
 //

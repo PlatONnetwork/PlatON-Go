@@ -115,7 +115,7 @@ def test_CS_CL_003(global_test_env, client_con_list_obj, client_noc_list_obj):
     result = client_con_list_obj[2].duplicatesign.reportDuplicateSign(1, report_information3, address_3)
     log.info(result)
     log.info("The next  periods")
-    client_noc_list_obj[1].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
+    client_noc_list_obj[2].economic.wait_settlement_blocknum(client_noc_list_obj[2].node)
     validatorlist = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
     log.info("After being reported validatorlist:{}".format(validatorlist))
 
@@ -162,7 +162,6 @@ def test_CS_CL_003(global_test_env, client_con_list_obj, client_noc_list_obj):
     assert client_noc_list_obj[0].node.node_id in validatorlist3
 
 
-###have bug
 @pytest.mark.P1
 def test_CS_CL_004(global_test_env, client_consensus_obj, client_new_node_obj):
     """
@@ -176,34 +175,34 @@ def test_CS_CL_004(global_test_env, client_consensus_obj, client_new_node_obj):
     log.info(client_new_node_obj.node.node_id)
     log.info(client_consensus_obj.node.url)
     StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
-    value = 100000000000000000000000
+    value = client_consensus_obj.node.web3.toWei(1000000, "ether")
     result = client_consensus_obj.staking.increase_staking(0, StakingAddress, amount=value)
     assert_code(result, 0)
     msg = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
     log.info(msg)
-    # address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-    #                                                                    10 ** 18 * 10000000)
-    # value = client_new_node_obj.economic.create_staking_limit * 2
-    # result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
-    # assert_code(result, 0)
+    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
+                                                                       10 ** 18 * 10000000)
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
+    assert_code(result, 0)
     log.info(client_new_node_obj.node.node_id)
     log.info("Next settlement period")
     client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node)
     log.info("The next consensus cycle")
     client_consensus_obj.economic.wait_consensus_blocknum(client_consensus_obj.node)
-    # validatorlist1 = get_pledge_list(client_consensus_obj.ppos.getValidatorList)
-    # log.info("validatorlist:{}".format(validatorlist1))
+    validatorlist1 = get_pledge_list(client_consensus_obj.ppos.getValidatorList)
+    log.info("validatorlist:{}".format(validatorlist1))
 
     msg = client_consensus_obj.ppos.getValidatorList()
     log.info("Consensus validates the person's situation{}".format(msg))
-    # assert client_consensus_obj.node.node_id in validatorlist1
-    #
-    # client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
-    # validatorlist2 = get_pledge_list(client_consensus_obj.ppos.getValidatorList)
-    # log.info("validatorlist:{}".format(validatorlist2))
-    # msg = client_consensus_obj.ppos.getValidatorList()
-    # log.info("Consensus validates the person's situation{}".format(msg))
-    # assert client_consensus_obj.node.node_id in validatorlist2
+    assert client_consensus_obj.node.node_id in validatorlist1
+
+    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+    validatorlist2 = get_pledge_list(client_consensus_obj.ppos.getValidatorList)
+    log.info("validatorlist:{}".format(validatorlist2))
+    msg = client_consensus_obj.ppos.getValidatorList()
+    log.info("Consensus validates the person's situation{}".format(msg))
+    assert client_consensus_obj.node.node_id in validatorlist2
 
 
 @pytest.mark.P1
@@ -277,10 +276,11 @@ def test_CS_CL_007(global_test_env, client_noc_list_obj):
     result = client_noc_list_obj[1].staking.create_staking(0, address2, address2, amount=value)
     assert_code(result, 0)
     # Next settlement period
-    client_noc_list_obj[0].economic.wait_settlement_blocknum(client_noc_list_obj[0].node)
+    client_noc_list_obj[0].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
 
     verifierlist = get_pledge_list(client_noc_list_obj[1].ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
+    log.info("node:{}".format(client_noc_list_obj[0].node.node_id))
     assert verifierlist[0] == client_noc_list_obj[0].node.node_id
 
 
@@ -358,6 +358,7 @@ def test_CS_CL_012_032(global_test_env, client_new_node_obj):
 
 
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_CS_CL_013_031(global_test_env, client_new_node_obj, client_consensus_obj):
     """
 

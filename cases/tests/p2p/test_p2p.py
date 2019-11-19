@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 from common.load_file import LoadFile
 from common.connect import run_ssh_cmd
 
+
 def one_put_config_task(node):
     try:
         node.put_config()
@@ -31,18 +32,17 @@ def one_put_genesis_task(node, genesis_file):
     return True, "{} upload genesis file success".format(node.node_mark)
 
 
-@allure.title("节点最大链接数量测试")
+@allure.title("Node maximum link quantity test")
 @pytest.mark.P1
-def test_p2p_max(global_test_env):
-    '''节点最大链接数量测试'''
-    log.info("节点最大链接数量测试")
+def test_NE_P2P_001(global_test_env):
+    log.info("Node maximum link quantity test")
     all_node = global_test_env.get_all_nodes()
 
     # stop node
     if global_test_env.running:
         global_test_env.stop_all()
 
-    # modify config file 
+    # modify config file
     config_data = LoadFile(global_test_env.cfg.config_json_tmp).get_data()
     config_data['node']['P2P']['MaxPeers'] = 2
     with open(global_test_env.cfg.config_json_tmp, 'w', encoding='utf-8') as f:
@@ -54,7 +54,7 @@ def test_p2p_max(global_test_env):
     # start node
     global_test_env.cfg.init_chain = False
     global_test_env.start_all()
-    
+
     # run ssh
     static_number = len(global_test_env.get_static_nodes())
     for node in all_node:
@@ -62,18 +62,17 @@ def test_p2p_max(global_test_env):
         assert int(cmd_list[0][0]) <= 2 + static_number
 
 
-@allure.title("自动发现配置测试")
+@allure.title("Automatic discovery configuration test")
 @pytest.mark.P1
-def test_p2p_discovery(global_test_env):
-    '''自动发现配置测试'''
-    log.info("自动发现配置测试")
+def test_NE_P2P_002(global_test_env):
+    log.info("Automatic discovery configuration test")
     all_node = global_test_env.get_all_nodes()
 
     # stop node
     if global_test_env.running:
         global_test_env.stop_all()
 
-    # modify config file 
+    # modify config file
     config_data = LoadFile(global_test_env.cfg.config_json_tmp).get_data()
     config_data['node']['P2P']['NoDiscovery'] = True
     with open(global_test_env.cfg.config_json_tmp, 'w', encoding='utf-8') as f:
@@ -93,18 +92,17 @@ def test_p2p_discovery(global_test_env):
         assert 0 == int(cmd_list[0][0])
 
 
-@allure.title("静态节点配置测试")
+@allure.title("Static node configuration test")
 @pytest.mark.P1
-def test_p2p_static(global_test_env):
-    '''静态节点配置测试'''
-    log.info("静态节点配置测试")
+def test_NE_P2P_003(global_test_env):
+    log.info("Static node configuration test")
     all_node = global_test_env.get_all_nodes()
 
     # stop node
     if global_test_env.running:
         global_test_env.stop_all()
 
-    # modify config file 
+    # modify config file
     config_data = LoadFile(global_test_env.cfg.config_json_tmp).get_data()
     config_data['node']['P2P']['MaxPeers'] = 50
     config_data['node']['P2P']['NoDiscovery'] = True
@@ -123,20 +121,21 @@ def test_p2p_static(global_test_env):
     # run ssh
     static_number = len(global_test_env.get_static_nodes())
     for node in all_node:
-        cmd_list = run_ssh_cmd(node.ssh, "netstat -an | grep 16789 | grep ESTABLISHED |wc -l")
-        assert int(cmd_list[0][0]) <= static_number
+        # cmd_list = run_ssh_cmd(node.ssh, "netstat -an | grep 16789 | grep ESTABLISHED |wc -l")
+        # log.info(node.web3.net.peerCount)
+        # assert int(cmd_list[0][0]) <= static_number
+        assert node.web3.net.peerCount <= static_number
 
 
-@allure.title("异常无法出块测试")
+@allure.title("Exception can not be out of the block test")
 @pytest.mark.P1
-def test_p2p_except(global_test_env):
-    '''异常无法出块测试'''
-    log.info("异常无法出块测试")
-     # stop node
+def test_NE_P2P_004(global_test_env):
+    log.info("Exception can not be out of the block test")
+    # stop node
     if global_test_env.running:
         global_test_env.stop_all()
 
-    # modify config file 
+    # modify config file
     config_data = LoadFile(global_test_env.cfg.config_json_tmp).get_data()
     config_data['node']['P2P']['MaxPeers'] = 50
     config_data['node']['P2P']['NoDiscovery'] = True
@@ -147,7 +146,7 @@ def test_p2p_except(global_test_env):
 
     # upload config file
     global_test_env.executor(one_put_config_task, all_node)
-    
+
     # modify static file
     with open(global_test_env.cfg.static_node_tmp, 'w', encoding='utf-8') as f:
         f.write(json.dumps([], indent=4))
@@ -173,5 +172,3 @@ def test_p2p_except(global_test_env):
     except Exception as e:
         log.error("check block has except:{}".format(e))
         assert 0 == 0
-
-

@@ -25,10 +25,9 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -1087,17 +1086,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	// Fill the block with all available pending transactions.
-	startTime := time.Now()
-	pending, err := w.eth.TxPool().PendingLimited()
-
-	if err != nil {
-		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
-		return
-	}
-
-	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
-
 	log.Trace("Validator mode", "mode", w.config.Cbft.ValidatorMode)
 	if w.config.Cbft.ValidatorMode == "inner" {
 		// Check if need to switch validators.
@@ -1119,6 +1107,17 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 		return
 	}
+
+	// Fill the block with all available pending transactions.
+	startTime := time.Now()
+	pending, err := w.eth.TxPool().PendingLimited()
+
+	if err != nil {
+		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
+		return
+	}
+
+	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {

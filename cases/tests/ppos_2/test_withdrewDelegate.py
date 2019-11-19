@@ -46,7 +46,7 @@ def test_ROE_002(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address1, transaction_cfg=cfg)
         assert_code(result, 0)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -113,8 +113,6 @@ def test_ROE_005_018(client_new_node_obj):
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     # Return a pledge
     client_new_node_obj.staking.withdrew_staking(address)
-    # The next cycle
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
 
     # The next two cycle
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=2)
@@ -488,7 +486,7 @@ def test_ROE_024(client_new_node_obj):
     # Own capital account entrustment
     result = client_new_node_obj.delegate.delegate(0, address, amount=delegate_amount)
     log.info(result)
-    ## The next cycle
+    # The next cycle
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
@@ -709,20 +707,20 @@ def test_ROE_055(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_ROE_056_057(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
+def test_ROE_056_057(client_new_node_obj, client_consensus_obj):
     """
 
     :param client_new_node_obj:
     :param client_consensus_obj:
-    :param greater_than_staking_amount:
     :return:
     """
     address_staking, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                                10 ** 18 * 10000000)
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                        10 ** 18 * 10000000)
+    value = client_new_node_obj.economic.create_staking_limit * 2
     result = client_new_node_obj.staking.create_staking(0, address_staking, address_staking,
-                                                        amount=greater_than_staking_amount)
+                                                        amount=value)
     assert_code(result, 0)
 
     # create delegate
@@ -778,7 +776,7 @@ def test_ROE_058(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -807,7 +805,7 @@ def test_ROE_059(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 

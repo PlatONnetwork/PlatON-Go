@@ -50,7 +50,7 @@ class Server:
         try:
             test_name = "test-node"
             result = self.run_ssh("sudo -S -p '' supervisorctl stop {}".format(test_name), True)
-            if test_name not in result[0]:
+            if len(result) == 0 or test_name not in result[0]:
                 tmp_dir = os.path.join(self.cfg.server_tmp, self.host)
                 if not os.path.exists(tmp_dir):
                     os.makedirs(tmp_dir)

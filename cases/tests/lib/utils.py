@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
-import time, math
+import time
+import math
 import random
 import string
 from decimal import Decimal
@@ -242,8 +243,11 @@ def wait_block_number(node, block, interval=1):
     :return:
     """
     current_block = node.block_number
-    timeout = int((block - current_block) * interval * 1.5) + int(time.time())
-    if node.block_number >= block:
+    if 0 < block - current_block <= 10:
+        timeout = 10 + int(time.time())
+    elif block - current_block > 10:
+        timeout = int((block - current_block) * interval * 1.5) + int(time.time())
+    else:
         log.info('current block {} is greater than block {}'.format(node.block_number, block))
         return
     print_t = 0
@@ -289,6 +293,7 @@ def get_max_staking_tx_index(node):
     term_nodeid_dict = dict(zip(staking_tx_index_list, nodeid))
     return term_nodeid_dict[max_staking_tx_index]
 
+
 def get_block_count_number(node, number):
     """
     获取验证人出块数
@@ -305,6 +310,7 @@ def get_block_count_number(node, number):
             count = count + 1
     return count
 
+
 def random_string(length=10) -> str:
     """
     Randomly generate a string of letters and numbers of a specified length
@@ -313,11 +319,12 @@ def random_string(length=10) -> str:
     """
     return ''.join(
         random.choice(
-            string.ascii_lowercase +
-            string.ascii_uppercase +
-            string.digits
+            string.ascii_lowercase
+            + string.ascii_uppercase
+            + string.digits
         ) for _ in range(length)
     )
+
 
 def assert_code(result, code):
     '''
@@ -356,3 +363,16 @@ def get_governable_parameter_value(client_obj, parameter):
             return i['ParamValue']['Value']
 
 
+def get_the_dynamic_parameter_gas_fee(data):
+    """
+    Get the dynamic parameter gas consumption cost
+    :return:
+    """
+    zero_number = 0
+    byte_group_length = len(data)
+    for i in data:
+        if i == 0:
+            zero_number = zero_number + 1
+    non_zero_number = byte_group_length - zero_number
+    dynamic_gas = non_zero_number * 68 + zero_number * 4
+    return dynamic_gas

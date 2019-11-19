@@ -33,7 +33,7 @@ class Economic:
         self.expected_minutes = self.genesis.economicModel.common.maxEpochMinutes
         # Consensus rounds
         self.consensus_wheel = (self.expected_minutes * 60) // (
-                    self.interval * self.per_round_blocks * self.validator_count)
+            self.interval * self.per_round_blocks * self.validator_count)
         # Number of settlement periods
         self.settlement_size = self.consensus_wheel * (self.interval * self.per_round_blocks * self.validator_count)
         # Consensus round number
@@ -48,16 +48,15 @@ class Economic:
         self.delegate_limit = self.add_staking_limit
         # unstaking freeze duration
         self.unstaking_freeze_ratio = self.genesis.economicModel.staking.unStakeFreezeDuration
-        #ParamProposalVote_DurationSeconds
+        # ParamProposalVote_DurationSeconds
         self.pp_vote_settlement_wheel = self.genesis.economicModel.gov.paramProposalVoteDurationSeconds // (
-                (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
+            (self.interval * self.per_round_blocks * self.validator_count) * self.consensus_wheel
         )
-        #slash blocks reward
+        # slash blocks reward
         self.slash_blocks_reward = self.genesis.economicModel.slashing.slashBlocksReward
         # text proposal vote duration senconds
         self.tp_vote_settlement_wheel = self.genesis.economicModel.gov.textProposalVoteDurationSeconds // (
-                self.interval * self.per_round_blocks * self.validator_count)
-
+            self.interval * self.per_round_blocks * self.validator_count)
 
     @property
     def account(self):
@@ -77,21 +76,23 @@ class Economic:
                 count = count + 1
         return count
 
-    def get_current_year_reward(self, node: Node, verifier_num=None, new_block_rate=None):
+    def get_current_year_reward(self, node: Node, verifier_num=None, new_block_rate=None, amount=None):
         """
         Get the first year of the block reward, pledge reward
         :return:
         """
         if new_block_rate is None:
             new_block_rate = self.genesis.economicModel.reward.newBlockRate
-        current_block = node.eth.blockNumber
+        # current_block = node.eth.blockNumber
         annualcycle = (self.additional_cycle_time * 60) // self.settlement_size
         annual_size = annualcycle * self.settlement_size
-        starting_block_height = math.floor(current_block / annual_size) * annual_size
+        # starting_block_height = math.floor(current_block / annual_size) * annual_size
         if verifier_num is None:
             verifier_list = get_pledge_list(node.ppos.getVerifierList)
             verifier_num = len(verifier_list)
-        amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, starting_block_height)
+        # amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, starting_block_height)
+        if amount is None:
+            amount = 262215742000000000000000000
         block_proportion = str(new_block_rate / 100)
         staking_proportion = str(1 - new_block_rate / 100)
         block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(annual_size)))
@@ -101,12 +102,11 @@ class Economic:
         # staking_reward = amount - block_reward
         return block_reward, staking_reward
 
-
     def get_settlement_switchpoint(self, node: Node, number=0):
         """
         Get the last block of the current billing cycle
-                :param node: node object
-                :param number: number of billing cycles
+                                :param node: node object
+                                :param number: number of billing cycles
         :return:
         """
         block_number = self.settlement_size * number
@@ -117,8 +117,8 @@ class Economic:
     def get_front_settlement_switchpoint(self, node: Node, number=0):
         """
         Get a block height before the current billing cycle
-                :param node: node object
-                :param number: number of billing cycles
+                                :param node: node object
+                                :param number: number of billing cycles
         :return:
         """
         block_num = self.settlement_size * (number + 1)
@@ -129,8 +129,8 @@ class Economic:
     def wait_settlement_blocknum(self, node: Node, number=0):
         """
         Waiting for a billing cycle to settle
-                :param node:
-                :param number: number of billing cycles
+                                :param node:
+                                :param number: number of billing cycles
         :return:
         """
         end_block = self.get_settlement_switchpoint(node, number)

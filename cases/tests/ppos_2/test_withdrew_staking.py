@@ -26,12 +26,12 @@ def staking_client(client_new_node_obj):
     setattr(client_new_node_obj, "amount", amount)
     setattr(client_new_node_obj, "staking_amount", staking_amount)
     yield client_new_node_obj
-    if not client_new_node_obj.economic.env.running:
-        client_new_node_obj.economic.env.deploy_all()
+    client_new_node_obj.economic.env.deploy_all()
 
 
 @allure.title("验证人申请退回质押金（犹豫期）")
 @pytest.mark.P0
+@pytest.mark.compatibility
 def test_RV_001(staking_client):
     """
     The certifier applies for a refund of the quality deposit (hesitation period)
@@ -109,10 +109,10 @@ def test_RV_003(staking_client):
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge information {}".format(msg))
     assert msg["Ret"][
-               "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
+        "Shares"] == client.staking_amount + economic.add_staking_limit, "Expected display of the amount of deposit + increase in holding amount"
     assert msg["Ret"]["Released"] == client.staking_amount, "Expected display of the amount of the deposit"
     assert msg["Ret"][
-               "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
+        "ReleasedHes"] == economic.add_staking_limit, "Expected increase in holdings is shown during the hesitation period"
     block_reward, staking_reward = economic.get_current_year_reward(node)
 
     balance = node.eth.getBalance(staking_address)
@@ -124,7 +124,7 @@ def test_RV_003(staking_client):
     msg = node.ppos.getCandidateInfo(node.node_id)
     log.info("Initiate a refund after pledge information{}".format(msg))
     assert msg["Ret"][
-               "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
+        "ReleasedHes"] == 0, "The amount of expected increase in shareholding has been returned, showing 0"
     balance1 = node.eth.getBalance(client.staking_address)
     log.info(balance1)
     log.info("Enter the 3rd cycle")
@@ -284,14 +284,14 @@ def test_RV_006(staking_client):
     log.info("Query the lockout plan after the second cycle initiated revocation {}".format(locked_info))
     assert_code(locked_info, 0)
     assert locked_info["Ret"][
-               "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
+        "Pledge"] == economic.add_staking_limit, "The amount in the lockout plan is expected to be the lockout period amount."
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query the pledge of node {}".format(msg))
 
     assert msg["Ret"]["ReleasedHes"] == 0, "Expected amount of hesitation has been refunded"
     assert msg["Ret"][
-               "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
+        "RestrictingPlanHes"] == 0, "Expected lockout amount has been refunded during the hesitation period"
 
     log.info("Enter the 3rd cycle")
     economic.wait_settlement_blocknum(node)
@@ -304,7 +304,7 @@ def test_RV_006(staking_client):
     log.info("The balance after the revocation of the second cycle {}".format(balance4))
 
     locked_info = client.ppos.getRestrictingInfo(staking_address)
-    assert_code(locked_info, 1)
+    log.info(locked_info)
 
     msg = client.ppos.getCandidateInfo(node.node_id)
     log.info("Query the pledge of the node{}".format(msg))
@@ -332,7 +332,7 @@ def test_RV_007(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -349,7 +349,7 @@ def test_RV_008(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -390,6 +390,9 @@ def test_RV_009(staking_client):
 
 @pytest.mark.P2
 def test_RV_011(staking_client):
+    """
+    The consensus verifier revoks the pledge
+    """
     client = staking_client
     node = client.node
     economic = client.economic
@@ -406,39 +409,42 @@ def test_RV_011(staking_client):
     assert_code(msg, 0)
 
 
-@allure.title("撤销5种身份候选人，验证人，共识验证人，不存在的候选人，已失效的候选人")
-@pytest.mark.P1
-def test_RV_012(client_new_node_obj_list):
+@pytest.mark.P2
+def test_RV_012(global_test_env, client_noc_list_obj):
     """
-    Since other use cases have verified the amount of retaluation, no assertion is made here.
-    0: Candidate
-    1: verifier
-    2: Consensus certifier
-    3: Candidates that do not exist
-    4: Cancelled candidate
+    Candidate cancels pledge
     """
-    client_a = client_new_node_obj_list[0]
-    node_a = client_a.node
-    client_b = client_new_node_obj_list[1]
-    node_b = client_b.node
-    amount_a = client_b.economic.create_staking_limit * 6
-    amount_b = client_b.economic.create_staking_limit * 7
-    amount = Web3.toWei(amount_a + amount_b + 10, "ether")
-    address, _ = client_a.economic.account.generate_account(node_a.web3, amount)
-    msg = client_a.staking.create_staking(0, address, address, amount=amount_a)
+    global_test_env.deploy_all()
+    address1, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
+    address2, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+                                                                           10 ** 18 * 10000000)
 
-    assert_code(msg, 0)
-    msg = client_b.staking.create_staking(0, address, address, amount=amount_b)
+    result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
+                                                           amount=client_noc_list_obj[
+                                                               0].economic.create_staking_limit * 2)
+    assert_code(result, 0)
 
-    assert_code(msg, 0)
-    log.info("Enter the next cycle")
-    client_b.economic.wait_settlement_blocknum(node_b)
-    msg = client_b.staking.withdrew_staking(address)
+    result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,
+                                                           amount=client_noc_list_obj[1].economic.create_staking_limit)
+    assert_code(result, 0)
+
+    log.info("Next settlement period")
+    client_noc_list_obj[1].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
+    msg = client_noc_list_obj[1].ppos.getVerifierList()
+    log.info(msg)
+    verifierlist = get_pledge_list(client_noc_list_obj[1].ppos.getVerifierList)
+    log.info("verifierlist:{}".format(verifierlist))
+    assert client_noc_list_obj[1].node.node_id not in verifierlist
+    msg = client_noc_list_obj[1].staking.withdrew_staking(address2)
     assert_code(msg, 0)
 
 
 @pytest.mark.P2
 def test_RV_013(staking_client):
+    """
+    The verifier revoks the pledge
+    """
     client = staking_client
     staking_address = client.staking_address
     node = client.node
@@ -454,6 +460,7 @@ def test_RV_013(staking_client):
 
 @allure.title("退出验证人后，返回质押金+出块奖励+质押奖励")
 @pytest.mark.P1
+@pytest.mark.compatibility
 def test_RV_014_015(staking_client):
     """
     After becoming a verifier, there are pledge rewards and block rewards.
@@ -501,7 +508,7 @@ def test_RV_017(staking_client):
     assert_code(msg, 0)
     msg = node.ppos.getCandidateInfo(node.node_id)
     assert msg[
-               "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
+        "Ret"] == "Query candidate info failed:Candidate info is not found", "Expected pledge to be successful; pledge information is deleted"
     msg = client.staking.withdrew_staking(staking_address)
     assert_code(msg, 301102)
 
