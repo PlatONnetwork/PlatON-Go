@@ -162,7 +162,7 @@ def test_CS_CL_003(global_test_env, client_con_list_obj, client_noc_list_obj):
     assert client_noc_list_obj[0].node.node_id in validatorlist3
 
 
-###have bug
+# have bug
 @pytest.mark.P1
 def test_CS_CL_004(global_test_env, client_consensus_obj, client_new_node_obj):
     """
@@ -176,7 +176,7 @@ def test_CS_CL_004(global_test_env, client_consensus_obj, client_new_node_obj):
     log.info(client_new_node_obj.node.node_id)
     log.info(client_consensus_obj.node.url)
     StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
-    value = client_consensus_obj.node.web3.toWei(1000000,"ether")
+    value = client_consensus_obj.node.web3.toWei(1000000, "ether")
     result = client_consensus_obj.staking.increase_staking(0, StakingAddress, amount=value)
     assert_code(result, 0)
     msg = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
@@ -627,7 +627,7 @@ def test_CS_CL_027_028(global_test_env, client_noc_list_obj):
 
     result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
                                                            amount=client_noc_list_obj[
-                                                                      0].economic.create_staking_limit * 2)
+                                                               0].economic.create_staking_limit * 2)
     assert_code(result, 0)
 
     result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,

@@ -8,6 +8,7 @@ from tests.lib import Genesis
 from dacite import from_dict
 from tests.govern.conftest import proposal_vote, version_proposal_vote
 
+
 def submitvpandvote(client_list_obj, votingrounds=2, version=None):
     pip_obj = client_list_obj[0].pip
     if version is None:
@@ -22,6 +23,7 @@ def submitvpandvote(client_list_obj, votingrounds=2, version=None):
         pip_obj = client_list_obj[index].pip
         result = version_proposal_vote(pip_obj, vote_option=pip_obj.cfg.vote_option_yeas)
         assert_code(result, 0)
+
 
 def createstaking(obj, platon_bin=None):
     if isinstance(obj, Client):
@@ -40,6 +42,7 @@ def createstaking(obj, platon_bin=None):
         log.info('Node {} staking result : {}'.format(client_obj.node.node_id, result))
         assert_code(result, 0)
 
+
 def submitppandvote(client_list_obj, *args):
     pip_obj = client_list_obj[0].pip
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
@@ -53,6 +56,7 @@ def submitppandvote(client_list_obj, *args):
         log.info('{}'.format(args[index]))
         result = proposal_vote(pip_obj, vote_option=args[index])
         assert_code(result, 0)
+
 
 def submitcppandvote(client_list_obj, list, voting_rounds=2):
     pip_obj = client_list_obj[0].pip
@@ -101,6 +105,7 @@ def submitcvpandvote(client_list_obj, *args):
         log.info('Node {} vote cancel proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 0)
 
+
 def submittpandvote(client_list_obj, *args):
     pip_obj = client_list_obj[0].pip
     result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
@@ -117,6 +122,7 @@ def submittpandvote(client_list_obj, *args):
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} vote text proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 0)
+
 
 class TestVotingStatisticsVP():
     @pytest.mark.compatibility
@@ -325,7 +331,7 @@ class TestVotingStatisticsVP():
         log.info('Get version proposal information {}'.format(proposalinfo))
         assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 2, 0, 0]
         log.info('Stop the node {}'.format(pip_obj.node.node_id))
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock')-10)
+        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock') - 10)
         pip_obj.node.stop()
         wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
         assert client_con_list_obj[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 2
@@ -380,7 +386,7 @@ class TestVotingStatisticsTPCP():
         assert result_cancel == [6, 1, 1, 0]
 
         result_cancel = proposal_vote(client_con_list_obj[2].pip, vote_option=pip_obj.cfg.vote_option_Abstentions,
-                                     proposaltype=pip_obj.cfg.cancel_proposal)
+                                      proposaltype=pip_obj.cfg.cancel_proposal)
         assert_code(result_cancel, 0)
         result_text = proposal_vote(client_con_list_obj[2].pip, vote_option=pip_obj.cfg.vote_option_Abstentions,
                                     proposaltype=pip_obj.cfg.text_proposal)
@@ -1179,4 +1185,3 @@ class TestVotingStatisticsPP():
         assert client_con_list_obj[1].pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert client_con_list_obj[1].pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert client_con_list_obj[1].pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 3
-

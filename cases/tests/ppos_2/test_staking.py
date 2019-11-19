@@ -15,7 +15,7 @@ def test_IV_001_002_010(global_test_env, client_consensus_obj):
         StakingAddress = node.get("StakingAddress")
         log.info(StakingAddress)
         assert client_consensus_obj.node.web3.toChecksumAddress(StakingAddress) == \
-               client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
+            client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     log.info(nodeid_list)
     consensus_node_list = global_test_env.consensus_node_list
     nodeid_list_ = [node.node_id for node in consensus_node_list]
@@ -35,7 +35,7 @@ def test_IV_003(client_consensus_obj):
 @pytest.mark.P1
 def test_IV_004(client_consensus_obj):
     address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
-                                                                               10 ** 18 * 10000000)
+                                                                        10 ** 18 * 10000000)
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
     assert_code(result, 301107)
@@ -63,7 +63,7 @@ def test_IV_006_007_008(client_consensus_obj):
     result = client_consensus_obj.staking.create_staking(0, StakingAddress, StakingAddress)
     assert_code(result, 0)
     address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+                                                                        10 ** 18 * 10000000)
     result = client_consensus_obj.delegate.delegate(0, address)
     log.info(result)
     assert_code(result, 0)
@@ -73,7 +73,7 @@ def test_IV_006_007_008(client_consensus_obj):
 @pytest.mark.P3
 def test_IV_009(client_consensus_obj):
     address1, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+                                                                         10 ** 18 * 10000000)
     StakingAddress = client_consensus_obj.economic.cfg.DEVELOPER_FOUNDATAION_ADDRESS
     result = client_consensus_obj.staking.edit_candidate(StakingAddress, address1)
     log.info(result)
@@ -163,7 +163,7 @@ def test_P_020_21(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.create_staking(0, address, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -194,7 +194,7 @@ def test_P_026_01(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.create_staking(0, address, address, bls_pubkey=blspubkey)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -209,7 +209,7 @@ def test_P_026_02(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.create_staking(0, address, address, bls_pubkey=blspubkey)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -304,6 +304,3 @@ def test_P_031(client_new_node_obj):
     result = client_new_node_obj.staking.create_staking(0, address1, address1)
     log.info(result)
     assert_code(result, 301101)
-
-
-

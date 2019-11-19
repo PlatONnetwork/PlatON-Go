@@ -132,7 +132,7 @@ def test_DI_007(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.delegate(0, address1, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -153,7 +153,7 @@ def test_DI_008(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.delegate(0, address1)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 

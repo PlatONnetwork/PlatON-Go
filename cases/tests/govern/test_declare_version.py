@@ -1,10 +1,12 @@
 from common.log import log
 from tests.lib.utils import upload_platon, assert_code, wait_block_number, get_pledge_list
-import pytest, time
+import pytest
+import time
 from tests.govern.test_voting_statistics import submitvpandvote, createstaking, version_proposal_vote
 from tests.lib import Genesis
 from tests.lib.client import get_client_obj
 from dacite import from_dict
+
 
 def replace_version_declare(pip_obj, platon_bin, versiontag):
     upload_platon(pip_obj.node, platon_bin)
@@ -20,12 +22,14 @@ def replace_version_declare(pip_obj, platon_bin, versiontag):
     log.info('declareversion {} result: {}'.format(pip_obj.node.program_version, result))
     return result
 
+
 def wrong_verisonsign_declare(pip_obj, pip_obj_test):
     result = pip_obj.declareVersion(pip_obj.node.node_id, pip_obj.node.staking_address,
                                     version_sign=pip_obj_test.node.program_version_sign,
                                     transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('wrong program version sign, declareVersion result : {}'.format(result))
     return result
+
 
 def wrong_verison_declare(pip_obj, version=None):
     if not version:
@@ -38,6 +42,7 @@ def wrong_verison_declare(pip_obj, version=None):
     log.info('wrong program version, declareVersion: {} result : {}'.format(version, result))
     return result
 
+
 @pytest.mark.P0
 def test_DE_DE_001(client_verifier_obj):
     pip_obj = client_verifier_obj.pip
@@ -45,6 +50,7 @@ def test_DE_DE_001(client_verifier_obj):
     result = pip_obj.declareVersion(pip_obj.node.node_id, address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('declareVersion result: {}'.format(result))
     assert_code(result, 302021)
+
 
 class TestNoProposalVE():
     @pytest.mark.P0
@@ -122,6 +128,7 @@ class TestNoProposalVE():
 
         result = wrong_verison_declare(pip_obj, pip_obj.cfg.version2)
         assert_code(result, 302024)
+
 
 class TestVotingProposalVE():
     @pytest.mark.P0
@@ -351,6 +358,7 @@ class TestVotingProposalVE():
 
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
+
 
 class TestVotingProposlaVotedVE():
     @pytest.mark.P2
@@ -584,6 +592,7 @@ class TestVotingProposlaVotedVE():
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
 
+
 class TestPreactiveProposalVE():
     @pytest.mark.P2
     def test_DE_VE_056(self, preactive_proposal_pipobj_list):
@@ -812,6 +821,7 @@ class TestPreactiveProposalVE():
 
         result = wrong_verison_declare(pip_obj, pip_obj.cfg.version0)
         assert_code(result, 302024)
+
 
 class TestNoProposalCA:
     @pytest.mark.P0
@@ -1138,6 +1148,7 @@ class TestNoProposalCA:
         result = wrong_verison_declare(pip_obj, pip_obj.chain_version)
         assert_code(result, 302024)
 
+
 class TestNewDeclareVersion():
     @pytest.mark.P1
     def test_DE_NN_001_to_003(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
@@ -1164,6 +1175,7 @@ class TestNewDeclareVersion():
         log.info('New node declare version result : {}'.format(result))
         assert_code(result, 302023)
 
+
 class TestDV():
     @pytest.mark.P3
     def test_DE_VE_003_DE_VE_012_DE_CA_003_DE_CA_012_DE_VE_61(self, new_genesis_env, client_con_list_obj):
@@ -1186,7 +1198,7 @@ class TestDV():
         result = replace_version_declare(pip_obj_ve, pip_obj_ve.cfg.PLATON_NEW_BIN0, pip_obj_ve.cfg.version0)
         assert_code(result, 302028)
         result = pip_obj_ca.declareVersion(pip_obj_ca.node.node_id, pip_obj_ca.node.staking_address,
-                                        transaction_cfg=pip_obj_ca.cfg.transaction_cfg)
+                                           transaction_cfg=pip_obj_ca.cfg.transaction_cfg)
         log.info('Node {} declare version result {}'.format(pip_obj_ca.node.node_id, result))
         assert_code(result, 302028)
         result = client_con_list_obj[1].pip.submitVersion(client_con_list_obj[1].node.node_id, str(time.time()),

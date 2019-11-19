@@ -26,10 +26,11 @@ def replace_platon_vote(pip_obj, bin=None, program_version=None, version_sign=No
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
     log.info('Get version proposal information {}'.format(proposalinfo))
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                 pip_obj.node.staking_address, program_version=program_version, version_sign=version_sign,
+                          pip_obj.node.staking_address, program_version=program_version, version_sign=version_sign,
                           transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Node {} vote result : {}'.format(pip_obj.node.node_id, result))
     return result
+
 
 def text_proposal_vote(pip_obj):
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
@@ -39,6 +40,7 @@ def text_proposal_vote(pip_obj):
     log.info('Node {} vote text proposal result {}'.format(pip_obj.node.node_id, result))
     return result
 
+
 def cancel_proposal_vote(pip_obj):
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
     log.info('proposalinfo: {}'.format(proposalinfo))
@@ -46,6 +48,7 @@ def cancel_proposal_vote(pip_obj):
                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Node {} vote cancel proposal result {}'.format(pip_obj.node.node_id, result))
     return result
+
 
 @pytest.fixture()
 def voting_proposal_ve_pipobj(global_test_env, client_verifier_obj):
@@ -61,10 +64,11 @@ def voting_proposal_ve_pipobj(global_test_env, client_verifier_obj):
                 return pip_obj
         global_test_env.deploy_all()
     result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 10, pip_obj.node.staking_address,
-                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                   transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('node {} submit version proposal {}'.format(pip_obj.node.node_id, result))
     assert_code(result, 0)
     return pip_obj
+
 
 @pytest.fixture()
 def voting_proposal_te_pipobj(global_test_env, client_verifier_obj):
@@ -76,10 +80,11 @@ def voting_proposal_te_pipobj(global_test_env, client_verifier_obj):
         else:
             global_test_env.deploy_all()
     result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
-                       transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit text proposal result {}'.format(result))
     assert_code(result, 0)
     return pip_obj
+
 
 class TestVoteVP():
     @pytest.mark.P1
@@ -98,10 +103,10 @@ class TestVoteVP():
         upload_platon(client_verifier_obj_list[-2].node, pip_obj.cfg.PLATON_NEW_BIN)
         client_verifier_obj_list[-2].node.restart()
         log.info('Replace the platon of the Node {}, restart the node'.format(client_verifier_obj_list[-2].node.node_id))
-        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock')-10)
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock') - 10)
         result = client_verifier_obj_list[-2].pip.vote(client_verifier_obj_list[-2].pip.node.node_id, proposalinfo.get('ProposalID'),
                                                        client_verifier_obj_list[-2].pip.cfg.vote_option_yeas,
-                              client_verifier_obj_list[-2].pip.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                                       client_verifier_obj_list[-2].pip.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} vote proposal result : {}'.format(client_verifier_obj_list[-1].node.node_id, result))
         assert_code(result, 0)
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
@@ -115,6 +120,7 @@ class TestVoteVP():
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
                               pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node {} vote proposal result : {}'.format(client_verifier_obj_list[-1].node.node_id, result))
+
 
 @pytest.mark.compatibility
 @pytest.mark.P0
@@ -166,15 +172,16 @@ def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposa
     assert_code(result, 0)
 
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('vote duplicated result: {}'.format(result))
     assert_code(result, 302027)
 
     wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                          pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('endblock vote result: {}'.format(result))
     assert_code(result, 302026)
+
 
 @pytest.mark.P0
 def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal_te_pipobj, client_verifier_obj_list):
@@ -182,7 +189,7 @@ def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
     address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
     result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas, address,
-                 transaction_cfg=pip_obj.cfg.transaction_cfg)
+                          transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Not staking address vote result {}'.format(result))
     assert_code(result, 302021)
 
@@ -208,6 +215,7 @@ def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal
                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Endvoting block vote result {}'.format(result))
     assert_code(result, 302026)
+
 
 class TestVoteNodeException():
     @pytest.mark.P0
@@ -278,17 +286,17 @@ class TestVoteNodeException():
 
         pip_obj.economic.wait_settlement_blocknum(pip_obj.node, pip_obj.economic.unstaking_freeze_ratio)
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_text.get('ProposalID'), pip_obj.cfg.vote_option_nays,
-                     address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                              address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Exited node vote text proposal result {}'.format(result))
         assert_code(result, 302022)
 
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_param.get('ProposalID'), pip_obj.cfg.vote_option_nays,
-                     address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                              address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Exited node vote param proposal result {}'.format(result))
         assert_code(result, 302022)
 
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), pip_obj.cfg.vote_option_nays,
-                     address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                              address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Exited node vote cancel proposal result {}'.format(result))
         assert_code(result, 302022)
 
@@ -381,7 +389,7 @@ class TestVoteNodeException():
         log.info('Get proposal information :{}'.format(proposalinfo_version))
         pip_obj_test = client_verifier_obj_list[0].pip
         result = pip_obj_test.submitCancel(pip_obj_test.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
-                                  pip_obj_test.node.staking_address, transaction_cfg=pip_obj_test.cfg.transaction_cfg)
+                                           pip_obj_test.node.staking_address, transaction_cfg=pip_obj_test.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip_obj_test.submitText(pip_obj_test.node.node_id, str(time.time()), pip_obj_test.node.staking_address,
@@ -399,6 +407,7 @@ class TestVoteNodeException():
         result = text_proposal_vote(pip_obj)
         log.info('Candidate node {} vote text proposal result : {}'.format(pip_obj.node.node_id, result))
         assert_code(result, 302022)
+
 
 class TestVoteCancelVersion():
     @pytest.mark.compatibility
@@ -422,7 +431,7 @@ class TestVoteCancelVersion():
         pip_obj = submit_cancel
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
         log.info('Cancel proposal info : {}'.format(proposalinfo))
-        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock')-10)
+        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock') - 10)
         result = cancel_proposal_vote(pip_obj)
         assert_code(result, 0)
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
@@ -452,6 +461,7 @@ class TestVoteCancelParam():
         assert_code(result, 0)
         result = cancel_proposal_vote(pip_obj)
         assert_code(result, 302027)
+
 
 class TestVoteParam():
     @pytest.mark.compatibility
@@ -499,6 +509,7 @@ class TestVoteParam():
                               address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         assert_code(result, 302022)
 
+
 @pytest.mark.compatibility
 @pytest.mark.P0
 def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_list_obj):
@@ -508,7 +519,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_lis
     new_genesis_env.deploy_all()
     pip_obj = client_con_list_obj[0].pip
     result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '123',
-                        pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                 pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
@@ -526,6 +537,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, client_con_lis
     result = pip_obj.pip.getTallyResult(proposalinfo.get('ProposalID'))
     log.info('Interface getTallyResult result is {}'.format(result))
     assert_code(result, 0)
+
 
 @pytest.mark.P0
 def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
@@ -546,6 +558,7 @@ def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
     log.info('Interface getTallyResult result is {}'.format(result))
     assert_code(result, 0)
 
+
 class TestVoteVPVerify():
     def vote_wrong_version(self, pip_obj, proposaltype):
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(proposaltype)
@@ -554,7 +567,7 @@ class TestVoteVPVerify():
         if pip_obj.node.program_version == pip_obj.cfg.version1:
             program_version = pip_obj.cfg.version2
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                                pip_obj.node.staking_address, program_version=program_version,
+                              pip_obj.node.staking_address, program_version=program_version,
                               transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Wrong  program version vote result : {}'.format(result))
         return result
@@ -565,7 +578,7 @@ class TestVoteVPVerify():
         version_sign = pip_obj.node.program_version_sign
         version_sign = version_sign.replace(version_sign[2:4], '11')
         result = pip_obj.vote(pip_obj.node.node_id, proposalinfo.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                                pip_obj.node.staking_address, version_sign=version_sign,
+                              pip_obj.node.staking_address, version_sign=version_sign,
                               transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Wrong version sign vote result : {}'.format(result))
         return result
@@ -661,6 +674,7 @@ class TestVoteVPVerify():
         log.info('Ineffective proposalid, vote result : {}'.format(result))
         assert_code(result, 302006)
 
+
 class TestCadidateVote():
     @pytest.mark.P1
     def test_VO_TER_003_VO_TER_007_VO_TER_005_PP_VO_013(self, no_vp_proposal, client_candidate_obj, client_verifier_obj):
@@ -680,8 +694,3 @@ class TestCadidateVote():
         assert_code(result, 302022)
         result = proposal_vote(ca_pip_obj, proposaltype=ca_pip_obj.cfg.cancel_proposal)
         assert_code(result, 302022)
-
-
-
-
-

@@ -5,9 +5,12 @@ from tests.lib import Genesis
 from common.key import mock_duplicate_sign
 from tests.govern.test_voting_statistics import submitppandvote, submitcvpandvote, submitvpandvote, submittpandvote, submitcppandvote
 
-import time, math, rlp
+import time
+import math
+import rlp
 import pytest
 from tests.govern.conftest import version_proposal_vote
+
 
 class TestgetProposal():
     @pytest.mark.P0
@@ -42,7 +45,7 @@ class TestgetProposal():
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
         result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id, pip_obj.cfg.version8, 3, pip_obj.node.staking_address,
-                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.version_proposal)
@@ -66,16 +69,16 @@ class TestgetProposal():
         assert result_version.get('Ret').get('ProposalType') == pip_obj.cfg.version_proposal
         assert result_version.get('Ret').get('PIPID') == pip_id
         assert result_version.get('Ret').get('SubmitBlock') == proposalinfo_version.get('SubmitBlock')
-        caculated_endvotingblock = math.ceil(proposalinfo_version.get('SubmitBlock')/pip_obj.economic.consensus_size +
-                                             3)* pip_obj.economic.consensus_size - 20
+        caculated_endvotingblock = math.ceil(proposalinfo_version.get('SubmitBlock') / pip_obj.economic.consensus_size +
+                                             3) * pip_obj.economic.consensus_size - 20
         assert result_version.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
         assert result_cancel.get('Ret').get('Proposer') == pip_obj.node.node_id
         assert result_cancel.get('Ret').get('ProposalType') == pip_obj.cfg.cancel_proposal
         assert result_cancel.get('Ret').get('PIPID') == pip_id_cancel
         assert result_cancel.get('Ret').get('SubmitBlock') == proposalinfo_cancel.get('SubmitBlock')
-        caculated_endvotingblock = math.ceil(proposalinfo_cancel.get('SubmitBlock')/pip_obj.economic.consensus_size)* \
-                                   pip_obj.economic.consensus_size + 20
+        caculated_endvotingblock = math.ceil(proposalinfo_cancel.get('SubmitBlock') / pip_obj.economic.consensus_size) * \
+            pip_obj.economic.consensus_size + 20
         assert result_cancel.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
     @pytest.mark.P0
@@ -83,7 +86,7 @@ class TestgetProposal():
         pip_obj = client_verifier_obj.pip
         pip_id = str(time.time())
         result = pip_obj.submitText(pip_obj.node.node_id, pip_id, pip_obj.node.staking_address,
-                           transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_text = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
@@ -97,8 +100,8 @@ class TestgetProposal():
         assert result_text.get('Ret').get('PIPID') == pip_id
         assert result_text.get('Ret').get('SubmitBlock') == proposalinfo_text.get('SubmitBlock')
         log.info(pip_obj.economic.tp_vote_settlement_wheel)
-        caculated_endvotingblock = math.ceil(proposalinfo_text.get('SubmitBlock')/pip_obj.economic.consensus_size +
-                                             pip_obj.economic.tp_vote_settlement_wheel)* pip_obj.economic.consensus_size - 20
+        caculated_endvotingblock = math.ceil(proposalinfo_text.get('SubmitBlock') / pip_obj.economic.consensus_size +
+                                             pip_obj.economic.tp_vote_settlement_wheel) * pip_obj.economic.consensus_size - 20
         assert result_text.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
     @pytest.mark.P1
@@ -107,6 +110,7 @@ class TestgetProposal():
         result = pip_obj.pip.getProposal('0xa89162be0bd0d081c50a5160f412c4926b3ae9ea96cf792935564357ddd11111')
         log.info('Interface getProposal-version result : {}'.format(result))
         assert_code(result, 302006)
+
 
 class TestgetTallyResult():
     @pytest.mark.P0
@@ -119,7 +123,7 @@ class TestgetTallyResult():
         log.info('Version proposal information {}'.format(proposalinfo_version))
         wait_block_number(pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
         assert pip_obj.get_canceledby_of_proposal(proposalinfo_cancel.get('ProposalID')) == \
-               "0x0000000000000000000000000000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
         assert pip_obj.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')) == 2
         assert pip_obj.get_yeas_of_proposal(proposalinfo_cancel.get('ProposalID')) == 3
         assert pip_obj.get_nays_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
@@ -144,7 +148,7 @@ class TestgetTallyResult():
         log.info('Version proposal information {}'.format(proposalinfo_version))
         wait_block_number(pip_obj.node, proposalinfo_version.get('EndVotingBlock'))
         assert pip_obj.get_canceledby_of_proposal(proposalinfo_cancel.get('ProposalID')) == \
-               "0x0000000000000000000000000000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
         assert pip_obj.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')) == 3
         assert pip_obj.get_yeas_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
         assert pip_obj.get_nays_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
@@ -152,7 +156,7 @@ class TestgetTallyResult():
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_verifier_obj_list)
 
         assert pip_obj.get_canceledby_of_proposal(proposalinfo_version.get('ProposalID')) == \
-               "0x0000000000000000000000000000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
         assert pip_obj.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 3
         assert pip_obj.get_yeas_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip_obj.get_nays_of_proposal(proposalinfo_version.get('ProposalID')) == 0
@@ -175,7 +179,7 @@ class TestgetTallyResult():
         wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
 
         assert pip_obj.get_canceledby_of_proposal(proposalinfo.get('ProposalID')) == \
-               "0x0000000000000000000000000000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
         assert pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')) == 3
         assert pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 1
@@ -198,7 +202,7 @@ class TestgetTallyResult():
         wait_block_number(pip_obj.node, proposalinfo_cancel.get('EndVotingBlock'))
 
         assert pip_obj.get_canceledby_of_proposal(proposalinfo_cancel.get('ProposalID')) == \
-               "0x0000000000000000000000000000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
         assert pip_obj.get_canceledby_of_proposal(proposalinfo_param.get('ProposalID')) == proposalinfo_cancel.get('ProposalID')
 
         assert pip_obj.get_status_of_proposal(proposalinfo_cancel.get('ProposalID')) == 2
@@ -231,7 +235,7 @@ class TestgetAccuVerifiersCount():
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[-1].pip
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '999',
-                            pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Node submit param proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
@@ -244,11 +248,11 @@ class TestgetAccuVerifiersCount():
         for index in range(3):
             client_obj = client_con_list_obj[index]
             result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_param.get('ProposalID'), index + 1,
-                                client_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                         client_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Node {} vote param proposal result : {}'.format(client_obj.node.node_id, result))
             assert_code(result, 0)
             result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
-                                client_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                         client_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Node {} vote cancel proposal result : {}'.format(client_obj.node.node_id, result))
             assert_code(result, 0)
         assert pip_obj.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 1, 1, 1]
@@ -285,14 +289,14 @@ class TestgetAccuVerifiersCount():
     def test_AC_IN_001_002_004_to_006_012_to_014(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[-1].pip
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5, pip_obj.node.staking_address,
-                              transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo_version))
 
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 4, proposalinfo_version.get('ProposalID'),
-                             pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
@@ -379,7 +383,7 @@ class TestgetAccuVerifiersCount():
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
         log.info('Get text proposal information : {}'.format(proposalinfo))
         result = pip_obj.pip.getAccuVerifiersCount('0x0c04f578466ead2208dbb15b927ecb27041881e8c16c17cd0db6b3df422e1111',
-                                                          block_hash=get_blockhash(pip_obj.node))
+                                                   block_hash=get_blockhash(pip_obj.node))
         log.info('Interface getAccuVerifiersCount result : {}'.format(result))
         assert_code(result, 302006)
         log.info('{}'.format(get_blockhash(pip_obj.node)))
@@ -392,7 +396,6 @@ class TestgetAccuVerifiersCount():
                                                    block_hash='0x5941605fe43ab32fbaf9c6e08dc0970eae50efb7da4248a9a8941f0e50711111')
         log.info('Interface getAccuVerifiersCount result : {}'.format(result))
         assert_code(result, 0)
-
 
 
 class TestListGovernParam():
@@ -437,6 +440,7 @@ class TestListGovernParam():
     def test_IN_LG_005(self, client_noconsensus_obj):
         result = client_noconsensus_obj.pip.pip.listGovernParam('txpool')
         log.info('Interface listGovernParam result {}'.format(result))
+
 
 class TestGetGovernParam():
     @pytest.mark.P0
@@ -503,6 +507,7 @@ class TestGetGovernParam():
         result = pip_obj.getGovernParamValue('block', 'MaxValidators')
         assert_code(result, 302031)
 
+
 class TestGetActiveVersion():
     @pytest.mark.compatibility
     @pytest.mark.P0
@@ -522,6 +527,7 @@ class TestGetActiveVersion():
         assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
         assert_code(pip_obj.chain_version, pip_obj.cfg.version5)
 
+
 class TestListProposal():
     @pytest.mark.P1
     def test_LP_IN_001_002(self, no_vp_proposal):
@@ -536,7 +542,7 @@ class TestListProposal():
         assert proposalinfo.get('Proposer') == pip_obj.node.node_id
         assert proposalinfo.get('ProposalType') == pip_obj.cfg.param_proposal
         log.info('{}'.format(pip_obj.economic.pp_vote_settlement_wheel))
-        calculated_endvotingblock = math.ceil(proposalinfo.get('SubmitBlock')/pip_obj.economic.settlement_size +
+        calculated_endvotingblock = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.settlement_size +
                                               pip_obj.economic.pp_vote_settlement_wheel) * pip_obj.economic.settlement_size
         assert proposalinfo.get('EndVotingBlock') == calculated_endvotingblock
 
@@ -551,7 +557,7 @@ class TestListProposal():
         assert proposalinfo_cancel.get('Proposer') == pip_obj.node.node_id
         assert proposalinfo_cancel.get('ProposalType') == pip_obj.cfg.cancel_proposal
         log.info('{}'.format(pip_obj.economic.pp_vote_settlement_wheel))
-        calculated_endvotingblock = math.ceil(proposalinfo_cancel.get('SubmitBlock')/pip_obj.economic.consensus_size +
+        calculated_endvotingblock = math.ceil(proposalinfo_cancel.get('SubmitBlock') / pip_obj.economic.consensus_size +
                                               1) * pip_obj.economic.consensus_size - 20
         assert proposalinfo_cancel.get('EndVotingBlock') == calculated_endvotingblock
 
@@ -562,6 +568,7 @@ class TestListProposal():
         log.info('There is no proposal, interface listProposal return : {}'.format(result))
         assert_code(result, 2)
         assert result.get('Ret') == "Object not found"
+
 
 class TestGasUse():
     def get_balance(self, pip_obj):
@@ -583,7 +590,7 @@ class TestGasUse():
         balance_after = self.get_balance(pip_obj)
         gas = get_the_dynamic_parameter_gas_fee(data)
         log.info('Calculated gas : {}'.format(gas))
-        assert_code(balance_before-balance_after, (gas+350000)*pip_obj.cfg.transaction_cfg.get('gasPrice'))
+        assert_code(balance_before - balance_after, (gas + 350000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
         proposal_id = proposalinfo.get('ProposalID')[2:]
         version_sign = pip_obj.node.program_version_sign[2:]
@@ -599,15 +606,14 @@ class TestGasUse():
         log.info('After vote text proposal, the address balance : {}'.format(balance_after_vote))
         gas = get_the_dynamic_parameter_gas_fee(data)
         log.info('Calculated gas : {}'.format(gas))
-        assert_code(balance_after-balance_after_vote, (gas+32000)*pip_obj.cfg.transaction_cfg.get('gasPrice'))
-
+        assert_code(balance_after - balance_after_vote, (gas + 32000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
     def test_submitversion(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
         balance_before = self.get_balance(pip_obj)
         result = pip_obj.submitVersion(pip_obj.node.node_id, pip_id, pip_obj.cfg.version5, 1, pip_obj.node.staking_address,
-                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         balance_after = self.get_balance(pip_obj)
@@ -615,7 +621,7 @@ class TestGasUse():
                            rlp.encode(int(pip_obj.cfg.version5)), rlp.encode(int(1))])
         gas = get_the_dynamic_parameter_gas_fee(data)
         log.info('Calculated gas : {}'.format(gas))
-        assert_code(balance_before-balance_after, (gas+480000)*pip_obj.cfg.transaction_cfg.get('gasPrice'))
+        assert_code(balance_before - balance_after, (gas + 480000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
     def test_submitparam_and_cancel(self, no_vp_proposal):
         pip_obj = no_vp_proposal
@@ -666,6 +672,5 @@ class TestGasUse():
         assert_code(balance_before - balance_after, (gas + 33000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
 
-
 if __name__ == '__main__':
-    pytest.main(['./tests/govern/','-s', '-q', '--alluredir', './report/report'])
+    pytest.main(['./tests/govern/', '-s', '-q', '--alluredir', './report/report'])

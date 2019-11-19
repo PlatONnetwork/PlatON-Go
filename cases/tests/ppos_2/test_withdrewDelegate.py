@@ -46,7 +46,7 @@ def test_ROE_002(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address1, transaction_cfg=cfg)
         assert_code(result, 0)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -486,7 +486,7 @@ def test_ROE_024(client_new_node_obj):
     # Own capital account entrustment
     result = client_new_node_obj.delegate.delegate(0, address, amount=delegate_amount)
     log.info(result)
-    ## The next cycle
+    # The next cycle
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
     msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
@@ -776,7 +776,7 @@ def test_ROE_058(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -805,7 +805,7 @@ def test_ROE_059(client_new_node_obj):
     try:
         result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 

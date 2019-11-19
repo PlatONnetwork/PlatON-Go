@@ -1,7 +1,9 @@
 from tests.lib.utils import upload_platon, assert_code, get_pledge_list, wait_block_number
 from common.log import log
 from tests.lib.client import Client, get_client_obj, get_client_obj_list, StakingConfig
-import pytest, time, math
+import pytest
+import time
+import math
 from tests.govern.conftest import version_proposal_vote, proposal_vote
 from tests.lib import Genesis
 from dacite import from_dict
@@ -13,14 +15,15 @@ def create_lockup_plan(client_obj):
     address, _ = client_obj.pip.economic.account.generate_account(client_obj.node.web3, 10 ** 18 * 20000000)
     plan = [{'Epoch': 20, 'Amount': 10 ** 18 * 2000000}]
     result = client_obj.restricting.createRestrictingPlan(address, plan, address,
-                                                                      transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+                                                          transaction_cfg=client_obj.pip.cfg.transaction_cfg)
     log.info('CreateRestrictingPlan result : {}'.format(result))
     assert_code(result, 0)
     result = client_obj.staking.create_staking(1, address, address, amount=10 ** 18 * 1800000,
-                                                           transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+                                               transaction_cfg=client_obj.pip.cfg.transaction_cfg)
     log.info('Create staking result : {}'.format(result))
     assert_code(result, 0)
     client_obj.economic.wait_settlement_blocknum(client_obj.node)
+
 
 @pytest.fixture()
 def new_node_no_proposal(no_vp_proposal, client_noc_list_obj, client_list_obj):
@@ -84,6 +87,7 @@ class TestVotingProposalStaking():
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
         assert_code(result, 0)
 
+
 class TestNoProposalStaking():
     @pytest.mark.P1
     def test_ST_NO_001(self, new_node_no_proposal):
@@ -114,6 +118,7 @@ class TestNoProposalStaking():
         pip_obj = new_node_no_proposal
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN)
         assert_code(result, 301005)
+
 
 class TestPreactiveProposalStaking():
     def preactive_proposal(self, client_list_obj):
@@ -174,6 +179,7 @@ class TestPreactiveProposalStaking():
         self.preactive_proposal(client_list_obj)
         result = replace_platon_and_staking(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8)
         assert_code(result, 301005)
+
 
 class TestUpgradedProposalStaking():
     def upgraded_proposal(self, client_list_obj):
@@ -251,8 +257,8 @@ class TestUnstaking():
         assert_code(result, 0)
         calculated_block = 480
         wait_block_number(pip_obj.node, calculated_block)
-        balance_before = pip_obj.node.eth.getBalance(address, calculated_block-1)
-        log.info('Block bumber {} staking address balance {}'.format(calculated_block-1, balance_before))
+        balance_before = pip_obj.node.eth.getBalance(address, calculated_block - 1)
+        log.info('Block bumber {} staking address balance {}'.format(calculated_block - 1, balance_before))
         balance_after = pip_obj.node.eth.getBalance(address, calculated_block)
         log.info('Block bumber {} staking address balance {}'.format(calculated_block, balance_after))
         log.info('{}'.format(pip_obj.economic.get_current_year_reward(pip_obj.node)))
@@ -279,8 +285,8 @@ class TestUnstaking():
         assert_code(result, 0)
         calculated_block = 480
         wait_block_number(pip_obj.node, calculated_block)
-        balance_before = pip_obj.node.eth.getBalance(address, calculated_block-1)
-        log.info('Block bumber {} staking address balance {}'.format(calculated_block-1, balance_before))
+        balance_before = pip_obj.node.eth.getBalance(address, calculated_block - 1)
+        log.info('Block bumber {} staking address balance {}'.format(calculated_block - 1, balance_before))
         balance_after = pip_obj.node.eth.getBalance(address, calculated_block)
         log.info('Block bumber {} staking address balance {}'.format(calculated_block, balance_after))
         assert balance_after - balance_before == shares
@@ -299,17 +305,17 @@ class TestUnstaking():
         pip_obj_three = client_verifier_obj_list[2].pip
         address = pip_obj_one.node.staking_address
         result = pip_obj_one.submitVersion(pip_obj_one.node.node_id, str(time.time()), pip_obj_one.cfg.version5, 17, address,
-                                       transaction_cfg=pip_obj_one.cfg.transaction_cfg)
+                                           transaction_cfg=pip_obj_one.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         proposalinfo_version = pip_obj_one.get_effect_proposal_info_of_vote(pip_obj_one.cfg.version_proposal)
         log.info('Version proposal information : {}'.format(proposalinfo_version))
 
         result = pip_obj_one.submitCancel(pip_obj_one.node.node_id, str(time.time()), 13, proposalinfo_version.get('ProposalID'),
-                                      address, transaction_cfg=pip_obj_one.cfg.transaction_cfg)
+                                          address, transaction_cfg=pip_obj_one.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
         result_text = pip_obj_one.submitText(pip_obj_one.node.node_id, str(time.time()), address,
-                                        transaction_cfg=pip_obj_one.cfg.transaction_cfg)
+                                             transaction_cfg=pip_obj_one.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result_text))
         result = proposal_vote(pip_obj_one, proposaltype=pip_obj_one.cfg.cancel_proposal)
         assert_code(result, 0)
@@ -337,35 +343,35 @@ class TestUnstaking():
         assert_code(result, 0)
         calculated_block = 480
         wait_block_number(pip_obj_one.node, calculated_block)
-        balance_before = pip_obj_one.node.eth.getBalance(address, calculated_block-1)
-        log.info('Block bumber {} staking address balance {}'.format(calculated_block-1, balance_before))
+        balance_before = pip_obj_one.node.eth.getBalance(address, calculated_block - 1)
+        log.info('Block bumber {} staking address balance {}'.format(calculated_block - 1, balance_before))
         balance_after = pip_obj_one.node.eth.getBalance(address, calculated_block)
         log.info('Block bumber {} staking address balance {}'.format(calculated_block, balance_after))
         assert balance_after == balance_before
 
-        blocknumber = math.ceil(proposalinfo_cancel.get('EndVotingBlock')/pip_obj_one.economic.settlement_size
+        blocknumber = math.ceil(proposalinfo_cancel.get('EndVotingBlock') / pip_obj_one.economic.settlement_size
                                 ) * pip_obj_one.economic.settlement_size
         wait_block_number(pip_obj_one.node, blocknumber)
-        balance_before = pip_obj_one.node.eth.getBalance(address, blocknumber-1)
-        log.info('Block bumber {} staking address balance {}'.format(blocknumber-1, balance_before))
+        balance_before = pip_obj_one.node.eth.getBalance(address, blocknumber - 1)
+        log.info('Block bumber {} staking address balance {}'.format(blocknumber - 1, balance_before))
         balance_after = pip_obj_one.node.eth.getBalance(address, blocknumber)
         log.info('Block bumber {} staking address balance {}'.format(blocknumber, balance_after))
         assert balance_after - balance_before == shares_one
 
-        blocknumber = math.ceil(proposalinfo_version.get('EndVotingBlock')/pip_obj_one.economic.settlement_size
+        blocknumber = math.ceil(proposalinfo_version.get('EndVotingBlock') / pip_obj_one.economic.settlement_size
                                 ) * pip_obj_one.economic.settlement_size
         wait_block_number(pip_obj_one.node, blocknumber)
-        balance_before = pip_obj_one.node.eth.getBalance(address, blocknumber-1)
-        log.info('Block bumber {} staking address balance {}'.format(blocknumber-1, balance_before))
+        balance_before = pip_obj_one.node.eth.getBalance(address, blocknumber - 1)
+        log.info('Block bumber {} staking address balance {}'.format(blocknumber - 1, balance_before))
         balance_after = pip_obj_one.node.eth.getBalance(address, blocknumber)
         log.info('Block bumber {} staking address balance {}'.format(blocknumber, balance_after))
         assert balance_after - balance_before == shares_two
 
-        blocknumber = math.ceil(proposalinfo_text.get('EndVotingBlock')/pip_obj_one.economic.settlement_size
+        blocknumber = math.ceil(proposalinfo_text.get('EndVotingBlock') / pip_obj_one.economic.settlement_size
                                 ) * pip_obj_one.economic.settlement_size
         wait_block_number(pip_obj_one.node, blocknumber)
-        balance_before = pip_obj_one.node.eth.getBalance(address, blocknumber-1)
-        log.info('Block bumber {} staking address balance {}'.format(blocknumber-1, balance_before))
+        balance_before = pip_obj_one.node.eth.getBalance(address, blocknumber - 1)
+        log.info('Block bumber {} staking address balance {}'.format(blocknumber - 1, balance_before))
         balance_after = pip_obj_one.node.eth.getBalance(address, blocknumber)
         log.info('Block bumber {} staking address balance {}'.format(blocknumber, balance_after))
         assert balance_after - balance_before == shares_three
@@ -392,7 +398,7 @@ class TestUnstaking():
         assert_code(result, 0)
         pip_obj_test.economic.wait_settlement_blocknum(pip_obj_test.node)
         result = pip_obj_test.submitVersion(pip_obj_test.node.node_id, str(time.time()), pip_obj_test.cfg.version5,
-                                   4, pip_obj_test.node.staking_address, transaction_cfg=pip_obj_test.cfg.transaction_cfg)
+                                            4, pip_obj_test.node.staking_address, transaction_cfg=pip_obj_test.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip_obj_test.submitText(pip_obj_test.node.node_id, str(time.time()), pip_obj_test.node.staking_address,
@@ -428,13 +434,13 @@ class TestUnstaking():
         balance_before_lockup = pip_obj_test.node.eth.getBalance(pip_obj_test.cfg.FOUNDATION_LOCKUP_ADDRESS,
                                                                  4 * pip_obj_test.economic.settlement_size - 1)
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
-                                                                     balance_before_lockup))
+                                                                               balance_before_lockup))
         balance_after = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size)
         balance_after_lockup = pip_obj_test.node.eth.getBalance(pip_obj_test.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 4 * pip_obj_test.economic.settlement_size)
+                                                                4 * pip_obj_test.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size,
-                                                                     balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after_lockup - balance_before_lockup == shares
 
     @pytest.mark.P2
@@ -451,27 +457,27 @@ class TestUnstaking():
             address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 20000000)
             plan = [{'Epoch': 20, 'Amount': 10**18 * 2000000}]
             result = client_obj.restricting.createRestrictingPlan(address, plan, address,
-                                                                          transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                                                  transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('CreateRestrictingPlan result : {}'.format(result))
             assert_code(result, 0)
             result = client_obj.staking.create_staking(1, address, address, amount=10**18 * 1800000,
-                                                               transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                                       transaction_cfg=pip_obj.cfg.transaction_cfg)
             log.info('Create staking result : {}'.format(result))
             assert_code(result, 0)
         pip_obj.economic.wait_settlement_blocknum(pip_obj.node)
         result = pip_obj.submitParam(pip_obj.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                          '1116', address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                     '1116', address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 0)
         result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
-                                         transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                    transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
 
         proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
         log.info('Get param proposal information : {}'.format(proposalinfo_param))
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 14, proposalinfo_param.get('ProposalID'),
-                                           pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit cancel result : {}'.format(result))
         assert_code(result, 0)
         result = proposal_vote(client_noc_list_obj[0].pip, proposaltype=pip_obj.cfg.param_proposal)
@@ -502,41 +508,41 @@ class TestUnstaking():
         assert_code(result, 0)
         wait_block_number(pip_obj.node, 4 * pip_obj.economic.settlement_size)
         balance_before_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 4 * pip_obj.economic.settlement_size - 1)
-        log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj.economic.settlement_size-1,
-                                                                     balance_before_lockup))
+                                                            4 * pip_obj.economic.settlement_size - 1)
+        log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj.economic.settlement_size - 1,
+                                                                               balance_before_lockup))
         balance_after_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 4 * pip_obj.economic.settlement_size)
+                                                           4 * pip_obj.economic.settlement_size)
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj.economic.settlement_size,
-                                                                     balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after_lockup == balance_before_lockup
 
         wait_block_number(pip_obj.node, 5 * pip_obj.economic.settlement_size)
         balance_before = pip_obj.node.eth.getBalance(address2, 5 * pip_obj.economic.settlement_size - 1)
         balance_before_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 5 * pip_obj.economic.settlement_size - 1)
+                                                            5 * pip_obj.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_obj.economic.settlement_size - 1, balance_before))
-        log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(5 * pip_obj.economic.settlement_size-1,
-                                                                     balance_before_lockup))
+        log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(5 * pip_obj.economic.settlement_size - 1,
+                                                                               balance_before_lockup))
         balance_after = pip_obj.node.eth.getBalance(address2, 5 * pip_obj.economic.settlement_size)
         balance_after_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 5 * pip_obj.economic.settlement_size)
+                                                           5 * pip_obj.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_obj.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(5 * pip_obj.economic.settlement_size,
-                                                                     balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares2
 
         wait_block_number(pip_obj.node, 6 * pip_obj.economic.settlement_size)
         balance_before = pip_obj.node.eth.getBalance(address0, 6 * pip_obj.economic.settlement_size - 1)
         balance_before_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 6 * pip_obj.economic.settlement_size - 1)
+                                                            6 * pip_obj.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(6 * pip_obj.economic.settlement_size - 1, balance_before))
-        log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(6 * pip_obj.economic.settlement_size-1,
-                                                                     balance_before_lockup))
+        log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(6 * pip_obj.economic.settlement_size - 1,
+                                                                               balance_before_lockup))
         balance_after = pip_obj.node.eth.getBalance(address0, 6 * pip_obj.economic.settlement_size)
         balance_after_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 6 * pip_obj.economic.settlement_size)
+                                                           6 * pip_obj.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(6 * pip_obj.economic.settlement_size, balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(6 * pip_obj.economic.settlement_size, balance_after_lockup))
 
@@ -560,6 +566,7 @@ class TestUnstaking():
 
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares1
+
 
 class TestSlashing():
     @pytest.mark.P1
@@ -846,18 +853,18 @@ class TestSlashing():
         wait_block_number(pip_obj_test.node, 4 * pip_obj_test.economic.settlement_size)
         balance_before = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size - 1)
         balance_before_lockup = pip_obj_test.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                          4 * pip_obj_test.economic.settlement_size - 1)
+                                                                 4 * pip_obj_test.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
                                                                      balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
-                                                                     balance_before_lockup))
+                                                                               balance_before_lockup))
         balance_after = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size)
         balance_after_lockup = pip_obj_test.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                          4 * pip_obj_test.economic.settlement_size)
+                                                                4 * pip_obj_test.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size,
                                                                      balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size,
-                                                                     balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares
 
@@ -882,18 +889,18 @@ class TestSlashing():
         wait_block_number(pip_obj_test.node, 4 * pip_obj_test.economic.settlement_size)
         balance_before = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size - 1)
         balance_before_lockup = pip_obj_test.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                          4 * pip_obj_test.economic.settlement_size - 1)
+                                                                 4 * pip_obj_test.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
                                                                      balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
-                                                                     balance_before_lockup))
+                                                                               balance_before_lockup))
         balance_after = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size)
         balance_after_lockup = pip_obj_test.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                          4 * pip_obj_test.economic.settlement_size)
+                                                                4 * pip_obj_test.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size,
                                                                      balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
-                                                                     balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after == balance_before
         assert balance_after_lockup == balance_before_lockup
 
@@ -912,7 +919,7 @@ class TestSlashing():
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_obj_test.economic.settlement_size,
                                                                      balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(5 * pip_obj_test.economic.settlement_size,
-                                                                          balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after == balance_before
         assert balance_after_lockup - balance_before_lockup == shares
 
@@ -937,18 +944,18 @@ class TestSlashing():
         wait_block_number(pip_obj_test.node, 4 * pip_obj_test.economic.settlement_size)
         balance_before = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size - 1)
         balance_before_lockup = pip_obj_test.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                          4 * pip_obj_test.economic.settlement_size - 1)
+                                                                 4 * pip_obj_test.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
                                                                      balance_before))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size - 1,
-                                                                     balance_before_lockup))
+                                                                               balance_before_lockup))
         balance_after = pip_obj_test.node.eth.getBalance(address, 4 * pip_obj_test.economic.settlement_size)
         balance_after_lockup = pip_obj_test.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                          4 * pip_obj_test.economic.settlement_size)
+                                                                4 * pip_obj_test.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj_test.economic.settlement_size,
                                                                      balance_after))
         log.info('Block bumber {} FOUNDATION_LOCKUP_ADDRESS balance {}'.format(4 * pip_obj_test.economic.settlement_size,
-                                                                     balance_after_lockup))
+                                                                               balance_after_lockup))
         assert balance_after == balance_before
         assert balance_after_lockup == balance_before_lockup
 
@@ -1025,7 +1032,7 @@ class TestSlashing():
         wait_block_number(pip_obj.node, 4 * pip_obj.economic.settlement_size)
         balance_before = pip_obj.node.eth.getBalance(address, 4 * pip_obj.economic.settlement_size - 1)
         balance_before_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 4 * pip_obj.economic.settlement_size - 1)
+                                                            4 * pip_obj.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj.economic.settlement_size - 1,
                                                                      balance_before))
         log.info(
@@ -1033,7 +1040,7 @@ class TestSlashing():
                                                                           balance_before_lockup))
         balance_after = pip_obj.node.eth.getBalance(address, 4 * pip_obj.economic.settlement_size)
         balance_after_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                4 * pip_obj.economic.settlement_size)
+                                                           4 * pip_obj.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(4 * pip_obj.economic.settlement_size,
                                                                      balance_after))
         log.info(
@@ -1045,7 +1052,7 @@ class TestSlashing():
         wait_block_number(pip_obj.node, 5 * pip_obj.economic.settlement_size)
         balance_before = pip_obj.node.eth.getBalance(address, 5 * pip_obj.economic.settlement_size - 1)
         balance_before_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                 5 * pip_obj.economic.settlement_size - 1)
+                                                            5 * pip_obj.economic.settlement_size - 1)
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_obj.economic.settlement_size - 1,
                                                                      balance_before))
         log.info(
@@ -1053,7 +1060,7 @@ class TestSlashing():
                                                                           balance_before_lockup))
         balance_after = pip_obj.node.eth.getBalance(address, 5 * pip_obj.economic.settlement_size)
         balance_after_lockup = pip_obj.node.eth.getBalance(pip_obj.cfg.FOUNDATION_LOCKUP_ADDRESS,
-                                                                5 * pip_obj.economic.settlement_size)
+                                                           5 * pip_obj.economic.settlement_size)
         log.info('Block bumber {} staking address balance {}'.format(5 * pip_obj.economic.settlement_size,
                                                                      balance_after))
         log.info(

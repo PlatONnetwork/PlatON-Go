@@ -56,7 +56,7 @@ def test_AS_004(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -75,7 +75,7 @@ def test_AS_005(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -145,7 +145,7 @@ def test_AS_011_012_013_014(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
     account = client_new_node_obj.economic.account
@@ -155,7 +155,7 @@ def test_AS_011_012_013_014(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
