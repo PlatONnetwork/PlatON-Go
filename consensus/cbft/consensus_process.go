@@ -78,7 +78,6 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 		signatureCheckFailureMeter.Mark(1)
 		return err
 	}
-
 	// The new block is notified by the PrepareBlockHash to the nodes in the network.
 	cbft.state.AddPrepareBlock(msg)
 	cbft.log.Info("Receive new prepareBlock", "msgHash", msg.MsgHash(), "prepare", msg.String())

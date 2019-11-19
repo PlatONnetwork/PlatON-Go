@@ -638,7 +638,7 @@ func GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.I
 func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, error) {
 	maxvalidatorsStr, err := GetGovernParamValue(ModuleStaking, KeyMaxValidators, blockNumber, blockHash)
 	if nil != err {
-		log.Error("Failed to CheckOperatingThreshold, query governParams is failed", "err", err)
+		log.Error("Failed to GovernMaxValidators, query governParams is failed", "err", err)
 		return 0, err
 	}
 
