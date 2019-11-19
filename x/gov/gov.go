@@ -76,21 +76,6 @@ func GetVersionForStaking(state xcom.StateDB) uint32 {
 	}
 }
 
-func GetActiveVersion(blockNumber uint64, state xcom.StateDB) uint32 {
-	avList, err := ListActiveVersion(state)
-	if err != nil {
-		log.Error("List active version error", "err", err)
-		return 0
-	}
-
-	for _, av := range avList {
-		if blockNumber >= av.ActiveBlock {
-			return av.ActiveVersion
-		}
-	}
-	return 0
-}
-
 // Get current active version record
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
