@@ -1024,6 +1024,10 @@ func (pool *TxPool) MakeTransaction() error {
 	exitCH := make(chan struct{})
 	go func() {
 		for {
+			if len(pool.pending) > 1000 {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
 			select {
 			case txs := <-txsCh:
 				a := make([]*types.Transaction, 0)
@@ -1051,16 +1055,6 @@ func (pool *TxPool) MakeTransaction() error {
 
 	log.Debug("begin to MakeTransaction")
 	for i := 0; i < 100000000/accountsize; i++ {
-		if i%10 == 0 {
-			time.Sleep(3 * time.Second)
-			//pool.mu.RLock()
-			//for _, account := range accounts {
-			//	if pool.currentState.GetNonce(account.Address)+1 != account.Nonce {
-			//		account.Nonce = pool.currentState.GetNonce(account.Address) + 1
-			//	}
-			//}
-			//pool.mu.RUnlock()
-		}
 		txs := make([]*types.Transaction, accountsize)
 		for n, account := range accounts {
 			tx := types.NewTransaction(account.Nonce, accounts[rand.Int31n(int32(accountsize))].Address, amount, 30000, gasPrice, nil)
