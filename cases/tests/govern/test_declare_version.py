@@ -1,6 +1,6 @@
 from common.log import log
 from tests.lib.utils import upload_platon, assert_code, wait_block_number, get_pledge_list
-import pytest
+import pytest, allure
 import time
 from tests.govern.test_voting_statistics import submitvpandvote, createstaking, version_proposal_vote
 from tests.lib import Genesis
@@ -44,6 +44,7 @@ def wrong_verison_declare(pip_obj, version=None):
 
 
 @pytest.mark.P0
+@allure.title('Not staking address declare version')
 def test_DE_DE_001(client_verifier_obj):
     pip_obj = client_verifier_obj.pip
     address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
@@ -55,6 +56,7 @@ def test_DE_DE_001(client_verifier_obj):
 class TestNoProposalVE():
     @pytest.mark.P0
     @pytest.mark.compatibility
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_001(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -67,6 +69,7 @@ class TestNoProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P3
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_002(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -79,6 +82,7 @@ class TestNoProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_004(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -91,6 +95,7 @@ class TestNoProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_005(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
@@ -103,6 +108,7 @@ class TestNoProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_006(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -115,6 +121,7 @@ class TestNoProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_007(self, noproposal_pipobj_list):
         pip_obj = noproposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -132,6 +139,7 @@ class TestNoProposalVE():
 
 class TestVotingProposalVE():
     @pytest.mark.P0
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_008(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -147,6 +155,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_010(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -162,6 +171,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_014(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -177,6 +187,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_025(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -192,6 +203,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_032(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -204,6 +216,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_034(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -216,6 +229,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_036(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -231,6 +245,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_038(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -243,6 +258,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_040(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
@@ -258,6 +274,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_042(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
@@ -273,6 +290,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_044(self, proposal_pipobj_list):
         pip_obj = proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -288,6 +306,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_046(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -303,6 +322,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_048(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
@@ -318,6 +338,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_050(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
@@ -333,6 +354,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_052(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
@@ -348,6 +370,7 @@ class TestVotingProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_054(self, bv_proposal_pipobj_list):
         pip_obj = bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -362,6 +385,7 @@ class TestVotingProposalVE():
 
 class TestVotingProposlaVotedVE():
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_009(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -377,6 +401,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_011(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -392,6 +417,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_021(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -407,6 +433,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_026(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -422,6 +449,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_033(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -434,6 +462,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_035(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -446,6 +475,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_037(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -461,6 +491,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_039(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
@@ -476,6 +507,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_041(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
@@ -491,6 +523,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_043(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
@@ -506,6 +539,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_045(self, proposal_voted_pipobj_list):
         pip_obj = proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -521,6 +555,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_047(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -536,6 +571,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_049(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
@@ -551,6 +587,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_051(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
@@ -566,6 +603,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_053(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
@@ -581,6 +619,7 @@ class TestVotingProposlaVotedVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_055(self, bv_proposal_voted_pipobj_list):
         pip_obj = bv_proposal_voted_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -595,6 +634,7 @@ class TestVotingProposlaVotedVE():
 
 class TestPreactiveProposalVE():
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_056(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -610,6 +650,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_057(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -625,6 +666,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_059(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -640,6 +682,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_060(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN1, pip_obj.cfg.version1)
@@ -655,6 +698,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_062(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -667,6 +711,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_063(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
@@ -679,6 +724,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_064(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -694,6 +740,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_065(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
@@ -706,6 +753,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_066(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
@@ -721,6 +769,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_067(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
@@ -736,6 +785,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_068(self, preactive_proposal_pipobj_list):
         pip_obj = preactive_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -751,6 +801,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_069(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN3, pip_obj.cfg.version3)
@@ -766,6 +817,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_070(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
@@ -781,6 +833,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_071(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
@@ -796,6 +849,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_072(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
@@ -811,6 +865,7 @@ class TestPreactiveProposalVE():
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_073(self, preactive_bv_proposal_pipobj_list):
         pip_obj = preactive_bv_proposal_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN8, pip_obj.cfg.version8)
@@ -825,6 +880,7 @@ class TestPreactiveProposalVE():
 
 class TestNoProposalCA:
     @pytest.mark.P0
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_001(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
         result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN2, pip_obj.cfg.version2)
@@ -837,6 +893,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P3
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_002(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
 
@@ -850,6 +907,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_004(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
 
@@ -863,6 +921,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_005(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
 
@@ -876,6 +935,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_006(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
 
@@ -889,6 +949,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_007(self, noproposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = noproposal_ca_pipobj_list[0]
 
@@ -905,6 +966,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_008(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -921,6 +983,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_010(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -937,6 +1000,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_014(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -953,6 +1017,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_025(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -969,6 +1034,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P0
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_032(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -982,6 +1048,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_034(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -995,6 +1062,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_036(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -1011,6 +1079,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_038(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -1024,6 +1093,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_040(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -1040,6 +1110,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_042(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -1056,6 +1127,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_044(self, proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = proposal_ca_pipobj_list[0]
 
@@ -1072,6 +1144,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_046(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -1088,6 +1161,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_048(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -1104,6 +1178,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_050(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -1120,6 +1195,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P1
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_052(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -1136,6 +1212,7 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('No effective proposal, candiate declare version')
     def test_DE_CA_054(self, bv_proposal_ca_pipobj_list, client_verifier_obj):
         pip_obj = bv_proposal_ca_pipobj_list[0]
 
@@ -1149,8 +1226,9 @@ class TestNoProposalCA:
         assert_code(result, 302024)
 
 
-class TestNewDeclareVersion():
+class TestNewNodeDeclareVersion():
     @pytest.mark.P1
+    @allure.title('New node declare version')
     def test_DE_NN_001_to_003(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
         new_genesis_env.deploy_all()
         pip_obj = client_noc_list_obj[0].pip
@@ -1178,7 +1256,8 @@ class TestNewDeclareVersion():
 
 class TestDV():
     @pytest.mark.P3
-    def test_DE_VE_003_DE_VE_012_DE_CA_003_DE_CA_012_DE_VE_61(self, new_genesis_env, client_con_list_obj):
+    @allure.title('Declare version')
+    def test_DE_VE_003_DE_VE_012_DE_VE_027_DE_CA_003_DE_CA_012_DE_VE_061_DE_CA_027(self, new_genesis_env, client_con_list_obj):
         new_genesis_env.deploy_all()
         pip_obj_ca = client_con_list_obj[-1].pip
         pip_obj_ve = client_con_list_obj[0].pip
@@ -1238,6 +1317,7 @@ class TestVotedCADV():
         raise Exception('There is not candidate no verifier node')
 
     @pytest.mark.P2
+    @allure.title('Voted candidate, Declare version')
     def test_DE_CA_009_011_033_037_039_041_043_045(self, new_genesis_env, client_con_list_obj, client_noc_list_obj, client_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2000
@@ -1303,7 +1383,8 @@ class TestVotedCADV():
         assert_code(result, 302024)
 
     @pytest.mark.P2
-    def test_DE_CA_021_026_035_047_049_051_053(self, new_genesis_env, client_con_list_obj, client_noc_list_obj, client_list_obj):
+    @allure.title('Voted candidate, Declare version')
+    def test_DE_CA_021_026_035_047_049_051_053_055(self, new_genesis_env, client_con_list_obj, client_noc_list_obj, client_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2000
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -1367,7 +1448,8 @@ class TestVotedCADV():
         result = wrong_verisonsign_declare(pip_obj, client_noc_list_obj[0].pip)
         assert_code(result, 302024)
 
-
+@pytest.mark.P2
+@allure.title('Voted verifier, replace the platon bin and declare version')
 def test_DE_VE_074(no_vp_proposal, client_verifier_obj):
     pip_obj = client_verifier_obj.pip
     submitvpandvote([client_verifier_obj], votingrounds=1)

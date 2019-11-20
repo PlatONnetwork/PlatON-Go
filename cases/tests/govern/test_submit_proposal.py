@@ -6,7 +6,7 @@ from tests.lib.utils import wait_block_number, assert_code, get_governable_param
 from tests.lib.client import get_client_obj
 import time
 import math
-from tests.govern.test_voting_statistics import submitcppandvote, submitcvpandvote, submittpandvote
+from tests.govern.test_voting_statistics import submitcppandvote, submitcvpandvote
 
 
 @pytest.mark.P0
@@ -200,6 +200,13 @@ def test_PP_UN_003(preactive_proposal_pipobj_list, new_genesis_env):
 
 
 class TestEndVotingRounds():
+    def update_setting(self, new_genesis_env, pip_obj, value=0):
+        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+        genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2 * pip_obj.economic.consensus_size + value
+        genesis.economicModel.gov.textProposalVoteDurationSeconds = 2 * pip_obj.economic.consensus_size + value
+        new_genesis_env.set_genesis(genesis.to_dict())
+        new_genesis_env.deploy_all()
+
     @pytest.mark.P1
     def test_VP_CR_001_VP_CR_002_VP_CR_007_TP_TE_002(self, new_genesis_env, client_verifier_obj):
         '''
@@ -209,11 +216,7 @@ class TestEndVotingRounds():
         :return:
         '''
         pip_obj = client_verifier_obj.pip
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2 * pip_obj.economic.consensus_size + 1
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 5 * pip_obj.economic.consensus_size + 1
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_setting(new_genesis_env, pip_obj, value=1)
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3,
                                        pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
@@ -238,7 +241,7 @@ class TestEndVotingRounds():
         assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
         log.info('Get text proposal information :{}'.format(proposalinfo))
-        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 5
+        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 2
                                          ) * pip_obj.economic.consensus_size - 20
         log.info('calcuted endvoting block {},interface returns {}'.format(endvotingblock_count,
                                                                            proposalinfo.get('EndVotingBlock')))
@@ -247,24 +250,20 @@ class TestEndVotingRounds():
     @pytest.mark.P1
     def test_VP_CR_003_VP_CR_004_VP_CR_007_TP_TE_003(self, new_genesis_env, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalVoteDurationSeconds = 3 * pip_obj.economic.consensus_size - 1
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 5 * pip_obj.economic.consensus_size - 1
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3, pip_obj.node.staking_address,
+        self.update_setting(new_genesis_env, pip_obj, value=-1)
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 2, pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('endvoting rounds is three, subtmit version proposal result : {}'.format(result))
+        log.info('endvoting rounds is two, subtmit version proposal result : {}'.format(result))
         assert_code(result, 302010)
 
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 0, pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Endvoting rounds is three, subtmit version proposal result : {}'.format(result))
+        log.info('Endvoting rounds is zero, subtmit version proposal result : {}'.format(result))
         assert_code(result, 302009)
 
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 2, pip_obj.node.staking_address,
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 1, pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Endvoting rounds is two, subtmit version proposal result : {}'.format(result))
+        log.info('Endvoting rounds is one, subtmit version proposal result : {}'.format(result))
         assert_code(result, 0)
 
         result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
@@ -273,7 +272,7 @@ class TestEndVotingRounds():
         assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
         log.info('Get text proposal information : {}'.format(proposalinfo))
-        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 4
+        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 1
                                          ) * pip_obj.economic.consensus_size - 20
         log.info('Calcuted endvoting block {},interface return {}'.format(endvotingblock_count,
                                                                           proposalinfo.get('EndVotingBlock')))
@@ -283,15 +282,11 @@ class TestEndVotingRounds():
     @pytest.mark.compatibility
     def test_VP_CR_005_VP_CR_006_TP_TE_001(self, new_genesis_env, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalVoteDurationSeconds = 3 * pip_obj.economic.consensus_size
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 5 * pip_obj.economic.consensus_size
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 4,
+        self.update_setting(new_genesis_env, pip_obj)
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3,
                                        pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Endvoting rounds is four, subtmit version proposal result : {}'.format(result))
+        log.info('Endvoting rounds is three, subtmit version proposal result : {}'.format(result))
         assert_code(result, 302010)
 
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 0,
@@ -300,10 +295,10 @@ class TestEndVotingRounds():
         log.info('Endvoting rounds is zero, subtmit version proposal result : {}'.format(result))
         assert_code(result, 302009)
 
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 3,
+        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 2,
                                        pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('Endvoting rounds is zero, subtmit version proposal result : {}'.format(result))
+        log.info('Endvoting rounds is two, subtmit version proposal result : {}'.format(result))
         assert_code(result, 0)
 
         result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
@@ -312,17 +307,18 @@ class TestEndVotingRounds():
         assert_code(result, 0)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
         log.info('Get text proposal information {}'.format(proposalinfo))
-        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 5
+        endvotingblock_count = math.ceil(proposalinfo.get('SubmitBlock') / pip_obj.economic.consensus_size + 2
                                          ) * pip_obj.economic.consensus_size - 20
         log.info('calcuted endvoting block {},interface return {}'.format(endvotingblock_count,
                                                                           proposalinfo.get('EndVotingBlock')))
         assert int(endvotingblock_count) == proposalinfo.get('EndVotingBlock')
 
-        proosalinfo = pip_obj.get_effect_proposal_info_of_vote(1)
+        proosalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
         log.info('text proposalinfo: {}'.format(proosalinfo))
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proosalinfo.get('ProposalID'),
                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('submit cancel result: {}'.format(result))
+        assert_code(result, 302016)
 
 
 class TestNoVerifierSubmitProposal():
@@ -360,7 +356,6 @@ class TestNoVerifierSubmitProposal():
         result = client_verifier_obj.staking.withdrew_staking(address)
         log.info('Node {} withdrew staking result : {}'.format(client_verifier_obj.node.node_id, result))
         assert_code(result, 0)
-        log.info(client_verifier_obj.economic.account.find_pri_key(address))
         result = client_verifier_obj.pip.submitVersion(client_verifier_obj.node.node_id, str(time.time()),
                                                        client_verifier_obj.pip.cfg.version5, 1, address,
                                                        transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
@@ -395,8 +390,8 @@ class TestSubmitCancel():
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10**18 * 10000)
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo))
-        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'), address,
-                                      transaction_cfg=pip_obj.cfg.transaction_cfg)
+        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo.get('ProposalID'),
+                                      address, transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 302021)
 
@@ -1474,7 +1469,6 @@ class TestGas():
                                       pip_obj.node.staking_address, transaction_cfg=transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
-
 
 if __name__ == '__main__':
     pytest.main(['./tests/govern/', '-s', '-q', '--alluredir', './report/report'])

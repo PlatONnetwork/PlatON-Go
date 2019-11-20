@@ -8,12 +8,13 @@ from tests.govern.test_voting_statistics import submitppandvote, submitcvpandvot
 import time
 import math
 import rlp
-import pytest
+import pytest, allure
 from tests.govern.conftest import version_proposal_vote
 
 
 class TestgetProposal():
     @pytest.mark.P0
+    @allure.title('Interface getProposal function verification--cancel proposal')
     def test_GP_IF_001(self, submit_cancel_param):
         pip_obj = submit_cancel_param
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
@@ -27,6 +28,7 @@ class TestgetProposal():
         assert result.get('Ret').get('EndVotingBlock') == proposalinfo.get('EndVotingBlock')
 
     @pytest.mark.P0
+    @allure.title('Interface getProposal function verification--parammeter proposal')
     def test_GP_IF_002(self, submit_param):
         pip_obj = submit_param
         proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
@@ -41,6 +43,7 @@ class TestgetProposal():
 
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Interface getProposal function verification--version proposal')
     def test_PR_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -82,6 +85,7 @@ class TestgetProposal():
         assert result_cancel.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
     @pytest.mark.P0
+    @allure.title('Interface getProposal function verification--text proposal')
     def test_PR_IN_003(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         pip_id = str(time.time())
@@ -105,6 +109,7 @@ class TestgetProposal():
         assert result_text.get('Ret').get('EndVotingBlock') == caculated_endvotingblock
 
     @pytest.mark.P1
+    @allure.title('Interface getProposal function verification--ineffective proposal id')
     def test_PR_IN_004(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip
         result = pip_obj.pip.getProposal('0xa89162be0bd0d081c50a5160f412c4926b3ae9ea96cf792935564357ddd11111')
@@ -114,6 +119,7 @@ class TestgetProposal():
 
 class TestgetTallyResult():
     @pytest.mark.P0
+    @allure.title('Interface getTallyResult function verification--cancel version proposal')
     def test_TR_IN_002_TR_IN_003(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = no_vp_proposal
         submitcvpandvote(client_verifier_obj_list, 1, 1, 1, 2)
@@ -139,6 +145,7 @@ class TestgetTallyResult():
 
     @pytest.mark.P0
     @pytest.mark.compatibility
+    @allure.title('Interface getTallyResult function verification--cancel version proposal')
     def test_TR_IN_001(self, no_vp_proposal, client_verifier_obj_list):
         pip_obj = no_vp_proposal
         submitcvpandvote(client_verifier_obj_list, 1, 2, 3, 3)
@@ -164,6 +171,7 @@ class TestgetTallyResult():
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(client_verifier_obj_list)
 
     @pytest.mark.P0
+    @allure.title('Interface getTallyResult function verification--parammeter proposal')
     def test_TR_IN_010_005(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -187,6 +195,7 @@ class TestgetTallyResult():
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
 
     @pytest.mark.P0
+    @allure.title('Interface getTallyResult function verification--cancel parammeter proposal')
     def test_TR_IN_011_TR_IN_012(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -218,6 +227,7 @@ class TestgetTallyResult():
         assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
 
     @pytest.mark.P1
+    @allure.title('Interface getTallyResult function verification--ineffective proposal id')
     def test_TR_IN_006(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         result = pip_obj.pip.getTallyResult('0x9992d1f843fe8f376884d871f87605dda02da0722fd6b350bbf683518f73f111')
@@ -227,6 +237,7 @@ class TestgetTallyResult():
 
 class TestgetAccuVerifiersCount():
     @pytest.mark.P0
+    @allure.title('Interface getTallyResult function verification--ineffective proposal id')
     def test_AC_IN_018_to_025(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -286,6 +297,7 @@ class TestgetAccuVerifiersCount():
 
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Interface getAccuVerifiersCount function verification')
     def test_AC_IN_001_002_004_to_006_012_to_014(self, new_genesis_env, client_con_list_obj):
         new_genesis_env.deploy_all()
         pip_obj = client_con_list_obj[-1].pip
@@ -341,6 +353,7 @@ class TestgetAccuVerifiersCount():
         assert pip_obj.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 0]
 
     @pytest.mark.P0
+    @allure.title('Interface getAccuVerifiersCount function verification')
     def test_AC_IN_003_008_010(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
@@ -375,6 +388,7 @@ class TestgetAccuVerifiersCount():
         assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
 
     @pytest.mark.P2
+    @allure.title('Interface getAccuVerifiersCount function verification')
     def test_AC_IN_016_to_018(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         result = pip_obj.submitText(pip_obj.node.node_id, str(time.time()), pip_obj.node.staking_address,
@@ -413,6 +427,7 @@ class TestListGovernParam():
         return name, module
 
     @pytest.mark.P0
+    @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_001(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj)
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'slashBlocksReward',
@@ -420,24 +435,28 @@ class TestListGovernParam():
         assert set(module) == {'block', 'slashing', 'staking'}
 
     @pytest.mark.P2
+    @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_002(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'staking')
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
         assert set(module) == {'staking'}
 
     @pytest.mark.P2
+    @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_003(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'slashing')
         assert set(name) == {'slashBlocksReward', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
         assert set(module) == {'slashing'}
 
     @pytest.mark.P2
+    @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_004(self, client_noconsensus_obj):
         name, module = self.get_govern_param(client_noconsensus_obj, 'block')
         assert set(name) == {'maxBlockGasLimit'}
         assert set(module) == {'block'}
 
     @pytest.mark.P2
+    @allure.title('Interface listGovernParam function verification')
     def test_IN_LG_005(self, client_noconsensus_obj):
         result = client_noconsensus_obj.pip.pip.listGovernParam('txpool')
         log.info('Interface listGovernParam result {}'.format(result))
@@ -445,6 +464,7 @@ class TestListGovernParam():
 
 class TestGetGovernParam():
     @pytest.mark.P0
+    @allure.title('Interface getGovernParamValue function verification')
     def test_IN_GG_001(self, client_noconsensus_obj):
         client_noconsensus_obj.economic.env.deploy_all()
         genesis = from_dict(data_class=Genesis, data=client_noconsensus_obj.economic.env.genesis_config)
@@ -485,6 +505,7 @@ class TestGetGovernParam():
         log.info('Interface getGovernParamValue result : {}'.format(result))
 
     @pytest.mark.P2
+    @allure.title('Interface getGovernParamValue function verification')
     def test_IN_GG_002(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip.pip
         result = pip_obj.getGovernParamValue('Staking', 'maxValidators')
@@ -497,6 +518,7 @@ class TestGetGovernParam():
         assert_code(result, 302031)
 
     @pytest.mark.P2
+    @allure.title('Interface getGovernParamValue function verification')
     def test_IN_GG_003(self, client_noconsensus_obj):
         pip_obj = client_noconsensus_obj.pip.pip
         result = pip_obj.getGovernParamValue('staking', 'MaxValidators')
@@ -512,10 +534,12 @@ class TestGetGovernParam():
 class TestGetActiveVersion():
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Interface getActiveVersion function verification')
     def test_AV_IN_001(self, no_vp_proposal):
         assert_code(no_vp_proposal.chain_version, no_vp_proposal.cfg.version0)
 
     @pytest.mark.P0
+    @allure.title('Interface getActiveVersion function verification')
     def test_AV_IN_002_003(self, client_verifier_obj_list):
         pip_obj = client_verifier_obj_list[0].pip
         submitvpandvote(client_verifier_obj_list)
@@ -531,6 +555,7 @@ class TestGetActiveVersion():
 
 class TestListProposal():
     @pytest.mark.P1
+    @allure.title('Interface listProposal function verification')
     def test_LP_IN_001_002(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -563,6 +588,7 @@ class TestListProposal():
         assert proposalinfo_cancel.get('EndVotingBlock') == calculated_endvotingblock
 
     @pytest.mark.P1
+    @allure.title('Interface listProposal function verification')
     def test_LP_IN_003(self, client_consensus_obj):
         client_consensus_obj.economic.env.deploy_all()
         result = client_consensus_obj.pip.pip.listProposal()
@@ -577,6 +603,8 @@ class TestGasUse():
         log.info('address balance : {}'.format(balance))
         return balance
 
+    @pytest.mark.P2
+    @allure.title('Verify gas --submittext and vote')
     def test_submitText(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         pip_id = str(time.time())
@@ -609,6 +637,8 @@ class TestGasUse():
         log.info('Calculated gas : {}'.format(gas))
         assert_code(balance_after - balance_after_vote, (gas + 32000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
+    @pytest.mark.P2
+    @allure.title('Verify gas --submitversion')
     def test_submitversion(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -624,6 +654,8 @@ class TestGasUse():
         log.info('Calculated gas : {}'.format(gas))
         assert_code(balance_before - balance_after, (gas + 480000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
+    @pytest.mark.P2
+    @allure.title('Verify gas --submitparam_and_cancel')
     def test_submitparam_and_cancel(self, no_vp_proposal):
         pip_obj = no_vp_proposal
         pip_id = str(time.time())
@@ -657,6 +689,8 @@ class TestGasUse():
         log.info('Calculated gas : {}'.format(gas))
         assert_code(balance_after - balance_after_cancel, (gas + 530000) * pip_obj.cfg.transaction_cfg.get('gasPrice'))
 
+    @pytest.mark.P2
+    @allure.title('Verify gas --declare version')
     def test_declareversion(self, client_verifier_obj):
         pip_obj = client_verifier_obj.pip
         balance_before = self.get_balance(pip_obj)

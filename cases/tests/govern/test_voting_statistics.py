@@ -465,17 +465,20 @@ class TestVotingStatisticsTPCP():
         else:
             return block2
 
-    @pytest.mark.P2
-    def test_VS_EXT_004_VS_EXC_004(self, new_genesis_env, client_con_list_obj):
+    def update_seting(self, new_genesis_env, *args):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = args[0]
+        genesis.economicModel.gov.textProposalVoteDurationSeconds = args[1]
+        genesis.economicModel.gov.textProposalSupportRate = args[2]
+        genesis.economicModel.gov.textProposalVoteRate = args[3]
+        genesis.economicModel.gov.cancelProposalSupportRate = args[4]
+        genesis.economicModel.gov.cancelProposalVoteRate = args[5]
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
+
+    @pytest.mark.P2
+    def test_VS_EXT_004_VS_EXC_004(self, new_genesis_env, client_con_list_obj):
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 1, 1)
         submitcppandvote(client_con_list_obj[:2], [1, 1])
@@ -494,15 +497,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_005_VS_EXC_005(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 1, 1)
         submitcppandvote(client_con_list_obj[:2], [1, 1])
@@ -524,15 +519,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_006_VS_EXC_006(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 1, 1)
         submitcppandvote(client_con_list_obj[:2], [1, 1])
@@ -554,15 +541,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_007_VS_EXC_007(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.249
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.249
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 2, 1)
         submitcppandvote(client_con_list_obj[:2], [2, 1])
@@ -584,15 +563,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_008_VS_EXC_008(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.249
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.249
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 3, 1)
         submitcppandvote(client_con_list_obj[:2], [3, 1])
@@ -614,15 +585,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_009_VS_EXC_009(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.249
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.249
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 2, 1)
         submitcppandvote(client_con_list_obj[:2], [2, 1])
@@ -643,15 +606,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_010_VS_EXC_010(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 1, 1)
         submitcppandvote(client_con_list_obj[:2], [1, 1])
@@ -673,15 +628,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_011(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.249
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.249
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 2, 1)
         submitcppandvote(client_con_list_obj[:2], [2, 1])
@@ -704,14 +651,7 @@ class TestVotingStatisticsTPCP():
     @pytest.mark.P2
     def test_VS_EXT_012(self, new_genesis_env, client_con_list_obj):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.249
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.249
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.249, 1, 0.249)
         pip_obj = client_con_list_obj[0].pip
         submittpandvote(client_con_list_obj[:2], 3, 1)
         submitcppandvote(client_con_list_obj[:2], [3, 1])
@@ -733,15 +673,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_013(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 120, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[1].pip
         submittpandvote(client_con_list_obj[:2], 1, 1)
@@ -759,15 +691,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_014(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 120, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[1].pip
         submittpandvote(client_con_list_obj[:2], 2, 1)
@@ -785,15 +709,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_015(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 120, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[1].pip
         submittpandvote(client_con_list_obj[:2], 3, 1)
@@ -811,15 +727,7 @@ class TestVotingStatisticsTPCP():
 
     @pytest.mark.P2
     def test_VS_EXT_016(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 500
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 80
-        genesis.economicModel.gov.textProposalSupportRate = 1
-        genesis.economicModel.gov.textProposalVoteRate = 0.499
-        genesis.economicModel.gov.cancelProposalSupportRate = 1
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.499
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        self.update_seting(new_genesis_env, 500, 80, 1, 0.499, 1, 0.499)
         pip_obj = client_con_list_obj[0].pip
         pip_obj_test = client_con_list_obj[1].pip
         submittpandvote(client_con_list_obj[:2], 1, 1)
