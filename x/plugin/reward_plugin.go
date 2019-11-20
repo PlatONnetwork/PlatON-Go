@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package plugin
 
 import (
@@ -18,16 +34,17 @@ import (
 )
 
 type RewardMgrPlugin struct {
+	currentYear    uint32
+	stakingReward  *big.Int
+	newBlockReward *big.Int
 }
 
 const (
 	LessThanFoundationYearDeveloperRate    = 100
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
-
-	IncreaseIssue = 40
-
-	RewardPoolIncreaseRate = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+	IncreaseIssue                          = 40
+	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
 )
 
 var (
@@ -53,10 +70,7 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // for create new block, this is necessary. At last if current block is the last block at the end
 // of year, increasing issuance.
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-
 	blockNumber := head.Number.Uint64()
-
-	log.Debug("Call EndBlock on reward_plugin start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
 	thisYear := xutil.CalculateYear(blockNumber)
 	var lastYear uint32
@@ -64,10 +78,12 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		lastYear = thisYear - 1
 	}
 
-	stakingReward, newBlockReward := rmp.calculateExpectReward(thisYear, lastYear, state)
-
-	log.Debug("Call EndBlock on reward_plugin: after call calculateExpectReward", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "stakingReward", stakingReward, "packageBlockReward", newBlockReward)
+	if thisYear != rmp.currentYear {
+		rmp.stakingReward, rmp.newBlockReward = rmp.calculateExpectReward(thisYear, lastYear, state)
+		rmp.currentYear = thisYear
+	}
+	stakingReward := new(big.Int).Set(rmp.stakingReward)
+	packageReward := new(big.Int).Set(rmp.newBlockReward)
 
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
@@ -75,14 +91,12 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 	}
 
-	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, newBlockReward, state)
+	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, packageReward, state)
 
 	// the block at the end of each year, additional issuance
 	if xutil.IsYearEnd(blockNumber) {
 		rmp.increaseIssuance(thisYear, lastYear, state)
 	}
-
-	log.Debug("Call EndBlock on reward_plugin End")
 
 	return nil
 }

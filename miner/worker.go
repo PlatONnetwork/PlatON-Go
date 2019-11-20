@@ -25,10 +25,9 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -125,7 +124,7 @@ type worker struct {
 	chain        *core.BlockChain
 
 	gasFloor uint64
-	gasCeil  uint64
+	//gasCeil  uint64
 
 	// Subscriptions
 	mux          *event.TypeMux
@@ -152,7 +151,7 @@ type worker struct {
 
 	mu       sync.RWMutex // The lock used to protect the coinbase and extra fields
 	coinbase common.Address
-	extra    []byte
+	//extra    []byte
 
 	pendingMu    sync.RWMutex
 	pendingTasks map[common.Hash]*task
@@ -181,17 +180,17 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
+func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
-		config:             config,
-		miningConfig:       miningConfig,
-		engine:             engine,
-		eth:                eth,
-		mux:                mux,
-		chain:              eth.BlockChain(),
-		gasFloor:           gasFloor,
-		gasCeil:            gasCeil,
+		config:       config,
+		miningConfig: miningConfig,
+		engine:       engine,
+		eth:          eth,
+		mux:          mux,
+		chain:        eth.BlockChain(),
+		gasFloor:     gasFloor,
+		//gasCeil:            gasCeil,
 		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
@@ -244,18 +243,18 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 }
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
-func (w *worker) setEtherbase(addr common.Address) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.coinbase = addr
-}
+//func (w *worker) setEtherbase(addr common.Address) {
+//	w.mu.Lock()
+//	defer w.mu.Unlock()
+//	w.coinbase = addr
+//}
 
-// setExtra sets the content used to initialize the block extra field.
-func (w *worker) setExtra(extra []byte) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.extra = extra
-}
+//// setExtra sets the content used to initialize the block extra field.
+//func (w *worker) setExtra(extra []byte) {
+//	w.mu.Lock()
+//	defer w.mu.Unlock()
+//	w.extra = extra
+//}
 
 // setRecommitInterval updates the interval for miner sealing work recommitting.
 func (w *worker) setRecommitInterval(interval time.Duration) {
@@ -568,6 +567,7 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+
 				// Save stateDB to cache, receipts to cache
 				w.blockChainCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
@@ -772,7 +772,9 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if bftEngine && (blockDeadline.Equal(time.Now()) || blockDeadline.Before(time.Now())) {
+		now := time.Now()
+		if bftEngine && (blockDeadline.Equal(now) || blockDeadline.Before(now)) {
+
 			log.Warn("interrupt current tx-executing", "now", time.Now().UnixNano()/1e6, "timestamp", timestamp, "commitDuration", w.commitDuration, "deadlineDuration", common.Millis(blockDeadline)-timestamp)
 			//log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			timeout = true
@@ -1038,9 +1040,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-		//Extra:      w.makeExtraData(),
-		Time: big.NewInt(timestamp),
+		GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
+		Time:       big.NewInt(timestamp),
 	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
@@ -1053,6 +1054,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
+	// Initialize the header extra in Prepare function of engine
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1084,17 +1086,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	// Fill the block with all available pending transactions.
-	startTime := time.Now()
-	pending, err := w.eth.TxPool().PendingLimited()
-
-	if err != nil {
-		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
-		return
-	}
-
-	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
-
 	log.Trace("Validator mode", "mode", w.config.Cbft.ValidatorMode)
 	if w.config.Cbft.ValidatorMode == "inner" {
 		// Check if need to switch validators.
@@ -1116,6 +1107,17 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 		return
 	}
+
+	// Fill the block with all available pending transactions.
+	startTime := time.Now()
+	pending, err := w.eth.TxPool().PendingLimited()
+
+	if err != nil {
+		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
+		return
+	}
+
+	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
@@ -1193,12 +1195,6 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	//	return nil
 	//}
 
-	/*// TODO test
-	for _, r := range w.current.receipts {
-		rbyte, _ := json.Marshal(r.Logs)
-		log.Info("Print receipt log on worker, Before deep copy", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}*/
-
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
@@ -1206,16 +1202,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		*receipts[i] = *l
 	}
 
-	/*// todo test
-	root := w.current.state.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", w.current.state))*/
 	s := w.current.state.Copy()
-	/*// todo test
-	root = s.IntermediateRoot(true)
-	log.Debug("Before EndBlock StateDB root, After copy On Worker", "blockNumber",
-		w.current.header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", s))
-	*/
 
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
@@ -1223,12 +1210,6 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			w.current.header.Number.Uint64(), "err", err)
 		return err
 	}
-
-	/*// TODO test
-	for _, r := range receipts {
-		rbyte, _ := json.Marshal(r.Logs)
-		log.Info("Print receipt log on worker, Before finalize", "blockNumber", w.current.header.Number.Uint64(), "log", string(rbyte))
-	}*/
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {

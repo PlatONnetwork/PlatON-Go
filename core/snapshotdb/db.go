@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package snapshotdb
 
 import (
@@ -70,8 +86,8 @@ func (s *snapshotDB) recover() error {
 		return err
 	}
 	sortFds(fds)
-	baseNum := s.current.BaseNum.Uint64()
-	highestNum := s.current.HighestNum.Uint64()
+	baseNum := s.current.GetBase(false).Num.Uint64()
+	highestNum := s.current.GetHighest(false).Num.Uint64()
 	//read Journal
 	if len(fds) == 0 {
 		if baseNum != highestNum {
@@ -185,6 +201,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	if block.readOnly {
 		return errors.New("can't put read only block")
 	}
+
 	block.kvHash = s.generateKVHash(key, value, block.kvHash)
 	if err := block.data.Put(key, value); err != nil {
 		return err

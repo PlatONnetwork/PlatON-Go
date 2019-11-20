@@ -121,11 +121,13 @@ func (tt *TestCmd) matchExactOutput(want []byte) error {
 	tt.withKillTimeout(func() { n, _ = io.ReadFull(tt.stdout, buf) })
 	buf = buf[:n]
 	if n < len(want) || !bytes.Equal(buf, want) {
+
 		// Grab any additional buffered output in case of mismatch
 		// because it might help with debugging.
 		buf = append(buf, make([]byte, tt.stdout.Buffered())...)
 		tt.stdout.Read(buf[n:])
 		// Find the mismatch position.
+
 		for i := 0; i < n; i++ {
 			if want[i] != buf[i] {
 				return fmt.Errorf("Output mismatch at ◊:\n---------------- (stdout text)\n%s◊%s\n---------------- (expected text)\n%s",

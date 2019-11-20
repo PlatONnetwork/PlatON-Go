@@ -185,7 +185,7 @@ func (t *SecureTrie) Copy() *SecureTrie {
 
 func (t *SecureTrie) New() *SecureTrie {
 	cpy := &SecureTrie{
-		trie: t.trie,
+		trie: *t.trie.DeepCopyTrie(),
 	}
 	return cpy
 }

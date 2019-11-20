@@ -31,11 +31,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/dashboard"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 
@@ -79,11 +77,9 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Eth       eth.Config
-	Shh       whisper.Config
-	Node      node.Config
-	Ethstats  ethstatsConfig
-	Dashboard dashboard.Config
+	Eth      eth.Config
+	Node     node.Config
+	Ethstats ethstatsConfig
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -129,10 +125,8 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:       eth.DefaultConfig,
-		Shh:       whisper.DefaultConfig,
-		Node:      defaultNodeConfig(),
-		Dashboard: dashboard.DefaultConfig,
+		Eth:  eth.DefaultConfig,
+		Node: defaultNodeConfig(),
 	}
 
 	//
@@ -176,20 +170,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
-	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
 
 	return stack, cfg
 }
-
-// enableWhisper returns true in case one of the whisper flags is set.
-//func enableWhisper(ctx *cli.Context) bool {
-//	for _, flag := range whisperFlags {
-//		if ctx.GlobalIsSet(flag.GetName()) {
-//			return true
-//		}
-//	}
-//	return false
-//}
 
 func makeFullNode(ctx *cli.Context) *node.Node {
 
@@ -198,22 +181,6 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
 	utils.RegisterEthService(stack, &cfg.Eth)
-
-	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
-	}
-	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
-	//shhEnabled := enableWhisper(ctx)
-	//shhAutoEnabled := !ctx.GlobalIsSet(utils.WhisperEnabledFlag.Name)
-	//if shhEnabled || shhAutoEnabled {
-	//	if ctx.GlobalIsSet(utils.WhisperMaxMessageSizeFlag.Name) {
-	//		cfg.Shh.MaxMessageSize = uint32(ctx.Int(utils.WhisperMaxMessageSizeFlag.Name))
-	//	}
-	//	if ctx.GlobalIsSet(utils.WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
-	//		cfg.Shh.RestrictConnectionBetweenLightClients = true
-	//	}
-	//	utils.RegisterShhService(stack, &cfg.Shh)
-	//}
 
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {
@@ -227,22 +194,6 @@ func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, gethConfig) {
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
 	utils.RegisterEthService(stack, &cfg.Eth)
-
-	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-		utils.RegisterDashboardService(stack, &cfg.Dashboard, gitCommit)
-	}
-	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
-	//shhEnabled := enableWhisper(ctx)
-	//shhAutoEnabled := !ctx.GlobalIsSet(utils.WhisperEnabledFlag.Name)
-	//if shhEnabled || shhAutoEnabled {
-	//	if ctx.GlobalIsSet(utils.WhisperMaxMessageSizeFlag.Name) {
-	//		cfg.Shh.MaxMessageSize = uint32(ctx.Int(utils.WhisperMaxMessageSizeFlag.Name))
-	//	}
-	//	if ctx.GlobalIsSet(utils.WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
-	//		cfg.Shh.RestrictConnectionBetweenLightClients = true
-	//	}
-	//	utils.RegisterShhService(stack, &cfg.Shh)
-	//}
 
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {

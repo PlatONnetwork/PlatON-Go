@@ -119,9 +119,9 @@ func SendTransaction(from, to, value string) (string, error) {
 	return response.Result, nil
 }
 
-func SendRawTransaction(from, to, value string, pkFile string) (string, error) {
+func SendRawTransaction(from, to, value string, pkFilePath string) (string, error) {
 	if len(accountPool) == 0 {
-		parsePkFile(pkFile)
+		parsePkFile(pkFilePath)
 	}
 	var v int64
 	var err error
@@ -135,12 +135,38 @@ func SendRawTransaction(from, to, value string, pkFile string) (string, error) {
 		}
 	}
 
-	acc, ok := accountPool[from]
+	////
+	//
+	//for k, v := range accountPool {
+	//	fmt.Println("acc", k.Hex())
+	//	fmt.Println("value", fmt.Sprintf("%+v", v))
+	//}
+
+	acc, ok := accountPool[common.HexToAddress(from)]
 	if !ok {
 		return "", fmt.Errorf("private key not found in private key file,addr:%s", from)
 	}
 	nonce := getNonce(from)
 	nonce++
+
+	//// getBalance
+	//
+	//unlock := JsonParam{
+	//	Jsonrpc: "2.0",
+	//	Method:  "personal_unlockAccount",
+	//	// {"method": "platon_getBalance", "params": [account, pwd, expire]}
+	//	// {"jsonrpc":"2.0", "method":"eth_getBalance","params":["0xde1e758511a7c67e7db93d1c23c1060a21db4615","latest"],"id":67}
+	//	Params: []interface{}{from, "latest"},
+	//	Id:     1,
+	//}
+	//
+	//// unlock
+	//s, e := HttpPost(unlock)
+	//if nil != e {
+	//	fmt.Println("the gat balance err:", e)
+	//}
+	//fmt.Println("the balance:", s)
+
 	newTx := getSignedTransaction(from, to, v, acc.Priv, nonce)
 
 	hash, err := sendRawTransaction(newTx)
@@ -162,7 +188,9 @@ func sendRawTransaction(transaction *types.Transaction) (string, error) {
 }
 
 func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, nonce uint64) *types.Transaction {
-	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), 100000, big.NewInt(90000), []byte{}), types.NewEIP155Signer(new(big.Int)), priv)
+	gas, _ := strconv.Atoi(config.Gas)
+	gasPrice, _ := new(big.Int).SetString(config.GasPrice, 10)
+	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), uint64(gas), gasPrice, []byte{}), types.NewEIP155Signer(new(big.Int).SetInt64(100)), priv)
 	if err != nil {
 		panic(fmt.Errorf("sign error,%s", err.Error()))
 	}
@@ -176,10 +204,3 @@ func getNonce(addr string) uint64 {
 	fmt.Println(addr, nonce)
 	return nonce.Uint64()
 }
-
-//func getCoinbase() (error) {
-//	res, _ := Send([]string{}, "platon_coinbase")
-//	response := parseResponse(res)
-//	coinBase = response.Result
-//	return nil
-//}

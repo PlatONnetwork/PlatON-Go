@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -36,7 +38,8 @@ type Ppos_1000 struct {
 	Amount             *big.Int
 	ProgramVersion     uint32
 	ProgramVersionSign common.VersionSign
-	BlsPubKey          string
+	BlsPubKey          bls.PublicKeyHex
+	BlsProof           bls.SchnorrProofHex
 }
 
 // editorCandidate
@@ -107,6 +110,15 @@ type Ppos_2001 struct {
 	EndVotingRounds uint64
 }
 
+// submitParam
+type Ppos_2002 struct {
+	Verifier discover.NodeID
+	PIPID    string
+	Module   string
+	Name     string
+	NewValue string
+}
+
 // submitCancel
 type Ppos_2005 struct {
 	Verifier        discover.NodeID
@@ -157,16 +169,29 @@ type Ppos_2102 struct {
 type Ppos_2103 struct {
 }
 
-// getProgramVersion
+// getGovernParamValue
 type Ppos_2104 struct {
+	Module string
+	Name   string
 }
 
-// ReportDuplicateSign
+// getAccuVerifiersCount
+type Ppos_2105 struct {
+	ProposalID common.Hash
+	BlockHash  common.Hash
+}
+
+// listGovernParam
+type Ppos_2106 struct {
+	Module string
+}
+
+// reportDuplicateSign
 type Ppos_3000 struct {
 	Data string
 }
 
-// CheckDuplicateSign
+// checkDuplicateSign
 type Ppos_3001 struct {
 	Etype       uint32
 	Addr        common.Address
@@ -196,6 +221,7 @@ type decDataConfig struct {
 	P1105  Ppos_1105
 	P2000  Ppos_2000
 	P2001  Ppos_2001
+	P2002  Ppos_2002
 	P2005  Ppos_2005
 	P2003  Ppos_2003
 	P20031 []Ppos_20031
@@ -205,6 +231,8 @@ type decDataConfig struct {
 	P2102  Ppos_2102
 	P2103  Ppos_2103
 	P2104  Ppos_2104
+	P2105  Ppos_2105
+	P2106  Ppos_2106
 	P3000  Ppos_3000
 	P3001  Ppos_3001
 	P4000  Ppos_4000
@@ -253,6 +281,8 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
 			programVersionSign, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersionSign)
 			blsPubKey, _ := rlp.EncodeToBytes(cfg.P1000.BlsPubKey)
+			blsProof, _ := rlp.EncodeToBytes(cfg.P1000.BlsProof)
+
 			params = append(params, typ)
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
@@ -264,6 +294,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, programVersion)
 			params = append(params, programVersionSign)
 			params = append(params, blsPubKey)
+			params = append(params, blsProof)
 		}
 	case 1001:
 		{
@@ -273,6 +304,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1001.NodeName)
 			website, _ := rlp.EncodeToBytes(cfg.P1001.Website)
 			details, _ := rlp.EncodeToBytes(cfg.P1001.Details)
+
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
 			params = append(params, externalId)
@@ -285,6 +317,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1002.NodeId)
 			typ, _ := rlp.EncodeToBytes(cfg.P1002.Typ)
 			amount, _ := rlp.EncodeToBytes(cfg.P1002.Amount)
+
 			params = append(params, nodeId)
 			params = append(params, typ)
 			params = append(params, amount)
@@ -299,6 +332,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			typ, _ := rlp.EncodeToBytes(cfg.P1004.Typ)
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1004.NodeId)
 			amount, _ := rlp.EncodeToBytes(cfg.P1004.Amount)
+
 			params = append(params, typ)
 			params = append(params, nodeId)
 			params = append(params, amount)
@@ -308,6 +342,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			stakingBlockNum, _ := rlp.EncodeToBytes(cfg.P1005.StakingBlockNum)
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1005.NodeId)
 			amount, _ := rlp.EncodeToBytes(cfg.P1005.Amount)
+
 			params = append(params, stakingBlockNum)
 			params = append(params, nodeId)
 			params = append(params, amount)
@@ -354,6 +389,20 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, pipID)
 			params = append(params, newVersion)
 			params = append(params, endVotingRounds)
+		}
+	case 2002:
+		{
+			verifier, _ := rlp.EncodeToBytes(cfg.P2002.Verifier)
+			pipID, _ := rlp.EncodeToBytes(cfg.P2002.PIPID)
+			module, _ := rlp.EncodeToBytes(cfg.P2002.Module)
+			name, _ := rlp.EncodeToBytes(cfg.P2002.Name)
+			newValue, _ := rlp.EncodeToBytes(cfg.P2002.NewValue)
+
+			params = append(params, verifier)
+			params = append(params, pipID)
+			params = append(params, module)
+			params = append(params, name)
+			params = append(params, newValue)
 		}
 	case 2005:
 		{
@@ -430,6 +479,24 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 2102:
 	case 2103:
 	case 2104:
+		{
+			module, _ := rlp.EncodeToBytes(cfg.P2104.Module)
+			name, _ := rlp.EncodeToBytes(cfg.P2104.Name)
+			params = append(params, module)
+			params = append(params, name)
+		}
+	case 2105:
+		{
+			proposalID, _ := rlp.EncodeToBytes(cfg.P2105.ProposalID.Bytes())
+			blockHash, _ := rlp.EncodeToBytes(cfg.P2105.BlockHash.Bytes())
+			params = append(params, proposalID)
+			params = append(params, blockHash)
+		}
+	case 2106:
+		{
+			module, _ := rlp.EncodeToBytes(cfg.P2106.Module)
+			params = append(params, module)
+		}
 	case 3000:
 		{
 			data, _ := rlp.EncodeToBytes(cfg.P3000.Data)

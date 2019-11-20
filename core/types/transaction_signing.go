@@ -86,7 +86,7 @@ type Signer interface {
 	// Equal returns true if the given signer is the same as the receiver.
 	Equal(Signer) bool
 	// Signature return the sig info of the transaction
-	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
+	//	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
 }
 
 // EIP155Transaction implements Signer using the EIP155 rules.
@@ -167,13 +167,13 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
 		return common.Address{}, ErrInvalidSig
 	}
-	// encode the snature in uncompressed format
+	// encode the signature in uncompressed format
 	r, s := R.Bytes(), S.Bytes()
 	sig := make([]byte, 65)
 	copy(sig[32-len(r):32], r)
 	copy(sig[64-len(s):64], s)
 	sig[64] = V
-	// recover the public key from the snature
+	// recover the public key from the signature
 	pub, err := crypto.Ecrecover(sighash[:], sig)
 	if err != nil {
 		return common.Address{}, err
@@ -218,6 +218,9 @@ func recoverPubKeyAndSender(sighash common.Hash, R, S, Vb *big.Int, homestead bo
 func deriveChainId(v *big.Int) *big.Int {
 	if v.BitLen() <= 64 {
 		v := v.Uint64()
+		if v == 27 || v == 28 {
+			return new(big.Int)
+		}
 		return new(big.Int).SetUint64((v - 35) / 2)
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))

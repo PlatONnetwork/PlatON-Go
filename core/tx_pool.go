@@ -82,6 +82,9 @@ var (
 
 	// PlatON inner contract tx data invalid
 	ErrPlatONTxDataInvalid = errors.New("the tx data is invalid")
+
+	// the txSizeLimit of PlatON govern param found failed
+	//ErrPlatONGovTxDataSize = errors.New("not found the govern txData size")
 )
 
 var (
@@ -427,7 +430,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 		// tx pool not initialized yet.
 		return
 	}
-	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
+	log.Debug("call Reset()", "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
 	//head := pool.chain.CurrentBlock()
 
 	if newBlock != nil {
@@ -438,7 +441,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 
 		pool.mu.Unlock()
 	}
-	log.Debug("call Reset elapse time", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "elapseTime", common.PrettyDuration(time.Since(startTime)))
+	log.Debug("call Reset elapse time", "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "elapseTime", common.PrettyDuration(time.Since(startTime)))
 }
 
 func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block) {
@@ -499,11 +502,11 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	}
 
 	if oldHead != nil && newHead != nil && oldHead.Hash() == newHead.Hash() && oldHead.Number.Uint64() == newHead.Number.Uint64() {
-		log.Debug("txpool needn't reset cause not changed", "RoutineID", common.CurrentGoRoutineID(), "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
+		log.Debug("txpool needn't reset cause not changed", "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
 		return
 	}
 
-	log.Debug("reset txpool", "RoutineID", common.CurrentGoRoutineID(), "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
+	log.Debug("reset txpool", "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
 	// If we're reorging an old state, reinject all dropped transactions
 	var reinject types.Transactions
 
@@ -755,8 +758,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return fmt.Errorf("contract creation is not allowed")
 	}
 
-	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	// 32kb -> 1m
+	// Heuristic limit, reject transactions over 1MB to prevent DOS attacks
 	if tx.Size() > 1024*1024 {
 		return ErrOversizedData
 	}
@@ -788,7 +790,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, true)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil)
 	if err != nil {
 		return err
 	}

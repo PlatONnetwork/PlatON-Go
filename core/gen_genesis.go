@@ -19,7 +19,7 @@ var _ = (*genesisSpecMarshaling)(nil)
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config        *params.ChainConfig                         `json:"config"`
-		EconomicModel *xcom.EconomicModel                         `json:"EconomicModel"`
+		EconomicModel *xcom.EconomicModel                         `json:"economicModel"`
 		Nonce         hexutil.Bytes                               `json:"nonce"`
 		Timestamp     math.HexOrDecimal64                         `json:"timestamp"`
 		ExtraData     hexutil.Bytes                               `json:"extraData"`
@@ -54,7 +54,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
 		Config        *params.ChainConfig                         `json:"config"`
-		EconomicModel *xcom.EconomicModel                         `json:"EconomicModel"`
+		EconomicModel *xcom.EconomicModel                         `json:"economicModel"`
 		Nonce         *hexutil.Bytes                              `json:"nonce"`
 		Timestamp     *math.HexOrDecimal64                        `json:"timestamp"`
 		ExtraData     *hexutil.Bytes                              `json:"extraData"`
@@ -66,17 +66,15 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		ParentHash    *common.Hash                                `json:"parentHash"`
 	}
 	var dec Genesis
-
-	if g.EconomicModel != nil {
-		dec.EconomicModel = g.EconomicModel
-	}
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
 	if dec.Config != nil {
 		g.Config = dec.Config
 	}
-
+	if dec.EconomicModel != nil {
+		g.EconomicModel = dec.EconomicModel
+	}
 	if dec.Nonce != nil {
 		g.Nonce = *dec.Nonce
 	}

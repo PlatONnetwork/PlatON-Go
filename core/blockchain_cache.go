@@ -207,6 +207,7 @@ func (bcc *BlockChainCache) MakeStateDBByHeader(header *types.Header) (*state.St
 		if number > 1 && !statedb.HadParent() {
 			panic(fmt.Sprintf("parent is nil:%d", number))
 		}
+
 		return statedb, nil
 	} else if state, err := bcc.StateAt(root); err == nil && state != nil {
 		// Create a StateDB instance from the blockchain based on stateRoot
@@ -270,7 +271,9 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		return nil
 	}
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
+	start := time.Now()
 	state, err := bcc.MakeStateDB(parent)
+	elapse := time.Since(start)
 	if err != nil {
 		return errors.New("execute block error")
 	}
@@ -279,7 +282,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	//to execute
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
 	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
-		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "err", err)
+		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		sealHash := block.Header().SealHash()

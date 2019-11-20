@@ -107,13 +107,13 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 		return nil, err
 	}
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
-	for hash := range core.BadHashes {
-		if header := bc.GetHeaderByHash(hash); header != nil {
-			log.Error("Found bad hash, rewinding chain", "number", header.Number, "hash", header.ParentHash)
-			bc.SetHead(header.Number.Uint64() - 1)
-			log.Error("Chain rewind was successful, resuming normal operation")
-		}
-	}
+	//for hash := range core.BadHashes {
+	//	if header := bc.GetHeaderByHash(hash); header != nil {
+	//		log.Error("Found bad hash, rewinding chain", "number", header.Number, "hash", header.ParentHash)
+	//		bc.SetHead(header.Number.Uint64() - 1)
+	//		log.Error("Chain rewind was successful, resuming normal operation")
+	//	}
+	//}
 	return bc, nil
 }
 

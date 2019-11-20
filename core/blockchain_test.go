@@ -64,47 +64,6 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *B
 	return db, blockchain, err
 }
 
-// Test fork of length N starting from block i
-func testFork(t *testing.T, blockchain *BlockChain, i, n int, full bool, comparator func(td1, td2 *big.Int)) {
-	// Copy old chain up to #i into a new db
-	// TODO test
-	/*db, blockchain2, err := newCanonical(cbft.NewFaker(), i, full)
-	if err != nil {
-		t.Fatal("could not make new canonical in testFork", err)
-	}
-	defer blockchain2.Stop()
-
-	// Assert the chains have the same header/block at #i
-	var hash1, hash2 common.Hash
-	if full {
-		hash1 = blockchain.GetBlockByNumber(uint64(i)).Hash()
-		hash2 = blockchain2.GetBlockByNumber(uint64(i)).Hash()
-	} else {
-		hash1 = blockchain.GetHeaderByNumber(uint64(i)).Hash()
-		hash2 = blockchain2.GetHeaderByNumber(uint64(i)).Hash()
-	}
-	if hash1 != hash2 {
-		t.Errorf("chain content mismatch at %d: have hash %v, want hash %v", i, hash2, hash1)
-	}
-	// Extend the newly created chain
-	var (
-		blockChainB  []*types.Block
-		headerChainB []*types.Header
-	)
-	if full {
-		blockChainB = makeBlockChain(blockchain2.CurrentBlock(), n, cbft.NewFaker(), db, forkSeed)
-		if _, err := blockchain2.InsertChain(blockChainB); err != nil {
-			t.Fatalf("failed to insert forking chain: %v", err)
-		}
-	} else {
-		headerChainB = makeHeaderChain(blockchain2.CurrentHeader(), n, cbft.NewFaker(), db, forkSeed)
-		if _, err := blockchain2.InsertHeaderChain(headerChainB, 1); err != nil {
-			t.Fatalf("failed to insert forking chain: %v", err)
-		}
-	}*/
-
-}
-
 func printChain(bc *BlockChain) {
 	for i := bc.CurrentBlock().Number().Uint64(); i > 0; i-- {
 		b := bc.GetBlockByNumber(uint64(i))

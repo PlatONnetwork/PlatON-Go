@@ -220,16 +220,16 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header, checkFreq int)
 	defer close(abort)
 
 	// Iterate over the headers and ensure they all check out
-	for i, header := range chain {
+	for i, _ := range chain {
 		// If the chain is terminating, stop processing blocks
 		if hc.procInterrupt() {
 			log.Debug("Premature abort during headers verification")
 			return 0, errors.New("aborted")
 		}
 		// If the header is a banned one, straight out abort
-		if BadHashes[header.Hash()] {
-			return i, ErrBlacklistedHash
-		}
+		//if BadHashes[header.Hash()] {
+		//	return i, ErrBlacklistedHash
+		//}
 		// Otherwise wait for headers checks and ensure they pass
 		if err := <-results; err != nil {
 			return i, err

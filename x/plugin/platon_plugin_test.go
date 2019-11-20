@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package plugin
 
 import (
@@ -236,7 +252,7 @@ var (
 		"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
 
 	specialCharList = []string{
-		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "卍", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
+		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "❂", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
 		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
@@ -276,8 +292,8 @@ func newPlugins() {
 }
 
 func newChainState() (xcom.StateDB, *types.Block, error) {
-	testGenesis := new(types.Block)
-	chain := mock.NewChain(testGenesis)
+	//	testGenesis := new(types.Block)
+	chain := mock.NewChain()
 	//	var state *state.StateDB
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
@@ -360,20 +376,23 @@ func build_staking_data_more(block uint64) {
 
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
-		canTmp := &staking.Candidate{
+		canTmp := &staking.Candidate{}
+
+		var blsKeyHex bls.PublicKeyHex
+		b, _ := blsKey.GetPublicKey().MarshalText()
+		if err := blsKeyHex.UnmarshalText(b); nil != err {
+			log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+			return
+		}
+
+		canBase := &staking.CandidateBase{
 			NodeId:          nodeId,
-			BlsPubKey:       *blsKey.GetPublicKey(),
+			BlsPubKey:       blsKeyHex,
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
-			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-			// Prevent null pointer initialization
-			Released:           common.Big0,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
 				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
@@ -383,18 +402,32 @@ func build_staking_data_more(block uint64) {
 			},
 		}
 
+		canMutable := &staking.CandidateMutable{
+			Shares: balance,
+			// Prevent null pointer initialization
+			Released:           common.Big0,
+			ReleasedHes:        common.Big0,
+			RestrictingPlan:    common.Big0,
+			RestrictingPlanHes: common.Big0,
+		}
+
+		canTmp.CandidateBase = canBase
+		canTmp.CandidateMutable = canMutable
+
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
 		stakingDB.SetCanPowerStore(hash, canAddr, canTmp)
 		stakingDB.SetCandidateStore(hash, canAddr, canTmp)
 
 		v := &staking.Validator{
-			NodeAddress: canAddr,
-			NodeId:      canTmp.NodeId,
-			BlsPubKey:   canTmp.BlsPubKey,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
-				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
-			ValidatorTerm: 0,
+			NodeAddress:     canAddr,
+			NodeId:          canTmp.NodeId,
+			BlsPubKey:       canTmp.BlsPubKey,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
+			Shares:          canTmp.Shares,
+			StakingBlockNum: canTmp.StakingBlockNum,
+			StakingTxIndex:  canTmp.StakingTxIndex,
+			ValidatorTerm:   0,
 		}
 		validatorArr = append(validatorArr, v)
 	}
@@ -496,20 +529,24 @@ func build_staking_data(genesisHash common.Hash) {
 
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
-		canTmp := &staking.Candidate{
+
+		canTmp := &staking.Candidate{}
+
+		var blsKeyHex bls.PublicKeyHex
+		b, _ := blsKey.GetPublicKey().MarshalText()
+		if err := blsKeyHex.UnmarshalText(b); nil != err {
+			log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+			return
+		}
+
+		canBase := &staking.CandidateBase{
 			NodeId:          nodeId,
-			BlsPubKey:       *blsKey.GetPublicKey(),
+			BlsPubKey:       blsKeyHex,
 			StakingAddress:  sender,
 			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
-			Shares:          balance,
 			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
-			// Prevent null pointer initialization
-			Released:           common.Big256,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
 
 			Description: staking.Description{
 				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
@@ -518,6 +555,18 @@ func build_staking_data(genesisHash common.Hash) {
 				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
 			},
 		}
+
+		canMutable := &staking.CandidateMutable{
+			Shares: balance,
+			// Prevent null pointer initialization
+			Released:           common.Big0,
+			ReleasedHes:        common.Big0,
+			RestrictingPlan:    common.Big0,
+			RestrictingPlanHes: common.Big0,
+		}
+
+		canTmp.CandidateBase = canBase
+		canTmp.CandidateMutable = canMutable
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
@@ -533,11 +582,14 @@ func build_staking_data(genesisHash common.Hash) {
 		}
 
 		v := &staking.Validator{
-			NodeAddress: canAddr,
-			NodeId:      canTmp.NodeId,
-			BlsPubKey:   canTmp.BlsPubKey,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
-				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+			NodeAddress:     canAddr,
+			NodeId:          canTmp.NodeId,
+			BlsPubKey:       canTmp.BlsPubKey,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
+			Shares:          canTmp.Shares,
+			StakingBlockNum: canTmp.StakingBlockNum,
+			StakingTxIndex:  canTmp.StakingTxIndex,
+
 			ValidatorTerm: 0,
 		}
 		validatorArr = append(validatorArr, v)
@@ -597,10 +649,11 @@ func build_gov_data(state xcom.StateDB) {
 
 	//set a default active version
 	gov.AddActiveVersion(initProgramVersion, 0, state)
+	gov.InitGenesisGovernParam(snapshotdb.Instance())
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
-	chain := mock.NewChain(nil)
+	chain := mock.NewChain()
 
 	return chain.StateDB
 }
@@ -610,49 +663,6 @@ type restrictingTest struct {
 	plans           []restricting.RestrictingPlan
 	account         common.Address
 	stateDB         xcom.StateDB
-}
-
-func newRestrictingTest() (*restrictingTest, error) {
-	return nil, nil
-	//r := new(restrictingTest)
-	//db := ethdb.NewMemDatabase()
-	//stateDb, err := state.New(common.Hash{}, state.NewDatabase(db))
-	//
-	//if err != nil {
-	//	return nil, err
-	//}
-	//r.stateDB = stateDb
-	//r.account = common.HexToAddress("0xc9E1C2B330Cf7e759F2493c5C754b34d98B07f93")
-	//r.plans = make([]restricting.RestrictingPlan, 0)
-	//var list = make([]uint64, 0)
-	//for i := 0; i < 5; i++ {
-	//	r.plans = append(r.plans, restricting.RestrictingPlan{1, big.NewInt(int64(1E18))})
-	//	list = append(list, uint64(i))
-	//}
-	//
-	//var user restricting.RestrictingInfo
-	//user.Balance = big.NewInt(int64(5E18))
-	//user.Debt = big.NewInt(0)
-	//user.DebtSymbol = false
-	//user.ReleaseList = list
-	//r.restrictingInfo = user
-	//return r, nil
-}
-
-func buildDbRestrictingPlan2(r *restrictingTest) error {
-	for _, value := range r.plans {
-		releaseAccountKey := restricting.GetReleaseAccountKey(value.Epoch, 1)
-		r.stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, r.account.Bytes())
-
-		// build release amount record
-		releaseAmountKey := restricting.GetReleaseAmountKey(value.Epoch, r.account)
-		r.stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, value.Amount.Bytes())
-
-		// build release epoch record
-		releaseEpochKey := restricting.GetReleaseEpochKey(value.Epoch)
-		r.stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
-	}
-	return nil
 }
 
 func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.StateDB) {
@@ -666,7 +676,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 		// build release amount record
-		releaseAmount := big.NewInt(int64(1E18))
+		releaseAmount := big.NewInt(int64(1e18))
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAmountKey, releaseAmount.Bytes())
 
@@ -679,7 +689,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	// build restricting user info
 	var user restricting.RestrictingInfo
-	user.CachePlanAmount = big.NewInt(int64(5E18))
+	user.CachePlanAmount = big.NewInt(int64(5e18))
 	user.StakingAmount = big.NewInt(0)
 	user.NeedRelease = big.NewInt(0)
 	user.ReleaseList = list
@@ -695,7 +705,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
 	stateDB.AddBalance(sender, sBalance)
-	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
+	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5e18)))
 }
 
 func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
@@ -703,7 +713,7 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetRoundValIndexByBlockHash(blockHash)
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to setRoundValList: Query round valIndex is failed", "blockHash",
 			blockHash.Hex(), "Start", valArr.Start, "End", valArr.End, "err", err)
 		return err
@@ -764,7 +774,7 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetEpochValIndexByBlockHash(blockHash)
-	if nil != err && err != snapshotdb.ErrNotFound {
+	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to setVerifierList: Query epoch valIndex is failed", "blockHash",
 			blockHash.Hex(), "Start", valArr.Start, "End", valArr.End, "err", err)
 		return err

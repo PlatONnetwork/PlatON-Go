@@ -2,27 +2,71 @@ package mock
 
 import (
 	"math/big"
+	"math/rand"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-type chain struct {
-	Genesis  *types.Block
-	chain    []common.Hash
-	headerm  map[common.Hash]*types.Header
-	blockm   map[common.Hash]*types.Block
-	receiptm map[common.Hash][]*types.Receipt
-	StateDB  *MockStateDB
+type Chain struct {
+	Genesis *types.Block
+	//	chain    []common.Hash
+	//	headerm  map[common.Hash]*types.Header
+	//	blockm   map[common.Hash]*types.Block
+	//	receiptm map[common.Hash][]*types.Receipt
+	StateDB *MockStateDB
+	SnapDB  snapshotdb.DB
+	h       []*types.Header
 }
 
-func NewChain(genesis *types.Block) *chain {
-	c := new(chain)
-	c.Genesis = genesis
+func (c *Chain) AddBlock() {
+	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
+	c.h = append(c.h, header)
+}
+
+func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
+	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
+	c.h = append(c.h, header)
+	c.StateDB.Prepare(txHash, c.CurrentHeader().Hash(), 1)
+}
+
+func (c *Chain) CurrentHeader() *types.Header {
+	return c.h[len(c.h)-1]
+}
+
+func (c *Chain) CurrentForkHeader() *types.Header {
+	newhead := new(types.Header)
+	newhead.Number = c.h[len(c.h)-1].Number
+	newhead.ParentHash = c.h[len(c.h)-1].ParentHash
+	newhead.GasUsed = rand.Uint64()
+	return newhead
+}
+
+func (c *Chain) GetHeaderByHash(hash common.Hash) *types.Header {
+	for i := len(c.h) - 1; i >= 0; i-- {
+		if c.h[i].Hash() == hash {
+			return c.h[i]
+		}
+	}
+	return nil
+}
+
+func NewChain() *Chain {
+	c := new(Chain)
+	header := generateHeader(big.NewInt(0), common.ZeroHash)
+	block := new(types.Block).WithSeal(header)
+
+	c.Genesis = block
+	c.h = make([]*types.Header, 0)
+	c.h = append(c.h, header)
+
 	db := new(MockStateDB)
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
 	c.StateDB = db
+	c.SnapDB = snapshotdb.Instance()
 	return c
 }
 
@@ -176,4 +220,11 @@ func (s *MockStateDB) TxHash() common.Hash {
 }
 func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.txIndex)
+}
+
+func generateHeader(num *big.Int, parentHash common.Hash) *types.Header {
+	h := new(types.Header)
+	h.Number = num
+	h.ParentHash = parentHash
+	return h
 }

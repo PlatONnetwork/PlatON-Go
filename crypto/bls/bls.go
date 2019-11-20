@@ -238,6 +238,10 @@ func (pe PublicKeyHex) String() string {
 	return hex.EncodeToString(pe[:])
 }
 
+func (pe PublicKeyHex) Bytes() []byte {
+	return pe[:]
+}
+
 // MarshalText implements the encoding.TextMarshaler interface.
 func (pe PublicKeyHex) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(pe[:])), nil
@@ -257,6 +261,20 @@ func (pe *PublicKeyHex) UnmarshalText(text []byte) error {
 
 	*pe = p
 	return nil
+}
+
+func (pe *PublicKeyHex) ParseBlsPubKey() (*PublicKey, error) {
+	pubKeyByte, err := pe.MarshalText()
+	if nil != err {
+		return nil, err
+	}
+
+	var blsPk PublicKey
+	if err := blsPk.UnmarshalText(pubKeyByte); nil != err {
+
+		return nil, err
+	}
+	return &blsPk, nil
 }
 
 func (pub *PublicKey) getQ() (p *C.blsPublicKey) {
@@ -533,7 +551,7 @@ func BatchVerifyDistinctMsg(curve int, pkVec []PublicKey, msgVec []Sign, sign Si
 		e1 = e2
 	}
 	if !e.IsEqual(&e2) {
-		errors.New("not equal pairing\n")
+		return errors.New("not equal pairing\n")
 	}
 	return nil
 }
@@ -602,34 +620,6 @@ func Schnorr_test(curve int, r, c SecretKey, G, V, P PublicKey) error {
 // Deprecated: use SchnorrProof
 type Proof struct {
 	C, R SecretKey
-}
-
-// Match only 128 hex char length proof
-type ProofHex [64]byte
-
-func (pfe ProofHex) String() string {
-	return hex.EncodeToString(pfe[:])
-}
-
-// MarshalText implements the encoding.TextMarshaler interface.
-func (pfe ProofHex) MarshalText() ([]byte, error) {
-	return []byte(hex.EncodeToString(pfe[:])), nil
-}
-
-// UnmarshalText implements the encoding.TextUnmarshaler interface.
-func (pfe *ProofHex) UnmarshalText(text []byte) error {
-
-	var p ProofHex
-	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
-	if err != nil {
-		return err
-	} else if len(b) != len(p) {
-		return fmt.Errorf("wrong length, want %d hex chars", len(p)*2)
-	}
-	copy(p[:], b)
-
-	*pfe = p
-	return nil
 }
 
 // Serialize --

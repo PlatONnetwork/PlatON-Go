@@ -63,10 +63,6 @@ var (
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
-		utils.DashboardEnabledFlag,
-		utils.DashboardAddrFlag,
-		utils.DashboardPortFlag,
-		utils.DashboardRefreshFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -94,7 +90,7 @@ var (
 		utils.MaxPendingPeersFlag,
 		utils.MinerGasTargetFlag,
 		utils.MinerLegacyGasTargetFlag,
-		utils.MinerGasLimitFlag,
+		//utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
 		utils.MinerLegacyGasPriceFlag,
 		//	utils.MinerExtraDataFlag,
@@ -165,6 +161,14 @@ var (
 		utils.CbftBlsPriKeyFileFlag,
 		utils.CbftBlacklistDeadlineFlag,
 	}
+
+	dbFlags = []cli.Flag{
+		utils.DBNoGCFlag,
+		utils.DBGCIntervalFlag,
+		utils.DBGCTimeoutFlag,
+		utils.DBGCMptFlag,
+		utils.DBGCBlockFlag,
+	}
 )
 
 func init() {
@@ -212,6 +216,7 @@ func init() {
 	//app.Flags = append(app.Flags, vcFlags...)
 	// for cbft
 	app.Flags = append(app.Flags, cbftFlags...)
+	app.Flags = append(app.Flags, dbFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -221,9 +226,6 @@ func init() {
 		}
 
 		logdir := ""
-		if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
-			logdir = (&node.Config{DataDir: utils.MakeDataDir(ctx)}).ResolvePath("logs")
-		}
 		if err := debug.Setup(ctx, logdir); err != nil {
 			return err
 		}

@@ -228,7 +228,7 @@ func (s *Sync) Commit(dbw ethdb.Putter) (int, error) {
 		v, _ := s.membatch.batch[key]
 		if v.storage {
 			var seckeybuf [43]byte
-			buf := append(seckeybuf[:0], secureKeyPrefix...)
+			buf := append(seckeybuf[:0], SecureKeyPrefix...)
 			buf = append(buf, key[:]...)
 			if err := dbw.Put(buf, s.membatch.batch[key].data); err != nil {
 				return i, err

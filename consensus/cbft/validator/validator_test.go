@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package validator
 
 import (
@@ -11,7 +27,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -527,4 +545,50 @@ func TestValidatorPoolVerify(t *testing.T) {
 	priKey1, _ := crypto.GenerateKey()
 	sigWrong, _ := crypto.Sign(header.SealHash().Bytes(), priKey1)
 	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sigWrong[:])
+}
+
+type mockAgency struct {
+	consensus.Agency
+
+	lastNumber uint64
+}
+
+func newMockAgency(lastNumber uint64) *mockAgency {
+	return &mockAgency{
+		lastNumber: lastNumber,
+	}
+}
+
+func (m *mockAgency) Flush(*types.Header) error { return nil }
+
+func (m *mockAgency) Sign(interface{}) error { return nil }
+
+func (m *mockAgency) VerifySign(interface{}) error { return nil }
+
+func (m *mockAgency) VerifyHeader(*types.Header, *state.StateDB) error { return nil }
+
+func (m *mockAgency) GetLastNumber(blockNumber uint64) uint64 { return m.lastNumber }
+
+func (m *mockAgency) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+	return &cbfttypes.Validators{
+		ValidBlockNumber: blockNumber,
+	}, nil
+}
+
+func (m *mockAgency) IsCandidateNode(discover.NodeID) bool { return false }
+
+func (m *mockAgency) OnCommit(block *types.Block) error { return nil }
+
+func TestValidatorPoolReset(t *testing.T) {
+	agency := newMockAgency(100)
+	vp := NewValidatorPool(agency, 0, 0, discover.NodeID{})
+
+	vp.Reset(100, 10)
+	assert.Equal(t, vp.switchPoint, uint64(100))
+	assert.Equal(t, vp.epoch, uint64(11))
+
+	agency.lastNumber = 200
+	vp.Reset(150, 15)
+	assert.Equal(t, vp.epoch, uint64(15))
+	assert.Equal(t, vp.switchPoint, uint64(149))
 }

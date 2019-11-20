@@ -184,7 +184,6 @@ func getFiles() []string {
 				goto keep
 			}
 		}
-		return
 	keep:
 		files = append(files, line)
 	})
