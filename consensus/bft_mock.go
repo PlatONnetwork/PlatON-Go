@@ -20,6 +20,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
+//func NewFaker() Engine {
+//	c := new(BftMock)
+//	c.Blocks = make([]*types.Block, 0)
+//	return c
+//}
+
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
 	EventMux *event.TypeMux

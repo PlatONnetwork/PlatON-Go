@@ -18,13 +18,20 @@ package core
 
 import (
 	"testing"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Tests that simple header verification works, for both good and bad blocks.
 func TestHeaderVerification(t *testing.T) {
 	// Create a simple chain to verify
 	// TODO test
-	/*var (
+	var (
 		testdb    = ethdb.NewMemDatabase()
 		gspec     = &Genesis{Config: params.TestChainConfig}
 		genesis   = gspec.MustCommit(testdb)
@@ -66,7 +73,7 @@ func TestHeaderVerification(t *testing.T) {
 			}
 		}
 		chain.InsertChain(blocks[i : i+1])
-	}*/
+	}
 }
 
 // Tests that concurrent header verification works, for both good and bad blocks.
