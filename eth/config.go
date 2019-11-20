@@ -51,7 +51,7 @@ var DefaultConfig = Config{
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
-	TrieCache:     256,
+	TrieCache:     128,
 	TrieTimeout:   60 * time.Minute,
 	MinerGasFloor: params.GenesisGasLimit,
 	//MinerGasCeil:  4000 * 21000 * 1.2,
