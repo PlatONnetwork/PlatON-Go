@@ -726,7 +726,7 @@ class TestUpgradeVP():
         assert pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
         assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
 
     @pytest.mark.P1
     def test_UV_UP_1(self, new_genesis_env, client_con_list_obj):

@@ -286,8 +286,9 @@ class TestgetAccuVerifiersCount():
 
     @pytest.mark.compatibility
     @pytest.mark.P0
-    def test_AC_IN_001_002_004_to_006_012_to_014(self, no_vp_proposal, client_verifier_obj_list):
-        pip_obj = client_verifier_obj_list[-1].pip
+    def test_AC_IN_001_002_004_to_006_012_to_014(self, new_genesis_env, client_con_list_obj):
+        new_genesis_env.deploy_all()
+        pip_obj = client_con_list_obj[-1].pip
         result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version5, 5, pip_obj.node.staking_address,
                                        transaction_cfg=pip_obj.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -303,7 +304,7 @@ class TestgetAccuVerifiersCount():
         log.info('Get cancel proposal information : {}'.format(proposalinfo_version))
 
         for index in range(3):
-            client_obj = client_verifier_obj_list[index]
+            client_obj = client_con_list_obj[index]
             result = version_proposal_vote(client_obj.pip)
             assert_code(result, 0)
             result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
@@ -313,27 +314,27 @@ class TestgetAccuVerifiersCount():
 
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
         assert pip_obj.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
-        log.info('Stop the node {}'.format(client_verifier_obj_list[0].node.node_id))
-        client_verifier_obj_list[0].node.stop()
+        log.info('Stop the node {}'.format(client_con_list_obj[0].node.node_id))
+        client_con_list_obj[0].node.stop()
         pip_obj.economic.wait_consensus_blocknum(pip_obj.node, 2)
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 2, 0, 0]
         assert pip_obj.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 1, 1]
 
-        report_information = mock_duplicate_sign(1, client_verifier_obj_list[1].node.nodekey,
-                                                 client_verifier_obj_list[1].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(1, client_con_list_obj[1].node.nodekey,
+                                                 client_con_list_obj[1].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10 ** 18 * 1000)
-        result = client_verifier_obj_list[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
+        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 1, 0, 0]
         assert pip_obj.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 1]
 
-        report_information = mock_duplicate_sign(2, client_verifier_obj_list[2].node.nodekey,
-                                                 client_verifier_obj_list[2].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(2, client_con_list_obj[2].node.nodekey,
+                                                 client_con_list_obj[2].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip_obj.economic.account.generate_account(pip_obj.node.web3, 10 ** 18 * 1000)
-        result = client_verifier_obj_list[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
+        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 0, 0, 0]
