@@ -17,6 +17,8 @@ def assert_error_deploy(env: Node, genesis_file, msg="Error config"):
 @pytest.fixture(scope="module", autouse=True)
 def stop(global_test_env):
     global_test_env.stop_all()
+    yield
+    global_test_env.deploy_all()
 
 
 @pytest.fixture()
@@ -284,7 +286,7 @@ def test_IP_CP_002_validator_mode(reset_cfg_env_node, value):
 
 @pytest.mark.P2
 @pytest.mark.parametrize('value', [0.1, "ss", ""])
-def test_IP_CP_002_validator_mode(reset_cfg_env_node, value):
+def test_IP_CP_002_period(reset_cfg_env_node, value):
     """
     创世文件共识参数验证
     :return:
