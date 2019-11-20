@@ -40,6 +40,9 @@ type IndexerConfig struct {
 	// The block frequency for creating CHTs.
 	ChtSize uint64
 
+	// A special auxiliary field represents client's chtsize for server config, otherwise represents server's chtsize.
+	PairChtSize uint64
+
 	// The number of confirmations needed to generate/accept a canonical hash help trie.
 	ChtConfirms uint64
 
@@ -79,6 +82,7 @@ var (
 	// TestServerIndexerConfig wraps a set of configs as a test indexer config for server side.
 	TestServerIndexerConfig = &IndexerConfig{
 		ChtSize:           512,
+		PairChtSize:       2048,
 		ChtConfirms:       4,
 		BloomSize:         64,
 		BloomConfirms:     4,
@@ -210,7 +214,7 @@ func (c *ChtIndexerBackend) Commit() error {
 	if err != nil {
 		return err
 	}
-	c.triedb.Commit(root, false)
+	c.triedb.Commit(root, false, true)
 
 	log.Info("Storing CHT", "section", c.section, "head", fmt.Sprintf("%064x", c.lastHash), "root", fmt.Sprintf("%064x", root))
 	StoreChtRoot(c.diskdb, c.section, c.lastHash, root)
@@ -374,7 +378,7 @@ func (b *BloomTrieIndexerBackend) Commit() error {
 	if err != nil {
 		return err
 	}
-	b.triedb.Commit(root, false)
+	b.triedb.Commit(root, false, true)
 
 	sectionHead := b.sectionHeads[b.bloomTrieRatio-1]
 	log.Info("Storing bloom trie", "section", b.section, "head", fmt.Sprintf("%064x", sectionHead), "root", fmt.Sprintf("%064x", root), "compression", float64(compSize)/float64(decompSize))

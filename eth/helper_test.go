@@ -64,8 +64,10 @@ func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func
 			Alloc:  core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},
 		}
 		genesis = gspec.MustCommit(db)
+
 		//blockchain, _ = core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	)
+	engine.InsertChain(genesis)
 	//cache := core.NewBlockChainCache(blockchain)
 	//
 	//engine.SetBlockChainCache(cache)

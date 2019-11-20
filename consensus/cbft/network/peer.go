@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package network
 
 import (
@@ -23,8 +39,8 @@ import (
 )
 
 var (
-	errClosed                  = errors.New("peer set is closed")
-	errAlreadyRegistered       = errors.New("peer is already registered")
+	errClosed                  = errors.New("peer set is closed")               // errClosed represents the node is closed error message description.
+	errAlreadyRegistered       = errors.New("peer is already registered")       // errAlreadyRegistered represents a node registered error.
 	errNotRegistered           = errors.New("peer is not registered")           // errNotRegistered represents that the node is not registered.
 	errInvalidHandshakeMessage = errors.New("invalid handshake message params") // The parameters passed in the node handshake are not correct.
 	errForkBlock               = errors.New("forked block")                     // Means that when the block heights are equal and the block hashes are not equal.
@@ -47,19 +63,19 @@ const (
 
 // Peer represents a node in the network.
 type peer struct {
-	*p2p.Peer
-	id      string
-	rw      p2p.MsgReadWriter
-	version int           // Protocol version negotiated
-	term    chan struct{} // Termination channel to stop the broadcaster
+	*p2p.Peer                   // Network layer p2p reference.
+	id        string            // Peer id identifier
+	rw        p2p.MsgReadWriter //
+	version   int               // Protocol version negotiated
+	term      chan struct{}     // Termination channel to stop the broadcaster
 
 	// Node status information
-	highestQCBn *big.Int
-	qcLock      sync.RWMutex
-	lockedBn    *big.Int
-	lLock       sync.RWMutex
-	commitBn    *big.Int
-	cLock       sync.RWMutex
+	highestQCBn *big.Int     // The highest QC height of the node.
+	qcLock      sync.RWMutex //
+	lockedBn    *big.Int     // The highest Lock height of the node.
+	lLock       sync.RWMutex //
+	commitBn    *big.Int     // The highest Commit height of the node.
+	cLock       sync.RWMutex //
 
 	// Record the message received by the peer node.
 	// If the threshold is exceeded, the queue tail
@@ -69,6 +85,8 @@ type peer struct {
 	pingList *list.List
 	listLock sync.RWMutex
 
+	// Message sending queue, the queue stores
+	// messages to be sent to the peer.
 	sendQueue chan *types.MsgPackage
 }
 
@@ -558,6 +576,8 @@ func (ps *PeerSet) Close() {
 	ps.closed = true
 }
 
+// printPeers timing printout output list
+// of neighbor nodes of the current node.
 func (ps *PeerSet) printPeers() {
 	// Output in 2 seconds
 	outTimer := time.NewTicker(time.Second * 5)

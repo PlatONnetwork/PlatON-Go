@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	blockCacheItems      = 8192             // Maximum number of blocks to cache before throttling the download
+	blockCacheItems      = 128              // Maximum number of blocks to cache before throttling the download
 	blockCacheMemory     = 64 * 1024 * 1024 // Maximum amount of memory to use for block caching
 	blockCacheSizeWeight = 0.1              // Multiplier to approximate the average block size based on past ones
 )
@@ -341,10 +341,10 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 		q.blockTaskPool[hash] = header
 		q.blockTaskQueue.Push(header, -int64(header.Number.Uint64()))
 
-		if q.mode == FastSync {
-			q.receiptTaskPool[hash] = header
-			q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
-		}
+		//if q.mode == FastSync {
+		//	q.receiptTaskPool[hash] = header
+		//	q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
+		//}
 		inserts = append(inserts, header)
 		q.headerHead = hash
 		from++
@@ -517,9 +517,9 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		}
 		if q.resultCache[index] == nil {
 			components := 1
-			if q.mode == FastSync {
-				components = 2
-			}
+			//if q.mode == FastSync {
+			//	components = 2
+			//}
 			q.resultCache[index] = &fetchResult{
 				Pending: components,
 				Hash:    hash,

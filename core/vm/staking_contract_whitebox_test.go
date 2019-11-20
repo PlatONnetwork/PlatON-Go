@@ -106,24 +106,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, blsPkm)
 	params = append(params, proofRlp)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("createStaking encode rlp data fail: %v", err)
-		return
-	} else {
-		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract, params, "createStaking", t)
 
 }
 
@@ -206,24 +189,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, blsPkm)
 	params = append(params, proofRlp)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("createStaking encode rlp data fail: %v", err)
-		return
-	} else {
-		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract, params, "createStaking", t)
 
 }
 
@@ -302,24 +268,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	params = append(params, blsPkm)
 	params = append(params, proofRlp)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("createStaking encode rlp data fail: %v", err)
-		return
-	} else {
-		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract, params, "createStaking", t)
 }
 
 /**
@@ -400,24 +349,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	params = append(params, blsPkm)
 	params = append(params, proofRlp)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		t.Errorf("createStaking encode rlp data fail: %v", err)
-		return
-	} else {
-		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := contract.Run(buf.Bytes())
-
-	assert.True(t, nil == err)
-
-	var r xcom.Result
-	err = json.Unmarshal(res, &r)
-	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	runContractSendTransaction(contract, params, "createStaking", t)
 
 	// repeat stake
 	var args [][]byte
@@ -472,23 +404,22 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	args = append(args, proofRlp2)
 
 	buf2 := new(bytes.Buffer)
-	err = rlp.Encode(buf2, args)
+	err := rlp.Encode(buf2, args)
 	if err != nil {
 		t.Errorf("createStaking2 encode rlp data fail: %v", err)
 		return
 	} else {
-		t.Log("createStaking2 data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("createStaking2 data rlp: ", hexutil.Encode(buf2.Bytes()))
 	}
 
-	res, err = contract.Run(buf2.Bytes())
+	res, err := contract.Run(buf2.Bytes())
 
 	assert.True(t, nil == err)
 
-	var r2 xcom.Result
+	var r2 uint32
 	err = json.Unmarshal(res, &r2)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r2.Code)
-	t.Log("the staking result Msg:", r2.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r2)
 
 }
 
@@ -588,11 +519,10 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -686,11 +616,10 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -788,11 +717,10 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -890,11 +818,10 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -994,11 +921,10 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -1092,11 +1018,10 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -1193,11 +1118,10 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.NotEqual(t, common.OkCode, r.Code)
-	t.Log("the staking result Msg:", r.ErrMsg)
+	assert.NotEqual(t, common.OkCode, r)
 
 }
 
@@ -1255,10 +1179,9 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 
 	assert.True(t, nil == err)
 
-	var r xcom.Result
+	var r uint32
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
-	assert.Equal(t, common.OkCode, r.Code)
-	t.Log("the edit result Msg:", r.ErrMsg)
+	assert.Equal(t, common.OkCode, r)
 
 }

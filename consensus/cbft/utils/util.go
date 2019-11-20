@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package utils
 
 import (
@@ -48,22 +64,27 @@ func MergeBytes(bts ...[]byte) []byte {
 	return response
 }
 
+// Returns whether the specified value is equal to 1.
 func True(atm *int32) bool {
 	return atomic.LoadInt32(atm) == 1
 }
 
+// Returns whether the specified value is equal to 0.
 func False(atm *int32) bool {
 	return atomic.LoadInt32(atm) == 0
 }
 
+// Set the specified variable to 0.
 func SetFalse(atm *int32) {
 	atomic.StoreInt32(atm, 0)
 }
 
+// Set the specified variable to 1.
 func SetTrue(atm *int32) {
 	atomic.StoreInt32(atm, 1)
 }
 
+// Represents a k-v key-value pair.
 type KeyValuePair struct {
 	Key   string
 	Value int64
@@ -77,10 +98,12 @@ func (kvp KeyValuePairList) Swap(i, j int)      { kvp[i], kvp[j] = kvp[j], kvp[i
 func (kvp KeyValuePairList) Len() int           { return len(kvp) }
 func (kvp KeyValuePairList) Less(i, j int) bool { return kvp[i].Value < kvp[j].Value }
 
+// Add an element.
 func (kvp *KeyValuePairList) Push(x interface{}) {
 	*kvp = append(*kvp, x.(KeyValuePair))
 }
 
+// Pop up an element.
 func (kvp *KeyValuePairList) Pop() interface{} {
 	old := *kvp
 	n := len(old)
@@ -89,6 +112,8 @@ func (kvp *KeyValuePairList) Pop() interface{} {
 	return x
 }
 
+// Sort the Map according to the key,
+// return the list of sorted key-value pairs.
 func SortMap(m map[string]int64) KeyValuePairList {
 	p := make(KeyValuePairList, len(m))
 	i := 0

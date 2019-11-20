@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package xcom
 
 import (
@@ -28,7 +44,6 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
 
-	// todo: new func for abi of contract.
 	GetAbiHash(common.Address) common.Hash
 	GetAbi(common.Address) []byte
 	SetAbi(common.Address, []byte)
@@ -37,7 +52,6 @@ type StateDB interface {
 	SubRefund(uint64)
 	GetRefund() uint64
 
-	// todo: hash -> bytes
 	GetCommittedState(common.Address, []byte) []byte
 	//GetState(common.Address, common.Hash) common.Hash
 	//SetState(common.Address, common.Hash, common.Hash)
@@ -69,71 +83,31 @@ type StateDB interface {
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
 }
 
-// inner contract event data
 type Result struct {
-	Code   uint32
-	Data   string
-	ErrMsg string
+	Code uint32
+	Ret  interface{}
 }
 
-func SuccessResult(data string) []byte {
-	return BuildResult(data, common.NoErr)
-}
-
-func FailResult(data string, err *common.BizError) []byte {
-	return BuildResult(data, err)
-}
-
-func BuildResult(data string, err *common.BizError) []byte {
-	res := Result{err.Code, data, err.Msg}
+func NewOkResult(data interface{}) []byte {
+	res := &Result{common.NoErr.Code, data}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
-func NewResult(data string, err *common.BizError) []byte {
-	if err == nil {
-		err = common.NoErr
-	}
-	res := &Result{err.Code, data, err.Msg}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-var (
-	OkResultByte, _ = json.Marshal(&Result{common.NoErr.Code, "", common.NoErr.Msg})
-)
-
-func NewSuccessResult(data string) []byte {
-	res := &Result{common.NoErr.Code, data, common.NoErr.Msg}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-func NewFailResultByBiz(err *common.BizError) []byte {
-	res := &Result{err.Code, "", err.Msg}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-func NewFailResult(err error) []byte {
-	code, message := common.DecodeError(err)
-	res := &Result{code, "", message}
+func NewFailedResult(err *common.BizError) []byte {
+	res := &Result{err.Code, err.Msg}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
-	logdata := make([][]byte, 0)
-	logdata = append(logdata, []byte(data))
 
 	buf := new(bytes.Buffer)
-	if err := rlp.Encode(buf, logdata); nil != err {
+	if err := rlp.Encode(buf, [][]byte{[]byte(data)}); nil != err {
 		log.Error("Cannot RlpEncode the log data, data", "data", data)
 		panic("Cannot RlpEncode the log data")
 	}
-
-	//encoded := common.MustRlpEncode(logdata)
 
 	state.AddLog(&types.Log{
 		Address:     contractAddr,

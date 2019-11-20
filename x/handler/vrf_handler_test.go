@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package handler
 
 import (
@@ -5,6 +21,10 @@ import (
 	"math/big"
 	"strconv"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -16,7 +36,11 @@ import (
 )
 
 func initHandler() *ecdsa.PrivateKey {
-	NewVrfHandler(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"))
+	vh = &VrfHandler{
+		db:           snapshotdb.Instance(),
+		genesisNonce: hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+	}
+	//	NewVrfHandler(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"))
 	pri, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
@@ -30,10 +54,13 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	defer func() {
 		vh.db.Clear()
 	}()
+
+	gov.InitGenesisGovernParam(vh.db)
+
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
 	hash := common.ZeroHash
-	for i := 0; i < int(xcom.EpochValidatorNum())+10; i++ {
+	for i := 0; i < int(xcom.MaxValidators())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Fatal(err)
 		}
@@ -54,7 +81,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	if value, err := vh.Load(phash); nil != err {
 		t.Fatal(err)
 	} else {
-		assert.Equal(t, len(value), int(xcom.EpochValidatorNum()))
+		assert.Equal(t, len(value), int(xcom.MaxValidators()))
 	}
 }
 

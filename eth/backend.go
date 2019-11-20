@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -126,8 +128,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
+	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -170,7 +173,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
-			TriesInMemory: config.TriesInMemory,
+			TriesInMemory: config.TriesInMemory, DBGCInterval: config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
+			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
@@ -181,6 +185,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 	)
+	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
 
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
 	if err != nil {
@@ -193,8 +198,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
-		eth.blockchain.SetHead(compat.RewindTo)
-		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
+		return nil, compat
+		//eth.blockchain.SetHead(compat.RewindTo)
+		//rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
 	eth.bloomIndexer.Start(eth.blockchain)
 
@@ -222,8 +228,23 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon remove consensusCache
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+
+	currentBlock := eth.blockchain.CurrentBlock()
+	currentNumber := currentBlock.NumberU64()
+	currentHash := currentBlock.Hash()
+	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash)
+	if nil != err {
+		log.Error("Failed to query gasCeil from snapshotdb", "err", err)
+		return nil, err
+	}
+	if config.MinerGasFloor > uint64(gasCeil) {
+		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.MinerGasFloor, "gasCeil", gasCeil)
+		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.MinerGasFloor, gasCeil)
+	}
+
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
-		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
+		config.MinerGasFloor /*config.MinerGasCeil,*/, eth.isLocalBlock, blockChainCache)
+
 	//extra data for each block will be set by worker.go
 	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
@@ -254,6 +275,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
 			handlePlugin(reactor)
 			agency = reactor
+
+			//register Govern parameter verifiers
+			gov.RegisterGovernParamVerifiers()
 		}
 
 		if err := recoverSnapshotDB(blockChainCache); err != nil {
@@ -283,7 +307,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	sdb := snapshotdb.Instance()
-	ch := sdb.GetCurrent().HighestNum.Uint64()
+	ch := sdb.GetCurrent().GetHighest(false).Num.Uint64()
 	blockChanHegiht := blockChainCache.CurrentHeader().Number.Uint64()
 	if ch < blockChanHegiht {
 		for i := ch + 1; i <= blockChanHegiht; i++ {
@@ -372,9 +396,9 @@ func (s *Ethereum) APIs() []rpc.API {
 	}...)
 }
 
-func (s *Ethereum) ResetWithGenesisBlock(gb *types.Block) {
-	s.blockchain.ResetWithGenesisBlock(gb)
-}
+//func (s *Ethereum) ResetWithGenesisBlock(gb *types.Block) {
+//	s.blockchain.ResetWithGenesisBlock(gb)
+//}
 
 // isLocalBlock checks whether the specified block is mined
 // by local miner accounts.
@@ -525,8 +549,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 func (s *Ethereum) Stop() error {
 	s.bloomIndexer.Close()
 	s.blockchain.Stop()
-	s.engine.Close()
 	s.protocolManager.Stop()
+	s.engine.Close()
 	if s.lesServer != nil {
 		s.lesServer.Stop()
 	}

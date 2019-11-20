@@ -354,7 +354,7 @@ func doTest(cmdline []string) {
 	if *coverage {
 		gotest.Args = append(gotest.Args, "-covermode=atomic", "-cover")
 	}
-
+	gotest.Args = append(gotest.Args, "-tags=test")
 	gotest.Args = append(gotest.Args, packages...)
 	build.MustRun(gotest)
 }

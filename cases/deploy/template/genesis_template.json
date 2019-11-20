@@ -1,0 +1,66 @@
+{
+    "config": {
+        "chainId": 120,
+        "eip155Block": 3,
+        "cbft": {
+            "initialNodes": [
+
+            ],
+            "amount": 10,
+            "validatorMode": "ppos",
+            "period": 10000
+        }
+    },
+    "economicModel": {
+        "common": {
+            "maxEpochMinutes": 3,
+            "maxConsensusVals": 4,
+            "additionalCycleTime": 28
+        },
+        "staking": {
+            "stakeThreshold": 1000000000000000000000000,
+            "operatingThreshold": 10000000000000000000,
+            "maxValidators": 5,
+            "hesitateRatio": 1,
+            "unStakeFreezeDuration": 2
+        },
+        "slashing": {
+            "slashFractionDuplicateSign": 100,
+            "duplicateSignReportReward": 50,
+            "slashBlocksReward": 20,
+            "maxEvidenceAge": 1
+        },
+        "gov": {
+            "versionProposalVoteDurationSeconds": 1600,
+            "versionProposalSupportRate": 0.667,
+            "textProposalVoteDurationSeconds": 160,
+            "textProposalVoteRate": 0.5,
+            "textProposalSupportRate": 0.667,
+            "cancelProposalVoteRate": 0.50,
+            "cancelProposalSupportRate": 0.667,
+            "paramProposalVoteDurationSeconds": 160,
+            "paramProposalVoteRate": 0.50,
+            "paramProposalSupportRate": 0.667
+        },
+        "reward": {
+            "newBlockRate": 50,
+            "platONFoundationYear": 10
+        },
+        "innerAcc": {
+            "platonFundAccount": "0x493301712671Ada506ba6Ca7891F436D29185821",
+            "platonFundBalance": 0,
+            "cdfAccount": "0x54a7a3c6822eb222c53F76443772a60b0f9A8bab",
+            "cdfBalance": 431811981000000000000000000
+        }
+    },
+    "nonce": "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
+    "timestamp": "0x5bc94a8a",
+    "extraData": "0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "gasLimit": "4712388",
+    "alloc": {
+
+    },
+    "number": "0x0",
+    "gasUsed": "0x0",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}

@@ -57,12 +57,14 @@ func testGetBlockHeaders(t *testing.T, protocol int) {
 	for i := range unknown {
 		unknown[i] = byte(i)
 	}
+
 	// Create a batch of tests for various scenarios
 	limit := uint64(MaxHeaderFetch)
 	tests := []struct {
 		query  *getBlockHeadersData // The query to execute for header retrieval
 		expect []common.Hash        // The hashes of the block whose headers are expected
 	}{
+
 		// A single random block should be retrievable by hash and number too
 		{
 			&getBlockHeadersData{Origin: hashOrNumber{Hash: bc.GetBlockByNumber(limit / 2).Hash()}, Amount: 1},
@@ -111,11 +113,7 @@ func testGetBlockHeaders(t *testing.T, protocol int) {
 			&getBlockHeadersData{Origin: hashOrNumber{Number: bc.CurrentBlock().NumberU64()}, Amount: 1},
 			[]common.Hash{bc.CurrentBlock().Hash()},
 		},
-		// Ensure protocol limits are honored
-		/*{
-			&getBlockHeadersData{Origin: hashOrNumber{Number: bc.CurrentBlock().NumberU64() - 1}, Amount: limit + 10, Reverse: true},
-			bc.GetBlockHashesFromHash(bc.CurrentBlock().Hash(), limit),
-		},*/
+
 		// Check that requesting more than available is handled gracefully
 		{
 			&getBlockHeadersData{Origin: hashOrNumber{Number: bc.CurrentBlock().NumberU64() - 4}, Skip: 3, Amount: 3},
@@ -279,8 +277,8 @@ func testGetCode(t *testing.T, protocol int) {
 }
 
 // Tests that the transaction receipts can be retrieved based on hashes.
-//func TestGetReceiptLes1(t *testing.T) { testGetReceipt(t, 1) }
-//func TestGetReceiptLes2(t *testing.T) { testGetReceipt(t, 2) }
+func TestGetReceiptLes1(t *testing.T) { testGetReceipt(t, 1) }
+func TestGetReceiptLes2(t *testing.T) { testGetReceipt(t, 2) }
 
 func testGetReceipt(t *testing.T, protocol int) {
 	// Assemble the test environment
@@ -305,8 +303,8 @@ func testGetReceipt(t *testing.T, protocol int) {
 }
 
 // Tests that trie merkle proofs can be retrieved
-//func TestGetProofsLes1(t *testing.T) { testGetProofs(t, 1) }
-//func TestGetProofsLes2(t *testing.T) { testGetProofs(t, 2) }
+func TestGetProofsLes1(t *testing.T) { testGetProofs(t, 1) }
+func TestGetProofsLes2(t *testing.T) { testGetProofs(t, 2) }
 
 func testGetProofs(t *testing.T, protocol int) {
 	// Assemble the test environment
@@ -367,6 +365,9 @@ func testGetProofs(t *testing.T, protocol int) {
 func testGetCHTProofs(t *testing.T, protocol int) {
 	config := light.TestServerIndexerConfig
 	frequency := config.ChtSize
+	if protocol == 2 {
+		frequency = config.PairChtSize
+	}
 
 	waitIndexers := func(cIndexer, bIndexer, btIndexer *core.ChainIndexer) {
 		expectSections := frequency / config.ChtSize
@@ -417,7 +418,7 @@ func testGetCHTProofs(t *testing.T, protocol int) {
 	}}
 	requestsV2 := []HelperTrieReq{{
 		Type:    htCanonical,
-		TrieIdx: frequency/config.ChtSize - 1,
+		TrieIdx: frequency/config.PairChtSize - 1,
 		Key:     key,
 		AuxReq:  auxHeader,
 	}}
@@ -484,9 +485,10 @@ func testGetCHTProofs(t *testing.T, protocol int) {
 			t.Errorf("bit %d: proofs mismatch: %v", bit, err)
 		}
 	}
-}*/
-
-/*func TestTransactionStatusLes2(t *testing.T) {
+}
+*/
+/*
+func TestTransactionStatusLes2(t *testing.T) {
 	db := ethdb.NewMemDatabase()
 	pm := newTestProtocolManagerMust(t, false, 0, nil, nil, nil, db)
 	chain := pm.blockchain.(*core.BlockChain)
@@ -515,7 +517,7 @@ func testGetCHTProofs(t *testing.T, protocol int) {
 		}
 	}
 
-	signer := types.HomesteadSigner{}
+	signer := types.NewEIP155Signer(params.TestChainConfig.ChainID)
 
 	// test error status by sending an underpriced transaction
 	tx0, _ := types.SignTx(types.NewTransaction(0, acc1Addr, big.NewInt(10000), params.TxGas, nil, nil), signer, testBankKey)

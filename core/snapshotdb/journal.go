@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package snapshotdb
 
 import (
@@ -21,12 +37,6 @@ const (
 type journalData struct {
 	Key, Value []byte
 }
-
-//
-//const (
-//	journalHeaderFromUnRecognized = "unRecognized"
-//	journalHeaderFromRecognized   = "recognized"
-//)
 
 type journalHeader struct {
 	ParentHash  common.Hash
@@ -94,21 +104,35 @@ func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error
 	return s.storage.Remove(fd)
 }
 
+func (s *snapshotDB) loopWriteJournal() {
+	for {
+		select {
+		case block := <-s.journalBlockData:
+			if err := s.writeJournal(block); err != nil {
+				logger.Error("asynchronous write Journal fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
+				s.dbError = err
+				s.journalSync.Done()
+				continue
+			}
+			nc := newCurrent(block.Number, nil, block.BlockHash)
+			if err := nc.saveCurrentToBaseDB(CurrentHighestBlock, s.baseDB, false); err != nil {
+				logger.Error("asynchronous update current highest fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
+				s.dbError = err
+				s.journalSync.Done()
+				continue
+			}
+			s.journalSync.Done()
+		case <-s.journalWriteExitCh:
+			logger.Info("loopWriteJournal exist")
+			close(s.journalBlockData)
+			return
+		}
+	}
+}
+
 func (s *snapshotDB) writeBlockToJournalAsynchronous(block *blockData) {
 	s.journalSync.Add(1)
-	go func(block *blockData) {
-		if err := s.writeJournal(block); err != nil {
-			logger.Error("asynchronous write Journal fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
-		}
-		if err := s.saveCurrentToBaseDB(CurrentHighestBlock, &current{
-			HighestNum:  block.Number,
-			HighestHash: block.BlockHash,
-			BaseNum:     s.current.BaseNum,
-		}); err != nil {
-			logger.Error("asynchronous update current highest fail", "err", err, "block", block.Number, "hash", block.BlockHash.String())
-		}
-		s.journalSync.Done()
-	}(block)
+	s.journalBlockData <- block
 }
 
 func (s *snapshotDB) writeJournal(block *blockData) error {

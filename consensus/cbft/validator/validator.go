@@ -1,3 +1,19 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package validator
 
 import (
@@ -271,6 +287,25 @@ func NewValidatorPool(agency consensus.Agency, blockNumber uint64, epoch uint64,
 
 	log.Debug("Update validator", "validators", pool.currentValidators.String(), "switchpoint", pool.switchPoint, "epoch", pool.epoch, "lastNumber", pool.lastNumber)
 	return pool
+}
+
+// Reset reset validator pool.
+func (vp *ValidatorPool) Reset(blockNumber uint64, epoch uint64) {
+	if vp.agency.GetLastNumber(blockNumber) == blockNumber {
+		vp.prevValidators, _ = vp.agency.GetValidator(blockNumber)
+		vp.currentValidators, _ = vp.agency.GetValidator(NextRound(blockNumber))
+		vp.lastNumber = vp.agency.GetLastNumber(NextRound(blockNumber))
+		vp.epoch = epoch + 1
+	} else {
+		vp.currentValidators, _ = vp.agency.GetValidator(blockNumber)
+		vp.prevValidators = vp.currentValidators
+		vp.lastNumber = vp.agency.GetLastNumber(blockNumber)
+		vp.epoch = epoch
+	}
+	if vp.currentValidators.ValidBlockNumber > 0 {
+		vp.switchPoint = vp.currentValidators.ValidBlockNumber - 1
+	}
+	log.Debug("Update validator", "validators", vp.currentValidators.String(), "switchpoint", vp.switchPoint, "epoch", vp.epoch, "lastNumber", vp.lastNumber)
 }
 
 // ShouldSwitch check if should switch validators at the moment.

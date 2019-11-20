@@ -29,8 +29,6 @@ func HttpPost(param JsonParam) (string, error) {
 	req, _ := json.Marshal(param)
 	reqNew := bytes.NewBuffer(req)
 
-	//fmt.Println(string(reqNew.Bytes()))
-
 	request, _ := http.NewRequest("POST", config.Url, reqNew)
 	request.Header.Set("Content-type", "application/json")
 	response, err := client.Do(request)
@@ -43,7 +41,6 @@ func HttpPost(param JsonParam) (string, error) {
 	} else {
 		panic(fmt.Sprintf("http response status :%s", response.Status))
 	}
-	return "", err
 }
 
 func parseResponse(r string) *Response {

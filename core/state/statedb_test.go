@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/big"
 	"math/rand"
@@ -29,6 +28,8 @@ import (
 	"strings"
 	"testing"
 	"testing/quick"
+
+	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/check.v1"
 
@@ -124,8 +125,8 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	if _, err := s1c.Commit(false); err != nil {
 		t.Fatalf("failed to commit s1c state: %v", err)
 	}
-	assert.Nil(t, s1.db.TrieDB().Commit(s1.Root(), false))
-	assert.Nil(t, s1c.db.TrieDB().Commit(s1c.Root(), false))
+	assert.Nil(t, s1.db.TrieDB().Commit(s1.Root(), false, true))
+	assert.Nil(t, s1c.db.TrieDB().Commit(s1c.Root(), false, true))
 
 	// test new statedb
 	st2 := s1.NewStateDB()
@@ -211,8 +212,8 @@ func TestNewStateDBAndCopy(t *testing.T) {
 		}
 	}
 
-	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false))
-	assert.Nil(t, s1cc.db.TrieDB().Commit(s1cc.Root(), false))
+	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false, true))
+	assert.Nil(t, s1cc.db.TrieDB().Commit(s1cc.Root(), false, true))
 
 	for _, k := range db.Keys() {
 		if _, err := dbc.Get(k); err != nil {
@@ -255,7 +256,7 @@ func TestStateStorageValueCommit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s1.db.TrieDB().Commit(root, true); err != nil {
+	if err := s1.db.TrieDB().Commit(root, true, true); err != nil {
 		t.Fatal(err)
 	}
 	s2, err := New(root, NewDatabase(db))
@@ -286,7 +287,7 @@ func TestStateStorageValueDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s1.db.TrieDB().Commit(root, true); err != nil {
+	if err := s1.db.TrieDB().Commit(root, true, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -328,7 +329,7 @@ func TestStateStorageRevert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s1.db.TrieDB().Commit(root, true)
+	s1.db.TrieDB().Commit(root, true, true)
 
 	assert.Equal(t, value1, s1.GetState(addr, key1))
 	obj := s1.getStateObject(addr)
@@ -723,4 +724,37 @@ func TestCopyOfCopy(t *testing.T) {
 	if got := sdb.Copy().Copy().GetBalance(addr).Uint64(); got != 42 {
 		t.Fatalf("2nd copy fail, expected 42, got %v", got)
 	}
+}
+
+func TestGetAfterDelete(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+
+	addr := common.BigToAddress(big.NewInt(1))
+
+	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1.SetNonce(addr, 1)
+	s1.SetState(addr, []byte("test"), []byte("value"))
+	_, err := s1.Commit(true)
+	assert.Nil(t, err)
+
+	s2 := s1.NewStateDB()
+	s2.SetState(addr, []byte("test"), []byte{})
+	_, err = s2.Commit(true)
+	assert.Nil(t, err)
+
+	s3 := s2.NewStateDB()
+	buf := s3.GetState(addr, []byte("test"))
+	s3.Commit(true)
+	assert.True(t, len(buf) == 0, "Expect value is not nil")
+
+	s4 := s3.NewStateDB()
+	s4.SetState(addr, []byte("test"), []byte("value"))
+	s4.SetState(addr, []byte("test1"), []byte("value1"))
+	s4.Commit(true)
+
+	s5 := s4.NewStateDB()
+	buf = s5.GetState(addr, []byte("test"))
+	buf1 := s5.GetState(addr, []byte("test1"))
+	assert.Equal(t, buf, []byte("value"))
+	assert.Equal(t, buf1, []byte("value1"))
 }

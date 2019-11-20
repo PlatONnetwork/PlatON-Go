@@ -190,6 +190,16 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 	return stateDb.RawDump(), nil
 }
 
+// EnableDBGC enable database garbage collection.
+func (api *PublicDebugAPI) EnableDBGC() {
+	api.eth.BlockChain().EnableDBGC()
+}
+
+// DisableDBGC disable database garbage collection.
+func (api *PublicDebugAPI) DisableDBGC() {
+	api.eth.BlockChain().DisableDBGC()
+}
+
 // PrivateDebugAPI is the collection of Ethereum full node APIs exposed over
 // the private debugging endpoint.
 type PrivateDebugAPI struct {

@@ -175,7 +175,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.MinerGasPriceFlag,
 			utils.MinerGasTargetFlag,
-			utils.MinerGasLimitFlag,
+			//utils.MinerGasLimitFlag,
 			//	utils.MinerExtraDataFlag,
 		},
 	},
@@ -240,6 +240,16 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CbftMaxPingLatency,
 			utils.CbftBlsPriKeyFileFlag,
 			utils.CbftBlacklistDeadlineFlag,
+		},
+	},
+	{
+		Name: "DB",
+		Flags: []cli.Flag{
+			utils.DBNoGCFlag,
+			utils.DBGCIntervalFlag,
+			utils.DBGCTimeoutFlag,
+			utils.DBGCMptFlag,
+			utils.DBGCBlockFlag,
 		},
 	},
 	{

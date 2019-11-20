@@ -19,9 +19,11 @@ package params
 import "math/big"
 
 const (
-	GasLimitBoundDivisor uint64 = 256     // The bound divisor of the gas limit, used in update calculations.
-	MinGasLimit          uint64 = 5000    // Minimum the gas limit may ever be.
-	GenesisGasLimit      uint64 = 4712388 // Gas limit of the Genesis block.
+	GasLimitBoundDivisor uint64 = 256                // The bound divisor of the gas limit, used in update calculations.
+	MinGasLimit          uint64 = 5000               // Minimum the gas limit may ever be.
+	GenesisGasLimit      uint64 = 4712388            // Gas limit of the Genesis block.
+	DefaultMinerGasCeil  uint64 = 4000 * 21000 * 1.2 // 100800000
+	MaxGasCeil           uint64 = 21000 * 10000
 
 	MaximumExtraDataSize uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas           uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
@@ -101,12 +103,13 @@ const (
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
 	SubmitVersionProposalGas uint64 = 450000 // Gas needed for submitVersion
-	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitParam
+	SubmitCancelProposalGas  uint64 = 500000 // Gas needed for submitCancel
+	SubmitParamProposalGas   uint64 = 500000 // Gas needed for submitParam
 	VoteGas                  uint64 = 2000   // Gas needed for vote
 	DeclareVersionGas        uint64 = 3000   // Gas needed for declareVersion
 
 	SlashingGas              uint64 = 21000 // Gas needed for precompiled contract: slashingContract
-	ReportDuplicateSignGas   uint64 = 21000 // Gas needed for ReportDuplicateSign
+	ReportDuplicateSignGas   uint64 = 21000 // Gas needed for reportDuplicateSign
 	DuplicateEvidencesGas    uint64 = 21000 // When reporting, each duplicate sign of evidence requires gas to be consumed
 	RestrictingPlanGas       uint64 = 18000 // Gas needed for precompiled contract: restrictingPlanContract
 	CreateRestrictingPlanGas uint64 = 8000  // Gas needed for createRestrictingPlan
@@ -122,4 +125,5 @@ var (
 	SubmitTextProposalGasPrice    = big.NewInt(1500000 * 1000000000) // Min gas price for submit a text proposal in Von
 	SubmitVersionProposalGasPrice = big.NewInt(2100000 * 1000000000) // Min gas price for submit a version proposal in Von
 	SubmitCancelProposalGasPrice  = big.NewInt(3000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
+	SubmitParamProposalGasPrice   = big.NewInt(2000000 * 1000000000) // Min gas price for submit a cancel proposal in Von
 )
