@@ -568,10 +568,6 @@ func checkCandidate(from common.Address, nodeID discover.NodeID, blockHash commo
 
 type ParamVerifier func(blockNumber uint64, blockHash common.Hash, value string) error
 
-/*var paramVerifier = func(blockNumber uint64, blockHash common.Hash, value string) error {
-	return nil
-}*/
-
 func GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
 	paramValue, err := findGovernParamValue(module, name, blockHash)
 	if err != nil {
