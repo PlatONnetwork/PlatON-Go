@@ -20,9 +20,23 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
-//func NewFaker() Engine {
+func NewFaker() *BftMock {
+	c := new(BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	return c
+}
+
+func NewFailFaker(number uint64) *BftMock {
+	c := new(BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	c.fakeFail = number
+	return c
+}
+
+//func NewFakeDelayer(delay time.Duration) *BftMock {
 //	c := new(BftMock)
 //	c.Blocks = make([]*types.Block, 0)
+//	c.fakeDelay = delay
 //	return c
 //}
 
@@ -33,6 +47,8 @@ type BftMock struct {
 	Next     uint32
 	Current  *types.Block
 	Base     *types.Block
+	fakeFail uint64 // Block number which fails BFT check even in fake mode
+	//fakeDelay time.Duration // Time delay to sleep for before returning from verify
 }
 
 // InsertChain is a fake interface, no need to implement.
@@ -128,9 +144,16 @@ func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bo
 func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	results := make(chan error, len(headers))
 	c := make(chan<- struct{})
+
+	//time.Sleep(bm.fakeDelay)
 	go func() {
-		for range headers {
-			results <- nil
+		for i := range headers {
+			if bm.fakeFail == headers[i].Number.Uint64() {
+				results <- fmt.Errorf("faile verifyHeader on bftMock")
+			} else {
+				results <- nil
+			}
+
 		}
 	}()
 	return c, results
