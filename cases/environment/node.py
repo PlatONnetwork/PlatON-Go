@@ -225,7 +225,7 @@ class Node:
             result = self.run_ssh("sudo -S -p '' supervisorctl restart " + self.node_name, True)
             for r in result:
                 if "ERROR" in r:
-                    raise Exception("{}-restart failed:{}".format(self.node_mark, r.strip("\n")))
+                    raise Exception("restart failed:{}".format(r.strip("\n")))
         return self.try_do_resturn(__restart)
 
     def update(self) -> tuple:
