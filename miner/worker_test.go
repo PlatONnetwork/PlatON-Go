@@ -26,8 +26,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -189,7 +187,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 }
 
 //func TestEmptyWorkCbft(t *testing.T) {
-//	testEmptyWork(t, chainConfig, cbft.NewFaker())
+//	testEmptyWork(t, chainConfig, consensus.NewFaker())
 //}
 
 func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -265,7 +263,7 @@ func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consens
 }
 
 func TestPendingStateAndBlockCbft(t *testing.T) {
-	testPendingStateAndBlock(t, chainConfig, cbft.NewFaker())
+	testPendingStateAndBlock(t, chainConfig, consensus.NewFaker())
 }
 
 func testPendingStateAndBlock(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -315,7 +313,7 @@ func testPendingStateAndBlock(t *testing.T, chainConfig *params.ChainConfig, eng
 }
 
 func TestRegenerateMiningBlockCbft(t *testing.T) {
-	testRegenerateMiningBlock(t, chainConfig, cbft.NewFaker())
+	testRegenerateMiningBlock(t, chainConfig, consensus.NewFaker())
 }
 
 func testRegenerateMiningBlock(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -398,7 +396,7 @@ func testRegenerateMiningBlock(t *testing.T, chainConfig *params.ChainConfig, en
 }
 
 func TestAdjustIntervalCbft(t *testing.T) {
-	testAdjustInterval(t, chainConfig, cbft.NewFaker())
+	testAdjustInterval(t, chainConfig, consensus.NewFaker())
 }
 
 func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {

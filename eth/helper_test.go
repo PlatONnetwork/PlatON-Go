@@ -27,9 +27,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -57,7 +56,7 @@ func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func
 	var (
 		evmux = new(event.TypeMux)
 		//	engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, nil)
-		engine = cbft.NewFaker()
+		engine = consensus.NewFaker()
 		db     = ethdb.NewMemDatabase()
 		gspec  = &core.Genesis{
 			Config: params.TestChainConfig,

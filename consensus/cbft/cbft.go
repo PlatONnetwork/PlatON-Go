@@ -194,12 +194,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
-func NewFaker() consensus.Engine {
-	c := new(consensus.BftMock)
-	c.Blocks = make([]*types.Block, 0)
-	return c
-}
-
 // Start starts consensus engine.
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.log.Info("~ Start cbft consensus")

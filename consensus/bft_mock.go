@@ -20,23 +20,52 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
+func NewFaker() *BftMock {
+	c := new(BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	c.blockIndexs = make(map[common.Hash]int, 0)
+	return c
+}
+
+func NewFailFaker(number uint64) *BftMock {
+	c := NewFaker()
+	c.fakeFail = number
+	return c
+}
+
+//func NewFakeDelayer(delay time.Duration) *BftMock {
+//	c := new(BftMock)
+//	c.Blocks = make([]*types.Block, 0)
+//	c.fakeDelay = delay
+//	return c
+//}
+
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
-	EventMux *event.TypeMux
-	Blocks   []*types.Block
-	Next     uint32
-	Current  *types.Block
-	Base     *types.Block
+	EventMux    *event.TypeMux
+	Blocks      []*types.Block
+	blockIndexs map[common.Hash]int
+	Next        uint32
+	Current     *types.Block
+	Base        *types.Block
+	fakeFail    uint64 // Block number which fails BFT check even in fake mode
+	//fakeDelay time.Duration // Time delay to sleep for before returning from verify
 }
 
 // InsertChain is a fake interface, no need to implement.
 func (bm *BftMock) InsertChain(block *types.Block) error {
-	if nil == bm.Blocks {
-		bm.Blocks = make([]*types.Block, 0)
+	if _, ok := bm.blockIndexs[block.Hash()]; ok {
+		return nil
+	}
+
+	if len(bm.Blocks) != 0 && bm.Blocks[len(bm.Blocks)-1].Hash() != block.ParentHash() {
+		return nil
 	}
 	bm.Blocks = append(bm.Blocks, block)
+	bm.blockIndexs[block.Hash()] = len(bm.Blocks) - 1
 	bm.Current = block
 	bm.Base = block
+
 	return nil
 }
 
@@ -112,6 +141,9 @@ func (bm *BftMock) Author(header *types.Header) (common.Address, error) {
 // given engine. Verifying the seal may be done optionally here, or explicitly
 // via the VerifySeal method.
 func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bool) error {
+	if bm.fakeFail == header.Number.Uint64() {
+		return fmt.Errorf("failed verifyHeader on bftMock")
+	}
 	return nil
 }
 
@@ -122,9 +154,16 @@ func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bo
 func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	results := make(chan error, len(headers))
 	c := make(chan<- struct{})
+
+	//time.Sleep(bm.fakeDelay)
 	go func() {
-		for range headers {
-			results <- nil
+		for i := range headers {
+			if bm.fakeFail == headers[i].Number.Uint64() {
+				results <- fmt.Errorf("failed verifyHeader on bftMock")
+			} else {
+				results <- nil
+			}
+
 		}
 	}()
 	return c, results
@@ -284,6 +323,11 @@ func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
 
 // GetBlockByHash is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
+
+	if index, ok := bm.blockIndexs[hash]; ok {
+		return bm.Blocks[index]
+	}
+
 	return nil
 }
 
