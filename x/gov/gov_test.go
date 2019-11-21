@@ -3,15 +3,12 @@ package gov
 import (
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
@@ -222,7 +219,7 @@ func TestGov_GetVersionForStaking_No_PreActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	version := GetVersionForStaking(chain.StateDB)
+	version := GetVersionForStaking(chain.CurrentHeader().Hash(), chain.StateDB)
 	assert.Equal(t, params.GenesisVersion, version)
 }
 
@@ -230,10 +227,10 @@ func TestGov_GetVersionForStaking_With_PreActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	if err := SetPreActiveVersion(tempActiveVersion, chain.StateDB); err != nil {
+	if err := SetPreActiveVersion(chain.CurrentHeader().Hash(), tempActiveVersion); err != nil {
 		t.Error("SetPreActiveVersion, err", err)
 	}
-	version := GetVersionForStaking(chain.StateDB)
+	version := GetVersionForStaking(chain.CurrentHeader().Hash(), chain.StateDB)
 	assert.Equal(t, tempActiveVersion, version)
 }
 func TestGov_GetCurrentActiveVersion(t *testing.T) {
@@ -269,7 +266,7 @@ func TestGov_Submit(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	commit_sndb(chain)
 	prepair_sndb(chain)
@@ -337,7 +334,7 @@ func TestGov_DeclareVersion_2(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	if err := SetPreActiveVersion(tempActiveVersion, chain.StateDB); err != nil {
+	if err := SetPreActiveVersion(chain.CurrentHeader().Hash(), tempActiveVersion); err != nil {
 		t.Error("SetPreActiveVersion, err", err)
 	}
 
@@ -830,5 +827,128 @@ func TestGov_GovernMaxBlockGasLimit(t *testing.T) {
 	} else {
 		assert.NotNil(t, threshold)
 		assert.Equal(t, int(params.DefaultMinerGasCeil), threshold)
+	}
+}
+
+func TestGov_ClearProcessingProposals(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	commit_sndb(chain)
+	prepair_sndb(chain)
+
+	stk := NewMockStaking()
+
+	submitText(t, chain)
+
+	commit_sndb(chain)
+	prepair_sndb(chain)
+
+	submitVersion(t, chain, stk)
+
+	commit_sndb(chain)
+	prepair_sndb(chain)
+
+	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
+
+	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
+		t.Error("Vote, err", err)
+		return
+	}
+
+	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
+	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
+	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
+		t.Error("Vote, err", err)
+		return
+	}
+	commit_sndb(chain)
+	prepair_sndb(chain)
+
+	//-------
+	//-------
+	//-------
+	if votinglist, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListVotingProposalID, err", err)
+	} else {
+		assert.Equal(t, 2, len(votinglist))
+	}
+
+	if endList, err := ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListEndProposalID, err", err)
+	} else {
+		assert.Equal(t, 0, len(endList))
+	}
+
+	//-------
+	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 1, len(vvList))
+	}
+
+	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 1, len(avList))
+	}
+
+	//-------
+	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 1, len(vvList))
+	}
+	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 1, len(avList))
+	}
+
+	//------------------------------------------
+	//------------------------------------------
+	//------------------------------------------
+	if err := ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+		t.Error("ClearProcessingProposals, err", err)
+	}
+
+	//-------
+	//-------
+	//-------
+	if votinglist, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListVotingProposalID, err", err)
+	} else {
+		assert.Equal(t, 0, len(votinglist))
+	}
+
+	if endList, err := ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListEndProposalID, err", err)
+	} else {
+		assert.Equal(t, 2, len(endList))
+	}
+
+	//-------
+	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 0, len(vvList))
+	}
+
+	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 0, len(avList))
+	}
+
+	//-------
+	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 0, len(vvList))
+	}
+	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
+		t.Error("ListVoteValue, err", err)
+	} else {
+		assert.Equal(t, 0, len(avList))
 	}
 }
