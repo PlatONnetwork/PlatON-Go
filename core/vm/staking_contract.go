@@ -870,23 +870,38 @@ func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]by
 	return data, nil
 }
 
-func (stkc *StakingContract) getNodeVersion(blockNumber *big.Int) ([]byte, error) {
+func (stkc *StakingContract) getNodeVersion() ([]byte, error) {
 
-	arr, err := stkc.Plugin.GetNodeVersion( blockNumber.Uint64())
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetNodeVersion(blockHash, blockNumber.Uint64())
+	if nil != err && err != snapshotdb.ErrNotFound {
+
+		data := xcom.NewFailResultByBiz(staking.ErrGetCandidateList.Wrap(err.Error()))
+		log.Error("Failed to getNodeVersion: Query CandidateList is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		return data, nil
+	}
+
+	if (nil != err && err == snapshotdb.ErrNotFound) || nil == arr {
+
+		data := xcom.NewFailResultByBiz(staking.ErrGetCandidateList.Wrap("CandidateList info is not found"))
+		log.Error("Failed to getNodeVersion: CandidateList info is not found",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex())
+		return data, nil
+	}
+
+	arrByte, err := json.Marshal(arr)
 	if nil != err {
-		data := xcom.NewFailResultByBiz(staking.ErrGetValidatorList.Wrap(err.Error()))
+
+		data := xcom.NewFailResultByBiz(staking.ErrGetCandidateList.Wrap(err.Error()))
+		log.Error("Failed to getNodeVersion: CandidateList Marshal json is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return data, nil
 	}
-
-	if nil == arr {
-		data := xcom.NewFailResultByBiz(staking.ErrGetValidatorList.Wrap("getNodeVersion info is not found"))
-		return data, nil
-	}
-
-	arrByte, _ := json.Marshal(arr)
 	data := xcom.NewSuccessResult(string(arrByte))
-
-	log.Debug("getNodeVersion", "valArr", string(arrByte))
+	log.Info("getNodeVersion", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "canArr", string(arrByte))
 	return data, nil
 }
 
