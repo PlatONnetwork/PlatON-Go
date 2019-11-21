@@ -65,7 +65,7 @@ type Config struct {
 	PrivateKey *ecdsa.PrivateKey `toml:"-"`
 
 	// BlsPublicKey is a BLS public key.
-	BlsPublicKey *bls.PublicKey `toml:"-"`
+	BlsPublicKey bls.PublicKey `toml:"-"`
 
 	// chainId identifies the current chain and is used for replay protection
 	ChainID *big.Int `toml:"-"`
