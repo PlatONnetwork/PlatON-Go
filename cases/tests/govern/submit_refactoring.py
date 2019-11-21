@@ -74,4 +74,4 @@ class TestEndVotingRounds:
         log.info('text proposal info: {}'.format(prosalinfo))
         result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, prosalinfo.get('ProposalID'),
                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
-        log.info('submit cancel result: {}'.format(result)) # why not assert
+        log.info('submit cancel result: {}'.format(result))  # why not assert

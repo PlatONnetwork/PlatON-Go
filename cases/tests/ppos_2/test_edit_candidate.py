@@ -37,7 +37,6 @@ def test_MPI_003(client_new_node_obj):
     """
     Node becomes consensus validator when modifying revenue address
     :param client_new_node_obj:
-    :param greater_than_staking_amount:
     :return:
     """
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
@@ -52,7 +51,7 @@ def test_MPI_003(client_new_node_obj):
     validator_list = get_pledge_list(client_new_node_obj.ppos.getValidatorList)
     log.info(validator_list)
     log.info(client_new_node_obj.node.node_id)
-    # assert client_new_node_obj.node.node_id in validator_list
+    assert client_new_node_obj.node.node_id in validator_list
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
 
@@ -148,7 +147,7 @@ def test_MPI_008(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.edit_candidate(address1, address2)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -167,7 +166,7 @@ def test_MPI_009(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.edit_candidate(address, address, transaction_cfg=cfg)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -186,7 +185,7 @@ def test_MPI_010(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.edit_candidate(address, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -291,9 +290,10 @@ def test_MPI_015_016(client_new_node_obj, client_consensus_obj):
     assert_code(result, 301103)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    time.sleep(20)
     result = client_new_node_obj.staking.edit_candidate(address, address)
     log.info(result)
-    assert_code(result, 301102)
+    assert result['Code'] == 301102
 
 
 @pytest.mark.P2

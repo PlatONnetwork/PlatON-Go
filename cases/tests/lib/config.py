@@ -43,6 +43,7 @@ class PipConfig:
     # Lock account account address
     FOUNDATION_LOCKUP_ADDRESS = "0x1000000000000000000000000000000000000001"
 
+
 class EconomicConfig:
     # Year zero lock_pu release amount
     RELEASE_ZERO = 62215742.48691650

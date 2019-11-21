@@ -194,12 +194,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
-func NewFaker() consensus.Engine {
-	c := new(consensus.BftMock)
-	c.Blocks = make([]*types.Block, 0)
-	return c
-}
-
 // Start starts consensus engine.
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.log.Info("~ Start cbft consensus")
@@ -714,6 +708,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 
 // OnSeal is used to process the blocks that have already been generated.
 func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
+
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
 			"qcNumber", cbft.state.HighestQCBlock().Number(), "qcHash", cbft.state.HighestQCBlock().Hash(),

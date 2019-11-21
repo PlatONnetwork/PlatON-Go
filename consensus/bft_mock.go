@@ -1,10 +1,15 @@
 package consensus
 
 import (
+	"bytes"
+	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/event"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -15,14 +20,52 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
+func NewFaker() *BftMock {
+	c := new(BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	c.blockIndexs = make(map[common.Hash]int, 0)
+	return c
+}
+
+func NewFailFaker(number uint64) *BftMock {
+	c := NewFaker()
+	c.fakeFail = number
+	return c
+}
+
+//func NewFakeDelayer(delay time.Duration) *BftMock {
+//	c := new(BftMock)
+//	c.Blocks = make([]*types.Block, 0)
+//	c.fakeDelay = delay
+//	return c
+//}
+
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
-	Blocks []*types.Block
+	EventMux    *event.TypeMux
+	Blocks      []*types.Block
+	blockIndexs map[common.Hash]int
+	Next        uint32
+	Current     *types.Block
+	Base        *types.Block
+	fakeFail    uint64 // Block number which fails BFT check even in fake mode
+	//fakeDelay time.Duration // Time delay to sleep for before returning from verify
 }
 
 // InsertChain is a fake interface, no need to implement.
 func (bm *BftMock) InsertChain(block *types.Block) error {
-	// todo implement me
+	if _, ok := bm.blockIndexs[block.Hash()]; ok {
+		return nil
+	}
+
+	if len(bm.Blocks) != 0 && bm.Blocks[len(bm.Blocks)-1].Hash() != block.ParentHash() {
+		return nil
+	}
+	bm.Blocks = append(bm.Blocks, block)
+	bm.blockIndexs[block.Hash()] = len(bm.Blocks) - 1
+	bm.Current = block
+	bm.Base = block
+
 	return nil
 }
 
@@ -40,8 +83,13 @@ func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, p
 
 // CalcBlockDeadline is a fake interface, no need to implement.
 func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
-	// todo implement me
-	return time.Now()
+
+	now := time.Now()
+
+	if timePoint.Equal(now) || timePoint.Before(now) {
+		return now.Add(now.Sub(timePoint)).Add(10 * time.Millisecond)
+	}
+	return timePoint.Add(10 * time.Millisecond)
 }
 
 // CalcNextBlockTime is a fake interface, no need to implement.
@@ -75,7 +123,11 @@ func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
 }
 
 func (bm *BftMock) NodeID() discover.NodeID {
-	panic("Not support")
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		panic(fmt.Sprintf("Failed to generate random NodeId private key: %v", err))
+	}
+	return discover.PubkeyID(&privateKey.PublicKey)
 }
 
 // Author retrieves the Ethereum address of the account that minted the given
@@ -89,6 +141,9 @@ func (bm *BftMock) Author(header *types.Header) (common.Address, error) {
 // given engine. Verifying the seal may be done optionally here, or explicitly
 // via the VerifySeal method.
 func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bool) error {
+	if bm.fakeFail == header.Number.Uint64() {
+		return fmt.Errorf("failed verifyHeader on bftMock")
+	}
 	return nil
 }
 
@@ -99,18 +154,19 @@ func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bo
 func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	results := make(chan error, len(headers))
 	c := make(chan<- struct{})
+
+	//time.Sleep(bm.fakeDelay)
 	go func() {
-		for range headers {
-			results <- nil
+		for i := range headers {
+			if bm.fakeFail == headers[i].Number.Uint64() {
+				results <- fmt.Errorf("failed verifyHeader on bftMock")
+			} else {
+				results <- nil
+			}
+
 		}
 	}()
 	return c, results
-}
-
-// VerifyUncles verifies that the given block's uncles conform to the consensus
-// rules of a given engine.
-func (bm *BftMock) VerifyUncles(chain ChainReader, block *types.Block) error {
-	return nil
 }
 
 // VerifySeal checks whether the crypto seal on a header is valid according to
@@ -122,6 +178,14 @@ func (bm *BftMock) VerifySeal(chain ChainReader, header *types.Header) error {
 // Prepare initializes the consensus fields of a block header according to the
 // rules of a particular engine. The changes are executed inline.
 func (bm *BftMock) Prepare(chain ChainReader, header *types.Header) error {
+	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
+	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
+	if len(header.Extra) < 32 {
+		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
+	}
+	header.Extra = header.Extra[:32]
+	//init header.Extra[32: 32+65]
+	header.Extra = append(header.Extra, make([]byte, ExtraSeal)...)
 	return nil
 }
 
@@ -143,12 +207,30 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 // Note, the method returns immediately and will send the result async. More
 // than one result may also be returned depending on the consensus algorithm.
 func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+
+	header := block.Header()
+	if block.NumberU64() == 0 {
+		return fmt.Errorf("unknown block")
+	}
+	sign := header.SealHash().Bytes()
+	copy(header.Extra[len(header.Extra)-ExtraSeal:], sign[:])
+	sealBlock := block.WithSeal(header)
+	results <- sealBlock
+	bm.EventMux.Post(cbfttypes.CbftResult{
+		Block: sealBlock,
+		//ExtraData:          extra,
+		//SyncState:          cbft.commitErrCh,
+		ChainStateUpdateCB: func() {
+			// Do nothings
+			//fmt.Println("result the block", "Number", sealBlock.NumberU64(), "Hash", sealBlock.Hash().Hex())
+		},
+	})
 	return nil
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (bm *BftMock) SealHash(header *types.Header) common.Hash {
-	return common.Hash{}
+	return header.SealHash()
 }
 
 // CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
@@ -231,7 +313,7 @@ func (bm *BftMock) GetBlock(hash common.Hash, number uint64) *types.Block {
 
 // NextBaseBlock is a fake interface, no need to implement.
 func (bm *BftMock) NextBaseBlock() *types.Block {
-	return nil
+	return bm.Base
 }
 
 // HasBlock is a fake interface, no need to implement.
@@ -241,6 +323,11 @@ func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
 
 // GetBlockByHash is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
+
+	if index, ok := bm.blockIndexs[hash]; ok {
+		return bm.Blocks[index]
+	}
+
 	return nil
 }
 
@@ -251,11 +338,12 @@ func (bm *BftMock) Status() string {
 
 // CurrentBlock is a fake interface, no need to implement.
 func (bm *BftMock) CurrentBlock() *types.Block {
-	if len(bm.Blocks) == 0 {
-		h := types.Header{Number: big.NewInt(0)}
-		return types.NewBlockWithHeader(&h)
-	}
-	return bm.Blocks[len(bm.Blocks)-1]
+	//if len(bm.Blocks) == 0 {
+	//	h := types.Header{Number: big.NewInt(0)}
+	//	return types.NewBlockWithHeader(&h)
+	//}
+	//return bm.Blocks[len(bm.Blocks)-1]
+	return bm.Current
 }
 
 // TracingSwitch is a fake interface, no need to implement.

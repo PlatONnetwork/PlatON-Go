@@ -15,7 +15,7 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 	// verify the tx data by contracts method
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
-		log.Error("Failed to verify contract tx", "err", err)
+		log.Error("Failed to verify contract tx before exec", "err", err)
 		return nil, err
 	}
 

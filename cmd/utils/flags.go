@@ -27,8 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -1205,6 +1203,7 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	} else {
 		cfg.BlsPriKey = nodeCfg.BlsKey()
 	}
+	nodeCfg.P2P.BlsPublicKey = *(cfg.BlsPriKey.GetPublicKey())
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.WalMode = !ctx.GlobalBool(CbftWalDisabledFlag.Name)
@@ -1337,7 +1336,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	var engine consensus.Engine
 	//todo: Merge confirmation.
-	engine = cbft.NewFaker()
+	engine = consensus.NewFaker()
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}

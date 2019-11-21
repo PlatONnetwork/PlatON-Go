@@ -48,9 +48,9 @@ func VerifyTxData(input []byte, command map[uint16]interface{}) (cnCode uint16, 
 
 	defer func() {
 		if er := recover(); nil != er {
-			fn, FnParams, err = nil, nil, fmt.Errorf("parse tx data is panic: %s", er)
+			fn, FnParams, err = nil, nil, fmt.Errorf("parse tx data is failed: %s", er)
 			log.Error("Failed to Verify PlatON inner contract tx data", "error",
-				fmt.Errorf("the panic: %s", gerr.Wrap(er, 2).ErrorStack()))
+				fmt.Errorf("the err stack: %s", gerr.Wrap(er, 2).ErrorStack()))
 		}
 	}()
 

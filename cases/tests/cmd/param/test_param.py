@@ -19,7 +19,7 @@ def isConnection(url, port):
         s.connect((url, port))
         s.shutdown(2)
         return True
-    except:
+    except BaseException:
         return False
 
 

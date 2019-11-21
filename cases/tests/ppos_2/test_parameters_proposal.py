@@ -731,6 +731,3 @@ def test_POP_023(client_consensus_obj, client_new_node_obj, new_genesis_env):
     log.info("The wallet balance:{}".format(amount2))
     staking_amount = client_new_node_obj.economic.create_staking_limit
     assert amount2 - amount1 == staking_amount
-
-
-

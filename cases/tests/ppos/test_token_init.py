@@ -141,13 +141,12 @@ def test_IT_SD_011(global_test_env):
     try:
         address1, _ = global_test_env.account.generate_account(node.web3, 0)
         global_test_env.account.sendTransaction(node.web3, '', address,
-                                                         address1,
-                                                         node.web3.platon.gasPrice, 2100, 500)
+                                                address1,
+                                                node.web3.platon.gasPrice, 2100, 500)
         status = False
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
     assert status, "ErrMsg:Transfer result {}".format(status)
-
 
 
 @pytest.mark.P2
@@ -186,7 +185,7 @@ def test_IT_SD_008(global_test_env):
     balance1 = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS)
     log.info("Account balance after transfer： {}".format(balance1))
     log.info("Transaction fee： {}".format(node.web3.platon.gasPrice * 21000))
-    assert balance1 == balance + node.web3.toWei(100,'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
+    assert balance1 == balance + node.web3.toWei(100, 'ether') + node.web3.platon.gasPrice * 21000, "ErrMsg:Account balance after transfer：{}".format(
         balance1)
 
 
@@ -246,7 +245,7 @@ def test_IT_SD_009(client_consensus_obj):
     balance = node.eth.getBalance(address1)
     log.info("balance: {}".format(balance))
     sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce)
-    sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce+1)
+    sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(100, 'ether'), nonce + 1)
     time.sleep(3)
     balance1 = node.eth.getBalance(address1)
     log.info("Account balance after transfer： {}".format(balance1))
@@ -271,7 +270,7 @@ def test_IT_SD_010(client_consensus_obj):
         nonce = node.eth.getTransactionCount(address)
         log.info('nonce: {}'.format(nonce))
         sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(500, 'ether'), nonce)
-        sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(600, 'ether'), nonce+1)
+        sendTransaction_input_nonce(client, '', address, address1, node.eth.gasPrice, 21000, node.web3.toWei(600, 'ether'), nonce + 1)
     except Exception as e:
         log.info("Use case success, exception information：{} ".format(str(e)))
         time.sleep(3)
@@ -385,7 +384,6 @@ def test_AL_IE_001(client_consensus_obj):
 
 
 @pytest.mark.P2
-
 def test_AL_IE_002(client_new_node_obj_list):
     """
     转账到激励池
@@ -445,7 +443,6 @@ def test_AL_IE_002(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-
 def test_AL_IE_003(client_new_node_obj_list):
     """
     自由账户创建质押节点且收益地址为激励池
@@ -464,7 +461,6 @@ def test_AL_IE_003(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-
 def test_AL_IE_004(client_new_node_obj_list):
     """
     锁仓账户创建质押节点且收益地址为激励池
@@ -686,7 +682,6 @@ def test_AL_NBI_001_to_003(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_AL_NBI_004_to_006(new_genesis_env, client_new_node_obj, reset_environment):
     """
     AL_NBI_004:非内置验证人Staking奖励（候选人）
@@ -812,7 +807,6 @@ def assert_benifit_reward(client_new_node_obj, benifit_address, address):
 
 
 @pytest.mark.P1
-
 def test_AL_NBI_010_to_012(client_new_node_obj):
     """
     AL_NBI_010:非内置验证人Staking奖励（共识验证人）
@@ -828,7 +822,6 @@ def test_AL_NBI_010_to_012(client_new_node_obj):
 
 
 @pytest.mark.P1
-
 def test_AL_NBI_013(client_new_node_obj):
     """
     修改节点质押收益地址查看收益变更
@@ -853,7 +846,6 @@ def query_ccount_amount(client_new_node_obj, address):
 
 
 @pytest.mark.P1
-
 def test_AL_NBI_014(client_new_node_obj):
     """
     修改节点质押收益地址查看收益变更（正在出块中）
@@ -1071,7 +1063,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node_obj):
     staking_proportion = str(1 - 60 / 100)
     block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(1600)))
     staking_reward = int(Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(10)) / Decimal(
-            str(verifier_num)))
+        str(verifier_num)))
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # withdrew of pledge
     result = client.staking.withdrew_staking(address1)

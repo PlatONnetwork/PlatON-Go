@@ -56,7 +56,7 @@ def test_AS_004(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -75,7 +75,7 @@ def test_AS_005(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -145,7 +145,7 @@ def test_AS_011_012_013_014(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
     account = client_new_node_obj.economic.account
@@ -155,7 +155,7 @@ def test_AS_011_012_013_014(client_new_node_obj):
     try:
         result = client_new_node_obj.staking.increase_staking(0, address, address)
         log.info(result)
-    except:
+    except BaseException:
         status = 1
     assert status == 1
 
@@ -185,8 +185,6 @@ def test_AS_015(client_new_node_obj):
     log.info("Check your wallet balance{}".format(amount))
     result = client_new_node_obj.staking.increase_staking(0, address)
     assert_code(result, 301111)
-    locked_info = client_new_node_obj.ppos.getRestrictingInfo(address)
-    log.info(locked_info)
 
 
 @pytest.mark.P1
@@ -258,7 +256,7 @@ def test_AS_018_019(client_new_node_obj):
 
 
 @pytest.mark.P0
-def test_AS_020_021(client_new_node_obj, client_consensus_obj, greater_than_staking_amount):
+def test_AS_020_021(client_new_node_obj, client_consensus_obj):
     """
     Add to the list of candidates who have been penalized and are still in the freeze period
     A candidate whose holdings have been penalized has passed the freeze period
@@ -267,7 +265,8 @@ def test_AS_020_021(client_new_node_obj, client_consensus_obj, greater_than_stak
     """
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=greater_than_staking_amount)
+    value = client_new_node_obj.economic.create_staking_limit * 2
+    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Close one node")
     client_new_node_obj.node.stop()
@@ -301,7 +300,4 @@ def test_AS_022(client_new_node_obj):
     assert_code(result, 0)
     result = client_new_node_obj.staking.increase_staking(0, address1)
     log.info(result)
-    assert_code(result,301006)
-
-
-
+    assert_code(result, 301006)

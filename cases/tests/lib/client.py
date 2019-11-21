@@ -10,7 +10,6 @@ from .duplicate_sign import DuplicateSign
 from typing import List
 
 
-
 class Client:
     """
     Test client, the interface call method required for the collection test

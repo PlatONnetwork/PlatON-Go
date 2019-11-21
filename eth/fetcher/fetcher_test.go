@@ -24,9 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -51,7 +50,7 @@ func makeChain(n int, seed byte, parent *types.Block) ([]common.Hash, map[common
 	//ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
 	//
 	//blocks, _ := core.GenerateChain(params.TestChainConfig, parent, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), testdb, n, func(i int, block *core.BlockGen) {
-	blocks, _ := core.GenerateChain(params.TestChainConfig, parent, cbft.NewFaker(), testdb, n, func(i int, block *core.BlockGen) {
+	blocks, _ := core.GenerateChain(params.TestChainConfig, parent, consensus.NewFaker(), testdb, n, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{seed})
 
 		// If the block number is multiple of 3, send a bonus transaction to the miner
