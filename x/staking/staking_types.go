@@ -297,6 +297,7 @@ func (desc *Description) CheckLength() error {
 
 type CandidateQueue []*Candidate
 type CandidateHexQueue []*CandidateHex
+type CandidateVersionQueue []*CandidateVersion
 
 // the Validator info
 // They are Simplified Candidate
@@ -954,13 +955,8 @@ type SlashNodeItem struct {
 
 type SlashQueue []*SlashNodeItem
 
-type NodeIdVersion struct {
-	BlockNumber uint64
-	Version uint32
-	ProgramVersion uint32
-	NodeIds []discover.NodeID
-}
 
-type VersionList struct {
-	NodeIdVersionKey []string
+type CandidateVersion struct {
+	NodeId             discover.NodeID
+	ProgramVersion     uint32
 }

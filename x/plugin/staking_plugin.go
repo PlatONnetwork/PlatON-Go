@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -67,8 +66,6 @@ const (
 
 	ValidatorName = "Validator"
 	VerifierName  = "Verifier"
-	VersionData  = "VersionData"
-	VersionList  = "VersionList"
 )
 
 // Instance a global StakingPlugin
@@ -1520,42 +1517,38 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 	return queue, nil
 }
 
-func (sk *StakingPlugin) GetNodeVersion(blockNumber uint64) ([]staking.NodeIdVersion,error){
+func (sk *StakingPlugin) GetNodeVersion(blockHash common.Hash,blockNumber uint64) (staking.CandidateVersionQueue,error){
 
-	log.Debug("wow,GetNodeVersion query number:", "num", blockNumber)
-	data, err := STAKING_DB.HistoryDB.Get([]byte(VersionList))
-	if nil != err {
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
+	if err := iter.Error(); nil != err {
 		return nil, err
 	}
-	var versionList staking.VersionList
-	err = rlp.DecodeBytes(data, &versionList)
-	if nil != err {
-		return nil, err
-	}
-	xcom.PrintObject("wow,GetNodeVersion", versionList)
+	defer iter.Release()
 
-	queue := make([]staking.NodeIdVersion, 1,1)
+	queue := make(staking.CandidateVersionQueue, 0)
 
-	for _, v := range versionList.NodeIdVersionKey{
-		vs := strings.Split(v, ":")
-		vsInt, err := strconv.ParseUint(vs[1], 10, 64)
+	count := 0
+
+	for iter.Valid(); iter.Next(); {
+
+		count++
+
+		log.Debug("GetNodeVersion: iter", "key", hex.EncodeToString(iter.Key()))
+
+		addrSuffix := iter.Value()
+		can, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
 			return nil, err
 		}
-		if vsInt > blockNumber {
-			data, err := STAKING_DB.HistoryDB.Get([]byte(v))
-			if nil != err {
-				return nil, err
-			}
-			var nodeIdVersion staking.NodeIdVersion
-			err = rlp.DecodeBytes(data, &nodeIdVersion)
-			if nil != err {
-				return nil, err
-			}
-			queue = append(queue, nodeIdVersion)
-		}
 
+		lazyCalcStakeAmount(epoch, can)
+		canVersion := buildCanVersion(can)
+		queue = append(queue, canVersion)
 	}
+	log.Debug("GetNodeVersion: loop count", "count", count)
+
 	return queue, nil
 }
 
@@ -2447,34 +2440,6 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		}
 
 	}
-
-	dataKey:=VersionData + ":" + strconv.FormatUint(blockNumber, 10);
-	nodeIdVersions := &staking.NodeIdVersion{
-		BlockNumber:blockNumber,
-		Version: version,
-		ProgramVersion: programVersion,
-		NodeIds: nodeIds,
-	}
-	log.Debug("wow,set VersionData", "key ", dataKey)
-	data, _ := rlp.EncodeToBytes(nodeIdVersions)
-	STAKING_DB.HistoryDB.Put([]byte(dataKey), data)
-
-	listDataByte,_ := STAKING_DB.HistoryDB.Get([]byte(VersionList))
-	log.Debug("wow,get listDataByte", "data ", listDataByte)
-	var versionList staking.VersionList
-	if listDataByte!=nil {
-		rlp.DecodeBytes(listDataByte, versionList)
-	}
-	xcom.PrintObject("wow,set versionList", versionList)
-	newVersionList := make([]string, len(versionList.NodeIdVersionKey) + 1)
-	for index, value := range versionList.NodeIdVersionKey {
-		newVersionList[index] = value
-	}
-	newVersionList[len(versionList.NodeIdVersionKey) + 1] = dataKey
-	versionList.NodeIdVersionKey = newVersionList
-	xcom.PrintObject("wow,set newVersionList", newVersionList)
-	listDataByte,_ = rlp.EncodeToBytes(versionList)
-	STAKING_DB.HistoryDB.Put([]byte(VersionList), listDataByte)
 
 	return nil
 }
@@ -3426,5 +3391,12 @@ func buildCanHex(can *staking.Candidate) *staking.CandidateHex {
 		RestrictingPlan:    (*hexutil.Big)(can.RestrictingPlan),
 		RestrictingPlanHes: (*hexutil.Big)(can.RestrictingPlanHes),
 		Description:        can.Description,
+	}
+}
+
+func buildCanVersion(can *staking.Candidate) *staking.CandidateVersion {
+	return &staking.CandidateVersion{
+		NodeId:             can.NodeId,
+		ProgramVersion:     can.ProgramVersion,
 	}
 }
