@@ -1203,6 +1203,7 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	} else {
 		cfg.BlsPriKey = nodeCfg.BlsKey()
 	}
+	nodeCfg.P2P.BlsPublicKey = *(cfg.BlsPriKey.GetPublicKey())
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.WalMode = !ctx.GlobalBool(CbftWalDisabledFlag.Name)
