@@ -31,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -62,6 +63,9 @@ var errServerStopped = errors.New("server stopped")
 type Config struct {
 	// This field must be set to a valid secp256k1 private key.
 	PrivateKey *ecdsa.PrivateKey `toml:"-"`
+
+	// BlsPublicKey is a BLS public key.
+	BlsPublicKey *bls.PublicKey `toml:"-"`
 
 	// chainId identifies the current chain and is used for replay protection
 	ChainID *big.Int `toml:"-"`
@@ -1073,11 +1077,12 @@ func (srv *Server) runPeer(p *Peer) {
 
 // NodeInfo represents a short summary of the information known about the host.
 type NodeInfo struct {
-	ID    string `json:"id"`    // Unique node identifier (also the encryption key)
-	Name  string `json:"name"`  // Name of the node, including client type, version, OS, custom data
-	Enode string `json:"enode"` // Enode URL for adding this peer from remote peers
-	IP    string `json:"ip"`    // IP address of the node
-	Ports struct {
+	ID     string `json:"id"`        // Unique node identifier (also the encryption key)
+	Name   string `json:"name"`      // Name of the node, including client type, version, OS, custom data
+	BlsPub string `json:"blsPubKey"` // BLS public key
+	Enode  string `json:"enode"`     // Enode URL for adding this peer from remote peers
+	IP     string `json:"ip"`        // IP address of the node
+	Ports  struct {
 		Discovery int `json:"discovery"` // UDP listening port for discovery protocol
 		Listener  int `json:"listener"`  // TCP listening port for RLPx
 	} `json:"ports"`
@@ -1100,6 +1105,9 @@ func (srv *Server) NodeInfo() *NodeInfo {
 	}
 	info.Ports.Discovery = int(node.UDP)
 	info.Ports.Listener = int(node.TCP)
+
+	blskey, _ := srv.BlsPublicKey.MarshalText()
+	info.BlsPub = string(blskey)
 
 	// Gather all the running protocol infos (only once per protocol type)
 	for _, proto := range srv.Protocols {
