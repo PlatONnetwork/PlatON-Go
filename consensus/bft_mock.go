@@ -142,7 +142,7 @@ func (bm *BftMock) Author(header *types.Header) (common.Address, error) {
 // via the VerifySeal method.
 func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bool) error {
 	if bm.fakeFail == header.Number.Uint64() {
-		return fmt.Errorf("faile verifyHeader on bftMock")
+		return fmt.Errorf("failed verifyHeader on bftMock")
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, sea
 	go func() {
 		for i := range headers {
 			if bm.fakeFail == headers[i].Number.Uint64() {
-				results <- fmt.Errorf("faile verifyHeader on bftMock")
+				results <- fmt.Errorf("failed verifyHeader on bftMock")
 			} else {
 				results <- nil
 			}
