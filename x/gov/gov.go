@@ -61,12 +61,6 @@ const (
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
 )
 
-const (
-//GenesisTxSize = 1024 * 1024        //  1 MB
-//CeilTxSize    = GenesisTxSize * 10 // 10 MB
-
-)
-
 func GetVersionForStaking(state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(state)
 	if preActiveVersion > 0 {
