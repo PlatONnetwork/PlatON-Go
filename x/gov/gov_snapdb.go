@@ -17,8 +17,6 @@
 package gov
 
 import (
-	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -261,7 +259,7 @@ func updateGovernParamValue(module, name, newValue string, activeBlock uint64, b
 		}
 		return nil
 	}
-	return fmt.Errorf("Not found the %s.%s Govern value", module, name)
+	return UnsupportedGovernParam
 }
 
 func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
