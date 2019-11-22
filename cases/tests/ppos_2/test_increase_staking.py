@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from tests.lib.utils import *
 import pytest
+import allure
 
 
+@allure.title("Normal overweight")
 @pytest.mark.P0
 def test_AS_001_002_009(client_new_node_obj):
     """
-    Normal overweight
-    The verifier initiates the overweight with the amount of free account, meeting the minimum threshold
-    :param client_new_node_obj:
-    :return:
+    001:Normal overweight
+    002:The verifier initiates the overweight with the amount of free account, meeting the minimum threshold
+    009:Hesitation period add pledge, inquire pledge information
     """
     StakeThreshold = get_governable_parameter_value(client_new_node_obj, "StakeThreshold")
     log.info(StakeThreshold)
@@ -25,10 +26,10 @@ def test_AS_001_002_009(client_new_node_obj):
     assert result["Ret"]["Shares"] == staking_amount + add_staking_amount
 
 
+@allure.title("The verifier is not on the verifier and candidate list")
 @pytest.mark.P2
 def test_AS_003(client_new_node_obj):
     """
-    The verifier is not on the verifier and candidate list
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
@@ -40,10 +41,10 @@ def test_AS_003(client_new_node_obj):
     assert_code(result, 301102)
 
 
+@allure.title("Undersupply of gas")
 @pytest.mark.P3
 def test_AS_004(client_new_node_obj):
     """
-    Undersupply of gas
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
@@ -61,10 +62,10 @@ def test_AS_004(client_new_node_obj):
     assert status == 1
 
 
+@allure.title("Insufficient balance initiated overweight")
 @pytest.mark.P3
 def test_AS_005(client_new_node_obj):
     """
-    Insufficient balance initiated overweight
     :param client_new_node_obj:
     :return:
     """
@@ -80,10 +81,10 @@ def test_AS_005(client_new_node_obj):
     assert status == 1
 
 
+@allure.title("(hesitation period) holdings less than the minimum threshold")
 @pytest.mark.P1
 def test_AS_007(client_new_node_obj):
     """
-    (hesitation period) holdings less than the minimum threshold
     :param client_new_node_obj:
     :return:
     """
@@ -96,10 +97,10 @@ def test_AS_007(client_new_node_obj):
     assert_code(result, 301104)
 
 
+@allure.title("(hesitation period) when the verifier revoks the pledge, he/she shall apply for adding the pledge")
 @pytest.mark.P1
 def test_AS_008(client_new_node_obj):
     """
-    (hesitation period) when the verifier revoks the pledge, he/she shall apply for adding the pledge
     :param client_new_node_obj:
     :return:
     """
@@ -114,14 +115,15 @@ def test_AS_008(client_new_node_obj):
     assert_code(result, 301103)
 
 
+@allure.title("(lockup period) normal increase")
 @pytest.mark.P0
 @pytest.mark.compatibility
 def test_AS_011_012_013_014(client_new_node_obj):
     """
-    (lockup period) normal increase
-    (lockup period) overweight meets the minimum threshold
-    (lock-up period) gas underinitiation overweight
-    (lockup period) insufficient balance to initiate overweight pledge
+    011:(lockup period) normal increase
+    012:(lockup period) overweight meets the minimum threshold
+    013:(lock-up period) gas underinitiation overweight
+    014:(lockup period) insufficient balance to initiate overweight pledge
     :param client_new_node_obj:
     :return:
     """
@@ -160,10 +162,10 @@ def test_AS_011_012_013_014(client_new_node_obj):
     assert status == 1
 
 
+@allure.title("The free amount is insufficient, the lock position is sufficient, and the free amount is added")
 @pytest.mark.P1
 def test_AS_015(client_new_node_obj):
     """
-    The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
@@ -187,10 +189,10 @@ def test_AS_015(client_new_node_obj):
     assert_code(result, 301111)
 
 
+@allure.title("The free amount is insufficient, the lock position is sufficient, and the free amount is added")
 @pytest.mark.P1
 def test_AS_016(client_new_node_obj):
     """
-    The free amount is insufficient, the lock position is sufficient, and the free amount is added
     :param client_new_node_obj:
     :return:
     """
@@ -212,10 +214,10 @@ def test_AS_016(client_new_node_obj):
     assert_code(result, 304013)
 
 
+@allure.title("The amount of the increase is less than the threshold")
 @pytest.mark.P1
 def test_AS_017(client_new_node_obj):
     """
-    The amount of the increase is less than the threshold
     :param client_new_node_obj:
     :return:
     """
@@ -229,11 +231,12 @@ def test_AS_017(client_new_node_obj):
     assert_code(result, 301104)
 
 
+@allure.title("Increase the number of active withdrawal but still in the freeze period of the candidate")
 @pytest.mark.P0
 def test_AS_018_019(client_new_node_obj):
     """
-    Increase the number of active withdrawal but still in the freeze period of the candidate
-    Candidates whose holdings have been actively withdrawn and who have passed the freeze period
+    018:Increase the number of active withdrawal but still in the freeze period of the candidate
+    019:Candidates whose holdings have been actively withdrawn and who have passed the freeze period
     :param client_new_node_obj:
     :return:
     """
@@ -255,11 +258,12 @@ def test_AS_018_019(client_new_node_obj):
     assert_code(result, 301102)
 
 
+@allure.title("Add to the list of candidates who have been penalized and are still in the freeze period")
 @pytest.mark.P0
 def test_AS_020_021(client_new_node_obj, client_consensus_obj):
     """
-    Add to the list of candidates who have been penalized and are still in the freeze period
-    A candidate whose holdings have been penalized has passed the freeze period
+    020:Add to the list of candidates who have been penalized and are still in the freeze period
+    021:A candidate whose holdings have been penalized has passed the freeze period
     :param client_new_node_obj:
     :return:
     """
@@ -280,15 +284,16 @@ def test_AS_020_021(client_new_node_obj, client_consensus_obj):
     assert_code(result, 301103)
     log.info("Next settlement period")
     client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    time.sleep(20)
     result = client_new_node_obj.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301102)
 
 
+@allure.title("Increase your holdings with a new wallet")
 @pytest.mark.P3
 def test_AS_022(client_new_node_obj):
     """
-    Increase your holdings with a new wallet
     :param client_new_node_obj:
     :return:
     """

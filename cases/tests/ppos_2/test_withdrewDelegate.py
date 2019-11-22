@@ -44,8 +44,7 @@ def test_ROE_002(client_new_node_obj):
     cfg = {"gas": 1}
     status = 0
     try:
-        result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address1, transaction_cfg=cfg)
-        assert_code(result, 0)
+        client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address1, transaction_cfg=cfg)
     except BaseException:
         status = 1
     assert status == 1
@@ -156,7 +155,6 @@ def test_ROE_006_008(client_new_node_obj):
 @pytest.mark.P1
 def test_ROE_010(client_new_node_obj):
     """
-
     :param client_new_node_obj:
     :return:
     """
