@@ -1,7 +1,4 @@
-import json
-import time
 import pytest
-import allure
 from dacite import from_dict
 from common.key import mock_duplicate_sign
 from common.log import log
@@ -11,14 +8,14 @@ from tests.lib import EconomicConfig, Genesis, check_node_in_list, assert_code, 
     wait_block_number, von_amount
 
 
-def pledge_punishment(client_con_list_obj):
+def pledge_punishment(clients):
     """
     :return:
     """
     first_index = 0
     second_index = 1
-    first_client = client_con_list_obj[first_index]
-    second_client = client_con_list_obj[second_index]
+    first_client = clients[first_index]
+    second_client = clients[second_index]
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
     # stop node
     first_client.node.stop()
@@ -47,9 +44,9 @@ def information_before_slash_blocks(client):
     return first_pledge_amount, block_reward, first_slash_blocks
 
 
-def verify_changed_parameters(client_con_list_obj, first_pledge_amount, block_reward, slash_blocks):
+def verify_changed_parameters(clients, first_pledge_amount, block_reward, slash_blocks):
     # Verify changed parameters
-    candidate_info = pledge_punishment(client_con_list_obj)
+    candidate_info = pledge_punishment(clients)
     second_pledge_amount = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     if punishment_amonut < first_pledge_amount:
@@ -85,7 +82,7 @@ def test_PIP_PVF_001_002(clients_consensus, mark, reset_environment):
 def test_PIP_PVF_003(clients_consensus, reset_environment):
     """
     治理修改低0出块率扣除验证人自有质押金块数成功处于已生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -210,7 +207,7 @@ def adjust_initial_parameters(new_genesis_env):
 def test_PIP_PVF_006(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期投票失败
-    :param client_con_list_obj:
+    :param clients:
     :return:
     """
     # Change configuration parameters
@@ -247,7 +244,7 @@ def test_PIP_PVF_007(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期处于未生效期
     :param new_genesis_env:
-    :param client_con_list_obj:
+    :param clients:
     :return:
     """
     # Change configuration parameters
@@ -284,7 +281,7 @@ def test_PIP_PVF_008(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期处于已生效期
     :param new_genesis_env:
-    :param client_con_list_obj:
+    :param clients:
     :return:
     """
     # Change configuration parameters
@@ -321,7 +318,7 @@ def test_PIP_PVF_009(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期（节点质押退回锁定周期-1）
     :param new_genesis_env:
-    :param client_con_list_obj:
+    :param clients:
     :return:
     """
     # Change configuration parameters
@@ -371,7 +368,7 @@ def test_PIP_PVF_010(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期（超出有效期）
     :param new_genesis_env:
-    :param client_con_list_obj:
+    :param clients:
     :return:
     """
     # Change configuration parameters
@@ -423,13 +420,13 @@ def duplicate_sign(client, report_address, report_block):
     assert_code(result, 0)
 
 
-def assret_penalty_amount(client_con_list_obj, first_pledge_amount, penalty_ratio=None):
+def assret_penalty_amount(clients, first_pledge_amount, penalty_ratio=None):
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(first_pledge_amount,
+    proportion_reward, incentive_pool_reward = clients[1].economic.get_report_reward(first_pledge_amount,
                                                                                                  penalty_ratio)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # view Pledge amount again
-    candidate_info2 = client_con_list_obj[1].ppos.getCandidateInfo(client_con_list_obj[0].node.node_id)
+    candidate_info2 = clients[1].ppos.getCandidateInfo(clients[0].node.node_id)
     second_pledge_amount = candidate_info2['Ret']['Released']
     assert second_pledge_amount == first_pledge_amount - proportion_reward - incentive_pool_reward, "ErrMsg:Pledge amount {}".format(
         second_pledge_amount)
@@ -439,7 +436,7 @@ def assret_penalty_amount(client_con_list_obj, first_pledge_amount, penalty_rati
 def test_PIP_PVF_011(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例投票失败
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -470,7 +467,7 @@ def test_PIP_PVF_011(clients_consensus, reset_environment):
 def test_PIP_PVF_012(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例处于未生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -500,7 +497,7 @@ def test_PIP_PVF_012(clients_consensus, reset_environment):
 def test_PIP_PVF_013(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例处于已生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -528,7 +525,7 @@ def test_PIP_PVF_013(clients_consensus, reset_environment):
 def test_PIP_PVF_014(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例为10000‱
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -556,7 +553,7 @@ def test_PIP_PVF_014(clients_consensus, reset_environment):
 def test_PIP_PVF_015(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例为1‱
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -623,7 +620,7 @@ def asster_income_account_amount(client, report_amount1, incentive_pool_account1
 def test_PIP_PVF_016(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例投票失败
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -656,7 +653,7 @@ def test_PIP_PVF_016(clients_consensus, reset_environment):
 def test_PIP_PVF_017(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例处于未生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -688,7 +685,7 @@ def test_PIP_PVF_017(clients_consensus, reset_environment):
 def test_PIP_PVF_018(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例处于已生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -719,7 +716,7 @@ def test_PIP_PVF_018(clients_consensus, reset_environment):
 def test_PIP_PVF_019(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例为80%
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -750,7 +747,7 @@ def test_PIP_PVF_019(clients_consensus, reset_environment):
 def test_PIP_PVF_020(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例为1%
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -825,7 +822,7 @@ def test_PIP_PVF_020(clients_consensus, reset_environment):
 def test_PIP_MG_001(clients_consensus, reset_environment):
     """
     治理修改默认每个区块的最大Gas 投票失败
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -855,7 +852,7 @@ def test_PIP_MG_001(clients_consensus, reset_environment):
 def test_PIP_MG_002(clients_consensus, reset_environment):
     """
     治理修改默认每个区块的最大Gas 处于未生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """
@@ -873,7 +870,7 @@ def test_PIP_MG_002(clients_consensus, reset_environment):
 def test_PIP_MG_003(clients_consensus, reset_environment):
     """
     治理修改默认每个区块的最大Gas 处于已生效期
-    :param client_con_list_obj:
+    :param clients:
     :param reset_environment:
     :return:
     """

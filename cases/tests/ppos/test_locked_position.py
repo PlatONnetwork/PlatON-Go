@@ -17,7 +17,7 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
 def test_LS_FV_001(client_consensus):
     """
     查看锁仓账户计划
-    :param client_consensus_obj:
+    :param client_consensus:
     :return:
     """
     # Reset environment
@@ -34,18 +34,18 @@ def test_LS_FV_001(client_consensus):
     for i in range(len(release_plans_list)):
         assert release_plans_list[i] == EconomicConfig.release_info[
             i], "Year {} Height of block to be released: {} Release amount: {}".format(i + 1, release_plans_list[i][
-                'blockNumber'], release_plans_list[i]['amount'])
+            'blockNumber'], release_plans_list[i]['amount'])
 
 
-def create_restrictingplan(client_new_node_obj, epoch, amount, multiple=2):
+def create_restrictingplan(client, epoch, amount, multiple=2):
     # create restricting plan
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       client_new_node_obj.economic.create_staking_limit * multiple)
-    benifit_address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                               client_new_node_obj.node.web3.toWei(1000,
-                                                                                                                   'ether'))
-    plan = [{'Epoch': epoch, 'Amount': client_new_node_obj.node.web3.toWei(amount, 'ether')}]
-    result = client_new_node_obj.restricting.createRestrictingPlan(benifit_address, plan, address)
+    address, _ = client.economic.account.generate_account(client.node.web3,
+                                                          client.economic.create_staking_limit * multiple)
+    benifit_address, _ = client.economic.account.generate_account(client.node.web3,
+                                                                  client.node.web3.toWei(1000,
+                                                                                         'ether'))
+    plan = [{'Epoch': epoch, 'Amount': client.node.web3.toWei(amount, 'ether')}]
+    result = client.restricting.createRestrictingPlan(benifit_address, plan, address)
     return result, address, benifit_address
 
 
@@ -56,7 +56,7 @@ def test_LS_UPV_001(client_new_node):
     锁仓参数的有效性验证:
                     None,
                     ""
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -84,7 +84,7 @@ def test_LS_UPV_001(client_new_node):
 def test_LS_UPV_002_1(client_new_node):
     """
     创建锁仓计划Gas费- 单个解锁次数
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -120,7 +120,7 @@ def test_LS_UPV_002_1(client_new_node):
 def test_LS_UPV_002_2(client_new_node):
     """
     创建锁仓计划Gas费 - 多个解锁次数
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -147,7 +147,8 @@ def test_LS_UPV_002_2(client_new_node):
     assert_code(result, 0)
     balance1 = node.eth.getBalance(address)
     transaction_fees = gas_total * node.eth.gasPrice
-    assert balance - balance1 - lock_amount * 2 == transaction_fees, "ErrMsg: transaction fees {}".format(transaction_fees)
+    assert balance - balance1 - lock_amount * 2 == transaction_fees, "ErrMsg: transaction fees {}".format(
+        transaction_fees)
 
 
 @pytest.mark.P1
@@ -155,7 +156,7 @@ def test_LS_UPV_002_2(client_new_node):
 def test_LS_UPV_003(client_new_node):
     """
     正常创建锁仓计划
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     result, address, benifit_address = create_restrictingplan(client_new_node, 1, 1000)
@@ -170,7 +171,7 @@ def test_LS_UPV_004_1(client_new_node):
     """
     锁仓参数的有效性验证:number 1, amount 0.1
                       number 0.1, amount 10
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     status = True
@@ -194,7 +195,7 @@ def test_LS_UPV_004_2(client_new_node, epoch, amount):
     """
     锁仓参数的有效性验证:epoch -1, amount 10
                       epoch 1, amount -10
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     status = True
@@ -214,7 +215,7 @@ def test_LS_UPV_004_2(client_new_node, epoch, amount):
 def test_LS_UPV_005(client_new_node):
     """
     锁仓参数的有效性验证:epoch 0, amount 10
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     result, address, benifit_address = create_restrictingplan(client_new_node, 0, 10)
@@ -226,7 +227,7 @@ def test_LS_UPV_005(client_new_node):
 def test_LS_UPV_006(client_new_node, number):
     """
     创建锁仓计划1<= 释放计划个数N <=36
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create restricting plan
@@ -244,7 +245,7 @@ def test_LS_UPV_006(client_new_node, number):
 def test_LS_UPV_007(client_new_node):
     """
     创建锁仓计划-释放计划的锁定期个数 > 36
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create restricting plan
@@ -262,7 +263,7 @@ def test_LS_UPV_007(client_new_node):
 def test_LS_UPV_008(client_new_node):
     """
     锁仓参数的有效性验证:epoch 1, amount 0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create restricting plan
@@ -274,7 +275,7 @@ def test_LS_UPV_008(client_new_node):
 def test_LS_UPV_009(client_new_node):
     """
     创建锁仓计划-锁仓金额中文、特殊字符字符测试
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create restricting plan
@@ -289,7 +290,7 @@ def test_LS_UPV_009(client_new_node):
 def test_LS_RV_001(client_new_node):
     """
     创建锁仓计划-单个释放锁定期金额大于账户金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -303,43 +304,43 @@ def test_LS_RV_001(client_new_node):
 
 
 @pytest.mark.P1
-@pytest.mark.parametrize('balace1, balace2', [(0, 0), (300, 300), (500, 500), (500, 600)])
-def test_LS_RV_002(client_new_node, balace1, balace2):
+@pytest.mark.parametrize('balance1, balance2', [(0, 0), (300, 300), (500, 500), (500, 600)])
+def test_LS_RV_002(client_new_node, balance1, balance2):
     """
     创建锁仓计划-多个释放锁定期合计金额大于账户金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create restricting plan
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                    client_new_node.node.web3.toWei(1000,
-                                                                                                           'ether'))
-    lock_up_balace1 = client_new_node.node.web3.toWei(balace1, 'ether')
-    lock_up_balace2 = client_new_node.node.web3.toWei(balace2, 'ether')
-    plan = [{'Epoch': 1, 'Amount': lock_up_balace1}, {'Epoch': 2, 'Amount': lock_up_balace2}]
+                                                                                                   'ether'))
+    lock_up_balance1 = client_new_node.node.web3.toWei(balance1, 'ether')
+    lock_up_balance2 = client_new_node.node.web3.toWei(balance2, 'ether')
+    plan = [{'Epoch': 1, 'Amount': lock_up_balance1}, {'Epoch': 2, 'Amount': lock_up_balance2}]
     result = client_new_node.restricting.createRestrictingPlan(address, plan, address)
-    if 0 < balace1 + balace2 < 1000:
+    if 0 < balance1 + balance2 < 1000:
         assert_code(result, 0)
-    elif 1000 <= balace1 + balace2:
+    elif 1000 <= balance1 + balance2:
         assert_code(result, 304004)
     else:
         assert_code(result, 304011)
 
 
-def create_restricting_plan(client_new_node_obj, plan, benifit_address, address):
+def create_restricting_plan(client, plan, benifit_address, address):
     """
     create restricting plan
-    :param client_new_node_obj:
+    :param client:
     :param plan:
     :param benifit_address:
     :param address:
     :return:
     """
     # create restricting
-    result = client_new_node_obj.restricting.createRestrictingPlan(benifit_address, plan, address)
+    result = client.restricting.createRestrictingPlan(benifit_address, plan, address)
     assert_code(result, 0)
     # view restricting plan
-    restricting_info = client_new_node_obj.ppos.getRestrictingInfo(benifit_address)
+    restricting_info = client.ppos.getRestrictingInfo(benifit_address)
     log.info("Restricting information: {}".format(restricting_info))
     assert_code(restricting_info, 0)
     return restricting_info
@@ -349,13 +350,13 @@ def create_restricting_plan(client_new_node_obj, plan, benifit_address, address)
 def test_LS_RV_003(client_new_node):
     """
     创建锁仓计划-锁仓计划里两个锁仓计划的解锁期相同
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create account
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                    client_new_node.node.web3.toWei(1000,
-                                                                                                           'ether'))
+                                                                                                   'ether'))
     louk_up_balace = client_new_node.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 1, 'Amount': louk_up_balace}]
     # create restricting plan
@@ -364,11 +365,11 @@ def test_LS_RV_003(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
 
 
@@ -376,12 +377,12 @@ def test_LS_RV_003(client_new_node):
 def test_LS_RV_004(client_new_node):
     """
     创建锁仓计划-新建锁仓计划里两个锁仓计划的解锁期不同
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                    client_new_node.node.web3.toWei(1000,
-                                                                                                           'ether'))
+                                                                                                   'ether'))
 
     louk_up_balace = client_new_node.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
@@ -391,14 +392,14 @@ def test_LS_RV_004(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
     assert restricting_info['Ret']['plans'][1][
-        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][1]['amount'])
 
 
@@ -406,13 +407,13 @@ def test_LS_RV_004(client_new_node):
 def test_LS_RV_005(client_new_node):
     """
     创建锁仓计划-创建不同锁仓计划里2个相同解锁期
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create account
     address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
                                                                    client_new_node.node.web3.toWei(1000,
-                                                                                                           'ether'))
+                                                                                                   'ether'))
 
     louk_up_balace = client_new_node.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}]
@@ -424,11 +425,11 @@ def test_LS_RV_005(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
 
 
@@ -444,7 +445,7 @@ def create_lock_release_amount(client, first_amount, second_amount):
 def test_LS_RV_006(client_new_node):
     """
     创建锁仓计划-不同个账户创建不同锁仓计划里有相同解锁期
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create account
@@ -461,14 +462,14 @@ def test_LS_RV_006(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
     assert restricting_info['Ret']['plans'][1][
-        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][1]['amount'])
 
 
@@ -476,7 +477,7 @@ def test_LS_RV_006(client_new_node):
 def test_LS_RV_007(client_new_node):
     """
     创建锁仓计划-不同账户创建不同锁仓计划里有不相同解锁期
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     # create account
@@ -494,17 +495,17 @@ def test_LS_RV_007(client_new_node):
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
     assert restricting_info['Ret']['plans'][0][
-        'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
+               'blockNumber'] == client_new_node.economic.get_settlement_switchpoint(
         client_new_node.node), "ErrMsg:Restricting blockNumber {}".format(
         restricting_info['Ret']['plans'][0]['blockNumber'])
     assert restricting_info['Ret']['plans'][0][
-        'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace * 2, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][0]['amount'])
     assert restricting_info['Ret']['plans'][1][
-        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][1]['amount'])
     assert restricting_info['Ret']['plans'][2][
-        'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
+               'amount'] == louk_up_balace, "ErrMsg:Restricting amount {}".format(
         restricting_info['Ret']['plans'][2]['amount'])
 
 
@@ -542,7 +543,7 @@ def create_restricting_plan_and_staking(client, economic, node):
 def test_LS_RV_008(client_new_node):
     """
     创建锁仓计划-锁仓欠释放金额<新增锁仓计划总金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -565,7 +566,7 @@ def test_LS_RV_008(client_new_node):
 def test_LS_RV_009(client_new_node):
     """
     创建锁仓计划-锁仓欠释放金额>新增锁仓计划总金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -590,7 +591,7 @@ def test_LS_RV_009(client_new_node):
 def test_LS_RV_010(client_new_node):
     """
     创建锁仓计划-锁仓欠释放金额=新增锁仓计划总金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -648,7 +649,7 @@ def create_restricting_plan_and_entrust(client, node, economic):
 def test_LS_RV_011(client_new_node):
     """
     创建锁仓计划-锁仓委托释放后再次创建锁仓计划
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -671,7 +672,7 @@ def test_LS_RV_011(client_new_node):
 def test_LS_RV_012(clients_new_node, reset_environment):
     """
     创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划(处罚金额大于质押金额)
-    :param client_new_node_obj_list:
+    :param:client_new_node:
     :return:
     """
     client1 = clients_new_node[0]
@@ -770,9 +771,11 @@ def test_LS_RV_019(new_genesis_env, clients_noconsensus):
     log.info("restricting info: {}".format(restricting_info3))
     assert_code(restricting_info3, 0)
     info2 = restricting_info3['Ret']
-    assert info2['balance'] == staking_amount + info['balance'] - info['debt'], "rrMsg: restricting balance amount {}".format(info2['balance'])
+    assert info2['balance'] == staking_amount + info['balance'] - info[
+        'debt'], "rrMsg: restricting balance amount {}".format(info2['balance'])
     assert info2['debt'] == 0, "rrMsg: restricting debt amount {}".format(info2['debt'])
-    assert info2['plans'][0]['amount'] == staking_amount, "rrMsg: restricting plans amount {}".format(info2['plans'][0]['amount'])
+    assert info2['plans'][0]['amount'] == staking_amount, "rrMsg: restricting plans amount {}".format(
+        info2['plans'][0]['amount'])
     assert info2['Pledge'] == info['Pledge'], "rrMsg: restricting Pledge amount {}".format(info['Pledge'])
     # Waiting for the end of the 2 settlement
     client2.economic.wait_settlement_blocknum(client2.node, 2)
@@ -786,7 +789,7 @@ def test_LS_RV_019(new_genesis_env, clients_noconsensus):
 def test_LS_RV_013(client_new_node):
     """
     同个账号锁仓给多个人
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -835,7 +838,7 @@ def create_a_multiplayer_lockout_plan(client):
 def test_LS_RV_014(client_new_node):
     """
     同个账号被多个人锁仓
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -847,7 +850,7 @@ def test_LS_RV_014(client_new_node):
 def test_LS_RV_015(client_new_node):
     """
     使用多人锁仓金额质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -861,7 +864,7 @@ def test_LS_RV_015(client_new_node):
 def test_LS_RV_016(client_new_node):
     """
     使用多人锁仓金额委托
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -882,7 +885,7 @@ def test_LS_RV_016(client_new_node):
 def test_LS_RV_017(client_new_node):
     """
     使用多人锁仓金额增持
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -899,7 +902,7 @@ def test_LS_RV_017(client_new_node):
 def test_LS_RV_018(clients_new_node, reset_environment):
     """
     验证人非正常状态下创建锁仓计划（节点退出创建锁仓）
-    :param client_new_node_obj_list:
+    :param clients_new_node:
     :return:
     """
     client1 = clients_new_node[0]
@@ -950,7 +953,7 @@ def create_account_restricting_plan(client, economic, node):
 def test_LS_PV_001(client_new_node):
     """
     锁仓账户质押正常节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -974,7 +977,7 @@ def test_LS_PV_001(client_new_node):
 def test_LS_PV_002(client_new_node):
     """
     创建计划质押-未找到锁仓信息
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -993,7 +996,7 @@ def test_LS_PV_002(client_new_node):
 def test_LS_PV_003(client_new_node):
     """
     创建计划质押-锁仓计划质押金额<0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1015,7 +1018,7 @@ def test_LS_PV_003(client_new_node):
 def test_LS_PV_004(client_new_node):
     """
     创建计划质押-锁仓计划质押金额=0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1032,7 +1035,7 @@ def test_LS_PV_004(client_new_node):
 def test_LS_PV_005(client_new_node):
     """
     创建计划质押-锁仓计划质押金额小于最低门槛
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1050,7 +1053,7 @@ def test_LS_PV_005(client_new_node):
 def test_LS_PV_006(client_new_node):
     """
     创建计划质押-锁仓账户余额为0的情况下申请质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1078,7 +1081,7 @@ def test_LS_PV_006(client_new_node):
 def test_LS_PV_007(clients_new_node):
     """
     创建计划退回质押-退回质押金额>锁仓质押金额
-    :param client_new_node_obj_list:
+    :param clients_new_node:
     :return:
     """
     client1 = clients_new_node[0]
@@ -1111,7 +1114,7 @@ def test_LS_PV_007(clients_new_node):
 def test_LS_PV_008(client_new_node):
     """
     创建计划退回质押-欠释放金额=回退金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1128,7 +1131,7 @@ def test_LS_PV_008(client_new_node):
 def test_LS_PV_009(client_new_node):
     """
     创建计划退回质押-欠释放金额<回退金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client1 = client_new_node
@@ -1169,7 +1172,7 @@ def test_LS_PV_009(client_new_node):
 def test_LS_PV_010(client_new_node):
     """
     创建计划退回质押-锁仓账户余额不足的情况下申请退回质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1201,7 +1204,7 @@ def test_LS_PV_010(client_new_node):
 def test_LS_PV_011(client_new_node):
     """
     锁仓账户退回质押金中，申请质押节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1221,7 +1224,7 @@ def test_LS_PV_011(client_new_node):
 def test_LS_PV_012(client_new_node):
     """
     锁仓账户申请完质押后又退回质押金（犹豫期）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1241,7 +1244,7 @@ def test_LS_PV_012(client_new_node):
 def test_LS_PV_013(client_new_node):
     """
     锁仓账户申请完质押后又退回质押金（锁定期）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1287,7 +1290,7 @@ def create_free_pledge(client, economic):
 def test_LS_EV_001(client_new_node):
     """
     创建计划委托-委托正常节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1309,7 +1312,7 @@ def test_LS_EV_001(client_new_node):
 def test_LS_EV_002(client_new_node):
     """
     创建计划委托-未找到锁仓信息
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1331,7 +1334,8 @@ def test_LS_EV_002(client_new_node):
 def test_LS_EV_003(client_new_node, client_consensus):
     """
     锁仓账户委托基金会节点
-    :param client_new_node_obj:
+    :param client_new_node:
+    :param client_consensus:
     :return:
     """
     client = client_new_node
@@ -1346,7 +1350,7 @@ def test_LS_EV_003(client_new_node, client_consensus):
 def test_LS_EV_004(client_new_node):
     """
     锁仓账户委托非候选节点(锁定期)
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1381,7 +1385,7 @@ def test_LS_EV_004(client_new_node):
 def test_LS_EV_005(client_new_node):
     """
     锁仓账户委托金额小于最低委托金
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1397,7 +1401,7 @@ def test_LS_EV_005(client_new_node):
 def test_LS_EV_006(client_new_node):
     """
     有锁仓可用金额，但是账户余额为0的情况下申请委托
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1426,7 +1430,7 @@ def test_LS_EV_006(client_new_node):
 def test_LS_EV_007(client_new_node):
     """
     创建计划委托-锁仓计划委托金额<0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1448,7 +1452,7 @@ def test_LS_EV_007(client_new_node):
 def test_LS_EV_008(client_new_node):
     """
     创建计划委托-锁仓计划委托金额=0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1481,7 +1485,7 @@ def create_delegation_information(client, economic, node, base):
 def test_LS_EV_009(client_new_node):
     """
     锁仓账户发起委托之后赎回部分委托验证（犹豫期）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1505,7 +1509,7 @@ def test_LS_EV_009(client_new_node):
 def test_LS_EV_010(client_new_node):
     """
     锁仓账户发起委托之后赎回全部委托验证（犹豫期）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1528,7 +1532,7 @@ def test_LS_EV_010(client_new_node):
 def test_LS_EV_011(client_new_node):
     """
     锁仓账户发起委托之后赎回委托验证（锁定期）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1550,7 +1554,7 @@ def test_LS_EV_011(client_new_node):
 def test_LS_EV_012(client_new_node):
     """
     锁仓赎回委托金额小于委托最低门槛
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1568,7 +1572,7 @@ def test_LS_EV_012(client_new_node):
 def test_LS_EV_013(client_new_node):
     """
     锁仓赎回委托后剩余委托小于委托最低门槛
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1597,7 +1601,7 @@ def test_LS_EV_013(client_new_node):
 def test_LS_EV_014(clients_new_node, reset_environment):
     """
     锁仓账户委托节点状态异常验证人（节点已挂）
-    :param client_new_node_obj_list:
+    :param clients_new_node:
     :param reset_environment:
     :return:
     """
@@ -1622,7 +1626,7 @@ def test_LS_EV_014(clients_new_node, reset_environment):
 def test_LS_EV_015(client_new_node):
     """
     创建计划委托-锁仓账户余额为0的情况下申请委托
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1651,7 +1655,7 @@ def test_LS_EV_015(client_new_node):
 def test_LS_EV_016(client_new_node):
     """
     创建计划退回委托-锁仓计划退回委托金额<0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1673,7 +1677,7 @@ def test_LS_EV_016(client_new_node):
 def test_LS_EV_017(client_new_node):
     """
     创建计划退回委托-锁仓计划退回委托金额=0
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1690,7 +1694,7 @@ def test_LS_EV_017(client_new_node):
 def test_LS_EV_018(client_new_node):
     """
     创建计划退回委托-锁仓计划退回委托金额>锁仓委托金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1708,7 +1712,7 @@ def test_LS_EV_018(client_new_node):
 def test_LS_EV_019(client_new_node):
     """
     创建计划退回委托-欠释放金额>赎回委托金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1739,7 +1743,7 @@ def test_LS_EV_019(client_new_node):
 def test_LS_EV_020(client_new_node):
     """
     创建计划退回委托-欠释放金额=撤销委托金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1768,7 +1772,7 @@ def test_LS_EV_020(client_new_node):
 def test_LS_EV_021(client_new_node):
     """
     创建计划退回委托-欠释放金额<撤销委托金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1801,7 +1805,7 @@ def test_LS_EV_021(client_new_node):
 def test_LS_EV_022(client_new_node):
     """
     创建计划退回委托-锁仓账户余额不足的情况下申请退回委托
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1856,7 +1860,7 @@ def create_restricting_increase_staking(client, economic, node):
 def test_LS_IV_001(client_new_node):
     """
     锁仓账户申请质押后用锁仓余额进行增持质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1872,7 +1876,7 @@ def test_LS_IV_001(client_new_node):
 def test_LS_IV_002(client_new_node):
     """
     有锁仓可用金额，但是账户gas不足的情况下申请增持
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1906,7 +1910,7 @@ def test_LS_IV_002(client_new_node):
 def test_LS_IV_003(clients_new_node, reset_environment):
     """
     锁仓账户增持状态异常验证人（节点已挂）
-    :param client_new_node_obj_list:
+    :param clients_new_node:
     :param reset_environment:
     :return:
     """
@@ -1942,7 +1946,7 @@ def restricting_plan_verification_pledge(client, economic, node):
 def test_LS_CSV_001(client_new_node):
     """
     创建计划质押-锁仓账户和释放账户是同一个账户账户进行质押（质押金额小于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1960,7 +1964,7 @@ def test_LS_CSV_001(client_new_node):
 def test_LS_CSV_002(client_new_node):
     """
     创建计划质押-锁仓账户和释放账户是同一个账户账户进行质押（质押金额大于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -1990,7 +1994,7 @@ def restricting_plan_verification_pledge2(client, economic, node):
 def test_LS_CSV_003(client_new_node):
     """
     创建计划质押-锁仓账户和释放账户不同时进行质押（质押金额小于等于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2008,7 +2012,7 @@ def test_LS_CSV_003(client_new_node):
 def test_LS_CSV_004(client_new_node):
     """
     创建计划质押-锁仓账户和释放账户不同时进行质押（质押金额大于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2040,7 +2044,7 @@ def restricting_plan_verification_add_staking(client, economic, node):
 def test_LS_CSV_005(client_new_node):
     """
     锁仓账户和释放账户是同一个账户账户进行增持质押（质押金额小于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2058,7 +2062,7 @@ def test_LS_CSV_005(client_new_node):
 def test_LS_CSV_006(client_new_node):
     """
     锁仓账户和释放账户是同一个账户账户进行增持质押（质押金额大于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2091,7 +2095,7 @@ def restricting_plan_verification_add_staking2(client, economic, node):
 def test_LS_CSV_007(client_new_node):
     """
     锁仓账户和释放账户不同时进行质押（增持质押金额小于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2109,7 +2113,7 @@ def test_LS_CSV_007(client_new_node):
 def test_LS_CSV_008(client_new_node):
     """
     锁仓账户和释放账户不同时进行质押（增持质押金额大于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2142,7 +2146,7 @@ def restricting_plan_verification_delegate(client, economic, node):
 def test_LS_CSV_009(client_new_node):
     """
     锁仓账户和释放账户不是同一个账号进行委托（委托金额小于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2160,7 +2164,7 @@ def test_LS_CSV_009(client_new_node):
 def test_LS_CSV_010(client_new_node):
     """
     锁仓账户和释放账户不是同一个账号进行委托（委托金额大于锁仓金额）
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2178,7 +2182,7 @@ def test_LS_CSV_010(client_new_node):
 def test_LS_CSV_011(client_new_node):
     """
     锁仓账号在犹豫期申请质押后，在锁定期申请增持后，在申请退回质押金
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2218,7 +2222,7 @@ def test_LS_CSV_011(client_new_node):
 def test_LS_CSV_012(client_new_node):
     """
     锁仓账户退回质押金中，申请委托节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2253,7 +2257,7 @@ def test_LS_CSV_012(client_new_node):
 def test_LS_CSV_013(client_new_node):
     """
     锁仓账户退回质押金中，申请增持质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2302,7 +2306,7 @@ def steps_of_returning_pledge(client, economic, node):
 def test_LS_CSV_014(client_new_node):
     """
     锁仓账户退回质押金后，重新申请质押节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2326,7 +2330,7 @@ def test_LS_CSV_014(client_new_node):
 def test_LS_CSV_015(client_new_node):
     """
     锁仓账户退回质押金后，重新申请委托节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node
@@ -2351,7 +2355,7 @@ def test_LS_CSV_015(client_new_node):
 def test_LS_CSV_016(client_new_node):
     """
     锁仓账户退回质押金后，重新申请增持质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = client_new_node

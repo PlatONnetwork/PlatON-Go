@@ -12,27 +12,27 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
     get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
 
 
-def get_out_block_penalty_parameters(client1, node, amount_type):
+def get_out_block_penalty_parameters(client, node, amount_type):
     # view Consensus Amount of pledge
-    candidate_info = client1.ppos.getCandidateInfo(node.node_id)
+    candidate_info = client.ppos.getCandidateInfo(node.node_id)
     log.info("Pledge node information: {}".format(candidate_info))
     pledge_amount1 = candidate_info['Ret'][amount_type]
     # view block_reward
     log.info("block: {}".format(node.eth.blockNumber))
-    block_reward, staking_reward = client1.economic.get_current_year_reward(node)
+    block_reward, staking_reward = client.economic.get_current_year_reward(node)
     log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # Get governable parameters
-    slash_blocks = get_governable_parameter_value(client1, 'slashBlocksReward')
+    slash_blocks = get_governable_parameter_value(client, 'slashBlocksReward')
     return pledge_amount1, block_reward, slash_blocks
 
 
-def penalty_proportion_and_income(client_obj):
+def penalty_proportion_and_income(client):
     # view Pledge amount
-    candidate_info1 = client_obj.ppos.getCandidateInfo(client_obj.node.node_id)
+    candidate_info1 = client.ppos.getCandidateInfo(client.node.node_id)
     pledge_amount1 = candidate_info1['Ret']['Released']
     # view Parameter value before treatment
-    penalty_ratio = get_governable_parameter_value(client_obj, 'slashFractionDuplicateSign')
-    proportion_ratio = get_governable_parameter_value(client_obj, 'duplicateSignReportReward')
+    penalty_ratio = get_governable_parameter_value(client, 'slashFractionDuplicateSign')
+    proportion_ratio = get_governable_parameter_value(client, 'duplicateSignReportReward')
     return pledge_amount1, int(penalty_ratio), int(proportion_ratio)
 
 
@@ -501,7 +501,7 @@ def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     """
     验证人被处罚后质押金=>创建验证人的最小质押门槛金额K
     :param new_genesis_env:
-    :param client_con_list_obj:
+    :param new_genesis_env:
     :return:
     """
     # Change configuration parameters
@@ -544,7 +544,7 @@ def test_VP_GPFV_014(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金低于质押金额（自由金额质押）
     :param new_genesis_env:
-    :param client_noc_list_obj:
+    :param new_genesis_env:
     :return:
     """
     # Change configuration parameters
@@ -605,7 +605,6 @@ def test_VP_GPFV_015(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金等于于自由处罚金（自由金额质押）
     :param new_genesis_env:
-    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -672,7 +671,6 @@ def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金大于自由处罚金（自由金额质押）
     :param new_genesis_env:
-    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -742,7 +740,6 @@ def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金低于质押金额（锁仓金额质押）
     :param new_genesis_env:
-    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -803,7 +800,6 @@ def test_VP_GPFV_018(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金等于质押金额（锁仓金额质押）
     :param new_genesis_env:
-    :param client_noc_list_obj:
     :return:
     """
     # Change configuration parameters
@@ -873,7 +869,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金大于质押金额（锁仓金额质押）
     :param new_genesis_env:
-    :param client_noc_list_obj:
+    :param clients_noconsensus:
     :return:
     """
     # Change configuration parameters
@@ -939,7 +935,7 @@ def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
 def test_VP_GPFV_020(new_genesis_env, clients_noconsensus):
     """
     移出PlatON验证人与候选人名单，（扣除以后剩余自有质押金），未申请退回质押金
-    :param client_noc_list_obj:
+    :param clients_noconsensus:
     :return:
     """
     # Change configuration parameters
