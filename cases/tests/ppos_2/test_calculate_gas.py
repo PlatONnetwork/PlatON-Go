@@ -184,5 +184,3 @@ def test_withdrew_staking_gas(client_new_node):
     assert balance1 - gas * gasPrice == balance2 - economic.create_staking_limit
 
 
-if __name__ == '__main__':
-    pytest.main(['-s', 'test_calculate_gas.py::test_staking_gas'])
