@@ -92,18 +92,16 @@ def test_LS_UPV_002_1(client_new_node_obj):
     node = client.node
     # create restricting plan
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
-    address1 = None
     lock_amount = node.web3.toWei(1000, 'ether')
     plan = [{'Epoch': 1, 'Amount': lock_amount}]
-    if address[:2] == '0x':
-        address1 = address[2:]
-    log.info("address: {}".format(address))
+    address_hash = address[2:]
+    log.info("address: {}".format(address_hash))
     plan_list = []
     for dict_ in plan:
         v = [dict_[k] for k in dict_]
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
-    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address_hash)), rlp_list])
     transaction_data = {"to": address, "data": data}
     aa = node.eth.estimateGas(transaction_data)
     dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
@@ -130,18 +128,16 @@ def test_LS_UPV_002_2(client_new_node_obj):
     node = client.node
     # create restricting plan
     address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit)
-    address1 = None
     lock_amount = node.web3.toWei(1000, 'ether')
     plan = [{'Epoch': 1, 'Amount': lock_amount}, {'Epoch': 2, 'Amount': lock_amount}]
-    if address[:2] == '0x':
-        address1 = address[2:]
-    log.info("address: {}".format(address))
+    address_hash = address[2:]
+    log.info("address: {}".format(address_hash))
     plan_list = []
     for dict_ in plan:
         v = [dict_[k] for k in dict_]
         plan_list.append(v)
     rlp_list = rlp.encode(plan_list)
-    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address1)), rlp_list])
+    data = rlp.encode([rlp.encode(int(4000)), rlp.encode(bytes.fromhex(address_hash)), rlp_list])
     dynamic_gas = get_the_dynamic_parameter_gas_fee(data)
     gas_total = 21000 + 18000 + 8000 + 21000 * 2 + dynamic_gas
     log.info("gas_total: {}".format(gas_total))
@@ -318,9 +314,9 @@ def test_LS_RV_002(client_new_node_obj, balace1, balace2):
     address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
                                                                        client_new_node_obj.node.web3.toWei(1000,
                                                                                                            'ether'))
-    louk_up_balace1 = client_new_node_obj.node.web3.toWei(balace1, 'ether')
-    louk_up_balace2 = client_new_node_obj.node.web3.toWei(balace2, 'ether')
-    plan = [{'Epoch': 1, 'Amount': louk_up_balace1}, {'Epoch': 2, 'Amount': louk_up_balace2}]
+    lock_up_balace1 = client_new_node_obj.node.web3.toWei(balace1, 'ether')
+    lock_up_balace2 = client_new_node_obj.node.web3.toWei(balace2, 'ether')
+    plan = [{'Epoch': 1, 'Amount': lock_up_balace1}, {'Epoch': 2, 'Amount': lock_up_balace2}]
     result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
     if 0 < balace1 + balace2 < 1000:
         assert_code(result, 0)
@@ -330,7 +326,7 @@ def test_LS_RV_002(client_new_node_obj, balace1, balace2):
         assert_code(result, 304011)
 
 
-def create_restricting_platn(client_new_node_obj, plan, benifit_address, address):
+def create_restricting_plan(client_new_node_obj, plan, benifit_address, address):
     """
     create restricting plan
     :param client_new_node_obj:
@@ -363,7 +359,7 @@ def test_LS_RV_003(client_new_node_obj):
     louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 1, 'Amount': louk_up_balace}]
     # create restricting plan
-    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan, address, address)
     # assert restricting plan
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
@@ -390,7 +386,7 @@ def test_LS_RV_004(client_new_node_obj):
     louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
     # create restricting plan
-    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan, address, address)
     # assert restricting plan
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
@@ -421,9 +417,9 @@ def test_LS_RV_005(client_new_node_obj):
     louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}]
     # create restricting plan
-    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan, address, address)
     # create restricting plan
-    restricting_info = create_restricting_platn(client_new_node_obj, plan, address, address)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan, address, address)
     # assert restricting plan
     assert restricting_info['Ret']['balance'] == louk_up_balace * 2, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
@@ -436,12 +432,12 @@ def test_LS_RV_005(client_new_node_obj):
         restricting_info['Ret']['plans'][0]['amount'])
 
 
-def create_lock_release_amount(client_obj, amount1, amount2):
-    # create account1
-    lock_address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, amount1)
-    # create account2
-    release_address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, amount2)
-    return lock_address, release_address
+def create_lock_release_amount(client, first_amount, second_amount):
+    # create first_address
+    first_address, _ = client.economic.account.generate_account(client.node.web3, first_amount)
+    # create second_address
+    second_address, _ = client.economic.account.generate_account(client.node.web3, second_amount)
+    return first_address, second_address
 
 
 @pytest.mark.P1
@@ -458,9 +454,9 @@ def test_LS_RV_006(client_new_node_obj):
     louk_up_balace = client_new_node_obj.node.web3.toWei(100, 'ether')
     plan = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
     # create restricting plan1
-    restricting_info = create_restricting_platn(client_new_node_obj, plan, address1, address1)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan, address1, address1)
     # create restricting plan2
-    restricting_info = create_restricting_platn(client_new_node_obj, plan, address1, address2)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan, address1, address2)
     # assert restricting plan1
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
@@ -491,9 +487,9 @@ def test_LS_RV_007(client_new_node_obj):
     plan1 = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 2, 'Amount': louk_up_balace}]
     plan2 = [{'Epoch': 1, 'Amount': louk_up_balace}, {'Epoch': 3, 'Amount': louk_up_balace}]
     # create restricting plan1
-    restricting_info = create_restricting_platn(client_new_node_obj, plan1, address1, address1)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan1, address1, address1)
     # create restricting plan2
-    restricting_info = create_restricting_platn(client_new_node_obj, plan2, address1, address2)
+    restricting_info = create_restricting_plan(client_new_node_obj, plan2, address1, address2)
     # assert restricting plan1
     assert restricting_info['Ret']['balance'] == louk_up_balace * 4, "ErrMsg:Restricting balance：{}".format(
         restricting_info['Ret']['balance'])
@@ -814,6 +810,27 @@ def test_LS_RV_013(client_new_node_obj):
     assert_code(restricting_info, 0)
 
 
+def create_a_multiplayer_lockout_plan(client):
+    economic = client.economic
+    node = client.node
+    # create account
+    first_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    second_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    locked_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(locked_address, plan, first_address)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(locked_address)
+    assert_code(restricting_info, 0)
+    # create Restricting Plan1
+    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
+    result = client.restricting.createRestrictingPlan(locked_address, plan, second_address)
+    assert_code(result, 0)
+    restricting_info = client.ppos.getRestrictingInfo(locked_address)
+    return locked_address, restricting_info
+
+
 @pytest.mark.P1
 def test_LS_RV_014(client_new_node_obj):
     """
@@ -822,25 +839,8 @@ def test_LS_RV_014(client_new_node_obj):
     :return:
     """
     client = client_new_node_obj
-    economic = client.economic
-    node = client.node
-    # create account
-    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    address3, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # create Restricting Plan1
-    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
-    result = client.restricting.createRestrictingPlan(address3, plan, address1)
-    assert_code(result, 0)
-    restricting_info = client.ppos.getRestrictingInfo(address3)
+    locked_address, restricting_info = create_a_multiplayer_lockout_plan(client)
     assert_code(restricting_info, 0)
-    # create Restricting Plan1
-    plan = [{'Epoch': 1, 'Amount': economic.create_staking_limit}]
-    result = client.restricting.createRestrictingPlan(address3, plan, address2)
-    assert_code(result, 0)
-    restricting_info = client.ppos.getRestrictingInfo(address3)
-    assert_code(restricting_info, 0)
-    return address3
 
 
 @pytest.mark.P1
@@ -851,11 +851,10 @@ def test_LS_RV_015(client_new_node_obj):
     :return:
     """
     client = client_new_node_obj
-    address3 = test_LS_RV_014(client)
+    locked_address, restricting_info = create_a_multiplayer_lockout_plan(client)
     # create staking
-    result = client.staking.create_staking(1, address3, address3)
+    result = client.staking.create_staking(1, locked_address, locked_address)
     assert_code(result, 0)
-    return address3
 
 
 @pytest.mark.P1
@@ -868,14 +867,14 @@ def test_LS_RV_016(client_new_node_obj):
     client = client_new_node_obj
     economic = client.economic
     node = client.node
-    address3 = test_LS_RV_014(client)
+    locked_address, restricting_info = create_a_multiplayer_lockout_plan(client)
     # create account
-    address4, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create staking
-    result = client.staking.create_staking(0, address4, address4)
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Application for Commission
-    result = client.delegate.delegate(1, address3, amount=economic.create_staking_limit)
+    result = client.delegate.delegate(1, locked_address, amount=economic.create_staking_limit)
     assert_code(result, 0)
 
 
@@ -887,9 +886,12 @@ def test_LS_RV_017(client_new_node_obj):
     :return:
     """
     client = client_new_node_obj
-    address3 = test_LS_RV_015(client)
+    locked_address, restricting_info = create_a_multiplayer_lockout_plan(client)
+    # create staking
+    result = client.staking.create_staking(1, locked_address, locked_address)
+    assert_code(result, 0)
     # Apply for additional pledge
-    result = client.staking.increase_staking(1, address3)
+    result = client.staking.increase_staking(1, locked_address)
     assert_code(result, 0)
 
 
@@ -1343,12 +1345,36 @@ def test_LS_EV_003(client_new_node_obj, client_consensus_obj):
 @pytest.mark.P1
 def test_LS_EV_004(client_new_node_obj):
     """
-    锁仓账户委托非候选节点
+    锁仓账户委托非候选节点(锁定期)
     :param client_new_node_obj:
     :return:
     """
     client = client_new_node_obj
-    test_LS_EV_001(client)
+    economic = client.economic
+    node = client.node
+    # create account
+    pledge_acount = von_amount(economic.create_staking_limit, 2)
+    lock_acount = node.web3.toWei(1000, 'ether')
+    pledge_address, lock_address = create_lock_release_amount(client, pledge_acount, lock_acount)
+    # create staking
+    result = client.staking.create_staking(0, pledge_address, pledge_address)
+    assert_code(result, 0)
+    # Waiting for the end of the settlement
+    economic.wait_settlement_blocknum(node)
+    # create Restricting Plan
+    plan = [{'Epoch': 1, 'Amount': von_amount(economic.delegate_limit, 10)}]
+    result = client.restricting.createRestrictingPlan(lock_address, plan, pledge_address)
+    assert_code(result, 0)
+    # Application for Commission
+    result = client.delegate.delegate(1, lock_address)
+    assert_code(result, 0)
+    # view Restricting Plan
+    restricting_info = client.ppos.getRestrictingInfo(lock_address)
+    log.info("restricting info: {}".format(restricting_info))
+    assert_code(restricting_info, 0)
+    info = restricting_info['Ret']
+    assert info['Pledge'] == economic.delegate_limit, 'ErrMsg: restricting Pledge amount {}'.format(
+        info['Pledge'])
 
 
 @pytest.mark.P1

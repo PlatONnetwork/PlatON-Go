@@ -5,8 +5,17 @@ import rlp
 
 from common.key import mock_duplicate_sign, generate_key
 from common.log import log
-from tests.lib import EconomicConfig, StakingConfig, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict, get_the_dynamic_parameter_gas_fee
+from tests.lib import (
+    EconomicConfig,
+    StakingConfig,
+    check_node_in_list,
+    assert_code, von_amount,
+    get_governable_parameter_value,
+    Client,
+    update_param_by_dict,
+    get_param_by_dict,
+    get_the_dynamic_parameter_gas_fee
+)
 
 
 def penalty_proportion_and_income(client_obj):
@@ -78,7 +87,7 @@ def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
                                                                                  'ether'), "ErrMsg:report amount {}".format(
         report_amount2)
     assert incentive_pool_account2 == incentive_pool_account1 + incentive_pool_reward + (
-        report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
+            report_amount1 + proportion_reward - report_amount2), "ErrMsg:Incentive pool account {}".format(
         incentive_pool_account2)
 
 
@@ -233,10 +242,19 @@ def obtaining_evidence_information(economic, node):
 
 
 @pytest.mark.P1
-def test_VP_PV_010(client_consensus_obj):
+@pytest.mark.parametrize('first_key, second_key, value',
+                         [('epoch', None, 1), ('viewNumber', None, 1), ('blockIndex', None, 1),
+                          ('validateNode', 'index', 1)])
+def test_VP_PV_010_011_014_015(client_consensus_obj, first_key, second_key, value):
     """
-    举报双签-双签证据epoch不一致
+    VP_PV_010:举报双签-双签证据epoch不一致
+    VP_PV_011:举报双签-双签证据view_number不一致
+    VP_PV_014:举报双签-双签证据block_index不一致
+    VP_PV_015:举报双签-双签证据validate_node-index不一致
     :param client_consensus_obj:
+    :param first_key:
+    :param second_key:
+    :param value:
     :return:
     """
     client = client_consensus_obj
@@ -247,33 +265,11 @@ def test_VP_PV_010(client_consensus_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'epoch', None, 1)
+    jsondata = update_param_by_dict(report_information, 'prepareA', first_key, second_key, value)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_011(client_consensus_obj):
-    """
-    举报双签-双签证据view_number不一致
-    :param client_consensus_obj:
-    :return:
-    """
-    client = client_consensus_obj
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'viewNumber', None, 1)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
+    return result
 
 
 @pytest.mark.P1
@@ -315,50 +311,6 @@ def test_VP_PV_013(client_consensus_obj):
     # Modification of evidence
     evidence_parameter = get_param_by_dict(report_information, 'prepareB', 'blockHash')
     jsondata = update_param_by_dict(report_information, 'prepareA', 'blockHash', None, evidence_parameter)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_014(client_consensus_obj):
-    """
-    举报双签-双签证据block_index不一致
-    :param client_consensus_obj:
-    :return:
-    """
-    client = client_consensus_obj
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'blockIndex', None, 1)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_015(client_consensus_obj):
-    """
-    举报双签-双签证据validate_node-index不一致
-    :param client_consensus_obj:
-    :return:
-    """
-    client = client_consensus_obj
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Modification of evidence
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'index', 1)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
@@ -458,9 +410,13 @@ def test_VP_PV_019(client_con_list_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_020(client_con_list_obj):
+@pytest.mark.parametrize("value", [{"epoch": 1}, {"view_number": 1}, {"block_index": 1}, {"index": 1}])
+def test_VP_PV_020_to_023(client_con_list_obj, value):
     """
-    举报双签-伪造合法signature情况下伪造epoch
+    VP_PV_020:举报双签-伪造合法signature情况下伪造epoch
+    VP_PV_021:举报双签-伪造合法signature情况下伪造viewNumber
+    VP_PV_022:举报双签-伪造合法signature情况下伪造blockIndex
+    VP_PV_023:举报双签-伪造合法signature情况下伪造index
     :param client_con_list_obj:
     :return:
     """
@@ -472,111 +428,7 @@ def test_VP_PV_020(client_con_list_obj):
     # Obtain information of report evidence
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Obtain evidence of violation
-    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, epoch=1)
-    log.info("Report information: {}".format(report_information))
-    # Modification of evidence
-    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_020(client_con_list_obj):
-    """
-    举报双签-伪造合法signature情况下伪造epoch
-    :param client_con_list_obj:
-    :return:
-    """
-    client = client_con_list_obj[0]
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Obtain evidence of violation
-    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, epoch=1)
-    log.info("Report information: {}".format(report_information))
-    # Modification of evidence
-    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_021(client_con_list_obj):
-    """
-    举报双签-伪造合法signature情况下伪造viewNumber
-    :param client_con_list_obj:
-    :return:
-    """
-    client = client_con_list_obj[0]
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Obtain evidence of violation
-    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, view_number=1)
-    log.info("Report information: {}".format(report_information))
-    # Modification of evidence
-    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_022(client_con_list_obj):
-    """
-    举报双签-伪造合法signature情况下伪造blockIndex
-    :param client_con_list_obj:
-    :return:
-    """
-    client = client_con_list_obj[0]
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Obtain evidence of violation
-    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, block_index=1)
-    log.info("Report information: {}".format(report_information))
-    # Modification of evidence
-    evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
-    jsondata = update_param_by_dict(report_information, 'prepareA', 'signature', None, evidence_parameter)
-    log.info("Evidence information: {}".format(jsondata))
-    # Report verifier Duplicate Sign
-    result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
-    assert_code(result, 303000)
-
-
-@pytest.mark.P1
-def test_VP_PV_023(client_con_list_obj):
-    """
-    举报双签-伪造合法signature情况下伪造index
-    :param client_con_list_obj:
-    :return:
-    """
-    client = client_con_list_obj[0]
-    economic = client.economic
-    node = client.node
-    # create report address
-    report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
-    # Obtain information of report evidence
-    report_information, current_block = obtaining_evidence_information(economic, node)
-    # Obtain evidence of violation
-    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, index=1)
+    report_information1 = mock_duplicate_sign(1, node.nodekey, node.blsprikey, current_block, **value)
     log.info("Report information: {}".format(report_information))
     # Modification of evidence
     evidence_parameter = get_param_by_dict(report_information1, 'prepareB', 'signature')
@@ -776,7 +628,8 @@ def test_VP_PV_030(client_consensus_obj, reset_environment):
     log.info("balance1: {}".format(balance1))
     log.info("proportion reward: {}".format(proportion_reward))
     transaction_fees = gas_total * node.eth.gasPrice
-    assert balance + proportion_reward - balance1 == transaction_fees, "ErrMsg:transaction fees {}".format(transaction_fees)
+    assert balance + proportion_reward - balance1 == transaction_fees, "ErrMsg:transaction fees {}".format(
+        transaction_fees)
 
 
 @pytest.mark.P1
@@ -851,7 +704,7 @@ def test_VP_PR_003(client_new_node_obj, reset_environment):
             log.info("proportion_reward + incentive_pool_reward: {}".format(proportion_reward + incentive_pool_reward))
             info = candidate_info['Ret']
             assert info['Released'] == pledge_amount1 - (
-                proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
+                    proportion_reward + incentive_pool_reward), "ErrMsg:Pledge amount {}".format(
                 info['Released'])
             break
         else:
@@ -1027,12 +880,12 @@ def test_VP_PVF_003(client_new_node_obj, reset_environment):
             assert_code(result, 0)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
-            assert result == True, "ErrMsg:Node current status {}".format(result)
+            assert result, "ErrMsg:Node current status {}".format(result)
             # Wait for the settlement round to end
             economic.wait_consensus_blocknum(node, 2)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
-            assert result == False, "ErrMsg:Node current status {}".format(result)
+            assert not result, "ErrMsg:Node current status {}".format(result)
             break
         else:
             # wait consensus block
@@ -1080,12 +933,12 @@ def test_VP_PVF_004(client_new_node_obj, reset_environment):
             assert_code(result, 0)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
-            assert result == True, "ErrMsg:Node current status {}".format(result)
+            assert result, "ErrMsg:Node current status {}".format(result)
             # Wait for the settlement round to end
             economic.wait_consensus_blocknum(node)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
-            assert result == False, "ErrMsg:Node current status {}".format(result)
+            assert not result, "ErrMsg:Node current status {}".format(result)
             break
         else:
             # wait consensus block
@@ -1133,7 +986,7 @@ def test_VP_PVF_005(client_new_node_obj, reset_environment):
             assert_code(result, 0)
             result = check_node_in_list(node.node_id, client.ppos.getValidatorList)
             log.info("Current node in consensus list status：{}".format(result))
-            assert result == True, "ErrMsg:Node current status {}".format(result)
+            assert result, "ErrMsg:Node current status {}".format(result)
             break
         else:
             # wait consensus block

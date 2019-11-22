@@ -14,7 +14,7 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
 
 
 @pytest.mark.P1
-def AL_FI_001_to_003(new_genesis_env, staking_cfg):
+def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     """
     AL_FI_001:查看每年释放补贴激励池变化
     AL_FI_002:查看每年固定增发变化

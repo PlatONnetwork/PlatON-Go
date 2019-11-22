@@ -43,7 +43,28 @@ def client_new_node_obj_list_reset(global_test_env, staking_cfg):
     """
     global_test_env.deploy_all()
     yield get_client_noconsensus_list(global_test_env, staking_cfg)
-    # global_test_env.deploy_all()
+    global_test_env.deploy_all()
+
+
+def verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount):
+    log.info("Start stopping the current node ：{} process".format(first_client.node.url))
+    first_client.node.stop()
+    log.info("Start waiting for the end of the three consensus rounds")
+    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
+    verifier_list = second_client.ppos.getVerifierList()
+    log.info("Current billing cycle certifier list: {}".format(verifier_list))
+    candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
+    log.info("stopped pledge node information： {}".format(candidate_info))
+    amount_after_punishment = candidate_info['Ret']['Released']
+    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
+    log.info("Low block rate penalty amount: {}".format(punishment_amonut))
+    if punishment_amonut < pledge_amount:
+        assert amount_after_punishment == pledge_amount - punishment_amonut, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+            amount_after_punishment)
+    else:
+        assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+            amount_after_punishment)
 
 
 def VP_GPFV_001_002(client_new_node_obj_list_reset):
@@ -53,36 +74,40 @@ def VP_GPFV_001_002(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node 1：{}".format(client1.node.node_mark))
-    economic = client1.economic
-    node = client1.node
-    # create account
-    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    # create staking
-    result = client1.staking.create_staking(0, address, address)
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node：{}".format(first_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
+    log.info("Start creating a pledge account Pledge_address")
+    Pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
+    log.info(
+        "Created, account address: {} Amount: {}".format(Pledge_address, von_amount(economic.create_staking_limit, 2)))
+    log.info("Start applying for a pledge node")
+    result = first_client.staking.create_staking(0, Pledge_address, Pledge_address)
     assert_code(result, 0)
-    # Wait for the settlement round to end
+    log.info("Apply for pledge node completion")
+    log.info("Waiting for the current billing cycle to end")
     economic.wait_settlement_blocknum(node)
     for i in range(4):
-        result = check_node_in_list(node.node_id, client1.ppos.getValidatorList)
-        log.info("Current node in consensus list status：{}".format(result))
+        result = check_node_in_list(node.node_id, first_client.ppos.getValidatorList)
+        log.info("View current node in consensus list status：{}".format(result))
         if result:
-            log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-            # Wait for the 3 consensus round to end
-            economic.wait_consensus_blocknum(node)
-            # Get the number of pledge nodes out
+            log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+            economic.wait_consensus_blocknum(node, 3)
+            log.info("Waiting for the end of 3 consensus rounds")
             block_num = economic.get_block_count_number(node, 5)
-            log.info("Number of pledge nodes：{}".format(block_num))
-            candidate_info = client1.ppos.getCandidateInfo(node.node_id)
+            log.info("Get the number of outbound blocks in the 5 consensus rounds of the current pledge node：{}".format(
+                block_num))
+            candidate_info = first_client.ppos.getCandidateInfo(node.node_id)
             log.info("Pledged node information：{}".format(candidate_info))
             info = candidate_info['Ret']
-            assert info['Released'] == economic.create_staking_limit, "ErrMsg:Pledged Amount {}".format(info['Released'])
-            validator_list = client1.ppos.getValidatorList()
+            assert info['Released'] == economic.create_staking_limit, "ErrMsg:Pledged Amount {}".format(
+                info['Released'])
+            validator_list = first_client.ppos.getValidatorList()
             log.info("validator_list: {}".format(validator_list))
             assert len(validator_list['Ret']) == 4, "ErrMsg: Number of verification {}".format(len(validator_list))
         else:
-            # wait consensus block
+            log.info("Waiting for the current consensus round of settlement")
             economic.wait_consensus_blocknum(node)
 
 
@@ -94,41 +119,28 @@ def test_VP_GPFV_003(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
-    economic.env.deploy_all()
-    # create account
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
+    log.info("Start creating a pledge account address")
     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
-    # create staking
-    result = client1.staking.create_staking(0, address, address)
+    log.info("Start applying for a pledge node")
+    result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    # Wait for the settlement round to end
+    log.info("Pledge completed, waiting for the end of the current billing cycle")
     economic.wait_settlement_blocknum(node)
-    # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    pledge_amount2 = candidate_info['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    log.info("punishment_amonut: {}".format(punishment_amonut))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    log.info("Get the current pledge node amount and the low block rate penalty block number and the block reward")
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info(
+        "Current node deposit amount: {} Current year block reward: {} Current low block rate penalty block: {}".format(
+            pledge_amount1, block_reward, slash_blocks))
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    log.info("Start verification penalty amount")
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    log.info("Check amount completed")
 
 
 @pytest.mark.P0
@@ -138,44 +150,29 @@ def test_VP_GPFV_004(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     # create account
     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create Restricting Plan
     amount = von_amount(economic.create_staking_limit, 1)
     plan = [{'Epoch': 2, 'Amount': amount}]
-    result = client1.restricting.createRestrictingPlan(address, plan, address)
+    result = first_client.restricting.createRestrictingPlan(address, plan, address)
     assert_code(result, 0)
     # create staking
-    result = client1.staking.create_staking(1, address, address)
+    result = first_client.staking.create_staking(1, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'RestrictingPlan')
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    pledge_amount2 = candidate_info['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    log.info("Check amount completed")
 
 
 @pytest.mark.P2
@@ -185,57 +182,42 @@ def test_VP_GPFV_005(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     # create account
-    address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
     # create account
-    address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 1))
+    entrust_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 1))
     # create Restricting Plan
     amount1 = von_amount(economic.create_staking_limit, 2)
     plan = [{'Epoch': 1, 'Amount': amount1}]
-    result = client1.restricting.createRestrictingPlan(address1, plan, address1)
+    result = first_client.restricting.createRestrictingPlan(pledge_address, plan, pledge_address)
     assert_code(result, 0)
     # create Restricting Plan
     amount2 = von_amount(economic.delegate_limit, 100)
     plan = [{'Epoch': 1, 'Amount': amount2}]
-    result = client1.restricting.createRestrictingPlan(address2, plan, address2)
+    result = first_client.restricting.createRestrictingPlan(entrust_address, plan, entrust_address)
     assert_code(result, 0)
     # create staking
-    result = client1.staking.create_staking(1, address1, address1)
+    result = first_client.staking.create_staking(1, pledge_address, pledge_address)
     assert_code(result, 0)
     # increase staking
-    result = client1.staking.increase_staking(1, address1)
+    result = first_client.staking.increase_staking(1, pledge_address)
     assert_code(result, 0)
     # Additional pledge
-    result = client1.delegate.delegate(1, address2, amount=von_amount(economic.delegate_limit, 100))
+    result = first_client.delegate.delegate(1, entrust_address, amount=von_amount(economic.delegate_limit, 100))
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'RestrictingPlan')
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    pledge_amount2 = candidate_info['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    log.info("Check amount completed")
 
 
 @pytest.mark.P2
@@ -245,47 +227,32 @@ def test_VP_GPFV_006(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     # create account
     address1, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
     # create account
     address2, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 1))
     # create staking
-    result = client1.staking.create_staking(0, address1, address1)
+    result = first_client.staking.create_staking(0, address1, address1)
     assert_code(result, 0)
     # increase staking
-    result = client1.staking.increase_staking(0, address1)
+    result = first_client.staking.increase_staking(0, address1)
     assert_code(result, 0)
     # Additional pledge
-    result = client1.delegate.delegate(0, address2, amount=von_amount(economic.delegate_limit, 100))
+    result = first_client.delegate.delegate(0, address2, amount=von_amount(economic.delegate_limit, 100))
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    pledge_amount2 = candidate_info['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    log.info("Check amount completed")
 
 
 @pytest.mark.P2
@@ -295,42 +262,24 @@ def test_VP_GPFV_007(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     # create account
     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 2))
     # create staking
-    result = client1.staking.create_staking(0, address, address)
+    result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Application for return of pledge
-    result = client2.staking.withdrew_staking(address, node_id=node.node_id)
-    assert_code(result, 0)
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    pledge_amount2 = candidate_info['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(slash_blocks))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    log.info("Check amount completed")
 
 
 @pytest.mark.P2
@@ -340,42 +289,24 @@ def test_VP_GPFV_008(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     # create account
     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
     # create staking
-    result = client1.staking.create_staking(0, address, address)
+    result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     # get pledge amount1 and block reward
-    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(client1, node, 'Released')
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
-    # stop node
-    client1.node.stop()
-    # Additional pledge
-    result = client2.staking.increase_staking(0, address, node_id=node.node_id, amount=economic.create_staking_limit)
-    assert_code(result, 0)
-    # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
-    # view verifier list
-    verifier_list = client2.ppos.getVerifierList()
-    log.info("verifier_list: {}".format(verifier_list))
-    candidate_info = client2.ppos.getCandidateInfo(client1.node.node_id)
-    log.info("Pledge node information： {}".format(candidate_info))
-    pledge_amount2 = candidate_info['Ret']['Released']
-    punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
-    if punishment_amonut < pledge_amount1:
-        assert pledge_amount2 == pledge_amount1 - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
-            pledge_amount2)
-    else:
-        assert pledge_amount2 == 0, "ErrMsg:Consensus Amount of pledge {}".format(pledge_amount2)
+    pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    log.info("Check amount completed")
 
 
 def test_VP_GPFV_009(client_new_node_obj_list_reset):
@@ -384,12 +315,12 @@ def test_VP_GPFV_009(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     program_version = node.program_version
     program_version_sign = node.program_version_sign
     bls_pubkey = node.blspubkey
@@ -397,19 +328,21 @@ def test_VP_GPFV_009(client_new_node_obj_list_reset):
     # create account
     address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
     # create staking
-    result = client1.staking.create_staking(0, address, address)
+    result = first_client.staking.create_staking(0, address, address)
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
-    log.info("Current block height: {}".format(client1.node.eth.blockNumber))
+    log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
     # stop node
     node.stop()
     # Waiting for a settlement round
-    client2.economic.wait_consensus_blocknum(client2.node, 3)
-    log.info("Current block height: {}".format(client2.node.eth.blockNumber))
+    second_client.economic.wait_consensus_blocknum(second_client.node, 3)
+    log.info("Current block height: {}".format(second_client.node.eth.blockNumber))
     # create staking again
-    result = client2.staking.create_staking(0, address, address, node_id=node.node_id, program_version=program_version,
-                                            program_version_sign=program_version_sign, bls_pubkey=bls_pubkey, bls_proof=bls_proof)
+    result = second_client.staking.create_staking(0, address, address, node_id=node.node_id,
+                                                  program_version=program_version,
+                                                  program_version_sign=program_version_sign, bls_pubkey=bls_pubkey,
+                                                  bls_proof=bls_proof)
     assert_code(result, 301101)
 
 
@@ -508,49 +441,50 @@ def test_VP_GPFV_012(client_new_node_obj_list_reset):
     :param client_new_node_obj_list_reset:
     :return:
     """
-    client1 = client_new_node_obj_list_reset[0]
-    log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_new_node_obj_list_reset[1]
-    log.info("Current connection node2: {}".format(client2.node.node_mark))
-    economic = client1.economic
-    node = client1.node
+    first_client = client_new_node_obj_list_reset[0]
+    log.info("Current connection node1: {}".format(first_client.node.node_mark))
+    second_client = client_new_node_obj_list_reset[1]
+    log.info("Current connection node2: {}".format(second_client.node.node_mark))
+    economic = first_client.economic
+    node = first_client.node
     # create account1
-    address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
+    pledge_address, _ = economic.account.generate_account(node.web3, von_amount(economic.create_staking_limit, 3))
     # create account2
     report_address, _ = economic.account.generate_account(node.web3, node.web3.toWei(1000, 'ether'))
     # create staking
-    result = client1.staking.create_staking(0, address, address)
+    result = first_client.staking.create_staking(0, pledge_address, pledge_address)
     assert_code(result, 0)
     # Wait for the settlement round to end
     economic.wait_settlement_blocknum(node)
     for i in range(4):
-        result = check_node_in_list(node.node_id, client1.ppos.getValidatorList)
+        result = check_node_in_list(node.node_id, first_client.ppos.getValidatorList)
         log.info("Current node in consensus list status：{}".format(result))
         if result:
             # Query current block height
-            report_block = client1.node.eth.blockNumber
+            report_block = first_client.node.eth.blockNumber
             log.info("Current block height: {}".format(report_block))
             # Obtain penalty proportion and income
-            pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(client1)
+            pledge_amount1, penalty_ratio, proportion_ratio = penalty_proportion_and_income(first_client)
             # view Amount of penalty
             proportion_reward, incentive_pool_reward = economic.get_report_reward(pledge_amount1, penalty_ratio,
                                                                                   proportion_ratio)
             # Obtain evidence of violation
-            report_information = mock_duplicate_sign(1, client1.node.nodekey, client1.node.blsprikey, report_block)
+            report_information = mock_duplicate_sign(1, first_client.node.nodekey, first_client.node.blsprikey,
+                                                     report_block)
             log.info("Report information: {}".format(report_information))
-            result = client2.duplicatesign.reportDuplicateSign(1, report_information, report_address)
+            result = second_client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
             assert_code(result, 0)
             # Waiting for a consensus round
-            client2.economic.wait_consensus_blocknum(client2.node)
+            second_client.economic.wait_consensus_blocknum(second_client.node)
             # stop node
-            client1.node.stop()
+            first_client.node.stop()
             # Waiting for 2 consensus round
-            client2.economic.wait_consensus_blocknum(client2.node, 3)
+            second_client.economic.wait_consensus_blocknum(second_client.node, 3)
             # view block_reward
-            block_reward, staking_reward = client2.economic.get_current_year_reward(client2.node)
+            block_reward, staking_reward = second_client.economic.get_current_year_reward(second_client.node)
             log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
             # Query pledge node information:
-            candidate_info = client2.ppos.getCandidateInfo(node.node_id)
+            candidate_info = second_client.ppos.getCandidateInfo(node.node_id)
             log.info("pledge node information: {}".format(candidate_info))
             info = candidate_info['Ret']
             duplicateSign_penalty = proportion_reward + incentive_pool_reward
@@ -660,7 +594,8 @@ def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert (pledge_amount2 == pledge_amount1 - punishment_amonut * 2) or (pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
+    assert (pledge_amount2 == pledge_amount1 - punishment_amonut * 2) or (
+            pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
     assert pledge_amount3 == increase_amount, "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
@@ -795,9 +730,11 @@ def test_VP_GPFV_016(new_genesis_env, client_noc_list_obj):
     pledge_amount3 = info['RestrictingPlan']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
-    assert (pledge_amount2 == 0) or (pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
+    assert (pledge_amount2 == 0) or (
+            pledge_amount2 == pledge_amount1 - punishment_amonut), "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
-    assert (pledge_amount3 == increase_amount - (punishment_amonut * 2 - pledge_amount1)) or (pledge_amount3 == 0), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert (pledge_amount3 == increase_amount - (punishment_amonut * 2 - pledge_amount1)) or (
+            pledge_amount3 == 0), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -857,7 +794,8 @@ def test_VP_GPFV_017(new_genesis_env, client_noc_list_obj):
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(
         pledge_amount2)
-    assert pledge_amount3 == economic.create_staking_limit - (punishment_amonut * 2 - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == economic.create_staking_limit - (
+            punishment_amonut * 2 - increase_amount), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -925,7 +863,9 @@ def test_VP_GPFV_018(new_genesis_env, client_noc_list_obj):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert (pledge_amount3 == staking_amount - (von_amount(punishment_amonut, 2) - increase_amount)) or (pledge_amount3 == staking_amount - (punishment_amonut - increase_amount)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert (pledge_amount3 == staking_amount - (von_amount(punishment_amonut, 2) - increase_amount)) or (
+            pledge_amount3 == staking_amount - (
+            punishment_amonut - increase_amount)), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
@@ -991,7 +931,8 @@ def test_VP_GPFV_019(new_genesis_env, client_noc_list_obj):
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("punishment_amonut: {}".format(punishment_amonut))
     assert pledge_amount2 == 0, "ErrMsg:Pledge Released {}".format(pledge_amount2)
-    assert pledge_amount3 == amount - (punishment_amonut * 2 - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
+    assert pledge_amount3 == amount - (
+            punishment_amonut * 2 - pledge_amount1), "ErrMsg:Pledge RestrictingPlan {}".format(pledge_amount3)
 
 
 @pytest.mark.P2
