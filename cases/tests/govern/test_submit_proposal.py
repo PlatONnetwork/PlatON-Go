@@ -1468,7 +1468,7 @@ def test_CP_CR_003_CP_CR_004(submit_param):
 class TestGas:
     @pytest.mark.P2
     @allure.title('Submit version proposal function verification---gasprice')
-    def test_VP_GA_001(self, no_vp_proposal):
+    def test_VP_GP_001_VP_GP_002(self, no_vp_proposal):
         pip = no_vp_proposal
         transaction_cfg = {"gasPrice": 2100000000000000 - 1}
         try:
@@ -1485,7 +1485,7 @@ class TestGas:
 
     @pytest.mark.P2
     @allure.title('Submit param proposal function verification---gasprice')
-    def test_CP_GA_001(self, no_vp_proposal):
+    def test_PP_GP_001_PP_GP_002(self, no_vp_proposal):
         pip = no_vp_proposal
         transaction_cfg = {"gasPrice": 2000000000000000 - 1}
         try:
@@ -1502,7 +1502,7 @@ class TestGas:
 
     @pytest.mark.P2
     @allure.title('Submit text proposal function verification---gasprice')
-    def test_TP_GA_001(self, client_verifier_obj):
+    def test_TP_GP_001_TP_GP_002(self, client_verifier_obj):
         pip = client_verifier_obj.pip
         transaction_cfg = {"gasPrice": 1500000000000000 - 1}
         try:
@@ -1519,7 +1519,7 @@ class TestGas:
 
     @pytest.mark.P2
     @allure.title('Submit cancel proposal function verification---gas')
-    def test_PP_GA_001(self, no_vp_proposal):
+    def test_CP_GP_001_CP_GP_002(self, no_vp_proposal):
         pip = no_vp_proposal
         transaction_cfg = {"gasPrice": 3000000000000000 - 1, "gas": 100000}
         try:

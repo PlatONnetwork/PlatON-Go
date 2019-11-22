@@ -604,7 +604,7 @@ class TestGasUse:
 
     @pytest.mark.P2
     @allure.title('Verify gas --submittext and vote')
-    def test_submitText(self, client_verifier_obj):
+    def test_TP_GA_001(self, client_verifier_obj):
         pip = client_verifier_obj.pip
         pip_id = str(time.time())
         data = rlp.encode([rlp.encode(int(2000)), rlp.encode(bytes.fromhex(pip.node.node_id)), rlp.encode(pip_id)])
@@ -638,7 +638,7 @@ class TestGasUse:
 
     @pytest.mark.P2
     @allure.title('Verify gas --submitversion')
-    def test_submitversion(self, no_vp_proposal):
+    def test_VP_GA_001(self, no_vp_proposal):
         pip = no_vp_proposal
         pip_id = str(time.time())
         balance_before = self.get_balance(pip)
@@ -655,7 +655,7 @@ class TestGasUse:
 
     @pytest.mark.P2
     @allure.title('Verify gas --submitparam_and_cancel')
-    def test_submitparam_and_cancel(self, no_vp_proposal):
+    def test_PP_GA_001_CP_GA_001(self, no_vp_proposal):
         pip = no_vp_proposal
         pip_id = str(time.time())
         balance_before = self.get_balance(pip)
