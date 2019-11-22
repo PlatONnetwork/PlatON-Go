@@ -6,13 +6,13 @@ from common.key import mock_duplicate_sign
 
 
 @pytest.mark.P1
-def test_CS_CL_001(client_new_node_obj_list):
+def test_CS_CL_001(clients_new_node):
     """
     The longer the tenure, the easier it is to replace
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj_list[0]
+    client = clients_new_node[0]
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           10 ** 18 * 10000000)
     pledge_amount = client.economic.create_staking_limit * 2
@@ -44,13 +44,13 @@ def test_CS_CL_001(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_CS_CL_002(client_new_node_obj_list):
+def test_CS_CL_002(clients_new_node):
     """
     The higher the consensus verifier list index is replaced
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj_list[0]
+    client = clients_new_node[0]
 
     node = get_max_staking_tx_index(client.node)
     log.info("The node with the largest trade index:{}".format(node))
@@ -70,19 +70,19 @@ def test_CS_CL_002(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_CS_CL_003(client_new_node_obj_list, client_con_list_obj):
+def test_CS_CL_003(clients_new_node, clients_consensus):
     """
     The higher the consensus verifier list block, the higher it is replaced
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client_noconsensus1 = client_new_node_obj_list[0]
-    client_noconsensus2 = client_new_node_obj_list[1]
-    client_noconsensus3 = client_new_node_obj_list[2]
-    client_noconsensus4 = client_new_node_obj_list[3]
-    client_consensus1 = client_con_list_obj[0]
-    client_consensus2 = client_con_list_obj[1]
-    client_consensus3 = client_con_list_obj[2]
+    client_noconsensus1 = clients_new_node[0]
+    client_noconsensus2 = clients_new_node[1]
+    client_noconsensus3 = clients_new_node[2]
+    client_noconsensus4 = clients_new_node[3]
+    client_consensus1 = clients_consensus[0]
+    client_consensus2 = clients_consensus[1]
+    client_consensus3 = clients_consensus[2]
     validatorlist = get_pledge_list(client_consensus1.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist))
 
@@ -166,19 +166,19 @@ def test_CS_CL_003(client_new_node_obj_list, client_con_list_obj):
 
 
 @pytest.mark.P1
-def test_CS_CL_004(client_new_node_obj_list, client_consensus_obj):
+def test_CS_CL_004(clients_new_node, client_consensus):
     """
     The lower the total Shares, the easier it is to be replaced
     :param client_consensus_obj:
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj_list[0]
+    client = clients_new_node[0]
     StakingAddress = EconomicConfig.DEVELOPER_FOUNDATAION_ADDRESS
-    value = client_consensus_obj.node.web3.toWei(1000000, "ether")
-    result = client_consensus_obj.staking.increase_staking(0, StakingAddress, amount=value)
+    value = client_consensus.node.web3.toWei(1000000, "ether")
+    result = client_consensus.staking.increase_staking(0, StakingAddress, amount=value)
     assert_code(result, 0)
-    msg = client_consensus_obj.ppos.getCandidateInfo(client_consensus_obj.node.node_id)
+    msg = client_consensus.ppos.getCandidateInfo(client_consensus.node.node_id)
     log.info(msg)
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           10 ** 18 * 10000000)
@@ -187,33 +187,33 @@ def test_CS_CL_004(client_new_node_obj_list, client_consensus_obj):
     assert_code(result, 0)
     log.info(client.node.node_id)
     log.info("Next settlement period")
-    client_consensus_obj.economic.wait_settlement_blocknum(client_consensus_obj.node)
+    client_consensus.economic.wait_settlement_blocknum(client_consensus.node)
     log.info("The next consensus cycle")
-    client_consensus_obj.economic.wait_consensus_blocknum(client_consensus_obj.node)
-    validatorlist1 = get_pledge_list(client_consensus_obj.ppos.getValidatorList)
+    client_consensus.economic.wait_consensus_blocknum(client_consensus.node)
+    validatorlist1 = get_pledge_list(client_consensus.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist1))
 
-    msg = client_consensus_obj.ppos.getValidatorList()
+    msg = client_consensus.ppos.getValidatorList()
     log.info("Consensus validates the person's situation{}".format(msg))
-    assert client_consensus_obj.node.node_id in validatorlist1
+    assert client_consensus.node.node_id in validatorlist1
 
     client.economic.wait_consensus_blocknum(client.node)
-    validatorlist2 = get_pledge_list(client_consensus_obj.ppos.getValidatorList)
+    validatorlist2 = get_pledge_list(client_consensus.ppos.getValidatorList)
     log.info("validatorlist:{}".format(validatorlist2))
-    msg = client_consensus_obj.ppos.getValidatorList()
+    msg = client_consensus.ppos.getValidatorList()
     log.info("Consensus validates the person's situation{}".format(msg))
-    assert client_consensus_obj.node.node_id in validatorlist2
+    assert client_consensus.node.node_id in validatorlist2
 
 
 @pytest.mark.P1
-def test_CS_CL_005_006_008(client_new_node_obj_list):
+def test_CS_CL_005_006_008(clients_new_node):
     """
-    :param client_consensus_obj:
-    :param client_new_node_obj:
+    :param client_consensus:
+    :param client_new_node:
     :return:
     """
-    client_noconsensus1 = client_new_node_obj_list[0]
-    client_noconsensus2 = client_new_node_obj_list[1]
+    client_noconsensus1 = clients_new_node[0]
+    client_noconsensus2 = clients_new_node[1]
     client_noconsensus1.economic.env.deploy_all()
     address1, _ = client_noconsensus1.economic.account.generate_account(client_noconsensus1.node.web3,
                                                                         10 ** 18 * 10000000)
@@ -260,13 +260,13 @@ def test_CS_CL_005_006_008(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_CS_CL_007(client_new_node_obj_list):
+def test_CS_CL_007(clients_new_node):
     """
-    :param client_noc_list_obj:
+    :param clients_noconsensus:
     :return:
     """
-    client_noconsensus1 = client_new_node_obj_list[0]
-    client_noconsensus2 = client_new_node_obj_list[1]
+    client_noconsensus1 = clients_new_node[0]
+    client_noconsensus2 = clients_new_node[1]
     address1, _ = client_noconsensus1.economic.account.generate_account(client_noconsensus1.node.web3,
                                                                         10 ** 18 * 10000000)
     address2, _ = client_noconsensus1.economic.account.generate_account(client_noconsensus1.node.web3,
@@ -286,13 +286,13 @@ def test_CS_CL_007(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_CS_CL_010_030(client_new_node_obj_list):
+def test_CS_CL_010_030(clients_new_node):
     """
     :param global_test_env:
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj_list[0]
+    client = clients_new_node[0]
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           10 ** 18 * 10000000)
     value = client.economic.create_staking_limit * 2
@@ -321,12 +321,12 @@ def test_CS_CL_010_030(client_new_node_obj_list):
 
 
 @pytest.mark.P1
-def test_CS_CL_012_032(client_new_node_obj_list):
+def test_CS_CL_012_032(clients_new_node):
     """
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj_list[0]
+    client = clients_new_node[0]
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           10 ** 18 * 10000000)
     value = client.economic.create_staking_limit * 2
@@ -360,13 +360,13 @@ def test_CS_CL_012_032(client_new_node_obj_list):
 
 @pytest.mark.P1
 @pytest.mark.compatibility
-def test_CS_CL_013_031(client_new_node_obj_list, client_consensus_obj):
+def test_CS_CL_013_031(clients_new_node, client_consensus):
     """
-    :param client_new_node_obj:
+    :param client_new_node:
     :param client_consensus_obj:
     :return:
     """
-    client = client_new_node_obj_list[0]
+    client = clients_new_node[0]
     address, _ = client.economic.account.generate_account(client.node.web3,
                                                           10 ** 18 * 10000000)
     value = client.economic.create_staking_limit * 2
@@ -380,32 +380,32 @@ def test_CS_CL_013_031(client_new_node_obj_list, client_consensus_obj):
 
     log.info("Close one node")
     client.node.stop()
-    node = client_consensus_obj.node
+    node = client_consensus.node
     log.info("The next  periods")
     client.economic.wait_settlement_blocknum(node)
-    verifierlist = get_pledge_list(client_consensus_obj.ppos.getVerifierList)
+    verifierlist = get_pledge_list(client_consensus.ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
     assert client.node.node_id not in verifierlist
 
 
 @pytest.mark.P2
 @pytest.mark.parametrize('status', [0, 1, 2])
-def test_CS_CL_014_015_016_029(status, client_new_node_obj_list, client_con_list_obj):
+def test_CS_CL_014_015_016_029(status, clients_new_node, clients_consensus):
     """
     :param status:
     :param global_test_env:
     :param client_con_list_obj:
-    :param client_noc_list_obj:
+    :param clients_noconsensus:
     :return:
     """
-    client_noconsensus1 = client_new_node_obj_list[0]
-    client_noconsensus2 = client_new_node_obj_list[1]
-    client_noconsensus3 = client_new_node_obj_list[2]
-    client_noconsensus4 = client_new_node_obj_list[3]
-    client_consensus1 = client_con_list_obj[0]
-    client_consensus2 = client_con_list_obj[1]
-    client_consensus3 = client_con_list_obj[2]
-    client_consensus4 = client_con_list_obj[3]
+    client_noconsensus1 = clients_new_node[0]
+    client_noconsensus2 = clients_new_node[1]
+    client_noconsensus3 = clients_new_node[2]
+    client_noconsensus4 = clients_new_node[3]
+    client_consensus1 = clients_consensus[0]
+    client_consensus2 = clients_consensus[1]
+    client_consensus3 = clients_consensus[2]
+    client_consensus4 = clients_consensus[3]
 
     log.info("The next consensus cycle")
     client_consensus1.economic.wait_consensus_blocknum(client_consensus1.node, number=1)
@@ -540,26 +540,26 @@ def test_CS_CL_014_015_016_029(status, client_new_node_obj_list, client_con_list
 
         validatorlist = get_pledge_list(client_noconsensus2.ppos.getValidatorList)
         log.info("validatorlist:{}".format(validatorlist))
-        log.info("node:{}".format(client_con_list_obj[3].node.node_id))
+        log.info("node:{}".format(clients_consensus[3].node.node_id))
         assert client_consensus4.node.node_id in validatorlist
 
 
 @pytest.mark.P2
 @pytest.mark.parametrize('status', [0, 1])
-def test_CS_CL_017_018_019(status, client_new_node_obj_list, client_con_list_obj):
+def test_CS_CL_017_018_019(status, clients_new_node, clients_consensus):
     """
     :param status:
     :param global_test_env:
     :param client_con_list_obj:
-    :param client_noc_list_obj:
+    :param clients_noconsensus:
     :return:
     """
-    client_noconsensus1 = client_new_node_obj_list[0]
-    client_noconsensus2 = client_new_node_obj_list[1]
-    client_consensus1 = client_con_list_obj[0]
-    client_consensus2 = client_con_list_obj[1]
-    client_consensus3 = client_con_list_obj[2]
-    client_consensus4 = client_con_list_obj[3]
+    client_noconsensus1 = clients_new_node[0]
+    client_noconsensus2 = clients_new_node[1]
+    client_consensus1 = clients_consensus[0]
+    client_consensus2 = clients_consensus[1]
+    client_consensus3 = clients_consensus[2]
+    client_consensus4 = clients_consensus[3]
 
     log.info("The next consensus cycle")
     client_consensus1.economic.wait_consensus_blocknum(client_consensus1.node, number=1)
@@ -627,9 +627,9 @@ def test_CS_CL_017_018_019(status, client_new_node_obj_list, client_con_list_obj
 
 
 @pytest.mark.P2
-def test_CS_CL_027_028(client_new_node_obj_list):
-    client_noconsensus1 = client_new_node_obj_list[0]
-    client_noconsensus2 = client_new_node_obj_list[1]
+def test_CS_CL_027_028(clients_new_node):
+    client_noconsensus1 = clients_new_node[0]
+    client_noconsensus2 = clients_new_node[1]
 
     address1, _ = client_noconsensus1.economic.account.generate_account(client_noconsensus1.node.web3,
                                                                         10 ** 18 * 10000000)
@@ -655,8 +655,8 @@ def test_CS_CL_027_028(client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_CS_CL_033(client_new_node_obj_list):
-    client = client_new_node_obj_list[0]
+def test_CS_CL_033(clients_new_node):
+    client = clients_new_node[0]
     address1, _ = client.economic.account.generate_account(client.node.web3,
                                                            10 ** 18 * 10000000)
 

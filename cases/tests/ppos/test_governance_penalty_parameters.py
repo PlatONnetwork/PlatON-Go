@@ -61,7 +61,7 @@ def verify_changed_parameters(client_con_list_obj, first_pledge_amount, block_re
 
 @pytest.mark.P1
 @pytest.mark.parametrize('mark', [False, True])
-def test_PIP_PVF_001_002(client_con_list_obj, mark, reset_environment):
+def test_PIP_PVF_001_002(clients_consensus, mark, reset_environment):
     """
     PIP_PVF_001:治理修改低0出块率扣除验证人自有质押金块数投票失败
     PIP_PVF_002:理修改低0出块率扣除验证人自有质押金块数成功处于未生效期
@@ -69,7 +69,7 @@ def test_PIP_PVF_001_002(client_con_list_obj, mark, reset_environment):
     :return:
     """
     index = 0
-    first_client = client_con_list_obj[index]
+    first_client = clients_consensus[index]
     # get pledge amount1 and block reward
     first_pledge_amount, block_reward, first_slash_blocks = information_before_slash_blocks(first_client)
     # create Parametric proposal
@@ -78,11 +78,11 @@ def test_PIP_PVF_001_002(client_con_list_obj, mark, reset_environment):
     second_slash_blocks = get_governable_parameter_value(first_client, 'slashBlocksReward')
     assert first_slash_blocks == second_slash_blocks, "ErrMsg:slash blocks {}".format(second_slash_blocks)
     # Verify changed parameters
-    verify_changed_parameters(client_con_list_obj, first_pledge_amount, block_reward, first_slash_blocks)
+    verify_changed_parameters(clients_consensus, first_pledge_amount, block_reward, first_slash_blocks)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_003(client_con_list_obj, reset_environment):
+def test_PIP_PVF_003(clients_consensus, reset_environment):
     """
     治理修改低0出块率扣除验证人自有质押金块数成功处于已生效期
     :param client_con_list_obj:
@@ -90,7 +90,7 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
     :return:
     """
     first_index = 0
-    first_client = client_con_list_obj[first_index]
+    first_client = clients_consensus[first_index]
     log.info("当前连接节点：{}".format(first_client.node.node_mark))
     node = first_client.node
     # get pledge amount1 and block reward
@@ -102,11 +102,11 @@ def test_PIP_PVF_003(client_con_list_obj, reset_environment):
     second_slash_blocks = get_governable_parameter_value(first_client, 'slashBlocksReward')
     assert second_slash_blocks == '0', "ErrMsg:Change parameters {}".format(second_slash_blocks)
     # Verify changed parameters
-    verify_changed_parameters(client_con_list_obj, first_pledge_amount, block_reward, second_slash_blocks)
+    verify_changed_parameters(clients_consensus, first_pledge_amount, block_reward, second_slash_blocks)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_004(client_consensus_obj, client_noc_list_obj, reset_environment):
+def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
     """
     治理修改低0出块率扣除验证人自有质押金块数成功扣除区块奖励块数60100-自由金额质押
     :param client_consensus_obj:
@@ -114,10 +114,10 @@ def test_PIP_PVF_004(client_consensus_obj, client_noc_list_obj, reset_environmen
     :param reset_environment:
     :return:
     """
-    consensus_client = client_consensus_obj
+    consensus_client = client_consensus
     log.info("Current connection consensus node".format(consensus_client.node.node_mark))
     first_index = 0
-    second_client = client_noc_list_obj[first_index]
+    second_client = clients_noconsensus[first_index]
     log.info("Current connection non-consensus node：{}".format(second_client.node.node_mark))
     economic = consensus_client.economic
     node = consensus_client.node
@@ -142,7 +142,7 @@ def test_PIP_PVF_004(client_consensus_obj, client_noc_list_obj, reset_environmen
         log.info("Current node in consensus list status：{}".format(result))
         if result:
             # Verify changed parameters
-            verify_changed_parameters(client_noc_list_obj, first_pledge_amount, block_reward, second_slash_blocks)
+            verify_changed_parameters(clients_noconsensus, first_pledge_amount, block_reward, second_slash_blocks)
             break
         else:
             # wait consensus block
@@ -150,16 +150,16 @@ def test_PIP_PVF_004(client_consensus_obj, client_noc_list_obj, reset_environmen
 
 
 @pytest.mark.P1
-def test_PIP_PVF_005(client_new_node_obj_list, reset_environment):
+def test_PIP_PVF_005(clients_new_node, reset_environment):
     """
     治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数60100-锁仓金额质押
     :param client_new_node_obj_list:
-    :param client_new_node_obj_list:
+    :param clients_new_node:
     :param reset_environment:
     :return:
     """
     first_index = 0
-    first_client = client_new_node_obj_list[first_index]
+    first_client = clients_new_node[first_index]
     log.info("当前连接节点：{}".format(first_client.node.node_mark))
     economic = first_client.economic
     node = first_client.node
@@ -189,7 +189,7 @@ def test_PIP_PVF_005(client_new_node_obj_list, reset_environment):
         # log.info("Current node in consensus list status：{}".format(result))
         if result:
             # Verify changed parameters
-            verify_changed_parameters(client_new_node_obj_list, first_pledge_amount, block_reward, second_slash_blocks)
+            verify_changed_parameters(clients_new_node, first_pledge_amount, block_reward, second_slash_blocks)
             break
         else:
             # wait consensus block
@@ -207,7 +207,7 @@ def adjust_initial_parameters(new_genesis_env):
 
 
 @pytest.mark.P1
-def test_PIP_PVF_006(new_genesis_env, client_con_list_obj):
+def test_PIP_PVF_006(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期投票失败
     :param client_con_list_obj:
@@ -216,34 +216,34 @@ def test_PIP_PVF_006(new_genesis_env, client_con_list_obj):
     # Change configuration parameters
     adjust_initial_parameters(new_genesis_env)
     # view Parameter value before treatment
-    first_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    first_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'maxEvidenceAge', '1', False)
+    param_governance_verify_before_endblock(clients_consensus[0], 'slashing', 'maxEvidenceAge', '1', False)
     # view Parameter value before treatment again
-    second_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    second_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     assert second_slash_blocks == first_slash_blocks, "ErrMsg:Parameter value after treatment {}".format(second_slash_blocks)
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # Verify changed parameters
-    effective_block = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node, 2)
+    effective_block = clients_consensus[0].economic.get_front_settlement_switchpoint(clients_consensus[0].node, 2)
     if effective_block < 41:
-        log.info("Current block: {}".format(client_con_list_obj[0].node.eth.blockNumber))
+        log.info("Current block: {}".format(clients_consensus[0].node.eth.blockNumber))
         effective_block = 41
     log.info("Effective block height: {}".format(effective_block))
     # Report prepareblock signature
-    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
-                                             client_con_list_obj[0].node.blsprikey,
+    report_information = mock_duplicate_sign(1, clients_consensus[0].node.nodekey,
+                                             clients_consensus[0].node.blsprikey,
                                              effective_block)
     log.info("Report information: {}".format(report_information))
-    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    result = clients_consensus[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_007(new_genesis_env, client_con_list_obj):
+def test_PIP_PVF_007(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期处于未生效期
     :param new_genesis_env:
@@ -253,34 +253,34 @@ def test_PIP_PVF_007(new_genesis_env, client_con_list_obj):
     # Change configuration parameters
     adjust_initial_parameters(new_genesis_env)
     # view Parameter value before treatment
-    first_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    first_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'maxEvidenceAge', '1')
+    param_governance_verify_before_endblock(clients_consensus[0], 'slashing', 'maxEvidenceAge', '1')
     # view Parameter value before treatment again
-    second_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    second_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     assert second_slash_blocks == first_slash_blocks, "ErrMsg:Parameter value after treatment {}".format(second_slash_blocks)
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # Verify changed parameters
-    effective_block = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node, 2)
+    effective_block = clients_consensus[0].economic.get_front_settlement_switchpoint(clients_consensus[0].node, 2)
     if effective_block < 41:
-        log.info("Current block: {}".format(client_con_list_obj[0].node.eth.blockNumber))
+        log.info("Current block: {}".format(clients_consensus[0].node.eth.blockNumber))
         effective_block = 41
     log.info("Effective block height: {}".format(effective_block))
     # Report prepareblock signature
-    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
-                                             client_con_list_obj[0].node.blsprikey,
+    report_information = mock_duplicate_sign(1, clients_consensus[0].node.nodekey,
+                                             clients_consensus[0].node.blsprikey,
                                              effective_block)
     log.info("Report information: {}".format(report_information))
-    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    result = clients_consensus[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_008(new_genesis_env, client_con_list_obj):
+def test_PIP_PVF_008(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期处于已生效期
     :param new_genesis_env:
@@ -290,34 +290,34 @@ def test_PIP_PVF_008(new_genesis_env, client_con_list_obj):
     # Change configuration parameters
     adjust_initial_parameters(new_genesis_env)
     # view Parameter value before treatment
-    first_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    first_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'maxEvidenceAge', '1')
+    param_governance_verify(clients_consensus[0], 'slashing', 'maxEvidenceAge', '1')
     # view Parameter value before treatment again
-    second_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    second_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     assert second_slash_blocks == '1', "ErrMsg:Parameter value after treatment {}".format(second_slash_blocks)
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # Verify changed parameters
-    effective_block2 = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node,
-                                                                                        int(second_slash_blocks))
+    effective_block2 = clients_consensus[0].economic.get_front_settlement_switchpoint(clients_consensus[0].node,
+                                                                                      int(second_slash_blocks))
     log.info("Effective2 block height: {}".format(effective_block2))
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # Report2 prepareblock signature
-    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
-                                             client_con_list_obj[0].node.blsprikey,
+    report_information = mock_duplicate_sign(1, clients_consensus[0].node.nodekey,
+                                             clients_consensus[0].node.blsprikey,
                                              effective_block2)
     log.info("Report information: {}".format(report_information))
-    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    result = clients_consensus[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_009(new_genesis_env, client_con_list_obj):
+def test_PIP_PVF_009(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期（节点质押退回锁定周期-1）
     :param new_genesis_env:
@@ -332,42 +332,42 @@ def test_PIP_PVF_009(new_genesis_env, client_con_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
     # view Parameter value before treatment
-    first_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    first_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'maxEvidenceAge', '2')
+    param_governance_verify(clients_consensus[0], 'slashing', 'maxEvidenceAge', '2')
     # view Parameter value before treatment again
-    second_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    second_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     assert second_slash_blocks == '2', "ErrMsg:Parameter value after treatment {}".format(second_slash_blocks)
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # Verify changed parameters
-    effective_block1 = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node,
-                                                                                        int(first_slash_blocks))
-    effective_block2 = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node,
-                                                                                        int(second_slash_blocks))
+    effective_block1 = clients_consensus[0].economic.get_front_settlement_switchpoint(clients_consensus[0].node,
+                                                                                      int(first_slash_blocks))
+    effective_block2 = clients_consensus[0].economic.get_front_settlement_switchpoint(clients_consensus[0].node,
+                                                                                      int(second_slash_blocks))
     log.info("Effective1 block height: {}".format(effective_block1))
     log.info("Effective2 block height: {}".format(effective_block2))
     # Report1 prepareblock signature
-    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
-                                             client_con_list_obj[0].node.blsprikey,
+    report_information = mock_duplicate_sign(1, clients_consensus[0].node.nodekey,
+                                             clients_consensus[0].node.blsprikey,
                                              effective_block1)
     log.info("Report information: {}".format(report_information))
-    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    result = clients_consensus[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 0)
     # Report2 prepareblock signature
-    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
-                                             client_con_list_obj[0].node.blsprikey,
+    report_information = mock_duplicate_sign(1, clients_consensus[0].node.nodekey,
+                                             clients_consensus[0].node.blsprikey,
                                              effective_block2)
     log.info("Report information: {}".format(report_information))
-    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    result = clients_consensus[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 303000)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_010(new_genesis_env, client_con_list_obj):
+def test_PIP_PVF_010(new_genesis_env, clients_consensus):
     """
     治理修改区块双签-证据有效期（超出有效期）
     :param new_genesis_env:
@@ -377,28 +377,28 @@ def test_PIP_PVF_010(new_genesis_env, client_con_list_obj):
     # Change configuration parameters
     adjust_initial_parameters(new_genesis_env)
     # view Parameter value before treatment
-    first_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    first_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     assert first_slash_blocks == '2', "ErrMsg:Parameter value before treatment {}".format(first_slash_blocks)
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'maxEvidenceAge', '1')
+    param_governance_verify(clients_consensus[0], 'slashing', 'maxEvidenceAge', '1')
     # view Parameter value before treatment again
-    second_slash_blocks = get_governable_parameter_value(client_con_list_obj[0], 'maxEvidenceAge')
+    second_slash_blocks = get_governable_parameter_value(clients_consensus[0], 'maxEvidenceAge')
     assert second_slash_blocks == '1', "ErrMsg:Parameter value after treatment {}".format(second_slash_blocks)
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # Verify changed parameters
-    effective_block1 = client_con_list_obj[0].economic.get_front_settlement_switchpoint(client_con_list_obj[0].node,
-                                                                                        int(first_slash_blocks))
+    effective_block1 = clients_consensus[0].economic.get_front_settlement_switchpoint(clients_consensus[0].node,
+                                                                                      int(first_slash_blocks))
     log.info("Effective1 block height: {}".format(effective_block1))
     # Report1 prepareblock signature
-    report_information = mock_duplicate_sign(1, client_con_list_obj[0].node.nodekey,
-                                             client_con_list_obj[0].node.blsprikey,
+    report_information = mock_duplicate_sign(1, clients_consensus[0].node.nodekey,
+                                             clients_consensus[0].node.blsprikey,
                                              effective_block1)
     log.info("Report information: {}".format(report_information))
-    result = client_con_list_obj[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
+    result = clients_consensus[0].duplicatesign.reportDuplicateSign(1, report_information, report_address)
     assert_code(result, 303003)
 
 
@@ -436,7 +436,7 @@ def assret_penalty_amount(client_con_list_obj, first_pledge_amount, penalty_rati
 
 
 @pytest.mark.P1
-def test_PIP_PVF_011(client_con_list_obj, reset_environment):
+def test_PIP_PVF_011(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例投票失败
     :param client_con_list_obj:
@@ -444,30 +444,30 @@ def test_PIP_PVF_011(client_con_list_obj, reset_environment):
     :return:
     """
     # view Pledge amount and Parameter value before treatment
-    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(client_con_list_obj[0])
+    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '1000',
+    param_governance_verify_before_endblock(clients_consensus[0], 'slashing', 'slashFractionDuplicateSign', '1000',
                                             False)
     # view Parameter value after treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'slashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(clients_consensus[0], 'slashFractionDuplicateSign')
     assert penalty_ratio1 == penalty_ratio2, "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # create account
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # assret penalty amount
-    assret_penalty_amount(client_con_list_obj, first_pledge_amount)
+    assret_penalty_amount(clients_consensus, first_pledge_amount)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_012(client_con_list_obj, reset_environment):
+def test_PIP_PVF_012(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例处于未生效期
     :param client_con_list_obj:
@@ -475,29 +475,29 @@ def test_PIP_PVF_012(client_con_list_obj, reset_environment):
     :return:
     """
     # view Pledge amount and Parameter value before treatment
-    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(client_con_list_obj[0])
+    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '1000')
+    param_governance_verify_before_endblock(clients_consensus[0], 'slashing', 'slashFractionDuplicateSign', '1000')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'slashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(clients_consensus[0], 'slashFractionDuplicateSign')
     assert penalty_ratio1 == penalty_ratio2, "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # create account
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # assret penalty amount
-    assret_penalty_amount(client_con_list_obj, first_pledge_amount)
+    assret_penalty_amount(clients_consensus, first_pledge_amount)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_013(client_con_list_obj, reset_environment):
+def test_PIP_PVF_013(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例处于已生效期
     :param client_con_list_obj:
@@ -505,27 +505,27 @@ def test_PIP_PVF_013(client_con_list_obj, reset_environment):
     :return:
     """
     # view Pledge amount and Parameter value before treatment
-    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(client_con_list_obj[0])
+    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '1000')
+    param_governance_verify(clients_consensus[0], 'slashing', 'slashFractionDuplicateSign', '1000')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'slashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(clients_consensus[0], 'slashFractionDuplicateSign')
     assert penalty_ratio2 == '1000', "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     # create account
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # assret penalty amount
-    assret_penalty_amount(client_con_list_obj, first_pledge_amount, 1000)
+    assret_penalty_amount(clients_consensus, first_pledge_amount, 1000)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_014(client_con_list_obj, reset_environment):
+def test_PIP_PVF_014(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例为10000‱
     :param client_con_list_obj:
@@ -533,27 +533,27 @@ def test_PIP_PVF_014(client_con_list_obj, reset_environment):
     :return:
     """
     # view Pledge amount and Parameter value before treatment
-    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(client_con_list_obj[0])
+    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '10000')
+    param_governance_verify(clients_consensus[0], 'slashing', 'slashFractionDuplicateSign', '10000')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'slashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(clients_consensus[0], 'slashFractionDuplicateSign')
     assert penalty_ratio2 == '10000', "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     # create account
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # assret penalty amount
-    assret_penalty_amount(client_con_list_obj, first_pledge_amount, 10000)
+    assret_penalty_amount(clients_consensus, first_pledge_amount, 10000)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_015(client_con_list_obj, reset_environment):
+def test_PIP_PVF_015(clients_consensus, reset_environment):
     """
     治理修改区块双签-最高处罚比例为1‱
     :param client_con_list_obj:
@@ -561,23 +561,23 @@ def test_PIP_PVF_015(client_con_list_obj, reset_environment):
     :return:
     """
     # view Pledge amount and Parameter value before treatment
-    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(client_con_list_obj[0])
+    first_pledge_amount, penalty_ratio1 = information_before_penalty_ratio(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'slashFractionDuplicateSign', '1')
+    param_governance_verify(clients_consensus[0], 'slashing', 'slashFractionDuplicateSign', '1')
     # view Parameter value before treatment again
-    penalty_ratio2 = get_governable_parameter_value(client_con_list_obj[0], 'slashFractionDuplicateSign')
+    penalty_ratio2 = get_governable_parameter_value(clients_consensus[0], 'slashFractionDuplicateSign')
     assert penalty_ratio2 == '1', "ErrMsg:Parameter value after treatment {}".format(penalty_ratio2)
     # create account
-    report_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3,
-                                                                                 client_con_list_obj[0].node.web3.toWei(
+    report_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3,
+                                                                               clients_consensus[0].node.web3.toWei(
                                                                                      1000, 'ether'))
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # assret penalty amount
-    assret_penalty_amount(client_con_list_obj, first_pledge_amount, 1)
+    assret_penalty_amount(clients_consensus, first_pledge_amount, 1)
 
 
 def information_before_report_reward(client):
@@ -620,7 +620,7 @@ def asster_income_account_amount(client, report_amount1, incentive_pool_account1
 
 
 @pytest.mark.P1
-def test_PIP_PVF_016(client_con_list_obj, reset_environment):
+def test_PIP_PVF_016(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例投票失败
     :param client_con_list_obj:
@@ -628,32 +628,32 @@ def test_PIP_PVF_016(client_con_list_obj, reset_environment):
     :return:
     """
     # get first_pledge_amount report_amount1 incentive_pool_account1 report_reward1
-    first_pledge_amount, report_reward1 = information_before_report_reward(client_con_list_obj[0])
+    first_pledge_amount, report_reward1 = information_before_report_reward(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'duplicateSignReportReward', '60',
+    param_governance_verify_before_endblock(clients_consensus[0], 'slashing', 'duplicateSignReportReward', '60',
                                             False)
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'duplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(clients_consensus[0], 'duplicateSignReportReward')
     assert report_reward1 == report_reward2, "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # get account amount
-    report_address, report_amount1, incentive_pool_account1 = get_account_amount(client_con_list_obj[0])
+    report_address, report_amount1, incentive_pool_account1 = get_account_amount(clients_consensus[0])
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(first_pledge_amount)
+    proportion_reward, incentive_pool_reward = clients_consensus[1].economic.get_report_reward(first_pledge_amount)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # asster account amount
-    asster_income_account_amount(client_con_list_obj[1], report_amount1, incentive_pool_account1,
+    asster_income_account_amount(clients_consensus[1], report_amount1, incentive_pool_account1,
                                  report_address, proportion_reward, incentive_pool_reward)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_017(client_con_list_obj, reset_environment):
+def test_PIP_PVF_017(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例处于未生效期
     :param client_con_list_obj:
@@ -661,31 +661,31 @@ def test_PIP_PVF_017(client_con_list_obj, reset_environment):
     :return:
     """
     # get first_pledge_amount report_amount1 incentive_pool_account1 report_reward1
-    first_pledge_amount, report_reward1 = information_before_report_reward(client_con_list_obj[0])
+    first_pledge_amount, report_reward1 = information_before_report_reward(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'slashing', 'duplicateSignReportReward', '60')
+    param_governance_verify_before_endblock(clients_consensus[0], 'slashing', 'duplicateSignReportReward', '60')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'duplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(clients_consensus[0], 'duplicateSignReportReward')
     assert report_reward1 == report_reward2, "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # wait consensus block
-    client_con_list_obj[0].economic.wait_consensus_blocknum(client_con_list_obj[0].node)
+    clients_consensus[0].economic.wait_consensus_blocknum(clients_consensus[0].node)
     # get account amount
-    report_address, report_amount1, incentive_pool_account1 = get_account_amount(client_con_list_obj[0])
+    report_address, report_amount1, incentive_pool_account1 = get_account_amount(clients_consensus[0])
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(first_pledge_amount)
+    proportion_reward, incentive_pool_reward = clients_consensus[1].economic.get_report_reward(first_pledge_amount)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # asster account amount
-    asster_income_account_amount(client_con_list_obj[1], report_amount1, incentive_pool_account1,
+    asster_income_account_amount(clients_consensus[1], report_amount1, incentive_pool_account1,
                                  report_address, proportion_reward, incentive_pool_reward)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_018(client_con_list_obj, reset_environment):
+def test_PIP_PVF_018(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例处于已生效期
     :param client_con_list_obj:
@@ -693,30 +693,30 @@ def test_PIP_PVF_018(client_con_list_obj, reset_environment):
     :return:
     """
     # get first_pledge_amount report_amount1 incentive_pool_account1 report_reward1
-    first_pledge_amount, report_reward1 = information_before_report_reward(client_con_list_obj[0])
+    first_pledge_amount, report_reward1 = information_before_report_reward(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'duplicateSignReportReward', '60')
+    param_governance_verify(clients_consensus[0], 'slashing', 'duplicateSignReportReward', '60')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'duplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(clients_consensus[0], 'duplicateSignReportReward')
     assert report_reward2 == '60', "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # get account amount
-    report_address, report_amount1, incentive_pool_account1 = get_account_amount(client_con_list_obj[0])
+    report_address, report_amount1, incentive_pool_account1 = get_account_amount(clients_consensus[0])
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(first_pledge_amount, None,
-                                                                                                 60)
+    proportion_reward, incentive_pool_reward = clients_consensus[1].economic.get_report_reward(first_pledge_amount, None,
+                                                                                               60)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # asster account amount
-    asster_income_account_amount(client_con_list_obj[1], report_amount1, incentive_pool_account1,
+    asster_income_account_amount(clients_consensus[1], report_amount1, incentive_pool_account1,
                                  report_address, proportion_reward, incentive_pool_reward)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_019(client_con_list_obj, reset_environment):
+def test_PIP_PVF_019(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例为80%
     :param client_con_list_obj:
@@ -724,30 +724,30 @@ def test_PIP_PVF_019(client_con_list_obj, reset_environment):
     :return:
     """
     # get first_pledge_amount report_reward1
-    first_pledge_amount, report_reward1 = information_before_report_reward(client_con_list_obj[0])
+    first_pledge_amount, report_reward1 = information_before_report_reward(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'duplicateSignReportReward', '80')
+    param_governance_verify(clients_consensus[0], 'slashing', 'duplicateSignReportReward', '80')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'duplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(clients_consensus[0], 'duplicateSignReportReward')
     assert report_reward2 == '80', "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # get account amount
-    report_address, report_amount1, incentive_pool_account1 = get_account_amount(client_con_list_obj[0])
+    report_address, report_amount1, incentive_pool_account1 = get_account_amount(clients_consensus[0])
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(first_pledge_amount, None,
-                                                                                                 80)
+    proportion_reward, incentive_pool_reward = clients_consensus[1].economic.get_report_reward(first_pledge_amount, None,
+                                                                                               80)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # asster account amount
-    asster_income_account_amount(client_con_list_obj[1], report_amount1, incentive_pool_account1,
+    asster_income_account_amount(clients_consensus[1], report_amount1, incentive_pool_account1,
                                  report_address, proportion_reward, incentive_pool_reward)
 
 
 @pytest.mark.P1
-def test_PIP_PVF_020(client_con_list_obj, reset_environment):
+def test_PIP_PVF_020(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例为1%
     :param client_con_list_obj:
@@ -755,25 +755,25 @@ def test_PIP_PVF_020(client_con_list_obj, reset_environment):
     :return:
     """
     # get first_pledge_amount report_reward1
-    first_pledge_amount, report_reward1 = information_before_report_reward(client_con_list_obj[0])
+    first_pledge_amount, report_reward1 = information_before_report_reward(clients_consensus[0])
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'slashing', 'duplicateSignReportReward', '1')
+    param_governance_verify(clients_consensus[0], 'slashing', 'duplicateSignReportReward', '1')
     # view Parameter value after treatment
-    report_reward2 = get_governable_parameter_value(client_con_list_obj[0], 'duplicateSignReportReward')
+    report_reward2 = get_governable_parameter_value(clients_consensus[0], 'duplicateSignReportReward')
     assert report_reward2 == '1', "ErrMsg:Parameter value after treatment {}".format(report_reward2)
     # get account amount
-    report_address, report_amount1, incentive_pool_account1 = get_account_amount(client_con_list_obj[0])
+    report_address, report_amount1, incentive_pool_account1 = get_account_amount(clients_consensus[0])
     # Verify changed parameters
-    current_block = client_con_list_obj[0].node.eth.blockNumber
+    current_block = clients_consensus[0].node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Verify changed parameters report
-    duplicate_sign(client_con_list_obj[0], report_address, current_block)
+    duplicate_sign(clients_consensus[0], report_address, current_block)
     # view Pledge amount after punishment
-    proportion_reward, incentive_pool_reward = client_con_list_obj[1].economic.get_report_reward(first_pledge_amount, None,
-                                                                                                 1)
+    proportion_reward, incentive_pool_reward = clients_consensus[1].economic.get_report_reward(first_pledge_amount, None,
+                                                                                               1)
     log.info("Whistleblower benefits：{} Incentive pool income：{}".format(proportion_reward, incentive_pool_reward))
     # asster account amount
-    asster_income_account_amount(client_con_list_obj[1], report_amount1, incentive_pool_account1,
+    asster_income_account_amount(clients_consensus[1], report_amount1, incentive_pool_account1,
                                  report_address, proportion_reward, incentive_pool_reward)
 
 
@@ -799,22 +799,22 @@ def test_PIP_PVF_020(client_con_list_obj, reset_environment):
 #
 #     data = signedTransactionDict.rawTransaction
 #     result = HexBytes(client.node.eth.sendRawTransaction(data)).hex()
-#    nonce = client_con_list_obj[0].node.eth.getTransactionCount(
-#         client_con_list_obj[0].economic.env.account.account_with_money['address'])
-#     from_address = client_con_list_obj[0].economic.env.account.account_with_money['address']
-#     to_address, _ = client_con_list_obj[0].economic.account.generate_account(client_con_list_obj[0].node.web3, 0)
+#    nonce = clients_consensus[0].node.eth.getTransactionCount(
+#         clients_consensus[0].economic.env.account.account_with_money['address'])
+#     from_address = clients_consensus[0].economic.env.account.account_with_money['address']
+#     to_address, _ = clients_consensus[0].economic.account.generate_account(clients_consensus[0].node.web3, 0)
 #     for i in range(0, 200):
 #         # Transfer transaction
-#         transaction(client_con_list_obj[0], nonce, from_address, to_address, 10)
+#         transaction(clients_consensus[0], nonce, from_address, to_address, 10)
 #         nonce = nonce + 1
 #     time.sleep(15)
-#     end_block = client_con_list_obj[0].node.block_number
+#     end_block = clients_consensus[0].node.block_number
 #     max_tx = {"block_num": 0, "tx_num": 0}
 #     for i in range(1, end_block + 1):
-#         tx_num = client_con_list_obj[0].node.eth.getBlockTransactionCount(i)
+#         tx_num = clients_consensus[0].node.eth.getBlockTransactionCount(i)
 #         if tx_num > max_tx["tx_num"]:
 #             max_tx = {"block_num": i, "tx_num": tx_num}
-#     block_info = client_con_list_obj[0].node.eth.getBlock(max_tx["block_num"])
+#     block_info = clients_consensus[0].node.eth.getBlock(max_tx["block_num"])
 #     print(max_tx['tx_num'])
 #     print(block_info['gasLimit'])
 #     print(block_info['gasUsed'])
@@ -822,7 +822,7 @@ def test_PIP_PVF_020(client_con_list_obj, reset_environment):
 #
 # #
 @pytest.mark.P1
-def test_PIP_MG_001(client_con_list_obj, reset_environment):
+def test_PIP_MG_001(clients_consensus, reset_environment):
     """
     治理修改默认每个区块的最大Gas 投票失败
     :param client_con_list_obj:
@@ -837,22 +837,22 @@ def test_PIP_MG_001(client_con_list_obj, reset_environment):
     # new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     # genesis.to_file(new_file)
     # new_genesis_env.deploy_all(new_file)
-    # client_con_list_obj[0].economic.env.deploy_all()
+    # clients_consensus[0].economic.env.deploy_all()
 
     # view Parameter value before treatment
-    max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
+    max_gas_limit1 = get_governable_parameter_value(clients_consensus[0], 'maxBlockGasLimit')
     # create Parametric proposal
-    block = param_governance_verify_before_endblock(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712389',
+    block = param_governance_verify_before_endblock(clients_consensus[0], 'block', 'maxBlockGasLimit', '4712389',
                                                     False)
     # view Parameter value after treatment
-    max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
+    max_gas_limit2 = get_governable_parameter_value(clients_consensus[0], 'maxBlockGasLimit')
     # wait block
-    wait_block_number(client_con_list_obj[0].node, block)
+    wait_block_number(clients_consensus[0].node, block)
     assert max_gas_limit2 == max_gas_limit1, "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)
 
 
 @pytest.mark.P1
-def test_PIP_MG_002(client_con_list_obj, reset_environment):
+def test_PIP_MG_002(clients_consensus, reset_environment):
     """
     治理修改默认每个区块的最大Gas 处于未生效期
     :param client_con_list_obj:
@@ -860,17 +860,17 @@ def test_PIP_MG_002(client_con_list_obj, reset_environment):
     :return:
     """
     # view Parameter value before treatment
-    max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
+    max_gas_limit1 = get_governable_parameter_value(clients_consensus[0], 'maxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify_before_endblock(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712389')
+    param_governance_verify_before_endblock(clients_consensus[0], 'block', 'maxBlockGasLimit', '4712389')
     # view Parameter value after treatment
-    max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
+    max_gas_limit2 = get_governable_parameter_value(clients_consensus[0], 'maxBlockGasLimit')
 
     assert max_gas_limit2 == max_gas_limit1, "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)
 
 
 @pytest.mark.P1
-def test_PIP_MG_003(client_con_list_obj, reset_environment):
+def test_PIP_MG_003(clients_consensus, reset_environment):
     """
     治理修改默认每个区块的最大Gas 处于已生效期
     :param client_con_list_obj:
@@ -878,9 +878,9 @@ def test_PIP_MG_003(client_con_list_obj, reset_environment):
     :return:
     """
     # view Parameter value before treatment
-    max_gas_limit1 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
+    max_gas_limit1 = get_governable_parameter_value(clients_consensus[0], 'maxBlockGasLimit')
     # create Parametric proposal
-    param_governance_verify(client_con_list_obj[0], 'block', 'maxBlockGasLimit', '4712389')
+    param_governance_verify(clients_consensus[0], 'block', 'maxBlockGasLimit', '4712389')
     # view Parameter value after treatment
-    max_gas_limit2 = get_governable_parameter_value(client_con_list_obj[0], 'maxBlockGasLimit')
+    max_gas_limit2 = get_governable_parameter_value(clients_consensus[0], 'maxBlockGasLimit')
     assert max_gas_limit2 == '4712389', "ErrMsg:Parameter value after treatment {}".format(max_gas_limit2)

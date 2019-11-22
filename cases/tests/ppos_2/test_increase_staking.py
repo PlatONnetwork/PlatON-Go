@@ -6,56 +6,56 @@ import allure
 
 @allure.title("Normal overweight")
 @pytest.mark.P0
-def test_AS_001_002_009(client_new_node_obj):
+def test_AS_001_002_009(client_new_node):
     """
     001:Normal overweight
     002:The verifier initiates the overweight with the amount of free account, meeting the minimum threshold
     009:Hesitation period add pledge, inquire pledge information
     """
-    StakeThreshold = get_governable_parameter_value(client_new_node_obj, "StakeThreshold")
+    StakeThreshold = get_governable_parameter_value(client_new_node, "StakeThreshold")
     log.info(StakeThreshold)
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    result = client_new_node.staking.increase_staking(0, address)
     assert_code(result, 0)
-    result = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
-    staking_amount = client_new_node_obj.economic.create_staking_limit
-    add_staking_amount = client_new_node_obj.economic.add_staking_limit
+    result = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
+    staking_amount = client_new_node.economic.create_staking_limit
+    add_staking_amount = client_new_node.economic.add_staking_limit
     assert result["Ret"]["Shares"] == staking_amount + add_staking_amount
 
 
 @allure.title("The verifier is not on the verifier and candidate list")
 @pytest.mark.P2
-def test_AS_003(client_new_node_obj):
+def test_AS_003(client_new_node):
     """
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301102)
 
 
 @allure.title("Undersupply of gas")
 @pytest.mark.P3
-def test_AS_004(client_new_node_obj):
+def test_AS_004(client_new_node):
     """
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    client_new_node.staking.create_staking(0, address, address)
     fig = {"gas": 1}
     status = 0
     try:
-        result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
+        result = client_new_node.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
     except BaseException:
         status = 1
@@ -64,17 +64,17 @@ def test_AS_004(client_new_node_obj):
 
 @allure.title("Insufficient balance initiated overweight")
 @pytest.mark.P3
-def test_AS_005(client_new_node_obj):
+def test_AS_005(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    account = client_new_node_obj.economic.account
-    node = client_new_node_obj.node
+    account = client_new_node.economic.account
+    node = client_new_node.node
     address, _ = account.generate_account(node.web3, 10)
     status = 0
     try:
-        result = client_new_node_obj.staking.increase_staking(0, address)
+        result = client_new_node.staking.increase_staking(0, address)
         log.info(result)
     except BaseException:
         status = 1
@@ -83,34 +83,34 @@ def test_AS_005(client_new_node_obj):
 
 @allure.title("(hesitation period) holdings less than the minimum threshold")
 @pytest.mark.P1
-def test_AS_007(client_new_node_obj):
+def test_AS_007(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    client_new_node_obj.staking.create_staking(0, address, address)
-    add_staking_amount = client_new_node_obj.economic.add_staking_limit
-    result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    client_new_node.staking.create_staking(0, address, address)
+    add_staking_amount = client_new_node.economic.add_staking_limit
+    result = client_new_node.staking.increase_staking(0, address, amount=add_staking_amount - 1)
     log.info(result)
     assert_code(result, 301104)
 
 
 @allure.title("(hesitation period) when the verifier revoks the pledge, he/she shall apply for adding the pledge")
 @pytest.mark.P1
-def test_AS_008(client_new_node_obj):
+def test_AS_008(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    client_new_node.staking.create_staking(0, address, address)
     log.info("进入下个周期")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    client_new_node_obj.staking.withdrew_staking(address)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    client_new_node.staking.withdrew_staking(address)
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301103)
 
@@ -118,7 +118,7 @@ def test_AS_008(client_new_node_obj):
 @allure.title("(lockup period) normal increase")
 @pytest.mark.P0
 @pytest.mark.compatibility
-def test_AS_011_012_013_014(client_new_node_obj):
+def test_AS_011_012_013_014(client_new_node):
     """
     011:(lockup period) normal increase
     012:(lockup period) overweight meets the minimum threshold
@@ -127,35 +127,35 @@ def test_AS_011_012_013_014(client_new_node_obj):
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    client_new_node.staking.create_staking(0, address, address)
     log.info("进入下个周期")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 0)
-    result = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    result = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     log.info(result)
-    staking_amount = client_new_node_obj.economic.create_staking_limit
-    add_staking_amount = client_new_node_obj.economic.add_staking_limit
+    staking_amount = client_new_node.economic.create_staking_limit
+    add_staking_amount = client_new_node.economic.add_staking_limit
     assert result["Ret"]["Shares"] == staking_amount + add_staking_amount
     assert result["Ret"]["Released"] == staking_amount
     assert result["Ret"]["ReleasedHes"] == add_staking_amount
     fig = {"gas": 1}
     status = 0
     try:
-        result = client_new_node_obj.staking.increase_staking(0, address, transaction_cfg=fig)
+        result = client_new_node.staking.increase_staking(0, address, transaction_cfg=fig)
         log.info(result)
     except BaseException:
         status = 1
     assert status == 1
-    account = client_new_node_obj.economic.account
-    node = client_new_node_obj.node
+    account = client_new_node.economic.account
+    node = client_new_node.node
     address, _ = account.generate_account(node.web3, 10)
     status = 0
     try:
-        result = client_new_node_obj.staking.increase_staking(0, address, address)
+        result = client_new_node.staking.increase_staking(0, address, address)
         log.info(result)
     except BaseException:
         status = 1
@@ -164,145 +164,145 @@ def test_AS_011_012_013_014(client_new_node_obj):
 
 @allure.title("The free amount is insufficient, the lock position is sufficient, and the free amount is added")
 @pytest.mark.P1
-def test_AS_015(client_new_node_obj):
+def test_AS_015(client_new_node):
     """
     :param client_new_node_obj:
     :param get_generate_account:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     log.info(result)
-    node = client_new_node_obj.node
+    node = client_new_node.node
     amount = node.eth.getBalance(address)
     log.info("Wallet balance{}".format(amount))
     locked_amount = amount - node.web3.toWei(1, "ether")
 
     plan = [{'Epoch': 1, 'Amount': locked_amount}]
     log.info("The balance of the wallet is used as a lock")
-    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    result = client_new_node.restricting.createRestrictingPlan(address, plan, address)
     log.info(result)
     amount = node.eth.getBalance(address)
     log.info("Check your wallet balance{}".format(amount))
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    result = client_new_node.staking.increase_staking(0, address)
     assert_code(result, 301111)
 
 
 @allure.title("The free amount is insufficient, the lock position is sufficient, and the free amount is added")
 @pytest.mark.P1
-def test_AS_016(client_new_node_obj):
+def test_AS_016(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     log.info(result)
-    node = client_new_node_obj.node
+    node = client_new_node.node
     amount = node.eth.getBalance(address)
     log.info("Wallet balance{}".format(amount))
     locked_amount = 100000000000000000000
     plan = [{'Epoch': 1, 'Amount': locked_amount}]
-    result = client_new_node_obj.restricting.createRestrictingPlan(address, plan, address)
+    result = client_new_node.restricting.createRestrictingPlan(address, plan, address)
     log.info(result)
     assert_code(result, 0)
     value = 101000000000000000000
-    result = client_new_node_obj.staking.increase_staking(1, address, amount=value)
+    result = client_new_node.staking.increase_staking(1, address, amount=value)
     log.info(result)
     assert_code(result, 304013)
 
 
 @allure.title("The amount of the increase is less than the threshold")
 @pytest.mark.P1
-def test_AS_017(client_new_node_obj):
+def test_AS_017(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     log.info(result)
-    add_staking_amount = client_new_node_obj.economic.add_staking_limit
-    result = client_new_node_obj.staking.increase_staking(0, address, amount=add_staking_amount - 1)
+    add_staking_amount = client_new_node.economic.add_staking_limit
+    result = client_new_node.staking.increase_staking(0, address, amount=add_staking_amount - 1)
     log.info(result)
     assert_code(result, 301104)
 
 
 @allure.title("Increase the number of active withdrawal but still in the freeze period of the candidate")
 @pytest.mark.P0
-def test_AS_018_019(client_new_node_obj):
+def test_AS_018_019(client_new_node):
     """
     018:Increase the number of active withdrawal but still in the freeze period of the candidate
     019:Candidates whose holdings have been actively withdrawn and who have passed the freeze period
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    result = client_new_node_obj.staking.withdrew_staking(address)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=2)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301102)
 
 
 @allure.title("Add to the list of candidates who have been penalized and are still in the freeze period")
 @pytest.mark.P0
-def test_AS_020_021(client_new_node_obj, client_consensus_obj):
+def test_AS_020_021(client_new_node, client_consensus):
     """
     020:Add to the list of candidates who have been penalized and are still in the freeze period
     021:A candidate whose holdings have been penalized has passed the freeze period
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    value = client_new_node_obj.economic.create_staking_limit * 2
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    value = client_new_node.economic.create_staking_limit * 2
+    result = client_new_node.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Close one node")
-    client_new_node_obj.node.stop()
-    node = client_consensus_obj.node
+    client_new_node.node.stop()
+    node = client_consensus.node
     log.info("The next two periods")
-    client_new_node_obj.economic.wait_settlement_blocknum(node, number=2)
+    client_new_node.economic.wait_settlement_blocknum(node, number=2)
     log.info("Restart the node")
-    client_new_node_obj.node.start()
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    client_new_node.node.start()
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
     time.sleep(20)
-    result = client_new_node_obj.staking.increase_staking(0, address)
+    result = client_new_node.staking.increase_staking(0, address)
     log.info(result)
     assert_code(result, 301102)
 
 
 @allure.title("Increase your holdings with a new wallet")
 @pytest.mark.P3
-def test_AS_022(client_new_node_obj):
+def test_AS_022(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    result = client_new_node_obj.staking.increase_staking(0, address1)
+    result = client_new_node.staking.increase_staking(0, address1)
     log.info(result)
     assert_code(result, 301006)

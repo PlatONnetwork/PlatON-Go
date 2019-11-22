@@ -149,8 +149,8 @@ def test_VP_WA_001(no_vp_proposal):
 
 @pytest.mark.P2
 @allure.title('Nostaking address, submit text proposal function verification')
-def test_TP_WA_001(client_verifier_obj):
-    pip = client_verifier_obj.pip
+def test_TP_WA_001(client_verifier):
+    pip = client_verifier.pip
     address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000000)
     result = pip.submitText(pip.node.node_id, str(time.time()), address,
                                 transaction_cfg=pip.cfg.transaction_cfg)
@@ -221,14 +221,14 @@ class TestEndVotingRounds:
 
     @pytest.mark.P1
     @allure.title('Submit version and text proposal function verification--endvoting rounds')
-    def test_VP_CR_001_VP_CR_002_VP_CR_007_TP_TE_002(self, new_genesis_env, client_verifier_obj):
+    def test_VP_CR_001_VP_CR_002_VP_CR_007_TP_TE_002(self, new_genesis_env, client_verifier):
         '''
         Proposal vote duration set consensus size's accompanying number +1
         :param pip_env:
         :param pip:
         :return:
         '''
-        pip = client_verifier_obj.pip
+        pip = client_verifier.pip
         self.update_setting(new_genesis_env, pip, value=1)
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 3,
                                        pip.node.staking_address,
@@ -262,8 +262,8 @@ class TestEndVotingRounds:
 
     @pytest.mark.P1
     @allure.title('Submit version and text proposal function verification--endvoting rounds')
-    def test_VP_CR_003_VP_CR_004_VP_CR_007_TP_TE_003(self, new_genesis_env, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_VP_CR_003_VP_CR_004_VP_CR_007_TP_TE_003(self, new_genesis_env, client_verifier):
+        pip = client_verifier.pip
         self.update_setting(new_genesis_env, pip, value=-1)
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 2, pip.node.staking_address,
                                        transaction_cfg=pip.cfg.transaction_cfg)
@@ -295,8 +295,8 @@ class TestEndVotingRounds:
     @pytest.mark.P1
     @pytest.mark.compatibility
     @allure.title('Submit version and text proposal function verification--endvoting rounds')
-    def test_VP_CR_005_VP_CR_006_TP_TE_001(self, new_genesis_env, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_VP_CR_005_VP_CR_006_TP_TE_001(self, new_genesis_env, client_verifier):
+        pip = client_verifier.pip
         self.update_setting(new_genesis_env, pip)
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 3,
                                        pip.node.staking_address,
@@ -339,8 +339,8 @@ class TestEndVotingRounds:
 class TestNoVerifierSubmitProposal:
     @pytest.mark.P0
     @allure.title('New node submit version and text proposal function verification')
-    def test_VP_PR_002_TP_PR_002(self, no_vp_proposal, client_new_node_obj):
-        pip = client_new_node_obj.pip
+    def test_VP_PR_002_TP_PR_002(self, no_vp_proposal, client_new_node):
+        pip = client_new_node.pip
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000000)
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 1, address,
                                        transaction_cfg=pip.cfg.transaction_cfg)
@@ -354,8 +354,8 @@ class TestNoVerifierSubmitProposal:
 
     @pytest.mark.P0
     @allure.title('Candidate node submit version and text proposal function verification')
-    def test_VP_PR_001_TP_PR_001(self, client_candidate_obj):
-        pip = client_candidate_obj.pip
+    def test_VP_PR_001_TP_PR_001(self, client_candidate):
+        pip = client_candidate.pip
         result = pip.submitVersion(pip.node.node_id, str(time.time()),
                                        pip.cfg.version5, 1, pip.node.staking_address,
                                        transaction_cfg=pip.cfg.transaction_cfg)
@@ -369,34 +369,34 @@ class TestNoVerifierSubmitProposal:
 
     @pytest.mark.P2
     @allure.title('Abnormal node submit proposal')
-    def test_VP_PR_003_VP_PR_004_TP_PR_003_TP_PR_004(self, client_verifier_obj):
-        address = client_verifier_obj.node.staking_address
-        result = client_verifier_obj.staking.withdrew_staking(address)
-        log.info('Node {} withdrew staking result : {}'.format(client_verifier_obj.node.node_id, result))
+    def test_VP_PR_003_VP_PR_004_TP_PR_003_TP_PR_004(self, client_verifier):
+        address = client_verifier.node.staking_address
+        result = client_verifier.staking.withdrew_staking(address)
+        log.info('Node {} withdrew staking result : {}'.format(client_verifier.node.node_id, result))
         assert_code(result, 0)
-        result = client_verifier_obj.pip.submitVersion(client_verifier_obj.node.node_id, str(time.time()),
-                                                       client_verifier_obj.pip.cfg.version5, 1, address,
-                                                       transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        result = client_verifier.pip.submitVersion(client_verifier.node.node_id, str(time.time()),
+                                                   client_verifier.pip.cfg.version5, 1, address,
+                                                   transaction_cfg=client_verifier.pip.cfg.transaction_cfg)
         log.info('Node exiting submit version proposal :{}'.format(result))
         assert_code(result, 302020)
 
-        result = client_verifier_obj.pip.submitText(client_verifier_obj.node.node_id, str(time.time()), address,
-                                                    transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        result = client_verifier.pip.submitText(client_verifier.node.node_id, str(time.time()), address,
+                                                transaction_cfg=client_verifier.pip.cfg.transaction_cfg)
         log.info('Node exiting submit text proposal : {}'.format(result))
         assert_code(result, 302020)
 
-        client_verifier_obj.economic.wait_settlement_blocknum(client_verifier_obj.node,
-                                                              number=client_verifier_obj.economic.unstaking_freeze_ratio)
-        result = client_verifier_obj.pip.submitVersion(client_verifier_obj.node.node_id, str(time.time()),
-                                                       client_verifier_obj.pip.cfg.version5, 1, address,
-                                                       transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        client_verifier.economic.wait_settlement_blocknum(client_verifier.node,
+                                                          number=client_verifier.economic.unstaking_freeze_ratio)
+        result = client_verifier.pip.submitVersion(client_verifier.node.node_id, str(time.time()),
+                                                   client_verifier.pip.cfg.version5, 1, address,
+                                                   transaction_cfg=client_verifier.pip.cfg.transaction_cfg)
         log.info('Node exited submit version proposal : {}'.format(result))
         assert_code(result, 302022)
 
-        client_verifier_obj.economic.wait_settlement_blocknum(client_verifier_obj.node,
-                                                              number=client_verifier_obj.economic.unstaking_freeze_ratio)
-        result = client_verifier_obj.pip.submitText(client_verifier_obj.node.node_id, str(time.time()), address,
-                                                    transaction_cfg=client_verifier_obj.pip.cfg.transaction_cfg)
+        client_verifier.economic.wait_settlement_blocknum(client_verifier.node,
+                                                          number=client_verifier.economic.unstaking_freeze_ratio)
+        result = client_verifier.pip.submitText(client_verifier.node.node_id, str(time.time()), address,
+                                                transaction_cfg=client_verifier.pip.cfg.transaction_cfg)
         log.info('Node exited submit text proposal : {}'.format(result))
         assert_code(result, 302022)
 
@@ -444,19 +444,19 @@ class TestSubmitCancel:
 
     @pytest.mark.P2
     @allure.title('Abnormal node submit cancel proposal')
-    def test_CP_PR_003_CP_PR_004(self, new_genesis_env, client_consensus_obj):
+    def test_CP_PR_003_CP_PR_004(self, new_genesis_env, client_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 10000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        pip = client_consensus_obj.pip
+        pip = client_consensus.pip
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 20,
                                        pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('proposalinfo: {}'.format(proposalinfo))
-        client_obj = client_consensus_obj
+        client_obj = client_consensus
         address = pip.node.staking_address
         result = client_obj.staking.withdrew_staking(address)
         log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
@@ -508,12 +508,12 @@ class TestSubmitCancel:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_CP_ID_004_CP_ID_003(self, new_genesis_env, client_consensus_obj):
+    def test_CP_ID_004_CP_ID_003(self, new_genesis_env, client_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        pip = client_consensus_obj.pip
+        pip = client_consensus.pip
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '123',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit parameter proposal result : {}'.format(result))
@@ -539,9 +539,9 @@ class TestSubmitCancel:
 class TestPP:
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -586,9 +586,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_002(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_002(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        if str(get_governable_parameter_value(client_list_obj[0], 'slashBlocksReward')) != 60100:
+        if str(get_governable_parameter_value(all_clients[0], 'slashBlocksReward')) != 60100:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '60100',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -596,9 +596,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -644,11 +644,11 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_004(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        if str(get_governable_parameter_value(client_list_obj[0], 'maxEvidenceAge')) != str(
+        if str(get_governable_parameter_value(all_clients[0], 'maxEvidenceAge')) != str(
             pip.economic.unstaking_freeze_ratio - 1) and str(pip.economic.unstaking_freeze_ratio - 1) <= str(
-                get_governable_parameter_value(client_list_obj[0], 'unStakeFreezeDuration')):
+                get_governable_parameter_value(all_clients[0], 'unStakeFreezeDuration')):
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge',
                                          str(pip.economic.unstaking_freeze_ratio - 1),
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -657,9 +657,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_005_PP_SU_006(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_005_PP_SU_006(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashFractionDuplicateSign', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -713,9 +713,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_007_PP_SU_008(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_007_PP_SU_008(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'duplicateSignReportReward', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -760,9 +760,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_008(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_008(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        if int(get_governable_parameter_value(client_list_obj[0], 'duplicateSignReportReward')) != 80:
+        if int(get_governable_parameter_value(all_clients[0], 'duplicateSignReportReward')) != 80:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'duplicateSignReportReward',
                                          '80', pip.node.staking_address,
                                          transaction_cfg=pip.cfg.transaction_cfg)
@@ -771,9 +771,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_009_PP_SU_010(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_009_PP_SU_010(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -839,9 +839,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_011_PP_SU_012(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_011_PP_SU_012(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -907,9 +907,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_013_PP_SU_014(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_013_PP_SU_014(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -960,21 +960,21 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test__PP_SU_014(self, no_vp_proposal, client_list_obj):
+    def test__PP_SU_014(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        if int(get_governable_parameter_value(client_list_obj[0], 'unStakeFreezeDuration')) != str(
-                int(get_governable_parameter_value(client_list_obj[0], 'maxEvidenceAge')) - 1):
+        if int(get_governable_parameter_value(all_clients[0], 'unStakeFreezeDuration')) != str(
+                int(get_governable_parameter_value(all_clients[0], 'maxEvidenceAge')) - 1):
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration',
-                                         str(int(get_governable_parameter_value(client_list_obj[0], 'maxEvidenceAge')) + 5),
-                                         pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                                     str(int(get_governable_parameter_value(all_clients[0], 'maxEvidenceAge')) + 5),
+                                     pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
             assert_code(result, 0)
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_015_PP_SU_016(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_015_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1024,9 +1024,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_016(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        if int(get_governable_parameter_value(client_list_obj[0], 'maxValidators')) != 201:
+        if int(get_governable_parameter_value(all_clients[0], 'maxValidators')) != 201:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '201',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -1034,9 +1034,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_016(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         if int(get_governable_parameter_value(client_obj, 'maxValidators')) != 201:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '201',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -1045,9 +1045,9 @@ class TestPP:
 
     @pytest.mark.P0
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_SU_017_PP_SU_018(self, no_vp_proposal, client_list_obj):
+    def test_PP_SU_017_PP_SU_018(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1182,8 +1182,8 @@ class TestPP:
 class TestSubmitPPAbnormal:
     @pytest.mark.P0
     @allure.title('New node submit parammeter  proposal function verification')
-    def test_PP_PR_002(self, no_vp_proposal, client_new_node_obj):
-        pip = client_new_node_obj.pip
+    def test_PP_PR_002(self, no_vp_proposal, client_new_node):
+        pip = client_new_node.pip
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '88',
                                      address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -1192,8 +1192,8 @@ class TestSubmitPPAbnormal:
 
     @pytest.mark.P0
     @allure.title('Candidate submit parammeter  proposal function verification')
-    def test_PP_PR_001(self, no_vp_proposal, client_candidate_obj):
-        pip = client_candidate_obj.pip
+    def test_PP_PR_001(self, no_vp_proposal, client_candidate):
+        pip = client_candidate.pip
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '87',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('candidate submit param proposal result :{}'.format(result))
@@ -1210,9 +1210,9 @@ class TestSubmitPPAbnormal:
 
     @pytest.mark.P2
     @allure.title('Abnormal submit parammeter  proposal function verification')
-    def test_PP_PR_003_PP_PR_004(self, no_vp_proposal, client_list_obj):
+    def test_PP_PR_003_PP_PR_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+        client_obj = get_client_obj(pip.node.node_id, all_clients)
         address = pip.node.staking_address
         result = client_obj.staking.withdrew_staking(address)
         log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
@@ -1243,13 +1243,13 @@ class TestSubmitPPAbnormal:
 class TestSubmitAgain:
     @pytest.mark.P2
     @allure.title('Submit parammeter  proposal function verification')
-    def test_PP_TI_001_002(self, new_genesis_env, client_con_list_obj):
+    def test_PP_TI_001_002(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitcppandvote(client_con_list_obj[:3], [1, 1, 1])
-        pip = client_con_list_obj[0].pip
+        submitcppandvote(clients_consensus[:3], [1, 1, 1])
+        pip = clients_consensus[0].pip
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Param proposal information : {}'.format(proposalinfo_param))
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -1273,9 +1273,9 @@ class TestSubmitAgain:
 
     @pytest.mark.P2
     @allure.title('Submit parammeter  proposal function verification')
-    def test_VP_TI_001_002(self, no_vp_proposal, client_verifier_obj_list):
-        submitcvpandvote(client_verifier_obj_list[:3], 1, 1, 1)
-        pip = client_verifier_obj_list[0].pip
+    def test_VP_TI_001_002(self, no_vp_proposal, clients_verifier):
+        submitcvpandvote(clients_verifier[:3], 1, 1, 1)
+        pip = clients_verifier[0].pip
         proposalinfo_version = pip.get_effect_proposal_info_of_vote(pip.cfg.version_proposal)
         log.info('Version proposal information : {}'.format(proposalinfo_version))
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -1395,9 +1395,9 @@ class TestPIPVerify:
 
     @pytest.mark.P0
     @allure.title('Submit  proposal function verification---PIPID')
-    def test_VP_PIP_002_TP_PI_002_CP_PI_002_CP_PI_002(self, no_vp_proposal, client_verifier_obj_list):
-        pip = client_verifier_obj_list[0].pip
-        submitcvpandvote(client_verifier_obj_list, 1, 1, 1, 1)
+    def test_VP_PIP_002_TP_PI_002_CP_PI_002_CP_PI_002(self, no_vp_proposal, clients_verifier):
+        pip = clients_verifier[0].pip
+        submitcvpandvote(clients_verifier, 1, 1, 1, 1)
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         pip_id = proposalinfo.get('PIPID')
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
@@ -1502,8 +1502,8 @@ class TestGas:
 
     @pytest.mark.P2
     @allure.title('Submit text proposal function verification---gasprice')
-    def test_TP_GP_001_TP_GP_002(self, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_TP_GP_001_TP_GP_002(self, client_verifier):
+        pip = client_verifier.pip
         transaction_cfg = {"gasPrice": 1500000000000000 - 1}
         try:
             pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,

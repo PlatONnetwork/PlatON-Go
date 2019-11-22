@@ -4,15 +4,15 @@ import pytest
 
 
 @pytest.mark.P2
-def test_staking_gas(client_new_node_obj):
+def test_staking_gas(client_new_node):
     external_id = "external_id"
     node_name = "node_name"
     website = "website"
     details = "details"
-    node = client_new_node_obj.node
-    economic = client_new_node_obj.economic
-    benifit_address, pri_key = client_new_node_obj.economic.account.generate_account(node.web3,
-                                                                                     economic.create_staking_limit * 2)
+    node = client_new_node.node
+    economic = client_new_node.economic
+    benifit_address, pri_key = client_new_node.economic.account.generate_account(node.web3,
+                                                                                 economic.create_staking_limit * 2)
     benifit_address = benifit_address
     balance1 = node.eth.getBalance(benifit_address)
     log.info(balance1)
@@ -35,12 +35,12 @@ def test_staking_gas(client_new_node_obj):
     log.info(gas)
     gasPrice = node.web3.platon.gasPrice
     log.info(gasPrice)
-    result = client_new_node_obj.ppos.createStaking(0, benifit_address, node.node_id, external_id,
-                                                    node_name, website,
-                                                    website, economic.create_staking_limit,
-                                                    node.program_version, node.program_version_sign, node.blspubkey,
-                                                    node.schnorr_NIZK_prove,
-                                                    pri_key, transaction_cfg={"gasPrice": gasPrice})
+    result = client_new_node.ppos.createStaking(0, benifit_address, node.node_id, external_id,
+                                                node_name, website,
+                                                website, economic.create_staking_limit,
+                                                node.program_version, node.program_version_sign, node.blspubkey,
+                                                node.schnorr_NIZK_prove,
+                                                pri_key, transaction_cfg={"gasPrice": gasPrice})
     assert_code(result, 0)
     balance2 = node.eth.getBalance(benifit_address)
     log.info(balance2)
@@ -48,8 +48,8 @@ def test_staking_gas(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_delegate_gas(client_new_node_obj):
-    client = client_new_node_obj
+def test_delegate_gas(client_new_node):
+    client = client_new_node
     node = client.node
     economic = client.economic
     staking_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
@@ -73,8 +73,8 @@ def test_delegate_gas(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_withdrewDelegate_gas(client_new_node_obj):
-    client = client_new_node_obj
+def test_withdrewDelegate_gas(client_new_node):
+    client = client_new_node
     node = client.node
     economic = client.economic
     staking_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
@@ -84,7 +84,7 @@ def test_withdrewDelegate_gas(client_new_node_obj):
     assert_code(result, 0)
     result = client.delegate.delegate(0, address)
     assert_code(result, 0)
-    msg = client.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     balance1 = node.eth.getBalance(address)
     log.info(balance1)
@@ -104,8 +104,8 @@ def test_withdrewDelegate_gas(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_increase_staking_gas(client_new_node_obj):
-    client = client_new_node_obj
+def test_increase_staking_gas(client_new_node):
+    client = client_new_node
     node = client.node
     economic = client.economic
     staking_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
@@ -129,12 +129,12 @@ def test_increase_staking_gas(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_edit_candidate_gas(client_new_node_obj):
+def test_edit_candidate_gas(client_new_node):
     external_id = "external_id"
     node_name = "node_name"
     website = "website"
     details = "details"
-    client = client_new_node_obj
+    client = client_new_node
     node = client.node
     economic = client.economic
     staking_address, pri_key = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)
@@ -162,8 +162,8 @@ def test_edit_candidate_gas(client_new_node_obj):
 
 
 @pytest.mark.P2
-def test_withdrew_staking_gas(client_new_node_obj):
-    client = client_new_node_obj
+def test_withdrew_staking_gas(client_new_node):
+    client = client_new_node
     node = client.node
     economic = client.economic
     staking_address, _ = economic.account.generate_account(node.web3, economic.create_staking_limit * 2)

@@ -87,8 +87,8 @@ class TestgetProposal:
 
     @pytest.mark.P0
     @allure.title('Interface getProposal function verification--text proposal')
-    def test_PR_IN_003(self, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_PR_IN_003(self, client_verifier):
+        pip = client_verifier.pip
         pip_id = str(time.time())
         result = pip.submitText(pip.node.node_id, pip_id, pip.node.staking_address,
                                     transaction_cfg=pip.cfg.transaction_cfg)
@@ -111,8 +111,8 @@ class TestgetProposal:
 
     @pytest.mark.P1
     @allure.title('Interface getProposal function verification--ineffective proposal id')
-    def test_PR_IN_004(self, client_noconsensus_obj):
-        pip = client_noconsensus_obj.pip
+    def test_PR_IN_004(self, client_noconsensus):
+        pip = client_noconsensus.pip
         result = pip.pip.getProposal('0xa89162be0bd0d081c50a5160f412c4926b3ae9ea96cf792935564357ddd11111')
         log.info('Interface getProposal-version result : {}'.format(result))
         assert_code(result, 302006)
@@ -121,9 +121,9 @@ class TestgetProposal:
 class TestgetTallyResult:
     @pytest.mark.P0
     @allure.title('Interface getTallyResult function verification--cancel version proposal')
-    def test_TR_IN_002_TR_IN_003(self, no_vp_proposal, client_verifier_obj_list):
+    def test_TR_IN_002_TR_IN_003(self, no_vp_proposal, clients_verifier):
         pip = no_vp_proposal
-        submitcvpandvote(client_verifier_obj_list, 1, 1, 1, 2)
+        submitcvpandvote(clients_verifier, 1, 1, 1, 2)
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Cancel proposal information {}'.format(proposalinfo_cancel))
         proposalinfo_version = pip.get_effect_proposal_info_of_vote(pip.cfg.version_proposal)
@@ -134,21 +134,21 @@ class TestgetTallyResult:
         assert pip.get_yeas_of_proposal(proposalinfo_cancel.get('ProposalID')) == 3
         assert pip.get_nays_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
         assert pip.get_abstentions_of_proposal(proposalinfo_cancel.get('ProposalID')) == 0
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_verifier_obj_list)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(clients_verifier)
 
         assert pip.get_canceledby_of_proposal(proposalinfo_version.get('ProposalID')) == proposalinfo_cancel.get('ProposalID')
         assert pip.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 6
         assert pip.get_yeas_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip.get_nays_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip.get_abstentions_of_proposal(proposalinfo_version.get('ProposalID')) == 0
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(client_verifier_obj_list)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(clients_verifier)
 
     @pytest.mark.P0
     @pytest.mark.compatibility
     @allure.title('Interface getTallyResult function verification--cancel version proposal')
-    def test_TR_IN_001(self, no_vp_proposal, client_verifier_obj_list):
+    def test_TR_IN_001(self, no_vp_proposal, clients_verifier):
         pip = no_vp_proposal
-        submitcvpandvote(client_verifier_obj_list, 1, 2, 3, 3)
+        submitcvpandvote(clients_verifier, 1, 2, 3, 3)
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Cancel proposal information {}'.format(proposalinfo_cancel))
         proposalinfo_version = pip.get_effect_proposal_info_of_vote(pip.cfg.version_proposal)
@@ -159,25 +159,25 @@ class TestgetTallyResult:
         assert pip.get_yeas_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
         assert pip.get_nays_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
         assert pip.get_abstentions_of_proposal(proposalinfo_cancel.get('ProposalID')) == 2
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_verifier_obj_list)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(clients_verifier)
 
         assert pip.get_canceledby_of_proposal(proposalinfo_version.get('ProposalID')) == cancelby
         assert pip.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 3
         assert pip.get_yeas_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip.get_nays_of_proposal(proposalinfo_version.get('ProposalID')) == 0
         assert pip.get_abstentions_of_proposal(proposalinfo_version.get('ProposalID')) == 0
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(client_verifier_obj_list)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo_version.get('ProposalID')) == len(clients_verifier)
 
     @pytest.mark.P0
     @allure.title('Interface getTallyResult function verification--parammeter proposal')
-    def test_TR_IN_010_005(self, new_genesis_env, client_con_list_obj):
+    def test_TR_IN_010_005(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        pip = client_con_list_obj[0].pip
-        submitppandvote(client_con_list_obj[0:-1], 1, 2, 3)
-        proposalinfo = client_con_list_obj[0].pip.get_effect_proposal_info_of_vote(client_con_list_obj[0].pip.cfg.param_proposal)
+        pip = clients_consensus[0].pip
+        submitppandvote(clients_consensus[0:-1], 1, 2, 3)
+        proposalinfo = clients_consensus[0].pip.get_effect_proposal_info_of_vote(clients_consensus[0].pip.cfg.param_proposal)
         log.info('Param proposal information {}'.format(proposalinfo))
         result = pip.pip.getTallyResult(proposalinfo.get('ProposalID'))
         log.info('Interface getTallyResult info : {}'.format(result))
@@ -189,17 +189,17 @@ class TestgetTallyResult:
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 1
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(clients_consensus)
 
     @pytest.mark.P0
     @allure.title('Interface getTallyResult function verification--cancel parammeter proposal')
-    def test_TR_IN_011_TR_IN_012(self, new_genesis_env, client_con_list_obj):
+    def test_TR_IN_011_TR_IN_012(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        pip = client_con_list_obj[0].pip
-        submitcppandvote(client_con_list_obj, [1, 1, 1, 3])
+        pip = clients_consensus[0].pip
+        submitcppandvote(clients_consensus, [1, 1, 1, 3])
         proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Param proposal information {}'.format(proposalinfo_param))
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -214,18 +214,18 @@ class TestgetTallyResult:
         assert pip.get_yeas_of_proposal(proposalinfo_cancel.get('ProposalID')) == 3
         assert pip.get_nays_of_proposal(proposalinfo_cancel.get('ProposalID')) == 0
         assert pip.get_abstentions_of_proposal(proposalinfo_cancel.get('ProposalID')) == 1
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(client_con_list_obj)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo_cancel.get('ProposalID')) == len(clients_consensus)
 
         assert pip.get_status_of_proposal(proposalinfo_param.get('ProposalID')) == 6
         assert pip.get_yeas_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip.get_nays_of_proposal(proposalinfo_param.get('ProposalID')) == 0
         assert pip.get_abstentions_of_proposal(proposalinfo_param.get('ProposalID')) == 0
-        assert pip.get_accu_verifiers_of_proposal(proposalinfo_param.get('ProposalID')) == len(client_con_list_obj)
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo_param.get('ProposalID')) == len(clients_consensus)
 
     @pytest.mark.P1
     @allure.title('Interface getTallyResult function verification--ineffective proposal id')
-    def test_TR_IN_006(self, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_TR_IN_006(self, client_verifier):
+        pip = client_verifier.pip
         result = pip.pip.getTallyResult('0x9992d1f843fe8f376884d871f87605dda02da0722fd6b350bbf683518f73f111')
         log.info('Ineffective proposalID, interface getTallyResult return : {}'.format(result))
         assert_code(result, 302030)
@@ -234,13 +234,13 @@ class TestgetTallyResult:
 class TestgetAccuVerifiersCount:
     @pytest.mark.P0
     @allure.title('Interface getTallyResult function verification--ineffective proposal id')
-    def test_AC_IN_018_to_025(self, new_genesis_env, client_con_list_obj):
+    def test_AC_IN_018_to_025(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        pip = client_con_list_obj[0].pip
-        pip_test = client_con_list_obj[-1].pip
+        pip = clients_consensus[0].pip
+        pip_test = clients_consensus[-1].pip
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '999',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Node submit param proposal result : {}'.format(result))
@@ -253,7 +253,7 @@ class TestgetAccuVerifiersCount:
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Get cancel proposal information : {}'.format(proposalinfo_cancel))
         for index in range(3):
-            client_obj = client_con_list_obj[index]
+            client_obj = clients_consensus[index]
             result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_param.get('ProposalID'), index + 1,
                                          client_obj.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Node {} vote param proposal result : {}'.format(client_obj.node.node_id, result))
@@ -270,22 +270,22 @@ class TestgetAccuVerifiersCount:
         assert pip_test.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 0, 1, 1]
         assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 1, 1]
 
-        report_information = mock_duplicate_sign(1, client_con_list_obj[1].node.nodekey,
-                                                 client_con_list_obj[1].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(1, clients_consensus[1].node.nodekey,
+                                                 clients_consensus[1].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip_test.economic.account.generate_account(pip_test.node.web3, 10 ** 18 * 1000)
-        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
+        result = clients_consensus[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         time.sleep(2)
         assert pip_test.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 0, 0, 1]
         assert pip_test.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 1]
 
-        report_information = mock_duplicate_sign(2, client_con_list_obj[2].node.nodekey,
-                                                 client_con_list_obj[2].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(2, clients_consensus[2].node.nodekey,
+                                                 clients_consensus[2].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip_test.economic.account.generate_account(pip_test.node.web3, 10 ** 18 * 1000)
-        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
+        result = clients_consensus[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip_test.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 0, 0, 0]
@@ -294,9 +294,9 @@ class TestgetAccuVerifiersCount:
     @pytest.mark.compatibility
     @pytest.mark.P0
     @allure.title('Interface getAccuVerifiersCount function verification')
-    def test_AC_IN_001_002_004_to_006_012_to_014(self, new_genesis_env, client_con_list_obj):
+    def test_AC_IN_001_002_004_to_006_012_to_014(self, new_genesis_env, clients_consensus):
         new_genesis_env.deploy_all()
-        pip = client_con_list_obj[-1].pip
+        pip = clients_consensus[-1].pip
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 5, pip.node.staking_address,
                                        transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
@@ -312,7 +312,7 @@ class TestgetAccuVerifiersCount:
         log.info('Get cancel proposal information : {}'.format(proposalinfo_version))
 
         for index in range(3):
-            client_obj = client_con_list_obj[index]
+            client_obj = clients_consensus[index]
             result = version_proposal_vote(client_obj.pip)
             assert_code(result, 0)
             result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
@@ -322,27 +322,27 @@ class TestgetAccuVerifiersCount:
 
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
-        log.info('Stop the node {}'.format(client_con_list_obj[0].node.node_id))
-        client_con_list_obj[0].node.stop()
+        log.info('Stop the node {}'.format(clients_consensus[0].node.node_id))
+        clients_consensus[0].node.stop()
         pip.economic.wait_consensus_blocknum(pip.node, 2)
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 2, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 1, 1]
 
-        report_information = mock_duplicate_sign(1, client_con_list_obj[1].node.nodekey,
-                                                 client_con_list_obj[1].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(1, clients_consensus[1].node.nodekey,
+                                                 clients_consensus[1].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10 ** 18 * 1000)
-        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
+        result = clients_consensus[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 1, 0, 0]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 0, 0, 1]
 
-        report_information = mock_duplicate_sign(2, client_con_list_obj[2].node.nodekey,
-                                                 client_con_list_obj[2].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(2, clients_consensus[2].node.nodekey,
+                                                 clients_consensus[2].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10 ** 18 * 1000)
-        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
+        result = clients_consensus[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 0, 0, 0]
@@ -350,43 +350,43 @@ class TestgetAccuVerifiersCount:
 
     @pytest.mark.P0
     @allure.title('Interface getAccuVerifiersCount function verification')
-    def test_AC_IN_003_008_010(self, new_genesis_env, client_con_list_obj):
+    def test_AC_IN_003_008_010(self, new_genesis_env, clients_consensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 120
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        pip = client_con_list_obj[-1].pip
-        submittpandvote(client_con_list_obj, 1, 2, 3, 1)
+        pip = clients_consensus[-1].pip
+        submittpandvote(clients_consensus, 1, 2, 3, 1)
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.text_proposal)
         log.info('Get text proposal information : {}'.format(proposalinfo))
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 2, 1, 1]
-        log.info('Stop the node {}'.format(client_con_list_obj[0].node.node_id))
-        client_con_list_obj[0].node.stop()
+        log.info('Stop the node {}'.format(clients_consensus[0].node.node_id))
+        clients_consensus[0].node.stop()
         pip.economic.wait_consensus_blocknum(pip.node, 2)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
 
-        report_information = mock_duplicate_sign(1, client_con_list_obj[1].node.nodekey,
-                                                 client_con_list_obj[1].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(1, clients_consensus[1].node.nodekey,
+                                                 clients_consensus[1].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10 ** 18 * 1000)
-        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
+        result = clients_consensus[-1].duplicatesign.reportDuplicateSign(1, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 1]
 
-        report_information = mock_duplicate_sign(2, client_con_list_obj[2].node.nodekey,
-                                                 client_con_list_obj[2].node.blsprikey, 41)
+        report_information = mock_duplicate_sign(2, clients_consensus[2].node.nodekey,
+                                                 clients_consensus[2].node.blsprikey, 41)
         log.info("Report information: {}".format(report_information))
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10 ** 18 * 1000)
-        result = client_con_list_obj[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
+        result = clients_consensus[-1].duplicatesign.reportDuplicateSign(2, report_information, address)
         log.info('Node duplicate block result : {}'.format(result))
         assert_code(result, 0)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
 
     @pytest.mark.P2
     @allure.title('Interface getAccuVerifiersCount function verification')
-    def test_AC_IN_016_to_018(self, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_AC_IN_016_to_018(self, client_verifier):
+        pip = client_verifier.pip
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
                                     transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit text proposal result : {}'.format(result))
@@ -424,37 +424,37 @@ class TestListGovernParam:
 
     @pytest.mark.P0
     @allure.title('Interface listGovernParam function verification')
-    def test_IN_LG_001(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj)
+    def test_IN_LG_001(self, client_noconsensus):
+        name, module = self.get_govern_param(client_noconsensus)
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'slashBlocksReward',
                              'stakeThreshold', 'maxBlockGasLimit', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
         assert set(module) == {'block', 'slashing', 'staking'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
-    def test_IN_LG_002(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj, 'staking')
+    def test_IN_LG_002(self, client_noconsensus):
+        name, module = self.get_govern_param(client_noconsensus, 'staking')
         assert set(name) == {'maxValidators', 'unStakeFreezeDuration', 'operatingThreshold', 'stakeThreshold'}
         assert set(module) == {'staking'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
-    def test_IN_LG_003(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj, 'slashing')
+    def test_IN_LG_003(self, client_noconsensus):
+        name, module = self.get_govern_param(client_noconsensus, 'slashing')
         assert set(name) == {'slashBlocksReward', 'duplicateSignReportReward', 'maxEvidenceAge', 'slashFractionDuplicateSign'}
         assert set(module) == {'slashing'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
-    def test_IN_LG_004(self, client_noconsensus_obj):
-        name, module = self.get_govern_param(client_noconsensus_obj, 'block')
+    def test_IN_LG_004(self, client_noconsensus):
+        name, module = self.get_govern_param(client_noconsensus, 'block')
         assert set(name) == {'maxBlockGasLimit'}
         assert set(module) == {'block'}
 
     @pytest.mark.P2
     @allure.title('Interface listGovernParam function verification')
-    def test_IN_LG_005(self, client_noconsensus_obj):
-        result = client_noconsensus_obj.pip.pip.listGovernParam('txpool')
+    def test_IN_LG_005(self, client_noconsensus):
+        result = client_noconsensus.pip.pip.listGovernParam('txpool')
         log.info('Interface listGovernParam result {}'.format(result))
         assert_code(result, 2)
         assert result.get('Ret') == "Object not found"
@@ -463,10 +463,10 @@ class TestListGovernParam:
 class TestGetGovernParam:
     @pytest.mark.P0
     @allure.title('Interface getGovernParamValue function verification')
-    def test_IN_GG_001(self, client_noconsensus_obj):
-        client_noconsensus_obj.economic.env.deploy_all()
-        genesis = from_dict(data_class=Genesis, data=client_noconsensus_obj.economic.env.genesis_config)
-        pip = client_noconsensus_obj.pip.pip
+    def test_IN_GG_001(self, client_noconsensus):
+        client_noconsensus.economic.env.deploy_all()
+        genesis = from_dict(data_class=Genesis, data=client_noconsensus.economic.env.genesis_config)
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('slashing', 'slashBlocksReward')
         log.info('Interface getGovernParamValue result : {}'.format(result))
         assert genesis.economicModel.slashing.slashBlocksReward == int(result.get('Ret'))
@@ -505,27 +505,27 @@ class TestGetGovernParam:
 
     @pytest.mark.P2
     @allure.title('Interface getGovernParamValue function verification')
-    def test_IN_GG_002(self, client_noconsensus_obj):
-        pip = client_noconsensus_obj.pip.pip
+    def test_IN_GG_002(self, client_noconsensus):
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('Staking', 'maxValidators')
         assert_code(result, 302031)
-        pip = client_noconsensus_obj.pip.pip
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('Slashing', 'slashBlocksReward')
         assert_code(result, 302031)
-        pip = client_noconsensus_obj.pip.pip
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('Block', 'maxBlockGasLimit')
         assert_code(result, 302031)
 
     @pytest.mark.P2
     @allure.title('Interface getGovernParamValue function verification')
-    def test_IN_GG_003(self, client_noconsensus_obj):
-        pip = client_noconsensus_obj.pip.pip
+    def test_IN_GG_003(self, client_noconsensus):
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('staking', 'MaxValidators')
         assert_code(result, 302031)
-        pip = client_noconsensus_obj.pip.pip
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('slashing', 'SlashBlocksReward')
         assert_code(result, 302031)
-        pip = client_noconsensus_obj.pip.pip
+        pip = client_noconsensus.pip.pip
         result = pip.getGovernParamValue('block', 'MaxValidators')
         assert_code(result, 302031)
 
@@ -539,9 +539,9 @@ class TestGetActiveVersion:
 
     @pytest.mark.P0
     @allure.title('Interface getActiveVersion function verification')
-    def test_AV_IN_002_003(self, client_verifier_obj_list):
-        pip = client_verifier_obj_list[0].pip
-        submitvpandvote(client_verifier_obj_list)
+    def test_AV_IN_002_003(self, clients_verifier):
+        pip = clients_verifier[0].pip
+        submitvpandvote(clients_verifier)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Version proposal information : {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
@@ -588,9 +588,9 @@ class TestListProposal:
 
     @pytest.mark.P1
     @allure.title('Interface listProposal function verification')
-    def test_LP_IN_003(self, client_consensus_obj):
-        client_consensus_obj.economic.env.deploy_all()
-        result = client_consensus_obj.pip.pip.listProposal()
+    def test_LP_IN_003(self, client_consensus):
+        client_consensus.economic.env.deploy_all()
+        result = client_consensus.pip.pip.listProposal()
         log.info('There is no proposal, interface listProposal return : {}'.format(result))
         assert_code(result, 2)
         assert result.get('Ret') == "Object not found"
@@ -604,8 +604,8 @@ class TestGasUse:
 
     @pytest.mark.P2
     @allure.title('Verify gas --submittext and vote')
-    def test_TP_GA_001(self, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_TP_GA_001(self, client_verifier):
+        pip = client_verifier.pip
         pip_id = str(time.time())
         data = rlp.encode([rlp.encode(int(2000)), rlp.encode(bytes.fromhex(pip.node.node_id)), rlp.encode(pip_id)])
         balance_before = self.get_balance(pip)
@@ -690,8 +690,8 @@ class TestGasUse:
 
     @pytest.mark.P2
     @allure.title('Verify gas --declare version')
-    def test_declareversion(self, client_verifier_obj):
-        pip = client_verifier_obj.pip
+    def test_declareversion(self, client_verifier):
+        pip = client_verifier.pip
         balance_before = self.get_balance(pip)
         result = pip.declareVersion(pip.node.node_id, pip.node.staking_address,
                                         transaction_cfg=pip.cfg.transaction_cfg)

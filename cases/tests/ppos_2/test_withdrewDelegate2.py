@@ -9,7 +9,7 @@ import pytest
 @pytest.mark.P2
 def test_ROE_031(staking_delegate_client):
     """
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
     client = staking_delegate_client

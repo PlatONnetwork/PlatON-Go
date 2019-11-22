@@ -7,7 +7,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 
-from tests.conftest import get_client_noconsensus_list
+from tests.conftest import get_clients_noconsensus
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
     get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
 
@@ -42,7 +42,7 @@ def client_new_node_obj_list_reset(global_test_env, staking_cfg):
     Get new node Client object list
     """
     global_test_env.deploy_all()
-    yield get_client_noconsensus_list(global_test_env, staking_cfg)
+    yield get_clients_noconsensus(global_test_env, staking_cfg)
     global_test_env.deploy_all()
 
 
@@ -497,7 +497,7 @@ def test_VP_GPFV_012(client_new_node_obj_list_reset):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
+def test_VP_GPFV_013(new_genesis_env, clients_consensus):
     """
     验证人被处罚后质押金=>创建验证人的最小质押门槛金额K
     :param new_genesis_env:
@@ -511,9 +511,9 @@ def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_con_list_obj[0]
+    client1 = clients_consensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_con_list_obj[1]
+    client2 = clients_consensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -540,7 +540,7 @@ def test_VP_GPFV_013(new_genesis_env, client_con_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_014(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金低于质押金额（自由金额质押）
     :param new_genesis_env:
@@ -554,9 +554,9 @@ def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -601,7 +601,7 @@ def test_VP_GPFV_014(new_genesis_env, client_noc_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_015(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_015(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金等于于自由处罚金（自由金额质押）
     :param new_genesis_env:
@@ -615,9 +615,9 @@ def test_VP_GPFV_015(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -668,7 +668,7 @@ def test_VP_GPFV_015(new_genesis_env, client_noc_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_016(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_016(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金大于自由处罚金（自由金额质押）
     :param new_genesis_env:
@@ -682,9 +682,9 @@ def test_VP_GPFV_016(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -738,7 +738,7 @@ def test_VP_GPFV_016(new_genesis_env, client_noc_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_017(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_017(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金低于质押金额（锁仓金额质押）
     :param new_genesis_env:
@@ -752,9 +752,9 @@ def test_VP_GPFV_017(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -799,7 +799,7 @@ def test_VP_GPFV_017(new_genesis_env, client_noc_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_018(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_018(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金等于质押金额（锁仓金额质押）
     :param new_genesis_env:
@@ -813,9 +813,9 @@ def test_VP_GPFV_018(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -869,7 +869,7 @@ def test_VP_GPFV_018(new_genesis_env, client_noc_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_019(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_019(new_genesis_env, clients_noconsensus):
     """
     低出块率被最高处罚金大于质押金额（锁仓金额质押）
     :param new_genesis_env:
@@ -883,9 +883,9 @@ def test_VP_GPFV_019(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node
@@ -936,7 +936,7 @@ def test_VP_GPFV_019(new_genesis_env, client_noc_list_obj):
 
 
 @pytest.mark.P2
-def test_VP_GPFV_020(new_genesis_env, client_noc_list_obj):
+def test_VP_GPFV_020(new_genesis_env, clients_noconsensus):
     """
     移出PlatON验证人与候选人名单，（扣除以后剩余自有质押金），未申请退回质押金
     :param client_noc_list_obj:
@@ -949,9 +949,9 @@ def test_VP_GPFV_020(new_genesis_env, client_noc_list_obj):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client1 = client_noc_list_obj[0]
+    client1 = clients_noconsensus[0]
     log.info("Current connection node1: {}".format(client1.node.node_mark))
-    client2 = client_noc_list_obj[1]
+    client2 = clients_noconsensus[1]
     log.info("Current connection node2: {}".format(client2.node.node_mark))
     economic = client1.economic
     node = client1.node

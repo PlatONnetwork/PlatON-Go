@@ -8,15 +8,15 @@ from tests.lib.client import get_client_obj, get_client_obj_list
 from dacite import from_dict
 
 @pytest.fixture()
-def large_version_proposal_pips(client_list_obj):
+def large_version_proposal_pips(all_clients):
     '''
     get verifier Client object list
     :param global_test_env:
     :return:
     '''
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_obj(verifier_list[0], client_list_obj)
+    pip = get_client_obj(verifier_list[0], all_clients)
     if pip.chain_version != pip.cfg.version0:
         pip.economic.env.deploy_all()
     if pip.is_exist_effective_proposal():
@@ -24,28 +24,28 @@ def large_version_proposal_pips(client_list_obj):
         log.info('proprosalinfo : {}'.format(proposalinfo))
         if proposalinfo.get('EndVotingBlock') - pip.node.block_number > 2 * pip.economic.consensus_size \
                 and proposalinfo.get('NewVersion') == pip.cfg.version8:
-            verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+            verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
             log.info('verifierlist{}'.format(verifier_list))
-            clients = get_client_obj_list(verifier_list, client_list_obj)
+            clients = get_client_obj_list(verifier_list, all_clients)
             return [client.pip for client in clients]
         else:
             pip.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version8, 10,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    clients = get_client_obj_list(verifier_list, client_list_obj)
+    clients = get_client_obj_list(verifier_list, all_clients)
     return [client.pip for client in clients]
 
 @pytest.fixture()
-def proposal_candidate_pips(client_list_obj):
+def proposal_candidate_pips(all_clients):
     '''
     There is voting stage proposal, get candidate list pip object
     :param global_test_env:
     :return:
     '''
-    pip = client_list_obj[0].pip
+    pip = all_clients[0].pip
     if pip.chain_version != pip.cfg.version0 or (pip.is_exist_effective_proposal() and
                                                          not pip.is_exist_effective_proposal_for_vote()):
         log.info('The chain has been upgraded or there is preactive proposal,restart!')
@@ -59,38 +59,38 @@ def proposal_candidate_pips(client_list_obj):
                 pip.economic.env.deploy_all()
             else:
                 if proposalinfo.get('EndVotingBlock') - pip.node.block_number > pip.economic.consensus_size:
-                    client_candidates = get_client_obj_list(nodeid_list, client_list_obj)
+                    client_candidates = get_client_obj_list(nodeid_list, all_clients)
                     return [client_obj.pip for client_obj in client_candidates]
 
-    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    candidate_list = get_pledge_list(all_clients[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
-    for client_obj in client_list_obj:
+    for client_obj in all_clients:
         if client_obj.node.node_id not in candidate_list:
             address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
             result = client_obj.staking.create_staking(0, address, address)
             log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('Verifier list {}'.format(verifier_list))
-    verifier_pip = get_client_obj(verifier_list[0], client_list_obj).pip
+    verifier_pip = get_client_obj(verifier_list[0], all_clients).pip
     result = verifier_pip.submitVersion(verifier_pip.node.node_id, str(time.time()), verifier_pip.cfg.version5,
                                                    10, verifier_pip.node.staking_address,
                                                    transaction_cfg=verifier_pip.cfg.transaction_cfg)
     log.info('Submit version proposal result {}'.format(result))
     assert_code(result, 0)
-    nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
+    nodeid_list = all_clients[0].pip.get_candidate_list_not_verifier()
     if not nodeid_list:
         raise Exception('get candidate not verifier failed')
-    client_candiates = get_client_obj_list(nodeid_list, client_list_obj)
+    client_candiates = get_client_obj_list(nodeid_list, all_clients)
     return [client_candiate.pip for client_candiate in client_candiates]
 
 @pytest.fixture()
-def large_version_proposal_candidate_pips(client_list_obj):
+def large_version_proposal_candidate_pips(all_clients):
     '''
     There is voting stage proposal, get candidate list pip object
     :param global_test_env:
     :return:
     '''
-    pip = client_list_obj[0].pip
+    pip = all_clients[0].pip
     if pip.chain_version != pip.cfg.version0 or (pip.is_exist_effective_proposal() and
                                                          not pip.is_exist_effective_proposal_for_vote()):
         log.info('The chain has been upgraded or there is preactive proposal,restart!')
@@ -104,70 +104,70 @@ def large_version_proposal_candidate_pips(client_list_obj):
                 pip.economic.env.deploy_all()
             else:
                 if proposalinfo.get('EndVotingBlock') - pip.node.block_number > pip.economic.consensus_size:
-                    client_candiates = get_client_obj_list(nodeid_list, client_list_obj)
+                    client_candiates = get_client_obj_list(nodeid_list, all_clients)
                     return [client_obj.pip for client_obj in client_candiates]
 
-    candidate_list = get_pledge_list(client_list_obj[0].ppos.getCandidateList)
+    candidate_list = get_pledge_list(all_clients[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
-    for client_obj in client_list_obj:
+    for client_obj in all_clients:
         if client_obj.node.node_id not in candidate_list:
             address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
             result = client_obj.staking.create_staking(0, address, address)
             log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('Verifier list {}'.format(verifier_list))
-    verifier_pip = get_client_obj(verifier_list[0], client_list_obj).pip
+    verifier_pip = get_client_obj(verifier_list[0], all_clients).pip
     result = verifier_pip.submitVersion(verifier_pip.node.node_id, str(time.time()),
                                                    verifier_pip.cfg.version8,
                                                    10, verifier_pip.node.staking_address,
                                                    transaction_cfg=verifier_pip.cfg.transaction_cfg)
     log.info('Submit version proposal result {}'.format(result))
     assert_code(result, 0)
-    nodeid_list = client_list_obj[0].pip.get_candidate_list_not_verifier()
+    nodeid_list = all_clients[0].pip.get_candidate_list_not_verifier()
     if not nodeid_list:
         raise Exception('get candidate not verifier failed')
-    client_candidates = get_client_obj_list(nodeid_list, client_list_obj)
+    client_candidates = get_client_obj_list(nodeid_list, all_clients)
     return [client_candidate.pip for client_candidate in client_candidates]
 
 @pytest.fixture()
-def proposal_voted_pips(client_list_obj):
+def proposal_voted_pips(all_clients):
     '''
     get verifier Client object list
     :param global_test_env:
     :return:
     '''
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_obj(verifier_list[0], client_list_obj).pip
+    pip = get_client_obj(verifier_list[0], all_clients).pip
     pip.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version5, 10,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     assert_code(result, 0)
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
+    client_obj_list = get_client_obj_list(verifier_list, all_clients)
     result = version_proposal_vote(client_obj_list[0].pip)
     assert_code(result, 0)
     return [client_obj.pip for client_obj in client_obj_list]
 
 @pytest.fixture()
-def large_version_proposal_voted_pips(client_list_obj):
+def large_version_proposal_voted_pips(all_clients):
     '''
     get verifier Client object list
     :param global_test_env:
     :return:
     '''
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_obj(verifier_list[0], client_list_obj).pip
+    pip = get_client_obj(verifier_list[0], all_clients).pip
     pip.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version8, 10,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
-    verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    client_obj_list = get_client_obj_list(verifier_list, client_list_obj)
+    client_obj_list = get_client_obj_list(verifier_list, all_clients)
     result = version_proposal_vote(client_obj_list[0].pip)
     assert_code(result, 0)
     return [client_obj.pip for client_obj in client_obj_list]
@@ -210,8 +210,8 @@ def wrong_verison_declare(pip, version=None):
 
 @pytest.mark.P0
 @allure.title('Not staking address declare version')
-def test_DE_DE_001(client_verifier_obj):
-    pip = client_verifier_obj.pip
+def test_DE_DE_001(client_verifier):
+    pip = client_verifier.pip
     address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000)
     result = pip.declareVersion(pip.node.node_id, address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('declareVersion result: {}'.format(result))
@@ -1046,12 +1046,12 @@ class TestPreactiveProposalVE:
 class TestNoProposalCA:
     @pytest.mark.P0
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_001(self, noproposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_001(self, noproposal_candidate_pips, client_verifier):
         pip = noproposal_candidate_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1059,13 +1059,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P3
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_002(self, noproposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_002(self, noproposal_candidate_pips, client_verifier):
         pip = noproposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1073,13 +1073,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P0
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_004(self, noproposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_004(self, noproposal_candidate_pips, client_verifier):
         pip = noproposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1087,13 +1087,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_005(self, noproposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_005(self, noproposal_candidate_pips, client_verifier):
         pip = noproposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1101,13 +1101,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_006(self, noproposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_006(self, noproposal_candidate_pips, client_verifier):
         pip = noproposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1115,13 +1115,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P0
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_007(self, noproposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_007(self, noproposal_candidate_pips, client_verifier):
         pip = noproposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.cfg.version2)
@@ -1132,13 +1132,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P0
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_008(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_008(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1149,13 +1149,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_010(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_010(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1166,13 +1166,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_014(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_014(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1183,13 +1183,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_025(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_025(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1200,13 +1200,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P0
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_032(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_032(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1214,13 +1214,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_034(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_034(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1228,13 +1228,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_036(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_036(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1245,13 +1245,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_038(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_038(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1259,13 +1259,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_040(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_040(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1276,13 +1276,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_042(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_042(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1293,13 +1293,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_044(self, proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_044(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1310,13 +1310,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_046(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_046(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1327,13 +1327,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_048(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_048(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1344,13 +1344,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_050(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_050(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1361,13 +1361,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_052(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_052(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip)
@@ -1378,13 +1378,13 @@ class TestNoProposalCA:
 
     @pytest.mark.P2
     @allure.title('No effective proposal, candiate declare version')
-    def test_DE_CA_054(self, large_version_proposal_candidate_pips, client_verifier_obj):
+    def test_DE_CA_054(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_verifier_obj.pip)
+        result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1394,15 +1394,15 @@ class TestNoProposalCA:
 class TestNewNodeDeclareVersion:
     @pytest.mark.P1
     @allure.title('New node declare version')
-    def test_DE_NN_001_to_003(self, new_genesis_env, client_con_list_obj, client_noc_list_obj):
+    def test_DE_NN_001_to_003(self, new_genesis_env, clients_consensus, clients_noconsensus):
         new_genesis_env.deploy_all()
-        pip = client_noc_list_obj[0].pip
+        pip = clients_noconsensus[0].pip
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000000)
         result = pip.declareVersion(pip.node.node_id, address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('New node declare version result : {}'.format(result))
         assert_code(result, 302023)
 
-        submitvpandvote(client_con_list_obj)
+        submitvpandvote(clients_consensus)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo))
         result = pip.declareVersion(pip.node.node_id, address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -1422,11 +1422,12 @@ class TestNewNodeDeclareVersion:
 class TestDV:
     @pytest.mark.P3
     @allure.title('Declare version')
-    def test_DE_VE_003_DE_VE_012_DE_VE_027_DE_CA_003_DE_CA_012_DE_VE_061_DE_CA_027(self, new_genesis_env, client_con_list_obj):
+    def test_DE_VE_003_DE_VE_012_DE_VE_027_DE_CA_003_DE_CA_012_DE_VE_061_DE_CA_027(self, new_genesis_env,
+                                                                                   clients_consensus):
         new_genesis_env.deploy_all()
-        pip_ca = client_con_list_obj[-1].pip
-        pip_ve = client_con_list_obj[0].pip
-        submitvpandvote(client_con_list_obj[0:3], votingrounds=3, version=pip_ca.cfg.version9)
+        pip_ca = clients_consensus[-1].pip
+        pip_ve = clients_consensus[0].pip
+        submitvpandvote(clients_consensus[0:3], votingrounds=3, version=pip_ca.cfg.version9)
         proposalinfo = pip_ca.get_effect_proposal_info_of_vote()
         log.info("Get version proposal information : {}".format(proposalinfo))
         wait_block_number(pip_ca.node, proposalinfo.get('EndVotingBlock'))
@@ -1435,7 +1436,7 @@ class TestDV:
         assert_code(pip_ca.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
         assert pip_ca.cfg.version9 == pip_ca.chain_version
 
-        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        verifier_list = get_pledge_list(clients_consensus[0].ppos.getVerifierList)
         log.info('verifier list : {}'.format(verifier_list))
         assert pip_ca.node not in verifier_list
 
@@ -1445,11 +1446,11 @@ class TestDV:
                                            transaction_cfg=pip_ca.cfg.transaction_cfg)
         log.info('Node {} declare version result {}'.format(pip_ca.node.node_id, result))
         assert_code(result, 302028)
-        result = client_con_list_obj[1].pip.submitVersion(client_con_list_obj[1].node.node_id, str(time.time()),
-                                                          pip_ca.cfg.version8, 2,
-                                                          client_con_list_obj[1].node.staking_address,
-                                                          transaction_cfg=pip_ca.cfg.transaction_cfg)
-        log.info('Node {} submit version proposal result : {}'.format(client_con_list_obj[1].node.node_id, result))
+        result = clients_consensus[1].pip.submitVersion(clients_consensus[1].node.node_id, str(time.time()),
+                                                        pip_ca.cfg.version8, 2,
+                                                        clients_consensus[1].node.staking_address,
+                                                        transaction_cfg=pip_ca.cfg.transaction_cfg)
+        log.info('Node {} submit version proposal result : {}'.format(clients_consensus[1].node.node_id, result))
         assert_code(result, 0)
         result = replace_version_declare(pip_ve, pip_ve.cfg.PLATON_NEW_BIN0, versiontag=pip_ve.cfg.version0)
         assert_code(result, 302028)
@@ -1457,7 +1458,7 @@ class TestDV:
         result = replace_version_declare(pip_ca, pip_ve.cfg.PLATON_NEW_BIN0, versiontag=pip_ve.cfg.version0)
         assert_code(result, 302028)
 
-        for client_obj in client_con_list_obj[:3]:
+        for client_obj in clients_consensus[:3]:
             version_proposal_vote(client_obj.pip)
         proposalinfo = pip_ve.get_effect_proposal_info_of_vote()
         log.info('Get proposal information : {}'.format(proposalinfo))
@@ -1483,20 +1484,21 @@ class TestVotedCADV:
 
     @pytest.mark.P2
     @allure.title('Voted candidate, Declare version')
-    def test_DE_CA_009_011_033_037_039_041_043_045(self, new_genesis_env, client_con_list_obj, client_noc_list_obj, client_list_obj):
+    def test_DE_CA_009_011_033_037_039_041_043_045(self, new_genesis_env, clients_consensus, clients_noconsensus,
+                                                   all_clients):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitvpandvote(client_con_list_obj, votingrounds=40)
-        createstaking(client_noc_list_obj)
-        client_con_list_obj[0].economic.wait_settlement_blocknum(client_con_list_obj[0].node)
-        client_obj = self.get_candidate_no_verifier(client_list_obj)
+        submitvpandvote(clients_consensus, votingrounds=40)
+        createstaking(clients_noconsensus)
+        clients_consensus[0].economic.wait_settlement_blocknum(clients_consensus[0].node)
+        client_obj = self.get_candidate_no_verifier(all_clients)
         pip = client_obj.pip
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1508,61 +1510,62 @@ class TestVotedCADV:
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
     @pytest.mark.P2
     @allure.title('Voted candidate, Declare version')
-    def test_DE_CA_021_026_035_047_049_051_053_055(self, new_genesis_env, client_con_list_obj, client_noc_list_obj, client_list_obj):
+    def test_DE_CA_021_026_035_047_049_051_053_055(self, new_genesis_env, clients_consensus, clients_noconsensus,
+                                                   all_clients):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 2000
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        submitvpandvote(client_con_list_obj, votingrounds=40, version=client_noc_list_obj[0].pip.cfg.version8)
-        createstaking(client_noc_list_obj)
-        client_con_list_obj[0].economic.wait_settlement_blocknum(client_con_list_obj[0].node)
-        client_obj = self.get_candidate_no_verifier(client_list_obj)
+        submitvpandvote(clients_consensus, votingrounds=40, version=clients_noconsensus[0].pip.cfg.version8)
+        createstaking(clients_noconsensus)
+        clients_consensus[0].economic.wait_settlement_blocknum(clients_consensus[0].node)
+        client_obj = self.get_candidate_no_verifier(all_clients)
         pip = client_obj.pip
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = wrong_verison_declare(pip, pip.chain_version)
@@ -1574,50 +1577,50 @@ class TestVotedCADV:
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 302028)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 0)
 
-        result = wrong_verisonsign_declare(pip, client_noc_list_obj[0].pip)
+        result = wrong_verisonsign_declare(pip, clients_noconsensus[0].pip)
         assert_code(result, 302024)
 
 @pytest.mark.P2
 @allure.title('Voted verifier, replace the platon bin and declare version')
-def test_DE_VE_074(no_vp_proposal, client_verifier_obj):
-    pip = client_verifier_obj.pip
-    submitvpandvote([client_verifier_obj], votingrounds=1)
+def test_DE_VE_074(no_vp_proposal, client_verifier):
+    pip = client_verifier.pip
+    submitvpandvote([client_verifier], votingrounds=1)
     proposalinfo = pip.get_effect_proposal_info_of_vote()
     log.info('Get proposal information : {}'.format(proposalinfo))
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))

@@ -8,7 +8,7 @@ from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
 
-from tests.conftest import get_client_consensus_obj
+from tests.conftest import get_client_consensus
 from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
     get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
 
@@ -41,7 +41,7 @@ def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client = get_client_consensus_obj(new_genesis_env, staking_cfg)
+    client = get_client_consensus(new_genesis_env, staking_cfg)
     economic = client.economic
     node = client.node
     # Query the initial amount of incentive pool

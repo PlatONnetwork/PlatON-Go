@@ -42,7 +42,7 @@ def verification_duplicate_sign(client_obj, evidence_type, reporting_type, repor
 
 @pytest.mark.P0
 @pytest.mark.parametrize('repor_type', [1, 2, 3])
-def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
+def test_VP_PV_001_to_003(client_consensus, repor_type, reset_environment):
     """
     举报验证人区块双签:VP_PV_001 prepareBlock类型
                     VP_PV_002 prepareVote类型
@@ -52,7 +52,7 @@ def test_VP_PV_001_to_003(client_consensus_obj, repor_type, reset_environment):
     :param reset_environment:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     client.economic.env.deploy_all()
@@ -245,7 +245,7 @@ def obtaining_evidence_information(economic, node):
 @pytest.mark.parametrize('first_key, second_key, value',
                          [('epoch', None, 1), ('viewNumber', None, 1), ('blockIndex', None, 1),
                           ('validateNode', 'index', 1)])
-def test_VP_PV_010_011_014_015(client_consensus_obj, first_key, second_key, value):
+def test_VP_PV_010_011_014_015(client_consensus, first_key, second_key, value):
     """
     VP_PV_010:举报双签-双签证据epoch不一致
     VP_PV_011:举报双签-双签证据view_number不一致
@@ -257,7 +257,7 @@ def test_VP_PV_010_011_014_015(client_consensus_obj, first_key, second_key, valu
     :param value:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -273,13 +273,13 @@ def test_VP_PV_010_011_014_015(client_consensus_obj, first_key, second_key, valu
 
 
 @pytest.mark.P1
-def test_VP_PV_012(client_consensus_obj):
+def test_VP_PV_012(client_consensus):
     """
     举报双签-双签证据block_number不一致
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -295,13 +295,13 @@ def test_VP_PV_012(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_013(client_consensus_obj):
+def test_VP_PV_013(client_consensus):
     """
     举报双签-双签证据block_hash一致
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -318,13 +318,13 @@ def test_VP_PV_013(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_016(client_consensus_obj):
+def test_VP_PV_016(client_consensus):
     """
     举报双签-双签证据address不一致
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -341,13 +341,13 @@ def test_VP_PV_016(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_017(client_con_list_obj):
+def test_VP_PV_017(clients_consensus):
     """
     举报双签-NodeID不一致举报双签
     :param client_con_list_obj:
     :return:
     """
-    client = client_con_list_obj[0]
+    client = clients_consensus[0]
     economic = client.economic
     node = client.node
     # create report address
@@ -356,7 +356,7 @@ def test_VP_PV_017(client_con_list_obj):
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
     jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'nodeId',
-                                    client_con_list_obj[1].node.node_id)
+                                    clients_consensus[1].node.node_id)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
@@ -364,13 +364,13 @@ def test_VP_PV_017(client_con_list_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_018(client_con_list_obj):
+def test_VP_PV_018(clients_consensus):
     """
     举报双签-blsPubKey不一致举报双签
     :param client_con_list_obj:
     :return:
     """
-    client = client_con_list_obj[0]
+    client = clients_consensus[0]
     economic = client.economic
     node = client.node
     # create report address
@@ -379,7 +379,7 @@ def test_VP_PV_018(client_con_list_obj):
     report_information, current_block = obtaining_evidence_information(economic, node)
     # Modification of evidence
     jsondata = update_param_by_dict(report_information, 'prepareA', 'validateNode', 'blsPubKey',
-                                    client_con_list_obj[1].node.blspubkey)
+                                    clients_consensus[1].node.blspubkey)
     log.info("Evidence information: {}".format(jsondata))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, jsondata, report_address)
@@ -387,13 +387,13 @@ def test_VP_PV_018(client_con_list_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_019(client_con_list_obj):
+def test_VP_PV_019(clients_consensus):
     """
     举报双签-signature一致举报双签
     :param client_con_list_obj:
     :return:
     """
-    client = client_con_list_obj[0]
+    client = clients_consensus[0]
     economic = client.economic
     node = client.node
     # create report address
@@ -411,7 +411,7 @@ def test_VP_PV_019(client_con_list_obj):
 
 @pytest.mark.P1
 @pytest.mark.parametrize("value", [{"epoch": 1}, {"view_number": 1}, {"block_index": 1}, {"index": 1}])
-def test_VP_PV_020_to_023(client_con_list_obj, value):
+def test_VP_PV_020_to_023(clients_consensus, value):
     """
     VP_PV_020:举报双签-伪造合法signature情况下伪造epoch
     VP_PV_021:举报双签-伪造合法signature情况下伪造viewNumber
@@ -420,7 +420,7 @@ def test_VP_PV_020_to_023(client_con_list_obj, value):
     :param client_con_list_obj:
     :return:
     """
-    client = client_con_list_obj[0]
+    client = clients_consensus[0]
     economic = client.economic
     node = client.node
     # create report address
@@ -440,13 +440,13 @@ def test_VP_PV_020_to_023(client_con_list_obj, value):
 
 
 @pytest.mark.P1
-def test_VP_PV_024(client_con_list_obj):
+def test_VP_PV_024(clients_consensus):
     """
     举报双签-伪造合法signature情况下伪造blockNumber
     :param client_con_list_obj:
     :return:
     """
-    client = client_con_list_obj[0]
+    client = clients_consensus[0]
     economic = client.economic
     node = client.node
     # create report address
@@ -466,13 +466,13 @@ def test_VP_PV_024(client_con_list_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_025(client_consensus_obj):
+def test_VP_PV_025(client_consensus):
     """
     举报接口参数测试：举报人账户错误
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -493,13 +493,13 @@ def test_VP_PV_025(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_026(client_con_list_obj):
+def test_VP_PV_026(clients_consensus):
     """
     链存在的id,blskey不匹配
     :param client_con_list_obj:
     :return:
     """
-    client = client_con_list_obj[0]
+    client = clients_consensus[0]
     economic = client.economic
     node = client.node
     # create report address
@@ -510,7 +510,7 @@ def test_VP_PV_026(client_con_list_obj):
     current_block = node.eth.blockNumber
     log.info("Current block height: {}".format(current_block))
     # Obtain evidence of violation
-    report_information = mock_duplicate_sign(1, node.nodekey, client_con_list_obj[1].node.blsprikey, current_block)
+    report_information = mock_duplicate_sign(1, node.nodekey, clients_consensus[1].node.blsprikey, current_block)
     log.info("Report information: {}".format(report_information))
     # Report verifier Duplicate Sign
     result = client.duplicatesign.reportDuplicateSign(1, report_information, report_address)
@@ -518,13 +518,13 @@ def test_VP_PV_026(client_con_list_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_027(client_new_node_obj):
+def test_VP_PV_027(client_new_node):
     """
     举报候选人
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -552,13 +552,13 @@ def test_VP_PV_027(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_028(client_consensus_obj):
+def test_VP_PV_028(client_consensus):
     """
     举报有效期之前的双签行为
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -577,13 +577,13 @@ def test_VP_PV_028(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PV_028(client_consensus_obj):
+def test_VP_PV_028(client_consensus):
     """
     举报有效期之后的双签行为
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -597,13 +597,13 @@ def test_VP_PV_028(client_consensus_obj):
 
 
 @pytest.mark.P2
-def test_VP_PV_030(client_consensus_obj, reset_environment):
+def test_VP_PV_030(client_consensus, reset_environment):
     """
     举报签名Gas费
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -633,13 +633,13 @@ def test_VP_PV_030(client_consensus_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PV_031(client_consensus_obj):
+def test_VP_PV_031(client_consensus):
     """
     举报的gas费不足
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     status = True
@@ -658,13 +658,13 @@ def test_VP_PV_031(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PR_003(client_new_node_obj, reset_environment):
+def test_VP_PR_003(client_new_node, reset_environment):
     """
     举报被处罚退出状态中的验证人
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -713,13 +713,13 @@ def test_VP_PR_003(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PR_004(client_new_node_obj):
+def test_VP_PR_004(client_new_node):
     """
     举报已完成退出的验证人
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -753,13 +753,13 @@ def test_VP_PR_004(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_VP_PR_005(client_new_node_obj, reset_environment):
+def test_VP_PR_005(client_new_node, reset_environment):
     """
     举报人和被举报人为同一个人
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -789,13 +789,13 @@ def test_VP_PR_005(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PVF_001(client_consensus_obj, reset_environment):
+def test_VP_PVF_001(client_consensus, reset_environment):
     """
     查询已成功的举报
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -818,13 +818,13 @@ def test_VP_PVF_001(client_consensus_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PVF_002(client_consensus_obj):
+def test_VP_PVF_002(client_consensus):
     """
     查询未成功的举报记录
     :param client_consensus_obj:
     :return:
     """
-    client = client_consensus_obj
+    client = client_consensus
     economic = client.economic
     node = client.node
     # create report address
@@ -849,13 +849,13 @@ def test_VP_PVF_002(client_consensus_obj):
 
 
 @pytest.mark.P1
-def test_VP_PVF_003(client_new_node_obj, reset_environment):
+def test_VP_PVF_003(client_new_node, reset_environment):
     """
     被系统剔除出验证人与候选人名单，节点可继续完成轮的出块及验证工作
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     time.sleep(5)
@@ -893,13 +893,13 @@ def test_VP_PVF_003(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PVF_004(client_new_node_obj, reset_environment):
+def test_VP_PVF_004(client_new_node, reset_environment):
     """
     验证人在共识轮第230区块前被举报并被处罚
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -946,13 +946,13 @@ def test_VP_PVF_004(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P1
-def test_VP_PVF_005(client_new_node_obj, reset_environment):
+def test_VP_PVF_005(client_new_node, reset_environment):
     """
     验证人在共识轮第230区块后举报并被处罚
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -994,13 +994,13 @@ def test_VP_PVF_005(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_VP_PVF_006(client_new_node_obj, reset_environment):
+def test_VP_PVF_006(client_new_node, reset_environment):
     """
     移出PlatON验证人与候选人名单，验证人申请退回质押金
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -1032,13 +1032,13 @@ def test_VP_PVF_006(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_VP_PVF_007(client_new_node_obj, reset_environment):
+def test_VP_PVF_007(client_new_node, reset_environment):
     """
     节点被处罚后马上重新质押（双签）
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -1070,13 +1070,13 @@ def test_VP_PVF_007(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_VP_PVF_008(client_new_node_obj, reset_environment):
+def test_VP_PVF_008(client_new_node, reset_environment):
     """
     节点被处罚后马上重新增持质押（双签）
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address
@@ -1108,13 +1108,13 @@ def test_VP_PVF_008(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_VP_PVF_009(client_new_node_obj, reset_environment):
+def test_VP_PVF_009(client_new_node, reset_environment):
     """
     移出PlatON验证人与候选人名单，委托人可在处罚所在结算周期，申请赎回全部委托金
     :param client_new_node_obj:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create pledge address

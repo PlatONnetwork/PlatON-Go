@@ -304,15 +304,15 @@ def test_RV_006(staking_client):
 
 @allure.title("Gas shortage")
 @pytest.mark.P1
-def test_RV_007(client_new_node_obj):
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+def test_RV_007(client_new_node):
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     cfg = {"gas": 1}
     status = 0
     try:
-        result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
+        result = client_new_node.staking.withdrew_staking(address, transaction_cfg=cfg)
         log.info(result)
     except BaseException:
         status = 1
@@ -321,16 +321,16 @@ def test_RV_007(client_new_node_obj):
 
 @allure.title("not sufficient funds")
 @pytest.mark.P1
-def test_RV_008(client_new_node_obj):
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+def test_RV_008(client_new_node):
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     value = 10 ** 18 * 10000000
     cfg = {"gasPrice": value}
     status = 0
     try:
-        result = client_new_node_obj.staking.withdrew_staking(address, transaction_cfg=cfg)
+        result = client_new_node.staking.withdrew_staking(address, transaction_cfg=cfg)
         log.info(result)
     except BaseException:
         status = 1
@@ -395,33 +395,33 @@ def test_RV_011(staking_client):
 
 @allure.title("Become a candidate and withdraw from pledge")
 @pytest.mark.P2
-def test_RV_012(global_test_env, client_noc_list_obj):
+def test_RV_012(global_test_env, clients_noconsensus):
     """
     Candidate cancels pledge
     """
     global_test_env.deploy_all()
-    address1, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+    address1, _ = clients_noconsensus[0].economic.account.generate_account(clients_noconsensus[0].node.web3,
                                                                            10 ** 18 * 10000000)
-    address2, _ = client_noc_list_obj[0].economic.account.generate_account(client_noc_list_obj[0].node.web3,
+    address2, _ = clients_noconsensus[0].economic.account.generate_account(clients_noconsensus[0].node.web3,
                                                                            10 ** 18 * 10000000)
 
-    result = client_noc_list_obj[0].staking.create_staking(0, address1, address1,
-                                                           amount=client_noc_list_obj[
+    result = clients_noconsensus[0].staking.create_staking(0, address1, address1,
+                                                           amount=clients_noconsensus[
                                                                       0].economic.create_staking_limit * 2)
     assert_code(result, 0)
 
-    result = client_noc_list_obj[1].staking.create_staking(0, address2, address2,
-                                                           amount=client_noc_list_obj[1].economic.create_staking_limit)
+    result = clients_noconsensus[1].staking.create_staking(0, address2, address2,
+                                                           amount=clients_noconsensus[1].economic.create_staking_limit)
     assert_code(result, 0)
 
     log.info("Next settlement period")
-    client_noc_list_obj[1].economic.wait_settlement_blocknum(client_noc_list_obj[1].node)
-    msg = client_noc_list_obj[1].ppos.getVerifierList()
+    clients_noconsensus[1].economic.wait_settlement_blocknum(clients_noconsensus[1].node)
+    msg = clients_noconsensus[1].ppos.getVerifierList()
     log.info(msg)
-    verifierlist = get_pledge_list(client_noc_list_obj[1].ppos.getVerifierList)
+    verifierlist = get_pledge_list(clients_noconsensus[1].ppos.getVerifierList)
     log.info("verifierlist:{}".format(verifierlist))
-    assert client_noc_list_obj[1].node.node_id not in verifierlist
-    msg = client_noc_list_obj[1].staking.withdrew_staking(address2)
+    assert clients_noconsensus[1].node.node_id not in verifierlist
+    msg = clients_noconsensus[1].staking.withdrew_staking(address2)
     assert_code(msg, 0)
 
 
@@ -503,15 +503,15 @@ def test_RV_017(staking_client):
 
 @allure.title("Invalid nodeId")
 @pytest.mark.P2
-def test_RV_018(client_new_node_obj):
+def test_RV_018(client_new_node):
     illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
                      "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
 
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    msg = client_new_node_obj.staking.withdrew_staking(address, node_id=illegal_nodeID)
+    msg = client_new_node.staking.withdrew_staking(address, node_id=illegal_nodeID)
     assert_code(msg, 301102)
 
 
@@ -600,18 +600,18 @@ def test_RV_021(staking_client):
 
 
 @pytest.mark.P2
-def test_RV_022(client_new_node_obj):
+def test_RV_022(client_new_node):
     """
     Non-pledged wallets are pledged back
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
     log.info("Node exit pledge")
-    result = client_new_node_obj.staking.withdrew_staking(address1)
+    result = client_new_node.staking.withdrew_staking(address1)
     assert_code(result, 301006)
 
 
