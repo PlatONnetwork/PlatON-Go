@@ -2,7 +2,7 @@ import pytest
 from common.log import log
 import time
 import math
-from tests.lib.client import get_client_obj, get_client_obj_list
+from tests.lib.client import get_client, get_clients
 from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_governable_parameter_value
 from typing import List
 from tests.lib import Pip
@@ -80,7 +80,7 @@ def submit_version(no_vp_proposal):
 @pytest.fixture()
 def submit_param(no_vp_proposal, all_clients):
     pip = no_vp_proposal
-    client_obj = get_client_obj(pip.node.node_id, all_clients)
+    client_obj = get_client(pip.node.node_id, all_clients)
     newvalue = '1'
     if int(get_governable_parameter_value(client_obj, 'slashBlocksReward')) == 1:
         newvalue = '2'
@@ -151,7 +151,7 @@ def new_node_has_proposal(client_new_node, client_verifier, client_noconsensus):
 @pytest.fixture()
 def candidate_has_proposal(client_candidate, all_clients):
     verifier_list = get_pledge_list(client_candidate.ppos.getVerifierList)
-    pip = get_client_obj(verifier_list[0], all_clients).pip
+    pip = get_client(verifier_list[0], all_clients).pip
     if pip.chain_version != pip.cfg.version0:
         pip.economic.env.deploy_all()
     if pip.is_exist_effective_proposal_for_vote(pip.cfg.param_proposal):
@@ -163,7 +163,7 @@ def candidate_has_proposal(client_candidate, all_clients):
             pip.economic.env.deploy_all()
             normal_node_obj_list = pip.economic.env.normal_node_list
             for normal_node_obj in normal_node_obj_list:
-                client_obj = get_client_obj(normal_node_obj.node_id, all_clients)
+                client_obj = get_client(normal_node_obj.node_id, all_clients)
                 address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10 ** 18 * 10000000)
                 log.info('Node {} staking'.format(normal_node_obj.node_id))
                 result = client_obj.staking.create_staking(0, address, address)
@@ -173,14 +173,14 @@ def candidate_has_proposal(client_candidate, all_clients):
             node_id_list = pip.get_candidate_list_not_verifier()
             if not node_id_list:
                 raise Exception('Get candidate list')
-            client_candidate = get_client_obj(node_id_list[0], all_clients)
+            client_candidate = get_client(node_id_list[0], all_clients)
         else:
             return client_candidate.pip
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 5,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
     assert_code(result, 0)
-    return client_candidate_obj.pip
+    return client_candidate.pip
 
 
 @pytest.fixture()
@@ -196,7 +196,7 @@ def noproposal_pips(all_clients) -> List[Pip]:
         all_clients[0].economic.env.deploy_all()
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    clients = get_client_obj_list(verifier_list, all_clients)
+    clients = get_clients(verifier_list, all_clients)
     return [client_obj.pip for client_obj in clients]
 
 
@@ -225,7 +225,7 @@ def noproposal_candidate_pips(all_clients) -> List[Pip]:
         nodeid_list = all_clients[0].pip.get_candidate_list_not_verifier()
         if not nodeid_list:
             raise Exception('get candidate not verifier failed')
-    clients_candidate = get_client_obj_list(nodeid_list, all_clients)
+    clients_candidate = get_clients(nodeid_list, all_clients)
     return [client_candidate.pip for client_candidate in clients_candidate]
 
 
@@ -237,7 +237,7 @@ def proposal_pips(all_clients):
     :return:
     '''
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
-    pip = get_client_obj(verifier_list[0], all_clients).pip
+    pip = get_client(verifier_list[0], all_clients).pip
     if pip.chain_version != pip.cfg.version0:
         pip.economic.env.deploy_all()
     if pip.is_exist_effective_proposal():
@@ -247,7 +247,7 @@ def proposal_pips(all_clients):
                 and proposalinfo.get('NewVersion') == pip.cfg.version5:
             verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
             log.info('verifierlist{}'.format(verifier_list))
-            client_obj_list = get_client_obj_list(verifier_list, all_clients)
+            client_obj_list = get_clients(verifier_list, all_clients)
             return [client_obj.pip for client_obj in client_obj_list]
         else:
             pip.economic.env.deploy_all()
@@ -256,7 +256,7 @@ def proposal_pips(all_clients):
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    client_obj_list = get_client_obj_list(verifier_list, all_clients)
+    client_obj_list = get_clients(verifier_list, all_clients)
     return [client_obj.pip for client_obj in client_obj_list]
 
 @pytest.fixture()
@@ -267,7 +267,7 @@ def preactive_proposal_pips(all_clients):
         all_clients[0].economic.env.deploy_all()
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist :{}'.format(verifier_list))
-    client_verifiers = get_client_obj_list(verifier_list, all_clients)
+    client_verifiers = get_clients(verifier_list, all_clients)
     pips = [client_verifier.pip for client_verifier in client_verifiers]
     result = pips[0].submitVersion(pips[0].node.node_id, str(time.time_ns()),
                                            pips[0].cfg.version5, 2, pips[0].node.staking_address,
@@ -291,7 +291,7 @@ def preactive_large_version_proposal_pips(all_clients):
         all_clients[0].economic.env.deploy_all()
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist :{}'.format(verifier_list))
-    client_verifiers = get_client_obj_list(verifier_list, all_clients)
+    client_verifiers = get_clients(verifier_list, all_clients)
     pips = [client_obj.pip for client_obj in client_verifiers]
     result = pips[0].submitVersion(pips[0].node.node_id, str(time.time_ns()),
                                            pips[0].cfg.version8, 2, pips[0].node.staking_address,

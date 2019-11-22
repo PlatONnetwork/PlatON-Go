@@ -4,7 +4,7 @@ import pytest, allure
 import time
 from tests.govern.test_voting_statistics import submitvpandvote, createstaking, version_proposal_vote
 from tests.lib import Genesis
-from tests.lib.client import get_client_obj, get_client_obj_list
+from tests.lib.client import get_client, get_clients
 from dacite import from_dict
 
 @pytest.fixture()
@@ -16,7 +16,7 @@ def large_version_proposal_pips(all_clients):
     '''
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_obj(verifier_list[0], all_clients)
+    pip = get_client(verifier_list[0], all_clients)
     if pip.chain_version != pip.cfg.version0:
         pip.economic.env.deploy_all()
     if pip.is_exist_effective_proposal():
@@ -26,7 +26,7 @@ def large_version_proposal_pips(all_clients):
                 and proposalinfo.get('NewVersion') == pip.cfg.version8:
             verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
             log.info('verifierlist{}'.format(verifier_list))
-            clients = get_client_obj_list(verifier_list, all_clients)
+            clients = get_clients(verifier_list, all_clients)
             return [client.pip for client in clients]
         else:
             pip.economic.env.deploy_all()
@@ -35,7 +35,7 @@ def large_version_proposal_pips(all_clients):
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    clients = get_client_obj_list(verifier_list, all_clients)
+    clients = get_clients(verifier_list, all_clients)
     return [client.pip for client in clients]
 
 @pytest.fixture()
@@ -59,19 +59,19 @@ def proposal_candidate_pips(all_clients):
                 pip.economic.env.deploy_all()
             else:
                 if proposalinfo.get('EndVotingBlock') - pip.node.block_number > pip.economic.consensus_size:
-                    client_candidates = get_client_obj_list(nodeid_list, all_clients)
+                    client_candidates = get_clients(nodeid_list, all_clients)
                     return [client_obj.pip for client_obj in client_candidates]
 
     candidate_list = get_pledge_list(all_clients[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
-    for client_obj in all_clients:
-        if client_obj.node.node_id not in candidate_list:
-            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
-            result = client_obj.staking.create_staking(0, address, address)
-            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    for client in all_clients:
+        if client.node.node_id not in candidate_list:
+            address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
+            result = client.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client.node.node_id, result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('Verifier list {}'.format(verifier_list))
-    verifier_pip = get_client_obj(verifier_list[0], all_clients).pip
+    verifier_pip = get_client(verifier_list[0], all_clients).pip
     result = verifier_pip.submitVersion(verifier_pip.node.node_id, str(time.time()), verifier_pip.cfg.version5,
                                                    10, verifier_pip.node.staking_address,
                                                    transaction_cfg=verifier_pip.cfg.transaction_cfg)
@@ -80,7 +80,7 @@ def proposal_candidate_pips(all_clients):
     nodeid_list = all_clients[0].pip.get_candidate_list_not_verifier()
     if not nodeid_list:
         raise Exception('get candidate not verifier failed')
-    client_candiates = get_client_obj_list(nodeid_list, all_clients)
+    client_candiates = get_clients(nodeid_list, all_clients)
     return [client_candiate.pip for client_candiate in client_candiates]
 
 @pytest.fixture()
@@ -104,8 +104,8 @@ def large_version_proposal_candidate_pips(all_clients):
                 pip.economic.env.deploy_all()
             else:
                 if proposalinfo.get('EndVotingBlock') - pip.node.block_number > pip.economic.consensus_size:
-                    client_candiates = get_client_obj_list(nodeid_list, all_clients)
-                    return [client_obj.pip for client_obj in client_candiates]
+                    client_candiates = get_clients(nodeid_list, all_clients)
+                    return [client.pip for client in client_candiates]
 
     candidate_list = get_pledge_list(all_clients[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
@@ -116,7 +116,7 @@ def large_version_proposal_candidate_pips(all_clients):
             log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('Verifier list {}'.format(verifier_list))
-    verifier_pip = get_client_obj(verifier_list[0], all_clients).pip
+    verifier_pip = get_client(verifier_list[0], all_clients).pip
     result = verifier_pip.submitVersion(verifier_pip.node.node_id, str(time.time()),
                                                    verifier_pip.cfg.version8,
                                                    10, verifier_pip.node.staking_address,
@@ -126,7 +126,7 @@ def large_version_proposal_candidate_pips(all_clients):
     nodeid_list = all_clients[0].pip.get_candidate_list_not_verifier()
     if not nodeid_list:
         raise Exception('get candidate not verifier failed')
-    client_candidates = get_client_obj_list(nodeid_list, all_clients)
+    client_candidates = get_clients(nodeid_list, all_clients)
     return [client_candidate.pip for client_candidate in client_candidates]
 
 @pytest.fixture()
@@ -138,7 +138,7 @@ def proposal_voted_pips(all_clients):
     '''
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_obj(verifier_list[0], all_clients).pip
+    pip = get_client(verifier_list[0], all_clients).pip
     pip.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version5, 10,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -146,10 +146,10 @@ def proposal_voted_pips(all_clients):
     assert_code(result, 0)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    client_obj_list = get_client_obj_list(verifier_list, all_clients)
-    result = version_proposal_vote(client_obj_list[0].pip)
+    clients_verifier = get_clients(verifier_list, all_clients)
+    result = version_proposal_vote(clients_verifier[0].pip)
     assert_code(result, 0)
-    return [client_obj.pip for client_obj in client_obj_list]
+    return [client.pip for client in clients_verifier]
 
 @pytest.fixture()
 def large_version_proposal_voted_pips(all_clients):
@@ -160,17 +160,17 @@ def large_version_proposal_voted_pips(all_clients):
     '''
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_obj(verifier_list[0], all_clients).pip
+    pip = get_client(verifier_list[0], all_clients).pip
     pip.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time_ns()), pip.cfg.version8, 10,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('version proposal result :{}'.format(result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    client_obj_list = get_client_obj_list(verifier_list, all_clients)
-    result = version_proposal_vote(client_obj_list[0].pip)
+    clients_verifier = get_clients(verifier_list, all_clients)
+    result = version_proposal_vote(clients_verifier[0].pip)
     assert_code(result, 0)
-    return [client_obj.pip for client_obj in client_obj_list]
+    return [client.pip for client in clients_verifier]
 
 
 def replace_version_declare(pip, platon_bin, versiontag):
@@ -1479,7 +1479,7 @@ class TestVotedCADV:
         log.info('candidate list : {}'.format(candidate_list))
         for nodeid in candidate_list:
             if nodeid not in verifier_list:
-                return get_client_obj(nodeid, client_list)
+                return get_client(nodeid, client_list)
         raise Exception('There is not candidate no verifier node')
 
     @pytest.mark.P2

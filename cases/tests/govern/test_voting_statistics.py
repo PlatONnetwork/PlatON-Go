@@ -9,8 +9,8 @@ from dacite import from_dict
 from tests.govern.conftest import proposal_vote, version_proposal_vote
 
 
-def submitvpandvote(client_list_obj, votingrounds=2, version=None):
-    pip = client_list_obj[0].pip
+def submitvpandvote(clients, votingrounds=2, version=None):
+    pip = clients[0].pip
     if version is None:
         version = pip.cfg.version5
     result = pip.submitVersion(pip.node.node_id, str(time.time()), version, votingrounds, pip.node.staking_address,
@@ -19,8 +19,8 @@ def submitvpandvote(client_list_obj, votingrounds=2, version=None):
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote()
     log.info('Version proposal info {}'.format(proposalinfo))
-    for index in range(len(client_list_obj)):
-        pip = client_list_obj[index].pip
+    for index in range(len(clients)):
+        pip = clients[index].pip
         result = version_proposal_vote(pip, vote_option=pip.cfg.vote_option_yeas)
         log.info('Node {} vote result {}'.format(pip.node.node_id, result))
         assert_code(result, 0)
@@ -31,36 +31,36 @@ def createstaking(obj, platon_bin=None):
         obj_list = []
         obj_list.append(obj)
         obj = obj_list
-    for client_obj in obj:
+    for client in obj:
         if platon_bin:
             log.info('Need replace the platon of the node')
-            upload_platon(client_obj.node, platon_bin)
-            client_obj.node.restart()
+            upload_platon(client.node, platon_bin)
+            client.node.restart()
 
-        address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10 ** 18 * 10000000)
-        result = client_obj.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
-                                                   transaction_cfg=client_obj.pip.cfg.transaction_cfg)
-        log.info('Node {} staking result : {}'.format(client_obj.node.node_id, result))
+        address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
+        result = client.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
+                                                   transaction_cfg=client.pip.cfg.transaction_cfg)
+        log.info('Node {} staking result : {}'.format(client.node.node_id, result))
         assert_code(result, 0)
 
 
-def submitppandvote(client_list_obj, *args):
-    pip = client_list_obj[0].pip
+def submitppandvote(clients, *args):
+    pip = clients[0].pip
     result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
     log.info('Param proposal info {}'.format(proposalinfo))
-    for index in range(len(client_list_obj)):
-        pip = client_list_obj[index].pip
+    for index in range(len(clients)):
+        pip = clients[index].pip
         log.info('{}'.format(args[index]))
         result = proposal_vote(pip, vote_option=args[index])
         assert_code(result, 0)
 
 
-def submitcppandvote(client_list_obj, list, voting_rounds=2):
-    pip = client_list_obj[0].pip
+def submitcppandvote(clients, list, voting_rounds=2):
+    pip = clients[0].pip
     result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '83',
                                  pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit param proposal result : {}'.format(result))
@@ -74,8 +74,8 @@ def submitcppandvote(client_list_obj, list, voting_rounds=2):
     assert_code(result, 0)
     proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
     log.info('Cancel proposal info {}'.format(proposalinfo_cancel))
-    for index in range(len(client_list_obj)):
-        pip = client_list_obj[index].pip
+    for index in range(len(clients)):
+        pip = clients[index].pip
         log.info('Vote option {}'.format(list[index]))
         result = pip.vote(pip.node.node_id, proposalinfo_cancel.get('ProposalID'), list[index],
                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -83,8 +83,8 @@ def submitcppandvote(client_list_obj, list, voting_rounds=2):
         assert_code(result, 0)
 
 
-def submitcvpandvote(client_list_obj, *args):
-    pip = client_list_obj[0].pip
+def submitcvpandvote(clients, *args):
+    pip = clients[0].pip
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 3,
                                    pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
@@ -98,8 +98,8 @@ def submitcvpandvote(client_list_obj, *args):
     assert_code(result, 0)
     proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
     log.info('Cancel proposal info {}'.format(proposalinfo_cancel))
-    for index in range(len(client_list_obj)):
-        pip = client_list_obj[index].pip
+    for index in range(len(clients)):
+        pip = clients[index].pip
         log.info('{}'.format(args[index]))
         result = pip.vote(pip.node.node_id, proposalinfo_cancel.get('ProposalID'), args[index],
                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -107,8 +107,8 @@ def submitcvpandvote(client_list_obj, *args):
         assert_code(result, 0)
 
 
-def submittpandvote(client_list_obj, *args):
-    pip = client_list_obj[0].pip
+def submittpandvote(clients, *args):
+    pip = clients[0].pip
     result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
                                 transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit text proposal result : {}'.format(result))
@@ -116,8 +116,8 @@ def submittpandvote(client_list_obj, *args):
     proposalinfo_text = pip.get_effect_proposal_info_of_vote(pip.cfg.text_proposal)
     log.info('Text proposal info {}'.format(proposalinfo_text))
 
-    for index in range(len(client_list_obj)):
-        pip = client_list_obj[index].pip
+    for index in range(len(clients)):
+        pip = clients[index].pip
         log.info('{}'.format(args[index]))
         result = pip.vote(pip.node.node_id, proposalinfo_text.get('ProposalID'), args[index],
                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)

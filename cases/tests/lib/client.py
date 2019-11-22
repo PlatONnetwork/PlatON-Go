@@ -37,7 +37,7 @@ class Client:
         return self.node.ppos
 
 
-def get_client_obj(nodeid, client_obj_list: List[Client]) -> Client:
+def get_client(nodeid, client_obj_list: List[Client]) -> Client:
     """
     Get the client object according to the node id
     :param nodeid:
@@ -49,7 +49,7 @@ def get_client_obj(nodeid, client_obj_list: List[Client]) -> Client:
             return client_obj
 
 
-def get_client_obj_list(nodeid_list, client_obj_list: List[Client]) -> List[Client]:
+def get_clients(nodeid_list, client_obj_list: List[Client]) -> List[Client]:
     """
     Get the client object list according to the node id list
     :param nodeid_list:
@@ -58,5 +58,5 @@ def get_client_obj_list(nodeid_list, client_obj_list: List[Client]) -> List[Clie
     """
     new_client_obj_list = []
     for nodeid in nodeid_list:
-        new_client_obj_list.append(get_client_obj(nodeid, client_obj_list))
+        new_client_obj_list.append(get_client(nodeid, client_obj_list))
     return new_client_obj_list

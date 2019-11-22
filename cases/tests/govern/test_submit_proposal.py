@@ -3,7 +3,7 @@ from dacite import from_dict
 from tests.lib import Genesis
 import pytest, allure
 from tests.lib.utils import wait_block_number, assert_code, get_governable_parameter_value
-from tests.lib.client import get_client_obj
+from tests.lib.client import get_client
 import time
 import math
 from tests.govern.test_voting_statistics import submitcppandvote, submitcvpandvote
@@ -541,7 +541,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -598,7 +598,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -659,7 +659,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_005_PP_SU_006(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashFractionDuplicateSign', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -715,7 +715,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_007_PP_SU_008(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'duplicateSignReportReward', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -773,7 +773,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_009_PP_SU_010(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -841,7 +841,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_011_PP_SU_012(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -909,7 +909,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_013_PP_SU_014(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -974,7 +974,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_015_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1036,7 +1036,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         if int(get_governable_parameter_value(client_obj, 'maxValidators')) != 201:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '201',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -1047,7 +1047,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_017_PP_SU_018(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1212,7 +1212,7 @@ class TestSubmitPPAbnormal:
     @allure.title('Abnormal submit parammeter  proposal function verification')
     def test_PP_PR_003_PP_PR_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_obj(pip.node.node_id, all_clients)
+        client_obj = get_client(pip.node.node_id, all_clients)
         address = pip.node.staking_address
         result = client_obj.staking.withdrew_staking(address)
         log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))

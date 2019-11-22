@@ -4,7 +4,7 @@ import pytest
 from copy import copy
 from tests.lib import StakingConfig
 from common.log import log
-from tests.lib.client import Client, get_client_obj, get_client_obj_list
+from tests.lib.client import Client, get_client, get_clients
 from tests.lib.utils import get_pledge_list, wait_block_number, assert_code, upload_platon
 
 
@@ -31,11 +31,11 @@ def staking_cfg():
 
 
 def get_clients(env, cfg):
-    client_list_obj = []
-    node_obj_list = env.get_all_nodes()
-    for node_obj in node_obj_list:
-        client_list_obj.append(Client(env, node_obj, cfg))
-    return client_list_obj
+    all_clients = []
+    all_nodes = env.get_all_nodes()
+    for node_obj in all_nodes:
+        all_clients.append(Client(env, node_obj, cfg))
+    return all_clients
 
 
 @pytest.fixture()
@@ -48,9 +48,9 @@ def all_clients(global_running_env, staking_cfg) -> List[Client]:
 
 def get_consensus_clients(env, cfg):
     clients_consensus = []
-    consensus_node_obj_list = env.consensus_node_list
-    for node_obj in consensus_node_obj_list:
-        clients_consensus.append(Client(env, node_obj, cfg))
+    consensus_nodes = env.consensus_node_list
+    for node in consensus_nodes:
+        clients_consensus.append(Client(env, node, cfg))
     return clients_consensus
 
 
@@ -124,7 +124,7 @@ def clients_verifier(global_running_env, staking_cfg) -> List[Client]:
     all_clients = get_clients(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    return get_client_obj_list(verifier_list, all_clients)
+    return get_clients(verifier_list, all_clients)
 
 
 @pytest.fixture()
@@ -180,7 +180,7 @@ def client_candidate(global_running_env, staking_cfg):
     log.info('Get candidate list no verifier {}'.format(node_id_list))
     if len(node_id_list) == 0:
         raise Exception('Get candidate list no verifier failed')
-    return get_client_obj(node_id_list[0], all_clients)
+    return get_client(node_id_list[0], all_clients)
 
 
 @pytest.fixture()
@@ -216,20 +216,20 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
-    client_obj_list = []
+    all_clients = []
     for node_obj in pip.economic.env.get_all_nodes():
-        client_obj_list.append(Client(pip.economic.env, node_obj,
+        all_clients.append(Client(pip.economic.env, node_obj,
                                       StakingConfig("externalId", "nodeName", "website", "details")))
-    client_obj = get_client_obj(pip.node.node_id, client_obj_list)
-    verifier_list = get_pledge_list(client_obj.ppos.getVerifierList)
+    client = get_client(pip.node.node_id, all_clients)
+    verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
-    client_verifier_obj_list = get_client_obj_list(verifier_list, client_obj_list)
+    clients_verifier = get_clients(verifier_list, all_clients)
     if effectiveflag:
-        for client_obj in client_verifier_obj_list:
-            result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo.get('ProposalID'),
-                                         client_obj.pip.cfg.vote_option_yeas,
-                                         client_obj.node.staking_address, transaction_cfg=client_obj.pip.cfg.transaction_cfg)
-            log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
+        for client in clients_verifier:
+            result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
+                                         client.pip.cfg.vote_option_yeas,
+                                         client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
+            log.info('Node {} vote proposal result : {}'.format(client.node.node_id, result))
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
     if effectiveflag:
         assert pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 2
@@ -262,19 +262,19 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
     assert_code(result, 0)
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
     log.info('param proposalinfo : {}'.format(proposalinfo))
-    client_obj_list = []
-    for node_obj in pip.economic.env.get_all_nodes():
-        client_obj_list.append(Client(pip.economic.env, node_obj,
+    all_clients = []
+    for node in pip.economic.env.get_all_nodes():
+        all_clients.append(Client(pip.economic.env, node,
                                       StakingConfig("externalId", "nodeName", "website", "details")))
-    client_obj = get_client_obj(pip.node.node_id, client_obj_list)
-    verifier_list = get_pledge_list(client_obj.ppos.getVerifierList)
+    client = get_client(pip.node.node_id, all_clients)
+    verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
-    client_verifier_obj_list = get_client_obj_list(verifier_list, client_obj_list)
+    clients_verifier = get_clients(verifier_list, all_clients)
     if effectiveflag:
-        for client_obj in client_verifier_obj_list:
-            result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo.get('ProposalID'),
-                                         client_obj.pip.cfg.vote_option_yeas,
-                                         client_obj.node.staking_address, transaction_cfg=client_obj.pip.cfg.transaction_cfg)
-            log.info('Node {} vote proposal result : {}'.format(client_obj.node.node_id, result))
+        for client in clients_verifier:
+            result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
+                                         client.pip.cfg.vote_option_yeas,
+                                         client.node.staking_address, transaction_cfg=client.pip.cfg.transaction_cfg)
+            log.info('Node {} vote proposal result : {}'.format(client.node.node_id, result))
     log.info('The proposal endvoting block is {}'.format(proposalinfo.get('EndVotingBlock')))
     return proposalinfo.get('EndVotingBlock')

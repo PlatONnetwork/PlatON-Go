@@ -1,6 +1,6 @@
 from tests.lib.utils import upload_platon, assert_code, get_pledge_list, wait_block_number
 from common.log import log
-from tests.lib.client import Client, get_client_obj, get_client_obj_list, StakingConfig
+from tests.lib.client import Client, get_client, get_clients, StakingConfig
 import pytest, allure
 import time
 import math
@@ -11,26 +11,26 @@ from tests.govern.test_voting_statistics import submitcvpandvote, submitcppandvo
     submitvpandvote, submitppandvote
 
 
-def create_lockup_plan(client_obj):
-    address, _ = client_obj.pip.economic.account.generate_account(client_obj.node.web3,
-                                                                  3*client_obj.economic.genesis.economicModel.staking.stakeThreshold)
-    plan = [{'Epoch': 20, 'Amount': 2*client_obj.economic.genesis.economicModel.staking.stakeThreshold}]
-    result = client_obj.restricting.createRestrictingPlan(address, plan, address,
-                                                          transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+def create_lockup_plan(client):
+    address, _ = client.pip.economic.account.generate_account(client.node.web3,
+                                                                  3*client.economic.genesis.economicModel.staking.stakeThreshold)
+    plan = [{'Epoch': 20, 'Amount': 2*client.economic.genesis.economicModel.staking.stakeThreshold}]
+    result = client.restricting.createRestrictingPlan(address, plan, address,
+                                                          transaction_cfg=client.pip.cfg.transaction_cfg)
     log.info('CreateRestrictingPlan result : {}'.format(result))
     assert_code(result, 0)
-    result = client_obj.staking.create_staking(1, address, address,
-                                               amount=int(1.8*client_obj.economic.genesis.economicModel.staking.stakeThreshold),
-                                               transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+    result = client.staking.create_staking(1, address, address,
+                                               amount=int(1.8*client.economic.genesis.economicModel.staking.stakeThreshold),
+                                               transaction_cfg=client.pip.cfg.transaction_cfg)
     log.info('Create staking result : {}'.format(result))
     assert_code(result, 0)
-    client_obj.economic.wait_settlement_blocknum(client_obj.node)
+    client.economic.wait_settlement_blocknum(client.node)
 
 
 @pytest.fixture()
 def new_node_no_proposal(no_vp_proposal, clients_noconsensus, all_clients):
     pip = no_vp_proposal
-    client_obj = get_client_obj(pip.node.node_id, all_clients)
+    client_obj = get_client(pip.node.node_id, all_clients)
     candidate_list = get_pledge_list(client_obj.ppos.getCandidateList)
     log.info('candidate_list: {}'.format(candidate_list))
     for client_obj in clients_noconsensus:
@@ -42,19 +42,19 @@ def new_node_no_proposal(no_vp_proposal, clients_noconsensus, all_clients):
 
 
 def replace_platon_and_staking(pip, platon_bin):
-    node_obj_list = pip.economic.env.get_all_nodes()
-    client_list_obj = []
-    for node_obj in node_obj_list:
-        client_list_obj.append(Client(pip.economic.env, node_obj, StakingConfig("externalId", "nodeName", "website",
+    all_nodes = pip.economic.env.get_all_nodes()
+    all_clients = []
+    for node in all_nodes:
+        all_clients.append(Client(pip.economic.env, node, StakingConfig("externalId", "nodeName", "website",
                                                                                     "details")))
-    client_obj = get_client_obj(pip.node.node_id, client_list_obj)
+    client = get_client(pip.node.node_id, all_clients)
     upload_platon(pip.node, platon_bin)
     log.info('Replace the platon of the node {}'.format(pip.node.node_id))
     pip.node.restart()
     log.info('Restart the node {}'.format(pip.node.node_id))
     address, _ = pip.economic.account.generate_account(pip.node.web3,
                                                            10*pip.economic.genesis.economicModel.staking.stakeThreshold)
-    result = client_obj.staking.create_staking(0, address, address, transaction_cfg=pip.cfg.transaction_cfg)
+    result = client.staking.create_staking(0, address, address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Node {} staking result {}'.format(pip.node.node_id, result))
     return result
 
@@ -113,18 +113,18 @@ class TestNoProposalStaking:
 
 
 class TestPreactiveProposalStaking:
-    def preactive_proposal(self, client_list_obj):
-        verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    def preactive_proposal(self, all_clients):
+        verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
         log.info('verifierlist :{}'.format(verifier_list))
-        client_verifier_list_obj = get_client_obj_list(verifier_list, client_list_obj)
-        pip_list_obj = [client_obj.pip for client_obj in client_verifier_list_obj]
-        result = pip_list_obj[0].submitVersion(pip_list_obj[0].node.node_id, str(time.time()),
-                                               pip_list_obj[0].cfg.version5, 2, pip_list_obj[0].node.staking_address,
-                                               transaction_cfg=pip_list_obj[0].cfg.transaction_cfg)
+        client_verifiers = get_clients(verifier_list, all_clients)
+        pips = [client.pip for client in client_verifiers]
+        result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
+                                               pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                               transaction_cfg=pips[0].cfg.transaction_cfg)
         log.info('submit version proposal, result : {}'.format(result))
-        proposalinfo = pip_list_obj[0].get_effect_proposal_info_of_vote()
+        proposalinfo = pips[0].get_effect_proposal_info_of_vote()
         log.info('Version proposalinfo: {}'.format(proposalinfo))
-        for pip in pip_list_obj:
+        for pip in pips:
             result = version_proposal_vote(pip)
             assert_code(result, 0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
@@ -183,7 +183,7 @@ class TestUpgradedProposalStaking:
     def upgraded_proposal(self, client_list_obj):
         verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
         log.info('verifierlist :{}'.format(verifier_list))
-        client_verifier_list_obj = get_client_obj_list(verifier_list, client_list_obj)
+        client_verifier_list_obj = get_clients(verifier_list, client_list_obj)
         pip_list_obj = [client_obj.pip for client_obj in client_verifier_list_obj]
         result = pip_list_obj[0].submitVersion(pip_list_obj[0].node.node_id, str(time.time()),
                                                pip_list_obj[0].cfg.version5, 2, pip_list_obj[0].node.staking_address,
