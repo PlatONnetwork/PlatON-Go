@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import time
-import math
 import random
 import string
 from decimal import Decimal

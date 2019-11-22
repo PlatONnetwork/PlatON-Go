@@ -2,7 +2,7 @@ import pytest, allure
 from common.log import log
 import time
 from tests.lib.utils import assert_code, wait_block_number, upload_platon
-from tests.lib.client import get_client
+from tests.lib.client import get_client_by_nodeid
 from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, proposal_vote
 from dacite import from_dict
 from tests.lib.genesis import Genesis
@@ -466,7 +466,7 @@ class TestVoteParam:
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
         address = pip.node.staking_address
-        client_obj = get_client(pip.node.node_id, all_clients)
+        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = client_obj.staking.withdrew_staking(pip.node.staking_address)
         endblock = get_refund_to_account_block(pip)
         log.info('Node {} withdrew staking result {}'.format(pip.node.node_id, result))

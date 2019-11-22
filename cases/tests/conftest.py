@@ -4,7 +4,7 @@ import pytest
 from copy import copy
 from tests.lib import StakingConfig
 from common.log import log
-from tests.lib.client import Client, get_client, get_clients
+from tests.lib.client import Client, get_client_by_nodeid, get_clients_by_nodeid
 from tests.lib.utils import get_pledge_list, wait_block_number, assert_code, upload_platon
 
 
@@ -43,7 +43,7 @@ def all_clients(global_running_env, staking_cfg) -> List[Client]:
     """
     Get all node  Node object list
     """
-    return get_clients(global_running_env, staking_cfg)
+    return get_clients_by_nodeid(global_running_env, staking_cfg)
 
 
 def get_consensus_clients(env, cfg):
@@ -107,7 +107,7 @@ def client_verifier(global_running_env, staking_cfg) -> Client:
     """
     Get a verifier node  Client object
     """
-    all_clients = get_clients(global_running_env, staking_cfg)
+    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     for client in all_clients:
@@ -121,10 +121,10 @@ def clients_verifier(global_running_env, staking_cfg) -> List[Client]:
     """
     Get verifier node  Client object list
     """
-    all_clients = get_clients(global_running_env, staking_cfg)
+    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
-    return get_clients(verifier_list, all_clients)
+    return get_clients_by_nodeid(verifier_list, all_clients)
 
 
 @pytest.fixture()
@@ -160,7 +160,7 @@ def client_candidate(global_running_env, staking_cfg):
     Get a candidate node Client object
     """
     client_consensus = get_client_consensus(global_running_env, staking_cfg)
-    all_clients = get_clients(global_running_env, staking_cfg)
+    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
     clients_noconsensus = get_clients_noconsensus(global_running_env, staking_cfg)
     if not client_consensus.staking.get_candidate_list_not_verifier():
         log.info('There is no candidate, node stake')
@@ -180,7 +180,7 @@ def client_candidate(global_running_env, staking_cfg):
     log.info('Get candidate list no verifier {}'.format(node_id_list))
     if len(node_id_list) == 0:
         raise Exception('Get candidate list no verifier failed')
-    return get_client(node_id_list[0], all_clients)
+    return get_client_by_nodeid(node_id_list[0], all_clients)
 
 
 @pytest.fixture()
@@ -220,10 +220,10 @@ def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
     for node_obj in pip.economic.env.get_all_nodes():
         all_clients.append(Client(pip.economic.env, node_obj,
                                       StakingConfig("externalId", "nodeName", "website", "details")))
-    client = get_client(pip.node.node_id, all_clients)
+    client = get_client_by_nodeid(pip.node.node_id, all_clients)
     verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
-    clients_verifier = get_clients(verifier_list, all_clients)
+    clients_verifier = get_clients_by_nodeid(verifier_list, all_clients)
     if effectiveflag:
         for client in clients_verifier:
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),
@@ -266,10 +266,10 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
     for node in pip.economic.env.get_all_nodes():
         all_clients.append(Client(pip.economic.env, node,
                                       StakingConfig("externalId", "nodeName", "website", "details")))
-    client = get_client(pip.node.node_id, all_clients)
+    client = get_client_by_nodeid(pip.node.node_id, all_clients)
     verifier_list = get_pledge_list(client.ppos.getVerifierList)
     log.info('verifierlist : {}'.format(verifier_list))
-    clients_verifier = get_clients(verifier_list, all_clients)
+    clients_verifier = get_clients_by_nodeid(verifier_list, all_clients)
     if effectiveflag:
         for client in clients_verifier:
             result = client.pip.vote(client.node.node_id, proposalinfo.get('ProposalID'),

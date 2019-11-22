@@ -1,6 +1,6 @@
 from tests.lib.utils import upload_platon, assert_code, get_pledge_list, wait_block_number
 from common.log import log
-from tests.lib.client import Client, get_client, get_clients, StakingConfig
+from tests.lib.client import Client, get_client_by_nodeid, get_clients_by_nodeid, StakingConfig
 import pytest, allure
 import time
 import math
@@ -30,12 +30,12 @@ def create_lockup_plan(client):
 @pytest.fixture()
 def new_node_no_proposal(no_vp_proposal, clients_noconsensus, all_clients):
     pip = no_vp_proposal
-    client_obj = get_client(pip.node.node_id, all_clients)
-    candidate_list = get_pledge_list(client_obj.ppos.getCandidateList)
+    client = get_client_by_nodeid(pip.node.node_id, all_clients)
+    candidate_list = get_pledge_list(client.ppos.getCandidateList)
     log.info('candidate_list: {}'.format(candidate_list))
-    for client_obj in clients_noconsensus:
-        if client_obj.node.node_id not in candidate_list:
-            return client_obj.pip
+    for client in clients_noconsensus:
+        if client.node.node_id not in candidate_list:
+            return client.pip
     log.info('All nodes are staked, restart the chain')
     pip.economic.env.deploy_all()
     return clients_noconsensus[0].pip
@@ -47,7 +47,7 @@ def replace_platon_and_staking(pip, platon_bin):
     for node in all_nodes:
         all_clients.append(Client(pip.economic.env, node, StakingConfig("externalId", "nodeName", "website",
                                                                                     "details")))
-    client = get_client(pip.node.node_id, all_clients)
+    client = get_client_by_nodeid(pip.node.node_id, all_clients)
     upload_platon(pip.node, platon_bin)
     log.info('Replace the platon of the node {}'.format(pip.node.node_id))
     pip.node.restart()
@@ -116,7 +116,7 @@ class TestPreactiveProposalStaking:
     def preactive_proposal(self, all_clients):
         verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
         log.info('verifierlist :{}'.format(verifier_list))
-        client_verifiers = get_clients(verifier_list, all_clients)
+        client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
         pips = [client.pip for client in client_verifiers]
         result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
                                                pips[0].cfg.version5, 2, pips[0].node.staking_address,
@@ -180,18 +180,18 @@ class TestPreactiveProposalStaking:
 
 
 class TestUpgradedProposalStaking:
-    def upgraded_proposal(self, client_list_obj):
-        verifier_list = get_pledge_list(client_list_obj[0].ppos.getVerifierList)
+    def upgraded_proposal(self, all_clients):
+        verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
         log.info('verifierlist :{}'.format(verifier_list))
-        client_verifier_list_obj = get_clients(verifier_list, client_list_obj)
-        pip_list_obj = [client_obj.pip for client_obj in client_verifier_list_obj]
-        result = pip_list_obj[0].submitVersion(pip_list_obj[0].node.node_id, str(time.time()),
-                                               pip_list_obj[0].cfg.version5, 2, pip_list_obj[0].node.staking_address,
-                                               transaction_cfg=pip_list_obj[0].cfg.transaction_cfg)
+        client_verifiers = get_clients_by_nodeid(verifier_list, all_clients)
+        pips = [client.pip for client in client_verifiers]
+        result = pips[0].submitVersion(pips[0].node.node_id, str(time.time()),
+                                               pips[0].cfg.version5, 2, pips[0].node.staking_address,
+                                               transaction_cfg=pips[0].cfg.transaction_cfg)
         log.info('submit version proposal, result : {}'.format(result))
-        proposalinfo = pip_list_obj[0].get_effect_proposal_info_of_vote()
+        proposalinfo = pips[0].get_effect_proposal_info_of_vote()
         log.info('Version proposalinfo: {}'.format(proposalinfo))
-        for pip in pip_list_obj:
+        for pip in pips:
             result = version_proposal_vote(pip)
             assert_code(result, 0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
@@ -245,14 +245,13 @@ class TestUnstaking:
     @allure.title('Verify unstake function')
     def test_UNS_AM_003_007(self, new_genesis_env, client_verifier):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.staking.unStakeFreezeDuration == 2
-        genesis.economicModel.slashing.maxEvidenceAge == 1
+        genesis.economicModel.staking.unStakeFreezeDuration = 2
+        genesis.economicModel.slashing.maxEvidenceAge = 1
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = client_verifier.pip
         address = pip.node.staking_address
-        list_obj = [client_verifier]
-        submitcvpandvote(list_obj, 1)
+        submitcvpandvote([client_verifier], 1)
         result = version_proposal_vote(pip)
         assert_code(result, 0)
         shares = client_verifier.staking.get_staking_amount(pip.node)
@@ -272,8 +271,8 @@ class TestUnstaking:
     @allure.title('Verify unstake function')
     def test_UNS_AM_005(self, new_genesis_env, client_verifier):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.staking.unStakeFreezeDuration == 2
-        genesis.economicModel.slashing.maxEvidenceAge == 1
+        genesis.economicModel.staking.unStakeFreezeDuration = 2
+        genesis.economicModel.slashing.maxEvidenceAge = 1
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
         pip = client_verifier.pip
@@ -300,8 +299,8 @@ class TestUnstaking:
     @allure.title('Verify unstake function')
     def test_UNS_AM_004_006_008(self, new_genesis_env, clients_verifier):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.staking.unStakeFreezeDuration == 2
-        genesis.economicModel.slashing.maxEvidenceAge == 1
+        genesis.economicModel.staking.unStakeFreezeDuration = 2
+        genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 1000
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 840
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -386,8 +385,8 @@ class TestUnstaking:
     @allure.title('Verify unstake function')
     def test_UNS_AM_009_011_013(self, new_genesis_env, clients_noconsensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.staking.unStakeFreezeDuration == 2
-        genesis.economicModel.slashing.maxEvidenceAge == 1
+        genesis.economicModel.staking.unStakeFreezeDuration = 2
+        genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.versionProposalVoteDurationSeconds = 1000
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 200
         new_genesis_env.set_genesis(genesis.to_dict())
@@ -454,21 +453,21 @@ class TestUnstaking:
     @allure.title('Verify unstake function')
     def test_UNS_AM_010_012_014(self, new_genesis_env, clients_noconsensus):
         genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.staking.unStakeFreezeDuration == 2
-        genesis.economicModel.slashing.maxEvidenceAge == 1
+        genesis.economicModel.staking.unStakeFreezeDuration = 2
+        genesis.economicModel.slashing.maxEvidenceAge = 1
         genesis.economicModel.gov.paramProposalVoteDurationSeconds = 640
         genesis.economicModel.gov.textProposalVoteDurationSeconds = 840
         new_genesis_env.set_genesis(genesis.to_dict())
         new_genesis_env.deploy_all()
-        for client_obj in clients_noconsensus:
-            pip = client_obj.pip
+        for client in clients_noconsensus:
+            pip = client.pip
             address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 20000000)
             plan = [{'Epoch': 20, 'Amount': 10**18 * 2000000}]
-            result = client_obj.restricting.createRestrictingPlan(address, plan, address,
+            result = client.restricting.createRestrictingPlan(address, plan, address,
                                                                   transaction_cfg=pip.cfg.transaction_cfg)
             log.info('CreateRestrictingPlan result : {}'.format(result))
             assert_code(result, 0)
-            result = client_obj.staking.create_staking(1, address, address, amount=10**18 * 1800000,
+            result = client.staking.create_staking(1, address, address, amount=10**18 * 1800000,
                                                        transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Create staking result : {}'.format(result))
             assert_code(result, 0)
