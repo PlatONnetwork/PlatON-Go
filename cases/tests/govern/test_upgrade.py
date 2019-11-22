@@ -9,16 +9,16 @@ import pytest, allure
 from tests.govern.test_declare_version import replace_version_declare
 
 
-def verify_proposal_status(client_con_list_obj, proposaltype, status):
-    pip = client_con_list_obj[0].pip
+def verify_proposal_status(clients, proposaltype, status):
+    pip = clients[0].pip
     proposalinfo = pip.get_effect_proposal_info_of_vote(proposaltype)
     log.info('Get proposal information {}'.format(proposalinfo))
     assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-    wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
+    wait_block_number(clients[1].node, proposalinfo.get('EndVotingBlock'))
     assert_code(pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
     assert_code(pip.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
     assert_code(pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-    assert_code(pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
+    assert_code(pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(clients))
     assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), status)
 
 def update_setting_rate(new_genesis_env, proposaltype, *args):

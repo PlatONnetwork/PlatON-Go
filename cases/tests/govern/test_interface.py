@@ -253,14 +253,14 @@ class TestgetAccuVerifiersCount:
         proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Get cancel proposal information : {}'.format(proposalinfo_cancel))
         for index in range(3):
-            client_obj = clients_consensus[index]
-            result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_param.get('ProposalID'), index + 1,
-                                         client_obj.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
-            log.info('Node {} vote param proposal result : {}'.format(client_obj.node.node_id, result))
+            client = clients_consensus[index]
+            result = client.pip.vote(client.node.node_id, proposalinfo_param.get('ProposalID'), index + 1,
+                                         client.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+            log.info('Node {} vote param proposal result : {}'.format(client.node.node_id, result))
             assert_code(result, 0)
-            result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
-                                         client_obj.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
-            log.info('Node {} vote cancel proposal result : {}'.format(client_obj.node.node_id, result))
+            result = client.pip.vote(client.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
+                                         client.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+            log.info('Node {} vote cancel proposal result : {}'.format(client.node.node_id, result))
             assert_code(result, 0)
         assert pip.get_accuverifiers_count(proposalinfo_param.get('ProposalID')) == [4, 1, 1, 1]
         assert pip.get_accuverifiers_count(proposalinfo_cancel.get('ProposalID')) == [4, 1, 1, 1]
@@ -312,12 +312,12 @@ class TestgetAccuVerifiersCount:
         log.info('Get cancel proposal information : {}'.format(proposalinfo_version))
 
         for index in range(3):
-            client_obj = clients_consensus[index]
-            result = version_proposal_vote(client_obj.pip)
+            client = clients_consensus[index]
+            result = version_proposal_vote(client.pip)
             assert_code(result, 0)
-            result = client_obj.pip.vote(client_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
-                                         client_obj.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
-            log.info('Node {} vote cancel proposal result : {}'.format(client_obj.node.node_id, result))
+            result = client.pip.vote(client.node.node_id, proposalinfo_cancel.get('ProposalID'), index + 1,
+                                         client.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+            log.info('Node {} vote cancel proposal result : {}'.format(client.node.node_id, result))
             assert_code(result, 0)
 
         assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
@@ -410,8 +410,8 @@ class TestgetAccuVerifiersCount:
 
 
 class TestListGovernParam:
-    def get_govern_param(self, client_obj, module=None):
-        result = client_obj.pip.pip.listGovernParam(module)
+    def get_govern_param(self, client, module=None):
+        result = client.pip.pip.listGovernParam(module)
         log.info('Interface listGovernParam result {}'.format(result))
         assert_code(result, 0)
         resultinfo = result.get('Ret')

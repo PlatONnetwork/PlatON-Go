@@ -456,22 +456,21 @@ class TestSubmitCancel:
         assert_code(result, 0)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('proposalinfo: {}'.format(proposalinfo))
-        client_obj = client_consensus
+        client = client_consensus
         address = pip.node.staking_address
-        result = client_obj.staking.withdrew_staking(address)
-        log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
+        result = client.staking.withdrew_staking(address)
+        log.info('nodeid: {} withdrewstaking result: {}'.format(client.node.node_id, result))
         assert_code(result, 0)
-        result = client_obj.pip.submitCancel(client_obj.node.node_id, str(time.time()), 1,
+        result = client.pip.submitCancel(client.node.node_id, str(time.time()), 1,
                                              proposalinfo.get('ProposalID'), address,
-                                             transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+                                             transaction_cfg=client.pip.cfg.transaction_cfg)
         log.info('node exiting，cancel proposal result: {}'.format(result))
         assert_code(result, 302020)
 
-        client_obj.economic.wait_settlement_blocknum(client_obj.node,
-                                                     number=client_obj.economic.unstaking_freeze_ratio)
-        result = client_obj.pip.submitCancel(client_obj.node.node_id, str(time.time()), 1,
+        client.economic.wait_settlement_blocknum(client.node, number=client.economic.unstaking_freeze_ratio)
+        result = client.pip.submitCancel(client.node.node_id, str(time.time()), 1,
                                              proposalinfo.get('ProposalID'), address,
-                                             transaction_cfg=client_obj.pip.cfg.transaction_cfg)
+                                             transaction_cfg=client.pip.cfg.transaction_cfg)
         log.info('exited node，cancel proposal result: {}'.format(result))
         assert_code(result, 302022)
 
@@ -541,7 +540,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_001_PP_SU_002(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -573,7 +572,7 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
-                                     str(get_governable_parameter_value(client_obj, 'slashBlocksReward')),
+                                     str(get_governable_parameter_value(client, 'slashBlocksReward')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
@@ -598,7 +597,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_003_PP_SU_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -625,18 +624,18 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge',
-                                     str(get_governable_parameter_value(client_obj, 'maxEvidenceAge')),
+                                     str(get_governable_parameter_value(client, 'maxEvidenceAge')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge',
-                                     str(get_governable_parameter_value(client_obj, 'unStakeFreezeDuration')),
+                                     str(get_governable_parameter_value(client, 'unStakeFreezeDuration')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        if int(get_governable_parameter_value(client_obj, 'maxEvidenceAge')) != 1:
+        if int(get_governable_parameter_value(client, 'maxEvidenceAge')) != 1:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'maxEvidenceAge', '1',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -659,7 +658,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_005_PP_SU_006(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashFractionDuplicateSign', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -691,12 +690,12 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashFractionDuplicateSign',
-                                     str(get_governable_parameter_value(client_obj, 'slashFractionDuplicateSign')),
+                                     str(get_governable_parameter_value(client, 'slashFractionDuplicateSign')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'maxEvidenceAge')) != 1:
+        if int(get_governable_parameter_value(client, 'maxEvidenceAge')) != 1:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashFractionDuplicateSign', '1',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -715,7 +714,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_007_PP_SU_008(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'duplicateSignReportReward', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -747,12 +746,12 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'duplicateSignReportReward',
-                                     str(get_governable_parameter_value(client_obj, 'duplicateSignReportReward')),
+                                     str(get_governable_parameter_value(client, 'duplicateSignReportReward')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'duplicateSignReportReward')) != 1:
+        if int(get_governable_parameter_value(client, 'duplicateSignReportReward')) != 1:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'duplicateSignReportReward', '1',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -773,7 +772,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_009_PP_SU_010(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -814,12 +813,12 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
-                                     str(get_governable_parameter_value(client_obj, 'stakeThreshold')),
+                                     str(get_governable_parameter_value(client, 'stakeThreshold')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'stakeThreshold')) != 10**18 * 1000000:
+        if int(get_governable_parameter_value(client, 'stakeThreshold')) != 10**18 * 1000000:
             value = 10**18 * 1000000
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold', str(value),
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -841,7 +840,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_011_PP_SU_012(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -882,12 +881,12 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
-                                     str(get_governable_parameter_value(client_obj, 'operatingThreshold')),
+                                     str(get_governable_parameter_value(client, 'operatingThreshold')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'operatingThreshold')) != 10**18 * 10:
+        if int(get_governable_parameter_value(client, 'operatingThreshold')) != 10**18 * 10:
             value = 10**18 * 10
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold', str(value),
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -909,7 +908,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_013_PP_SU_014(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -941,18 +940,18 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration',
-                                     str(get_governable_parameter_value(client_obj, 'unStakeFreezeDuration')),
+                                     str(get_governable_parameter_value(client, 'unStakeFreezeDuration')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration',
-                                     str(get_governable_parameter_value(client_obj, 'maxEvidenceAge')),
+                                     str(get_governable_parameter_value(client, 'maxEvidenceAge')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        if int(get_governable_parameter_value(client_obj, 'unStakeFreezeDuration')) != 112:
+        if int(get_governable_parameter_value(client, 'unStakeFreezeDuration')) != 112:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'unStakeFreezeDuration', '112',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -974,7 +973,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_015_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1011,12 +1010,12 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators',
-                                     str(get_governable_parameter_value(client_obj, 'maxValidators')),
+                                     str(get_governable_parameter_value(client, 'maxValidators')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'maxValidators')) != 4:
+        if int(get_governable_parameter_value(client, 'maxValidators')) != 4:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '4',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -1036,8 +1035,8 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_016(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
-        if int(get_governable_parameter_value(client_obj, 'maxValidators')) != 201:
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
+        if int(get_governable_parameter_value(client, 'maxValidators')) != 201:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'maxValidators', '201',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -1047,7 +1046,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_017_PP_SU_018(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '',
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -1084,12 +1083,12 @@ class TestPP:
         assert_code(result, 3)
 
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit',
-                                     str(get_governable_parameter_value(client_obj, 'maxBlockGasLimit')),
+                                     str(get_governable_parameter_value(client, 'maxBlockGasLimit')),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 302034)
 
-        if int(get_governable_parameter_value(client_obj, 'maxBlockGasLimit')) != 4712388:
+        if int(get_governable_parameter_value(client, 'maxBlockGasLimit')) != 4712388:
             result = pip.submitParam(pip.node.node_id, str(time.time()), 'block', 'maxBlockGasLimit', '4712388',
                                          pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
             log.info('Submit param proposal result : {}'.format(result))
@@ -1212,18 +1211,18 @@ class TestSubmitPPAbnormal:
     @allure.title('Abnormal submit parammeter  proposal function verification')
     def test_PP_PR_003_PP_PR_004(self, no_vp_proposal, all_clients):
         pip = no_vp_proposal
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
         address = pip.node.staking_address
-        result = client_obj.staking.withdrew_staking(address)
-        log.info('nodeid: {} withdrewstaking result: {}'.format(client_obj.node.node_id, result))
+        result = client.staking.withdrew_staking(address)
+        log.info('nodeid: {} withdrewstaking result: {}'.format(client.node.node_id, result))
         assert_code(result, 0)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                      '86', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('node exiting，param proposal result: {}'.format(result))
         assert_code(result, 302020)
 
-        client_obj.economic.wait_settlement_blocknum(client_obj.node,
-                                                     number=client_obj.economic.unstaking_freeze_ratio)
+        client.economic.wait_settlement_blocknum(client.node,
+                                                     number=client.economic.unstaking_freeze_ratio)
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'slashing', 'slashBlocksReward',
                                      '86', address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('exited node，cancel proposal result: {}'.format(result))

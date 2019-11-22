@@ -32,18 +32,18 @@ def replace_platon_vote(pip, bin=None, program_version=None, version_sign=None):
     return result
 
 @pytest.fixture()
-def voting_proposal_ve_pipobj(global_test_env, client_verifier):
+def voting_version_proposal_verifier_pip(client_verifier):
     pip = client_verifier.pip
     if pip.chain_version != pip.cfg.version0:
         log.info('The chain has been upgraded,restart!')
-        global_test_env.deploy_all()
+        client_verifier.economic.env.deploy_all()
     if pip.is_exist_effective_proposal:
         if pip.is_exist_effective_proposal_for_vote():
             proposalinfo = pip.get_effect_proposal_info_of_vote()
             log.info('get version proposalinfo : {}'.format(proposalinfo))
             if proposalinfo.get('EndVotingBlock') - pip.node.block_number > pip.economic.consensus_size * 2:
                 return pip
-        global_test_env.deploy_all()
+        client_verifier.economic.env.deploy_all()
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 10, pip.node.staking_address,
                                    transaction_cfg=pip.cfg.transaction_cfg)
     log.info('node {} submit version proposal {}'.format(pip.node.node_id, result))
@@ -52,14 +52,14 @@ def voting_proposal_ve_pipobj(global_test_env, client_verifier):
 
 
 @pytest.fixture()
-def voting_proposal_te_pipobj(global_test_env, client_verifier):
+def voting_text_proposal_verifier_pip(client_verifier):
     pip = client_verifier.pip
     if pip.is_exist_effective_proposal_for_vote(pip.cfg.text_proposal):
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         if proposalinfo.get('EndVotingBlock') - pip.node.eth.blockNumber > 2 * pip.economic.consensus_size:
             return pip
         else:
-            global_test_env.deploy_all()
+            client_verifier.economic.env.deploy_all()
     result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
                                 transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit text proposal result {}'.format(result))
@@ -69,7 +69,7 @@ def voting_proposal_te_pipobj(global_test_env, client_verifier):
 
 class TestVoteVP:
     @pytest.mark.P1
-    @allure.title('Voting function verification--voting stage')
+    @allure.title('Version proposal voting function verification--voting stage')
     def test_V_STA_2_to_5(self, no_vp_proposal, clients_verifier):
         pip = no_vp_proposal
         value = len(clients_verifier) - 2
@@ -100,6 +100,7 @@ class TestVoteVP:
 
 @pytest.mark.compatibility
 @pytest.mark.P0
+@allure.title('Version proposal voting function verification')
 def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposal):
     pip = no_vp_proposal
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version8, 2,
@@ -160,8 +161,9 @@ def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposa
 
 
 @pytest.mark.P0
-def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal_te_pipobj, clients_verifier):
-    pip = voting_proposal_te_pipobj
+@allure.title('Text proposal voting function verification')
+def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_text_proposal_verifier_pip, clients_verifier):
+    pip = voting_text_proposal_verifier_pip
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.text_proposal)
     address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000)
     result = pip.vote(pip.node.node_id, proposalinfo.get('ProposalID'), pip.cfg.vote_option_yeas, address,
@@ -176,9 +178,9 @@ def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal
     result = proposal_vote(pip, proposaltype=pip.cfg.text_proposal)
     log.info('Repeat vote  result {}'.format(result))
     assert_code(result, 302027)
-    for client_obj in clients_verifier:
-        if client_obj.node.node_id != pip.node.node_id:
-            pip_test = client_obj.pip
+    for client in clients_verifier:
+        if client.node.node_id != pip.node.node_id:
+            pip_test = client.pip
             break
 
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock') - 10)
@@ -195,6 +197,7 @@ def test_VO_VO_003_V_STA_9_V_STA_10_V_STA_11_V0_WA_003_V0_RE_003(voting_proposal
 
 class TestVoteNodeException:
     @pytest.mark.P0
+    @allure.title('Voting function verification---Abnormal node')
     def test_VO_TE_001_002_PP_VO_009_010_PP_VO_011_012_PP_VO_014_VO_TER_008_VO_TER_006(self, new_genesis_env,
                                                                                        clients_consensus,
                                                                                        client_noconsensus):
@@ -278,6 +281,7 @@ class TestVoteNodeException:
         assert_code(result, 302022)
 
     @pytest.mark.P0
+    @allure.title('Voting function verification---Abnormal node')
     def test_VO_VE_001_002_VO_CA_001_002_VO_TER_002_VO_TER_004(self, new_genesis_env, clients_consensus,
                                                                client_noconsensus):
         pip = clients_consensus[0].pip
@@ -338,6 +342,7 @@ class TestVoteNodeException:
         assert_code(result, 302022)
 
     @pytest.mark.P1
+    @allure.title('Voting function verification---Abnormal node')
     def test_VO_TER_002_004(self, no_vp_proposal, client_candidate, clients_verifier):
         pip = client_candidate.pip
         ver_pip = clients_verifier[0].pip
@@ -361,6 +366,7 @@ class TestVoteNodeException:
         assert_code(result, 302022)
 
     @pytest.mark.P1
+    @allure.title('Voting function verification')
     def test_VO_TER_001_003_005(self, candidate_has_proposal, client_verifier):
         pip = candidate_has_proposal
         pip_test = client_verifier.pip
@@ -390,6 +396,7 @@ class TestVoteNodeException:
 class TestVoteCancelVersion:
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Cancel proposal voting function verification')
     def test_VO_VO_002_V0_WA_002_V0_RE_002_V_STA_8(self, submit_cancel):
         pip = submit_cancel
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10 ** 18 * 10000)
@@ -405,6 +412,7 @@ class TestVoteCancelVersion:
         assert_code(result, 302027)
 
     @pytest.mark.P1
+    @allure.title('Cancel proposal voting function verification--candidate')
     def test_V_STA_6_7(self, submit_cancel, clients_verifier):
         pip = submit_cancel
         proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -413,9 +421,9 @@ class TestVoteCancelVersion:
         result = proposal_vote(pip, proposaltype=pip.cfg.cancel_proposal)
         assert_code(result, 0)
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
-        for client_obj in clients_verifier:
-            if client_obj.node.node_id != pip.node.node_id:
-                pip_test = client_obj.pip
+        for client in clients_verifier:
+            if client.node.node_id != pip.node.node_id:
+                pip_test = client.pip
                 break
         result = pip_test.vote(pip_test.node.node_id, proposalinfo.get('ProposalID'), pip_test.cfg.vote_option_Abstentions,
                                    pip_test.node.staking_address, transaction_cfg=pip_test.cfg.transaction_cfg)
@@ -426,6 +434,7 @@ class TestVoteCancelVersion:
 class TestVoteCancelParam:
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Cancel proposal voting function verification')
     def test_PP_VO_001_PP_VO_005_PP_VO_015_PP_VO_017(self, submit_cancel_param):
         pip = submit_cancel_param
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000)
@@ -444,6 +453,7 @@ class TestVoteCancelParam:
 class TestVoteParam:
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Param proposal voting function verification')
     def test_PP_VO_002_PP_VO_008_PP_VO_018_PP_VO_016(self, submit_param):
         pip = submit_param
         address, _ = pip.economic.account.generate_account(pip.node.web3, 10**18 * 10000)
@@ -459,6 +469,7 @@ class TestVoteParam:
         assert_code(result, 302027)
 
     @pytest.mark.P2
+    @allure.title('voting function verification')
     def test_PP_VO_009_PP_VO_010_V0_TE_001_V0_TE_002(self, submit_param, all_clients):
         pip = submit_param
         result = pip.submitText(pip.node.node_id, str(time.time()), pip.node.staking_address,
@@ -466,8 +477,8 @@ class TestVoteParam:
         log.info('Submit text proposal result : {}'.format(result))
         assert_code(result, 0)
         address = pip.node.staking_address
-        client_obj = get_client_by_nodeid(pip.node.node_id, all_clients)
-        result = client_obj.staking.withdrew_staking(pip.node.staking_address)
+        client = get_client_by_nodeid(pip.node.node_id, all_clients)
+        result = client.staking.withdrew_staking(pip.node.staking_address)
         endblock = get_refund_to_account_block(pip)
         log.info('Node {} withdrew staking result {}'.format(pip.node.node_id, result))
         assert_code(result, 0)
@@ -490,6 +501,7 @@ class TestVoteParam:
 
 @pytest.mark.compatibility
 @pytest.mark.P0
+@allure.title('Param proposal voting function verification')
 def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, clients_consensus):
     genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
     genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
@@ -518,6 +530,7 @@ def test_PP_VO_003_PP_VO_004_VS_EP_002_VS_EP_003(new_genesis_env, clients_consen
 
 
 @pytest.mark.P0
+@allure.title('Cancel proposal voting function verification')
 def test_PP_VO_001_PP_VO_006_PP_VO_007_VS_EP_001(submit_cancel_param):
     pip = submit_cancel_param
     proposalinfo = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
@@ -562,6 +575,7 @@ class TestVoteVPVerify:
         return result
 
     @pytest.mark.P1
+    @allure.title('Version proposal voting function verification--platon version')
     def test_VO_VER_001_003_VO_SI_001_V_UP_1(self, submit_version):
         pip = submit_version
         result = replace_platon_vote(pip, bin=pip.cfg.PLATON_NEW_BIN1)
@@ -585,6 +599,7 @@ class TestVoteVPVerify:
         assert_code(result, 302025)
 
     @pytest.mark.P1
+    @allure.title('Version proposal voting function verification--platon version')
     def test_VO_VER_002_004_VO_SI_002(self, no_vp_proposal):
         pip = no_vp_proposal
         result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version9, 4,
@@ -614,6 +629,7 @@ class TestVoteVPVerify:
         assert_code(result, 302024)
 
     @pytest.mark.P2
+    @allure.title('Text proposal voting function verification')
     def test_VO_SI_011_012(self, clients_verifier):
         pip = clients_verifier[0].pip
         pip_two = clients_verifier[1].pip
@@ -627,11 +643,12 @@ class TestVoteVPVerify:
         assert_code(result, 0)
 
     @pytest.mark.P2
+    @allure.title('Cancel proposal voting function verification')
     def test_VO_SI_013_VO_SI_014_VO_SI_015_VO_SI_016(self, submit_cancel_param, clients_verifier):
         pip = submit_cancel_param
-        for client_obj in clients_verifier:
-            if pip.node.node_id != client_obj.node.node_id:
-                pip_two = client_obj.pip
+        for client in clients_verifier:
+            if pip.node.node_id != client.node.node_id:
+                pip_two = client.pip
                 break
         result = self.vote_wrong_version(pip, pip.cfg.param_proposal)
         assert_code(result, 0)
@@ -644,6 +661,7 @@ class TestVoteVPVerify:
         assert_code(result, 0)
 
     @pytest.mark.P2
+    @allure.title('Voting function verification--effective proposal id')
     def test_V0_POI_001(self, client_verifier):
         pip = client_verifier.pip
         result = pip.vote(pip.node.node_id, '0x29b553fb979855751890aecf3e105948a11a21f121cad11f9e455c1f01b12345',
@@ -655,6 +673,7 @@ class TestVoteVPVerify:
 
 class TestCadidateVote:
     @pytest.mark.P1
+    @allure.title('Voting function verification--candidate')
     def test_VO_TER_003_VO_TER_007_VO_TER_005_PP_VO_013(self, no_vp_proposal, client_candidate, client_verifier):
         ca_pip = client_candidate.pip
         ve_pip = client_verifier.pip

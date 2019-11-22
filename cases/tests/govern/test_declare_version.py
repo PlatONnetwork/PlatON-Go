@@ -60,7 +60,7 @@ def proposal_candidate_pips(all_clients):
             else:
                 if proposalinfo.get('EndVotingBlock') - pip.node.block_number > pip.economic.consensus_size:
                     client_candidates = get_clients_by_nodeid(nodeid_list, all_clients)
-                    return [client_obj.pip for client_obj in client_candidates]
+                    return [client.pip for client in client_candidates]
 
     candidate_list = get_pledge_list(all_clients[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
@@ -109,11 +109,11 @@ def large_version_proposal_candidate_pips(all_clients):
 
     candidate_list = get_pledge_list(all_clients[0].ppos.getCandidateList)
     log.info('candidate_list{}'.format(candidate_list))
-    for client_obj in all_clients:
-        if client_obj.node.node_id not in candidate_list:
-            address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, 10**18 * 10000000)
-            result = client_obj.staking.create_staking(0, address, address)
-            log.info('node {} staking result {}'.format(client_obj.node.node_id, result))
+    for client in all_clients:
+        if client.node.node_id not in candidate_list:
+            address, _ = client.economic.account.generate_account(client.node.web3, 10**18 * 10000000)
+            result = client.staking.create_staking(0, address, address)
+            log.info('node {} staking result {}'.format(client.node.node_id, result))
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('Verifier list {}'.format(verifier_list))
     verifier_pip = get_client_by_nodeid(verifier_list[0], all_clients).pip
@@ -1560,8 +1560,8 @@ class TestVotedCADV:
         submitvpandvote(clients_consensus, votingrounds=40, version=clients_noconsensus[0].pip.cfg.version8)
         createstaking(clients_noconsensus)
         clients_consensus[0].economic.wait_settlement_blocknum(clients_consensus[0].node)
-        client_obj = self.get_candidate_no_verifier(all_clients)
-        pip = client_obj.pip
+        client = self.get_candidate_no_verifier(all_clients)
+        pip = client.pip
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 302028)
 
