@@ -168,3 +168,14 @@ class Staking:
         released = int(staking_data.get('Released'))
         restrictingplan = int(staking_data.get('RestrictingPlan'))
         return [shares, released, restrictingplan][flag]
+
+    def get_version(self, node=None):
+        """
+        According to the node to obtain the amount of the deposit
+        """
+        if node is None:
+            node = self.node
+        stakinginfo = node.ppos.getCandidateInfo(node.node_id)
+        staking_data = stakinginfo.get('Ret')
+        programversion = staking_data.get('ProgramVersion')
+        return programversion

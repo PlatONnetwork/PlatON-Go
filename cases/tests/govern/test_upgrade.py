@@ -5,746 +5,513 @@ from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
     submitppandvote, submitcvpandvote, submitvpandvote
 import time
-import pytest
+import pytest, allure
 from tests.govern.test_declare_version import replace_version_declare
 
 
-class TestSupportRateVoteRatePP():
+def verify_proposal_status(client_con_list_obj, proposaltype, status):
+    pip = client_con_list_obj[0].pip
+    proposalinfo = pip.get_effect_proposal_info_of_vote(proposaltype)
+    log.info('Get proposal information {}'.format(proposalinfo))
+    assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
+    wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
+    assert_code(pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
+    assert_code(pip.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
+    assert_code(pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
+    assert_code(pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
+    assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), status)
+
+def update_setting_rate(new_genesis_env, proposaltype, *args):
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    if proposaltype == 3:
+        genesis.economicModel.gov.paramProposalVoteDurationSeconds = args[0]
+        genesis.economicModel.gov.paramProposalSupportRate = args[1]
+        genesis.economicModel.gov.paramProposalVoteRate = args[2]
+
+    elif proposaltype == 4:
+        genesis.economicModel.gov.cancelProposalSupportRate = args[0]
+        genesis.economicModel.gov.cancelProposalVoteRate = args[1]
+
+    elif proposaltype == 1:
+        genesis.economicModel.gov.textProposalVoteDurationSeconds = args[0]
+        genesis.economicModel.gov.textProposalSupportRate = args[1]
+        genesis.economicModel.gov.textProposalVoteRate = args[2]
+
+    elif proposaltype == 2:
+        genesis.economicModel.gov.versionProposalSupportRate = args[0]
+        genesis.economicModel.slashing.slashBlocksReward = 0
+    else:
+        raise ValueError('Prposal type error')
+    new_genesis_env.set_genesis(genesis.to_dict())
+    new_genesis_env.deploy_all()
+
+class TestSupportRateVoteRatePP:
     @pytest.mark.P0
     @pytest.mark.compatibility
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_001_VS_EP_002(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.332
-        genesis.economicModel.gov.paramProposalVoteRate = 0.751
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3,  0, 0.332, 0.751)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=3)
 
     @pytest.mark.P1
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_002(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.334
-        genesis.economicModel.gov.paramProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3, 0, 0.334, 0.749)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=3)
 
     @pytest.mark.P1
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_003(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.333
-        genesis.economicModel.gov.paramProposalVoteRate = 0.751
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3, 0, 0.333, 0.751)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=3)
 
     @pytest.mark.P1
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_004(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.334
-        genesis.economicModel.gov.paramProposalVoteRate = 0.75
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3, 0, 0.334, 0.75)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=3)
 
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_005(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.332
-        genesis.economicModel.gov.paramProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.749)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=2)
 
     @pytest.mark.P1
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_006(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.333
-        genesis.economicModel.gov.paramProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3, 0, 0.333, 0.749)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=2)
 
     @pytest.mark.P1
+    @allure.title('Parameter proposal statistical function verification')
     def test_UP_PA_007(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.paramProposalVoteDurationSeconds = 0
-        genesis.economicModel.gov.paramProposalSupportRate = 0.332
-        genesis.economicModel.gov.paramProposalVoteRate = 0.75
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 3, 0, 0.332, 0.75)
         submitppandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
-        log.info('Get param proposal information {}'.format(proposalinfo))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=3, status=3)
 
-
-class TestSupportRateVoteRateCPP():
+class TestSupportRateVoteRateCPP:
     @pytest.mark.P1
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_001(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.751
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.332, 0.751)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.P1
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_002(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.334
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.334, 0.749)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.P1
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_003(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.333
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.751
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.333, 0.751)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.P1
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_004(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.334
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.75
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.334, 0.75)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_005(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.332, 0.749)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=2)
 
     @pytest.mark.P1
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_006(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.333
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.333, 0.749)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=2)
 
     @pytest.mark.P1
+    @allure.title('Cancel parameter proposal statistical function verification')
     def test_UC_CP_007(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.75
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.332, 0.75)
         submitcppandvote(client_con_list_obj[:3], [1, 2, 3])
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
 
-class TestSupportRateVoteRateCVP():
+class TestSupportRateVoteRateCVP:
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_001_VS_BL_2(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.751
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.332, 0.751)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.P1
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_002(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.334
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.334, 0.749)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.P1
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_003(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.333
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.751
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.333, 0.751)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.P1
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_004(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.334
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.75
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.334, 0.75)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_005(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.332, 0.749)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=2)
 
     @pytest.mark.P1
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_006(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.749
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.333, 0.749)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=2)
 
     @pytest.mark.P1
+    @allure.title('Cancel version proposal statistical function verification')
     def test_UP_CA_007(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.cancelProposalSupportRate = 0.332
-        genesis.economicModel.gov.cancelProposalVoteRate = 0.75
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 4, 0.332, 0.75)
         submitcvpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
-        log.info('Get cancel proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=4, status=3)
 
 
-class TestSupportRateVoteRateTP():
+class TestSupportRateVoteRateTP:
     @pytest.mark.compatibility
     @pytest.mark.P1
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_001_VS_BL_3(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.332
-        genesis.economicModel.gov.textProposalVoteRate = 0.751
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.332, 0.75)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=3)
 
     @pytest.mark.P1
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_002(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.334
-        genesis.economicModel.gov.textProposalVoteRate = 0.749
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.334, 0.749)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=3)
 
     @pytest.mark.P1
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_003(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.333
-        genesis.economicModel.gov.textProposalVoteRate = 0.751
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.333, 0.751)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=3)
 
     @pytest.mark.P1
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_004(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.334
-        genesis.economicModel.gov.textProposalVoteRate = 0.75
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.334, 0.75)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=3)
 
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_005(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.332
-        genesis.economicModel.gov.textProposalVoteRate = 0.749
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.332, 0.749)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=2)
 
     @pytest.mark.P1
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_006(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.332
-        genesis.economicModel.gov.textProposalVoteRate = 0.749
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.333, 0.749)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 2)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=2)
 
     @pytest.mark.P1
+    @allure.title('Text proposal statistical function verification')
     def test_UP_TE_007(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.textProposalSupportRate = 0.332
-        genesis.economicModel.gov.textProposalVoteRate = 0.75
-        genesis.economicModel.gov.textProposalVoteDurationSeconds = 40
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
+        update_setting_rate(new_genesis_env, 1, 40, 0.333, 0.75)
         submittpandvote(client_con_list_obj[:3], 1, 2, 3)
-        pip_obj = client_con_list_obj[0].pip
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.text_proposal)
-        log.info('Get text proposal information {}'.format(proposalinfo))
-
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 1, 1]
-        wait_block_number(client_con_list_obj[1].node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')), 1)
-        assert_code(pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')), len(client_con_list_obj))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        verify_proposal_status(client_con_list_obj, proposaltype=1, status=3)
 
 
-class TestUpgradedST():
+class TestUpgradedST:
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Chain upgrade completed, transaction function verification')
     def test_UV_TR_001_004_to_008_011_to_017_VS_EP_001(self, new_genesis_env, client_con_list_obj):
         new_genesis_env.deploy_all()
-        pip_obj = client_con_list_obj[0].pip
+        pip = client_con_list_obj[0].pip
         submitvpandvote(client_con_list_obj[:3])
-        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote()
+        proposalinfo_version = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information {}'.format(proposalinfo_version))
-        wait_block_number(pip_obj.node, proposalinfo_version.get('ActiveBlock'))
-        assert pip_obj.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 5
-        assert pip_obj.chain_version == pip_obj.cfg.version5
-        assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
+        wait_block_number(pip.node, proposalinfo_version.get('ActiveBlock'))
+        assert pip.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 5
+        assert pip.chain_version == pip.cfg.version5
+        assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID')) == [4, 3, 0, 0]
         submittpandvote(client_con_list_obj[:2], 1, 2)
         submitcppandvote(client_con_list_obj[:2], [1, 2])
-        proposalinfo_param = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.param_proposal)
+        proposalinfo_param = pip.get_effect_proposal_info_of_vote(pip.cfg.param_proposal)
         log.info('Get param proposal information {}'.format(proposalinfo_param))
-        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_param.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        result = pip.vote(pip.node.node_id, proposalinfo_param.get('ProposalID'), pip.cfg.vote_option_yeas,
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Vote param proposal result : {}'.format(result))
         assert_code(result, 0)
-        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN0, pip_obj.cfg.version0)
+        result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 302028)
-        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN, pip_obj.cfg.version5)
+        result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
-        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN4, pip_obj.cfg.version4)
+        result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
-        result = replace_version_declare(pip_obj, pip_obj.cfg.PLATON_NEW_BIN6, pip_obj.cfg.version6)
+        result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
-        result = pip_obj.pip.listProposal()
+        result = pip.pip.listProposal()
         log.info('Interface listProposal result : {}'.format(result))
         assert_code(result, 0)
-        result = pip_obj.pip.getProposal(proposalinfo_version.get('ProposalID'))
+        result = pip.pip.getProposal(proposalinfo_version.get('ProposalID'))
         log.info('Interface getProposal result : {}'.format(result))
         assert_code(result, 0)
 
     @pytest.mark.P2
+    @allure.title('Chain upgrade completed, transaction function verification')
     def test_UV_TR_002_003_009_010(self, new_genesis_env, client_con_list_obj):
         new_genesis_env.deploy_all()
-        pip_obj = client_con_list_obj[0].pip
+        pip = client_con_list_obj[0].pip
         submitvpandvote(client_con_list_obj[:3])
-        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote()
+        proposalinfo_version = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information {}'.format(proposalinfo_version))
-        wait_block_number(pip_obj.node, proposalinfo_version.get('ActiveBlock'))
-        assert pip_obj.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 5
-        assert pip_obj.chain_version == pip_obj.cfg.version5
-        assert pip_obj.get_accuverifiers_count(proposalinfo_version.get('ProposalID'))
+        wait_block_number(pip.node, proposalinfo_version.get('ActiveBlock'))
+        assert pip.get_status_of_proposal(proposalinfo_version.get('ProposalID')) == 5
+        assert pip.chain_version == pip.cfg.version5
+        assert pip.get_accuverifiers_count(proposalinfo_version.get('ProposalID'))
 
-        result = pip_obj.submitVersion(pip_obj.node.node_id, str(time.time()), pip_obj.cfg.version8, 3,
-                                       pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version8, 3,
+                                       pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit version proposal result : {}'.format(result))
         assert_code(result, 0)
-        proposalinfo_version = pip_obj.get_effect_proposal_info_of_vote()
+        proposalinfo_version = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo_version))
-        result = pip_obj.submitCancel(pip_obj.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
-                                      pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        result = pip.submitCancel(pip.node.node_id, str(time.time()), 1, proposalinfo_version.get('ProposalID'),
+                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit cancel proposal result : {}'.format(result))
         assert_code(result, 0)
-        proposalinfo_cancel = pip_obj.get_effect_proposal_info_of_vote(pip_obj.cfg.cancel_proposal)
+        proposalinfo_cancel = pip.get_effect_proposal_info_of_vote(pip.cfg.cancel_proposal)
         log.info('Get version proposal information : {}'.format(proposalinfo_cancel))
 
-        upload_platon(pip_obj.node, pip_obj.cfg.PLATON_NEW_BIN8)
-        pip_obj.node.restart()
+        upload_platon(pip.node, pip.cfg.PLATON_NEW_BIN8)
+        pip.node.restart()
 
-        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_version.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        result = pip.vote(pip.node.node_id, proposalinfo_version.get('ProposalID'), pip.cfg.vote_option_yeas,
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Vote result : {}'.format(result))
         assert_code(result, 0)
-        result = pip_obj.vote(pip_obj.node.node_id, proposalinfo_cancel.get('ProposalID'), pip_obj.cfg.vote_option_yeas,
-                              pip_obj.node.staking_address, transaction_cfg=pip_obj.cfg.transaction_cfg)
+        result = pip.vote(pip.node.node_id, proposalinfo_cancel.get('ProposalID'), pip.cfg.vote_option_yeas,
+                              pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         assert_code(result, 0)
-        log.info('Node {} vote result : {}'.format(pip_obj.node.node_id, result))
+        log.info('Node {} vote result : {}'.format(pip.node.node_id, result))
 
 
-class TestUpgradeVP():
+class TestUpgradeVP:
+    def calculate_version(self, version):
+        ver_byte = (version).to_bytes(length=4, byteorder='big', signed=False)
+        new_ver3 = (0).to_bytes(length=1, byteorder='big', signed=False)
+        new_version_byte = ver_byte[0:3] + new_ver3
+        return int.from_bytes(new_version_byte, byteorder='big', signed=False)
+
     @pytest.mark.compatibility
     @pytest.mark.P0
+    @allure.title('Version proposal statistical function verification')
     def test_UV_UPG_1_UV_UPG_2(self, new_genesis_env, client_con_list_obj, client_noconsensus_obj):
         new_genesis_env.deploy_all()
-        pip_obj = client_con_list_obj[0].pip
-        pip_obj_test = client_noconsensus_obj.pip
-        address, _ = pip_obj_test.economic.account.generate_account(pip_obj_test.node.web3, 10**18 * 10000000)
+        pip = client_con_list_obj[0].pip
+        pip_test = client_noconsensus_obj.pip
+        address, _ = pip_test.economic.account.generate_account(pip_test.node.web3, 10**18 * 10000000)
         result = client_noconsensus_obj.staking.create_staking(0, address, address, amount=10**18 * 2000000,
-                                                               transaction_cfg=pip_obj_test.cfg.transaction_cfg)
-        log.info('Node {} staking result : {}'.format(pip_obj_test.node.node_id, result))
-        pip_obj_test.economic.wait_settlement_blocknum(pip_obj_test.node)
+                                                               transaction_cfg=pip_test.cfg.transaction_cfg)
+        log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
+        programversion = client_noconsensus_obj.staking.get_version()
+        assert_code(programversion, self.calculate_version(pip.cfg.version0))
+        pip_test.economic.wait_settlement_blocknum(pip_test.node)
         verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
-        assert pip_obj_test.node.node_id in verifier_list
+        assert pip_test.node.node_id in verifier_list
 
         submitvpandvote(client_con_list_obj)
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        programversion = client_con_list_obj[0].staking.get_version()
+        assert_code(programversion, pip.cfg.version0)
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal information : {}'.format(proposalinfo))
-        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
         validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
-        wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
+        wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
 
         validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
-        assert pip_obj_test.node.node_id not in validator_list
+        assert pip_test.node.node_id not in validator_list
 
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
-        pip_obj.economic.wait_settlement_blocknum(pip_obj.node)
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+        pip.economic.wait_settlement_blocknum(pip.node)
         validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
-        assert pip_obj_test.node.node_id not in validator_list
+        assert pip_test.node.node_id not in validator_list
         verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
         log.info('Get verifier list : {}'.format(verifier_list))
-        assert pip_obj_test.node.node_id not in verifier_list
-        balance_before = pip_obj.node.eth.getBalance(address, 2 * pip_obj.economic.settlement_size - 1)
-        log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size - 1, balance_before))
-        balance_after = pip_obj.node.eth.getBalance(address, 2 * pip_obj.economic.settlement_size)
-        log.info('Block number {} address balace {}'.format(2 * pip_obj.economic.settlement_size, balance_after))
-        _, staking_reward = pip_obj_test.economic.get_current_year_reward(pip_obj_test.node, verifier_num=5)
+        assert pip_test.node.node_id not in verifier_list
+        balance_before = pip.node.eth.getBalance(address, 2 * pip.economic.settlement_size - 1)
+        log.info('Block number {} address balace {}'.format(2 * pip.economic.settlement_size - 1, balance_before))
+        balance_after = pip.node.eth.getBalance(address, 2 * pip.economic.settlement_size)
+        log.info('Block number {} address balace {}'.format(2 * pip.economic.settlement_size, balance_after))
+        _, staking_reward = pip_test.economic.get_current_year_reward(pip_test.node, verifier_num=5)
         assert balance_after - balance_before == staking_reward
 
-    @pytest.mark.P1
-    def test_UV_NO_1(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.249
-        genesis.economicModel.slashing.slashBlocksReward = 0
-        new_genesis_env.set_genesis(genesis.to_dict())
+    @pytest.mark.P0
+    def test_UV_UPG_2(self, new_genesis_env, client_con_list_obj, client_noconsensus_obj):
         new_genesis_env.deploy_all()
-        pip_obj = client_con_list_obj[0].pip
-        submitvpandvote([client_con_list_obj[0]])
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
-        log.info('Get version proposal infomation  {}'.format(proposalinfo))
-        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
-        assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
-        assert pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
-        assert pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        pip = client_con_list_obj[0].pip
+        pip_test = client_noconsensus_obj.pip
+        address, _ = pip_test.economic.account.generate_account(pip_test.node.web3, 10 ** 18 * 10000000)
+        result = client_noconsensus_obj.staking.create_staking(0, address, address, amount=10 ** 18 * 2000000,
+                                                               transaction_cfg=pip_test.cfg.transaction_cfg)
+        log.info('Node {} staking result : {}'.format(pip_test.node.node_id, result))
+        programversion = client_noconsensus_obj.staking.get_version()
+        assert_code(programversion, self.calculate_version(pip.cfg.version0))
+        pip_test.economic.wait_settlement_blocknum(pip_test.node)
+        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        log.info('Get verifier list : {}'.format(verifier_list))
+        assert pip_test.node.node_id in verifier_list
+
+        submitvpandvote(client_con_list_obj)
+        programversion = client_con_list_obj[0].staking.get_version()
+        assert_code(programversion, pip.cfg.version0)
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
+        log.info('Get version proposal information : {}'.format(proposalinfo))
+        replace_version_declare(pip_test, pip_test.cfg.PLATON_NEW_BIN, pip_test.cfg.version5)
+        assert_code(result, 0)
+        programversion = client_noconsensus_obj.staking.get_version()
+        assert_code(programversion, self.calculate_version(pip_test.cfg.version0))
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info('Validator list : {}'.format(validator_list))
+        wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
+
+        validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info('Validator list : {}'.format(validator_list))
+        assert pip_test.node.node_id in validator_list
+
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+        pip.economic.wait_settlement_blocknum(pip.node)
+        validator_list = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info('Validator list : {}'.format(validator_list))
+        assert pip_test.node.node_id in validator_list
+        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        log.info('Get verifier list : {}'.format(verifier_list))
+        assert pip_test.node.node_id in verifier_list
+        programversion = client_con_list_obj[0].staking.get_version()
+        assert_code(programversion, self.calculate_version(pip.cfg.version5))
+        programversion = client_noconsensus_obj.staking.get_version()
+        assert_code(programversion, self.calculate_version(pip_test.cfg.version5))
+
 
     @pytest.mark.P1
-    def test_UV_UP_1(self, new_genesis_env, client_con_list_obj):
-        genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
-        genesis.economicModel.gov.versionProposalSupportRate = 0.25
-        genesis.economicModel.slashing.slashBlocksReward = 0
-        new_genesis_env.set_genesis(genesis.to_dict())
-        new_genesis_env.deploy_all()
-        pip_obj = client_con_list_obj[0].pip
+    @allure.title('Version proposal statistical function verification')
+    def test_UV_NO_1(self, new_genesis_env, client_con_list_obj):
+        update_setting_rate(new_genesis_env, 2, 0.249)
+        pip = client_con_list_obj[0].pip
         submitvpandvote([client_con_list_obj[0]])
-        proposalinfo = pip_obj.get_effect_proposal_info_of_vote()
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
-        wait_block_number(pip_obj.node, proposalinfo.get('EndVotingBlock'))
-        assert pip_obj.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
-        assert pip_obj.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
-        assert pip_obj.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
-        assert pip_obj.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert pip_obj.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
-        wait_block_number(pip_obj.node, proposalinfo.get('ActiveBlock'))
-        assert_code(pip_obj.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
+        assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
+        assert pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+
+    @pytest.mark.P1
+    @allure.title('Version proposal statistical function verification')
+    def test_UV_UP_1(self, new_genesis_env, client_con_list_obj):
+        update_setting_rate(new_genesis_env, 2, 0.25)
+        pip = client_con_list_obj[0].pip
+        submitvpandvote([client_con_list_obj[0]])
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
+        log.info('Get version proposal infomation  {}'.format(proposalinfo))
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
+        assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(client_con_list_obj)
+        assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
+        assert pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 5)
+
+
+    def test_1(self, new_genesis_env, client_con_list_obj):
+        pip = client_con_list_obj[-1].pip
+        submitvpandvote(client_con_list_obj[0:2])
+        replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        submitvpandvote(client_con_list_obj[:3])
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        log.info(verifier_list)
+        assert pip.node.node_id in verifier_list
+
+    def test_2(self, new_genesis_env, client_con_list_obj):
+        new_genesis_env.deploy_all()
+        pip = client_con_list_obj[0].pip
+        submitvpandvote(client_con_list_obj[0:2])
+        # replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
+        submitvpandvote(client_con_list_obj[1:4])
+        proposalinfo = pip.get_effect_proposal_info_of_vote()
+        wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        pip.economic.wait_consensus_blocknum(pip.node)
+        validator = get_pledge_list(client_con_list_obj[0].ppos.getValidatorList)
+        log.info(validator)
+        assert pip.node.node_id not in validator
+        programversion = client_con_list_obj[0].staking.get_version()
+        log.info(programversion)
+
+        programversion = client_con_list_obj[1].staking.get_version()
+        log.info(programversion)
+
+        programversion = client_con_list_obj[2].staking.get_version()
+        log.info(programversion)
+
+        programversion = client_con_list_obj[3].staking.get_version()
+        log.info(programversion)
+
+        verifier_list = get_pledge_list(client_con_list_obj[0].ppos.getVerifierList)
+        log.info(verifier_list)
+
+
