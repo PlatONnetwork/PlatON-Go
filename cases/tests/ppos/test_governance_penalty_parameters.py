@@ -65,7 +65,7 @@ def test_PIP_PVF_001_002(clients_consensus, mark, reset_environment):
     """
     PIP_PVF_001:治理修改低0出块率扣除验证人自有质押金块数投票失败
     PIP_PVF_002:理修改低0出块率扣除验证人自有质押金块数成功处于未生效期
-    :param client_con_list_obj:
+    :param clients_consensus:
     :return:
     """
     index = 0
