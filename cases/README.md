@@ -1,41 +1,41 @@
 # PlatON-Tests
 This project is an automated test project of the PaltON-Go. see: https://github.com/PlatONnetwork/PlatON-Go
 
-# 安装运行依赖
-安装python3.6以上环境，并配置pip，然后执行以下命令安装依赖库：
+# Installation and operation dependencies
+Install the python 3.7 environment and configure pip, then execute the following command to install the dependency library:
 
-pip install -r requirements.txt 
+    pip install -r requirements.txt 
 
 # Run test:
 
-## 执行所有用例
+## Execute all test cases
 pytest test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
 
-## 多套环境并发执行
+## Execute at Multiple environment
 pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
 
-备注：节点配置文件数必须等于线程数，多个节点配置文件用英文","分隔
+Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
 
-# pytest 命令行参数
+# pytest Command line argument
 
---nodeFile "deploy/4_node.yml":  指定节点配置文件
+--nodeFile "deploy/node.yml": Specify the node configuration file
 
---accountFile "deploy/accounts.yml": 指定测试用的账号文件
+--accountFile "deploy/accounts.yml": Specify the account file for testing
 
---initChain：出现此选项，表示要初始化链数据；如果没有此选项，表示不初始化链数据
+--initChain: This option appears to indicate that the chain data is to be initialized. if there is no such option, the chain data is not initialized.
 
---installDependency：表示节点需要安装必需的依赖，一般第一次部署时使用；如果没有此选项，则不再安装
+--installDependency：Indicates that the node needs to install the required dependencies, which is generally used during the first deployment; if it is not, it is no longer installed.
 
---installSuperVisor：表示节点是否安装supervisor服务，一般第一次部署时使用；如果没有此选项，则不再安装
+--installSuperVisor：Indicates whether the node is installed with the supervisor service. It is usually used for the first deployment. If you do not have this option, it is no longer installed.
 
-# 注意事项
-目前仅支持Ubuntu环境部署
-文件存放要求：
-    accounts.yml文件，放入deploy目录，platon二进制文件放入deploy/bin，nodeFile放入到deploy/node
-    其它文件，放入deploy/template模板目录
+# Precautions
+Currently only supports Ubuntu environment deployment
+File storage requirements:
+    Accounts.yml file, put in the deploy directory, platon binary file into deploy/bin, nodeFile into deploy/node
+    Other files, put in the deploy/template template directory
 
-@pytest.mark.P1
-def test_case_3():
-    print("begin: test_case_3")
-    SomeTxAPI("test_case_3")
-    print("end: test_case_3")
+    @pytest.mark.P1
+    def test_case_001():
+        print("begin: test_case_001")
+        SomeTxAPI("test_case_001")
+        print("end: test_case_001")
