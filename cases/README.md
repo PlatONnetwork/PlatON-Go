@@ -6,15 +6,15 @@ Install the python 3.7 environment and configure pip, then execute the following
 
     pip install -r requirements.txt 
 
-# Run test:
+# Run test
 
-## Execute all test cases
+### Execute all test cases
 pytest test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
 
-## Execute at Multiple environment
+### Execute at Multiple environment
 pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
 
-Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
+    Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
 
 # pytest Command line argument
 
@@ -34,6 +34,7 @@ File storage requirements:
     Accounts.yml file, put in the deploy directory, platon binary file into deploy/bin, nodeFile into deploy/node
     Other files, put in the deploy/template template directory
 
+### test case example:
     @pytest.mark.P1
     def test_case_001():
         print("begin: test_case_001")
