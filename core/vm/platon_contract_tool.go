@@ -22,6 +22,7 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 	// execute contracts method
 	result := reflect.ValueOf(fn).Call(params)
 	if err, ok := result[1].Interface().(error); ok {
+		log.Error("Failed to execute contract tx", "err", err)
 		return xcom.NewFailedResult(common.InternalError), err
 	}
 	return result[0].Bytes(), nil
