@@ -1,5 +1,5 @@
 # PlatON-Tests
-This project is an automated test project of the PaltON-Go. see: https://github.com/PlatONnetwork/PlatON-Go
+This is an automated test project of the PaltON-Go
 
 # Installation and operation dependencies
 Install the python 3.7 environment and configure pip, then execute the following command to install the dependency library:
