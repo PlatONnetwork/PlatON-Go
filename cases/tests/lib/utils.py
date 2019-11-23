@@ -295,9 +295,9 @@ def get_max_staking_tx_index(node):
 
 def get_block_count_number(node, number):
     """
-    获取验证人出块数
-    :param url: 节点url
-    :param cycle: 共识周期
+    Get the number of verifier blocks
+    :param url: node url
+    :param cycle: Consensus cycle
     :return:
     """
     current_block = node.block_number
@@ -333,9 +333,9 @@ def assert_code(result, code):
     :return:
     '''
     if isinstance(result, int):
-        assert result == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
+        assert result == code, "code error，expect：{}，actually:{}".format(code, result)
     else:
-        assert result.get('Code') == code, "状态码错误，预期状态码：{}，实际状态码:{}".format(code, result)
+        assert result.get('Code') == code, "code error，expect：{}，actually:{}".format(code, result)
 
 
 def von_amount(amonut, base):
