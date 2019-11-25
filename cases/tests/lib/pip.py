@@ -3,7 +3,6 @@ from environment.node import Node
 from .config import PipConfig
 from .economic import Economic
 from .utils import int_to_bytes, get_blockhash, proposal_list_effective, proposal_effective, find_proposal
-import json
 from typing import List
 import time
 
@@ -451,7 +450,7 @@ class Pip:
         """
         candidate_list = self.node.ppos.getCandidateList().get('Ret')
         verifier_list = self.node.ppos.getVerifierList().get('Ret')
-        if verifier_list == "Getting verifierList is failed:The validator is not exist":
+        if verifier_list == "Getting verifierList is failed:The validator is not exist" or verifier_list == []:
             time.sleep(10)
             verifier_list = self.node.ppos.getVerifierList().get('Ret')
         candidate_no_verify_list = []

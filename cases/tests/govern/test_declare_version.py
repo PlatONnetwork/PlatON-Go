@@ -16,7 +16,7 @@ def large_version_proposal_pips(all_clients):
     '''
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifier list {}'.format(verifier_list))
-    pip = get_client_by_nodeid(verifier_list[0], all_clients)
+    pip = get_client_by_nodeid(verifier_list[0], all_clients).pip
     if pip.chain_version != pip.cfg.version0:
         pip.economic.env.deploy_all()
     if pip.is_exist_effective_proposal():

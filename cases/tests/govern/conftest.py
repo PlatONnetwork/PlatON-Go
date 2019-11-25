@@ -149,38 +149,26 @@ def new_node_has_proposal(client_new_node, client_verifier, client_noconsensus):
 
 
 @pytest.fixture()
-def candidate_has_proposal(client_candidate, all_clients):
-    verifier_list = get_pledge_list(client_candidate.ppos.getVerifierList)
-    pip = get_client_by_nodeid(verifier_list[0], all_clients).pip
-    if pip.chain_version != pip.cfg.version0:
-        pip.economic.env.deploy_all()
-    if pip.is_exist_effective_proposal_for_vote(pip.cfg.param_proposal):
-        pip.economic.env.deploy_all()
-    if pip.is_exist_effective_proposal():
-        proposalinfo = pip.get_effect_proposal_info_of_vote()
-        log.info('Get version proposal information : {}'.format(proposalinfo))
-        if proposalinfo.get('EndVotingBlock') - pip.node.block_number < 2 * pip.economic.consensus_size:
-            pip.economic.env.deploy_all()
-            normal_nodes = pip.economic.env.normal_node_list
-            for normal_node in normal_nodes:
-                client = get_client_by_nodeid(normal_node.node_id, all_clients)
-                address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
-                log.info('Node {} staking'.format(normal_node.node_id))
-                result = client.staking.create_staking(0, address, address)
-                log.info('Node {} staking result: {}'.format(normal_node.node_id, result))
-                assert_code(result, 0)
-            pip.economic.wait_settlement_blocknum(pip.node)
-            node_id_list = pip.get_candidate_list_not_verifier()
-            if not node_id_list:
-                raise Exception('Get candidate list')
-            client_candidate = get_client_by_nodeid(node_id_list[0], all_clients)
-        else:
-            return client_candidate.pip
+def candidate_has_proposal(clients_noconsensus, all_clients):
+    clients_noconsensus[0].economic.env.deploy_all()
+    for client in clients_noconsensus:
+        address, _ = client.economic.account.generate_account(client.node.web3, 10 ** 18 * 10000000)
+        log.info('Node {} staking'.format(client.node.node_id))
+        result = client.staking.create_staking(0, address, address)
+        log.info('Node {} staking result: {}'.format(client.node.node_id, result))
+        assert_code(result, 0)
+    client.economic.wait_settlement_blocknum(client.node)
+    node_id_list = client.pip.get_candidate_list_not_verifier()
+    if not node_id_list:
+        raise Exception('Get candidate list')
+    verifiers = get_pledge_list(client.ppos.getVerifierList)
+    log.info('Verifier list : {}'.format(verifiers))
+    pip = get_client_by_nodeid(verifiers[0], all_clients).pip
     result = pip.submitVersion(pip.node.node_id, str(time.time()), pip.cfg.version5, 5,
-                                   pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
+                               pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
     log.info('Submit version proposal result : {}'.format(result))
     assert_code(result, 0)
-    return client_candidate.pip
+    return get_client_by_nodeid(node_id_list[0], all_clients).pip
 
 
 @pytest.fixture()
