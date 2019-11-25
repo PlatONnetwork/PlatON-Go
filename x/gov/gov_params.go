@@ -54,7 +54,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyStakeThreshold,
-				fmt.Sprintf("minimum amount of stake, range：[%d, %d) ", xcom.MillionLAT, xcom.TenMillionLAT)},
+				fmt.Sprintf("minimum amount of stake, range: [%d, %d)", xcom.MillionLAT, xcom.TenMillionLAT)},
 			ParamValue: &ParamValue{"", xcom.StakeThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -72,7 +72,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyOperatingThreshold,
-				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range：[%d, %d) ", xcom.TenLAT, xcom.TenThousandLAT)},
+				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range: [%d, %d)", xcom.TenLAT, xcom.TenThousandLAT)},
 			ParamValue: &ParamValue{"", xcom.OperatingThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -92,7 +92,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyMaxValidators,
-				fmt.Sprintf("maximum amount of validator, range：[%d, %d]", xcom.MaxConsensusVals(), xcom.CeilMaxValidators)},
+				fmt.Sprintf("maximum amount of validator, range: [%d, %d]", xcom.MaxConsensusVals(), xcom.CeilMaxValidators)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.MaxValidators())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -112,7 +112,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyUnStakeFreezeDuration,
-				fmt.Sprintf("quantity of epoch for skake withdrawal, range：(MaxEvidenceAge, %d]", xcom.CeilUnStakeFreezeDuration)},
+				fmt.Sprintf("quantity of epoch for skake withdrawal, range: (MaxEvidenceAge, %d]", xcom.CeilUnStakeFreezeDuration)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.UnStakeFreezeDuration())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -138,7 +138,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeySlashFractionDuplicateSign,
-				fmt.Sprintf("quantity of base point(1BP=1‱). Node's stake will be deducted(BPs*staking amount*1‱) it the node sign block duplicatlly, range：(%d, %d]", xcom.Zero, xcom.TenThousand)},
+				fmt.Sprintf("quantity of base point(1BP=1‱). Node's stake will be deducted(BPs*staking amount*1‱) it the node sign block duplicatlly, range: (%d, %d]", xcom.Zero, xcom.TenThousand)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.SlashFractionDuplicateSign())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -157,7 +157,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeyDuplicateSignReportReward,
-				fmt.Sprintf("quantity of base point(1bp=1%%). Bonus(BPs*deduction amount for sign block duplicatlly*%%) to the node who reported another's duplicated-signature, range：(%d, %d]", xcom.Zero, xcom.Eighty)},
+				fmt.Sprintf("quantity of base point(1bp=1%%). Bonus(BPs*deduction amount for sign block duplicatlly*%%) to the node who reported another's duplicated-signature, range: (%d, %d]", xcom.Zero, xcom.Eighty)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.DuplicateSignReportReward())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -176,7 +176,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeyMaxEvidenceAge,
-				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range：(%d, UnStakeFreezeDuration)", xcom.Zero)},
+				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range: (%d, UnStakeFreezeDuration)", xcom.Zero)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.MaxEvidenceAge())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -197,7 +197,7 @@ func initParam() []*GovernParam {
 		},
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeySlashBlocksReward,
-				fmt.Sprintf("quantity of block, the total bonus amount for these blocks will be deducted from a inefficient node's stake, range：[%d, %d)", xcom.Zero, xcom.CeilBlocksReward)},
+				fmt.Sprintf("quantity of block, the total bonus amount for these blocks will be deducted from a inefficient node's stake, range: [%d, %d)", xcom.Zero, xcom.CeilBlocksReward)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.SlashBlocksReward())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -219,7 +219,7 @@ func initParam() []*GovernParam {
 		About Block module
 		*/
 		{
-			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：[%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
+			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range: [%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DefaultMinerGasCeil)), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -228,7 +228,7 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
 				}
 
-				// (4712388<= x < =21000 0000)
+				// (4712388<= x <=21000 0000)
 				if gasLimit < int(params.GenesisGasLimit) || gasLimit > int(params.MaxGasCeil) {
 					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be [%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil)))
 				}
@@ -236,28 +236,6 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
-
-		/**
-		About TxPool module
-		*/
-		//{
-		//	ParamItem:  &ParamItem{ModuleTxPool, KeyMaxTxDataLimit, fmt.Sprintf("maximum data length per transaction, range：(%d, %d]", xcom.Zero, CeilTxSize)},
-		//	ParamValue: &ParamValue{"", strconv.Itoa(GenesisTxSize), 0},
-		//	ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
-		//
-		//		txSize, err := strconv.Atoi(value)
-		//		if nil != err {
-		//			return fmt.Errorf("Parsed MaxTxDataLimit is failed: %v", err)
-		//		}
-		//
-		//		// (0, 10MB]
-		//		if txSize > CeilTxSize {
-		//			return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, CeilTxSize))
-		//		}
-		//
-		//		return nil
-		//	},
-		//},
 	}
 }
 
