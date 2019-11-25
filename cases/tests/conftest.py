@@ -43,7 +43,7 @@ def all_clients(global_running_env, staking_cfg) -> List[Client]:
     """
     Get all node  Node object list
     """
-    return get_clients_by_nodeid(global_running_env, staking_cfg)
+    return get_clients(global_running_env, staking_cfg)
 
 
 def get_consensus_clients(env, cfg):
@@ -107,7 +107,7 @@ def client_verifier(global_running_env, staking_cfg) -> Client:
     """
     Get a verifier node  Client object
     """
-    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
+    all_clients = get_clients(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     for client in all_clients:
@@ -121,7 +121,7 @@ def clients_verifier(global_running_env, staking_cfg) -> List[Client]:
     """
     Get verifier node  Client object list
     """
-    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
+    all_clients = get_clients(global_running_env, staking_cfg)
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
     log.info('verifierlist{}'.format(verifier_list))
     return get_clients_by_nodeid(verifier_list, all_clients)
@@ -160,7 +160,7 @@ def client_candidate(global_running_env, staking_cfg):
     Get a candidate node Client object
     """
     client_consensus = get_client_consensus(global_running_env, staking_cfg)
-    all_clients = get_clients_by_nodeid(global_running_env, staking_cfg)
+    all_clients = get_clients(global_running_env, staking_cfg)
     clients_noconsensus = get_clients_noconsensus(global_running_env, staking_cfg)
     if not client_consensus.staking.get_candidate_list_not_verifier():
         log.info('There is no candidate, node stake')

@@ -815,7 +815,7 @@ class TestVotingStatisticsPP:
         log.info('{}'.format(clients_consensus[:2]))
         createstaking(clients_noconsensus[:2])
         pip.economic.wait_settlement_blocknum(pip.node)
-        self.assert_accuverifiers_count(pip, proposalinfo, [6, 1, 1, 1])
+        self.assert_accuverifiers_count(pip, proposalinfo, [6, 1, 1, 0])
 
         result = proposal_vote(clients_noconsensus[0].pip, vote_option=pip.cfg.vote_option_Abstentions)
         assert_code(result, 0)
