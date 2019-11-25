@@ -67,7 +67,7 @@ def global_test_env(request, worker_id):
     env = create_env(tmp_dir, node_file, account_file, init_chain, install_dependency, install_supervisor)
     # Must choose one, don't use both
     env.deploy_all()
-    env.prepare_all()
+    # env.prepare_all()
     yield env
 
     if allure_dir:
