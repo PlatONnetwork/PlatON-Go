@@ -27,7 +27,7 @@ const (
 	VersionPatch = 4          // Patch version component of the current release
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
-	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN PUBLISHED!!!
+	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
 	GenesisVersion = uint32(0<<16 | 7<<8 | 4)
 )
 
