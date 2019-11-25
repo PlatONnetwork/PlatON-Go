@@ -77,33 +77,33 @@ class TestPlaton():
         env = global_test_env
         account = env.account.get_rand_account()
         balance = platon_connect.getBalance(account['address'])
-        assert balance >= 0, '账户余额相等'
+        assert balance >= 0, 'The balance of the account is equal'
 
     @pytest.mark.P1
     def test_getbalance_without_money(self, global_test_env):
         node = global_test_env.get_rand_node()
         address = global_test_env.account.generate_account_in_node(node, "123456")
         balance = node.eth.getBalance(address)
-        assert balance == 0, '账户余额相等'
+        assert balance == 0, 'The balance of the account is equal'
 
-    @allure.title("测试块高")
+    @allure.title("Get block number")
     @pytest.mark.P1
     def test_BlockNumber(self, platon_connect):
         """
-        测试platon.getBlockNumber()
+        test platon.getBlockNumber()
         """
         block_number = platon_connect.blockNumber
         assert is_integer(block_number)
         assert block_number >= 0
 
-    @allure.title("测试协议版本")
+    @allure.title("Get protocol version")
     @pytest.mark.P1
     def test_ProtocolVersion(self, platon_connect):
         protocol_version = platon_connect.protocolVersion
         assert is_string(protocol_version)
         assert protocol_version.isdigit()
 
-    @allure.title("查看同步状态")
+    @allure.title("Get synchronization status")
     @pytest.mark.P1
     def test_syncing(self, platon_connect):
         syncing = platon_connect.syncing
@@ -119,14 +119,14 @@ class TestPlaton():
             assert is_integer(syncing['currentBlock'])
             assert is_integer(syncing['highestBlock'])
 
-    @allure.title("查看gasPrice")
+    @allure.title("Get gas price")
     @pytest.mark.P1
     def test_gasPrice(self, platon_connect):
         gas_price = platon_connect.gasPrice
         assert is_integer(gas_price)
         assert gas_price > 0
 
-    @allure.title("查看节点账户数量")
+    @allure.title("Get the number of node accounts")
     @pytest.mark.P1
     def test_accounts(self, global_test_env):
         env = global_test_env
@@ -149,7 +149,7 @@ class TestPlaton():
             in accounts_after
         ))
 
-    # @allure.title("查看Storage")
+    # @allure.title(get storage")
     # @pytest.mark.P1
     # def test_getStorageAt(self, global_test_env):
     #     env = global_test_env
@@ -159,14 +159,14 @@ class TestPlaton():
     #
     #     storage = platon.getStorageAt(account['address'], 0)
     #     assert isinstance(storage, HexBytes)
-    #
-    # @allure.title("使用不存在的地址查看Storage")
+
+    # @allure.title("get storage with a nonexistent address")
     # @pytest.mark.P1
     # def test_getStorageAt_invalid_address(self, platon_connect):
     #     with pytest.raises(InvalidAddress):
     #         platon_connect.getStorageAt(UNKNOWN_ADDRESS.lower(), 0)
-    #
-    @allure.title("查看交易数量")
+
+    @allure.title("Get transaction count")
     @pytest.mark.P1
     def test_getTransactionCount(self, global_test_env):
         env = global_test_env
@@ -176,20 +176,20 @@ class TestPlaton():
         assert is_integer(transaction_count)
         assert transaction_count >= 0
 
-    @allure.title("使用不存在的账号查看交易数量")
+    @allure.title("Get the number of transactions using a nonexistent account")
     @pytest.mark.P1
     def test_getTransactionCount_invalid_address(self, platon_connect):
         with pytest.raises(InvalidAddress):
             platon_connect.getTransactionCount(UNKNOWN_ADDRESS.lower())
 
-    @allure.title("通过空块的hash查看的交易数量")
+    @allure.title("Get the number of empty block transactions using hash")
     @pytest.mark.P1
     def test_getBlockTransactionCountByHash_empty_block(self, platon_connect, empty_block):
         transaction_count = platon_connect.getBlockTransactionCount(empty_block['hash'])
         assert is_integer(transaction_count)
         assert transaction_count == 0
 
-    @allure.title("通过空块的块高查看交易数量")
+    @allure.title("Get the number of empty block transactions using block number")
     @pytest.mark.P1
     def test_platon_getBlockTransactionCountByNumber_empty_block(self, platon_connect, empty_block):
         transaction_count = platon_connect.getBlockTransactionCount(empty_block['number'])
@@ -209,7 +209,7 @@ class TestPlaton():
         assert transaction_count >= 1
 
     # def test_eth_getCode(self, global_test_env):
-    #     #todo 怎么创建合约
+    #     # Todo: create a contract
     #     env = global_test_env
     #     node = env.get_rand_node()
     #     platon = Eth(node.connect_node())
@@ -471,7 +471,7 @@ class TestPlaton():
         replace_txn_hash = platon.replaceTransaction(txn_hash, txn_params)
         replace_txn = platon.getTransaction(replace_txn_hash)
 
-        # todo minimum gas price is what
+        # Todo: minimum gas price is what
         assert replace_txn['gasPrice'] == 110000000
 
     @pytest.mark.P1
@@ -535,7 +535,7 @@ class TestPlaton():
 
         # Strategy provices lower gas price - minimum preferred
         assert replace_txn['gasPrice'] == int(price * 2 * 1.1)
-    # todo  需要一个出块很慢的环境
+    # Todo: Need an environment with slow speed of out block
     # def test_platon_modifyTransaction(self,  unlocked_account):
     #     node = unlocked_account['node']
     #     platon = Eth(node.web3)
@@ -587,7 +587,7 @@ class TestPlaton():
 
         assert txn_hash == signedTransactionDict.hash
 
-    # todo 合约调用
+    # Todo: Call the contract
     # def test_platon_call(self, web3, math_contract):
     #     coinbase = web3.eth.coinbase
     #     txn_params = math_contract._prepare_transaction(

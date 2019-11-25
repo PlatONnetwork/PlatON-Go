@@ -177,7 +177,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	originVersion := gov.GetVersionForStaking(state)
+	originVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(originVersion)
 	inputVersion := xutil.CalcVersion(programVersion)
 

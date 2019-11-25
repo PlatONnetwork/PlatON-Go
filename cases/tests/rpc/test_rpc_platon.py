@@ -11,15 +11,14 @@ from client_sdk_python import Web3
 from client_sdk_python.eth import Eth
 
 
-@allure.title("查看协议的版本是否是63")
+@allure.title("Check if the version of the protocol is 63")
 @pytest.mark.P1
 def test_platon_protocolVersion(global_running_env):
     node = global_running_env.get_rand_node()
     assert node.eth.protocolVersion == '63'
-    print("\n当前节点的协议版本号为:63")
 
 
-@allure.title("获取账户的金额")
+@allure.title("Get the amount of the account")
 @pytest.mark.P1
 def test_platon_GetBalance(global_running_env):
     node = global_running_env.get_rand_node()
@@ -27,11 +26,9 @@ def test_platon_GetBalance(global_running_env):
     account = global_running_env.account
     addr = account.account_with_money["address"]
     from_addr = Web3.toChecksumAddress(addr)
-    balance = platon.getBalance(from_addr)
-    print("\n当前账户【{}】的余额为:{}".format(from_addr, balance))
+    # balance = platon.getBalance(from_addr)
     balance = platon.getBalance("0x1111111111111111111111111111111111111111")
     assert balance == 0
-    print("\n当前不存在的账户【{}】余额为:{}".format("0x1111111111111111111111111111111111111111", balance))
 
 
 def platon_call(platon, from_addr, to_addr="0x1000000000000000000000000000000000000002", data=""):
@@ -46,7 +43,7 @@ def platon_call(platon, from_addr, to_addr="0x1000000000000000000000000000000000
     return recive
 
 
-@allure.title("使用platon.call调用内置合约接口,如:getCandidateList,或不存在的接口")
+@allure.title("Call the built-in contract interface with platon.call")
 @pytest.mark.P1
 def test_platon_call(global_running_env):
     node = global_running_env.get_rand_node()
@@ -62,18 +59,17 @@ def test_platon_call(global_running_env):
     # not exist interface on staking contract
     data = rlp.encode([rlp.encode(int(2222))])
 
-    # 异常测试场景
     status = 0
     try:
         recive = platon_call(platon, from_addr, to_addr, data)
         assert recive == "0x"
         status = 1
     except Exception as e:
-        print("\n查询不存在的内置合约接口返回异常:{}".format(e))
+        print("\nQuery the built-in contract interface that does not exist and return an exception.:{}".format(e))
     assert status == 0
 
 
-@allure.title("查询节点双签证据：platon.Evidences")
+@allure.title("Get node double-sign evidence")
 @pytest.mark.P1
 def test_platon_evidences(global_running_env):
     node = global_running_env.get_rand_node()
@@ -82,7 +78,7 @@ def test_platon_evidences(global_running_env):
     assert ret is not None
 
 
-@allure.title("查询任意区块的聚合签名：GetPrepareQC")
+@allure.title("Get the aggregate signature of any block")
 @pytest.mark.P1
 @pytest.mark.compatibility
 def test_platon_getPrepareQC(global_running_env):
@@ -91,7 +87,6 @@ def test_platon_getPrepareQC(global_running_env):
     blockNumber = platon.blockNumber
     qc = platon.getPrepareQC(blockNumber)
     assert qc is not None
-    print("\n查询区块的聚合签名成功:区块高度【{}】,签名数据:【{}】".format(blockNumber, qc))
 
 
 if __name__ == '__main__':

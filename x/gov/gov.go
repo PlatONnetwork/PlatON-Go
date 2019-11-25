@@ -61,8 +61,8 @@ const (
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
 )
 
-func GetVersionForStaking(state xcom.StateDB) uint32 {
-	preActiveVersion := GetPreActiveVersion(state)
+func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
+	preActiveVersion := GetPreActiveVersion(blockHash)
 	if preActiveVersion > 0 {
 		return preActiveVersion
 	} else {
@@ -281,7 +281,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		}
 	} else {
 		log.Debug("there is no version proposal at voting stage")
-		preActiveVersion := GetPreActiveVersion(state)
+		preActiveVersion := GetPreActiveVersion(blockHash)
 		if preActiveVersion <= 0 {
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
@@ -502,6 +502,70 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	}
 	return nil
 }
+
+func ClearProcessingProposals(blockHash common.Hash, state xcom.StateDB) error {
+	if votingIDList, err := ListVotingProposalID(blockHash); err != nil {
+		return err
+	} else {
+		for _, votingID := range votingIDList {
+			if err := clearProcessingProposal(votingID, true, blockHash, state); err != nil {
+				return err
+			}
+		}
+	}
+
+	if preactiveID, err := GetPreActiveProposalID(blockHash); err != nil {
+		log.Error(" find pre-active proposal ID failed", "blockHash", blockHash)
+		return err
+	} else if preactiveID != common.ZeroHash {
+		if err := clearProcessingProposal(preactiveID, false, blockHash, state); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func clearProcessingProposal(proposalID common.Hash, isVoting bool, blockHash common.Hash, state xcom.StateDB) error {
+	if isVoting {
+		if err := MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
+			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
+			return err
+		}
+	} else {
+		if err := MovePreActiveProposalIDToEnd(blockHash, proposalID); err != nil {
+			log.Error("move pre-active proposal ID to end list failed", "proposalID", proposalID, "blockHash", blockHash)
+			return err
+		}
+
+		if err := delPreActiveVersion(blockHash); err != nil {
+			log.Error("delete pre-active version failed", "blockHash", blockHash)
+			return err
+		}
+	}
+
+	if err := ClearVoteValue(proposalID, blockHash); err != nil {
+		log.Error("clear vote values failed", "proposalID", proposalID, "blockHash", blockHash)
+		return err
+	}
+	if err := ClearAccuVerifiers(blockHash, proposalID); err != nil {
+		log.Error("clear voted verifiers failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
+		return err
+	}
+	tallyResult := &TallyResult{
+		ProposalID:    proposalID,
+		Yeas:          0x0,
+		Nays:          0x0,
+		Abstentions:   0x0,
+		AccuVerifiers: 0x0,
+		Status:        Failed,
+	}
+	if err := SetTallyResult(*tallyResult, state); err != nil {
+		log.Error("save tally result failed", "proposalID", proposalID, "blockHash", blockHash)
+		return err
+	}
+	return nil
+}
+
 func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
 	paramValue := &ParamValue{"", initValue, activeBlockNumber}
 	return addGovernParam(module, name, desc, paramValue, currentBlockHash)

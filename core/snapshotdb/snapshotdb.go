@@ -870,6 +870,9 @@ func (s *snapshotDB) Close() error {
 	if s == nil {
 		return nil
 	}
+	if s.closed {
+		return nil
+	}
 	if s.corn != nil {
 		s.corn.Stop()
 	}

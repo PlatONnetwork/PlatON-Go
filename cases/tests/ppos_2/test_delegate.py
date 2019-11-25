@@ -3,163 +3,163 @@
 from tests.lib.utils import *
 import pytest
 from tests.lib.config import EconomicConfig
+import allure
 
 
+@allure.title("Query delegate parameter validation")
 @pytest.mark.P1
 @pytest.mark.compatibility
-def test_DI_001_009(client_new_node_obj):
+def test_DI_001_009(client_new_node):
     """
-    :param client_new_node_obj:
-    :return:
+    001:Query delegate parameter validation
+    009：The money entrusted is equal to the low threshold entrusted
     """
-    address, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                             10 ** 18 * 10000000)
-    client_new_node_obj.staking.create_staking(0, address, address)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    address, pri_key = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                         10 ** 18 * 10000000)
+    client_new_node.staking.create_staking(0, address, address)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    result = client_new_node.delegate.delegate(0, address1)
     assert_code(result, 0)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
-    msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
     log.info(msg)
-    assert client_new_node_obj.node.web3.toChecksumAddress(msg["Ret"]["Addr"]) == address1
-    assert msg["Ret"]["NodeId"] == client_new_node_obj.node.node_id
-    assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit
+    assert client_new_node.node.web3.toChecksumAddress(msg["Ret"]["Addr"]) == address1
+    assert msg["Ret"]["NodeId"] == client_new_node.node.node_id
+    assert msg["Ret"]["ReleasedHes"] == client_new_node.economic.delegate_limit
 
 
+@allure.title("Delegate to different people")
 @pytest.mark.P1
-def test_DI_002_003_004(client_new_node_obj_list):
+def test_DI_002_003_004(clients_new_node):
     """
-    :param client_new_node_obj_list:
-    :return:
+    002:Delegate to candidate
+    003:Delegate to verifier
+    004:Delegate to consensus verifier
     """
-    address, pri_key = client_new_node_obj_list[0].economic.account.generate_account(
-        client_new_node_obj_list[0].node.web3,
-        10 ** 18 * 10000000)
-    client_new_node_obj_list[0].staking.create_staking(0, address, address, amount=1500000000000000000000000)
+    client1 = clients_new_node[0]
+    client2 = clients_new_node[1]
 
-    address, pri_key = client_new_node_obj_list[1].economic.account.generate_account(
-        client_new_node_obj_list[1].node.web3,
-        10 ** 18 * 10000000)
-    client_new_node_obj_list[1].staking.create_staking(1, address, address, amount=2000000000000000000000000)
+    staking_amount = client1.economic.create_staking_limit
+    address, pri_key = client1.economic.account.generate_account(client1.node.web3, 10 ** 18 * 10000000)
+    client1.staking.create_staking(0, address, address, amount=staking_amount)
 
-    address, pri_key = client_new_node_obj_list[2].economic.account.generate_account(
-        client_new_node_obj_list[2].node.web3,
-        10 ** 18 * 10000000)
-    client_new_node_obj_list[2].staking.create_staking(0, address, address, amount=2500000000000000000000000)
+    address, pri_key = client2.economic.account.generate_account(client2.node.web3, 10 ** 18 * 10000000)
+    client2.staking.create_staking(0, address, address, amount=staking_amount * 2)
 
-    client_new_node_obj_list[2].economic.wait_settlement_blocknum(client_new_node_obj_list[2].node)
-    client_new_node_obj_list[2].economic.wait_consensus_blocknum(client_new_node_obj_list[2].node)
+    client2.economic.wait_settlement_blocknum(client2.node)
 
-    nodeid_list2 = get_pledge_list(client_new_node_obj_list[2].ppos.getVerifierList)
-    log.info(nodeid_list2)
+    nodeid_list = get_pledge_list(client2.ppos.getVerifierList)
+    log.info("The billing cycle validates the list of people{}".format(nodeid_list))
+    assert client1.node.node_id not in nodeid_list
 
-    assert client_new_node_obj_list[0].node.node_id not in nodeid_list2
-
-    address1, _ = client_new_node_obj_list[0].economic.account.generate_account(client_new_node_obj_list[0].node.web3,
-                                                                                10 ** 18 * 10000000)
-    # The candidate delegate
-    result = client_new_node_obj_list[0].delegate.delegate(0, address1)
+    address1, _ = client1.economic.account.generate_account(client1.node.web3, 10 ** 18 * 10000000)
+    log.info("The candidate delegate")
+    result = client1.delegate.delegate(0, address1)
     assert_code(result, 0)
 
-    assert client_new_node_obj_list[2].node.node_id in nodeid_list2
-    address2, _ = client_new_node_obj_list[2].economic.account.generate_account(client_new_node_obj_list[2].node.web3,
-                                                                                10 ** 18 * 10000000)
-    # The verifier delegates
-    result = client_new_node_obj_list[2].delegate.delegate(0, address2)
+    assert client2.node.node_id in nodeid_list
+    address2, _ = client2.economic.account.generate_account(client2.node.web3,
+                                                            10 ** 18 * 10000000)
+    log.info("The verifier delegates")
+    result = client2.delegate.delegate(0, address2)
     assert_code(result, 0)
-    nodeid_list3 = get_pledge_list(client_new_node_obj_list[2].ppos.getValidatorList)
-    log.info(nodeid_list3)
-    assert client_new_node_obj_list[2].node.node_id in nodeid_list3
-    address3, _ = client_new_node_obj_list[2].economic.account.generate_account(client_new_node_obj_list[2].node.web3,
-                                                                                10 ** 18 * 10000000)
-    # Consensus verifier delegates
-    result = client_new_node_obj_list[2].delegate.delegate(0, address3)
+
+    client2.economic.wait_consensus_blocknum(client2.node)
+    nodeid_list = get_pledge_list(client2.ppos.getValidatorList)
+    log.info("Consensus validator list:{}".format(nodeid_list))
+    assert client2.node.node_id in nodeid_list
+    address3, _ = client2.economic.account.generate_account(client2.node.web3,
+                                                            10 ** 18 * 10000000)
+    log.info("Consensus verifier delegates")
+    result = client2.delegate.delegate(0, address3)
     assert_code(result, 0)
 
 
+@allure.title("The amount entrusted by the client is less than the threshold")
 @pytest.mark.P3
-def test_DI_005(client_consensus_obj):
+def test_DI_005(client_consensus):
     """
-    The amount entrusted by the client is less than the threshold
     :param client_consensus_obj:
     :return:
     """
-    address, _ = client_consensus_obj.economic.account.generate_account(client_consensus_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
+    address, _ = client_consensus.economic.account.generate_account(client_consensus.node.web3,
+                                                                    10 ** 18 * 10000000)
 
-    result = client_consensus_obj.delegate.delegate(0, address)
+    result = client_consensus.delegate.delegate(0, address)
     log.info(result)
     assert_code(result, 301107)
 
 
+@allure.title("The amount entrusted by the client is less than the threshold")
 @pytest.mark.P1
-def test_DI_006(client_new_node_obj):
+def test_DI_006(client_new_node):
     """
-
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    delegate_limit = client_new_node_obj.economic.delegate_limit
-    result = client_new_node_obj.delegate.delegate(0, address1, amount=delegate_limit - 1)
+    client_new_node.staking.create_staking(0, address, address)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    delegate_limit = client_new_node.economic.delegate_limit
+    result = client_new_node.delegate.delegate(0, address1, amount=delegate_limit - 1)
     log.info(result)
     assert_code(result, 301105)
 
 
+@allure.title("gas Insufficient entrustment")
 @pytest.mark.P1
-def test_DI_007(client_new_node_obj):
+def test_DI_007(client_new_node):
     """
-
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
+    client_new_node.staking.create_staking(0, address, address)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
 
     fig = {"gas": 1}
     status = 0
     try:
-        result = client_new_node_obj.delegate.delegate(0, address1, transaction_cfg=fig)
+        result = client_new_node.delegate.delegate(0, address1, transaction_cfg=fig)
         log.info(result)
     except BaseException:
         status = 1
     assert status == 1
 
 
+@allure.title("not sufficient funds")
 @pytest.mark.P1
-def test_DI_008(client_new_node_obj):
+def test_DI_008(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10)
+    client_new_node.staking.create_staking(0, address, address)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10)
     status = 0
     try:
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
     except BaseException:
         status = 1
     assert status == 1
 
 
+@allure.title("Delegate to a candidate who doesn't exist")
 @pytest.mark.P3
-def test_DI_010_020(client_new_node_obj):
+def test_DI_010_020(client_new_node):
     """
     Delegate to a candidate who doesn't exist
     :param client_new_node_obj:
@@ -167,16 +167,17 @@ def test_DI_010_020(client_new_node_obj):
     """
     illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
                      "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
-    address1, pri_key = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                              10 ** 18 * 10000000)
-    result = client_new_node_obj.delegate.delegate(0, address1, node_id=illegal_nodeID)
+    address1, pri_key = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                          10 ** 18 * 10000000)
+    result = client_new_node.delegate.delegate(0, address1, node_id=illegal_nodeID)
     log.info(result)
     assert_code(result, 301102)
 
 
+@allure.title("Delegate to different people{status}")
 @pytest.mark.P1
 @pytest.mark.parametrize('status', [0, 1, 2, 3])
-def test_DI_011_012_013_014(client_new_node_obj, status):
+def test_DI_011_012_013_014(client_new_node, status):
     """
     0:A valid candidate whose commission is still in doubt
     1:The delegate is also a valid candidate at a lockup period
@@ -187,474 +188,487 @@ def test_DI_011_012_013_014(client_new_node_obj, status):
     :return:
     """
 
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
+    client_new_node.staking.create_staking(0, address, address)
     if status == 0:
         # A valid candidate whose commission is still in doubt
-        address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                            10 ** 18 * 10000000)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                        10 ** 18 * 10000000)
+        result = client_new_node.delegate.delegate(0, address1)
         assert_code(result, 0)
 
     if status == 1:
         # The delegate is also a valid candidate at a lockup period
-        address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                            10 ** 18 * 10000000)
-        client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                        10 ** 18 * 10000000)
+        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        result = client_new_node.delegate.delegate(0, address1)
         assert_code(result, 0)
 
     if status == 2:
-        address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                            10 ** 18 * 10000000)
-        client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-        result = client_new_node_obj.staking.withdrew_staking(address)
+        address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                        10 ** 18 * 10000000)
+        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        result = client_new_node.staking.withdrew_staking(address)
         assert_code(result, 0)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        result = client_new_node.delegate.delegate(0, address1)
         assert_code(result, 301103)
 
     if status == 3:
-        address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                            10 ** 18 * 10000000)
-        client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-        result = client_new_node_obj.staking.withdrew_staking(address)
+        address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                        10 ** 18 * 10000000)
+        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        result = client_new_node.staking.withdrew_staking(address)
         assert_code(result, 0)
-        client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node, number=2)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        client_new_node.economic.wait_settlement_blocknum(client_new_node.node, number=2)
+        result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
         assert_code(result, 301102)
 
 
+@allure.title("Delegate to candidates whose penalties have lapsed (freeze period and after freeze period)")
 @pytest.mark.P1
-def test_DI_015_016(client_new_node_obj, client_consensus_obj):
+def test_DI_015_016(client_new_node, client_consensus):
     """
     :param client_new_node_obj:
     :param client_consensus_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    value = client_new_node_obj.economic.create_staking_limit * 2
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    value = client_new_node.economic.create_staking_limit * 2
+    result = client_new_node.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
     log.info("Close one node")
-    client_new_node_obj.node.stop()
-    node = client_consensus_obj.node
+    client_new_node.node.stop()
+    node = client_consensus.node
     log.info("The next two periods")
-    client_new_node_obj.economic.wait_settlement_blocknum(node, number=2)
+    client_new_node.economic.wait_settlement_blocknum(node, number=2)
     log.info("Restart the node")
-    client_new_node_obj.node.start()
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    client_new_node.node.start()
+    result = client_new_node.delegate.delegate(0, address1)
     log.info(result)
     assert_code(result, 301103)
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(node)
+    client_new_node.economic.wait_settlement_blocknum(node)
     time.sleep(20)
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    result = client_new_node.delegate.delegate(0, address1)
     assert_code(result, 301102)
 
 
+@allure.title("Use the pledge account as the entrustment")
 @pytest.mark.P1
-def test_DI_017(client_new_node_obj):
+def test_DI_017(client_new_node):
     """
     Use the pledge account as the entrustment
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
 
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(0, address)
+    result = client_new_node.delegate.delegate(0, address)
     log.info(result)
     assert_code(result, 301106)
 
 
+@allure.title(
+    "The verification section receives the delegate, exits, becomes the verification node, and receives the delegate")
 @pytest.mark.P1
-def test_DI_019(client_new_node_obj):
+def test_DI_019(client_new_node):
     """
-    The verification section receives the delegate, exits, becomes the verification node, and receives the delegate
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
 
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    result = client_new_node.delegate.delegate(0, address1)
     log.info(result)
     # Exit the pledge
-    result = client_new_node_obj.staking.withdrew_staking(address)
+    result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
     # Repeat pledge
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    result = client_new_node.delegate.delegate(0, address1)
     log.info(result)
     # Recheck wallet associations
-    msg = client_new_node_obj.ppos.getRelatedListByDelAddr(address1)
+    msg = client_new_node.ppos.getRelatedListByDelAddr(address1)
     log.info(msg)
     print(len(msg["Ret"]))
     assert len(msg["Ret"]) == 2
     for i in msg["Ret"]:
-        assert client_new_node_obj.node.web3.toChecksumAddress(i["Addr"]) == address1
-        assert i["NodeId"] == client_new_node_obj.node.node_id
+        assert client_new_node.node.web3.toChecksumAddress(i["Addr"]) == address1
+        assert i["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("The entrusted verifier is penalized to verify the entrusted principal")
 @pytest.mark.P3
-def test_DI_021(client_new_node_obj, client_consensus_obj):
+def test_DI_021(client_new_node, client_consensus):
     """
-
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    value = client_new_node_obj.economic.create_staking_limit * 2
-    result = client_new_node_obj.staking.create_staking(0, address, address, amount=value)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    value = client_new_node.economic.create_staking_limit * 2
+    result = client_new_node.staking.create_staking(0, address, address, amount=value)
     assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    result = client_new_node.delegate.delegate(0, address1)
     log.info(result)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
     log.info("Close one node")
-    client_new_node_obj.node.stop()
-    node = client_consensus_obj.node
+    client_new_node.node.stop()
+    node = client_consensus.node
     log.info("The next two periods")
-    client_new_node_obj.economic.wait_settlement_blocknum(node, number=2)
+    client_new_node.economic.wait_settlement_blocknum(node, number=2)
     log.info("Restart the node")
-    client_new_node_obj.node.start()
-    msg = client_consensus_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
+    client_new_node.node.start()
+    msg = client_consensus.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
     log.info(msg)
-    assert msg["Ret"]["Released"] == client_new_node_obj.economic.delegate_limit
+    assert msg["Ret"]["Released"] == client_new_node.economic.delegate_limit
 
 
+@allure.title("Free amount in different periods when additional entrustment is made")
 @pytest.mark.P2
 @pytest.mark.parametrize('status', [0, 1, 2])
-def test_DI_022_023_024(client_new_node_obj, status):
+def test_DI_022_023_024(client_new_node, status):
     """
-    0:There is only the free amount of hesitation period when additional entrusting
-    1:Only the free amount of the lockup period exists when the delegate is added
-    2:The amount of both hesitation period and lockup period exists when additional entrustment is made
+    022:There is only the free amount of hesitation period when additional entrusting
+    023:Only the free amount of the lockup period exists when the delegate is added
+    024:The amount of both hesitation period and lockup period exists when additional entrustment is made
     :param client_new_node_obj:
     :param status:
     :return:
     """
-    client_new_node_obj.economic.env.deploy_all()
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
+    client_new_node.economic.env.deploy_all()
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    address1, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                        10 ** 18 * 10000000)
-    result = client_new_node_obj.delegate.delegate(0, address1)
+    client_new_node.staking.create_staking(0, address, address)
+    address1, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                    10 ** 18 * 10000000)
+    result = client_new_node.delegate.delegate(0, address1)
     log.info(result)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
     if status == 0:
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
-        msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
+        msg = client_new_node.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
         log.info(msg)
-        assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit * 2
+        assert msg["Ret"]["ReleasedHes"] == client_new_node.economic.delegate_limit * 2
 
     if status == 1:
-        client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
-        msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
+        msg = client_new_node.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
         log.info(msg)
-        assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit
-        assert msg["Ret"]["Released"] == client_new_node_obj.economic.delegate_limit
+        assert msg["Ret"]["ReleasedHes"] == client_new_node.economic.delegate_limit
+        assert msg["Ret"]["Released"] == client_new_node.economic.delegate_limit
 
     if status == 2:
-        client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+        result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
-        result = client_new_node_obj.delegate.delegate(0, address1)
+        result = client_new_node.delegate.delegate(0, address1)
         log.info(result)
-        msg = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node_obj.node.node_id)
+        msg = client_new_node.ppos.getDelegateInfo(staking_blocknum, address1, client_new_node.node.node_id)
         log.info(msg)
-        assert msg["Ret"]["ReleasedHes"] == client_new_node_obj.economic.delegate_limit * 2
-        assert msg["Ret"]["Released"] == client_new_node_obj.economic.delegate_limit
+        assert msg["Ret"]["ReleasedHes"] == client_new_node.economic.delegate_limit * 2
+        assert msg["Ret"]["Released"] == client_new_node.economic.delegate_limit
 
 
+@allure.title("uncommitted")
 @pytest.mark.P2
-def test_DI_025(client_new_node_obj):
+def test_DI_025(client_new_node):
     """
-    uncommitted
     :param client_new_node_obj:
     :return:
     """
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
+    result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     log.info(result)
     assert_code(result, 301203)
 
 
+@allure.title("The entrusted candidate is valid")
 @pytest.mark.P2
-def test_DI_026(client_new_node_obj):
+def test_DI_026(client_new_node):
     """
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
 
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
-    result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
+    result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     log.info(result)
     assert result["Code"] == 0
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
-    assert result["Ret"][0]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
+    assert result["Ret"][0]["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("The entrusted candidate does not exist")
 @pytest.mark.P2
-def test_DI_027(client_new_node_obj):
+def test_DI_027(client_new_node):
     """
     The entrusted candidate does not exist
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
     illegal_nodeID = "7ee3276fd6b9c7864eb896310b5393324b6db785a2528c00cc28ca8c" \
                      "3f86fc229a86f138b1f1c8e3a942204c03faeb40e3b22ab11b8983c35dc025de42865990"
 
-    result = client_new_node_obj.delegate.delegate(0, address_delegate, node_id=illegal_nodeID)
+    result = client_new_node.delegate.delegate(0, address_delegate, node_id=illegal_nodeID)
     log.info(result)
-    result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
+    result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     log.info(result)
     assert_code(result, 301203)
 
 
+@allure.title("The entrusted candidate is invalid")
 @pytest.mark.P2
-def test_DI_028(client_new_node_obj):
+def test_DI_028(client_new_node):
     """
     The entrusted candidate is invalid
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
 
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
     # Exit the pledge
-    result = client_new_node_obj.staking.withdrew_staking(address)
+    result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
-    result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
+    result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     assert result["Code"] == 0
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
-    assert result["Ret"][0]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
+    assert result["Ret"][0]["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("Delegate information in the hesitation period, lock period")
 @pytest.mark.P2
-def test_DI_029_030(client_new_node_obj):
+def test_DI_029_030(client_new_node):
     """
-    Hesitation period inquiry entrustment details
-    Lock periodic query information
+    029:Hesitation period inquiry entrustment details
+    030:Lock periodic query information
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    client_new_node.staking.create_staking(0, address, address)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
     # Hesitation period inquiry entrustment details
-    result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
+    result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     log.info(result)
     log.info("The next cycle")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
-    result = client_new_node_obj.ppos.getRelatedListByDelAddr(address_delegate)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
+    result = client_new_node.ppos.getRelatedListByDelAddr(address_delegate)
     assert result["Code"] == 0
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
-    assert result["Ret"][0]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"][0]["Addr"]) == address_delegate
+    assert result["Ret"][0]["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("The delegate message no longer exists")
 @pytest.mark.P2
-def test_DI_031(client_new_node_obj):
+def test_DI_031(client_new_node):
     """
     The delegate message no longer exists
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    client_new_node.staking.create_staking(0, address, address)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
-    result = client_new_node_obj.delegate.withdrew_delegate(staking_blocknum, address_delegate)
+    result = client_new_node.delegate.withdrew_delegate(staking_blocknum, address_delegate)
     assert_code(result, 0)
-    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+    result = client_new_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                                  client_new_node.node.node_id)
     log.info(result)
     assert_code(result, 301205)
 
 
+@allure.title("The commission information is still in the hesitation period & The delegate information is still locked")
 @pytest.mark.P2
-def test_DI_032_033(client_new_node_obj):
+def test_DI_032_033(client_new_node):
     """
-    The commission information is still in the hesitation period
-    The delegate information is still locked
+    032:The commission information is still in the hesitation period
+    033The delegate information is still locked
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    client_new_node.staking.create_staking(0, address, address)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
     # Hesitation period inquiry entrustment details
-    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+    result = client_new_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                                  client_new_node.node.node_id)
     log.info(result)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
     log.info("The next cycle")
-    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
-    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+    client_new_node.economic.wait_consensus_blocknum(client_new_node.node)
+    result = client_new_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                                  client_new_node.node.node_id)
     log.info(result)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("The entrusted candidate has withdrawn of his own accord")
 @pytest.mark.P2
-def test_DI_034(client_new_node_obj):
+def test_DI_034(client_new_node):
     """
     The entrusted candidate has withdrawn of his own accord
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    client_new_node.staking.create_staking(0, address, address)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
     # Exit the pledge
-    result = client_new_node_obj.staking.withdrew_staking(address)
+    result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
 
-    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+    result = client_new_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                                  client_new_node.node.node_id)
     log.info(result)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("Entrusted candidate (penalized in lockup period, penalized out completely)")
 @pytest.mark.P2
-def test_DI_035_036(client_new_node_obj, client_consensus_obj):
+def test_DI_035_036(client_new_node, client_consensus):
     """
     The entrusted candidate is still penalized in the lockup period
     The entrusted candidate was penalized to withdraw completely
 
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    result = client_new_node_obj.staking.create_staking(0, address, address)
+    result = client_new_node.staking.create_staking(0, address, address)
     assert_code(result, 0)
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
     log.info("Close one node")
-    client_new_node_obj.node.stop()
-    node = client_consensus_obj.node
+    client_new_node.node.stop()
+    node = client_consensus.node
     log.info("The next two periods")
-    client_new_node_obj.economic.wait_settlement_blocknum(node, number=2)
+    client_new_node.economic.wait_settlement_blocknum(node, number=2)
 
     result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                       client_new_node_obj.node.node_id)
+                                       client_new_node.node.node_id)
     log.info(result)
-    assert client_consensus_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_consensus.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
     log.info("Restart the node")
-    client_new_node_obj.node.start()
+    client_new_node.node.start()
     log.info("Next settlement period")
-    client_new_node_obj.economic.wait_settlement_blocknum(client_new_node_obj.node)
+    client_new_node.economic.wait_settlement_blocknum(client_new_node.node)
 
     result = node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                       client_new_node_obj.node.node_id)
+                                       client_new_node.node.node_id)
     log.info(result)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node.node.node_id
 
 
+@allure.title("Query for delegate information in undo")
 @pytest.mark.P2
-def test_DI_038(client_new_node_obj):
+def test_DI_038(client_new_node):
     """
     Query for delegate information in undo
     :param client_new_node_obj:
     :return:
     """
-    address, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                       10 ** 18 * 10000000)
-    address_delegate, _ = client_new_node_obj.economic.account.generate_account(client_new_node_obj.node.web3,
-                                                                                10 ** 18 * 10000000)
+    address, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                   10 ** 18 * 10000000)
+    address_delegate, _ = client_new_node.economic.account.generate_account(client_new_node.node.web3,
+                                                                            10 ** 18 * 10000000)
 
-    client_new_node_obj.staking.create_staking(0, address, address)
-    result = client_new_node_obj.delegate.delegate(0, address_delegate)
+    client_new_node.staking.create_staking(0, address, address)
+    result = client_new_node.delegate.delegate(0, address_delegate)
     assert_code(result, 0)
 
-    msg = client_new_node_obj.ppos.getCandidateInfo(client_new_node_obj.node.node_id)
+    msg = client_new_node.ppos.getCandidateInfo(client_new_node.node.node_id)
     staking_blocknum = msg["Ret"]["StakingBlockNum"]
 
     log.info("The next cycle")
-    client_new_node_obj.economic.wait_consensus_blocknum(client_new_node_obj.node)
+    client_new_node.economic.wait_consensus_blocknum(client_new_node.node)
 
     # Exit the pledge
-    result = client_new_node_obj.staking.withdrew_staking(address)
+    result = client_new_node.staking.withdrew_staking(address)
     assert_code(result, 0)
 
-    result = client_new_node_obj.ppos.getDelegateInfo(staking_blocknum, address_delegate,
-                                                      client_new_node_obj.node.node_id)
+    result = client_new_node.ppos.getDelegateInfo(staking_blocknum, address_delegate,
+                                                  client_new_node.node.node_id)
     log.info(result)
-    assert client_new_node_obj.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
-    assert result["Ret"]["NodeId"] == client_new_node_obj.node.node_id
+    assert client_new_node.node.web3.toChecksumAddress(result["Ret"]["Addr"]) == address_delegate
+    assert result["Ret"]["NodeId"] == client_new_node.node.node_id

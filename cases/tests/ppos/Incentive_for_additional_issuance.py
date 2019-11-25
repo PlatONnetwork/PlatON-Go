@@ -1,20 +1,15 @@
 import math
-import time
 import pytest
-import allure
 from dacite import from_dict
-from common.key import get_pub_key, mock_duplicate_sign, generate_key
 from common.log import log
 from client_sdk_python import Web3
 from decimal import Decimal
-
-from tests.conftest import get_client_consensus_obj
-from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_node_in_list, assert_code, von_amount, \
-    get_governable_parameter_value, Client, update_param_by_dict, get_param_by_dict
+from tests.conftest import get_client_consensus
+from tests.lib import EconomicConfig, Genesis, assert_code, von_amount, Client
 
 
 @pytest.mark.P1
-def AL_FI_001_to_003(new_genesis_env, staking_cfg):
+def test_AL_FI_001_to_003(new_genesis_env, staking_cfg):
     """
     AL_FI_001:查看每年释放补贴激励池变化
     AL_FI_002:查看每年固定增发变化
@@ -41,7 +36,7 @@ def AL_FI_001_to_003(new_genesis_env, staking_cfg):
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
 
-    client = get_client_consensus_obj(new_genesis_env, staking_cfg)
+    client = get_client_consensus(new_genesis_env, staking_cfg)
     economic = client.economic
     node = client.node
     # Query the initial amount of incentive pool
