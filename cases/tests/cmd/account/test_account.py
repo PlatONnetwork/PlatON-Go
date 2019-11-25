@@ -9,7 +9,6 @@ from common.log import log
 from common.connect import run_ssh_cmd
 from client_sdk_python.admin import Admin
 
-# 作用域设置为module，自动运行
 from conf.settings import NODE_FILE
 # from environment import t1est_env_impl
 

@@ -10,11 +10,11 @@ from tests.lib import EconomicConfig, Genesis, StakingConfig, Staking, check_nod
     get_governable_parameter_value
 
 
-def create_account_amount(client_obj, amount1, amount2):
+def create_account_amount(client, amount1, amount2):
     # create account1
-    lock_address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, amount1)
+    lock_address, _ = client.economic.account.generate_account(client.node.web3, amount1)
     # create account2
-    release_address, _ = client_obj.economic.account.generate_account(client_obj.node.web3, amount2)
+    release_address, _ = client.economic.account.generate_account(client.node.web3, amount2)
     return lock_address, release_address
 
 
@@ -41,13 +41,13 @@ def restricting_plan_validation_staking(client, economic, node):
 
 @pytest.mark.P2
 @pytest.mark.compatibility
-def test_UP_FV_001(client_new_node_obj):
+def test_UP_FV_001(client_new_node):
     """
     只有一个锁仓期，到达释放期返回解锁金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create restricting plan
@@ -64,13 +64,13 @@ def test_UP_FV_001(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_002(client_new_node_obj):
+def test_UP_FV_002(client_new_node):
     """
     只有一个锁仓期，未达释放期返回解锁金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create restricting plan
@@ -95,13 +95,13 @@ def test_UP_FV_002(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_003(client_new_node_obj):
+def test_UP_FV_003(client_new_node):
     """
     多个锁仓期，依次部分释放期返回解锁金额
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account
@@ -126,13 +126,13 @@ def test_UP_FV_003(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_004(client_new_node_obj):
+def test_UP_FV_004(client_new_node):
     """
     锁仓账户申请质押到释放期后释放锁定金额不足
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create restricting plan
@@ -152,13 +152,13 @@ def test_UP_FV_004(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_005(client_new_node_obj):
+def test_UP_FV_005(client_new_node):
     """
     到达释放期释放锁仓金额之后再申请退回质押金
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create restricting plan and staking
@@ -182,13 +182,13 @@ def test_UP_FV_005(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_006(client_new_node_obj):
+def test_UP_FV_006(client_new_node):
     """
     多个锁仓期，质押一部分锁仓金额再依次释放
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account1
@@ -229,13 +229,13 @@ def test_UP_FV_006(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_007(client_new_node_obj):
+def test_UP_FV_007(client_new_node):
     """
     锁仓账户申请委托到释放期后释放锁定金额不足
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account
@@ -270,13 +270,13 @@ def test_UP_FV_007(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_008(client_new_node_obj):
+def test_UP_FV_008(client_new_node):
     """
     到达释放期释放锁仓金额之后再申请赎回委托
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account
@@ -315,14 +315,14 @@ def test_UP_FV_008(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_009(client_new_node_obj_list):
+def test_UP_FV_009(clients_new_node):
     """
     锁仓账号申请质押，验证人违规被扣除节点自有质押金k
-    :param client_new_node_obj_list:
+    :param clients_new_node:
     :return:
     """
-    client1 = client_new_node_obj_list[0]
-    client2 = client_new_node_obj_list[1]
+    client1 = clients_new_node[0]
+    client2 = clients_new_node[1]
     economic = client1.economic
     node = client1.node
     # create restricting plan and staking
@@ -371,13 +371,13 @@ def test_UP_FV_009(client_new_node_obj_list):
 
 
 @pytest.mark.P2
-def test_UP_FV_010(client_new_node_obj, reset_environment):
+def test_UP_FV_010(client_new_node, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请质押节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client1 = client_new_node_obj
+    client1 = client_new_node
     economic = client1.economic
     node = client1.node
     # create account
@@ -424,13 +424,13 @@ def test_UP_FV_010(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_UP_FV_011(client_new_node_obj, reset_environment):
+def test_UP_FV_011(client_new_node, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请委托节点
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client1 = client_new_node_obj
+    client1 = client_new_node
     economic = client1.economic
     node = client1.node
     # create account
@@ -474,13 +474,13 @@ def test_UP_FV_011(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_UP_FV_012(client_new_node_obj, reset_environment):
+def test_UP_FV_012(client_new_node, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请增持质押
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client1 = client_new_node_obj
+    client1 = client_new_node
     economic = client1.economic
     node = client1.node
     # create account
@@ -524,13 +524,13 @@ def test_UP_FV_012(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_UP_FV_013(client_new_node_obj, reset_environment):
+def test_UP_FV_013(client_new_node, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请退回质押金
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client1 = client_new_node_obj
+    client1 = client_new_node
     economic = client1.economic
     node = client1.node
     # create account
@@ -577,14 +577,14 @@ def test_UP_FV_013(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_UP_FV_014(client_new_node_obj, reset_environment):
+def test_UP_FV_014(client_new_node, reset_environment):
     """
     锁仓验证人违规被剔除验证人列表，申请赎回委托金
-    :param client_new_node_obj:
+    :param client_new_node:
     :param reset_environment:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account
@@ -632,13 +632,13 @@ def test_UP_FV_014(client_new_node_obj, reset_environment):
 
 
 @pytest.mark.P2
-def test_UP_FV_015(client_new_node_obj):
+def test_UP_FV_015(client_new_node):
     """
     锁仓账户申请之后到达释放期，账户锁仓不足再新增新的锁仓计划
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create restricting plan and staking
@@ -666,13 +666,13 @@ def test_UP_FV_015(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_016(client_new_node_obj):
+def test_UP_FV_016(client_new_node):
     """
     自由资金质押，锁仓再增持
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account
@@ -698,13 +698,13 @@ def test_UP_FV_016(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_017(client_new_node_obj):
+def test_UP_FV_017(client_new_node):
     """
     锁仓账户质押，自由资金再增持
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account
@@ -730,13 +730,13 @@ def test_UP_FV_017(client_new_node_obj):
 
 
 @pytest.mark.P1
-def test_UP_FV_018(client_new_node_obj):
+def test_UP_FV_018(client_new_node):
     """
     账户自由金额和锁仓金额申请委托同一个验证人，再申请赎回
-    :param client_new_node_obj:
+    :param client_new_node:
     :return:
     """
-    client = client_new_node_obj
+    client = client_new_node
     economic = client.economic
     node = client.node
     # create account

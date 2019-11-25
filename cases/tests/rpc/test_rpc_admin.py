@@ -10,16 +10,15 @@ from hexbytes import HexBytes
 startApi = "eth,web3,net,txpool,platon,admin,personal"
 
 
-@allure.title("获取进程保存数据的目录:admin.datadir")
+@allure.title("Get current process datadir")
 @pytest.mark.P1
 def test_admin_datadir(global_running_env):
     node = global_running_env.get_rand_node()
     dataDir = node.remote_data_dir
     assert node.admin.datadir == dataDir
-    print("\n当前进程保存数据目录datadir=================:{}".format(node.admin.datadir))
 
 
-@allure.title("获取程序的版本号和签名:admin.getProgramVersion()")
+@allure.title("Get program version")
 @pytest.mark.P1
 def test_admin_getProgramVersion(global_running_env):
     node = global_running_env.get_rand_node()
@@ -28,19 +27,17 @@ def test_admin_getProgramVersion(global_running_env):
     ProgramVersion = msg["Version"]
     assert len(ProgramVersionSign) == 132
     assert ProgramVersion >= 1794
-    print("\n获取当前程序的版本号:【{}】, 版本签名:【{}】成功".format(ProgramVersion, ProgramVersionSign))
 
 
-@allure.title("获取零知识证明信息:admin.getSchnorrNIZKProve()")
+@allure.title("Get schnorrNIZKProve")
 @pytest.mark.P1
 def test_admin_getSchnorrNIZKProve(global_running_env):
     node = global_running_env.get_rand_node()
     blsproof = node.admin.getSchnorrNIZKProve()
     assert len(blsproof) == 128
-    print("\n获取零知识证明信息成功:{}".format(blsproof))
 
 
-@allure.title("校验节点信息:admin.nodeInfo")
+@allure.title("get node info")
 @pytest.mark.P1
 def test_admin_nodeInfo(global_running_env):
     node = global_running_env.get_rand_node()
@@ -64,10 +61,8 @@ def test_admin_nodeInfo(global_running_env):
     assert global_running_env.chain_id == config["chainId"]
     assert genHash == nodeInfo["protocols"]["platon"]["genesis"]
 
-    print("\n校验节点信息成功,节点信息：{}".format(nodeInfo))
 
-
-@allure.title("和本节点的连接信息:admin.peers")
+@allure.title("get node peers")
 @pytest.mark.P1
 def test_admin_peers(global_running_env):
     node = global_running_env.get_rand_node()
@@ -75,26 +70,24 @@ def test_admin_peers(global_running_env):
     assert lenPeers >= 0
 
 
-@allure.title("导出区块数据:admin.exportChain()")
+@allure.title("export chain")
 @pytest.mark.P1
 @pytest.fixture()
 def test_admin_exportChain(global_running_env):
     node = global_running_env.get_rand_node()
     filePath = node.admin.datadir + "chainData.txt"
     assert True == node.admin.exportChain(filePath)
-    print("\n区块数据导出成功,文件路径:【{}】".format(filePath))
     yield node
 
 
-@allure.title("导入区块数据:admin.importChain()")
+@allure.title("import chain")
 @pytest.mark.P1
 def test_admin_importChain(test_admin_exportChain):
     filePath = test_admin_exportChain.admin.datadir + "chainData.txt"
-    assert True == test_admin_exportChain.admin.importChain(filePath), "区块数据导入失败！"
-    print("\n区块数据导入成功,文件路径:【{}】".format(filePath))
+    assert True == test_admin_exportChain.admin.importChain(filePath), "import chain failed！"
 
 
-@allure.title("移除peer连接:admin.removePeer()")
+@allure.title("remove peer")
 @pytest.mark.P1
 def test_admin_removePeer(global_running_env):
     node = global_running_env.get_rand_node()
@@ -102,10 +95,9 @@ def test_admin_removePeer(global_running_env):
     if len(peers) > 0:
         node_url = "enode://" + peers[0]["id"] + "@" + peers[0]["network"]["remoteAddress"]
         assert True == node.admin.removePeer(node_url)
-        print("\n移除peer成功:{}".format(node_url))
 
 
-@allure.title("停止websocket rpc服务:admin.stopWS()")
+@allure.title("stop websocket rpc service")
 @pytest.fixture()
 def admin_stopWS(global_running_env):
     node = global_running_env.get_rand_node()
@@ -113,12 +105,12 @@ def admin_stopWS(global_running_env):
         ws = node.ws_web3
         assert True == ws.admin.stopWS()
     except Exception as e:
-        print("web socket服务没有启动===================>")
+        print("websocket service not started===================>")
 
     yield node
 
 
-@allure.title("启动websocket rpc服务:admin.startWS()")
+@allure.title("Start websocket rpc service")
 @pytest.mark.P1
 @pytest.fixture()
 def test_admin_startWS(admin_stopWS):
@@ -128,20 +120,18 @@ def test_admin_startWS(admin_stopWS):
     if None == node.wsurl:
         node.wsurl = "ws://" + str(node.host) + ":" + str(node.wsport)
     assert True == node.admin.startWS(node.host, int(node.wsport), "*", startApi)
-    print("web socket启动成功===================>")
 
     ws = node.ws_web3
-    print("blockNumber:{}===================>".format(ws.eth.blockNumber))
+    assert ws.eth.blockNumber >= 0
 
 
-@allure.title("停止http rpc服务:admin.stopRPC()")
+@allure.title("stop http rpc service")
 @pytest.fixture()
 def admin_stopRPC(global_running_env):
     node = global_running_env.get_rand_node()
     try:
         ws = node.ws_web3
         assert True == ws.admin.stopRPC()
-        print("\n停止http rpc服务成功")
     except Exception as e:
         pass
 
@@ -149,15 +139,12 @@ def admin_stopRPC(global_running_env):
 
 
 '''
-@allure.title("启动http rpc服务:admin.startRPC()")
+@allure.title("start http rpc service")
 @pytest.mark.P0
 def test_admin_startRPC(admin_stopRPC):
     node = admin_stopRPC
     ws = node.ws_web3
     assert True == ws.admin.startRPC(admin_stopRPC.host, int(admin_stopRPC.rpc_port))
-    print("\n启动http rpc服务成功.")
-
-    print("blockNumber:{}===================>".format(node.eth.blockNumber))
 '''
 
 if __name__ == '__main__':
