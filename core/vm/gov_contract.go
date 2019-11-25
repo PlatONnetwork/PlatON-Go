@@ -234,7 +234,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		NewValue:     newValue,
 	}
 	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
-	return gc.nonCallHandler("submitParam", SubmitText, err)
+	return gc.nonCallHandler("submitParam", SubmitParam, err)
 }
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
