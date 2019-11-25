@@ -7,16 +7,16 @@ import allure
 from common.connect import connect_web3, run_ssh
 
 
-def isConnection(url, port):
+def isConnection(ip, port):
     """
-    检测是否开启了某个端口
-    :param url: ip地址
-    :param port: 端口号
-    :return: 是否连接成功
+    Checks whether the specified port is open
+    :param ip: ip address
+    :param port: port
+    :return: boole
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.connect((url, port))
+        s.connect((ip, port))
         s.shutdown(2)
         return True
     except BaseException:

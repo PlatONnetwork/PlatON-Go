@@ -1001,7 +1001,13 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 	case <-pool.exitCh:
 		return nil
 	case pool.txExtBuffer <- txExt:
-		return nil
+		select {
+		case err := <-errCh:
+			if e, ok := err.(error); ok {
+				return e
+			}
+			return nil
+		}
 	default:
 		return nil
 	}

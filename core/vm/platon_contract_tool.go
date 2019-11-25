@@ -32,13 +32,14 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 	_, fn, params, err := plugin.VerifyTxData(input, command)
 	if nil != err {
 		log.Error("Failed to verify contract tx before exec", "err", err)
-		return nil, err
+		return xcom.NewFailedResult(common.InvalidParameter), err
 	}
 
 	// execute contracts method
 	result := reflect.ValueOf(fn).Call(params)
 	if err, ok := result[1].Interface().(error); ok {
-		return nil, err
+		log.Error("Failed to execute contract tx", "err", err)
+		return xcom.NewFailedResult(common.InternalError), err
 	}
 	return result[0].Bytes(), nil
 }

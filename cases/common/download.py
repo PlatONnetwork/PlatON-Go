@@ -23,7 +23,7 @@ def download_platon(download_url: 'str', path=PLATON_BIN_FILE):
         os.makedirs(platon_path)
 
     # download
-    resp = requests.get(url=download_url)
+    resp = requests.get(url=download_url, timeout=30)
     with open(platon_tar_file, 'wb') as f:
         f.write(resp.content)
         f.close()

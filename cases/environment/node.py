@@ -133,7 +133,7 @@ class Node:
             self.run_ssh("ls {}".format(self.remote_data_dir))
             if len(result) > 0:
                 log.error(failed_msg.format(self.node_mark, "init", result[0]))
-                raise Exception(failed_msg.format(self.node_mark, "init", result[0]))
+                raise Exception("Init failed:{}".format(result[0]))
             log.info("node-{} init success".format(self.node_mark))
         self.try_do(__init)
 
@@ -210,8 +210,9 @@ class Node:
             self.append_log_file()
             result = self.run_ssh("sudo -S -p '' supervisorctl start " + self.node_name, True)
             for r in result:
-                if "ERROR" in r:
-                    raise Exception("{}-start failed:{}".format(self.node_mark, r.strip("\n")))
+                if "ERROR" in r or "Command 'supervisorctl' not found" in r:
+                    raise Exception("Start failed:{}".format(r.strip("\n")))
+
         return self.try_do_resturn(__start)
 
     def restart(self) -> tuple:
@@ -224,7 +225,7 @@ class Node:
             result = self.run_ssh("sudo -S -p '' supervisorctl restart " + self.node_name, True)
             for r in result:
                 if "ERROR" in r:
-                    raise Exception("{}-restart failed:{}".format(self.node_mark, r.strip("\n")))
+                    raise Exception("restart failed:{}".format(r.strip("\n")))
         return self.try_do_resturn(__restart)
 
     def update(self) -> tuple:
