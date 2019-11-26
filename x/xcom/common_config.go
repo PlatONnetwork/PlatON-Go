@@ -36,6 +36,8 @@ const (
 	RestrictingRule
 	RewardRule
 	GovernanceRule
+	BlockBlackListRule
+	CollectDeclareVersionRule
 )
 
 const (
