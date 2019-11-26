@@ -1133,8 +1133,13 @@ func TestGovPlugin_GetPreActiveVersion(t *testing.T) {
 	sndb.Compaction()
 	buildBlockNoCommit(2)
 
-	ver := gov.GetPreActiveVersion(stateDB)
-	t.Logf("Get pre-active version: %d", ver)
+	if err := gov.SetPreActiveVersion(lastBlockHash, uint32(10)); err != nil {
+		t.Error("SetPreActiveVersion error", err)
+	} else {
+		ver := gov.GetPreActiveVersion(lastBlockHash)
+		assert.Equal(t, uint32(10), ver)
+	}
+
 }
 
 func TestGovPlugin_GetActiveVersion(t *testing.T) {
@@ -1146,7 +1151,7 @@ func TestGovPlugin_GetActiveVersion(t *testing.T) {
 	buildBlockNoCommit(2)
 
 	ver := gov.GetCurrentActiveVersion(stateDB)
-	t.Logf("Get active version: %d", ver)
+	assert.Equal(t, initProgramVersion, ver)
 }
 
 func TestGovPlugin_versionProposalActive(t *testing.T) {

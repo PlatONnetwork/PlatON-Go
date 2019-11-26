@@ -230,15 +230,13 @@ func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, e
 }
 
 // Set pre-active version
-func SetPreActiveVersion(preActiveVersion uint32, state xcom.StateDB) error {
-	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), common.Uint32ToBytes(preActiveVersion))
-	return nil
+func SetPreActiveVersion(blockHash common.Hash, preActiveVersion uint32) error {
+	return setPreActiveVersion(blockHash, preActiveVersion)
 }
 
 // Get pre-active version
-func GetPreActiveVersion(state xcom.StateDB) uint32 {
-	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
-	return common.BytesToUint32(value)
+func GetPreActiveVersion(blockHash common.Hash) uint32 {
+	return getPreActiveVersion(blockHash)
 }
 
 // Set active version record
@@ -359,7 +357,7 @@ func MoveVotingProposalIDToEnd(proposalID common.Hash, blockHash common.Hash) er
 
 func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) error {
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
-	err := put(blockHash, KeyPreActiveProposal(), common.Hash{})
+	err := del(blockHash, KeyPreActiveProposal())
 	if err != nil {
 		return err
 	}
@@ -418,6 +416,14 @@ func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover
 	} else {
 		return l, nil
 	}
+}
+
+func ClearAccuVerifiers(blockHash common.Hash, proposalID common.Hash) error {
+	if err := delAccuVerifiers(blockHash, proposalID); err != nil {
+		log.Error("clear voted verifiers in snapshot db failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
+		return err
+	}
+	return nil
 }
 
 func AddPIPID(pipID string, state xcom.StateDB) error {

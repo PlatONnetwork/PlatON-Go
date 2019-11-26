@@ -540,16 +540,16 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	if blockNumber == nil {
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
 	}
-	findBlock := s.unCommit.Get(hash)
-	//a block can't new twice
-	if findBlock != nil {
-		//  if block num is different,hash is same as common.ZeroHash,the exsist block may have commit ,so just cover it
-		newBlockWithDiffNumber := findBlock.BlockHash == common.ZeroHash && findBlock.Number.Cmp(blockNumber) != 0
-		if !newBlockWithDiffNumber {
-			logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
-			return ErrBlockRepeat
-		}
-	}
+	//findBlock := s.unCommit.Get(hash)
+	////a block can't new twice
+	//if findBlock != nil {
+	//	//  if block num is different,hash is same as common.ZeroHash,the exsist block may have commit ,so just cover it
+	//	newBlockWithDiffNumber := findBlock.BlockHash == common.ZeroHash && findBlock.Number.Cmp(blockNumber) != 0
+	//	if !newBlockWithDiffNumber {
+	//		logger.Error("the block is exist in snapshotdb uncommit,can't NewBlock", "hash", hash)
+	//		return ErrBlockRepeat
+	//	}
+	//}
 	if s.current.GetHighest(false).Num.Cmp(blockNumber) >= 0 {
 		logger.Error("the block is less than commit highest", "commit", s.current.GetHighest(false).Num, "new", blockNumber)
 		return ErrBlockTooLow
@@ -868,6 +868,9 @@ func (s *snapshotDB) Close() error {
 	logger.Info("begin close snapshotdb", "path", s.path)
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
+		return nil
+	}
+	if s.closed {
 		return nil
 	}
 	if s.corn != nil {

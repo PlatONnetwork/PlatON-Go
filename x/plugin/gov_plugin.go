@@ -260,7 +260,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			return err
 		}
 
-		if err := gov.SetPreActiveVersion(proposal.NewVersion, state); err != nil {
+		if err := gov.SetPreActiveVersion(blockHash, proposal.NewVersion); err != nil {
 			log.Error("save pre-active version to state failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(proposal.NewVersion))
 			return err
 		}

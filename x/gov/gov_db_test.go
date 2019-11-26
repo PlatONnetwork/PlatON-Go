@@ -439,12 +439,12 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 	Init()
 	defer snapshotdb.Instance().Clear()
 
+	blockHash, _ := newBlock(big.NewInt(1))
 	version := uint32(32)
-	//proposal := getVerProposal(common.Hash{0x1})
-	if err := SetPreActiveVersion(version, statedb); err != nil {
+	if err := SetPreActiveVersion(blockHash, version); err != nil {
 		t.Fatalf("set pre-active version error...%s", err)
 	}
-	vget := GetPreActiveVersion(statedb)
+	vget := GetPreActiveVersion(blockHash)
 	if vget != version {
 		t.Fatalf("get pre-active version error,expect version:%d,get version:%d", version, vget)
 	}
@@ -453,8 +453,8 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 func TestGovDB_GetPreActiveVersionNotExist(t *testing.T) {
 	Init()
 	defer snapshotdb.Instance().Clear()
-
-	vget := GetPreActiveVersion(statedb)
+	blockHash, _ := newBlock(big.NewInt(1))
+	vget := GetPreActiveVersion(blockHash)
 	t.Logf("get pre-active version error,get version:%d", vget)
 }
 
