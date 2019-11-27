@@ -26,11 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -243,21 +239,14 @@ func (c *testChain) State() (*state.StateDB, error) {
 func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 	t.Parallel()
 	var (
-		key, _     = crypto.GenerateKey()
-		address    = crypto.PubkeyToAddress(key.PublicKey)
-		db         = state.NewDatabase(ethdb.NewMemDatabase())
-		statedb, _ = state.New(common.Hash{}, db)
-		//trigger    = false
+		key, _  = crypto.GenerateKey()
+		address = crypto.PubkeyToAddress(key.PublicKey)
 	)
 
 	// setup pool with 2 transaction in it
-	statedb.SetBalance(address, new(big.Int).SetUint64(params.LAT))
-	//blockchain := &testChain{&testBlockChain{statedb, 1000000000, new(event.Feed)}, address, &trigger}
+	pool := newTestTxPool(testTxPoolConfig, params.TestChainConfig)
 
-	blockchain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), nil, params.TestChainConfig, consensus.NewFaker(), vm.Config{}, nil)
-	blockChainCache := NewBlockChainCache(blockchain)
-
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockChainCache)
+	pool.currentState.SetBalance(address, new(big.Int).SetUint64(params.LAT))
 	defer pool.Stop()
 	tx0 := transaction(0, 100000, key, pool.chainconfig.ChainID)
 	tx1 := transaction(1, 100000, key, pool.chainconfig.ChainID)
@@ -268,6 +257,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 	}
 
 	pool.AddRemotes(types.Transactions{tx0, tx1})
+	time.Sleep(time.Second)
 
 	nonce = pool.State().GetNonce(address)
 	if nonce != 2 {
@@ -277,7 +267,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 	// trigger state change in the background
 	//trigger = true
 
-	pool.lockedReset(nil, nil)
+	pool.lockedReset(nil, pool.chain.CurrentBlock().Header())
 
 	_, err := pool.Pending()
 	if err != nil {
