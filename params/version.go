@@ -45,6 +45,22 @@ var VersionWithMeta = func() string {
 	return v
 }()
 
+func FormatVersion(version uint32) string {
+	if version == 0 {
+		return "0.0.0"
+	}
+	major := version << 8
+	major = major >> 24
+
+	minor := version << 16
+	minor = minor >> 24
+
+	patch := version << 24
+	patch = patch >> 24
+
+	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
+}
+
 // ArchiveVersion holds the textual version string used for Geth archives.
 // e.g. "1.8.11-dea1ce05" for stable releases, or
 //      "1.8.13-unstable-21c059b6" for unstable releases

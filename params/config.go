@@ -111,6 +111,7 @@ var (
 			Period:        20000,
 		},
 		VMInterpreter: "wasm",
+		Version:       GenesisVersion,
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -134,6 +135,7 @@ var (
 			Period:        20000,
 		},
 		VMInterpreter: "wasm",
+		Version:       GenesisVersion,
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the test network.
@@ -158,9 +160,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, "", GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), "", GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -191,6 +193,7 @@ type ChainConfig struct {
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
+	Version       uint32 `json:"Version"`
 }
 
 type CbftNode struct {

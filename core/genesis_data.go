@@ -301,7 +301,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int, programVersion uint32) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int, genesisVersion uint32) error {
 
 	isDone := false
 	switch {
@@ -326,12 +326,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	// Store genesis Issue for LAT
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
-	log.Info("Store version for gov into genesis statedb", "real version", fmt.Sprintf("%d.%d.%d",
-		params.VersionMajor, params.VersionMinor, params.VersionPatch), "uint32 version", programVersion)
+	log.Info("Store version for gov into genesis statedb", "genesis version", fmt.Sprintf("%d/%s", genesisVersion, params.FormatVersion(genesisVersion)))
 
 	// Store genesis governance data
 	activeVersionList := []gov.ActiveVersionValue{
-		{ActiveVersion: programVersion, ActiveBlock: 0},
+		{ActiveVersion: genesisVersion, ActiveBlock: 0},
 	}
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)

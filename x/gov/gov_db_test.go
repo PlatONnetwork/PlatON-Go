@@ -18,7 +18,13 @@ package gov
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
+	"os"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/stretchr/testify/assert"
 
@@ -828,6 +834,13 @@ func TestGovDB_FindGovernParamValue(t *testing.T) {
 	} else if item.Value == "initValue" {
 		assert.Equal(t, "initValue", item.Value, "error")
 	}
+}
+
+func TestGovDB_Version(t *testing.T) {
+	version := uint32(0<<16 | 7<<8 | 4)
+	fmt.Println(version)
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	log.Warn("Store version for gov into genesis statedb", "genesis version", fmt.Sprintf("%d/%s", version, params.FormatVersion(version)))
 }
 
 func newBlock(blockNumber *big.Int) (common.Hash, error) {
