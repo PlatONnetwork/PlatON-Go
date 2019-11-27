@@ -174,6 +174,12 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 			log.Info("Writing custom genesis block")
 		}
 
+		// check genesis version
+		if genesis.Config == nil || genesis.Config.Version <= 0 {
+			log.Error("genesis version is missed")
+			return nil, common.Hash{}, errors.New("genesis version is missed")
+		}
+
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(); nil != err {
 			log.Error("Failed to check economic config", "err", err)
@@ -302,12 +308,12 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	}
 
 	// Store genesis version into governance data
-	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
+	if err := genesisPluginState(g, statedb, genesisIssuance, g.Config.Version); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 
 	// Store genesis staking data
-	if err := genesisStakingData(snapDB, g, statedb, params.GenesisVersion); nil != err {
+	if err := genesisStakingData(snapDB, g, statedb, g.Config.Version); nil != err {
 		panic("Failed Store staking: " + err.Error())
 	}
 
