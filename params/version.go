@@ -22,8 +22,8 @@ import (
 
 const (
 	VersionMajor   = 0          // Major version component of the current release
-	VersionMinor   = 7          // Minor version component of the current release
-	VersionPatch   = 4          // Patch version component of the current release
+	VersionMinor   = 8          // Minor version component of the current release
+	VersionPatch   = 0          // Patch version component of the current release
 	VersionMeta    = "unstable" // Version metadata to append to the version string
 	GenesisVersion = uint32(0<<16 | 7<<8 | 4)
 )
@@ -41,6 +41,22 @@ var VersionWithMeta = func() string {
 	}
 	return v
 }()
+
+func FormatVersion(version uint32) string {
+	if version == 0 {
+		return "0.0.0"
+	}
+	major := version << 8
+	major = major >> 24
+
+	minor := version << 16
+	minor = minor >> 24
+
+	patch := version << 24
+	patch = patch >> 24
+
+	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
+}
 
 // ArchiveVersion holds the textual version string used for Geth archives.
 // e.g. "1.8.11-dea1ce05" for stable releases, or
