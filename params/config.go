@@ -110,8 +110,8 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
-		Version:       GenesisVersion,
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -134,8 +134,8 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
-		Version:       GenesisVersion,
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the test network.
@@ -154,7 +154,7 @@ var (
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
-		Version: GenesisVersion,
+		GenesisVersion: GenesisVersion,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
@@ -193,8 +193,8 @@ type ChainConfig struct {
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
 	// Various vm interpreter
-	VMInterpreter string `json:"interpreter,omitempty"`
-	Version       uint32 `json:"Version"`
+	VMInterpreter  string `json:"interpreter,omitempty"`
+	GenesisVersion uint32 `json:"GenesisVersion"`
 }
 
 type CbftNode struct {
