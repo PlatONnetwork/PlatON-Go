@@ -638,6 +638,12 @@ def test_PIP_PVF_016_017(clients_consensus, mark, reset_environment):
 
 
 @pytest.mark.P1
+def testt(client_consensus):
+    a = client_consensus.node.eth.getTransactionCount(client_consensus.economic.account.account_with_money['address'])
+    print(a)
+
+
+@pytest.mark.P1
 def test_PIP_PVF_018(clients_consensus, reset_environment):
     """
     治理修改区块双签-举报奖励比例处于已生效期

@@ -10,7 +10,9 @@ from environment.node import Node
 
 
 def assert_error_deploy(env: Node, genesis_file, msg="Error config"):
+    env.clean_db()
     is_success, err_msg = env.deploy_me(genesis_file)
+    print(is_success)
     assert not is_success, "{}-{}".format(msg, err_msg)
 
 
@@ -18,7 +20,7 @@ def assert_error_deploy(env: Node, genesis_file, msg="Error config"):
 def stop(global_test_env):
     global_test_env.stop_all()
     yield
-    global_test_env.deploy_all()
+    # global_test_env.deploy_all()
 
 
 @pytest.fixture()
