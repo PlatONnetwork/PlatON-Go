@@ -326,7 +326,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	// Store genesis Issue for LAT
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
-	log.Info("Store version for gov into genesis statedb", "genesis version", fmt.Sprintf("%d/%s", genesisVersion, params.FormatVersion(genesisVersion)))
+	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", genesisVersion, params.FormatVersion(genesisVersion)))
 
 	// Store genesis governance data
 	activeVersionList := []gov.ActiveVersionValue{
