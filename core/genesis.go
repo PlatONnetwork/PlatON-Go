@@ -174,6 +174,12 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 			log.Info("Writing custom genesis block")
 		}
 
+		// check genesis version
+		if genesis.Config == nil || genesis.Config.GenesisVersion <= 0 {
+			log.Error("genesis version is missed")
+			return nil, common.Hash{}, errors.New("genesis version is missed")
+		}
+
 		// check EconomicModel configuration
 		if err := xcom.CheckEconomicModel(); nil != err {
 			log.Error("Failed to check economic config", "err", err)
