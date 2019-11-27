@@ -34,6 +34,7 @@ func (b *CollectDeclareVersionPlugin) BeginBlock(blockHash common.Hash, header *
 			return err
 		}
 		gov.EnableCounter = true
+		gov.NodeDeclaredVersionsCounter = make(map[discover.NodeID]uint32)
 	}
 	return nil
 }
