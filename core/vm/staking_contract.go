@@ -219,6 +219,11 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	/**
 	init candidate info
 	*/
+	realVersion := programVersion
+	if isDeclareVersion{
+		//If the node version is higher than the current governance version, temporarily use the governance version,  wait for the version to pass the governance proposal, and then replace it
+		realVersion = originVersion
+	}
 	canBase := &staking.CandidateBase{
 		NodeId:          nodeId,
 		BlsPubKey:       blsPubKey,
@@ -226,7 +231,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		ProgramVersion:  currVersion,
+		ProgramVersion:  realVersion,
 		Description:     *desc,
 	}
 

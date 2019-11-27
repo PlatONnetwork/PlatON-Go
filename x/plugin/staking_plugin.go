@@ -2167,7 +2167,8 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
-
+		//Store full version
+		can.ProgramVersion = programVersion
 		if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
@@ -2215,7 +2216,8 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
-
+	//Store full version
+	can.ProgramVersion = programVersion
 	if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 		log.Error("Failed to DeclarePromoteNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
