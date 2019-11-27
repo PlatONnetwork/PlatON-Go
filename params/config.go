@@ -154,6 +154,7 @@ var (
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
+		Version: GenesisVersion,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
