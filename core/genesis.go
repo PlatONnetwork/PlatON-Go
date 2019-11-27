@@ -200,12 +200,13 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 	}
 
 	// Get the existing EconomicModel configuration.
-	ecCfg := xcom.GetEc(xcom.DefaultMainNet)
-	ecCfg = rawdb.ReadEconomicModel(db, stored, ecCfg)
+	ecCfg := rawdb.ReadEconomicModel(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
-		rawdb.WriteEconomicModel(db, stored, xcom.GetEc(xcom.DefaultMainNet))
+		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
+		rawdb.WriteEconomicModel(db, stored, ecCfg)
 	}
+	xcom.ResetEconomicDefaultConfig(ecCfg)
 
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored) // TODO this line Maybe delete
