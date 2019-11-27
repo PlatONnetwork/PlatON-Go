@@ -67,3 +67,10 @@ func (b *CollectDeclareVersionPlugin) EndBlock(blockHash common.Hash, header *ty
 func (b *CollectDeclareVersionPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
 	return nil
 }
+
+func IsForkBlock(blockNumber uint64) bool {
+	if blockNumber == FORKNUM {
+		return true
+	}
+	return false
+}
