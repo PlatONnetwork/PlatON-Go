@@ -302,7 +302,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	}
 
 	// Store genesis version into governance data
-	if err := genesisPluginState(g, statedb, genesisIssuance, g.Config.GenesisVersion); nil != err {
+	if err := genesisPluginState(g, statedb, genesisIssuance); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 

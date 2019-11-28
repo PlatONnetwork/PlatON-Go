@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -301,7 +302,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int, genesisVersion uint32) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int) error {
 
 	isDone := false
 	switch {
@@ -326,11 +327,15 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	// Store genesis Issue for LAT
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
-	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", genesisVersion, params.FormatVersion(genesisVersion)))
+	if g.Config.GenesisVersion <= 0 {
+		log.Warn("genesis version is wrong")
+		return errors.New("genesis version is wrong")
+	}
+	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", g.Config.GenesisVersion, params.FormatVersion(g.Config.GenesisVersion)))
 
 	// Store genesis governance data
 	activeVersionList := []gov.ActiveVersionValue{
-		{ActiveVersion: genesisVersion, ActiveBlock: 0},
+		{ActiveVersion: g.Config.GenesisVersion, ActiveBlock: 0},
 	}
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
