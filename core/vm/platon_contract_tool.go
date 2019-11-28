@@ -47,17 +47,13 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int) []byte {
 	event := strconv.Itoa(fncode)
 	receipt := strconv.Itoa(errCode)
-
-	if errCode == 0 {
-		blockNumber := evm.BlockNumber.Uint64()
-		xcom.AddLog(evm.StateDB, blockNumber, contractAddr, event, receipt)
-	} else {
+	blockNumber := evm.BlockNumber.Uint64()
+	if errCode != 0 {
 		txHash := evm.StateDB.TxHash()
-		blockNumber := evm.BlockNumber.Uint64()
-		xcom.AddLog(evm.StateDB, blockNumber, contractAddr, event, receipt)
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
 	}
+	xcom.AddLog(evm.StateDB, blockNumber, contractAddr, event, receipt)
 	return []byte(receipt)
 }
 
