@@ -148,7 +148,9 @@ class Node:
         :return:
         """
         def __clean():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             self.run_ssh("sudo -S -p '' rm -rf {};mkdir -p {}".format(self.remote_node_path, self.remote_node_path),
                          True)
             self.run_ssh("ls {}".format(self.remote_node_path))
@@ -160,7 +162,9 @@ class Node:
         :return:
         """
         def __clean_db():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             self.run_ssh("sudo -S -p '' rm -rf {}".format(self.remote_db_dir), True)
         return self.try_do_resturn(__clean_db)
 
@@ -170,7 +174,9 @@ class Node:
         :return:
         """
         def __clean_log():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             self.run_ssh("rm -rf {}".format(self.remote_log_dir))
             self.append_log_file()
         self.try_do(__clean_log)
@@ -205,7 +211,9 @@ class Node:
         :return:
         """
         def __start():
-            self.stop()
+            is_success = self.stop()
+            if not is_success:
+                raise Exception("Stop failed")
             if is_init:
                 self.init()
             self.append_log_file()
