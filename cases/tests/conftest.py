@@ -190,7 +190,7 @@ def reset_environment(global_test_env):
     global_test_env.deploy_all()
 
 
-@pytest.fixture
+@pytest.fixture()
 def new_genesis_env(global_test_env):
     cfg = copy(global_test_env.cfg)
     yield global_test_env
