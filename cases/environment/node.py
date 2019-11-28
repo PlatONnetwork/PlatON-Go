@@ -151,6 +151,7 @@ class Node:
             self.stop()
             self.run_ssh("sudo -S -p '' rm -rf {};mkdir -p {}".format(self.remote_node_path, self.remote_node_path),
                          True)
+            self.run_ssh("ls {}".format(self.remote_node_path))
         return self.try_do_resturn(__clean)
 
     def clean_db(self):

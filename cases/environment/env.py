@@ -68,6 +68,8 @@ class TestEnvironment:
         # accounts
         self.account = Account(self.cfg.account_file, self.genesis_config["config"]["chainId"])
 
+        self.rewrite_genesis_file()
+
     @property
     def consensus_node_list(self) -> List[Node]:
         return self.__consensus_node_list
@@ -136,6 +138,7 @@ class TestEnvironment:
         """
         self.cfg = cfg
         genesis_config = LoadFile(self.cfg.genesis_file).get_data()
+        self.rewrite_genesis_file()
         self.set_genesis(genesis_config)
         for node in self.get_all_nodes():
             node.cfg = cfg
