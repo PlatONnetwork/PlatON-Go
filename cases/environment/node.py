@@ -147,6 +147,8 @@ class Node:
         clear node data
         :return:
         """
+        log.info("Clean node:{}".format(self.node_mark))
+
         def __clean():
             is_success = self.stop()
             if not is_success:
@@ -212,6 +214,8 @@ class Node:
         :param is_init:
         :return:
         """
+        log.info("Start node:{}".format(self.node_mark))
+
         def __start():
             is_success = self.stop()
             if not is_success:
