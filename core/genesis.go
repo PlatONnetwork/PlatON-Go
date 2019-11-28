@@ -203,9 +203,9 @@ func SetupGenesisBlock(db ethdb.Database, snapshotPath string, genesis *Genesis)
 	ecCfg := rawdb.ReadEconomicModel(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
-		rawdb.WriteEconomicModel(db, stored, xcom.GetEc(xcom.DefaultMainNet))
+		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
+		rawdb.WriteEconomicModel(db, stored, ecCfg)
 	}
-
 	xcom.ResetEconomicDefaultConfig(ecCfg)
 
 	// Get the existing chain configuration.
@@ -302,12 +302,12 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	}
 
 	// Store genesis version into governance data
-	if err := genesisPluginState(g, statedb, genesisIssuance, params.GenesisVersion); nil != err {
+	if err := genesisPluginState(g, statedb, genesisIssuance, g.Config.GenesisVersion); nil != err {
 		panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 	}
 
 	// Store genesis staking data
-	if err := genesisStakingData(snapDB, g, statedb, params.GenesisVersion); nil != err {
+	if err := genesisStakingData(snapDB, g, statedb, g.Config.GenesisVersion); nil != err {
 		panic("Failed Store staking: " + err.Error())
 	}
 
