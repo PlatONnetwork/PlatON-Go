@@ -10,14 +10,14 @@ from common.log import log
 """
 Download platon bin, this file cannot be imported as a package
 """
-if len(sys.argv) > 1 and ("--platonUrl" in sys.argv or "--platonUrl" in "".join(sys.argv)):
+if len(sys.argv) > 1 and ("--platonUrl" in sys.argv or "--platonUrl=" in "".join(sys.argv)):
     i = 0
     url = None
     for arg in sys.argv:
         if "--platonUrl" == arg:
             url = sys.argv[i+1]
             break
-        elif "--platonUrl" in arg:
+        elif "--platonUrl=" in arg:
             url = arg.split("=")[1]
             break
         i += 1
