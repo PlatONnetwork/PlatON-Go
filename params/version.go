@@ -21,6 +21,7 @@ import (
 )
 
 const (
+
 	//These versions are meaning the current code version.
 	VersionMajor = 0          // Major version component of the current release
 	VersionMinor = 7          // Minor version component of the current release
