@@ -27,7 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB, programVersion uint32) error {
+func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB) error {
 
 	isDone := false
 	switch {
@@ -50,6 +50,10 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 	}
 
 	//version := xutil.CalcVersion(programVersion)
+	if g.Config.GenesisVersion <= 0 {
+		log.Error("genesis version is empty")
+		return errors.New("genesis version is empty")
+	}
 
 	var length int
 
@@ -100,8 +104,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			BlsPubKey:       keyHex,
 			StakingAddress:  xcom.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,
-			StakingTxIndex:  uint32(index),  // txIndex from zero to n
-			ProgramVersion:  programVersion, // real version
+			StakingTxIndex:  uint32(index),           // txIndex from zero to n
+			ProgramVersion:  g.Config.GenesisVersion, // real version
 			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",

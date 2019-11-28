@@ -307,7 +307,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 	}
 
 	// Store genesis staking data
-	if err := genesisStakingData(snapDB, g, statedb, params.GenesisVersion); nil != err {
+	if err := genesisStakingData(snapDB, g, statedb); nil != err {
 		panic("Failed Store staking: " + err.Error())
 	}
 
