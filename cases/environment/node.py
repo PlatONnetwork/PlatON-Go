@@ -196,6 +196,8 @@ class Node:
         close node
         :return:
         """
+        log.info("Stop node:{}".format(self.node_mark))
+
         def __stop():
             self.__is_connected = False
             self.__is_ws_connected = False
