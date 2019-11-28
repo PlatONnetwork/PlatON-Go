@@ -1256,7 +1256,7 @@ func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 			versionBytes := extraData[0].([]byte)
 			versionInHeader := common.BytesToUint32(versionBytes)
 
-			activeVersion := gov.GetActiveVersion(lastHeader.Number.Uint64(), stateDB)
+			activeVersion := gov.GetCurrentActiveVersion(stateDB)
 			t.Log("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", lastHeader.Number.Uint64())
 			if activeVersion == versionInHeader {
 				t.Log("OK")
