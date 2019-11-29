@@ -17,6 +17,7 @@ class Config:
     chainId: int
     eip155Block: int
     cbft: Cbft
+    genesisVersion: int
 
 
 @dataclass
