@@ -101,7 +101,7 @@ var (
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(100),
+		ChainID:     big.NewInt(97),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
@@ -110,7 +110,8 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -133,7 +134,8 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
+		VMInterpreter:  "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the test network.
@@ -152,15 +154,16 @@ var (
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
+		GenesisVersion: GenesisVersion,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, "", GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), "", GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -190,7 +193,8 @@ type ChainConfig struct {
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
 	// Various vm interpreter
-	VMInterpreter string `json:"interpreter,omitempty"`
+	VMInterpreter  string `json:"interpreter,omitempty"`
+	GenesisVersion uint32 `json:"genesisVersion"`
 }
 
 type CbftNode struct {

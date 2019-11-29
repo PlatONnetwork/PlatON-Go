@@ -101,7 +101,6 @@ func NewFailedResult(err *common.BizError) []byte {
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
-
 	buf := new(bytes.Buffer)
 	if err := rlp.Encode(buf, [][]byte{[]byte(data)}); nil != err {
 		log.Error("Cannot RlpEncode the log data, data", "data", data)
@@ -110,7 +109,7 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
-		//Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		Topics:      nil, //[]common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
