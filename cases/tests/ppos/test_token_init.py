@@ -9,8 +9,7 @@ from client_sdk_python import Web3
 from decimal import Decimal
 from tests.conftest import get_clients_noconsensus
 from tests.lib import (EconomicConfig,
-                       Genesis, StakingConfig,
-                       Staking,
+                       Genesis,
                        check_node_in_list,
                        assert_code,
                        von_amount,
