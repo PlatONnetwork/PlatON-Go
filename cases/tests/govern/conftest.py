@@ -250,7 +250,9 @@ def proposal_pips(all_clients):
 @pytest.fixture()
 def preactive_proposal_pips(all_clients):
     if all_clients[0].pip.is_exist_effective_proposal() or all_clients[0].pip.chain_version != \
-            all_clients[0].pip.cfg.version0:
+            all_clients[0].pip.cfg.version0 or all_clients[0].pip.is_exist_effective_proposal_for_vote(
+        all_clients[0].pip.cfg.param_proposal
+    ):
         log.info('There is effective version proposal, restart the chain')
         all_clients[0].economic.env.deploy_all()
     verifier_list = get_pledge_list(all_clients[0].ppos.getVerifierList)
