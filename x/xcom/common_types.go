@@ -23,7 +23,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -111,7 +110,7 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
-		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		//Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
