@@ -194,7 +194,7 @@ func TestRewardPlugin(t *testing.T) {
 	ec.Common.MaxConsensusVals = 1
 	ec.Common.NodeBlockTimeWindow = 1
 	ec.Common.PerRoundBlocks = 1
-	minutes = 500
+	millisecond = 10
 
 	t.Run("CalcEpochReward", func(t *testing.T) {
 		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
