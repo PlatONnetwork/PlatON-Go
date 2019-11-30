@@ -46,7 +46,7 @@ def client_new_node_obj_list_reset(global_test_env, staking_cfg):
     global_test_env.deploy_all()
 
 
-def verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount):
+def verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount, type):
     log.info("Start stopping the current node ：{} process".format(first_client.node.url))
     first_client.node.stop()
     log.info("Start waiting for the end of the three consensus rounds")
@@ -56,11 +56,11 @@ def verify_low_block_rate_penalty(first_client, second_client, block_reward, sla
     log.info("Current billing cycle certifier list: {}".format(verifier_list))
     candidate_info = second_client.ppos.getCandidateInfo(first_client.node.node_id)
     log.info("stopped pledge node information： {}".format(candidate_info))
-    amount_after_punishment = candidate_info['Ret']['Released']
+    amount_after_punishment = candidate_info['Ret'][type]
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     log.info("Low block rate penalty amount: {}".format(punishment_amonut))
     if punishment_amonut < pledge_amount:
-        assert amount_after_punishment == pledge_amount - punishment_amonut, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
+        assert (amount_after_punishment == pledge_amount - punishment_amonut) or (amount_after_punishment == pledge_amount - punishment_amonut * 2), "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
             amount_after_punishment)
     else:
         assert amount_after_punishment == 0, "ErrMsg:The pledge node is penalized after the amount {} is incorrect".format(
@@ -139,7 +139,7 @@ def test_VP_GPFV_003(client_new_node_obj_list_reset):
             pledge_amount1, block_reward, slash_blocks))
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
     log.info("Start verification penalty amount")
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
     log.info("Check amount completed")
 
 
@@ -171,7 +171,7 @@ def test_VP_GPFV_004(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'RestrictingPlan')
     log.info("Check amount completed")
 
 
@@ -216,7 +216,7 @@ def test_VP_GPFV_005(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'RestrictingPlan')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'RestrictingPlan')
     log.info("Check amount completed")
 
 
@@ -251,7 +251,7 @@ def test_VP_GPFV_006(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
     log.info("Check amount completed")
 
 
@@ -278,7 +278,7 @@ def test_VP_GPFV_007(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
     log.info("Check amount completed")
 
 
@@ -305,7 +305,7 @@ def test_VP_GPFV_008(client_new_node_obj_list_reset):
     # get pledge amount1 and block reward
     pledge_amount1, block_reward, slash_blocks = get_out_block_penalty_parameters(first_client, node, 'Released')
     log.info("Current block height: {}".format(first_client.node.eth.blockNumber))
-    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1)
+    verify_low_block_rate_penalty(first_client, second_client, block_reward, slash_blocks, pledge_amount1, 'Released')
     log.info("Check amount completed")
 
 

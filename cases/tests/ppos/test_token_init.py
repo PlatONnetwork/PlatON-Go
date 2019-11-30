@@ -1037,6 +1037,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
     genesis.to_file(new_file)
     new_genesis_env.deploy_all(new_file)
+
     client = client_new_node
     economic = client.economic
     node = client.node
@@ -1051,17 +1052,18 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     # Check account balance
     balance = node.eth.getBalance(address1)
     log.info("Account Balance： {}".format(balance))
-    # Get the number of certifiers in the billing cycle list
-    verifier_list = get_pledge_list(node.ppos.getVerifierList)
-    verifier_num = len(verifier_list)
-    # Get block_reward And pledge rewards
-    amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
-    block_proportion = str(60 / 100)
-    staking_proportion = str(1 - 60 / 100)
-    block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(1600)))
-    staking_reward = int(Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(10)) / Decimal(
-        str(verifier_num)))
-    log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
+    block_reward, staking_reward = economic.get_current_year_reward(node, new_block_rate=60)
+    # # Get the number of certifiers in the billing cycle list
+    # verifier_list = get_pledge_list(node.ppos.getVerifierList)
+    # verifier_num = len(verifier_list)
+    # # Get block_reward And pledge rewards
+    # amount = node.eth.getBalance(EconomicConfig.INCENTIVEPOOL_ADDRESS, 0)
+    # block_proportion = str(60 / 100)
+    # staking_proportion = str(1 - 60 / 100)
+    # block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(1600)))
+    # staking_reward = int(Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(10)) / Decimal(
+    #     str(verifier_num)))
+    # log.info("block_reward: {} staking_reward: {}".format(block_reward, staking_reward))
     # withdrew of pledge
     result = client.staking.withdrew_staking(address1)
     assert_code(result, 0)
@@ -1077,6 +1079,7 @@ def test_AL_NBI_018(new_genesis_env, client_new_node):
     log.info("Account Balance： {}".format(balance1))
     # Pledged income account to get the bonus amount
     total_reward = int(Decimal(str(block_reward)) * blocknumber) + staking_reward
+    log.info("total:{}".format(balance + total_reward))
     assert balance + total_reward - balance1 < node.web3.toWei(1, 'ether'), "ErrMsg:benifit_balance: {}".format(
         balance1)
 

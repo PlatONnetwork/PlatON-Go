@@ -196,7 +196,7 @@ def new_genesis_env(global_test_env):
     yield global_test_env
     log.info("reset deploy.................")
     global_test_env.set_cfg(cfg)
-    # global_test_env.deploy_all()
+    global_test_env.deploy_all()
 
 
 def param_governance_verify(client, module, name, newvalue, effectiveflag=True):
@@ -275,6 +275,7 @@ def param_governance_verify_before_endblock(client, module, name, newvalue, effe
     log.info('verifierlist : {}'.format(verifier_list))
     clients_verifier = get_clients_by_nodeid(verifier_list, all_clients)
     if effectiveflag:
+        blocknum = 0
         for client in clients_verifier:
             if client.node.block_number < blocknum and blocknum != 0:
                 wait_block_number(client.node, blocknum)

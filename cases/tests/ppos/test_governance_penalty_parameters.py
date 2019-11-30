@@ -57,7 +57,7 @@ def verify_changed_parameters(clients, first_pledge_amount, block_reward, slash_
     second_pledge_amount = candidate_info['Ret']['Released']
     punishment_amonut = int(Decimal(str(block_reward)) * Decimal(str(slash_blocks)))
     if punishment_amonut < first_pledge_amount:
-        assert second_pledge_amount == first_pledge_amount - punishment_amonut, "ErrMsg:Consensus Amount of pledge {}".format(
+        assert (second_pledge_amount == first_pledge_amount - punishment_amonut) or (second_pledge_amount == first_pledge_amount - punishment_amonut * 2), "ErrMsg:Consensus Amount of pledge {}".format(
             second_pledge_amount)
     else:
         assert second_pledge_amount == 0, "ErrMsg:Consensus Amount of pledge {}".format(second_pledge_amount)

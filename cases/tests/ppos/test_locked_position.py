@@ -669,12 +669,19 @@ def test_LS_RV_011(client_new_node):
 
 
 @pytest.mark.P1
-def test_LS_RV_012(clients_new_node, reset_environment):
+def test_LS_RV_012(new_genesis_env, clients_new_node):
     """
     创建锁仓计划-锁仓质押释放后被处罚再次创建锁仓计划(处罚金额大于质押金额)
     :param:client_new_node:
     :return:
     """
+    # Change configuration parameters
+    genesis = from_dict(data_class=Genesis, data=new_genesis_env.genesis_config)
+    genesis.economicModel.slashing.slashBlocksReward = 20
+    new_file = new_genesis_env.cfg.env_tmp + "/genesis.json"
+    genesis.to_file(new_file)
+    new_genesis_env.deploy_all(new_file)
+
     client1 = clients_new_node[0]
     log.info("Current linked client1: {}".format(client1.node.node_mark))
     client2 = clients_new_node[1]
@@ -757,9 +764,9 @@ def test_LS_RV_019(new_genesis_env, clients_noconsensus):
     restricting_info = client2.ppos.getRestrictingInfo(address2)
     log.info("restricting info: {}".format(restricting_info))
     info = restricting_info['Ret']
-    assert info['Pledge'] == pledge_amount - punishment_amonut * 2, 'ErrMsg: restricting Pledge amount {}'.format(
+    assert (info['Pledge'] == pledge_amount - punishment_amonut * 2) or (info['Pledge'] == pledge_amount - punishment_amonut), 'ErrMsg: restricting Pledge amount {}'.format(
         info['Pledge'])
-    assert info['balance'] == pledge_amount - punishment_amonut * 2, 'ErrMsg: restricting balance amount {}'.format(
+    assert (info['balance'] == pledge_amount - punishment_amonut * 2) or (info['balance'] == pledge_amount - punishment_amonut), 'ErrMsg: restricting balance amount {}'.format(
         info['balance'])
     # create Restricting Plan again
     staking_amount = von_amount(economic.create_staking_limit, 2)
