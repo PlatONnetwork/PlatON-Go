@@ -23,6 +23,13 @@ import (
 var (
 	HistoryIncreasePrefix    = []byte("RewardHistory")
 	LastYearEndBalancePrefix = []byte("RewardBalance")
+	YearStartBlockNumberKey  = []byte("YearStartBlockNumberKey")
+	YearStartTimeKey         = []byte("YearStartTimeKey")
+	IncIssuanceTimeKey       = []byte("IncIssuanceTimeKey")
+	RemainingRewardKey       = []byte("RemainingRewardKey")
+	NewBlockRewardKey        = []byte("NewBlockRewardKey")
+	StakingRewardKey         = []byte("StakingRewardKey")
+	ChainYearNumberKey       = []byte("ChainYearNumberKey")
 )
 
 // GetHistoryIncreaseKey used for search the balance of reward pool at last year

@@ -158,6 +158,7 @@ type snapshotDB struct {
 type Chain interface {
 	CurrentHeader() *types.Header
 	GetHeaderByHash(hash common.Hash) *types.Header
+	GetHeaderByNumber(number uint64) *types.Header
 }
 
 func SetDBPathWithNode(path string) {
@@ -168,6 +169,10 @@ func SetDBPathWithNode(path string) {
 func SetDBBlockChain(c Chain) {
 	blockchain = c
 	logger.Info("set blockchain")
+}
+
+func GetDBBlockChain() Chain {
+	return blockchain
 }
 
 func SetDBOptions(cache int, handles int) {
