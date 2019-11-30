@@ -25,6 +25,7 @@ var (
 	LastYearEndBalancePrefix = []byte("RewardBalance")
 	YearStartBlockNumberKey  = []byte("YearStartBlockNumberKey")
 	YearStartTimeKey         = []byte("YearStartTimeKey")
+	IncIssuanceNumberKey     = []byte("IncIssuanceNumberKey")
 	IncIssuanceTimeKey       = []byte("IncIssuanceTimeKey")
 	RemainingRewardKey       = []byte("RemainingRewardKey")
 	NewBlockRewardKey        = []byte("NewBlockRewardKey")

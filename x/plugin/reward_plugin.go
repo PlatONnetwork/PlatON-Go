@@ -363,10 +363,15 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		}
 		epochTotalReward = new(big.Int).Div(remainReward, new(big.Int).SetInt64(int64(remainEpoch)))
 		// Subtract the total reward for the next cycle to calculate the remaining rewards to be issued
-		remainReward = new(big.Int).Sub(remainReward, epochTotalReward)
+		remainReward = remainReward.Sub(remainReward, epochTotalReward)
 		log.Debug("Call CalcEpochReward, Calculation of rewards for the next settlement cycle", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "remainTime", remainTime, "remainBlocks", remainBlocks, "epochBlocks", epochBlocks,
 			"remainEpoch", remainEpoch, "remainReward", remainReward, "epochTotalReward", epochTotalReward)
+	}
+	if remainReward.Cmp(common.Big0) == 0 {
+		if err := StorageIncIssuanceNumber(blockHash, rmp.db, new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()); nil != err {
+			return nil, nil, err
+		}
 	}
 	// Get the total block reward and pledge reward for each settlement cycle
 	epochTotalNewBlockReward := percentageCalculation(epochTotalReward, xcom.NewBlockRewardRate())
@@ -528,4 +533,35 @@ func LoadChainYearNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint32, er
 		return 0, err
 	}
 	return common.BytesToUint32(chainYearNumberByte), nil
+}
+
+func StorageIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB, incIssuanceNumber uint64) error {
+	if err := snapshotDB.Put(hash, reward.IncIssuanceNumberKey, common.Uint64ToBytes(incIssuanceNumber)); nil != err {
+		log.Error("Failed to execute StorageIncIssuanceNumber function", "hash", hash.TerminalString(), "incIssuanceNumber", incIssuanceNumber, "err", err)
+		return err
+	}
+	return nil
+}
+
+func LoadIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, error) {
+	incIssuanceNumberByte, err := snapshotDB.Get(hash, reward.IncIssuanceNumberKey)
+	if nil != err {
+		if err == snapshotdb.ErrNotFound {
+			return 0, nil
+		}
+		log.Error("Failed to execute LoadIncIssuanceNumber function", "hash", hash.TerminalString(), "key", string(reward.IncIssuanceNumberKey), "err", err)
+		return 0, err
+	}
+	return common.BytesToUint64(incIssuanceNumberByte), nil
+}
+
+func IsYearEndBlockNumber(hash common.Hash, blockNumber uint64, db snapshotdb.DB) (bool, error) {
+	number, err := LoadIncIssuanceNumber(hash, db)
+	if nil != err {
+		return false, err
+	}
+	if number == blockNumber {
+		return true, nil
+	}
+	return false, nil
 }
