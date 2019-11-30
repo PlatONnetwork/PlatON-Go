@@ -188,6 +188,14 @@ func TestRewardPlugin(t *testing.T) {
 	snapshotdb.SetDBBlockChain(chain)
 	mockDB := buildStateDB(t)
 
+	ec := xcom.GetEc(-1)
+	ec.Common.AdditionalCycleTime = 1
+	ec.Common.MaxEpochMinutes = 1
+	ec.Common.MaxConsensusVals = 1
+	ec.Common.NodeBlockTimeWindow = 1
+	ec.Common.PerRoundBlocks = 1
+	minutes = 500
+
 	t.Run("CalcEpochReward", func(t *testing.T) {
 		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
@@ -306,5 +314,4 @@ func TestRewardPlugin(t *testing.T) {
 		assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))*/
 
 	})
-
 }

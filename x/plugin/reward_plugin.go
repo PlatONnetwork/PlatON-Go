@@ -49,8 +49,10 @@ const (
 )
 
 var (
-	rewardOnce sync.Once
-	rm         *RewardMgrPlugin = nil
+	rewardOnce  sync.Once
+	rm          *RewardMgrPlugin = nil
+	millisecond                  = 1000
+	minutes                      = 60 * millisecond
 )
 
 func RewardMgrInstance() *RewardMgrPlugin {
@@ -265,7 +267,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	if yearStartTime == 0 {
 		yearStartBlockNumber = head.Number.Uint64()
 		yearStartTime = head.Time.Int64()
-		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*60*1000)
+		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*uint64(minutes))
 		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return nil, nil, err
@@ -309,29 +311,28 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return nil, nil, err
 		}
-		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*60*1000)); nil != err {
+		if err := StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime+int64(xcom.AdditionalCycleTime()*uint64(minutes))); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 			return nil, nil, err
 		}
-		tempRemainingReward, err := LoadRemainingReward(blockHash, rmp.db)
+		remainReward, err = LoadRemainingReward(blockHash, rmp.db)
 		if nil != err {
 			return nil, nil, err
 		}
-		tempIncIssuanceTime, err := LoadIncIssuanceTime(blockHash, rmp.db)
+		incIssuanceTime, err = LoadIncIssuanceTime(blockHash, rmp.db)
 		if nil != err {
 			return nil, nil, err
 		}
 		log.Info("Call CalcEpochReward, increaseIssuance successful", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
-			"yearNumber", yearNumber, "lastIncIssuanceTime", incIssuanceTime, "yearEndBalance", GetYearEndBalance(state, yearNumber),
-			"remainingReward", tempRemainingReward, "tempIncIssuanceTime", tempIncIssuanceTime)
+			"yearNumber", yearNumber, "incIssuanceTime", incIssuanceTime, "yearEndBalance", GetYearEndBalance(state, yearNumber), "remainingReward", remainReward)
 	}
 	epochTotalReward := new(big.Int)
 	// If the expected increase issue time is exceeded,
 	// the increase issue time will be postponed for one settlement cycle,
 	// and the remaining rewards will all be issued in the next settlement cycle
 	if head.Time.Int64() >= incIssuanceTime {
-		epochTotalReward = remainReward
-		remainReward = common.Big0
+		epochTotalReward.Add(epochTotalReward, remainReward)
+		remainReward = new(big.Int)
 		log.Info("Call CalcEpochReward, The current time has exceeded the expected additional issue time", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "epochTotalReward", epochTotalReward)
 	} else {
@@ -344,7 +345,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 				"avgPackTime", avgPackTime)
 		} else {
 			diffNumber := head.Number.Uint64() - yearStartBlockNumber
-			diffTime := (head.Time.Int64() - yearStartTime) / 1000
+			diffTime := (head.Time.Int64() - yearStartTime) / int64(millisecond)
 			// If it is less than or equal to the block difference,
 			// it is calculated according to the default average block production time
 			if uint64(diffTime) > diffNumber {
@@ -354,7 +355,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 				"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
 				"avgPackTime", avgPackTime)
 		}
-		remainTime := (incIssuanceTime - head.Time.Int64()) / 1000
+		remainTime := (incIssuanceTime - head.Time.Int64()) / int64(millisecond)
 		remainEpoch := 1
 		remainBlocks := math.Ceil(float64(remainTime) / avgPackTime)
 		if remainBlocks > float64(epochBlocks) {
