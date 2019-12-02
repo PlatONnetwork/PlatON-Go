@@ -290,7 +290,11 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// which is used to calculate the average annual block production rate
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 {
-		yearStartBlockNumber += epochBlocks - 1
+		if yearStartBlockNumber == 1 {
+			yearStartBlockNumber += epochBlocks - 1
+		} else {
+			yearStartBlockNumber += epochBlocks
+		}
 		yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
 		if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
 			log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -373,7 +377,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		if err := StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
 			return nil, nil, err
 		}
-		log.Debug("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
+		log.Info("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"epochBlocks", epochBlocks, "incIssuanceNumber", incIssuanceNumber)
 	}
 	// Get the total block reward and pledge reward for each settlement cycle
