@@ -351,6 +351,8 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 
 func (s *snapshotDB) SetEmpty() error {
 	logger.Debug("set snapshotDB empty", "path", s.path)
+	instance.Lock()
+	defer instance.Unlock()
 	if err := s.Clear(); err != nil {
 		return err
 	}
