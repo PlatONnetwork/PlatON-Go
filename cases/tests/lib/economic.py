@@ -95,7 +95,7 @@ class Economic:
             amount = 262215742000000000000000000
         block_proportion = str(new_block_rate / 100)
         staking_proportion = str(1 - new_block_rate / 100)
-        block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(annual_size)))
+        block_reward = int(Decimal(str(amount)) * Decimal(str(block_proportion)) / Decimal(str(annual_size))) - node.web3.toWei(1 , 'ether')
         staking_reward = int(
             Decimal(str(amount)) * Decimal(str(staking_proportion)) / Decimal(str(annualcycle)) / Decimal(
                 str(verifier_num)))
