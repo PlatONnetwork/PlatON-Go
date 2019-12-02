@@ -18,8 +18,6 @@ package eth
 
 import (
 	"math/big"
-	"os"
-	"os/user"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -91,15 +89,6 @@ var DefaultConfig = Config{
 
 	//MPCPool: core.DefaultMPCPoolConfig,
 	//VCPool:  core.DefaultVCPoolConfig,
-}
-
-func init() {
-	home := os.Getenv("HOME")
-	if home == "" {
-		if user, err := user.Current(); err == nil {
-			home = user.HomeDir
-		}
-	}
 }
 
 //go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
