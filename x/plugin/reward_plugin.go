@@ -98,11 +98,11 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	}
 
 	if xutil.IsEndOfEpoch(blockNumber) {
-		if _, _, err := rmp.CalcEpochReward(blockHash, head, state); nil != err {
-			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-		}
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
 			return err
+		}
+		if _, _, err := rmp.CalcEpochReward(blockHash, head, state); nil != err {
+			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 		}
 	}
 
@@ -285,11 +285,12 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
+	// When the first issuance is completed
 	// Each settlement cycle needs to update the year start time,
 	// which is used to calculate the average annual block production rate
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if yearNumber > 0 {
-		yearStartBlockNumber += epochBlocks
+		yearStartBlockNumber += epochBlocks - 1
 		yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
 		if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
 			log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -297,6 +298,24 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		}
 		log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
 			"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
+	}
+
+	avgPackTime := xcom.Interval() * uint64(millisecond)
+	if head.Number.Uint64() > yearStartBlockNumber {
+		diffNumber := head.Number.Uint64() - yearStartBlockNumber
+		diffTime := head.Time.Int64() - yearStartTime
+		// If it is less than or equal to the block difference,
+		// it is calculated according to the default average block production time
+		if uint64(diffTime) > diffNumber {
+			avgPackTime = uint64(diffTime) / diffNumber
+		}
+		log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
+			"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
+			"avgPackTime", avgPackTime)
+	}
+	if err := StorageAvgPackTime(blockHash, rmp.db, avgPackTime); nil != err {
+		log.Error("Failed to execute StorageAvgPackTime function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
+		return nil, nil, err
 	}
 
 	if remainReward.Cmp(common.Big0) == 0 {
@@ -336,28 +355,9 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Info("Call CalcEpochReward, The current time has exceeded the expected additional issue time", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "epochTotalReward", epochTotalReward)
 	} else {
-		// TODO Update default
-		avgPackTime := float64(1)
-		if head.Number.Uint64() == yearStartBlockNumber {
-			avgPackTime = 2
-			log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
-				"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime,
-				"avgPackTime", avgPackTime)
-		} else {
-			diffNumber := head.Number.Uint64() - yearStartBlockNumber
-			diffTime := (head.Time.Int64() - yearStartTime) / int64(millisecond)
-			// If it is less than or equal to the block difference,
-			// it is calculated according to the default average block production time
-			if uint64(diffTime) > diffNumber {
-				avgPackTime = float64(diffTime) / float64(diffNumber)
-			}
-			log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
-				"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
-				"avgPackTime", avgPackTime)
-		}
-		remainTime := (incIssuanceTime - head.Time.Int64()) / int64(millisecond)
+		remainTime := incIssuanceTime - head.Time.Int64()
 		remainEpoch := 1
-		remainBlocks := math.Ceil(float64(remainTime) / avgPackTime)
+		remainBlocks := math.Ceil(float64(remainTime) / float64(avgPackTime))
 		if remainBlocks > float64(epochBlocks) {
 			remainEpoch = int(math.Ceil(remainBlocks / float64(epochBlocks)))
 		}
@@ -369,9 +369,12 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 			"remainEpoch", remainEpoch, "remainReward", remainReward, "epochTotalReward", epochTotalReward)
 	}
 	if remainReward.Cmp(common.Big0) == 0 {
-		if err := StorageIncIssuanceNumber(blockHash, rmp.db, new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()); nil != err {
+		incIssuanceNumber := new(big.Int).Add(head.Number, new(big.Int).SetUint64(epochBlocks)).Uint64()
+		if err := StorageIncIssuanceNumber(blockHash, rmp.db, incIssuanceNumber); nil != err {
 			return nil, nil, err
 		}
+		log.Debug("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
+			"epochBlocks", epochBlocks, "incIssuanceNumber", incIssuanceNumber)
 	}
 	// Get the total block reward and pledge reward for each settlement cycle
 	epochTotalNewBlockReward := percentageCalculation(epochTotalReward, xcom.NewBlockRewardRate())
@@ -555,7 +558,7 @@ func LoadIncIssuanceNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, 
 	return common.BytesToUint64(incIssuanceNumberByte), nil
 }
 
-func IsYearEndBlockNumber(hash common.Hash, blockNumber uint64, db snapshotdb.DB) (bool, error) {
+func IsYearEnd(hash common.Hash, blockNumber uint64, db snapshotdb.DB) (bool, error) {
 	number, err := LoadIncIssuanceNumber(hash, db)
 	if nil != err {
 		return false, err
@@ -564,4 +567,24 @@ func IsYearEndBlockNumber(hash common.Hash, blockNumber uint64, db snapshotdb.DB
 		return true, nil
 	}
 	return false, nil
+}
+
+func StorageAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB, avgPackTime uint64) error {
+	if err := snapshotDB.Put(hash, reward.AvgPackTimeKey, common.Uint64ToBytes(avgPackTime)); nil != err {
+		log.Error("Failed to execute StorageAvgPackTime function", "hash", hash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
+		return err
+	}
+	return nil
+}
+
+func LoadAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, error) {
+	avgPackTimeByte, err := snapshotDB.Get(hash, reward.AvgPackTimeKey)
+	if nil != err {
+		if err == snapshotdb.ErrNotFound {
+			return 0, nil
+		}
+		log.Error("Failed to execute LoadAvgPackTime function", "hash", hash.TerminalString(), "key", string(reward.AvgPackTimeKey), "err", err)
+		return 0, err
+	}
+	return common.BytesToUint64(avgPackTimeByte), nil
 }

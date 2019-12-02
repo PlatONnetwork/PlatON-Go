@@ -29,6 +29,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -194,18 +195,13 @@ func TestRewardPlugin(t *testing.T) {
 	ec.Common.MaxConsensusVals = 1
 	ec.Common.NodeBlockTimeWindow = 1
 	ec.Common.PerRoundBlocks = 1
-	millisecond = 10
-	minutes = 600
+	millisecond = 3
+	minutes = 300
 
 	t.Run("CalcEpochReward", func(t *testing.T) {
 		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 		yearBalance := big.NewInt(1e18)
-		//rate := xcom.NewBlockRewardRate()
-		//epochs := xutil.EpochsPerYear()
-		//blocks := xutil.CalcBlocksEachYear()
-		//thisYear, lastYear := uint32(2), uint32(1)
-		//expectNewBlockReward := percentageCalculation(yearBalance, rate)
 		SetYearEndBalance(mockDB, 0, yearBalance)
 		mockDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
 
@@ -215,7 +211,7 @@ func TestRewardPlugin(t *testing.T) {
 		}
 		var packageReward *big.Int
 		var stakingReward *big.Int
-		for i := 0; i < int(xutil.CalcBlocksEachEpoch()*2); i++ {
+		for i := 0; i < int(xutil.CalcBlocksEachEpoch()*3); i++ {
 			parentBlock := chain.currentBlock
 			block := chain.insertBlock()
 
@@ -226,7 +222,7 @@ func TestRewardPlugin(t *testing.T) {
 				t.Fatalf("call endBlock fail, err：%v", err)
 			}
 			rand.Seed(int64(time.Now().Nanosecond()))
-			time.Sleep(time.Duration(int(time.Millisecond) * rand.Intn(5)))
+			time.Sleep(time.Duration(int(time.Millisecond) * rand.Intn(millisecond)))
 
 			if packageReward == nil {
 				packageReward, err = LoadNewBlockReward(common.ZeroHash, plugin.db)
@@ -278,41 +274,37 @@ func TestRewardPlugin(t *testing.T) {
 				}
 			}
 		}
-
-		/*plugin.rewardStakingByValidatorList(mockDB, list, stakingReward)
-		everyValidatorReward := new(big.Int).Div(stakingReward, big.NewInt(int64(len(list))))
-		for _, value := range list {
-			assert.Equal(t, everyValidatorReward, mockDB.GetBalance(value.BenefitAddress))
-		}
-
-		account := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
-		plugin.allocatePackageBlock(10, common.ZeroHash, account, newBlockReward, mockDB)
-
-		assert.Equal(t, newBlockReward, mockDB.GetBalance(account))
-
-		lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
-
-		plugin.increaseIssuance(thisYear, lastYear, mockDB)
-
-		newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
-
-		tmp := new(big.Int).Sub(newIssue, lastIssue)
-		assert.Equal(t, lastIssue, tmp.Mul(tmp, big.NewInt(IncreaseIssue)))
-
-		lastYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(lastYear)))
-
-		if plugin.isLessThanFoundationYear(thisYear) {
-			mockDB.GetBalance(xcom.CDFAccount())
-
-		} else {
-			mockDB.GetBalance(xcom.CDFAccount())
-			mockDB.GetBalance(xcom.PlatONFundAccount())
-		}
-		mockDB.GetBalance(vm.RewardManagerPoolAddr)
-
-		thisYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(thisYear)))
-
-		assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))*/
-
 	})
+}
+
+func TestIncreaseIssuance(t *testing.T) {
+	var plugin = RewardMgrInstance()
+
+	mockDB := buildStateDB(t)
+
+	thisYear, lastYear := uint32(2), uint32(1)
+
+	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
+
+	plugin.increaseIssuance(thisYear, lastYear, mockDB)
+
+	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
+
+	tmp := new(big.Int).Sub(newIssue, lastIssue)
+	assert.Equal(t, lastIssue, tmp.Mul(tmp, big.NewInt(IncreaseIssue)))
+
+	lastYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(lastYear)))
+
+	if plugin.isLessThanFoundationYear(thisYear) {
+		mockDB.GetBalance(xcom.CDFAccount())
+
+	} else {
+		mockDB.GetBalance(xcom.CDFAccount())
+		mockDB.GetBalance(xcom.PlatONFundAccount())
+	}
+	mockDB.GetBalance(vm.RewardManagerPoolAddr)
+
+	thisYearIssue := new(big.Int).SetBytes(mockDB.GetState(vm.RewardManagerPoolAddr, reward.GetHistoryIncreaseKey(thisYear)))
+
+	assert.Equal(t, new(big.Int).Sub(thisYearIssue, lastYearIssue), new(big.Int).Div(lastYearIssue, big.NewInt(IncreaseIssue)))
 }
