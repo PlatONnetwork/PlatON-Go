@@ -82,8 +82,6 @@ const (
 
 	ValidatorName = "Validator"
 	VerifierName  = "Verifier"
-	VersionData  = "VersionData"
-	VersionList  = "VersionList"
 )
 
 // Instance a global StakingPlugin
@@ -2370,34 +2368,6 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 		}
 
 	}
-
-	dataKey:=VersionData + ":" + strconv.FormatUint(blockNumber, 10);
-	nodeIdVersions := &staking.NodeIdVersion{
-		BlockNumber:blockNumber,
-		Version: version,
-		ProgramVersion: programVersion,
-		NodeIds: nodeIds,
-	}
-	log.Debug("wow,set VersionData", "key ", dataKey)
-	data, _ := rlp.EncodeToBytes(nodeIdVersions)
-	STAKING_DB.HistoryDB.Put([]byte(dataKey), data)
-
-	listDataByte,_ := STAKING_DB.HistoryDB.Get([]byte(VersionList))
-	log.Debug("wow,get listDataByte", "data ", listDataByte)
-	var versionList staking.VersionList
-	if listDataByte!=nil {
-		rlp.DecodeBytes(listDataByte, versionList)
-	}
-	xcom.PrintObject("wow,set versionList", versionList)
-	newVersionList := make([]string, len(versionList.NodeIdVersionKey) + 1)
-	for index, value := range versionList.NodeIdVersionKey {
-		newVersionList[index] = value
-	}
-	newVersionList[len(versionList.NodeIdVersionKey) + 1] = dataKey
-	versionList.NodeIdVersionKey = newVersionList
-	xcom.PrintObject("wow,set newVersionList", newVersionList)
-	listDataByte,_ = rlp.EncodeToBytes(versionList)
-	STAKING_DB.HistoryDB.Put([]byte(VersionList), listDataByte)
 
 	return nil
 }
