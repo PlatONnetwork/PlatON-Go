@@ -1458,8 +1458,6 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 
 func (sk *StakingPlugin) GetNodeVersion(blockHash common.Hash,blockNumber uint64) (staking.CandidateVersionQueue,error){
 
-	epoch := xutil.CalculateEpoch(blockNumber)
-
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
 	if err := iter.Error(); nil != err {
 		return nil, err
