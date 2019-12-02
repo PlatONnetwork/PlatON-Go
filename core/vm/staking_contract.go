@@ -775,15 +775,18 @@ func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]by
 		arr, nil), nil
 }
 
-func (stkc *StakingContract) getNodeVersion(blockNumber *big.Int) ([]byte, error) {
+func (stkc *StakingContract) getNodeVersion() ([]byte, error) {
 
-	arr, err := stkc.Plugin.GetNodeVersion( blockNumber.Uint64())
-	if nil != err {
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetNodeVersion(blockHash, blockNumber.Uint64())
+	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, "getNodeVersion",
 			arr, staking.ErrGetCandidateList.Wrap(err.Error())), nil
 	}
 
-	if nil == arr {
+	if snapshotdb.IsDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, "getNodeVersion",
 			arr, staking.ErrGetCandidateList.Wrap("CandidateList info is not found")), nil
 	}
