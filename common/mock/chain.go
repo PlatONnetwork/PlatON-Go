@@ -3,6 +3,9 @@ package mock
 import (
 	"math/big"
 	"math/rand"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -47,6 +50,15 @@ func (c *Chain) CurrentForkHeader() *types.Header {
 func (c *Chain) GetHeaderByHash(hash common.Hash) *types.Header {
 	for i := len(c.h) - 1; i >= 0; i-- {
 		if c.h[i].Hash() == hash {
+			return c.h[i]
+		}
+	}
+	return nil
+}
+
+func (c *Chain) GetHeaderByNumber(number uint64) *types.Header {
+	for i := len(c.h) - 1; i >= 0; i-- {
+		if c.h[i].Number.Uint64() == number {
 			return c.h[i]
 		}
 	}
@@ -223,8 +235,15 @@ func (s *MockStateDB) TxIdx() uint32 {
 }
 
 func generateHeader(num *big.Int, parentHash common.Hash) *types.Header {
+	privateKey, err := crypto.GenerateKey()
+	if nil != err {
+		panic(err)
+	}
+	addr := crypto.PubkeyToAddress(privateKey.PublicKey)
 	h := new(types.Header)
 	h.Number = num
 	h.ParentHash = parentHash
+	h.Coinbase = addr
+	h.Time = new(big.Int).SetInt64(time.Now().UnixNano() / 1e6)
 	return h
 }

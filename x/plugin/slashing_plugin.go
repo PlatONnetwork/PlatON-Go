@@ -136,7 +136,10 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				}
 				totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
 				if blockReward > 0 {
-					slashAmount = calcSlashBlockRewards(header.Number.Uint64(), uint64(blockReward), state)
+					slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blockReward))
+					if nil != err {
+						log.Error("Failed to BeginBlock, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+					}
 					if slashAmount.Cmp(totalBalance) > 0 {
 						slashAmount = totalBalance
 					}
@@ -478,13 +481,10 @@ func calcAmountByRate(balance *big.Int, numerator, denominator uint64) *big.Int 
 	return new(big.Int).SetInt64(0)
 }
 
-func calcSlashBlockRewards(blockNumber, blockReward uint64, state xcom.StateDB) *big.Int {
-	thisYear := xutil.CalculateYear(blockNumber)
-	var lastYear uint32
-	if thisYear != 0 {
-		lastYear = thisYear - 1
+func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount uint64) (*big.Int, error) {
+	newBlockReward, err := LoadNewBlockReward(hash, db)
+	if nil != err {
+		return nil, err
 	}
-	_, newBlockReward := RewardMgrInstance().calculateExpectReward(thisYear, lastYear, state)
-
-	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockReward))
+	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockRewardAmount)), nil
 }
