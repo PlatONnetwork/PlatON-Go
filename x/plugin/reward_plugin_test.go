@@ -19,11 +19,9 @@ package plugin
 import (
 	"math/big"
 	"math/rand"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/stretchr/testify/assert"
 
@@ -199,7 +197,7 @@ func TestRewardPlugin(t *testing.T) {
 	minutes = 300
 
 	t.Run("CalcEpochReward", func(t *testing.T) {
-		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+		//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 		yearBalance := big.NewInt(1e18)
 		SetYearEndBalance(mockDB, 0, yearBalance)

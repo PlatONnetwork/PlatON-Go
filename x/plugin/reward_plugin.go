@@ -97,8 +97,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		}
 	}
 
-	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, packageReward, state)
-
 	if xutil.IsEndOfEpoch(blockNumber) {
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
 			return err
@@ -107,6 +105,9 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 		}
 	}
+
+	rmp.allocatePackageBlock(blockNumber, blockHash, head.Coinbase, packageReward, state)
+
 	return nil
 }
 
