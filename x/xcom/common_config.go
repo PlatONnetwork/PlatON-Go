@@ -174,7 +174,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				NodeBlockTimeWindow: uint64(20),  // 20 seconds
 				PerRoundBlocks:      uint64(10),
 				MaxConsensusVals:    uint64(25),
-				AdditionalCycleTime: uint64(525600),
+				AdditionalCycleTime: uint64(525960),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:        new(big.Int).Set(MillionLAT),
