@@ -248,6 +248,11 @@ var (
 		Usage: "Percentage of cache memory allowance to use for trie pruning",
 		Value: 25,
 	}
+	CacheTrieDBFlag = cli.IntFlag{
+		Name:  "cache.triedb",
+		Usage: "Megabytes of memory allocated to triedb internal caching",
+		Value: eth.DefaultConfig.TrieDBCache,
+	}
 	TrieCacheGenFlag = cli.IntFlag{
 		Name:  "trie-cache-gens",
 		Usage: "Number of trie node generations to keep in memory",
@@ -591,7 +596,7 @@ var (
 		Name:  "db.gc_mpt",
 		Usage: "Enables database garbage collection MPT",
 	}
-	DBGCBlockFlag = cli.Uint64Flag{
+	DBGCBlockFlag = cli.IntFlag{
 		Name:  "db.gc_block",
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
@@ -1126,6 +1131,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
+	if ctx.GlobalIsSet(CacheTrieDBFlag.Name) {
+		cfg.TrieDBCache = ctx.GlobalInt(CacheTrieDBFlag.Name)
+	}
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
 	}
@@ -1181,7 +1189,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DBGCMpt = ctx.GlobalBool(DBGCMptFlag.Name)
 	}
 	if ctx.GlobalIsSet(DBGCBlockFlag.Name) {
-		b := ctx.GlobalUint64(DBGCBlockFlag.Name)
+		b := ctx.GlobalInt(DBGCBlockFlag.Name)
 		if b > 0 {
 			cfg.DBGCBlock = b
 		}

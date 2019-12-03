@@ -87,6 +87,15 @@ func NewDatabase(db ethdb.Database) Database {
 	}
 }
 
+func NewDatabaseWithCache(db ethdb.Database, cache int) Database {
+	//LRU
+	csc, _ := lru.New(codeSizeCacheSize)
+	return &cachingDB{
+		db:            trie.NewDatabaseWithCache(db, cache),
+		codeSizeCache: csc,
+	}
+}
+
 type cachingDB struct {
 	db            *trie.Database
 	mu            sync.Mutex

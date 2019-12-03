@@ -49,8 +49,9 @@ var DefaultConfig = Config{
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
-	TrieCache:     128,
+	TrieCache:     32,
 	TrieTimeout:   60 * time.Minute,
+	TrieDBCache:   512,
 	MinerGasFloor: params.GenesisGasLimit,
 	//MinerGasCeil:  4000 * 21000 * 1.2,
 	DBDisabledGC:  false,
@@ -115,11 +116,12 @@ type Config struct {
 	DatabaseCache      int
 	TrieCache          int
 	TrieTimeout        time.Duration
+	TrieDBCache        int
 	DBDisabledGC       bool
 	DBGCInterval       uint64
 	DBGCTimeout        time.Duration
 	DBGCMpt            bool
-	DBGCBlock          uint64
+	DBGCBlock          int
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`
