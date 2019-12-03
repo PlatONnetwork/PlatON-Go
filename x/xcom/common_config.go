@@ -315,15 +315,15 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 
 func CheckStakeThreshold(threshold *big.Int) error {
 
-	if threshold.Cmp(MillionLAT) < 0 || threshold.Cmp(TenMillionLAT) >= 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d) LAT", MillionLAT, TenMillionLAT))
+	if threshold.Cmp(MillionLAT) < 0 || threshold.Cmp(TenMillionLAT) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] LAT", MillionLAT, TenMillionLAT))
 	}
 	return nil
 }
 
 func CheckOperatingThreshold(threshold *big.Int) error {
-	if threshold.Cmp(TenLAT) < 0 || threshold.Cmp(TenThousandLAT) >= 0 {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d) LAT", TenLAT, TenThousandLAT))
+	if threshold.Cmp(TenLAT) < 0 || threshold.Cmp(TenThousandLAT) > 0 {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The OperatingThreshold must be [%d, %d] LAT", TenLAT, TenThousandLAT))
 	}
 	return nil
 }
