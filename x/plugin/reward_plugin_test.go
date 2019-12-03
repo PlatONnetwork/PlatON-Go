@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/stretchr/testify/assert"
 
@@ -142,6 +141,7 @@ func TestRewardPlugin(t *testing.T) {
 		accounts := make(map[common.Address]*big.Int)
 
 		yearBalance := big.NewInt(1e18)
+		SetYearEndCumulativeIssue(mockDB, 0, yearBalance)
 		SetYearEndBalance(mockDB, 0, yearBalance)
 		mockDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
 
@@ -152,7 +152,7 @@ func TestRewardPlugin(t *testing.T) {
 		rand.Seed(int64(time.Now().Nanosecond()))
 		var packageReward *big.Int
 		var stakingReward *big.Int
-		for i := 0; i < int(xutil.CalcBlocksEachEpoch()*3); i++ {
+		for i := 0; i < int(xutil.CalcBlocksEachEpoch()*5); i++ {
 			parentHeader := chain.CurrentHeader()
 			chain.AddBlock()
 			currentHeader := chain.CurrentHeader()
