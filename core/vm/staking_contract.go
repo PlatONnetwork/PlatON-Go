@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -51,6 +53,9 @@ const (
 	QueryRelateList     = 1103
 	QueryDelegateInfo   = 1104
 	QueryCandidateInfo  = 1105
+	GetPackageReward    = 1200
+	GetStakingReward    = 1201
+	GetAvgPackTime      = 1202
 )
 
 const (
@@ -93,6 +98,10 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		QueryRelateList:    stkc.getRelatedListByDelAddr,
 		QueryDelegateInfo:  stkc.getDelegateInfo,
 		QueryCandidateInfo: stkc.getCandidateInfo,
+
+		GetPackageReward: stkc.getPackageReward,
+		GetStakingReward: stkc.getStakingReward,
+		GetAvgPackTime:   stkc.getAvgPackTime,
 	}
 }
 
@@ -818,4 +827,28 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
 		nodeId), can, nil), nil
+}
+
+func (stkc *StakingContract) getPackageReward() ([]byte, error) {
+	packageReward, err := plugin.LoadNewBlockReward(common.ZeroHash, snapshotdb.Instance())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getPackageReward", nil, common.NotFound.Wrap(err.Error())), nil
+	}
+	return callResultHandler(stkc.Evm, "getPackageReward", (*hexutil.Big)(packageReward), nil), nil
+}
+
+func (stkc *StakingContract) getStakingReward() ([]byte, error) {
+	stakingReward, err := plugin.LoadStakingReward(common.ZeroHash, snapshotdb.Instance())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getStakingReward", nil, common.NotFound.Wrap(err.Error())), nil
+	}
+	return callResultHandler(stkc.Evm, "getStakingReward", (*hexutil.Big)(stakingReward), nil), nil
+}
+
+func (stkc *StakingContract) getAvgPackTime() ([]byte, error) {
+	avgPackTime, err := plugin.LoadAvgPackTime(common.ZeroHash, snapshotdb.Instance())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getAvgPackTime", nil, common.NotFound.Wrap(err.Error())), nil
+	}
+	return callResultHandler(stkc.Evm, "getAvgPackTime", avgPackTime, nil), nil
 }
