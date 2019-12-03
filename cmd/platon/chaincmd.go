@@ -203,16 +203,16 @@ func initGenesis(ctx *cli.Context) error {
 	if nil == genesis.Config.Cbft {
 		utils.Fatalf("cbft configuration is missed")
 	}
-	if genesis.Config.Cbft.Period <= 0 {
+	if genesis.Config.Cbft.Period == 0 {
 		utils.Fatalf("cbft.period configuration is missed")
 	}
-	if genesis.Config.Cbft.Amount <= 0 {
+	if genesis.Config.Cbft.Amount == 0 {
 		utils.Fatalf("cbft.amount configuration is missed")
 	}
 	if nil == genesis.EconomicModel {
 		utils.Fatalf("economic configuration is missed")
 	}
-	if genesis.Config.GenesisVersion <= 0 {
+	if genesis.Config.GenesisVersion == 0 {
 		utils.Fatalf("genesis version configuration is missed")
 	}
 

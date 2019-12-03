@@ -26,29 +26,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB, programVersion uint32) error {
-
-	isDone := false
-	switch {
-	case nil == g.Config:
-		isDone = true
-	case nil == g.Config.Cbft:
-		isDone = true
-	case len(g.Config.Cbft.InitialNodes) == 0:
-		isDone = true
-	}
-
-	if isDone {
-		log.Warn("Genesis StakingData, the genesis config or cbft or initialNodes is nil, Not building staking data")
-		return nil
-	}
+func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
 		return nil
 	}
-
-	//version := xutil.CalcVersion(programVersion)
 
 	var length int
 
@@ -99,8 +82,8 @@ func genesisStakingData(snapdb snapshotdb.DB, g *Genesis, stateDB *state.StateDB
 			BlsPubKey:       keyHex,
 			StakingAddress:  xcom.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,
-			StakingTxIndex:  uint32(index),  // txIndex from zero to n
-			ProgramVersion:  programVersion, // real version
+			StakingTxIndex:  uint32(index),           // txIndex from zero to n
+			ProgramVersion:  g.Config.GenesisVersion, // genesis version
 			StakingBlockNum: uint64(0),
 			Description: staking.Description{
 				ExternalId: "",
@@ -301,20 +284,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int, genesisVersion uint32) error {
-
-	isDone := false
-	switch {
-	case nil == g.Config:
-		isDone = true
-	case nil == g.Config.Cbft:
-		isDone = true
-	}
-
-	if isDone {
-		log.Warn("Genesis xxPlugin statedb, the genesis config or cbft is nil, Not Store plugin genesis state")
-		return nil
-	}
+func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
@@ -326,11 +296,11 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	// Store genesis Issue for LAT
 	plugin.SetYearEndCumulativeIssue(statedb, 0, genesisIssue)
 
-	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", genesisVersion, params.FormatVersion(genesisVersion)))
+	log.Info("Write genesis version into genesis block", "genesis version", fmt.Sprintf("%d/%s", g.Config.GenesisVersion, params.FormatVersion(g.Config.GenesisVersion)))
 
 	// Store genesis governance data
 	activeVersionList := []gov.ActiveVersionValue{
-		{ActiveVersion: genesisVersion, ActiveBlock: 0},
+		{ActiveVersion: g.Config.GenesisVersion, ActiveBlock: 0},
 	}
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
@@ -338,9 +308,6 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	if err := genesisAllowancePlan(statedb); nil != err {
 		return err
 	}
-	// Store genesis last Epoch
-	//	log.Info("Set latest epoch", "blockNumber", g.Number, "epoch", 0)
-	//	plugin.SetLatestEpoch(statedb, uint64(0))
 
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)

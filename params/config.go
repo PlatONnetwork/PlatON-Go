@@ -194,7 +194,7 @@ type ChainConfig struct {
 
 	// Various vm interpreter
 	VMInterpreter  string `json:"interpreter,omitempty"`
-	GenesisVersion uint32 `json:"GenesisVersion"`
+	GenesisVersion uint32 `json:"genesisVersion"`
 }
 
 type CbftNode struct {

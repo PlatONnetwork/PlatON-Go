@@ -121,8 +121,10 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed UnStakeFreezeDuration is failed: %v", err)
 				}
 
-				age, _ := GovernMaxEvidenceAge(blockNumber, blockHash)
-
+				age, err := GovernMaxEvidenceAge(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
 				if err := xcom.CheckUnStakeFreezeDuration(num, int(age)); nil != err {
 					return err
 				}
@@ -185,8 +187,10 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxEvidenceAge is failed: %v", err)
 				}
 
-				duration, _ := GovernUnStakeFreezeDuration(blockNumber, blockHash)
-
+				duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
 				if err := xcom.CheckMaxEvidenceAge(age, int(duration)); nil != err {
 					return err
 				}
