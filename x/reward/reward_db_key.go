@@ -31,7 +31,6 @@ var (
 	NewBlockRewardKey        = []byte("NewBlockRewardKey")
 	StakingRewardKey         = []byte("StakingRewardKey")
 	ChainYearNumberKey       = []byte("ChainYearNumberKey")
-	AvgPackTimeKey           = []byte("AvgPackTimeKey")
 )
 
 // GetHistoryIncreaseKey used for search the balance of reward pool at last year
