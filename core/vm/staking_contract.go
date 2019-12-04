@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -51,6 +53,9 @@ const (
 	QueryRelateList     = 1103
 	QueryDelegateInfo   = 1104
 	QueryCandidateInfo  = 1105
+	GetPackageReward    = 1200
+	GetStakingReward    = 1201
+	GetAvgPackTime      = 1202
 )
 
 const (
@@ -93,6 +98,10 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		QueryRelateList:    stkc.getRelatedListByDelAddr,
 		QueryDelegateInfo:  stkc.getDelegateInfo,
 		QueryCandidateInfo: stkc.getCandidateInfo,
+
+		GetPackageReward: stkc.getPackageReward,
+		GetStakingReward: stkc.getStakingReward,
+		GetAvgPackTime:   stkc.getAvgPackTime,
 	}
 }
 
@@ -183,6 +192,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	var isDeclareVersion bool
 
+	realVersion := programVersion
 	// Compare version
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
@@ -194,6 +204,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	} else if inputVersion > currVersion {
 		isDeclareVersion = true
+		//If the node version is higher than the current governance version, temporarily use the governance version,  wait for the version to pass the governance proposal, and then replace it
+		realVersion = originVersion
 	}
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -226,7 +238,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
-		ProgramVersion:  currVersion,
+		ProgramVersion:  realVersion,
 		Description:     *desc,
 	}
 
@@ -818,4 +830,28 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 	return callResultHandler(stkc.Evm, fmt.Sprintf("getCandidateInfo, nodeId: %s",
 		nodeId), can, nil), nil
+}
+
+func (stkc *StakingContract) getPackageReward() ([]byte, error) {
+	packageReward, err := plugin.LoadNewBlockReward(common.ZeroHash, snapshotdb.Instance())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getPackageReward", nil, common.NotFound.Wrap(err.Error())), nil
+	}
+	return callResultHandler(stkc.Evm, "getPackageReward", (*hexutil.Big)(packageReward), nil), nil
+}
+
+func (stkc *StakingContract) getStakingReward() ([]byte, error) {
+	stakingReward, err := plugin.LoadStakingReward(common.ZeroHash, snapshotdb.Instance())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getStakingReward", nil, common.NotFound.Wrap(err.Error())), nil
+	}
+	return callResultHandler(stkc.Evm, "getStakingReward", (*hexutil.Big)(stakingReward), nil), nil
+}
+
+func (stkc *StakingContract) getAvgPackTime() ([]byte, error) {
+	avgPackTime, err := plugin.LoadAvgPackTime(common.ZeroHash, snapshotdb.Instance())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getAvgPackTime", nil, common.NotFound.Wrap(err.Error())), nil
+	}
+	return callResultHandler(stkc.Evm, "getAvgPackTime", avgPackTime, nil), nil
 }
