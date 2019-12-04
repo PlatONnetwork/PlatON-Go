@@ -126,7 +126,13 @@ func TestRewardPlugin(t *testing.T) {
 	mockDB := chain.StateDB
 	snapshotdb.SetDBBlockChain(chain)
 
-	ec := xcom.GetEc(-1)
+	defaultEc := *xcom.GetEc(xcom.DefaultTestNet)
+	defer func() {
+		xcom.ResetEconomicDefaultConfig(&defaultEc)
+		snapshotdb.Instance().Clear()
+	}()
+
+	ec := xcom.GetEc(xcom.DefaultTestNet)
 	ec.Common.AdditionalCycleTime = 1
 	ec.Common.MaxEpochMinutes = 1
 	ec.Common.MaxConsensusVals = 1
