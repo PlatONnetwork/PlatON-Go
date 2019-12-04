@@ -93,10 +93,6 @@ func MillisToString(t int64) string {
 	return MillisToTime(t).Format("2006-01-02 15:04:05.999")
 }
 
-func FormatTime(milliTime time.Time) string {
-	return milliTime.Format("2006-01-02 15:04:05.999")
-}
-
 func Beautiful(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05.999")
 }
