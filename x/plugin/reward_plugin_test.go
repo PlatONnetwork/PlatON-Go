@@ -144,6 +144,7 @@ func TestRewardPlugin(t *testing.T) {
 		SetYearEndCumulativeIssue(mockDB, 0, yearBalance)
 		SetYearEndBalance(mockDB, 0, yearBalance)
 		mockDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
+		mockDB.AddBalance(vm.RestrictingContractAddr, new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18)))
 
 		validatorQueueList, err := buildTestStakingData(1, xutil.CalcBlocksEachEpoch())
 		if nil != err {
