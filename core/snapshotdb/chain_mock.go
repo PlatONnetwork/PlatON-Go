@@ -108,3 +108,12 @@ func (c *testchain) GetHeaderByHash(hash common.Hash) *types.Header {
 	}
 	return nil
 }
+
+func (c *testchain) GetHeaderByNumber(number uint64) *types.Header {
+	for i := len(c.h) - 1; i >= 0; i-- {
+		if c.h[i].Number.Uint64() == number {
+			return c.h[i]
+		}
+	}
+	return nil
+}

@@ -68,6 +68,8 @@ type Database struct {
 	nodes      map[common.Hash]*cachedNode // Data and references relationships of a node
 	oldest     common.Hash                 // Oldest tracked node, flush-list head
 	newest     common.Hash                 // Newest tracked node, flush-list tail
+	cleans     *BigCache
+	useless    []map[string]struct{}
 
 	preimages map[common.Hash][]byte // Preimages of nodes from the secure trie
 	seckeybuf [secureKeyLength]byte  // Ephemeral buffer for calculating preimage keys
@@ -276,6 +278,20 @@ func NewDatabase(diskdb ethdb.Database) *Database {
 	}
 }
 
+func NewDatabaseWithCache(diskdb ethdb.Database, cache int) *Database {
+	var cleans *BigCache
+	if cache > 0 {
+		cleans = NewBigCache(uint64(cache)*1024*1024, 1024)
+	}
+	return &Database{
+		diskdb:     diskdb,
+		freshNodes: make(map[common.Hash]struct{}),
+		nodes:      map[common.Hash]*cachedNode{{}: {}},
+		preimages:  make(map[common.Hash][]byte),
+		cleans:     cleans,
+	}
+}
+
 // DiskDB retrieves the persistent storage backing the trie database.
 func (db *Database) DiskDB() DatabaseReader {
 	return db.diskdb
@@ -352,10 +368,20 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 	if node != nil {
 		return node.obj(hash, cachegen)
 	}
+
+	if db.cleans != nil {
+		if enc, ok := db.cleans.Get(string(hash[:])); ok {
+			return mustDecodeNode(hash[:], enc, cachegen)
+		}
+	}
+
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc, err := db.diskdb.Get(hash[:])
 	if err != nil || enc == nil {
 		return nil
+	}
+	if db.cleans != nil {
+		db.cleans.SetLru(string(hash[:]), enc)
 	}
 	return mustDecodeNode(hash[:], enc, cachegen)
 }
@@ -372,8 +398,22 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	if node != nil {
 		return node.rlp(), nil
 	}
+
+	if db.cleans != nil {
+		if enc, ok := db.cleans.Get(string(hash[:])); ok {
+			return enc, nil
+		}
+	}
+
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.diskdb.Get(hash[:])
+	val, err := db.diskdb.Get(hash[:])
+	if err != nil {
+		return nil, err
+	}
+	if db.cleans != nil {
+		db.cleans.SetLru(string(hash[:]), val)
+	}
+	return val, nil
 }
 
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
@@ -456,18 +496,16 @@ func (db *Database) DereferenceDB(root common.Hash) {
 	defer db.lock.Unlock()
 
 	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
-	batch := db.diskdb.NewBatch()
+	useless := make(map[string]struct{})
 	clearFn := func(hash []byte) {
-		batch.Delete(hash)
-		if batch.ValueSize() > ethdb.IdealBatchSize {
-			batch.Write()
-			batch.Reset()
+		useless[string(hash)] = struct{}{}
+		if db.cleans != nil {
+			db.cleans.Delele(string(hash[:]))
 		}
 	}
 	db.dereference(root, common.Hash{}, clearFn)
 
-	batch.Write()
-
+	db.useless = append(db.useless, useless)
 	db.gcnodes += uint64(nodes - len(db.nodes))
 	db.gcsize += storage - db.nodesSize
 	db.gctime += time.Since(start)
@@ -480,6 +518,60 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 }
 
+func (db *Database) uselessTotal() int {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+	sum := 0
+	for _, m := range db.useless {
+		sum += len(m)
+	}
+	return sum
+}
+
+func (db *Database) UselessSize() int {
+	return len(db.useless)
+}
+
+func (db *Database) ResetUseless() {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	db.useless = nil
+}
+
+func (db *Database) UselessGC(num int) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	var (
+		start = time.Now()
+		total = 0
+		batch = db.diskdb.NewBatch()
+		size  = 0
+	)
+
+	for i, m := range db.useless {
+		if total >= num {
+			break
+		}
+
+		for k, _ := range m {
+			if db.nodes[common.BytesToHash([]byte(k))] == nil {
+				batch.Delete([]byte(k))
+			}
+			if batch.ValueSize() > ethdb.IdealBatchSize {
+				batch.Write()
+				batch.Reset()
+			}
+			size++
+		}
+
+		db.useless[i] = nil
+		total++
+	}
+	db.useless = db.useless[total:]
+	batch.Write()
+	log.Debug("UselessGC clean node", "size", size, "elapse", time.Since(start))
+}
+
 // Dereference removes an existing reference from a root node.
 func (db *Database) Dereference(root common.Hash) {
 	// Sanity check to ensure that the meta-root is not removed
@@ -490,8 +582,14 @@ func (db *Database) Dereference(root common.Hash) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
+	cleanFn := func(hash []byte) {
+		if db.cleans != nil {
+			db.cleans.Delele(string(hash))
+		}
+	}
+
 	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
-	db.dereference(root, common.Hash{}, nil)
+	db.dereference(root, common.Hash{}, cleanFn)
 
 	db.gcnodes += uint64(nodes - len(db.nodes))
 	db.gcsize += storage - db.nodesSize
@@ -757,6 +855,16 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 	if !report {
 		logger = log.Debug
 	}
+	if db.cleans != nil {
+		stats := db.cleans.Stats()
+		rate := 0.0
+		if stats.Hits > 0 {
+			rate = float64(stats.Hits) / float64(stats.Hits+stats.Misses)
+		}
+		logger("Clean stats", "len", db.cleans.Len(), "capacity", db.cleans.Capacity(),
+			"hits", stats.Hits, "misses", stats.Misses, "delHits", stats.DelHits,
+			"delMisses", stats.DelMisses, "rate", rate)
+	}
 	logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes)+int(db.flushnodes), "size", storage-db.nodesSize+db.flushsize, "time", time.Since(start)+db.flushtime,
 		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
@@ -780,8 +888,12 @@ func (db *Database) commit(hash common.Hash, batch ethdb.Batch) error {
 			return err
 		}
 	}
-	if err := batch.Put(hash[:], node.rlp()); err != nil {
+	enc := node.rlp()
+	if err := batch.Put(hash[:], enc); err != nil {
 		return err
+	}
+	if db.cleans != nil {
+		db.cleans.Set(string(hash[:]), enc)
 	}
 	// If we've reached an optimal batch size, commit and start over
 	if batch.ValueSize() >= ethdb.IdealBatchSize {
@@ -875,5 +987,18 @@ func (db *Database) accumulate(hash common.Hash, reachable map[common.Hash]struc
 	// Iterate over all the children and accumulate them too
 	for _, child := range node.childs() {
 		db.accumulate(child, reachable)
+	}
+}
+
+func (db *Database) CacheCapacity() uint64 {
+	if db.cleans != nil {
+		return db.cleans.Capacity()
+	}
+	return 0
+}
+
+func (db *Database) ResetCacheStats() {
+	if db.cleans != nil {
+		db.cleans.ResetStats()
 	}
 }
