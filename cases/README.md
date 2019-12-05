@@ -22,8 +22,6 @@ pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/ac
 
 --accountFile "deploy/accounts.yml": Specify the account file for testing
 
---initChain: This option appears to indicate that the chain data is to be initialized. if there is no such option, the chain data is not initialized.
-
 --installDependency：Indicates that the node needs to install the required dependencies, which is generally used during the first deployment; if it is not, it is no longer installed.
 
 --installSuperVisor：Indicates whether the node is installed with the supervisor service. It is usually used for the first deployment. If you do not have this option, it is no longer installed.
@@ -35,6 +33,7 @@ File storage requirements:
     Other files, put in the deploy/template template directory
 
 ### test case example:
+
     @pytest.mark.P1
     def test_case_001():
         print("begin: test_case_001")
