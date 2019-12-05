@@ -387,8 +387,8 @@ class Node:
             if self.fail_point:
                 go_fail_point = " GO_FAILPOINTS='{}' ".format(self.fail_point)
             cmd = "{} --identity platon --datadir".format(self.remote_bin_file)
-            cmd = cmd + " --db.nogc"
             cmd = cmd + " {} --port ".format(self.remote_data_dir) + self.p2p_port
+            cmd = cmd + " --db.nogc"
             cmd = cmd + " --gcmode archive --nodekey " + self.remote_nodekey_file
             cmd = cmd + " --cbft.blskey " + self.remote_blskey_file
             cmd = cmd + " --config " + self.remote_config_file
