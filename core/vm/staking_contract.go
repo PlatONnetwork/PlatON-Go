@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -53,6 +54,9 @@ const (
 	QueryRelateList     = 1103
 	QueryDelegateInfo   = 1104
 	QueryCandidateInfo  = 1105
+	QueryHistoryVerifierList  = 1106
+	QueryHistoryValidatorList  = 1107
+	QueryNodeVersion  = 1108
 	GetPackageReward    = 1200
 	GetStakingReward    = 1201
 	GetAvgPackTime      = 1202
@@ -98,6 +102,9 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		QueryRelateList:    stkc.getRelatedListByDelAddr,
 		QueryDelegateInfo:  stkc.getDelegateInfo,
 		QueryCandidateInfo: stkc.getCandidateInfo,
+		QueryHistoryVerifierList: stkc.getHistoryVerifierList,
+		QueryHistoryValidatorList: stkc.getHistoryValidatorList,
+		QueryNodeVersion: stkc.getNodeVersion,
 
 		GetPackageReward: stkc.getPackageReward,
 		GetStakingReward: stkc.getStakingReward,
@@ -724,6 +731,23 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		arr, nil), nil
 }
 
+func (stkc *StakingContract) getHistoryVerifierList(blockNumber *big.Int) ([]byte, error) {
+
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetHistoryVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
+	if nil != err {
+		callResultHandler(stkc.Evm, "getHistoryVerifierList",
+			arr, staking.ErrGetVerifierList.Wrap(err.Error()))
+	}
+	arrByte, _ := json.Marshal(arr)
+
+	// todo test
+	log.Debug("getHistoryVerifierList", "valArr", string(arrByte))
+	return callResultHandler(stkc.Evm, "getHistoryVerifierList",
+		arr, nil), nil
+}
+
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	blockNumber := stkc.Evm.BlockNumber
@@ -742,6 +766,41 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	}
 
 	return callResultHandler(stkc.Evm, "getValidatorList",
+		arr, nil), nil
+}
+
+func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]byte, error) {
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetHistoryValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getHistoryValidatorList",
+			arr, staking.ErrGetValidatorList.Wrap(err.Error())), nil
+	}
+
+	if nil == arr {
+		return callResultHandler(stkc.Evm, "getHistoryValidatorList",
+			arr, staking.ErrGetValidatorList.Wrap("ValidatorList info is not found")), nil
+	}
+
+	return callResultHandler(stkc.Evm, "getHistoryValidatorList",
+		arr, nil), nil
+}
+
+func (stkc *StakingContract) getNodeVersion(blockNumber *big.Int) ([]byte, error) {
+
+	arr, err := stkc.Plugin.GetNodeVersion( blockNumber.Uint64())
+	if nil != err {
+		return callResultHandler(stkc.Evm, "getNodeVersion",
+			arr, staking.ErrGetCandidateList.Wrap(err.Error())), nil
+	}
+
+	if nil == arr {
+		return callResultHandler(stkc.Evm, "getNodeVersion",
+			arr, staking.ErrGetCandidateList.Wrap("CandidateList info is not found")), nil
+	}
+
+	return callResultHandler(stkc.Evm, "getNodeVersion",
 		arr, nil), nil
 }
 

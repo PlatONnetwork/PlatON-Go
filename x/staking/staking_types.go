@@ -1131,3 +1131,14 @@ func (queue SlashQueue) String() string {
 	}
 	return "[" + strings.Join(arr, ",") + "]"
 }
+
+type NodeIdVersion struct {
+	BlockNumber uint64
+	Version uint32
+	ProgramVersion uint32
+	NodeIds []discover.NodeID
+}
+
+type VersionList struct {
+	NodeIdVersionKey []string
+}
