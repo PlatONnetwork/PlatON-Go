@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"sort"
 	"sync"
@@ -38,6 +39,7 @@ import (
 
 type RestrictingPlugin struct {
 	log log.Logger
+	db  snapshotdb.DB
 }
 
 var (
@@ -49,7 +51,7 @@ func RestrictingInstance() *RestrictingPlugin {
 	restrictingOnce.Do(func() {
 		restrictLog := log.Root().New("package", "RestrictingPlugin")
 		restrictLog.Info("Init Restricting plugin ...")
-		rt = &RestrictingPlugin{restrictLog}
+		rt = &RestrictingPlugin{restrictLog, snapshotdb.Instance()}
 	})
 	return rt
 }
@@ -67,6 +69,9 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
 		if err := rp.releaseRestricting(expect, state); err != nil {
 			return err
+		}
+		if ok, _ := IsYearEnd(blockHash, head.Number.Uint64(), rp.db); ok {
+			return rp.releaseGenesisRestrictingPlans(state)
 		}
 	}
 	return nil
@@ -126,6 +131,77 @@ func (rp *RestrictingPlugin) transferAmount(state xcom.StateDB, from, to common.
 	state.AddBalance(to, mount)
 }
 
+// update genesis restricting plans
+func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int) error {
+
+	if val, err := rlp.EncodeToBytes(plans); nil != err {
+		return fmt.Errorf("Failed to Store genesisAllowancePlans Info: rlp encodeing failed")
+	} else {
+		err = rp.db.PutBaseDB(restricting.InitialFoundationRestricting,val)
+		if nil != err {
+			return fmt.Errorf("Failed to Store genesisAllowancePlans Info: put basedb failed, err:%s",err.Error())
+		}
+	}
+	return nil
+}
+
+// init the genesis restricting plans
+func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) error {
+
+	genesisAllowancePlans := []*big.Int{
+		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18)),
+	}
+
+	//initial release from genesis restricting plans(62215742LAT)
+	initialRelease := new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
+	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
+	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
+
+	//transfer 259096239LAT from CDFAccount to vm.RestrictingContractAddr
+	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
+	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
+	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
+
+	if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans); nil != err {
+		return err
+	}
+	return nil
+}
+
+// release genesis restricting plans
+func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(statedb xcom.StateDB) error {
+
+	plansBytes := statedb.GetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting)
+	var genesisAllowancePlans []*big.Int
+	if len(plansBytes) > 0 {
+		if err := rlp.DecodeBytes(plansBytes, &genesisAllowancePlans); err != nil {
+			rp.log.Error("failed to rlp decode the genesis allowance plans", "err", err.Error())
+			return common.InternalError.Wrap(err.Error())
+		} else {
+			remains := len(genesisAllowancePlans)
+			if remains > 0 {
+				allowance := genesisAllowancePlans[0]
+				statedb.SubBalance(vm.RestrictingContractAddr, allowance)
+				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
+
+				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
+				if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans); nil != err {
+					return err
+				}
+			} else {
+				statedb.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, []byte{})
+			}
+		}
+	}
+	return nil
+}
 // AddRestrictingRecord stores four K-V record in StateDB:
 // RestrictingInfo: the account info to be released
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
@@ -517,6 +593,36 @@ func (rp *RestrictingPlugin) getRestrictingInfoToReturn(account common.Address, 
 
 func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) (*restricting.Result, *common.BizError) {
 	return rp.getRestrictingInfoToReturn(account, state)
+}
+
+// check if idx in subsidy period(idx <= 8)
+func (rp *RestrictingPlugin) inSubsidy(idx uint32) bool {
+	return idx <= 8
+}
+
+// PlatON foundation initial allowance
+func (rp *RestrictingPlugin) foundationAllowance(idx uint32, state xcom.StateDB) {
+	allowancePlans := []*big.Int{
+		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18)),
+	}
+	if idx > uint32(len(allowancePlans)) {
+		log.Error("the year is wrong")
+	}
+
+	allowance := allowancePlans[idx-1]
+	if state.GetBalance(vm.RestrictingContractAddr).Cmp(allowance) < 0 {
+		panic("restricting contract balance is not enough!")
+	}
+	log.Debug("release ",allowance, " to ",vm.RewardManagerPoolAddr, " from ",vm.RestrictingContractAddr)
+	state.SubBalance(vm.RestrictingContractAddr, allowance)
+	state.AddBalance(vm.RewardManagerPoolAddr, allowance)
 }
 
 // state DB operation

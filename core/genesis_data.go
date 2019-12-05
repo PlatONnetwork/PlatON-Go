@@ -305,16 +305,10 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.In
 	activeVersionListBytes, _ := json.Marshal(activeVersionList)
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), activeVersionListBytes)
 
-	//initial release from genesis restricting plans(62215742LAT)
-	initialRelease := new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
-	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
-
-	//transfer 259096239LAT from CDFAccount to vm.RestrictingContractAddr
-	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
-	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
-
+	err := plugin.RestrictingInstance().InitGenesisRestrictingPlans(statedb)
+	if err != nil {
+		return fmt.Errorf("Failed to init genesis restricting plans, err", err.Error())
+	}
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
 	log.Info("Set SetYearEndBalance", "genesisReward", genesisReward)
