@@ -440,6 +440,7 @@ func (queue CandidateQueue) String() string {
 }
 
 type CandidateHexQueue []*CandidateHex
+type CandidateVersionQueue []*CandidateVersion
 
 func (queue CandidateHexQueue) IsNotEmpty() bool {
 	return !queue.IsEmpty()
@@ -1132,13 +1133,7 @@ func (queue SlashQueue) String() string {
 	return "[" + strings.Join(arr, ",") + "]"
 }
 
-type NodeIdVersion struct {
-	BlockNumber uint64
-	Version uint32
-	ProgramVersion uint32
-	NodeIds []discover.NodeID
-}
-
-type VersionList struct {
-	NodeIdVersionKey []string
+type CandidateVersion struct {
+	NodeId             discover.NodeID
+	ProgramVersion     uint32
 }

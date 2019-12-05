@@ -528,7 +528,9 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	)
 	result.Account = account
 	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
-	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
+	result.LockBalance = (*hexutil.Big)(big.NewInt(0))
+	result.PledgeBalance = (*hexutil.Big)(big.NewInt(0))
+		_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		log.Error("failed to rlp encode the restricting account", "error", err.Error(), "info", info)
 		return result, nil
