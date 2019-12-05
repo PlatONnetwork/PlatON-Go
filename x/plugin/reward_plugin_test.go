@@ -19,10 +19,12 @@ package plugin
 import (
 	"math/big"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/stretchr/testify/assert"
 
@@ -142,7 +144,7 @@ func TestRewardPlugin(t *testing.T) {
 	minutes = 400
 
 	t.Run("CalcEpochReward", func(t *testing.T) {
-		//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 		accounts := make(map[common.Address]*big.Int)
 
@@ -163,14 +165,15 @@ func TestRewardPlugin(t *testing.T) {
 			chain.AddBlock()
 			currentHeader := chain.CurrentHeader()
 
+			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
+				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetUint64(3))
+			}
+
 			if err := snapshotdb.Instance().NewBlock(currentHeader.Number, parentHeader.Hash(), common.ZeroHash); nil != err {
 				t.Fatal(err)
 			}
 			if err := plugin.EndBlock(common.ZeroHash, currentHeader, mockDB); nil != err {
 				t.Fatalf("call endBlock fail, err：%v", err)
-			}
-			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
-				time.Sleep(time.Duration(int(time.Millisecond) * 3))
 			}
 
 			if packageReward == nil {
