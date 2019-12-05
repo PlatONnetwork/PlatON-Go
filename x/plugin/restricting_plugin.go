@@ -71,7 +71,7 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 			return err
 		}
 		if ok, _ := IsYearEnd(blockHash, head.Number.Uint64(), rp.db); ok {
-			rp.log.Info("release genesis restricting plan, blocknumber:",head.Number.Uint64())
+			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d",head.Number.Uint64()))
 			return rp.releaseGenesisRestrictingPlans(blockHash, state)
 		}
 	}
@@ -196,7 +196,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 			} else {
 				statedb.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, []byte{})
 			}
-			rp.log.Info("release genesis restricting plan, remains:",remains)
+			rp.log.Info(fmt.Sprintf("release genesis restricting plan, remains:%d",remains))
 		}
 	}
 	return nil
