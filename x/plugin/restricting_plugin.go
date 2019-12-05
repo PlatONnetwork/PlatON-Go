@@ -196,7 +196,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 			} else {
 				statedb.SetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting, []byte{})
 			}
-			rp.log.Info(fmt.Sprintf("release genesis restricting plan, remains:%d",remains))
+			rp.log.Info("release genesis restricting plan", "remains:",remains,"left:",len(genesisAllowancePlans))
 		}
 	}
 	return nil
