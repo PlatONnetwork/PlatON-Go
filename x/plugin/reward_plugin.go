@@ -310,6 +310,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	if head.Number.Uint64() > yearStartBlockNumber {
 		diffNumber := head.Number.Uint64() - yearStartBlockNumber
 		diffTime := head.Time.Int64() - yearStartTime
+
 		avgPackTime = uint64(diffTime) / diffNumber
 		log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
