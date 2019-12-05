@@ -3,18 +3,25 @@ This is an automated test project of the PaltON-Go
 
 ## Installation and operation dependencies
 Install the python 3.7 environment and configure pip, then execute the following command to install the dependency library:
-
-    pip install -r requirements.txt 
-
+```shell script
+pip install -r requirements.txt
+```
+     
 ## Run test
 
 ### Execute all test cases
+
+```shell script
 pytest test_start.py --nodeFile "deploy/4_node.yml" --accountFile "deploy/accounts.yml" --initChain
+```
 
 ### Execute at Multiple environment
-pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
 
-    Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
+```shell script
+pytest "case_path" --nodeFile "node_file_1,node_file_2" --accountFile "deploy/accounts.yml" --initChain -n 2
+```
+
+Note: The number of node configuration files must be equal to the number of threads, and multiple node configuration files are separated by English ","
 
 ## pytest Command line argument
 
