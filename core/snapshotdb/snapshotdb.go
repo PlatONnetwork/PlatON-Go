@@ -158,6 +158,7 @@ type snapshotDB struct {
 type Chain interface {
 	CurrentHeader() *types.Header
 	GetHeaderByHash(hash common.Hash) *types.Header
+	GetHeaderByNumber(number uint64) *types.Header
 }
 
 func SetDBPathWithNode(path string) {
@@ -168,6 +169,10 @@ func SetDBPathWithNode(path string) {
 func SetDBBlockChain(c Chain) {
 	blockchain = c
 	logger.Info("set blockchain")
+}
+
+func GetDBBlockChain() Chain {
+	return blockchain
 }
 
 func SetDBOptions(cache int, handles int) {
@@ -351,6 +356,8 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 
 func (s *snapshotDB) SetEmpty() error {
 	logger.Debug("set snapshotDB empty", "path", s.path)
+	instance.Lock()
+	defer instance.Unlock()
 	if err := s.Clear(); err != nil {
 		return err
 	}
@@ -868,6 +875,9 @@ func (s *snapshotDB) Close() error {
 	logger.Info("begin close snapshotdb", "path", s.path)
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
+		return nil
+	}
+	if s.closed {
 		return nil
 	}
 	if s.corn != nil {

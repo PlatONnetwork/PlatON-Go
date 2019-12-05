@@ -20,6 +20,8 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -1131,8 +1133,13 @@ func TestGovPlugin_GetPreActiveVersion(t *testing.T) {
 	sndb.Compaction()
 	buildBlockNoCommit(2)
 
-	ver := gov.GetPreActiveVersion(stateDB)
-	t.Logf("Get pre-active version: %d", ver)
+	if err := gov.SetPreActiveVersion(lastBlockHash, uint32(10)); err != nil {
+		t.Error("SetPreActiveVersion error", err)
+	} else {
+		ver := gov.GetPreActiveVersion(lastBlockHash)
+		assert.Equal(t, uint32(10), ver)
+	}
+
 }
 
 func TestGovPlugin_GetActiveVersion(t *testing.T) {
@@ -1144,7 +1151,7 @@ func TestGovPlugin_GetActiveVersion(t *testing.T) {
 	buildBlockNoCommit(2)
 
 	ver := gov.GetCurrentActiveVersion(stateDB)
-	t.Logf("Get active version: %d", ver)
+	assert.Equal(t, initProgramVersion, ver)
 }
 
 func TestGovPlugin_versionProposalActive(t *testing.T) {
@@ -1256,15 +1263,11 @@ func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 			versionBytes := extraData[0].([]byte)
 			versionInHeader := common.BytesToUint32(versionBytes)
 
-			activeVersion := gov.GetActiveVersion(lastHeader.Number.Uint64(), stateDB)
+			activeVersion := gov.GetCurrentActiveVersion(stateDB)
 			t.Log("verify header version", "headerVersion", versionInHeader, "activeVersion", activeVersion, "blockNumber", lastHeader.Number.Uint64())
-			if activeVersion == versionInHeader {
-				t.Log("OK")
-			} else {
-				t.Error("header version error")
-			}
+			assert.Equal(t, activeVersion, versionInHeader)
 		} else {
-			t.Error("unknown header extra data", "elementCount", len(extraData))
+			t.Fatalf("unknown header extra data, elementCount= %d", len(extraData))
 		}
 	}
 

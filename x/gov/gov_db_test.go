@@ -18,7 +18,13 @@ package gov
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
+	"os"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/stretchr/testify/assert"
 
@@ -439,12 +445,12 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 	Init()
 	defer snapshotdb.Instance().Clear()
 
+	blockHash, _ := newBlock(big.NewInt(1))
 	version := uint32(32)
-	//proposal := getVerProposal(common.Hash{0x1})
-	if err := SetPreActiveVersion(version, statedb); err != nil {
+	if err := SetPreActiveVersion(blockHash, version); err != nil {
 		t.Fatalf("set pre-active version error...%s", err)
 	}
-	vget := GetPreActiveVersion(statedb)
+	vget := GetPreActiveVersion(blockHash)
 	if vget != version {
 		t.Fatalf("get pre-active version error,expect version:%d,get version:%d", version, vget)
 	}
@@ -453,8 +459,8 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 func TestGovDB_GetPreActiveVersionNotExist(t *testing.T) {
 	Init()
 	defer snapshotdb.Instance().Clear()
-
-	vget := GetPreActiveVersion(statedb)
+	blockHash, _ := newBlock(big.NewInt(1))
+	vget := GetPreActiveVersion(blockHash)
 	t.Logf("get pre-active version error,get version:%d", vget)
 }
 
@@ -828,6 +834,13 @@ func TestGovDB_FindGovernParamValue(t *testing.T) {
 	} else if item.Value == "initValue" {
 		assert.Equal(t, "initValue", item.Value, "error")
 	}
+}
+
+func TestGovDB_Version(t *testing.T) {
+	version := uint32(0<<16 | 7<<8 | 4)
+	fmt.Println(version)
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	log.Warn("Store version for gov into genesis statedb", "genesis version", fmt.Sprintf("%d/%s", version, params.FormatVersion(version)))
 }
 
 func newBlock(blockNumber *big.Int) (common.Hash, error) {

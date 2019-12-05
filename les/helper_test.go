@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -143,7 +143,7 @@ func testRCL() RequestCostList {
 func newTestProtocolManager(lightSync bool, blocks int, generator func(int, *core.BlockGen), odr *LesOdr, peers *peerSet, db ethdb.Database) (*ProtocolManager, error) {
 	var (
 		evmux  = new(event.TypeMux)
-		engine = cbft.NewFaker()
+		engine = consensus.NewFaker()
 		gspec  = core.Genesis{
 			Config: params.TestChainConfig,
 			Alloc:  core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
@@ -159,7 +159,7 @@ func newTestProtocolManager(lightSync bool, blocks int, generator func(int, *cor
 		chain, _ = light.NewLightChain(odr, gspec.Config, engine)
 	} else {
 		blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
-		gchain, _ := core.GenerateChain(gspec.Config, genesis, cbft.NewFaker(), db, blocks, generator)
+		gchain, _ := core.GenerateChain(gspec.Config, genesis, consensus.NewFaker(), db, blocks, generator)
 		if _, err := blockchain.InsertChain(gchain); err != nil {
 			panic(err)
 		}

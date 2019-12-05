@@ -18,8 +18,6 @@ package eth
 
 import (
 	"math/big"
-	"os"
-	"os/user"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -51,8 +49,9 @@ var DefaultConfig = Config{
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
-	TrieCache:     256,
+	TrieCache:     32,
 	TrieTimeout:   60 * time.Minute,
+	TrieDBCache:   512,
 	MinerGasFloor: params.GenesisGasLimit,
 	//MinerGasCeil:  4000 * 21000 * 1.2,
 	DBDisabledGC:  false,
@@ -93,15 +92,6 @@ var DefaultConfig = Config{
 	//VCPool:  core.DefaultVCPoolConfig,
 }
 
-func init() {
-	home := os.Getenv("HOME")
-	if home == "" {
-		if user, err := user.Current(); err == nil {
-			home = user.HomeDir
-		}
-	}
-}
-
 //go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
 
 type Config struct {
@@ -126,11 +116,12 @@ type Config struct {
 	DatabaseCache      int
 	TrieCache          int
 	TrieTimeout        time.Duration
+	TrieDBCache        int
 	DBDisabledGC       bool
 	DBGCInterval       uint64
 	DBGCTimeout        time.Duration
 	DBGCMpt            bool
-	DBGCBlock          uint64
+	DBGCBlock          int
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`

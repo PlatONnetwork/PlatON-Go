@@ -18,7 +18,6 @@
 package miner
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -57,7 +56,7 @@ func New(eth Backend, config *params.ChainConfig, miningConfig *core.MiningConfi
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, miningConfig, engine, eth, mux, recommit, gasFloor /*gasCeil,*/, isLocalBlock, blockChainCache),
+		worker:   newWorker(config, miningConfig, engine, eth, mux, recommit, gasFloor, isLocalBlock, blockChainCache),
 		canStart: 1,
 	}
 	go miner.update()
@@ -112,6 +111,7 @@ func (self *Miner) Start() {
 		log.Info("Network syncing, will start miner afterwards")
 		return
 	}
+
 	self.worker.start()
 	if bft, ok := self.engine.(consensus.Bft); ok {
 		bft.Resume()
@@ -136,20 +136,13 @@ func (self *Miner) Mining() bool {
 	return self.worker.isRunning()
 }
 
-func (self *Miner) HashRate() uint64 {
-	if pow, ok := self.engine.(consensus.PoW); ok {
-		return uint64(pow.Hashrate())
-	}
-	return 0
-}
-
-func (self *Miner) SetExtra(extra []byte) error {
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
-	}
-	self.worker.setExtra(extra)
-	return nil
-}
+//func (self *Miner) SetExtra(extra []byte) error {
+//	if uint64(len(extra)) > params.MaximumExtraDataSize {
+//		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
+//	}
+//	self.worker.setExtra(extra)
+//	return nil
+//}
 
 // SetRecommitInterval sets the interval for sealing work resubmitting.
 func (self *Miner) SetRecommitInterval(interval time.Duration) {

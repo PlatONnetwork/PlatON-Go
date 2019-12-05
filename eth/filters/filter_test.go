@@ -23,6 +23,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
@@ -135,7 +136,7 @@ func TestFilters(t *testing.T) {
 
 	//ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
 	//chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 1000, func(i int, gen *core.BlockGen) {
-	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.NewFaker(), db, 1000, func(i int, gen *core.BlockGen) {
+	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), db, 1000, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 1:
 			receipt := types.NewReceipt(nil, false, 0)

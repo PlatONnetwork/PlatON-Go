@@ -1,10 +1,29 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package vm
 
 import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -590,6 +609,51 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
 }
 
+func TestGovContract_SubmitVersion_Passed(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	//submit a proposal and vote for it. the proposalID = txHashArr[1]
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
+
+	commit_sndb(chain)
+
+	build_staking_data_more(chain)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+	p := pTemp.(*gov.VersionProposal)
+
+	//skip empty blocks
+	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+	endBlock(chain, t)
+	commit_sndb(chain)
+
+	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.PreActive {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	//skip empty blocks, this version proposal is pre-active
+	skip_emptyBlock(chain, p.GetActiveBlock()-1)
+}
+
 func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
@@ -635,6 +699,95 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	skip_emptyBlock(chain, p.GetActiveBlock()-1)
 	//submit another version proposal
 	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.CalcConsensusRounds(xcom.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
+}
+
+func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
+	chain := setup(t)
+	defer clear(chain, t)
+	//submit a proposal and vote for it. the proposalID = txHashArr[1]
+	runGovContract(false, gc, buildSubmitVersionInput(), t)
+
+	commit_sndb(chain)
+
+	build_staking_data_more(chain)
+	commit_sndb(chain)
+
+	prepair_sndb(chain, txHashArr[2])
+	allVote(chain, t, defaultProposalID, gov.Yes)
+	commit_sndb(chain)
+
+	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Fatal("find proposal error", "err", err)
+	}
+	p := pTemp.(*gov.VersionProposal)
+
+	//skip empty blocks
+	skip_emptyBlock(chain, p.GetEndVotingBlock()-1)
+
+	// build_staking_data_more will build a new block base on chain.SnapDB.Current
+	build_staking_data_more(chain)
+	endBlock(chain, t)
+	commit_sndb(chain)
+
+	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	} else if result.Status == gov.PreActive {
+		t.Log("the result status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	} else {
+		t.Fatal("tallyResult", "status", result.Status, "yeas", result.Yeas, "accuVerifiers", result.AccuVerifiers)
+	}
+
+	//skip empty blocks, this version proposal is pre-active
+	skip_emptyBlock(chain, p.GetActiveBlock()-1)
+
+	prepair_sndb(chain, common.ZeroHash)
+
+	if preactiveID, err := gov.GetPreActiveProposalID(chain.CurrentHeader().Hash()); err != nil {
+		t.Error("GetPreActiveProposalID error", err)
+	} else {
+		assert.Equal(t, preactiveID, defaultProposalID)
+	}
+
+	/*if err := gov.MovePreActiveProposalIDToEnd(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+		t.Error("move pre-active proposal ID to end list failed", "proposalID", defaultProposalID, "blockHash", blockHash)
+	}*/
+
+	//----clear all data of this pre-active proposal
+	if err := gov.ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+		t.Error("ClearProcessingProposals error", err)
+	} else {
+		if votinglist, err := gov.ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+			t.Error("ListVotingProposalID, err", err)
+		} else {
+			assert.Equal(t, 0, len(votinglist))
+		}
+
+		if endList, err := gov.ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
+			t.Error("ListEndProposalID, err", err)
+		} else {
+			assert.Equal(t, 1, len(endList))
+		}
+
+		//-------
+		if vvList, err := gov.ListVoteValue(defaultProposalID, chain.CurrentHeader().Hash()); err != nil {
+			t.Error("ListVoteValue, err", err)
+		} else {
+			assert.Equal(t, 0, len(vvList))
+		}
+
+		if avList, err := gov.ListAccuVerifier(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+			t.Error("ListVoteValue, err", err)
+		} else {
+			assert.Equal(t, 0, len(avList))
+		}
+	}
 }
 
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {

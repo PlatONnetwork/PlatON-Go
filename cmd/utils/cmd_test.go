@@ -12,7 +12,7 @@ func TestImportChain(t *testing.T) {
 
 		fileName := "000001.log"
 
-		cbft := cbft.NewFaker()
+		cbft := consensus.NewFaker()
 
 		sdb, err := ethdb.NewLDBDatabase(sourceDir, 0, 0)
 		if err != nil {

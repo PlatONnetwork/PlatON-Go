@@ -1011,7 +1011,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   oldIndex.End + xutil.CalcBlocksEachEpoch(),
 	}
 
-	currOriginVersion := gov.GetVersionForStaking(state)
+	currOriginVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(currOriginVersion)
 
 	maxvalidators, err := gov.GovernMaxValidators(blockNumber, blockHash)
@@ -1565,7 +1565,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	lowRatioValidMap := make(map[common.Address]*staking.Candidate) // The map collect candidate info that need to clean lowRatio status
 
 	// Query Valid programVersion
-	originVersion := gov.GetVersionForStaking(state)
+	originVersion := gov.GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(originVersion)
 
 	// Collecting removed as a result of being slashed
@@ -2136,7 +2136,6 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
 
-	version := xutil.CalcVersion(programVersion)
 
 	for _, nodeId := range nodeIds {
 
@@ -2160,14 +2159,14 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			return err
 		}
 
-		can.ProgramVersion = version
+		can.ProgramVersion = programVersion
 
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 			return err
 		}
-
+		//Store full version
 		if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
@@ -2182,10 +2181,8 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
 	programVersion uint32) error {
 
-	version := xutil.CalcVersion(programVersion)
-
 	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", version, "nodeId", nodeId.String())
+		"blockHash", blockHash.Hex(), "real version", programVersion, "calc version", xutil.CalcVersion(programVersion), "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -2208,14 +2205,14 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return err
 	}
 
-	can.ProgramVersion = version
+	can.ProgramVersion = programVersion
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
-
+	//Store full version
 	if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 		log.Error("Failed to DeclarePromoteNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)

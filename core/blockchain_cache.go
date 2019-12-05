@@ -207,6 +207,7 @@ func (bcc *BlockChainCache) MakeStateDBByHeader(header *types.Header) (*state.St
 		if number > 1 && !statedb.HadParent() {
 			panic(fmt.Sprintf("parent is nil:%d", number))
 		}
+
 		return statedb, nil
 	} else if state, err := bcc.StateAt(root); err == nil && state != nil {
 		// Create a StateDB instance from the blockchain based on stateRoot

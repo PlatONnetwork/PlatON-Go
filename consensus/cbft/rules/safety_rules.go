@@ -1,15 +1,36 @@
+// Copyright 2018-2019 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package rules
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+)
+
+const (
+	riseTimeLimit = 200 * time.Millisecond
 )
 
 type SafetyError interface {
@@ -163,6 +184,32 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		return false
 	}
 
+	acceptBlockTime := func() SafetyError {
+		parentBlock := r.blockTree.FindBlockByHash(block.Block.ParentHash())
+		if parentBlock == nil && !isFirstBlock() {
+			parentBlock = r.viewState.ViewBlockByIndex(block.BlockIndex - 1)
+		}
+		if parentBlock == nil {
+			return newCommonError(fmt.Sprintf("parentBlock does not exist(parentHash:%s, parentNum:%d, blockIndex:%d)", block.Block.ParentHash().String(), block.BlockNum()-1, block.BlockIndex))
+		}
+		// prepareBlock timestamp
+		blockTime := common.MillisToTime(block.Block.Time().Int64())
+
+		// parent block time must before than prepareBlock time
+		if !common.MillisToTime(parentBlock.Time().Int64()).Before(blockTime) {
+			return newCommonError(fmt.Sprintf("prepareBlock time is before parent(parentHash:%s, parentNum:%d, parentTime:%d, blockHash:%s, blockNum:%d, blockTime:%d)",
+				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time().Int64(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64()))
+		}
+
+		// prepareBlock time cannot exceed system time by 200 ms
+		sysTime := time.Now()
+		if !blockTime.Before(sysTime.Add(riseTimeLimit)) {
+			return newCommonError(fmt.Sprintf("prepareBlock time is advance(blockHash:%s, blockNum:%d, blockTime:%d, sysTime:%d)",
+				block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64(), common.Millis(sysTime)))
+		}
+		return nil
+	}
+
 	// if local epoch and viewNumber is the same with msg
 	// Note:
 	// 1. block index is greater than or equal to the Amount value, discard the msg.
@@ -195,6 +242,10 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if pre.NumberU64()+1 != block.BlockNum() || pre.Hash() != block.Block.ParentHash() {
 			return newCommonError(fmt.Sprintf("non contiguous index block(preIndex:%d,preNum:%d,preHash:%s,curIndex:%d,curNum:%d,curParentHash:%s)",
 				block.BlockIndex-1, pre.NumberU64(), pre.Hash().String(), block.BlockIndex, block.BlockNum(), block.Block.ParentHash().String()))
+		}
+		// Verify the prepareBlock time
+		if err := acceptBlockTime(); err != nil {
+			return err
 		}
 		return nil
 	}

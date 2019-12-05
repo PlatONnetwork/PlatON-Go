@@ -440,7 +440,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	var (
 		latest          *types.Header
 		originh, pivoth *types.Header
-		origin, pivot   uint64
+		origin          uint64
 	)
 
 	originh, pivoth, err = d.findOrigin(p)
@@ -449,21 +449,20 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		return err
 	}
 	origin = originh.Number.Uint64()
-	pivot = pivoth.Number.Uint64()
 
-	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivot)
+	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivoth.Number)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
 	if d.mode == FastSync {
-		if pivot > origin {
+		if pivoth.Number.Uint64() > origin {
 			// fetch latest ppos storage cache from remote peer
-			latest, pivot, err = d.fetchPPOSInfo(p)
+			latest, pivoth, err = d.fetchPPOSInfo(p)
 			if err != nil {
 				return err
 			}
 			d.committed = 0
 		} else {
-			log.Info("no need synchronising", "peer", p.id, "origin", origin, "pivot", pivot)
+			log.Info("no need synchronising", "peer", p.id, "origin", origin, "pivot", pivoth.Number)
 			d.committed = 0
 			return
 		}
@@ -496,14 +495,14 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	}
 
 	fetchers := []func() error{
-		func() error { return d.fetchHeaders(p, origin+1, pivot) }, // Headers are always retrieved
-		func() error { return d.fetchBodies(origin + 1) },          // Bodies are retrieved during normal and fast sync
-		func() error { return d.fetchReceipts(origin + 1) },        // Receipts are retrieved during fast sync
-		func() error { return d.processHeaders(origin+1, pivot, bn) },
+		func() error { return d.fetchHeaders(p, origin+1, pivoth.Number.Uint64()) }, // Headers are always retrieved
+		func() error { return d.fetchBodies(origin + 1) },                           // Bodies are retrieved during normal and fast sync
+		func() error { return d.fetchReceipts(origin + 1) },                         // Receipts are retrieved during fast sync
+		func() error { return d.processHeaders(origin+1, pivoth.Number.Uint64(), bn) },
 	}
 	if d.mode == FastSync {
-		fetchers = append(fetchers, func() error { return d.processFastSyncContent(latest, pivot) })
-		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p) })
+		fetchers = append(fetchers, func() error { return d.processFastSyncContent(latest, pivoth.Number.Uint64()) })
+		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p, pivoth) })
 	} else if d.mode == FullSync {
 		fetchers = append(fetchers, d.processFullSyncContent)
 	}
@@ -573,7 +572,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 }
 
 // Latest is the  remote currentHeader, pivot is remote snapshotDB base num
-func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, pivot uint64, err error) {
+func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, pivot *types.Header, err error) {
 	p.log.Debug("Retrieving latest ppos info cache from remote peer")
 	var current *types.Block
 
@@ -582,20 +581,6 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-	//if b, err := d.snapshotDB.BaseNum(); err != nil {
-	//	return nil, 0, errors.New("get snapshotdb baseNum fail")
-	//}
-	//else {
-	//	if b.Uint64() != 0 {
-	//		d.snapshotDB.Clear()
-	//		d.snapshotDB = snapshotdb.Instance()
-	//	}
-	//}
-	defer func() {
-		if err != nil {
-			d.snapshotDB.Clear()
-		}
-	}()
 	go p.peer.RequestPPOSStorage()
 
 	var ttl time.Duration
@@ -604,42 +589,33 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	for {
 		select {
 		case <-d.cancelCh:
-			return nil, 0, errCancelBlockFetch
+			return nil, nil, errCancelBlockFetch
 		case <-timeout.C:
 			p.log.Error("Waiting for ppos storage timed out", "elapsed", ttl)
-			return nil, 0, errTimeout
+			return nil, nil, errTimeout
 		case packet := <-d.pposInfoCh:
 			// Discard anything not from the origin peer
 			if packet.PeerId() != p.id {
 				p.log.Error("Received ppos storage from incorrect peer", "peer", packet.PeerId())
-				return nil, 0, errors.New("received ppos storage from incorrect peer")
+				return nil, nil, errors.New("received ppos storage from incorrect peer")
 			}
 			pposDada := packet.(*pposInfoPack)
 			if pposDada.pivot == nil {
 				p.log.Error("pivot should not be nil")
-				return nil, 0, errors.New("pivot should not be nil")
+				return nil, nil, errors.New("pivot should not be nil")
 			}
 			pivotNumber := pposDada.pivot.Number
 			if pivotNumber.Cmp(pposDada.latest.Number) > 0 {
 				p.log.Error("pivotNumber is larger than latestNumber", "pivotNumber", pivotNumber.Uint64(), "latestNumber", pposDada.latest.Number.Uint64())
-				return nil, 0, errors.New("pivotNumber is larger than latestNumber")
+				return nil, nil, errors.New("pivotNumber is larger than latestNumber")
 			}
 
 			if current.NumberU64() >= pposDada.pivot.Number.Uint64() {
 				p.log.Error("current is larger than pposDada.pivot", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
-				return nil, 0, errors.New("pivotNumber is larger than latestNumber")
+				return nil, nil, errors.New("pivotNumber is larger than latestNumber")
 			}
-			if err := d.snapshotDB.SetEmpty(); err != nil {
-				p.log.Error("set  snapshotDB empty fail", "current", current.NumberU64(), "pposDada.pivot", pposDada.pivot)
-				return nil, 0, errors.New("clear snapshotDB fail:" + err.Error())
-			}
-			if err := d.snapshotDB.SetCurrent(pposDada.pivot.Hash(), *pivotNumber, *pivotNumber); err != nil {
-				p.log.Error("set snapshotdb current fail", "err", err)
-				return nil, 0, errors.New("set current fail")
-			}
-			pivot = pivotNumber.Uint64()
 			latest = pposDada.latest
-			return latest, pivot, nil
+			return latest, pposDada.pivot, nil
 		case <-d.bodyCh:
 		case <-d.receiptCh:
 		// Out of bounds delivery, ignore
@@ -649,8 +625,8 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	}
 }
 
-func (d *Downloader) fetchPPOSStorage(p *peerConnection) (err error) {
-	log.Debug("Retrieving latest ppos storage cache from remote peer")
+func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (err error) {
+	log.Debug("Retrieving latest ppos storage cache from remote peer", "pivot number", pivot.Number)
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
@@ -658,12 +634,17 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (err error) {
 	ttl = d.requestTTL()
 	timeout.Reset(ttl)
 	defer func() {
-		if err != nil {
-			d.snapshotDB.Clear()
-		}
 		close(d.pposStorageDoneCh)
 	}()
 	d.pposStorageDoneCh = make(chan struct{})
+	if err := d.snapshotDB.SetEmpty(); err != nil {
+		p.log.Error("set  snapshotDB empty fail")
+		return errors.New("set  snapshotDB empty fail:" + err.Error())
+	}
+	if err := d.snapshotDB.SetCurrent(pivot.Hash(), *pivot.Number, *pivot.Number); err != nil {
+		p.log.Error("set snapshotdb current fail", "err", err)
+		return errors.New("set current fail")
+	}
 	var count int64
 	for {
 		select {
@@ -725,6 +706,9 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 			d.queue.Close()
 		}
 		if err = <-errc; err != nil {
+			if d.mode == FastSync {
+				d.snapshotDB.SetEmpty()
+			}
 			break
 		}
 	}
