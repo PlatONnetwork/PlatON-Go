@@ -139,7 +139,7 @@ func TestRewardPlugin(t *testing.T) {
 	ec.Common.NodeBlockTimeWindow = 1
 	ec.Common.PerRoundBlocks = 1
 	millisecond = 3
-	minutes = 300
+	minutes = 400
 
 	t.Run("CalcEpochReward", func(t *testing.T) {
 		//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
@@ -169,7 +169,9 @@ func TestRewardPlugin(t *testing.T) {
 			if err := plugin.EndBlock(common.ZeroHash, currentHeader, mockDB); nil != err {
 				t.Fatalf("call endBlock fail, err：%v", err)
 			}
-			time.Sleep(time.Duration(int(time.Millisecond) * rand.Intn(millisecond)))
+			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
+				time.Sleep(time.Duration(int(time.Millisecond) * 3))
+			}
 
 			if packageReward == nil {
 				packageReward, err = LoadNewBlockReward(common.ZeroHash, plugin.db)
