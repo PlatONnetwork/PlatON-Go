@@ -2,7 +2,8 @@ import pytest
 from common.log import log
 import time
 import math
-from tests.lib.client import get_client_by_nodeid, get_clients_by_nodeid
+from tests.lib.client import get_client_by_nodeid, get_clients_by_nodeid, Client
+from tests.conftest import get_clients
 from tests.lib.utils import get_pledge_list, upload_platon, wait_block_number, assert_code, get_governable_parameter_value
 from typing import List
 from tests.lib import Pip
@@ -55,6 +56,15 @@ def proposal_vote(pip, vote_option=None, proposaltype=3):
     log.info('Node {} vote param proposal result {}'.format(pip.node.node_id, result))
     return result
 
+def verifier_node_version(obj, version=None):
+    if isinstance(obj, Client):
+        obj = get_client_by_nodeid(obj.node.node_id, get_clients(obj.economic.env))
+    node_version = obj.staking.get_version()
+    log.info('Node {} version is {}'.format(obj.node.node_id, node_version))
+    if version is None:
+        return node_version
+    else:
+        assert_code(node_version, version)
 
 @pytest.fixture()
 def no_vp_proposal(global_test_env, client_verifier):
@@ -295,3 +305,5 @@ def preactive_large_version_proposal_pips(all_clients):
     wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
     assert pip.get_status_of_proposal(proposalinfo.get('ProposalID')) == 4
     return pips
+
+

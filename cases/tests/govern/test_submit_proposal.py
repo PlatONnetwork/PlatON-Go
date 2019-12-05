@@ -806,7 +806,7 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 10000000
+        value = 10**18 * 10000000 + 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -829,7 +829,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_010(self, no_vp_proposal):
         pip = no_vp_proposal
-        value = 10**18 * 10000000 - 1
+        value = 10**18 * 10000000
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'stakeThreshold',
                                      str(value),
                                      pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
@@ -874,7 +874,7 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 10000
+        value = 10**18 * 10000 - 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
@@ -897,7 +897,7 @@ class TestPP:
     @allure.title('Submit parammeter  proposal function verification')
     def test_PP_SU_012(self, no_vp_proposal):
         pip = no_vp_proposal
-        value = 10**18 * 10000 - 1
+        value = 10**18 * 10000
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
                                      str(value), pip.node.staking_address,
                                      transaction_cfg=pip.cfg.transaction_cfg)

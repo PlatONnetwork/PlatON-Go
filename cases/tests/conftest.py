@@ -30,7 +30,9 @@ def staking_cfg():
     return cfg
 
 
-def get_clients(env, cfg):
+def get_clients(env, cfg=None):
+    if cfg is None:
+        cfg = StakingConfig("externalId", "nodeName", "website", "details")
     all_clients = []
     all_nodes = env.get_all_nodes()
     for node_obj in all_nodes:

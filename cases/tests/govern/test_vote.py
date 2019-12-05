@@ -3,7 +3,7 @@ from common.log import log
 import time
 from tests.lib.utils import assert_code, wait_block_number, upload_platon
 from tests.lib.client import get_client_by_nodeid
-from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, proposal_vote
+from tests.govern.conftest import version_proposal_vote, get_refund_to_account_block, proposal_vote, verifier_node_version
 from dacite import from_dict
 from tests.lib.genesis import Genesis
 from tests.govern.test_voting_statistics import submitvpandvote, submittpandvote, submitcppandvote
@@ -145,8 +145,10 @@ def test_VO_VO_001_V0_RE_001_V0_WA_001_V_STA_1_VO_OP_001_VO_OP_002(no_vp_proposa
                           address, transaction_cfg=pip.cfg.transaction_cfg)
     assert_code(result, 302021)
 
+    node_version = verifier_node_version(pip)
     result = version_proposal_vote(pip)
     assert_code(result, 0)
+    verifier_node_version(pip, node_version)
 
     result = pip.vote(pip.node.node_id, proposalinfo.get('ProposalID'), pip.cfg.vote_option_yeas,
                           pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)

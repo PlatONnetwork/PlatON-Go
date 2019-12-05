@@ -6,6 +6,7 @@ from tests.govern.test_voting_statistics import submitvpandvote, createstaking, 
 from tests.lib import Genesis
 from tests.lib.client import get_client_by_nodeid, get_clients_by_nodeid
 from dacite import from_dict
+from tests.govern.conftest import verifier_node_version
 
 @pytest.fixture()
 def large_version_proposal_pips(all_clients):
@@ -226,6 +227,7 @@ class TestNoProposalVE:
         pip = noproposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
 
         result = wrong_verisonsign_declare(pip, noproposal_pips[1])
         assert_code(result, 302024)
@@ -235,10 +237,12 @@ class TestNoProposalVE:
 
     @pytest.mark.P3
     @allure.title('No effective proposal, verifier declare version')
-    def test_DE_VE_002(self, noproposal_pips):
+    def test_DE_VE_002(self, noproposal_pips, all_clients):
         pip = noproposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN1, pip.cfg.version1)
         assert_code(result, 302028)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, noproposal_pips[1])
         assert_code(result, 302024)
@@ -252,6 +256,7 @@ class TestNoProposalVE:
         pip = noproposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN3)
 
         result = wrong_verisonsign_declare(pip, noproposal_pips[1])
         assert_code(result, 302024)
@@ -291,6 +296,7 @@ class TestNoProposalVE:
         pip = noproposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN0)
 
         result = wrong_verisonsign_declare(pip, noproposal_pips[1])
         assert_code(result, 302024)
@@ -309,6 +315,7 @@ class TestVotingProposalVE:
         pip = proposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
 
         result = wrong_verisonsign_declare(pip, proposal_pips[1])
         assert_code(result, 302024)
@@ -341,6 +348,7 @@ class TestVotingProposalVE:
         pip = large_version_proposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
 
         result = wrong_verisonsign_declare(pip, large_version_proposal_pips[1])
         assert_code(result, 302024)
@@ -373,6 +381,7 @@ class TestVotingProposalVE:
         pip = proposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN0)
 
         result = wrong_verisonsign_declare(pip, proposal_pips[1])
         assert_code(result, 302024)
@@ -386,6 +395,7 @@ class TestVotingProposalVE:
         pip = large_version_proposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN0)
 
         result = wrong_verisonsign_declare(pip, large_version_proposal_pips[1])
         assert_code(result, 302024)
@@ -399,6 +409,7 @@ class TestVotingProposalVE:
         pip = proposal_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN3)
 
         result = wrong_verisonsign_declare(pip, proposal_pips[1])
         assert_code(result, 302024)
@@ -411,10 +422,12 @@ class TestVotingProposalVE:
 
     @pytest.mark.P1
     @allure.title('No effective proposal, verifier declare version')
-    def test_DE_VE_038(self, proposal_pips):
+    def test_DE_VE_038(self, proposal_pips, all_clients):
         pip = proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, proposal_pips[1])
         assert_code(result, 302024)
@@ -426,8 +439,10 @@ class TestVotingProposalVE:
     @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_040(self, proposal_pips):
         pip = proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, proposal_pips[1])
         assert_code(result, 302024)
@@ -442,8 +457,10 @@ class TestVotingProposalVE:
     @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_042(self, proposal_pips):
         pip = proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, proposal_pips[1])
         assert_code(result, 302024)
@@ -474,8 +491,10 @@ class TestVotingProposalVE:
     @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_046(self, large_version_proposal_pips):
         pip = large_version_proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, large_version_proposal_pips[1])
         assert_code(result, 302024)
@@ -538,8 +557,10 @@ class TestVotingProposalVE:
     @allure.title('No effective proposal, verifier declare version')
     def test_DE_VE_054(self, large_version_proposal_pips):
         pip = large_version_proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, large_version_proposal_pips[1])
         assert_code(result, 302024)
@@ -659,8 +680,10 @@ class TestVotingProposlaVotedVE:
     @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_039(self, proposal_voted_pips):
         pip = proposal_voted_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, proposal_voted_pips[1])
         assert_code(result, 302024)
@@ -675,8 +698,10 @@ class TestVotingProposlaVotedVE:
     @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_041(self, proposal_voted_pips):
         pip = proposal_voted_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, proposal_voted_pips[1])
         assert_code(result, 302024)
@@ -691,8 +716,10 @@ class TestVotingProposlaVotedVE:
     @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_043(self, proposal_voted_pips):
         pip = proposal_voted_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, proposal_voted_pips[1])
         assert_code(result, 302024)
@@ -787,8 +814,10 @@ class TestVotingProposlaVotedVE:
     @allure.title('There is a proposal in voting stage, verifier declare version')
     def test_DE_VE_055(self, large_version_proposal_voted_pips):
         pip = large_version_proposal_voted_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, large_version_proposal_voted_pips[1])
         assert_code(result, 302024)
@@ -908,8 +937,10 @@ class TestPreactiveProposalVE:
     @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_065(self, preactive_proposal_pips):
         pip = preactive_proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, preactive_proposal_pips[1])
         assert_code(result, 302024)
@@ -921,8 +952,10 @@ class TestPreactiveProposalVE:
     @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_066(self, preactive_proposal_pips):
         pip = preactive_proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, preactive_proposal_pips[1])
         assert_code(result, 302024)
@@ -937,8 +970,10 @@ class TestPreactiveProposalVE:
     @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_067(self, preactive_proposal_pips):
         pip = preactive_proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, preactive_proposal_pips[1])
         assert_code(result, 302024)
@@ -1033,8 +1068,10 @@ class TestPreactiveProposalVE:
     @allure.title('There is a preactive proposal, verifier declare version')
     def test_DE_VE_073(self, preactive_large_version_proposal_pips):
         pip = preactive_large_version_proposal_pips[0]
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, preactive_large_version_proposal_pips[1])
         assert_code(result, 302024)
@@ -1050,6 +1087,7 @@ class TestNoProposalCA:
         pip = noproposal_candidate_pips[0]
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1078,6 +1116,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN3)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1120,6 +1159,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN0)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1137,6 +1177,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1171,6 +1212,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN2, pip.cfg.version2)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN2)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1205,6 +1247,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN0)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1219,6 +1262,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN0, pip.cfg.version0)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN0)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1233,6 +1277,7 @@ class TestNoProposalCA:
 
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN3)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1248,8 +1293,10 @@ class TestNoProposalCA:
     def test_DE_CA_038(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1262,8 +1309,10 @@ class TestNoProposalCA:
     def test_DE_CA_040(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1279,8 +1328,10 @@ class TestNoProposalCA:
     def test_DE_CA_042(self, proposal_candidate_pips, client_verifier):
         pip = proposal_candidate_pips[0]
 
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1313,8 +1364,10 @@ class TestNoProposalCA:
     def test_DE_CA_046(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN3, pip.cfg.version3)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)
@@ -1381,8 +1434,10 @@ class TestNoProposalCA:
     def test_DE_CA_054(self, large_version_proposal_candidate_pips, client_verifier):
         pip = large_version_proposal_candidate_pips[0]
 
+        node_version = verifier_node_version(pip)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN8, pip.cfg.version8)
         assert_code(result, 0)
+        verifier_node_version(pip, node_version)
 
         result = wrong_verisonsign_declare(pip, client_verifier.pip)
         assert_code(result, 302024)

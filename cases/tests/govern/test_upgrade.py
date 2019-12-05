@@ -5,6 +5,7 @@ from dacite import from_dict
 from tests.govern.test_voting_statistics import submittpandvote, submitcppandvote, \
     submitppandvote, submitcvpandvote, submitvpandvote
 import time
+from tests.govern.conftest import verifier_node_version
 import pytest, allure
 from tests.govern.test_declare_version import replace_version_declare
 
@@ -281,10 +282,13 @@ class TestUpgradedST:
         assert_code(result, 302028)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN4)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
+        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN6)
         result = pip.pip.listProposal()
         log.info('Interface listProposal result : {}'.format(result))
         assert_code(result, 0)
@@ -416,6 +420,7 @@ class TestUpgradeVP:
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
+        verifier_node_version(pip, proposalinfo.get('NewVersion'))
 
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
@@ -440,10 +445,12 @@ class TestUpgradeVP:
     def test_UV_NO_1(self, new_genesis_env, clients_consensus):
         update_setting_rate(new_genesis_env, 2, 0.249)
         pip = clients_consensus[0].pip
+        node_version = verifier_node_version(pip)
         submitvpandvote([clients_consensus[0]])
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_node_version(pip, node_version)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
         assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(clients_consensus)
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
@@ -456,10 +463,12 @@ class TestUpgradeVP:
     def test_UV_UP_1(self, new_genesis_env, clients_consensus):
         update_setting_rate(new_genesis_env, 2, 0.25)
         pip = clients_consensus[0].pip
+        node_version = verifier_node_version(pip)
         submitvpandvote([clients_consensus[0]])
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_node_version(pip, node_version)
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
         assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(clients_consensus)
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
