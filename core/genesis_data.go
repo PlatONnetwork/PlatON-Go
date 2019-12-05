@@ -284,7 +284,7 @@ func genesisAllowancePlan(statedb *state.StateDB) error {
 	return nil
 }
 
-func genesisPluginState(g *Genesis, statedb *state.StateDB, genesisIssue *big.Int) error {
+func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.DB, genesisIssue *big.Int) error {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
