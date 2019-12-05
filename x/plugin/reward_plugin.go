@@ -361,12 +361,13 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	if head.Number.Uint64() > yearStartBlockNumber {
 		diffNumber := head.Number.Uint64() - yearStartBlockNumber
 		diffTime := head.Time.Int64() - yearStartTime
+
 		avgPackTime = uint64(diffTime) / diffNumber
 		log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
 			"avgPackTime", avgPackTime)
 	}
-	if err := StorageAvgPackTime(blockHash, rmp.db, avgPackTime); nil != err {
+	if err := xcom.StorageAvgPackTime(blockHash, rmp.db, avgPackTime); nil != err {
 		log.Error("Failed to execute StorageAvgPackTime function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
 		return nil, nil, err
 	}
@@ -594,24 +595,4 @@ func IsYearEnd(hash common.Hash, blockNumber uint64, db snapshotdb.DB) (bool, er
 		return true, nil
 	}
 	return false, nil
-}
-
-func StorageAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB, avgPackTime uint64) error {
-	if err := snapshotDB.Put(hash, reward.AvgPackTimeKey, common.Uint64ToBytes(avgPackTime)); nil != err {
-		log.Error("Failed to execute StorageAvgPackTime function", "hash", hash.TerminalString(), "avgPackTime", avgPackTime, "err", err)
-		return err
-	}
-	return nil
-}
-
-func LoadAvgPackTime(hash common.Hash, snapshotDB snapshotdb.DB) (uint64, error) {
-	avgPackTimeByte, err := snapshotDB.Get(hash, reward.AvgPackTimeKey)
-	if nil != err {
-		if err == snapshotdb.ErrNotFound {
-			return 0, nil
-		}
-		log.Error("Failed to execute LoadAvgPackTime function", "hash", hash.TerminalString(), "key", string(reward.AvgPackTimeKey), "err", err)
-		return 0, err
-	}
-	return common.BytesToUint64(avgPackTimeByte), nil
 }

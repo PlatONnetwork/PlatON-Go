@@ -95,7 +95,7 @@ func makePrepareBlock(epoch, viewNumber uint64, block *types.Block, blockIndex u
 		t.Fatalf("%s", "prepareBlock cannibalizeBytes error")
 	}
 	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
-	t.Logf("prepareBlock signature:%s", p.Signature.String())
+	//t.Logf("prepareBlock signature:%s", p.Signature.String())
 
 	return p
 }
@@ -116,7 +116,7 @@ func makePrepareVote(epoch, viewNumber uint64, blockHash common.Hash, blockNumbe
 		t.Fatalf("%s", "prepareVote cannibalizeBytes error")
 	}
 	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
-	t.Logf("prepareVote signature:%s", p.Signature.String())
+	//t.Logf("prepareVote signature:%s", p.Signature.String())
 
 	return p
 }

@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -41,6 +43,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -119,6 +122,53 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 		return nil, err
 	}
 	return validatorQueue, nil
+}
+
+func TestRewardPlugin_CalcEpochReward(t *testing.T) {
+	chain := mock.NewChain()
+	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
+		tmp := new(big.Int).Set(b)
+		return tmp.Add(tmp, big.NewInt(1000))
+	})
+	snapshotdb.SetDBBlockChain(chain)
+	xcom.GetEc(xcom.DefaultTestNet)
+
+	yearBalance := big.NewInt(1e18)
+	SetYearEndCumulativeIssue(chain.StateDB, 0, yearBalance)
+	SetYearEndBalance(chain.StateDB, 0, yearBalance)
+	chain.StateDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
+
+	packageReward := new(big.Int)
+	stakingReward := new(big.Int)
+	var err error
+
+	for i := 0; i < 3200; i++ {
+		if err := chain.AddBlockWithSnapDBMiner(func(header *types.Header, sdb snapshotdb.DB) error {
+			plugin := new(RewardMgrPlugin)
+			plugin.db = sdb
+			if header.Number.Uint64() == 1 {
+				packageReward, stakingReward, err = plugin.CalcEpochReward(common.ZeroHash, header, chain.StateDB)
+				if err != nil {
+					return err
+				}
+				log.Debug("packageReward and stakingReward", "packageReward", packageReward, "stakingReward", stakingReward)
+				return nil
+			}
+			chain.StateDB.SubBalance(vm.RewardManagerPoolAddr, packageReward)
+			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
+				chain.StateDB.SubBalance(vm.RewardManagerPoolAddr, stakingReward)
+				packageReward, stakingReward, err = plugin.CalcEpochReward(common.ZeroHash, header, chain.StateDB)
+				if err != nil {
+					return err
+				}
+				log.Debug("packageReward and stakingReward", "packageReward", packageReward, "stakingReward", stakingReward)
+				return nil
+			}
+			return nil
+		}); err != nil {
+			t.Error(err)
+		}
+	}
 }
 
 func TestRewardPlugin(t *testing.T) {
