@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	math2 "math"
 	"math/big"
 	"sort"
 	"strconv"
@@ -81,6 +82,7 @@ const (
 
 	ValidatorName = "Validator"
 	VerifierName  = "Verifier"
+	RewardName  = "Reward"
 )
 
 // Instance a global StakingPlugin
@@ -173,18 +175,61 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+"0"), dataVerifier)
 		xcom.PrintObject("wow,insert verifier  0:", currentVerifier)
 
-		//packageReward, err := LoadNewBlockReward(common.ZeroHash, snapshotdb.Instance())
-		//if nil != err{
-		//	log.Error("Failed to LoadNewBlockReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
-		//	return err
-		//}
-		//stakingReward, err := LoadStakingReward(common.ZeroHash, snapshotdb.Instance())
-		//if nil != err{
-		//	log.Error("Failed to LoadStakingReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
-		//	return err
-		//}
-		//
-		//(*hexutil.Big)(packageReward)
+		//set reward history
+		packageReward, err := LoadNewBlockReward(common.ZeroHash, sk.db.GetDB())
+		if nil != err{
+			log.Error("Failed to LoadNewBlockReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		stakingReward, err := LoadStakingReward(common.ZeroHash, sk.db.GetDB())
+		if nil != err{
+			log.Error("Failed to LoadStakingReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+		yearNum, err := LoadChainYearNumber(common.ZeroHash, sk.db.GetDB())
+		if nil != err{
+			log.Error("Failed to LoadChainYearNumber on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+		incIssuanceTime, err := LoadIncIssuanceTime(common.ZeroHash, sk.db.GetDB())
+		if nil != err {
+			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+		avgPackTime, err := LoadAvgPackTime(common.ZeroHash, sk.db.GetDB())
+
+		if nil != err {
+			log.Error("Failed to LoadAvgPackTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		epochBlocks := xutil.CalcBlocksEachEpoch()
+		remainTime := incIssuanceTime - block.Header().Time.Int64()
+		remainEpoch := 1
+		remainBlocks := math2.Ceil(float64(remainTime) / float64(avgPackTime))
+		if remainBlocks > float64(epochBlocks) {
+			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
+		}
+
+		reward := staking.Reward{
+			PackageReward: (*hexutil.Big)(packageReward),
+			StakingReward: (*hexutil.Big)(stakingReward),
+			YearNum: yearNum,
+			RemainBlocks:remainBlocks,
+			RemainEpoch:remainEpoch,
+			AvgPackTime:avgPackTime,
+		}
+		dataReward, err := rlp.EncodeToBytes(reward)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(RewardName+"0"), dataReward)
+		xcom.PrintObject("wow,insert reward  0:", dataReward)
+
+
 	}
 	if xutil.IsElection(block.NumberU64()) {
 
@@ -263,6 +308,57 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
 		log.Debug("wow,insert verifier history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", VerifierName+numStr)
 		xcom.PrintObject("wow,insert verifier history :", current)
+
+		//set reward history
+		packageReward, err := LoadNewBlockReward(common.ZeroHash, sk.db.GetDB())
+		if nil != err{
+			log.Error("Failed to LoadNewBlockReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		stakingReward, err := LoadStakingReward(common.ZeroHash, sk.db.GetDB())
+		if nil != err{
+			log.Error("Failed to LoadStakingReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		yearNum, err := LoadChainYearNumber(common.ZeroHash, sk.db.GetDB())
+		if nil != err{
+			log.Error("Failed to LoadChainYearNumber on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		incIssuanceTime, err := LoadIncIssuanceTime(common.ZeroHash, sk.db.GetDB())
+		if nil != err {
+			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+		avgPackTime, err := LoadAvgPackTime(common.ZeroHash, sk.db.GetDB())
+		if nil != err {
+			log.Error("Failed to LoadAvgPackTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		epochBlocks := xutil.CalcBlocksEachEpoch()
+		remainTime := incIssuanceTime - block.Header().Time.Int64()
+		remainEpoch := 1
+		remainBlocks := math2.Ceil(float64(remainTime) / float64(avgPackTime))
+		if remainBlocks > float64(epochBlocks) {
+			remainEpoch = int(math2.Ceil(remainBlocks / float64(epochBlocks)))
+		}
+
+		reward := staking.Reward{
+			PackageReward: (*hexutil.Big)(packageReward),
+			StakingReward: (*hexutil.Big)(stakingReward),
+			YearNum: yearNum,
+			RemainBlocks:remainBlocks,
+			RemainEpoch:remainEpoch,
+			AvgPackTime:avgPackTime,
+		}
+		dataReward, err := rlp.EncodeToBytes(reward)
+		if nil != err {
+			log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		STAKING_DB.HistoryDB.Put([]byte(RewardName+numStr), dataReward)
+		xcom.PrintObject("wow,insert rewardName history :", dataReward)
 	}
 
 	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
@@ -1467,6 +1563,32 @@ func (sk *StakingPlugin) GetHistoryValidatorList(blockHash common.Hash, blockNum
 		queue[i] = valEx
 	}
 	return queue, nil
+}
+
+func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uint64) (
+	staking.Reward, error) {
+
+	i := uint64(0)
+	if blockNumber != i {
+		i = xutil.CalculateEpoch(blockNumber)
+	}
+
+	queryNumber := i * xutil.CalcBlocksEachEpoch()
+	numStr := strconv.FormatUint(queryNumber, 10)
+	log.Debug("wow,GetHistoryReward query number:", "num string", numStr)
+	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
+	var reward staking.Reward
+	if nil != err {
+		return reward, err
+	}
+
+	err = rlp.DecodeBytes(data, &reward)
+	if nil != err {
+		return reward, err
+	}
+	xcom.PrintObject("wow,GetHistoryReward", reward)
+
+	return reward, nil
 }
 
 func (sk *StakingPlugin) GetNodeVersion(blockHash common.Hash,blockNumber uint64) (staking.CandidateVersionQueue,error){

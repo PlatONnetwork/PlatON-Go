@@ -76,8 +76,8 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // of year, increasing issuance.
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	blockNumber := head.Number.Uint64()
-
 	packageReward := new(big.Int)
+
 	stakingReward := new(big.Int)
 	var err error
 

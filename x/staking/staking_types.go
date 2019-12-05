@@ -1137,3 +1137,12 @@ type CandidateVersion struct {
 	NodeId             discover.NodeID
 	ProgramVersion     uint32
 }
+
+type Reward struct {
+	PackageReward     *hexutil.Big
+	StakingReward     *hexutil.Big
+	YearNum     uint32
+	RemainBlocks     float64
+	RemainEpoch     int
+	AvgPackTime      uint64
+}
