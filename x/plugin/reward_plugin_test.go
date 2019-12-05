@@ -19,7 +19,6 @@ package plugin
 import (
 	"math/big"
 	"math/rand"
-	"os"
 	"testing"
 	"time"
 
@@ -42,8 +41,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -171,10 +168,16 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 	}
 }
 
-func TestRewardPlugin(t *testing.T) {
+func TestRewardMgrPlugin_EndBlock(t *testing.T) {
+	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
 	chain := mock.NewChain()
+	packTime := int64(xcom.Interval() * uint64(millisecond))
+	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
+		tmp := new(big.Int).Set(b)
+		return tmp.Add(tmp, big.NewInt(packTime))
+	})
 	mockDB := chain.StateDB
 	snapshotdb.SetDBBlockChain(chain)
 
@@ -185,100 +188,93 @@ func TestRewardPlugin(t *testing.T) {
 	}()
 
 	ec := xcom.GetEc(xcom.DefaultTestNet)
-	ec.Common.AdditionalCycleTime = 1
+	ec.Common.AdditionalCycleTime = 3
 	ec.Common.MaxEpochMinutes = 1
 	ec.Common.MaxConsensusVals = 1
-	ec.Common.NodeBlockTimeWindow = 1
-	ec.Common.PerRoundBlocks = 1
-	millisecond = 3
-	minutes = 400
 
-	t.Run("CalcEpochReward", func(t *testing.T) {
-		log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+	accounts := make(map[common.Address]*big.Int)
 
-		accounts := make(map[common.Address]*big.Int)
+	yearBalance := big.NewInt(1e18)
+	SetYearEndCumulativeIssue(mockDB, 0, yearBalance)
+	SetYearEndBalance(mockDB, 0, yearBalance)
+	mockDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
 
-		yearBalance := big.NewInt(1e18)
-		SetYearEndCumulativeIssue(mockDB, 0, yearBalance)
-		SetYearEndBalance(mockDB, 0, yearBalance)
-		mockDB.AddBalance(vm.RewardManagerPoolAddr, yearBalance)
+	validatorQueueList, err := buildTestStakingData(1, xutil.CalcBlocksEachEpoch())
+	if nil != err {
+		t.Fatalf("buildTestStakingData fail: %v", err)
+	}
+	rand.Seed(int64(time.Now().Nanosecond()))
+	var packageReward *big.Int
+	var stakingReward *big.Int
+	// Cover the following scenarios
+	// 1. Dynamically adjust the number of settlement cycles according to the average block production time
+	// 2. The block production speed of the last settlement cycle is too fast, leading to the completion of increase issuance in advance
+	// 3. The actual increase issuance time exceeds the expected increase issuance time
+	for i := 0; i < int(xutil.CalcBlocksEachEpoch()*5); i++ {
+		var currentHeader *types.Header
 
-		validatorQueueList, err := buildTestStakingData(1, xutil.CalcBlocksEachEpoch())
-		if nil != err {
-			t.Fatalf("buildTestStakingData fail: %v", err)
-		}
-		rand.Seed(int64(time.Now().Nanosecond()))
-		var packageReward *big.Int
-		var stakingReward *big.Int
-		for i := 0; i < int(xutil.CalcBlocksEachEpoch()*5); i++ {
-			parentHeader := chain.CurrentHeader()
-			chain.AddBlock()
-			currentHeader := chain.CurrentHeader()
-
+		if err := chain.AddBlockWithSnapDBMiner(func(header *types.Header, sdb snapshotdb.DB) error {
+			currentHeader = header
 			if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch() {
-				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetUint64(3))
-			}
-
-			if err := snapshotdb.Instance().NewBlock(currentHeader.Number, parentHeader.Hash(), common.ZeroHash); nil != err {
-				t.Fatal(err)
+				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
+			} else if currentHeader.Number.Uint64() < xutil.CalcBlocksEachEpoch()*2 {
+				currentHeader.Time.Sub(currentHeader.Time, new(big.Int).SetInt64(int64(rand.Int63n(packTime))))
+			} else {
+				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
 			}
 			if err := plugin.EndBlock(common.ZeroHash, currentHeader, mockDB); nil != err {
 				t.Fatalf("call endBlock fail, err：%v", err)
 			}
+			return nil
+		}); err != nil {
+			t.Error(err)
+		}
 
-			if packageReward == nil {
-				packageReward, err = LoadNewBlockReward(common.ZeroHash, plugin.db)
-				if nil != err {
-					t.Fatalf("call LoadNewBlockReward fail: %v", err)
-				}
-				stakingReward, err = LoadStakingReward(common.ZeroHash, plugin.db)
-				if nil != err {
-					t.Fatalf("call LoadStakingReward fail: %v", err)
-				}
+		if packageReward == nil {
+			packageReward, err = LoadNewBlockReward(common.ZeroHash, plugin.db)
+			if nil != err {
+				t.Fatalf("call LoadNewBlockReward fail: %v", err)
 			}
-			balance, ok := accounts[currentHeader.Coinbase]
-			if !ok {
-				balance = new(big.Int)
-				accounts[currentHeader.Coinbase] = balance
-			}
-			balance.Add(balance, packageReward)
-			if err := snapshotdb.Instance().Flush(currentHeader.Hash(), currentHeader.Number); nil != err {
-				t.Fatal(err)
-			}
-			if err := snapshotdb.Instance().Commit(currentHeader.Hash()); nil != err {
-				t.Fatal(err)
-			}
-
-			assert.Equal(t, accounts[currentHeader.Coinbase], mockDB.GetBalance(currentHeader.Coinbase))
-
-			if xutil.IsEndOfEpoch(currentHeader.Number.Uint64()) {
-				everyValidatorReward := new(big.Int).Div(stakingReward, big.NewInt(int64(len(validatorQueueList))))
-				for _, value := range validatorQueueList {
-					balance := accounts[value.NodeAddress]
-					if balance == nil {
-						balance = new(big.Int)
-						accounts[value.NodeAddress] = balance
-					}
-					balance.Add(balance, everyValidatorReward)
-					assert.Equal(t, balance, mockDB.GetBalance(value.NodeAddress))
-				}
-
-				validatorQueueList, err = buildTestStakingData(currentHeader.Number.Uint64()+1, currentHeader.Number.Uint64()+xutil.CalcBlocksEachEpoch())
-				if nil != err {
-					t.Fatalf("buildTestStakingData fail: %v", err)
-				}
-
-				packageReward, err = LoadNewBlockReward(common.ZeroHash, plugin.db)
-				if nil != err {
-					t.Fatalf("call LoadNewBlockReward fail: %v", err)
-				}
-				stakingReward, err = LoadStakingReward(common.ZeroHash, plugin.db)
-				if nil != err {
-					t.Fatalf("call LoadStakingReward fail: %v", err)
-				}
+			stakingReward, err = LoadStakingReward(common.ZeroHash, plugin.db)
+			if nil != err {
+				t.Fatalf("call LoadStakingReward fail: %v", err)
 			}
 		}
-	})
+		balance, ok := accounts[currentHeader.Coinbase]
+		if !ok {
+			balance = new(big.Int)
+			accounts[currentHeader.Coinbase] = balance
+		}
+		balance.Add(balance, packageReward)
+		assert.Equal(t, accounts[currentHeader.Coinbase], mockDB.GetBalance(currentHeader.Coinbase))
+
+		if xutil.IsEndOfEpoch(currentHeader.Number.Uint64()) {
+			everyValidatorReward := new(big.Int).Div(stakingReward, big.NewInt(int64(len(validatorQueueList))))
+			for _, value := range validatorQueueList {
+				balance := accounts[value.NodeAddress]
+				if balance == nil {
+					balance = new(big.Int)
+					accounts[value.NodeAddress] = balance
+				}
+				balance.Add(balance, everyValidatorReward)
+				assert.Equal(t, balance, mockDB.GetBalance(value.NodeAddress))
+			}
+
+			validatorQueueList, err = buildTestStakingData(currentHeader.Number.Uint64()+1, currentHeader.Number.Uint64()+xutil.CalcBlocksEachEpoch())
+			if nil != err {
+				t.Fatalf("buildTestStakingData fail: %v", err)
+			}
+
+			packageReward, err = LoadNewBlockReward(common.ZeroHash, plugin.db)
+			if nil != err {
+				t.Fatalf("call LoadNewBlockReward fail: %v", err)
+			}
+			stakingReward, err = LoadStakingReward(common.ZeroHash, plugin.db)
+			if nil != err {
+				t.Fatalf("call LoadStakingReward fail: %v", err)
+			}
+		}
+	}
 }
 
 func TestIncreaseIssuance(t *testing.T) {
