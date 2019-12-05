@@ -33,9 +33,12 @@ File storage requirements:
     Other files, put in the deploy/template template directory
 
 ### test case example:
-
-    @pytest.mark.P1
-    def test_case_001():
-        print("begin: test_case_001")
-        SomeTxAPI("test_case_001")
-        print("end: test_case_001")
+```python
+import pytest
+@pytest.mark.P1
+def test_case_001():
+    print("begin: test_case_001")
+    SomeTxAPI("test_case_001")
+    print("end: test_case_001")
+```
+    
