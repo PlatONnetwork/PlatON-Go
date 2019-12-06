@@ -1098,7 +1098,7 @@ def calculate_block_rewards_and_pledge_rewards(client, incentive_pool_amount, an
     verifier_num = len(verifier_list)
     log.info("Number of verification nodes in the current settlement cycle： {}".format(verifier_num))
     total_block_rewards = int(Decimal(str(incentive_pool_amount)) * Decimal(str(block_proportion)))
-    per_block_reward = total_block_rewards / Decimal(str(annual_size))
+    per_block_reward = int(Decimal(str(total_block_rewards)) / Decimal(str(annual_size)))
     log.info("Total block rewards: {} Each block reward: {}".format(total_block_rewards, per_block_reward))
     staking_reward_total = incentive_pool_amount - total_block_rewards
     staking_reward = int(Decimal(str(staking_reward_total)) / Decimal(str(annualcycle)) / Decimal(str(verifier_num)))
@@ -1121,18 +1121,16 @@ def test_AL_NBI_019(client_consensus):
     time.sleep(5)
     incentive_pool_balance = 262215742000000000000000000
     log.info("Get the initial value of the incentive pool：{}".format(incentive_pool_balance))
-    annualcycle = (economic.additional_cycle_time * 60) // economic.settlement_size
+    annualcycle = math.ceil((economic.additional_cycle_time * 60) / economic.settlement_size)
+    log.info("Number of current additional settlement cycles：{}".format(annualcycle))
     annual_size = annualcycle * economic.settlement_size
     log.info("Block height of current issuance cycle: {}".format(annual_size))
     per_block_reward, staking_reward = calculate_block_rewards_and_pledge_rewards(client, incentive_pool_balance, annual_size, annualcycle)
-    result = client.ppos.getPackageReward()
-    chain_block_reward = result['Ret']
+    chain_block_reward, chain_staking_reward = economic.get_current_year_reward(node)
     log.info("Block rewards on the chain： {}".format(chain_block_reward))
-    result = client.ppos.getStakingReward()
-    chain_pledge_reward = result['Ret']
-    log.info("Pledge rewards on the chain：{}".format(chain_pledge_reward))
+    log.info("Pledge rewards on the chain：{}".format(chain_staking_reward))
     assert per_block_reward == chain_block_reward, "ErrMsg:Block reward for the first settlement cycle {}".format(per_block_reward)
-    assert staking_reward == chain_pledge_reward, "ErrMsg:Pledge rewards for the first settlement cycle {}".format(staking_reward)
+    assert staking_reward == chain_staking_reward, "ErrMsg:Pledge rewards for the first settlement cycle {}".format(staking_reward)
 
 
 def test_AL_NBI_020(client_consensus):
@@ -1145,7 +1143,7 @@ def test_AL_NBI_020(client_consensus):
     economic = client.economic
     node = client.node
     economic.env.deploy_all()
-    economic.wait_consensus_blocknum()
+    economic.wait_consensus_blocknum(node)
     log.info("Start adjusting the block interval")
     for i in range(3):
         economic.env.stop_all()
@@ -1174,18 +1172,15 @@ def test_AL_NBI_020(client_consensus):
     remaining_settlement_cycle = math.ceil(number_of_remaining_blocks / economic.settlement_size)
     log.info("remaining settlement cycles in the current issuance cycle： {}".format(remaining_settlement_cycle))
     per_block_reward, staking_reward = calculate_block_rewards_and_pledge_rewards(client, incentive_pool_balance, number_of_remaining_blocks, remaining_settlement_cycle)
-    result = client.ppos.getPackageReward()
-    chain_block_reward = result['Ret']
+    chain_block_reward, chain_staking_reward = economic.get_current_year_reward(node)
     log.info("Block rewards on the chain： {}".format(chain_block_reward))
-    result = client.ppos.getStakingReward()
-    chain_pledge_reward = result['Ret']
-    log.info("Pledge rewards on the chain：{}".format(chain_pledge_reward))
+    log.info("Pledge rewards on the chain：{}".format(chain_staking_reward))
     result = client.ppos.getAvgPackTime()
     chain_time_interval = result['Ret']
-    log.info("链上出块间隔：{}".format(chain_time_interval))
+    log.info("Block interval on the chain：{}".format(chain_time_interval))
     assert per_block_reward == chain_block_reward, "ErrMsg:Block rewards for the current settlement cycle {}".format(
         per_block_reward)
-    assert staking_reward == chain_pledge_reward, "ErrMsg:Pledge rewards for the current settlement cycle {}".format(
+    assert staking_reward == chain_staking_reward, "ErrMsg:Pledge rewards for the current settlement cycle {}".format(
         staking_reward)
     assert average_interval == chain_time_interval, "ErrMsg:Block interval in the last settlement cycle {}".format(average_interval)
 

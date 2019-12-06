@@ -76,7 +76,7 @@ class Economic:
                 count = count + 1
         return count
 
-    def get_current_year_reward(self, node: Node):
+    def get_current_year_reward(self, node: Node, verifier_num=None):
         """
         Get the first year of the block reward, pledge reward
         :return:
@@ -87,9 +87,9 @@ class Economic:
         # annualcycle = (self.additional_cycle_time * 60) // self.settlement_size
         # annual_size = annualcycle * self.settlement_size
         # # starting_block_height = math.floor(current_block / annual_size) * annual_size
-        # if verifier_num is None:
-        #     verifier_list = get_pledge_list(node.ppos.getVerifierList)
-        #     verifier_num = len(verifier_list)
+        if verifier_num is None:
+            verifier_list = get_pledge_list(node.ppos.getVerifierList)
+            verifier_num = len(verifier_list)
         # # amount = node.eth.getBalance(self.cfg.INCENTIVEPOOL_ADDRESS, starting_block_height)
         # if amount is None:
         #     amount = 262215742000000000000000000
@@ -103,7 +103,7 @@ class Economic:
         result = node.ppos.getPackageReward()
         block_reward = result['Ret']
         result = node.ppos.getStakingReward()
-        staking_reward = result['Ret']
+        staking_reward = int(Decimal(str(result['Ret'])) / Decimal(str(verifier_num)))
         return block_reward, staking_reward
 
     def get_settlement_switchpoint(self, node: Node, number=0):
