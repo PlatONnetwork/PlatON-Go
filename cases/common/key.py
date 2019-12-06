@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from common.abspath import abspath
 from eth_keys import (
@@ -23,6 +24,21 @@ def generate_key():
     key_bytes = keccak(os.urandom(32) + extra_key_bytes)
     privatekey = keys.PrivateKey(key_bytes)
     return privatekey.to_hex()[2:], keys.private_key_to_public_key(privatekey).to_hex()[2:]
+
+
+def generate_blskey():
+    if sys.platform in "linux,linux2":
+        tool_file = abspath("tool/linux/keytool")
+        run("chmod +x {}".format(tool_file))
+    else:
+        tool_file = abspath("tool/win/keytool.exe")
+    output = run("{} genblskeypair".format(tool_file))
+    if not output:
+        raise Exception("unable to use generate blskey tool")
+    gex = re.compile("PrivateKey:.*?\n")
+    print(re.findall(gex, output))
+    print(output.split("\n"))
+    return output.strip("\n").strip(" ")
 
 
 def run(cmd):
@@ -84,4 +100,4 @@ def mock_duplicate_sign(dtype, sk, blskey, block_number, epoch=0, view_number=0,
 
 
 if __name__ == "__main__":
-    print(get_pub_key("http://192.168.9.201:6789", 2))
+    print(generate_blskey())
