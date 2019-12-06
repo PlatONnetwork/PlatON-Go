@@ -218,7 +218,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			StakingReward: (*hexutil.Big)(stakingReward),
 			YearNum: yearNum,
 			RemainBlocks:uint64(remainBlocks),
-			RemainEpoch:remainEpoch,
+			RemainEpoch:uint32(remainEpoch),
 			AvgPackTime:avgPackTime,
 		}
 		dataReward, err := rlp.EncodeToBytes(reward)
@@ -349,7 +349,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			StakingReward: (*hexutil.Big)(stakingReward),
 			YearNum: yearNum,
 			RemainBlocks:uint64(remainBlocks),
-			RemainEpoch:remainEpoch,
+			RemainEpoch:uint32(remainEpoch),
 			AvgPackTime:avgPackTime,
 		}
 		dataReward, err := rlp.EncodeToBytes(reward)

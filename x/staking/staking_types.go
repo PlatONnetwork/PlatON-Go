@@ -1143,6 +1143,6 @@ type Reward struct {
 	StakingReward     *hexutil.Big
 	YearNum     uint32
 	RemainBlocks     uint64
-	RemainEpoch     int
+	RemainEpoch     uint32
 	AvgPackTime      uint64
 }
