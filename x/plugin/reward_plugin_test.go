@@ -122,6 +122,9 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 }
 
 func TestRewardPlugin_CalcEpochReward(t *testing.T) {
+	defer func() {
+		snapshotdb.Instance().Clear()
+	}()
 	chain := mock.NewChain()
 	chain.SetHeaderTimeGenerate(func(b *big.Int) *big.Int {
 		tmp := new(big.Int).Set(b)
