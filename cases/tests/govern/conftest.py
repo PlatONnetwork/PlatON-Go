@@ -70,7 +70,7 @@ def verifier_node_version(obj, version=None):
 def no_vp_proposal(global_test_env, client_verifier):
     pip = client_verifier.pip
     if pip.is_exist_effective_proposal() or pip.chain_version != pip.cfg.version0 \
-            or pip.is_exist_effective_proposal(pip.cfg.param_proposal):
+            or pip.is_exist_effective_proposal_for_vote(pip.cfg.param_proposal):
         log.info('There is effective proposal,restart the chain')
         global_test_env.deploy_all()
     return pip

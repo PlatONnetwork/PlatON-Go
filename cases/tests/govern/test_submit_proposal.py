@@ -874,7 +874,7 @@ class TestPP:
         log.info('Submit param proposal result : {}'.format(result))
         assert_code(result, 3)
 
-        value = 10**18 * 10000 - 1
+        value = 10**18 * 10000 + 1
         result = pip.submitParam(pip.node.node_id, str(time.time()), 'staking', 'operatingThreshold',
                                      str(value), pip.node.staking_address, transaction_cfg=pip.cfg.transaction_cfg)
         log.info('Submit param proposal result : {}'.format(result))
