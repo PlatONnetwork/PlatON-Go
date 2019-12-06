@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 from common.abspath import abspath
 from eth_keys import (
@@ -27,18 +26,32 @@ def generate_key():
 
 
 def generate_blskey():
+    """
+    generate bls public and private keys
+    :return:
+        bls_private_key
+        bls_public_key
+    """
     if sys.platform in "linux,linux2":
         tool_file = abspath("tool/linux/keytool")
         run("chmod +x {}".format(tool_file))
     else:
         tool_file = abspath("tool/win/keytool.exe")
-    output = run("{} genblskeypair".format(tool_file))
-    if not output:
+    keypair = run("{} genblskeypair".format(tool_file))
+    if not keypair:
         raise Exception("unable to use generate blskey tool")
-    gex = re.compile("PrivateKey:.*?\n")
-    print(re.findall(gex, output))
-    print(output.split("\n"))
-    return output.strip("\n").strip(" ")
+    lines = keypair.split("\n")
+    bls_private_key = ""
+    bls_public_key = ""
+    for l in lines:
+        kv = l.split(":")
+        if kv[0] == "PrivateKey":
+            bls_private_key = kv[1].strip()
+        elif kv[0] == "PublicKey ":
+            bls_public_key = kv[1].strip()
+    if not bls_private_key or not bls_public_key:
+        raise Exception("Blskey cannot be generated")
+    return bls_private_key, bls_public_key
 
 
 def run(cmd):

@@ -11,7 +11,7 @@ from ruamel import yaml
 from environment.node import Node
 from environment.server import Server
 from common.abspath import abspath
-from common.key import generate_key
+from common.key import generate_key, generate_blskey
 from common.load_file import LoadFile, calc_hash
 from common.log import log
 from environment.account import Account
@@ -597,6 +597,9 @@ class TestEnvironment:
         if not node_config.get("id") or not node_config.get("nodekey"):
             self.__is_update_node_file = True
             node_config["nodekey"], node_config["id"] = generate_key()
+        if not node_config.get("blsprikey") or not node_config.get("blspubkey"):
+            self.__is_update_node_file = True
+            node_config["blsprikey"], node_config["blspubkey"] = generate_blskey()
         if not node_config.get("port"):
             self.__is_update_node_file = True
             node_config["port"] = 16789
@@ -673,7 +676,7 @@ if __name__ == "__main__":
     # new_cfg.syncmode = "fast"
     # print(env.cfg.syncmode)
     log.info("测试部署")
-    env.deploy_all()
+    # env.deploy_all()
     # node = env.get_consensus_node_by_index(0)
     # print(node.debug.economicConfig())
     # print(type(node.debug.economicConfig()))
