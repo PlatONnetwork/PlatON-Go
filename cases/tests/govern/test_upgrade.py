@@ -282,13 +282,13 @@ class TestUpgradedST:
         assert_code(result, 302028)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN, pip.cfg.version5)
         assert_code(result, 0)
-        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN)
+        verifier_node_version(pip, pip.cfg.version5)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN4, pip.cfg.version4)
         assert_code(result, 0)
-        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN4)
+        verifier_node_version(pip, pip.cfg.version4)
         result = replace_version_declare(pip, pip.cfg.PLATON_NEW_BIN6, pip.cfg.version6)
         assert_code(result, 0)
-        verifier_node_version(pip, pip.cfg.PLATON_NEW_BIN6)
+        verifier_node_version(pip, pip.cfg.version6)
         result = pip.pip.listProposal()
         log.info('Interface listProposal result : {}'.format(result))
         assert_code(result, 0)
@@ -416,11 +416,11 @@ class TestUpgradeVP:
         programversion = client_noconsensus.staking.get_version()
         assert_code(programversion, self.calculate_version(pip_test.cfg.version0))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
+        verifier_node_version(pip, proposalinfo.get('NewVersion'))
         assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
         wait_block_number(pip.node, proposalinfo.get('ActiveBlock'))
-        verifier_node_version(pip, proposalinfo.get('NewVersion'))
 
         validator_list = get_pledge_list(clients_consensus[0].ppos.getValidatorList)
         log.info('Validator list : {}'.format(validator_list))
@@ -443,10 +443,10 @@ class TestUpgradeVP:
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')
     def test_UV_NO_1(self, new_genesis_env, clients_consensus):
-        update_setting_rate(new_genesis_env, 2, 0.249)
+        update_setting_rate(new_genesis_env, 2, 0.251)
         pip = clients_consensus[0].pip
-        node_version = verifier_node_version(pip)
         submitvpandvote([clients_consensus[0]])
+        node_version = verifier_node_version(pip)
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
@@ -456,19 +456,18 @@ class TestUpgradeVP:
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1
         assert pip.get_nays_of_proposal(proposalinfo.get('ProposalID')) == 0
         assert pip.get_abstentions_of_proposal(proposalinfo.get('ProposalID')) == 0
-        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 4)
+        assert_code(pip.get_status_of_proposal(proposalinfo.get('ProposalID')), 3)
 
     @pytest.mark.P1
     @allure.title('Version proposal statistical function verification')
     def test_UV_UP_1(self, new_genesis_env, clients_consensus):
         update_setting_rate(new_genesis_env, 2, 0.25)
         pip = clients_consensus[0].pip
-        node_version = verifier_node_version(pip)
         submitvpandvote([clients_consensus[0]])
         proposalinfo = pip.get_effect_proposal_info_of_vote()
         log.info('Get version proposal infomation  {}'.format(proposalinfo))
         wait_block_number(pip.node, proposalinfo.get('EndVotingBlock'))
-        verifier_node_version(pip, node_version)
+        verifier_node_version(pip, proposalinfo.get('NewVersion'))
         assert pip.get_accuverifiers_count(proposalinfo.get('ProposalID')) == [4, 1, 0, 0]
         assert pip.get_accu_verifiers_of_proposal(proposalinfo.get('ProposalID')) == len(clients_consensus)
         assert pip.get_yeas_of_proposal(proposalinfo.get('ProposalID')) == 1

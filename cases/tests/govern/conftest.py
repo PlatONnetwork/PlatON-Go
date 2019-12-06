@@ -57,7 +57,7 @@ def proposal_vote(pip, vote_option=None, proposaltype=3):
     return result
 
 def verifier_node_version(obj, version=None):
-    if isinstance(obj, Client):
+    if not isinstance(obj, Client):
         obj = get_client_by_nodeid(obj.node.node_id, get_clients(obj.economic.env))
     node_version = obj.staking.get_version()
     log.info('Node {} version is {}'.format(obj.node.node_id, node_version))
