@@ -176,24 +176,24 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		xcom.PrintObject("wow,insert verifier  0:", currentVerifier)
 
 		//set reward history
-		packageReward, err := LoadNewBlockReward(common.ZeroHash, sk.db.GetDB())
+		packageReward, err := LoadNewBlockReward(block.Hash(), sk.db.GetDB())
 		if nil != err{
 			log.Error("Failed to LoadNewBlockReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-		stakingReward, err := LoadStakingReward(common.ZeroHash, sk.db.GetDB())
+		stakingReward, err := LoadStakingReward(block.Hash(), sk.db.GetDB())
 		if nil != err{
 			log.Error("Failed to LoadStakingReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
 
-		yearNum, err := LoadChainYearNumber(common.ZeroHash, sk.db.GetDB())
+		yearNum, err := LoadChainYearNumber(block.Hash(), sk.db.GetDB())
 		if nil != err{
 			log.Error("Failed to LoadChainYearNumber on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
 
-		incIssuanceTime, err := LoadIncIssuanceTime(common.ZeroHash, sk.db.GetDB())
+		incIssuanceTime, err := LoadIncIssuanceTime(block.Hash(), sk.db.GetDB())
 		if nil != err {
 			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
@@ -310,22 +310,22 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		xcom.PrintObject("wow,insert verifier history :", current)
 
 		//set reward history
-		packageReward, err := LoadNewBlockReward(common.ZeroHash, sk.db.GetDB())
+		packageReward, err := LoadNewBlockReward(block.Hash(), sk.db.GetDB())
 		if nil != err{
 			log.Error("Failed to LoadNewBlockReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-		stakingReward, err := LoadStakingReward(common.ZeroHash, sk.db.GetDB())
+		stakingReward, err := LoadStakingReward(block.Hash(), sk.db.GetDB())
 		if nil != err{
 			log.Error("Failed to LoadStakingReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-		yearNum, err := LoadChainYearNumber(common.ZeroHash, sk.db.GetDB())
+		yearNum, err := LoadChainYearNumber(block.Hash(), sk.db.GetDB())
 		if nil != err{
 			log.Error("Failed to LoadChainYearNumber on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
-		incIssuanceTime, err := LoadIncIssuanceTime(common.ZeroHash, sk.db.GetDB())
+		incIssuanceTime, err := LoadIncIssuanceTime(block.Hash(), sk.db.GetDB())
 		if nil != err {
 			log.Error("Failed to LoadIncIssuanceTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
