@@ -134,7 +134,7 @@ class Node:
             if len(result) > 0:
                 log.error(failed_msg.format(self.node_mark, "init", result[0]))
                 raise Exception("Init failed:{}".format(result[0]))
-            log.info("node-{} init success".format(self.node_mark))
+            log.debug("node-{} init success".format(self.node_mark))
         self.try_do(__init)
 
     def run_ssh(self, cmd, need_password=False):
@@ -147,7 +147,7 @@ class Node:
         clear node data
         :return:
         """
-        log.info("Clean node:{}".format(self.node_mark))
+        log.debug("Clean node:{}".format(self.node_mark))
 
         def __clean():
             is_success = self.stop()
@@ -198,7 +198,7 @@ class Node:
         close node
         :return:
         """
-        log.info("Stop node:{}".format(self.node_mark))
+        log.debug("Stop node:{}".format(self.node_mark))
 
         def __stop():
             self.__is_connected = False
@@ -214,7 +214,7 @@ class Node:
         :param is_init:
         :return:
         """
-        log.info("Start node:{}".format(self.node_mark))
+        log.debug("Start node:{}".format(self.node_mark))
 
         def __start():
             is_success = self.stop()
