@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -926,9 +928,9 @@ func (stkc *StakingContract) getStakingReward() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getAvgPackTime() ([]byte, error) {
-	avgPackTime, err := plugin.LoadAvgPackTime(common.ZeroHash, snapshotdb.Instance())
+	avgPackTime, err := xcom.LoadCurrentAvgPackTime()
 	if nil != err {
-		return callResultHandler(stkc.Evm, "getAvgPackTime", nil, common.NotFound.Wrap(err.Error())), nil
+		return callResultHandler(stkc.Evm, "getAvgPackTime", nil, common.InternalError.Wrap(err.Error())), nil
 	}
 	return callResultHandler(stkc.Evm, "getAvgPackTime", avgPackTime, nil), nil
 }
