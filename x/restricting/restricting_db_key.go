@@ -24,6 +24,7 @@ var (
 	RestrictingKeyPrefix    = []byte("RestrictInfo")
 	RestrictRecordKeyPrefix = []byte("RestrictRecord")
 	EpochPrefix             = []byte("RestrictEpoch")
+	InitialFoundationRestricting  = []byte("InitialFoundationRestricting")
 )
 
 // RestrictingKey used for search restricting info. key: prefix + account
