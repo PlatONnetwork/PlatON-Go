@@ -286,6 +286,8 @@ func TestIncreaseIssuance(t *testing.T) {
 
 	lastIssue := GetHistoryCumulativeIssue(mockDB, lastYear)
 
+	mockDB.AddBalance(vm.RestrictingContractAddr, new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18)))
+
 	plugin.increaseIssuance(thisYear, lastYear, mockDB)
 
 	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
