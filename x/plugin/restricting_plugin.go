@@ -198,7 +198,10 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 			}
 			rp.log.Info("release genesis restricting plan", "remains:",remains,"left:",len(genesisAllowancePlans))
 		}
+	} else {
+		rp.log.Info("Genesis restricting plan had all been released")
 	}
+
 	return nil
 }
 // AddRestrictingRecord stores four K-V record in StateDB:
