@@ -597,36 +597,6 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	return rp.getRestrictingInfoToReturn(account, state)
 }
 
-// check if idx in subsidy period(idx <= 8)
-func (rp *RestrictingPlugin) inSubsidy(idx uint32) bool {
-	return idx <= 8
-}
-
-// PlatON foundation initial allowance
-func (rp *RestrictingPlugin) foundationAllowance(idx uint32, state xcom.StateDB) {
-	allowancePlans := []*big.Int{
-		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18)),
-	}
-	if idx > uint32(len(allowancePlans)) {
-		log.Error("the year is wrong")
-	}
-
-	allowance := allowancePlans[idx-1]
-	if state.GetBalance(vm.RestrictingContractAddr).Cmp(allowance) < 0 {
-		panic("restricting contract balance is not enough!")
-	}
-	log.Debug("release ",allowance, " to ",vm.RewardManagerPoolAddr, " from ",vm.RestrictingContractAddr)
-	state.SubBalance(vm.RestrictingContractAddr, allowance)
-	state.AddBalance(vm.RewardManagerPoolAddr, allowance)
-}
-
 // state DB operation
 //func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
 //	key := restricting.GetLatestEpochKey()
