@@ -199,7 +199,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
-		avgPackTime, err := LoadAvgPackTime(common.ZeroHash, sk.db.GetDB())
+		avgPackTime, err := xcom.LoadCurrentAvgPackTime()
 
 		if nil != err {
 			log.Error("Failed to LoadAvgPackTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
@@ -331,7 +331,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			return err
 		}
 
-		avgPackTime, err := LoadAvgPackTime(common.ZeroHash, sk.db.GetDB())
+		avgPackTime, err := xcom.LoadCurrentAvgPackTime()
 		if nil != err {
 			log.Error("Failed to LoadAvgPackTime on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
