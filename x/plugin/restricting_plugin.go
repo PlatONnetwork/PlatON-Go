@@ -188,7 +188,7 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 				allowance := genesisAllowancePlans[0]
 				statedb.SubBalance(vm.RestrictingContractAddr, allowance)
 				statedb.AddBalance(vm.RewardManagerPoolAddr, allowance)
-
+				rp.log.Info("Genesis restricting plan release","remains",remains,"allowance",allowance)
 				genesisAllowancePlans = append(genesisAllowancePlans[:0], genesisAllowancePlans[1:]...)
 				if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {
 					return err
