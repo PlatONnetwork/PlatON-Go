@@ -112,7 +112,7 @@ def test_PIP_PVF_003(clients_consensus, reset_environment):
 @pytest.mark.P1
 def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
     """
-    治理修改低0出块率扣除验证人自有质押金块数成功扣除区块奖励块数60100-自由金额质押
+    治理修改低0出块率扣除验证人自有质押金块数成功扣除区块奖励块数49999-自由金额质押
     :param client_consensus:
     :param clients_noconsensus:
     :param reset_environment:
@@ -159,7 +159,7 @@ def test_PIP_PVF_004(client_consensus, clients_noconsensus, reset_environment):
 @pytest.mark.P1
 def test_PIP_PVF_005(client_consensus, clients_noconsensus, reset_environment):
     """
-    治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数60100-锁仓金额质押
+    治理修改低出块率扣除验证人自有质押金比例扣除区块奖励块数49999-锁仓金额质押
     :param client_consensus:
     :param clients_noconsensus:
     :param reset_environment:
