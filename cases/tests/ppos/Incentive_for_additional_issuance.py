@@ -256,3 +256,4 @@ def AL_FI_004_005(new_genesis_env, staking_cfg):
             benifit_balance1)
         # Waiting for the end of the annual increase
         economic.wait_annual_blocknum(node)
+
