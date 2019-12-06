@@ -311,7 +311,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.DB) *types.Block {
 		}
 
 		// Store genesis version into governance data And somethings about reward
-		if err := genesisPluginState(g, statedb, genesisIssuance); nil != err {
+		if err := genesisPluginState(g, statedb, snapDB, genesisIssuance); nil != err {
 			panic("Failed to Store xxPlugin genesis statedb: " + err.Error())
 		}
 

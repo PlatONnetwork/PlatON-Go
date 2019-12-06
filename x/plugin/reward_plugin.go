@@ -106,6 +106,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 		if err := rmp.allocateStakingReward(blockNumber, blockHash, stakingReward, state); err != nil {
 			return err
 		}
+
 		if err := rmp.runIncreaseIssuance(blockHash, head, state); nil != err {
 			return err
 		}
@@ -170,7 +171,6 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	}
 	balance := state.GetBalance(vm.RewardManagerPoolAddr)
 	SetYearEndBalance(state, thisYear, balance)
-
 }
 
 // allocateStakingReward used for reward staking at the settle block
