@@ -217,7 +217,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			PackageReward: (*hexutil.Big)(packageReward),
 			StakingReward: (*hexutil.Big)(stakingReward),
 			YearNum: yearNum,
-			RemainBlocks:remainBlocks,
+			RemainBlocks:uint64(remainBlocks),
 			RemainEpoch:remainEpoch,
 			AvgPackTime:avgPackTime,
 		}
@@ -348,7 +348,7 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 			PackageReward: (*hexutil.Big)(packageReward),
 			StakingReward: (*hexutil.Big)(stakingReward),
 			YearNum: yearNum,
-			RemainBlocks:remainBlocks,
+			RemainBlocks:uint64(remainBlocks),
 			RemainEpoch:remainEpoch,
 			AvgPackTime:avgPackTime,
 		}
@@ -1576,7 +1576,7 @@ func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uin
 	queryNumber := i * xutil.CalcBlocksEachEpoch()
 	numStr := strconv.FormatUint(queryNumber, 10)
 	log.Debug("wow,GetHistoryReward query number:", "num string", numStr)
-	data, err := STAKING_DB.HistoryDB.Get([]byte(ValidatorName + numStr))
+	data, err := STAKING_DB.HistoryDB.Get([]byte(RewardName + numStr))
 	var reward staking.Reward
 	if nil != err {
 		return reward, err

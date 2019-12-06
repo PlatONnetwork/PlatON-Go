@@ -1142,7 +1142,7 @@ type Reward struct {
 	PackageReward     *hexutil.Big
 	StakingReward     *hexutil.Big
 	YearNum     uint32
-	RemainBlocks     float64
+	RemainBlocks     uint64
 	RemainEpoch     int
 	AvgPackTime      uint64
 }
