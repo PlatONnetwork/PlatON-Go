@@ -307,7 +307,7 @@ func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.DB
 
 	err := plugin.RestrictingInstance().InitGenesisRestrictingPlans(statedb)
 	if err != nil {
-		return fmt.Errorf("Failed to init genesis restricting plans, err", err.Error())
+		return fmt.Errorf("Failed to init genesis restricting plans, err:%s", err.Error())
 	}
 	genesisReward := statedb.GetBalance(vm.RewardManagerPoolAddr)
 	plugin.SetYearEndBalance(statedb, 0, genesisReward)
