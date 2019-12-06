@@ -29,7 +29,7 @@ const (
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
 	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
-	GenesisVersion = uint32(0<<16 | 7<<8 | 1)
+	GenesisVersion = uint32(0<<16 | 7<<8 | 5)
 )
 
 // Version holds the textual version string.
