@@ -43,7 +43,7 @@ const (
 	Eighty                    = 80
 	Hundred                   = 100
 	TenThousand               = 10000
-	CeilBlocksReward          = 60101
+	CeilBlocksReward          = 50000
 	CeilMaxValidators         = 201
 	FloorMaxConsensusVals     = 4
 	CeilMaxConsensusVals      = 25

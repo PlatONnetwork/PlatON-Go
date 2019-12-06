@@ -96,7 +96,8 @@ func CalcEpochDuration() uint64 {
 }
 
 func CalcConsensusRounds(seconds uint64) uint64 {
-	return seconds / (xcom.Interval() * ConsensusSize())
+	//v0.7.5, hard code 1 second per block.
+	return seconds / (1 * ConsensusSize())
 }
 
 func CalcEpochRounds(seconds uint64) uint64 {
